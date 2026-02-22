@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlarmClockXtreme Privacy Policy</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 720px; margin: 0 auto; padding: 2rem 1rem; color: #1a1a1a; line-height: 1.7; }
+        h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.3rem; margin-top: 2rem; border-bottom: 1px solid #eee; padding-bottom: 0.3rem; }
+        .date { color: #666; font-size: 0.9rem; }
+        ul { padding-left: 1.5rem; }
+        li { margin-bottom: 0.5rem; }
+        a { color: #4A90D9; }
+    </style>
+</head>
+<body>
+    <h1>AlarmClockXtreme Privacy Policy</h1>
+    <p class="date">Effective date: February 21, 2026</p>
+
+    <h2>Overview</h2>
+    <p>AlarmClockXtreme is an open-source alarm clock application. We are committed to protecting your privacy. This app does not collect, transmit, or share any personal data with anyone, including the developer.</p>
+
+    <h2>Data Collection</h2>
+    <p>AlarmClockXtreme does <strong>not</strong> collect any personal information. Specifically:</p>
+    <ul>
+        <li>No analytics or tracking SDKs are included</li>
+        <li>No advertising frameworks are included</li>
+        <li>No personal data is transmitted to any server</li>
+        <li>No user accounts or registration are required</li>
+        <li>No crash reports are sent automatically (crash logs are stored locally on your device only)</li>
+    </ul>
+
+    <h2>Permissions</h2>
+    <p>The app requests the following permissions, all used locally on your device:</p>
+    <ul>
+        <li><strong>Exact Alarms (SCHEDULE_EXACT_ALARM)</strong> &mdash; Required to fire alarms at the exact time you set</li>
+        <li><strong>Notifications (POST_NOTIFICATIONS)</strong> &mdash; To show alarm alerts and the persistent next-alarm notification</li>
+        <li><strong>Foreground Service</strong> &mdash; To play alarm sounds and vibration reliably</li>
+        <li><strong>Boot Completed</strong> &mdash; To reschedule your alarms after device restart</li>
+        <li><strong>Wake Lock</strong> &mdash; To keep the screen on while an alarm is firing</li>
+        <li><strong>Location (ACCESS_COARSE_LOCATION)</strong> &mdash; Optional. Used only to fetch weather for your area from the Open-Meteo API. Your coordinates are sent directly to Open-Meteo's server and are not stored or transmitted anywhere else. You can use the manual location feature instead.</li>
+        <li><strong>Calendar (READ_CALENDAR)</strong> &mdash; Optional. Used only to display today's events on the dashboard. Calendar data is read locally and never transmitted.</li>
+        <li><strong>Vibrate</strong> &mdash; To vibrate the device when an alarm fires</li>
+    </ul>
+
+    <h2>Network Requests</h2>
+    <p>The app makes the following network requests, all to free, open-source APIs:</p>
+    <ul>
+        <li><strong>Open-Meteo Weather API</strong> (api.open-meteo.com) &mdash; Fetches current weather and forecast. Only your latitude/longitude is sent. No API key or authentication required.</li>
+        <li><strong>Open-Meteo Geocoding API</strong> (geocoding-api.open-meteo.com) &mdash; Converts city names to coordinates when you manually set a location. Only the search query is sent.</li>
+    </ul>
+    <p>No other network requests are made. The app functions fully offline except for weather data.</p>
+
+    <h2>Data Storage</h2>
+    <p>All data is stored locally on your device:</p>
+    <ul>
+        <li>Alarms, settings, and alarm history are stored in a local SQLite database</li>
+        <li>Preferences are stored in Android DataStore (local encrypted storage)</li>
+        <li>Backup/restore exports data as a JSON file to a location you choose</li>
+    </ul>
+
+    <h2>Third-Party Services</h2>
+    <p>The app does not integrate with any third-party analytics, advertising, or tracking services. The only external service used is the Open-Meteo weather API, which is free, open-source, and does not require authentication.</p>
+
+    <h2>Children's Privacy</h2>
+    <p>This app does not knowingly collect any information from children under 13. The app does not collect information from anyone.</p>
+
+    <h2>Changes to This Policy</h2>
+    <p>If we update this privacy policy, the changes will be posted here and the effective date will be updated. Since the app is open source, you can always verify the app's behavior by reviewing the source code.</p>
+
+    <h2>Open Source</h2>
+    <p>AlarmClockXtreme is open source under the Apache License 2.0. The full source code is available at <a href="https://github.com/SysAdminDoc/AlarmClockXtreme">github.com/SysAdminDoc/AlarmClockXtreme</a>.</p>
+
+    <h2>Contact</h2>
+    <p>If you have questions about this privacy policy, you can open an issue on the <a href="https://github.com/SysAdminDoc/AlarmClockXtreme/issues">GitHub repository</a>.</p>
+</body>
+</html>
