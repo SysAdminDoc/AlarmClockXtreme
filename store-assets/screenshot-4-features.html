@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Screenshot 4 - Bedtime & Features</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&family=JetBrains+Mono:wght@500&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; overflow: hidden; background: linear-gradient(170deg, #0D1B2A 0%, #0A1628 50%, #0D1B2A 100%); font-family: 'Outfit', sans-serif; position: relative; display: flex; flex-direction: column; align-items: center; }
+  .header-text { margin-top: 80px; text-align: center; z-index: 10; }
+  .header-text h2 { font-size: 42px; font-weight: 800; color: #fff; }
+  .header-text p { font-size: 20px; color: rgba(255,255,255,0.5); font-weight: 300; margin-top: 8px; }
+  .features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 60px 60px 0; z-index: 10; width: 100%; }
+  .feature-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 28px; }
+  .feature-icon { font-size: 32px; margin-bottom: 12px; }
+  .feature-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .feature-desc { font-size: 14px; color: rgba(255,255,255,0.45); line-height: 1.5; font-weight: 300; }
+  .feature-card.highlight { border-color: rgba(91,158,244,0.2); background: rgba(91,158,244,0.05); }
+  .feature-card.highlight .feature-title { color: #5B9EF4; }
+  .feature-card.wide { grid-column: span 2; display: flex; gap: 24px; align-items: center; }
+  .feature-card.wide .feature-icon { font-size: 40px; margin-bottom: 0; }
+  .bedtime-visual { margin-top: 40px; z-index: 10; text-align: center; }
+  .circle-ring { width: 200px; height: 200px; border-radius: 50%; border: 4px solid rgba(91,158,244,0.2); position: relative; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+  .circle-ring::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 4px solid transparent; border-top-color: #5B9EF4; border-right-color: #5B9EF4; transform: rotate(45deg); }
+  .circle-inner { text-align: center; }
+  .sleep-hrs { font-size: 48px; font-weight: 800; color: #fff; line-height: 1; }
+  .sleep-label { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+  .bedtime-info { display: flex; gap: 40px; justify-content: center; margin-top: 24px; }
+  .bt-item { text-align: center; }
+  .bt-time { font-size: 20px; font-weight: 700; color: #fff; }
+  .bt-label { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.25; }
+  .orb-1 { width: 400px; height: 400px; background: #7C4DFF; bottom: -100px; right: -100px; }
+</style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="header-text">
+    <h2>Everything You Need</h2>
+    <p>Sleep tracking, widgets, backup, and more</p>
+  </div>
+
+  <div class="bedtime-visual">
+    <div class="circle-ring">
+      <div class="circle-inner">
+        <div class="sleep-hrs">8h</div>
+        <div class="sleep-label">Sleep Goal</div>
+      </div>
+    </div>
+    <div class="bedtime-info">
+      <div class="bt-item"><div class="bt-time">11:00 PM</div><div class="bt-label">Bedtime</div></div>
+      <div class="bt-item"><div class="bt-time">6:30 AM</div><div class="bt-label">Wake Up</div></div>
+      <div class="bt-item"><div class="bt-time">30 min</div><div class="bt-label">Reminder</div></div>
+    </div>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card highlight">
+      <div class="feature-icon">&#9201;</div>
+      <div class="feature-title">Timer</div>
+      <div class="feature-desc">Countdown timer with notification alerts when done</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#9202;</div>
+      <div class="feature-title">Stopwatch</div>
+      <div class="feature-desc">Precision timing with lap tracking</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#127796;</div>
+      <div class="feature-title">Vacation Mode</div>
+      <div class="feature-desc">Auto-skip alarms during your time off</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">&#128190;</div>
+      <div class="feature-title">Backup</div>
+      <div class="feature-desc">Export and import all alarms as JSON</div>
+    </div>
+    <div class="feature-card wide highlight">
+      <div class="feature-icon">&#128272;</div>
+      <div>
+        <div class="feature-title">Privacy First</div>
+        <div class="feature-desc">No ads, no analytics, no tracking, no accounts. 100% open source.</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

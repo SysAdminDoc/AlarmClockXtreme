@@ -1,0 +1,43 @@
+Categories:
+  - Time
+License: Apache-2.0
+AuthorName: SysAdminDoc
+AuthorWebSite: https://github.com/SysAdminDoc
+SourceCode: https://github.com/SysAdminDoc/AlarmClockXtreme
+IssueTracker: https://github.com/SysAdminDoc/AlarmClockXtreme/issues
+Changelog: https://github.com/SysAdminDoc/AlarmClockXtreme/blob/main/CHANGELOG.md
+
+AutoName: AlarmClockXtreme
+Summary: Feature-rich alarm clock with challenges, weather, and bedtime tracking
+
+Description: |-
+  AlarmClockXtreme is a powerful, open-source alarm clock designed to
+  actually get you out of bed. Features include dismiss challenges
+  (math, shake, memory), weather dashboard, bedtime tracking,
+  timer, stopwatch, home screen widget, vacation mode, and full
+  backup/restore.
+
+  No ads, no analytics, no tracking, no accounts required.
+  Zero Google Play Services dependencies.
+
+RepoType: git
+Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
+
+Builds:
+  - versionName: 0.8.1
+    versionCode: 9
+    commit: v0.8.1
+    subdir: app
+    gradle:
+      - fdroid
+    srclibs:
+      - buildSrc@v0.8.1
+    rm:
+      - app/src/main/google-services.json
+
+AntiFeatures:
+  NonFreeNet:
+    en-US: Weather data fetched from Open-Meteo API (optional, can be disabled)
+
+CurrentVersion: 0.8.1
+CurrentVersionCode: 9

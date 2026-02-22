@@ -1,0 +1,48 @@
+# F-Droid Metadata
+# Place in fdroiddata repo as metadata/com.sysadmindoc.alarmclock.yml
+
+Categories:
+  - Time
+License: Apache-2.0
+AuthorName: SysAdminDoc
+AuthorEmail: sysadmindoc@proton.me
+SourceCode: https://github.com/SysAdminDoc/AlarmClockXtreme
+IssueTracker: https://github.com/SysAdminDoc/AlarmClockXtreme/issues
+
+AutoName: AlarmClockXtreme
+Description: |
+  A powerful, privacy-first alarm clock with dismiss challenges, weather
+  dashboard, timer, stopwatch, and home screen widget. No ads, no tracking.
+
+  Features include math/shake/sequence/memory dismiss challenges, vacation mode,
+  quick alarm chips, alarm templates, Open-Meteo weather integration, calendar
+  events on My Day dashboard, and a Glance home screen widget.
+
+RepoType: git
+Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
+
+Builds:
+  - versionName: 0.5.0
+    versionCode: 5
+    commit: v0.5.0
+    subdir: app
+    gradle:
+      - fdroid
+
+  - versionName: 0.4.0
+    versionCode: 4
+    commit: v0.4.0
+    subdir: app
+    gradle:
+      - fdroid
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 0.5.0
+CurrentVersionCode: 5
+
+# Anti-features: None
+# - No NonFreeNet (Open-Meteo is AGPL-3.0, no API key required)
+# - No NonFreeAdd (no ads)
+# - No NonFreeDep (no proprietary dependencies in fdroid flavor)
+# - No Tracking (no analytics)

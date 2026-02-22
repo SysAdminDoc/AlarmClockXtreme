@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Screenshot 2 - Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&family=JetBrains+Mono:wght@500&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; overflow: hidden; background: linear-gradient(170deg, #0D1B2A 0%, #0A1628 50%, #0D1B2A 100%); font-family: 'Outfit', sans-serif; position: relative; display: flex; flex-direction: column; align-items: center; }
+  .header-text { margin-top: 80px; text-align: center; z-index: 10; }
+  .header-text h2 { font-size: 42px; font-weight: 800; color: #fff; }
+  .header-text p { font-size: 20px; color: rgba(255,255,255,0.5); font-weight: 300; margin-top: 8px; }
+  .phone-frame { width: 380px; margin-top: 50px; background: #111B2E; border-radius: 36px; border: 3px solid rgba(91,158,244,0.15); padding: 12px; box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(91,158,244,0.08); z-index: 10; }
+  .screen { background: #0D1B2A; border-radius: 24px; overflow: hidden; padding: 40px 20px 20px; }
+  .greeting { font-size: 28px; font-weight: 700; color: #fff; }
+  .date-text { font-size: 15px; color: rgba(255,255,255,0.45); margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+  .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px; margin-top: 16px; }
+  .card-title { font-size: 12px; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; }
+  .weather-main { display: flex; align-items: flex-start; gap: 16px; }
+  .temp-big { font-size: 64px; font-weight: 800; color: #fff; line-height: 1; letter-spacing: -2px; }
+  .temp-unit { font-size: 20px; color: rgba(255,255,255,0.4); vertical-align: top; }
+  .weather-details { flex: 1; padding-top: 8px; }
+  .weather-desc { font-size: 16px; color: rgba(255,255,255,0.7); }
+  .weather-feels { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+  .weather-row { display: flex; gap: 12px; margin-top: 12px; }
+  .weather-stat { flex: 1; background: rgba(91,158,244,0.08); border-radius: 8px; padding: 10px; text-align: center; }
+  .weather-stat-val { font-size: 18px; font-weight: 700; color: #fff; }
+  .weather-stat-label { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .event { display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .event-time { font-size: 13px; color: #5B9EF4; font-family: 'JetBrains Mono', monospace; min-width: 65px; padding-top: 2px; }
+  .event-title { font-size: 15px; color: rgba(255,255,255,0.8); }
+  .event-loc { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+  .next-alarm-card { background: linear-gradient(135deg, rgba(91,158,244,0.12), rgba(61,90,254,0.08)); border: 1px solid rgba(91,158,244,0.2); border-radius: 16px; padding: 20px; margin-top: 16px; text-align: center; }
+  .next-label { font-size: 12px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1.5px; }
+  .next-time { font-size: 36px; font-weight: 800; color: #fff; margin-top: 4px; }
+  .next-remaining { font-size: 14px; color: #5B9EF4; font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.3; }
+  .orb-1 { width: 400px; height: 400px; background: #00BCD4; top: -100px; left: -100px; }
+</style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="header-text">
+    <h2>Your Morning at a Glance</h2>
+    <p>Weather, calendar, next alarm</p>
+  </div>
+  <div class="phone-frame"><div class="screen">
+    <div class="greeting">Good evening, Matt</div>
+    <div class="date-text">Friday, Feb 21, 2026</div>
+
+    <div class="next-alarm-card">
+      <div class="next-label">Next Alarm</div>
+      <div class="next-time">6:30 AM</div>
+      <div class="next-remaining">in 7h 22m</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Weather</div>
+      <div class="weather-main">
+        <div><span class="temp-big">68</span><span class="temp-unit">°F</span></div>
+        <div class="weather-details">
+          <div class="weather-desc">Partly Cloudy</div>
+          <div class="weather-feels">Feels like 65°F</div>
+        </div>
+      </div>
+      <div class="weather-row">
+        <div class="weather-stat"><div class="weather-stat-val">74°</div><div class="weather-stat-label">High</div></div>
+        <div class="weather-stat"><div class="weather-stat-val">58°</div><div class="weather-stat-label">Low</div></div>
+        <div class="weather-stat"><div class="weather-stat-val">45%</div><div class="weather-stat-label">Humidity</div></div>
+        <div class="weather-stat"><div class="weather-stat-val">8mph</div><div class="weather-stat-label">Wind</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Today's Schedule</div>
+      <div class="event">
+        <div class="event-time">9:00 AM</div>
+        <div><div class="event-title">Team Standup</div><div class="event-loc">Google Meet</div></div>
+      </div>
+      <div class="event">
+        <div class="event-time">11:30 AM</div>
+        <div><div class="event-title">Client Demo</div><div class="event-loc">Conference Room B</div></div>
+      </div>
+      <div class="event">
+        <div class="event-time">2:00 PM</div>
+        <div><div class="event-title">Sprint Planning</div><div class="event-loc">Zoom</div></div>
+      </div>
+    </div>
+  </div></div>
+</body>
+</html>
