@@ -9,7 +9,8 @@
 
 > A feature-rich, open-source alarm clock for Android with dismiss challenges, weather dashboard, bedtime tracking, and a deep dark theme. No ads, no tracking, no accounts.
 
-![Screenshot](screenshots/screenshot_preview.png)
+<img width="772" height="568" alt="image" src="https://github.com/user-attachments/assets/01e2e354-3905-4dd2-bb86-112282ae1346" />
+
 
 ## Quick Start
 
