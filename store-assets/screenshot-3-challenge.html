@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080">
+<title>Screenshot 3 - Dismiss Challenge</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;800&family=JetBrains+Mono:wght@500&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1920px; overflow: hidden; background: linear-gradient(170deg, #0D1B2A 0%, #1a0a0a 50%, #0D1B2A 100%); font-family: 'Outfit', sans-serif; position: relative; display: flex; flex-direction: column; align-items: center; }
+  .header-text { margin-top: 80px; text-align: center; z-index: 10; }
+  .header-text h2 { font-size: 42px; font-weight: 800; color: #fff; }
+  .header-text p { font-size: 20px; color: rgba(255,255,255,0.5); font-weight: 300; margin-top: 8px; }
+  .phone-frame { width: 380px; margin-top: 50px; background: #111B2E; border-radius: 36px; border: 3px solid rgba(244,67,54,0.2); padding: 12px; box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(244,67,54,0.1); z-index: 10; }
+  .screen { background: #0D1B2A; border-radius: 24px; overflow: hidden; padding: 40px 20px 20px; min-height: 1400px; display: flex; flex-direction: column; align-items: center; }
+  .alarm-label { font-size: 16px; color: rgba(255,255,255,0.5); margin-top: 40px; text-transform: uppercase; letter-spacing: 2px; }
+  .alarm-time-big { font-size: 80px; font-weight: 800; color: #fff; letter-spacing: -4px; margin-top: 8px; line-height: 1; }
+  .alarm-am { font-size: 24px; color: rgba(255,255,255,0.5); font-weight: 300; }
+  .challenge-box { background: rgba(255,152,0,0.08); border: 1px solid rgba(255,152,0,0.2); border-radius: 20px; padding: 30px; margin-top: 50px; text-align: center; width: 100%; }
+  .challenge-title { font-size: 14px; color: #FF9800; text-transform: uppercase; letter-spacing: 1.5px; font-family: 'JetBrains Mono', monospace; }
+  .challenge-problem { font-size: 48px; font-weight: 800; color: #fff; margin-top: 16px; letter-spacing: 2px; }
+  .challenge-input { display: flex; gap: 8px; justify-content: center; margin-top: 20px; }
+  .digit-box { width: 48px; height: 56px; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,152,0,0.3); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; color: #FF9800; }
+  .digit-box.empty { border-color: rgba(255,255,255,0.1); }
+  .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 40px; width: 100%; max-width: 280px; }
+  .num-btn { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; text-align: center; font-size: 24px; font-weight: 600; color: #fff; }
+  .snooze-btn { margin-top: auto; margin-bottom: 30px; padding: 16px 48px; background: rgba(255,152,0,0.15); border: 1px solid rgba(255,152,0,0.3); border-radius: 30px; color: #FF9800; font-size: 16px; font-weight: 600; letter-spacing: 1px; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.25; }
+  .orb-1 { width: 400px; height: 400px; background: #F44336; top: 200px; right: -100px; }
+  .orb-2 { width: 300px; height: 300px; background: #FF9800; bottom: 100px; left: -100px; opacity: 0.15; }
+</style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="header-text">
+    <h2>Wake Your Brain First</h2>
+    <p>Math, shake, and memory challenges</p>
+  </div>
+  <div class="phone-frame"><div class="screen">
+    <div class="alarm-label">Wake Up</div>
+    <div class="alarm-time-big">6:30 <span class="alarm-am">AM</span></div>
+
+    <div class="challenge-box">
+      <div class="challenge-title">Solve to Dismiss</div>
+      <div class="challenge-problem">47 + 38 = ?</div>
+      <div class="challenge-input">
+        <div class="digit-box">8</div>
+        <div class="digit-box">5</div>
+        <div class="digit-box empty"></div>
+      </div>
+    </div>
+
+    <div class="numpad">
+      <div class="num-btn">1</div>
+      <div class="num-btn">2</div>
+      <div class="num-btn">3</div>
+      <div class="num-btn">4</div>
+      <div class="num-btn">5</div>
+      <div class="num-btn">6</div>
+      <div class="num-btn">7</div>
+      <div class="num-btn">8</div>
+      <div class="num-btn">9</div>
+      <div class="num-btn"></div>
+      <div class="num-btn">0</div>
+      <div class="num-btn" style="font-size:18px">DEL</div>
+    </div>
+
+    <div class="snooze-btn">SNOOZE (2 of 3)</div>
+  </div></div>
+</body>
+</html>
