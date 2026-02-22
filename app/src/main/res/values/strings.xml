@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AlarmClockXtreme</string>
+
+    <!-- Notification channels -->
+    <string name="alarm_notification_channel">Alarm</string>
+    <string name="upcoming_notification_channel">Upcoming Alarms</string>
+    <string name="missed_notification_channel">Missed Alarms</string>
+    <string name="bedtime_notification_channel">Bedtime Reminder</string>
+    <string name="persistent_notification_channel">Next Alarm</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Shows the next scheduled alarm time and countdown</string>
+    <string name="widget_no_alarm">No alarm set</string>
+
+    <!-- Navigation -->
+    <string name="nav_my_day">My Day</string>
+    <string name="nav_alarms">Alarms</string>
+    <string name="nav_timer">Timer</string>
+    <string name="nav_stopwatch">Stopwatch</string>
+    <string name="nav_bedtime">Bedtime</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Alarm list -->
+    <string name="no_alarms_title">No alarms yet</string>
+    <string name="no_alarms_subtitle">Tap + to add your first alarm</string>
+    <string name="alarm_enabled">Alarm enabled</string>
+    <string name="alarm_disabled">Alarm disabled</string>
+    <string name="add_alarm">Add alarm</string>
+    <string name="quick_alarm">Quick alarm</string>
+
+    <!-- Alarm edit -->
+    <string name="edit_alarm">Edit Alarm</string>
+    <string name="new_alarm">New Alarm</string>
+    <string name="save">Save</string>
+    <string name="label">Label</string>
+    <string name="ringtone">Ringtone</string>
+    <string name="vibration">Vibration</string>
+    <string name="volume">Volume</string>
+    <string name="snooze_duration">Snooze duration</string>
+    <string name="dismiss_challenge">Dismiss challenge</string>
+    <string name="repeat">Repeat</string>
+
+    <!-- Challenges -->
+    <string name="challenge_math">Math Problem</string>
+    <string name="challenge_shake">Shake Phone</string>
+    <string name="challenge_memory">Memory Sequence</string>
+    <string name="challenge_none">None</string>
+    <string name="solve_to_dismiss">Solve to Dismiss</string>
+
+    <!-- Alarm firing -->
+    <string name="dismiss">Dismiss</string>
+    <string name="snooze">Snooze</string>
+    <string name="dismiss_alarm">Dismiss alarm</string>
+    <string name="missed_alarm">Missed Alarm</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="format_24h">24-hour format</string>
+    <string name="auto_silence">Auto-silence</string>
+    <string name="vacation_mode">Vacation Mode</string>
+    <string name="temperature_unit">Temperature unit</string>
+    <string name="show_weather">Show weather</string>
+    <string name="show_calendar">Show calendar</string>
+    <string name="backup">Backup</string>
+    <string name="restore">Restore</string>
+    <string name="about">About</string>
+
+    <!-- Bedtime -->
+    <string name="bedtime_reminder">Bedtime Reminder</string>
+    <string name="bedtime_wind_down">Time to wind down</string>
+    <string name="bedtime_approaching">Your bedtime is approaching. Start getting ready for sleep.</string>
+    <string name="sleep_goal">Sleep Goal</string>
+    <string name="no_alarm_set">No alarm set</string>
+
+    <!-- Dashboard -->
+    <string name="weather_unavailable">Weather unavailable</string>
+    <string name="grant_location">Grant location access for weather</string>
+
+    <!-- General -->
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="delete">Delete</string>
+    <string name="undo">Undo</string>
+    <string name="alarm_deleted">Alarm deleted</string>
+</resources>

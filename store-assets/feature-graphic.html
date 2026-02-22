@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1024">
+<title>AlarmClockXtreme Feature Graphic</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;600;800&family=JetBrains+Mono:wght@500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1024px;
+    height: 500px;
+    overflow: hidden;
+    background: #0D1B2A;
+    font-family: 'Outfit', sans-serif;
+    position: relative;
+  }
+
+  /* Subtle grid pattern */
+  .grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(91,158,244,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(91,158,244,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Glow orbs */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.4;
+  }
+  .orb-1 { width: 300px; height: 300px; background: #5B9EF4; top: -100px; left: -50px; }
+  .orb-2 { width: 250px; height: 250px; background: #3D5AFE; bottom: -80px; right: 100px; opacity: 0.25; }
+  .orb-3 { width: 200px; height: 200px; background: #00BCD4; top: 50px; right: -40px; opacity: 0.2; }
+
+  .content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding: 0 80px;
+    gap: 60px;
+  }
+
+  .left {
+    flex: 1;
+  }
+
+  .badge {
+    display: inline-block;
+    background: rgba(91,158,244,0.15);
+    border: 1px solid rgba(91,158,244,0.3);
+    color: #5B9EF4;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: 52px;
+    font-weight: 800;
+    color: #FFFFFF;
+    line-height: 1.05;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+
+  h1 span {
+    background: linear-gradient(135deg, #5B9EF4, #00BCD4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 18px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.6);
+    line-height: 1.5;
+    max-width: 420px;
+  }
+
+  .pills {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 300;
+  }
+
+  .right {
+    position: relative;
+    width: 260px;
+    height: 400px;
+    flex-shrink: 0;
+  }
+
+  /* Phone mockup */
+  .phone {
+    width: 240px;
+    height: 420px;
+    background: #111B2E;
+    border-radius: 28px;
+    border: 2px solid rgba(91,158,244,0.2);
+    position: absolute;
+    top: 30px;
+    right: 0;
+    overflow: hidden;
+    box-shadow:
+      0 20px 60px rgba(0,0,0,0.5),
+      0 0 40px rgba(91,158,244,0.1),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .phone-screen {
+    padding: 40px 16px 16px;
+  }
+
+  .phone-time {
+    font-size: 56px;
+    font-weight: 800;
+    color: #fff;
+    text-align: center;
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+
+  .phone-ampm {
+    font-size: 16px;
+    font-weight: 300;
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .phone-remaining {
+    text-align: center;
+    font-size: 13px;
+    color: #5B9EF4;
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .phone-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+    margin: 16px 0;
+  }
+
+  .alarm-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .alarm-time-sm {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .alarm-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 2px;
+  }
+
+  .alarm-toggle {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    position: relative;
+  }
+
+  .alarm-toggle.on {
+    background: #5B9EF4;
+  }
+
+  .alarm-toggle.off {
+    background: rgba(255,255,255,0.15);
+  }
+
+  .alarm-toggle::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    top: 2px;
+  }
+
+  .alarm-toggle.on::after { right: 2px; }
+  .alarm-toggle.off::after { left: 2px; }
+
+  .weather-strip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(91,158,244,0.08);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-top: 8px;
+  }
+
+  .weather-temp {
+    font-size: 22px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .weather-desc {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+  }
+
+  /* Open source badge bottom-right */
+  .oss-badge {
+    position: absolute;
+    bottom: 20px;
+    right: 80px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .oss-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4CAF50;
+  }
+</style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="content">
+    <div class="left">
+      <div class="badge">Open Source &bull; No Ads &bull; No Tracking</div>
+      <h1>Alarm Clock<br><span>Xtreme</span></h1>
+      <p class="subtitle">The alarm clock that actually gets you out of bed. Challenges, weather, bedtime tracking, and a beautiful dark interface.</p>
+      <div class="pills">
+        <span class="pill">Dismiss Challenges</span>
+        <span class="pill">Weather Dashboard</span>
+        <span class="pill">Bedtime Tracking</span>
+        <span class="pill">Home Widget</span>
+        <span class="pill">Vacation Mode</span>
+        <span class="pill">Backup & Restore</span>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="phone">
+        <div class="phone-screen">
+          <div class="phone-time">6:30</div>
+          <div class="phone-ampm">AM</div>
+          <div class="phone-remaining">in 7h 22m</div>
+          <div class="phone-divider"></div>
+          <div class="alarm-card">
+            <div>
+              <div class="alarm-time-sm">6:30 AM</div>
+              <div class="alarm-label">Wake Up</div>
+            </div>
+            <div class="alarm-toggle on"></div>
+          </div>
+          <div class="alarm-card">
+            <div>
+              <div class="alarm-time-sm">7:45 AM</div>
+              <div class="alarm-label">Leave for Work</div>
+            </div>
+            <div class="alarm-toggle on"></div>
+          </div>
+          <div class="alarm-card">
+            <div>
+              <div class="alarm-time-sm">9:00 PM</div>
+              <div class="alarm-label">Wind Down</div>
+            </div>
+            <div class="alarm-toggle off"></div>
+          </div>
+          <div class="weather-strip">
+            <div class="weather-temp">68°</div>
+            <div class="weather-desc">Partly Cloudy<br>H: 74° L: 58°</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="oss-badge">
+    <div class="oss-dot"></div>
+    github.com/SysAdminDoc/AlarmClockXtreme
+  </div>
+</body>
+</html>
