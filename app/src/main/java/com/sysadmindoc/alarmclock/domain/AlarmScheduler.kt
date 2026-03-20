@@ -80,11 +80,13 @@ class AlarmScheduler @Inject constructor(
 
     /**
      * Schedule a snoozed alarm to fire after the snooze duration.
+     * @param customMinutes Override snooze duration (null = use alarm's default)
      */
-    suspend fun scheduleSnooze(alarm: Alarm) {
+    suspend fun scheduleSnooze(alarm: Alarm, customMinutes: Int? = null) {
         if (!canScheduleExactAlarms()) return
 
-        val snoozeTime = System.currentTimeMillis() + (alarm.snoozeDurationMinutes * 60 * 1000L)
+        val minutes = customMinutes ?: alarm.snoozeDurationMinutes
+        val snoozeTime = System.currentTimeMillis() + (minutes * 60 * 1000L)
         repository.updateNextTrigger(alarm.id, snoozeTime)
 
         val pendingIntent = createPendingIntent(alarm.id)

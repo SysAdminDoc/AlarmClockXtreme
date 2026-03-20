@@ -118,8 +118,10 @@ class AlarmFiringViewModel @Inject constructor(
         if (_uiState.value.memoryPhase != MemoryPhase.INPUT) return
 
         val tapped = _uiState.value.memoryTappedIndices
+        val nextExpectedIndex = tapped.size
 
-        if (index in challenge.pattern) {
+        // Validate the tile matches the next expected position in the pattern sequence
+        if (nextExpectedIndex < challenge.pattern.size && index == challenge.pattern[nextExpectedIndex]) {
             val newTapped = tapped + index
             _uiState.value = _uiState.value.copy(memoryTappedIndices = newTapped)
             if (newTapped.size == challenge.pattern.size) {
