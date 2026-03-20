@@ -216,7 +216,7 @@ fun BedtimeScreen(
         val timePickerState = rememberTimePickerState(
             initialHour = state.bedtimeHour,
             initialMinute = state.bedtimeMinute,
-            is24Hour = false
+            is24Hour = state.is24HourFormat
         )
         AlertDialog(
             onDismissRequest = { showTimePicker = false },

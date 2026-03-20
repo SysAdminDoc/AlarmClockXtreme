@@ -47,8 +47,26 @@ fun AlarmListScreen(
         )
     }
 
+    // Undo snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(state.undoAlarm) {
+        state.undoAlarm?.let { alarm ->
+            val result = snackbarHostState.showSnackbar(
+                message = "Alarm deleted",
+                actionLabel = "Undo",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDelete()
+            } else {
+                viewModel.confirmDelete()
+            }
+        }
+    }
+
     Scaffold(
         containerColor = SurfaceDark,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             Column(
                 horizontalAlignment = Alignment.End,
@@ -93,6 +111,15 @@ fun AlarmListScreen(
                 onOpenSettings = onOpenSettings
             )
 
+            // Group filter chips
+            if (state.groups.size > 1) {
+                GroupFilterRow(
+                    groups = state.groups,
+                    selectedGroup = state.selectedGroup,
+                    onSelectGroup = viewModel::selectGroup
+                )
+            }
+
             // Quick alarm chips
             QuickAlarmRow(onQuickAlarm = viewModel::createQuickAlarm)
 
@@ -128,13 +155,20 @@ fun AlarmListScreen(
                 )
             }
 
-            // Filter alarms by search
-            val filteredAlarms = remember(state.alarms, searchQuery) {
-                if (searchQuery.isBlank()) state.alarms
-                else state.alarms.filter { alarm ->
-                    alarm.label.contains(searchQuery, ignoreCase = true) ||
-                    alarm.repeatLabel.contains(searchQuery, ignoreCase = true)
+            // Filter alarms by search + group
+            val filteredAlarms = remember(state.alarms, searchQuery, state.selectedGroup) {
+                var result = state.alarms
+                if (state.selectedGroup != null) {
+                    result = result.filter { it.group == state.selectedGroup }
                 }
+                if (searchQuery.isNotBlank()) {
+                    result = result.filter { alarm ->
+                        alarm.label.contains(searchQuery, ignoreCase = true) ||
+                        alarm.repeatLabel.contains(searchQuery, ignoreCase = true) ||
+                        alarm.group.contains(searchQuery, ignoreCase = true)
+                    }
+                }
+                result
             }
 
             // Alarm list
@@ -159,10 +193,12 @@ fun AlarmListScreen(
                         ) {
                             AlarmCard(
                                 alarm = alarm,
+                                is24Hour = state.is24HourFormat,
                                 onToggle = { viewModel.toggleAlarm(alarm) },
                                 onClick = { onEditAlarm(alarm.id) },
                                 onDelete = { viewModel.deleteAlarm(alarm) },
-                                onSkipNext = { viewModel.skipNextOccurrence(alarm) }
+                                onSkipNext = { viewModel.skipNextOccurrence(alarm) },
+                                onDuplicate = { viewModel.duplicateAlarm(alarm) }
                             )
                         }
                     }
@@ -246,6 +282,41 @@ private fun AlarmHeader(
 }
 
 @Composable
+private fun GroupFilterRow(
+    groups: List<String>,
+    selectedGroup: String?,
+    onSelectGroup: (String?) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        FilterChip(
+            selected = selectedGroup == null,
+            onClick = { onSelectGroup(null) },
+            label = { Text("All", fontSize = 12.sp) },
+            colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = AccentBlue.copy(alpha = 0.2f),
+                containerColor = SurfaceCard
+            )
+        )
+        groups.filter { it.isNotBlank() }.forEach { group ->
+            FilterChip(
+                selected = selectedGroup == group,
+                onClick = { onSelectGroup(if (selectedGroup == group) null else group) },
+                label = { Text(group, fontSize = 12.sp) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = AccentBlue.copy(alpha = 0.2f),
+                    containerColor = SurfaceCard
+                )
+            )
+        }
+    }
+}
+
+@Composable
 private fun QuickAlarmRow(onQuickAlarm: (Int) -> Unit) {
     Row(
         modifier = Modifier
@@ -273,10 +344,12 @@ private fun QuickAlarmRow(onQuickAlarm: (Int) -> Unit) {
 @Composable
 private fun AlarmCard(
     alarm: Alarm,
+    is24Hour: Boolean = false,
     onToggle: () -> Unit,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    onSkipNext: () -> Unit = {}
+    onSkipNext: () -> Unit = {},
+    onDuplicate: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -307,20 +380,29 @@ private fun AlarmCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.Bottom) {
-                    val hour12 = if (alarm.hour % 12 == 0) 12 else alarm.hour % 12
-                    val amPm = if (alarm.hour < 12) "AM" else "PM"
-                    Text(
-                        text = "$hour12:${String.format("%02d", alarm.minute)}",
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Light,
-                        color = if (alarm.isEnabled) TextPrimary else TextMuted
-                    )
-                    Text(
-                        text = amPm,
-                        fontSize = 16.sp,
-                        color = if (alarm.isEnabled) TextSecondary else TextMuted,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
-                    )
+                    if (is24Hour) {
+                        Text(
+                            text = "${String.format("%02d", alarm.hour)}:${String.format("%02d", alarm.minute)}",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Light,
+                            color = if (alarm.isEnabled) TextPrimary else TextMuted
+                        )
+                    } else {
+                        val hour12 = if (alarm.hour % 12 == 0) 12 else alarm.hour % 12
+                        val amPm = if (alarm.hour < 12) "AM" else "PM"
+                        Text(
+                            text = "$hour12:${String.format("%02d", alarm.minute)}",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Light,
+                            color = if (alarm.isEnabled) TextPrimary else TextMuted
+                        )
+                        Text(
+                            text = amPm,
+                            fontSize = 16.sp,
+                            color = if (alarm.isEnabled) TextSecondary else TextMuted,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                        )
+                    }
                 }
                 Text(
                     text = alarm.label.ifBlank { alarm.repeatLabel },
@@ -328,12 +410,26 @@ private fun AlarmCard(
                     color = if (alarm.isEnabled) TextSecondary else TextMuted
                 )
 
-                // Indicators row: challenge type, sound
-                if (alarm.challengeType != "NONE" || alarm.ringtoneUri == "silent") {
+                // Indicators row: group, challenge type, sound
+                val showIndicators = alarm.group.isNotBlank() || alarm.challengeType != "NONE" || alarm.ringtoneUri == "silent"
+                if (showIndicators) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.padding(top = 2.dp)
                     ) {
+                        if (alarm.group.isNotBlank()) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = AccentBlue.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    alarm.group,
+                                    fontSize = 10.sp,
+                                    color = AccentBlue,
+                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
                         if (alarm.challengeType != "NONE") {
                             val challengeLabel = alarm.challengeType.lowercase()
                                 .replace("_", " ").replaceFirstChar { it.uppercase() }
@@ -385,6 +481,11 @@ private fun AlarmCard(
                     DropdownMenuItem(
                         text = { Text("Edit") },
                         onClick = { showMenu = false; onClick() }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Duplicate") },
+                        leadingIcon = { Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(18.dp)) },
+                        onClick = { showMenu = false; onDuplicate() }
                     )
                     if (alarm.isEnabled && alarm.repeatDays.isNotEmpty()) {
                         DropdownMenuItem(

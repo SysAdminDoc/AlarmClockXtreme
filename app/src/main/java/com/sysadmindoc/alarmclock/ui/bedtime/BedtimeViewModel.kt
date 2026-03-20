@@ -30,7 +30,8 @@ data class BedtimeUiState(
     val reminderMinutesBefore: Int = 30,
     val bedtimeFormatted: String = "11:00 PM",
     val wakeTimeFormatted: String = "",
-    val sleepDurationFormatted: String = "8h 0m"
+    val sleepDurationFormatted: String = "8h 0m",
+    val is24HourFormat: Boolean = false
 )
 
 @HiltViewModel
@@ -57,8 +58,9 @@ class BedtimeViewModel @Inject constructor(
                 sleepGoalHours = settings.sleepGoalHours,
                 sleepGoalMinutes = settings.sleepGoalMinutes,
                 reminderMinutesBefore = settings.bedtimeReminderMinutes,
-                bedtimeFormatted = formatTime(settings.bedtimeHour, settings.bedtimeMinute),
-                sleepDurationFormatted = "${settings.sleepGoalHours}h ${settings.sleepGoalMinutes}m"
+                bedtimeFormatted = formatTime(settings.bedtimeHour, settings.bedtimeMinute, settings.is24HourFormat),
+                sleepDurationFormatted = "${settings.sleepGoalHours}h ${settings.sleepGoalMinutes}m",
+                is24HourFormat = settings.is24HourFormat
             )
             refreshAlarmInfo()
         }
@@ -100,7 +102,7 @@ class BedtimeViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             bedtimeHour = hour,
             bedtimeMinute = minute,
-            bedtimeFormatted = formatTime(hour, minute)
+            bedtimeFormatted = formatTime(hour, minute, _uiState.value.is24HourFormat)
         )
         persistAndSchedule()
     }
@@ -184,9 +186,13 @@ class BedtimeViewModel @Inject constructor(
         alarmManager.cancel(pendingIntent)
     }
 
-    private fun formatTime(hour: Int, minute: Int): String {
-        val h = if (hour % 12 == 0) 12 else hour % 12
-        val amPm = if (hour < 12) "AM" else "PM"
-        return "$h:${String.format("%02d", minute)} $amPm"
+    private fun formatTime(hour: Int, minute: Int, is24h: Boolean = false): String {
+        return if (is24h) {
+            "${String.format("%02d", hour)}:${String.format("%02d", minute)}"
+        } else {
+            val h = if (hour % 12 == 0) 12 else hour % 12
+            val amPm = if (hour < 12) "AM" else "PM"
+            "$h:${String.format("%02d", minute)} $amPm"
+        }
     }
 }

@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-0.8.1-blue)
+![Version](https://img.shields.io/badge/version-0.9.0-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%2010+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -46,6 +46,13 @@ cd AlarmClockXtreme
 | Auto-Silence | Configurable timeout (0/5/10/15/30 min) | Stable |
 | Temperature Units | Fahrenheit / Celsius toggle | Stable |
 | 24-Hour Format | Respects system or manual override | Stable |
+| Alarm Groups | Tag alarms by group (Work, School, Gym), filter with chips | Stable |
+| Duplicate Alarm | Clone any alarm with all settings via overflow menu | Stable |
+| World Clock | Add time zones, live clocks with UTC offset | Stable |
+| Multiple Timers | Run several countdown timers concurrently | Stable |
+| Custom Vibration | 5 patterns: Default, Gentle, Heartbeat, Escalating, SOS | Stable |
+| Flash Wake | Gradual screen brightness increase with volume | Stable |
+| Swipe Gestures | Swipe right to dismiss, left to snooze on firing screen | Stable |
 
 ## Architecture
 

@@ -32,6 +32,7 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
     onNavigateToStopwatch: () -> Unit = {},
+    onNavigateToBedtime: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -175,6 +176,29 @@ fun SettingsScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Stopwatch", fontWeight = FontWeight.Bold, color = TextPrimary)
                         Text("Lap tracking with best/worst highlighting", color = TextSecondary, fontSize = 12.sp)
+                    }
+                    Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Bedtime
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+                onClick = onNavigateToBedtime
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Bedtime, null, tint = AccentBlue)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Bedtime", fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text("Sleep goal, bedtime reminders", color = TextSecondary, fontSize = 12.sp)
                     }
                     Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
                 }

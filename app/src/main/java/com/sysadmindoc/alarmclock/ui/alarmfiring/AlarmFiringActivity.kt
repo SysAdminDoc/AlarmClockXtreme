@@ -17,6 +17,7 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.ChallengeType
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
 import com.sysadmindoc.alarmclock.util.ShakeDetector
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -65,6 +66,16 @@ class AlarmFiringActivity : ComponentActivity() {
             }
         }
 
+        // Flash wake - gradually increase screen brightness
+        lifecycleScope.launch {
+            viewModel.uiState.collectLatest { state ->
+                val alarm = state.alarm ?: return@collectLatest
+                if (alarm.flashWake && alarm.gradualVolumeSeconds > 0) {
+                    startFlashWake(alarm.gradualVolumeSeconds)
+                }
+            }
+        }
+
         setContent {
             AlarmClockXtremeTheme {
                 AlarmFiringScreen(
@@ -106,7 +117,29 @@ class AlarmFiringActivity : ComponentActivity() {
         finish()
     }
 
+    private var flashWakeJob: kotlinx.coroutines.Job? = null
+
+    private fun startFlashWake(durationSeconds: Int) {
+        if (flashWakeJob != null) return
+        flashWakeJob = lifecycleScope.launch {
+            val steps = 50
+            val stepDelay = (durationSeconds * 1000L) / steps
+            // Start with minimum brightness
+            window.attributes = window.attributes.also {
+                it.screenBrightness = 0.01f
+            }
+            for (i in 1..steps) {
+                delay(stepDelay)
+                val brightness = i.toFloat() / steps
+                window.attributes = window.attributes.also {
+                    it.screenBrightness = brightness
+                }
+            }
+        }
+    }
+
     override fun onDestroy() {
+        flashWakeJob?.cancel()
         stopShakeDetection()
         super.onDestroy()
     }

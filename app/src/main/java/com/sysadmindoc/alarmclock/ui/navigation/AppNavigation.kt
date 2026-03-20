@@ -27,6 +27,7 @@ import com.sysadmindoc.alarmclock.ui.settings.SettingsScreen
 import com.sysadmindoc.alarmclock.ui.stopwatch.StopwatchScreen
 import com.sysadmindoc.alarmclock.ui.theme.*
 import com.sysadmindoc.alarmclock.ui.timer.TimerScreen
+import com.sysadmindoc.alarmclock.ui.worldclock.WorldClockScreen
 
 sealed class Screen(val route: String) {
     data object Dashboard : Screen("dashboard")
@@ -40,6 +41,7 @@ sealed class Screen(val route: String) {
     data object Bedtime : Screen("bedtime")
     data object Stats : Screen("stats")
     data object Onboarding : Screen("onboarding")
+    data object WorldClock : Screen("world_clock")
 }
 
 data class BottomNavItem(
@@ -51,8 +53,8 @@ data class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Dashboard, "My Day", Icons.Default.WbSunny),
     BottomNavItem(Screen.AlarmList, "Alarm", Icons.Default.Alarm),
-    BottomNavItem(Screen.Bedtime, "Bedtime", Icons.Default.Bedtime),
     BottomNavItem(Screen.Timer, "Timer", Icons.Default.Timer),
+    BottomNavItem(Screen.WorldClock, "World", Icons.Default.Language),
     BottomNavItem(Screen.Settings, "Settings", Icons.Default.Settings),
 )
 
@@ -166,6 +168,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                 StopwatchScreen()
             }
 
+            composable(Screen.WorldClock.route) {
+                WorldClockScreen()
+            }
+
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     onNavigateToStats = {
@@ -173,6 +179,9 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                     },
                     onNavigateToStopwatch = {
                         navController.navigate(Screen.Stopwatch.route)
+                    },
+                    onNavigateToBedtime = {
+                        navController.navigate(Screen.Bedtime.route)
                     }
                 )
             }

@@ -31,6 +31,9 @@ data class AlarmEditUiState(
     val maxSnoozeCount: Int = 3,
     val showOnLockScreen: Boolean = true,
     val challengeType: String = "NONE",
+    val group: String = "",
+    val flashWake: Boolean = false,
+    val vibrationPattern: String = "default",
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
     val isEnabled: Boolean = true,
@@ -76,6 +79,9 @@ class AlarmEditViewModel @Inject constructor(
                         maxSnoozeCount = alarm.maxSnoozeCount,
                         showOnLockScreen = alarm.showOnLockScreen,
                         challengeType = alarm.challengeType,
+                        group = alarm.group,
+                        flashWake = alarm.flashWake,
+                        vibrationPattern = alarm.vibrationPattern,
                         isEditing = true,
                         isEnabled = alarm.isEnabled,
                         createdAt = alarm.createdAt,
@@ -141,6 +147,18 @@ class AlarmEditViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(ringtoneUri = uri)
     }
 
+    fun updateGroup(group: String) {
+        _uiState.value = _uiState.value.copy(group = group)
+    }
+
+    fun updateFlashWake(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(flashWake = enabled)
+    }
+
+    fun updateVibrationPattern(pattern: String) {
+        _uiState.value = _uiState.value.copy(vibrationPattern = pattern)
+    }
+
     fun save(onComplete: () -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true)
@@ -163,6 +181,9 @@ class AlarmEditViewModel @Inject constructor(
                 maxSnoozeCount = s.maxSnoozeCount,
                 showOnLockScreen = s.showOnLockScreen,
                 challengeType = s.challengeType,
+                group = s.group,
+                flashWake = s.flashWake,
+                vibrationPattern = s.vibrationPattern,
                 createdAt = if (s.isEditing && s.createdAt > 0) s.createdAt else System.currentTimeMillis()
             )
 

@@ -2,6 +2,31 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [0.9.0] - 2026-03-20
+
+### Added
+- **Alarm groups** - Tag alarms with groups (Work, School, Gym, etc.) and filter by group with chips
+- **Duplicate alarm** - Clone any alarm via the overflow menu, preserving all settings
+- **World Clock** - New bottom nav tab with live time zones, search/add cities, remove with long-press
+- **Multiple concurrent timers** - Start several timers at once, each with independent controls
+- **Custom vibration patterns** - 5 patterns: Default, Gentle, Heartbeat, Escalating, SOS
+- **Flash wake** - Gradually brightens screen alongside volume for a natural wake-up
+- **Swipe gestures on alarm screen** - Swipe right to dismiss, swipe left to snooze
+
+### Fixed
+- Alarm cards now respect 24-hour format setting (was always showing 12h)
+- Bedtime time picker now respects 24-hour format setting (was hardcoded to 12h)
+- Snooze duration is now editable via dropdown in alarm edit (was display-only)
+- Gradual volume is now editable via dropdown in alarm edit (was display-only)
+- Alarm edit time display respects 24h format
+
+### Improved
+- Bedtime and Stopwatch moved to Settings for cleaner bottom nav
+- Group indicator badges on alarm cards
+- Undo snackbar when deleting alarms
+- Search now also matches alarm group names
+- Bottom nav: My Day, Alarm, Timer, World Clock, Settings
+
 ## [0.8.1] - 2026-02-22
 
 ### Fixed
