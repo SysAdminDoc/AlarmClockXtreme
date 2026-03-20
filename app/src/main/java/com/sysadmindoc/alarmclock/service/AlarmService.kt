@@ -160,7 +160,7 @@ class AlarmService : Service() {
         startAudio(alarm)
 
         if (alarm.vibrationEnabled) {
-            startVibration(alarm.vibrationIntensity)
+            startVibration(alarm)
         }
 
         // Auto-silence after timeout - records as missed
@@ -281,7 +281,7 @@ class AlarmService : Service() {
         }
     }
 
-    private fun startVibration(intensity: Int) {
+    private fun startVibration(alarm: Alarm) {
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vm.defaultVibrator
@@ -290,13 +290,19 @@ class AlarmService : Service() {
             getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
 
-        val pattern = when (intensity) {
-            1 -> longArrayOf(0, 200, 1000, 200, 1000)
-            else -> longArrayOf(0, 500, 500, 500, 500)
-        }
-        val amplitudes = when (intensity) {
-            1 -> intArrayOf(0, 80, 0, 80, 0)
-            else -> intArrayOf(0, 255, 0, 255, 0)
+        val (pattern, amplitudes) = when (alarm.vibrationPattern) {
+            "gentle" -> longArrayOf(0, 200, 1200, 200, 1200) to intArrayOf(0, 60, 0, 60, 0)
+            "heartbeat" -> longArrayOf(0, 150, 100, 150, 800) to intArrayOf(0, 200, 0, 255, 0)
+            "escalating" -> longArrayOf(0, 200, 600, 300, 500, 400, 400, 500, 300) to
+                intArrayOf(0, 60, 0, 120, 0, 180, 0, 255, 0)
+            "sos" -> longArrayOf(0, 150, 100, 150, 100, 150, 300, 400, 100, 400, 100, 400, 300, 150, 100, 150, 100, 150, 600) to
+                intArrayOf(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0)
+            else -> { // "default"
+                when (alarm.vibrationIntensity) {
+                    1 -> longArrayOf(0, 200, 1000, 200, 1000) to intArrayOf(0, 80, 0, 80, 0)
+                    else -> longArrayOf(0, 500, 500, 500, 500) to intArrayOf(0, 255, 0, 255, 0)
+                }
+            }
         }
 
         if (vibrator?.hasAmplitudeControl() == true) {

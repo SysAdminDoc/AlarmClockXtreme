@@ -85,21 +85,30 @@ fun AlarmEditScreen(
                     .padding(vertical = 32.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    val hour12 = if (state.hour % 12 == 0) 12 else state.hour % 12
-                    val amPm = if (state.hour < 12) "AM" else "PM"
+                if (state.is24HourFormat) {
                     Text(
-                        text = "$hour12:${String.format("%02d", state.minute)}",
+                        text = "${String.format("%02d", state.hour)}:${String.format("%02d", state.minute)}",
                         fontSize = 64.sp,
                         fontWeight = FontWeight.Light,
                         color = TextPrimary
                     )
-                    Text(
-                        text = " $amPm",
-                        fontSize = 24.sp,
-                        color = TextSecondary,
-                        modifier = Modifier.padding(bottom = 12.dp)
-                    )
+                } else {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        val hour12 = if (state.hour % 12 == 0) 12 else state.hour % 12
+                        val amPm = if (state.hour < 12) "AM" else "PM"
+                        Text(
+                            text = "$hour12:${String.format("%02d", state.minute)}",
+                            fontSize = 64.sp,
+                            fontWeight = FontWeight.Light,
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = " $amPm",
+                            fontSize = 24.sp,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(bottom = 12.dp)
+                        )
+                    }
                 }
             }
 
@@ -127,6 +136,67 @@ fun AlarmEditScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
+                    singleLine = true
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Group
+            SettingsSection("Group") {
+                var showGroupMenu by remember { mutableStateOf(false) }
+                val defaultGroups = listOf("", "Work", "School", "Gym", "Medication", "Personal")
+                SettingsRow(label = "Alarm group") {
+                    Box {
+                        TextButton(onClick = { showGroupMenu = true }) {
+                            Text(
+                                state.group.ifBlank { "None" },
+                                color = AccentBlue
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showGroupMenu,
+                            onDismissRequest = { showGroupMenu = false }
+                        ) {
+                            defaultGroups.forEach { group ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            group.ifBlank { "None" },
+                                            color = if (group == state.group) AccentBlue else TextPrimary
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.updateGroup(group)
+                                        showGroupMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                // Custom group input
+                if (state.group.isNotBlank() && state.group !in defaultGroups) {
+                    Text(
+                        "Custom: ${state.group}",
+                        color = TextMuted, fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+                OutlinedTextField(
+                    value = state.group,
+                    onValueChange = viewModel::updateGroup,
+                    placeholder = { Text("Custom group name", color = TextMuted) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentBlue,
+                        unfocusedBorderColor = TextMuted,
+                        cursorColor = AccentBlue,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
             }
@@ -181,11 +251,41 @@ fun AlarmEditScreen(
                     )
                 }
 
+                // Gradual volume - interactive slider
+                var showGradualMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = "Gradually increase volume") {
-                    Text(
-                        text = "${state.gradualVolumeSeconds / 60} min ${state.gradualVolumeSeconds % 60} sec",
-                        color = AccentBlue
-                    )
+                    Box {
+                        TextButton(onClick = { showGradualMenu = true }) {
+                            Text(
+                                text = when (state.gradualVolumeSeconds) {
+                                    0 -> "Off"
+                                    else -> "${state.gradualVolumeSeconds / 60}m ${state.gradualVolumeSeconds % 60}s"
+                                },
+                                color = AccentBlue
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showGradualMenu,
+                            onDismissRequest = { showGradualMenu = false }
+                        ) {
+                            listOf(0, 15, 30, 60, 90, 120, 180, 300).forEach { secs ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            when (secs) {
+                                                0 -> "Off (full volume immediately)"
+                                                else -> "${secs / 60}m ${secs % 60}s"
+                                            }
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.updateGradualVolume(secs)
+                                        showGradualMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -206,14 +306,79 @@ fun AlarmEditScreen(
                         )
                     }
                 )
+
+                if (state.vibrationEnabled) {
+                    // Vibration pattern picker
+                    var showPatternMenu by remember { mutableStateOf(false) }
+                    val patterns = listOf(
+                        "default" to "Default (strong pulse)",
+                        "gentle" to "Gentle (soft pulse)",
+                        "heartbeat" to "Heartbeat (double tap)",
+                        "escalating" to "Escalating (builds up)",
+                        "sos" to "SOS (urgent pattern)"
+                    )
+                    SettingsRow(label = "Vibration pattern") {
+                        Box {
+                            TextButton(onClick = { showPatternMenu = true }) {
+                                Text(
+                                    patterns.find { it.first == state.vibrationPattern }?.second?.substringBefore(" (") ?: "Default",
+                                    color = AccentBlue
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showPatternMenu,
+                                onDismissRequest = { showPatternMenu = false }
+                            ) {
+                                patterns.forEach { (key, label) ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                label,
+                                                color = if (key == state.vibrationPattern) AccentBlue else TextPrimary
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.updateVibrationPattern(key)
+                                            showPatternMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Snooze
+            // Snooze - interactive picker
             SettingsSection("Snooze") {
+                var showSnoozeMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = "Snooze duration") {
-                    Text("${state.snoozeDurationMinutes} min", color = AccentBlue)
+                    Box {
+                        TextButton(onClick = { showSnoozeMenu = true }) {
+                            Text("${state.snoozeDurationMinutes} min", color = AccentBlue)
+                        }
+                        DropdownMenu(
+                            expanded = showSnoozeMenu,
+                            onDismissRequest = { showSnoozeMenu = false }
+                        ) {
+                            listOf(1, 3, 5, 10, 15, 20, 30).forEach { mins ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            "$mins minutes",
+                                            color = if (mins == state.snoozeDurationMinutes) AccentBlue else TextPrimary
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.updateSnoozeDuration(mins)
+                                        showSnoozeMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -276,6 +441,31 @@ fun AlarmEditScreen(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Wake effects
+            SettingsSection("Wake Effects") {
+                SettingsRow(
+                    label = "Flash wake (brighten screen)",
+                    trailing = {
+                        Switch(
+                            checked = state.flashWake,
+                            onCheckedChange = viewModel::updateFlashWake,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = AccentBlue,
+                                checkedTrackColor = AccentBlue.copy(alpha = 0.3f)
+                            )
+                        )
+                    }
+                )
+                Text(
+                    "Gradually increases screen brightness alongside volume",
+                    color = TextMuted,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -413,7 +603,7 @@ private fun SettingsRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, color = TextPrimary)
+        Text(text = label, color = TextPrimary, modifier = Modifier.weight(1f))
         if (trailing != null) trailing()
     }
 }
