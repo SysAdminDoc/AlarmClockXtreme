@@ -46,6 +46,7 @@ class AlarmService : Service() {
         const val ACTION_START_ALARM = "com.sysadmindoc.alarmclock.START_ALARM"
         const val ACTION_SNOOZE = "com.sysadmindoc.alarmclock.SNOOZE"
         const val ACTION_DISMISS = "com.sysadmindoc.alarmclock.DISMISS"
+        const val EXTRA_CUSTOM_SNOOZE_MINUTES = "custom_snooze_minutes"
 
         const val CHANNEL_ALARM = "alarm_channel"
         const val CHANNEL_UPCOMING = "upcoming_alarm_channel"
@@ -130,7 +131,8 @@ class AlarmService : Service() {
             }
             ACTION_SNOOZE -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
-                serviceScope.launch { snoozeAlarm(alarmId) }
+                val customMinutes = intent.getIntExtra(EXTRA_CUSTOM_SNOOZE_MINUTES, -1)
+                serviceScope.launch { snoozeAlarm(alarmId, if (customMinutes > 0) customMinutes else null) }
             }
             ACTION_DISMISS -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
@@ -278,6 +280,27 @@ class AlarmService : Service() {
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            // Fallback to default alarm sound
+            try {
+                val fallbackUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                if (fallbackUri != null) {
+                    mediaPlayer = MediaPlayer().apply {
+                        setAudioAttributes(AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                        )
+                        setDataSource(applicationContext, fallbackUri)
+                        isLooping = true
+                        prepare()
+                        setVolume(1f, 1f)
+                        start()
+                    }
+                }
+            } catch (_: Exception) {
+                // Last resort - alarm fires silently but notification is still shown
+            }
         }
     }
 
@@ -312,18 +335,18 @@ class AlarmService : Service() {
         }
     }
 
-    private suspend fun snoozeAlarm(alarmId: Long) {
+    private suspend fun snoozeAlarm(alarmId: Long, customMinutes: Int? = null) {
         autoSilenceJob?.cancel()
         stopAlarmPlayback()
         val alarm = repository.getById(alarmId)
         if (alarm != null) {
             currentSnoozeCount++
-            if (currentSnoozeCount > alarm.maxSnoozeCount) {
+            if (alarm.maxSnoozeCount > 0 && currentSnoozeCount > alarm.maxSnoozeCount) {
                 // Max snoozes reached - treat as dismiss
                 recordEvent(alarm, AlarmEvent.ACTION_DISMISSED)
                 alarmScheduler.handleAlarmFired(alarmId)
             } else {
-                alarmScheduler.scheduleSnooze(alarm)
+                alarmScheduler.scheduleSnooze(alarm, customMinutes)
                 recordEvent(alarm, AlarmEvent.ACTION_SNOOZED)
             }
         }

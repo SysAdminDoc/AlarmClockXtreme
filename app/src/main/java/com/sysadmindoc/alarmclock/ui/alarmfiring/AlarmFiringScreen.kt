@@ -27,6 +27,7 @@ import java.time.LocalTime
 fun AlarmFiringScreen(
     onDismiss: () -> Unit,
     onSnooze: () -> Unit,
+    onSnoozeCustom: (Int) -> Unit = { onSnooze() },
     viewModel: AlarmFiringViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -236,7 +237,10 @@ fun AlarmFiringScreen(
                 )
             }
 
-            // Snooze button (always available)
+            // Snooze button with custom duration picker
+            var showSnoozeOptions by remember { mutableStateOf(false) }
+            val snoozeMins = state.alarm?.snoozeDurationMinutes ?: 10
+
             OutlinedButton(
                 onClick = onSnooze,
                 modifier = Modifier
@@ -248,13 +252,37 @@ fun AlarmFiringScreen(
                 shape = RoundedCornerShape(28.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = SnoozeYellow)
             ) {
-                val snoozeMins = state.alarm?.snoozeDurationMinutes ?: 10
                 Text(
                     text = "SNOOZE ($snoozeMins MIN)",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = SnoozeYellow
                 )
+            }
+
+            // Custom snooze durations
+            TextButton(onClick = { showSnoozeOptions = !showSnoozeOptions }) {
+                Text(
+                    if (showSnoozeOptions) "Hide options" else "Custom snooze...",
+                    color = TextMuted, fontSize = 12.sp
+                )
+            }
+            if (showSnoozeOptions) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(1, 3, 5, 15, 30).forEach { mins ->
+                        OutlinedButton(
+                            onClick = { onSnoozeCustom(mins) },
+                            shape = RoundedCornerShape(16.dp),
+                            border = ButtonDefaults.outlinedButtonBorder(enabled = true),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = SnoozeYellow),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Text("${mins}m", fontSize = 13.sp, color = SnoozeYellow)
+                        }
+                    }
+                }
             }
         }
     }

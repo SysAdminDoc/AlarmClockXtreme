@@ -19,6 +19,13 @@ import javax.inject.Inject
 
 enum class AlarmSortOrder { TIME, CREATED, ENABLED_FIRST }
 
+private data class SelectionSnapshot(
+    val selectedIds: Set<Long>,
+    val isSelectionMode: Boolean,
+    val undoAlarm: Alarm?,
+    val selectedGroup: String?
+)
+
 data class AlarmListUiState(
     val alarms: List<Alarm> = emptyList(),
     val nextAlarm: Alarm? = null,
@@ -28,7 +35,9 @@ data class AlarmListUiState(
     val is24HourFormat: Boolean = false,
     val groups: List<String> = emptyList(),
     val selectedGroup: String? = null,
-    val undoAlarm: Alarm? = null
+    val undoAlarm: Alarm? = null,
+    val selectedIds: Set<Long> = emptySet(),
+    val isSelectionMode: Boolean = false
 )
 
 @HiltViewModel
@@ -43,6 +52,8 @@ class AlarmListViewModel @Inject constructor(
     private val _sortOrder = MutableStateFlow(AlarmSortOrder.TIME)
     private val _selectedGroup = MutableStateFlow<String?>(null)
     private val _undoAlarm = MutableStateFlow<Alarm?>(null)
+    private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
+    private val _isSelectionMode = MutableStateFlow(false)
 
     // Ticker emits every 30s so the remaining-time countdown stays fresh
     private val ticker = flow {
@@ -57,8 +68,10 @@ class AlarmListViewModel @Inject constructor(
         repository.observeNextAlarm(),
         preferencesManager.settings,
         _sortOrder,
-        ticker
-    ) { alarms, nextAlarm, settings, sort, _ ->
+        combine(ticker, _selectedIds, _isSelectionMode, _undoAlarm, _selectedGroup) { _, sel, mode, undo, group ->
+            SelectionSnapshot(sel, mode, undo, group)
+        }
+    ) { alarms, nextAlarm, settings, sort, snap ->
         val sorted = when (sort) {
             AlarmSortOrder.TIME -> alarms.sortedBy { it.hour * 60 + it.minute }
             AlarmSortOrder.CREATED -> alarms.sortedByDescending { it.id }
@@ -79,8 +92,10 @@ class AlarmListViewModel @Inject constructor(
             sortOrder = sort,
             is24HourFormat = settings.is24HourFormat,
             groups = groups,
-            selectedGroup = _selectedGroup.value,
-            undoAlarm = _undoAlarm.value
+            selectedGroup = snap.selectedGroup,
+            undoAlarm = snap.undoAlarm,
+            selectedIds = snap.selectedIds,
+            isSelectionMode = snap.isSelectionMode
         )
     }.stateIn(
         viewModelScope,
@@ -98,6 +113,59 @@ class AlarmListViewModel @Inject constructor(
 
     fun selectGroup(group: String?) {
         _selectedGroup.value = group
+    }
+
+    // -- Multi-select --
+
+    fun toggleSelection(alarmId: Long) {
+        val current = _selectedIds.value
+        _selectedIds.value = if (alarmId in current) current - alarmId else current + alarmId
+        _isSelectionMode.value = _selectedIds.value.isNotEmpty()
+    }
+
+    fun selectAll() {
+        _selectedIds.value = uiState.value.alarms.map { it.id }.toSet()
+        _isSelectionMode.value = _selectedIds.value.isNotEmpty()
+    }
+
+    fun clearSelection() {
+        _selectedIds.value = emptySet()
+        _isSelectionMode.value = false
+    }
+
+    fun deleteSelected() {
+        viewModelScope.launch {
+            val ids = _selectedIds.value.toList()
+            ids.forEach { id ->
+                scheduler.cancel(id)
+                repository.getById(id)?.let { repository.delete(it) }
+            }
+            clearSelection()
+        }
+    }
+
+    fun enableSelected() {
+        viewModelScope.launch {
+            _selectedIds.value.forEach { id ->
+                val alarm = repository.getById(id) ?: return@forEach
+                if (!alarm.isEnabled) {
+                    val nextTrigger = calculator.calculate(alarm)
+                    repository.setEnabled(id, enabled = true, nextTrigger = nextTrigger)
+                    scheduler.schedule(alarm.copy(isEnabled = true, nextTriggerTime = nextTrigger))
+                }
+            }
+            clearSelection()
+        }
+    }
+
+    fun disableSelected() {
+        viewModelScope.launch {
+            _selectedIds.value.forEach { id ->
+                repository.setEnabled(id, enabled = false, nextTrigger = 0)
+                scheduler.cancel(id)
+            }
+            clearSelection()
+        }
     }
 
     fun toggleAlarm(alarm: Alarm) {

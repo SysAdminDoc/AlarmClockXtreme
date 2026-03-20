@@ -22,6 +22,7 @@
 - DI: Hilt (DatabaseModule, NetworkModule)
 
 ## Version History
+- v1.0.0 (2026-03-20): Custom snooze durations on firing screen, multi-select with batch delete/enable/disable, memory challenge sequence fix, media playback fallback to default ringtone
 - v0.9.0 (2026-03-20): Alarm groups, duplicate, world clock, multiple timers, vibration patterns, flash wake, swipe gestures, 24h format fixes
 - v0.8.1 (2026-02-22): Bug fix release - auto-silence, bedtime persistence, widget fixes, temp units
 - v0.8.0: Swipe-to-delete, search/sort, auto-silence, manual location
