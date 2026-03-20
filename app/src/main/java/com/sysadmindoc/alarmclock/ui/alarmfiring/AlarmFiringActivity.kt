@@ -81,6 +81,7 @@ class AlarmFiringActivity : ComponentActivity() {
                 AlarmFiringScreen(
                     onDismiss = { dismiss() },
                     onSnooze = { snooze() },
+                    onSnoozeCustom = { minutes -> snooze(minutes) },
                     viewModel = viewModel
                 )
             }
@@ -99,10 +100,13 @@ class AlarmFiringActivity : ComponentActivity() {
         shakeDetector = null
     }
 
-    private fun snooze() {
+    private fun snooze(customMinutes: Int? = null) {
         val intent = Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_SNOOZE
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+            if (customMinutes != null) {
+                putExtra(AlarmService.EXTRA_CUSTOM_SNOOZE_MINUTES, customMinutes)
+            }
         }
         startForegroundService(intent)
         finish()

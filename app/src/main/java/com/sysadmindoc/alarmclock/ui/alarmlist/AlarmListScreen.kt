@@ -1,8 +1,11 @@
 package com.sysadmindoc.alarmclock.ui.alarmlist
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +17,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -97,6 +101,19 @@ fun AlarmListScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Selection action bar
+            AnimatedVisibility(visible = state.isSelectionMode) {
+                SelectionActionBar(
+                    selectedCount = state.selectedIds.size,
+                    totalCount = state.alarms.size,
+                    onSelectAll = viewModel::selectAll,
+                    onClearSelection = viewModel::clearSelection,
+                    onDeleteSelected = viewModel::deleteSelected,
+                    onEnableSelected = viewModel::enableSelected,
+                    onDisableSelected = viewModel::disableSelected
+                )
+            }
+
             // Header with countdown and settings gear
             AlarmHeader(
                 remainingTime = state.remainingTime,
@@ -188,18 +205,29 @@ fun AlarmListScreen(
                         items = filteredAlarms,
                         key = { it.id }
                     ) { alarm ->
-                        SwipeableAlarmCard(
-                            onDelete = { viewModel.deleteAlarm(alarm) }
-                        ) {
-                            AlarmCard(
+                        val isSelected = alarm.id in state.selectedIds
+                        if (state.isSelectionMode) {
+                            SelectableAlarmCard(
                                 alarm = alarm,
                                 is24Hour = state.is24HourFormat,
-                                onToggle = { viewModel.toggleAlarm(alarm) },
-                                onClick = { onEditAlarm(alarm.id) },
-                                onDelete = { viewModel.deleteAlarm(alarm) },
-                                onSkipNext = { viewModel.skipNextOccurrence(alarm) },
-                                onDuplicate = { viewModel.duplicateAlarm(alarm) }
+                                isSelected = isSelected,
+                                onToggleSelect = { viewModel.toggleSelection(alarm.id) }
                             )
+                        } else {
+                            SwipeableAlarmCard(
+                                onDelete = { viewModel.deleteAlarm(alarm) }
+                            ) {
+                                AlarmCard(
+                                    alarm = alarm,
+                                    is24Hour = state.is24HourFormat,
+                                    onToggle = { viewModel.toggleAlarm(alarm) },
+                                    onClick = { onEditAlarm(alarm.id) },
+                                    onDelete = { viewModel.deleteAlarm(alarm) },
+                                    onSkipNext = { viewModel.skipNextOccurrence(alarm) },
+                                    onDuplicate = { viewModel.duplicateAlarm(alarm) },
+                                    onLongClick = { viewModel.toggleSelection(alarm.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -341,6 +369,7 @@ private fun QuickAlarmRow(onQuickAlarm: (Int) -> Unit) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AlarmCard(
     alarm: Alarm,
@@ -349,14 +378,18 @@ private fun AlarmCard(
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onSkipNext: () -> Unit = {},
-    onDuplicate: () -> Unit = {}
+    onDuplicate: () -> Unit = {},
+    onLongClick: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
         shape = RoundedCornerShape(4.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
     ) {
@@ -499,6 +532,134 @@ private fun AlarmCard(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SelectionActionBar(
+    selectedCount: Int,
+    totalCount: Int,
+    onSelectAll: () -> Unit,
+    onClearSelection: () -> Unit,
+    onDeleteSelected: () -> Unit,
+    onEnableSelected: () -> Unit,
+    onDisableSelected: () -> Unit
+) {
+    Surface(
+        color = SurfaceCard,
+        tonalElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onClearSelection) {
+                Icon(Icons.Default.Close, "Clear selection", tint = TextPrimary)
+            }
+            Text(
+                "$selectedCount selected",
+                color = TextPrimary,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+            if (selectedCount < totalCount) {
+                TextButton(onClick = onSelectAll) {
+                    Text("All", color = AccentBlue, fontSize = 13.sp)
+                }
+            }
+            IconButton(onClick = onEnableSelected) {
+                Icon(Icons.Default.NotificationsActive, "Enable selected", tint = DismissGreen)
+            }
+            IconButton(onClick = onDisableSelected) {
+                Icon(Icons.Default.NotificationsOff, "Disable selected", tint = TextMuted)
+            }
+            IconButton(onClick = onDeleteSelected) {
+                Icon(Icons.Default.Delete, "Delete selected", tint = AccentRed)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SelectableAlarmCard(
+    alarm: Alarm,
+    is24Hour: Boolean,
+    isSelected: Boolean,
+    onToggleSelect: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(onClick = onToggleSelect)
+            .then(
+                if (isSelected) Modifier.border(2.dp, AccentBlue, RoundedCornerShape(4.dp))
+                else Modifier
+            ),
+        shape = RoundedCornerShape(4.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) AccentBlue.copy(alpha = 0.08f) else SurfaceMedium
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onToggleSelect() },
+                colors = CheckboxDefaults.colors(
+                    checkedColor = AccentBlue,
+                    uncheckedColor = TextMuted
+                ),
+                modifier = Modifier.padding(end = 8.dp)
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    if (is24Hour) {
+                        Text(
+                            text = "${String.format("%02d", alarm.hour)}:${String.format("%02d", alarm.minute)}",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Light,
+                            color = if (alarm.isEnabled) TextPrimary else TextMuted
+                        )
+                    } else {
+                        val hour12 = if (alarm.hour % 12 == 0) 12 else alarm.hour % 12
+                        val amPm = if (alarm.hour < 12) "AM" else "PM"
+                        Text(
+                            text = "$hour12:${String.format("%02d", alarm.minute)}",
+                            fontSize = 36.sp,
+                            fontWeight = FontWeight.Light,
+                            color = if (alarm.isEnabled) TextPrimary else TextMuted
+                        )
+                        Text(
+                            text = amPm,
+                            fontSize = 16.sp,
+                            color = if (alarm.isEnabled) TextSecondary else TextMuted,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = alarm.label.ifBlank { alarm.repeatLabel },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (alarm.isEnabled) TextSecondary else TextMuted
+                )
+            }
+
+            Icon(
+                imageVector = if (alarm.isEnabled) Icons.Default.Notifications
+                else Icons.Default.NotificationsOff,
+                contentDescription = null,
+                tint = if (alarm.isEnabled) AccentBlue else TextMuted,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
