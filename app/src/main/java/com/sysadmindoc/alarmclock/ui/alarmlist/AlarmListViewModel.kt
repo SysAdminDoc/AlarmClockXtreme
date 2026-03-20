@@ -24,7 +24,11 @@ data class AlarmListUiState(
     val nextAlarm: Alarm? = null,
     val remainingTime: String = "",
     val vacationActive: Boolean = false,
-    val sortOrder: AlarmSortOrder = AlarmSortOrder.TIME
+    val sortOrder: AlarmSortOrder = AlarmSortOrder.TIME,
+    val is24HourFormat: Boolean = false,
+    val groups: List<String> = emptyList(),
+    val selectedGroup: String? = null,
+    val undoAlarm: Alarm? = null
 )
 
 @HiltViewModel
@@ -37,6 +41,8 @@ class AlarmListViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _sortOrder = MutableStateFlow(AlarmSortOrder.TIME)
+    private val _selectedGroup = MutableStateFlow<String?>(null)
+    private val _undoAlarm = MutableStateFlow<Alarm?>(null)
 
     // Ticker emits every 30s so the remaining-time countdown stays fresh
     private val ticker = flow {
@@ -58,6 +64,10 @@ class AlarmListViewModel @Inject constructor(
             AlarmSortOrder.CREATED -> alarms.sortedByDescending { it.id }
             AlarmSortOrder.ENABLED_FIRST -> alarms.sortedByDescending { it.isEnabled }
         }
+
+        // Extract unique groups
+        val groups = alarms.map { it.group }.distinct().sorted()
+
         AlarmListUiState(
             alarms = sorted,
             nextAlarm = nextAlarm,
@@ -66,7 +76,11 @@ class AlarmListViewModel @Inject constructor(
             } else "",
             vacationActive = settings.vacationModeEnabled &&
                     settings.vacationEndMillis > System.currentTimeMillis(),
-            sortOrder = sort
+            sortOrder = sort,
+            is24HourFormat = settings.is24HourFormat,
+            groups = groups,
+            selectedGroup = _selectedGroup.value,
+            undoAlarm = _undoAlarm.value
         )
     }.stateIn(
         viewModelScope,
@@ -80,6 +94,10 @@ class AlarmListViewModel @Inject constructor(
             AlarmSortOrder.CREATED -> AlarmSortOrder.ENABLED_FIRST
             AlarmSortOrder.ENABLED_FIRST -> AlarmSortOrder.TIME
         }
+    }
+
+    fun selectGroup(group: String?) {
+        _selectedGroup.value = group
     }
 
     fun toggleAlarm(alarm: Alarm) {
@@ -100,6 +118,42 @@ class AlarmListViewModel @Inject constructor(
         viewModelScope.launch {
             scheduler.cancel(alarm.id)
             repository.delete(alarm)
+            _undoAlarm.value = alarm
+        }
+    }
+
+    fun undoDelete() {
+        val alarm = _undoAlarm.value ?: return
+        _undoAlarm.value = null
+        viewModelScope.launch {
+            val id = repository.save(alarm)
+            if (alarm.isEnabled) {
+                scheduler.schedule(alarm.copy(id = id))
+            }
+        }
+    }
+
+    fun confirmDelete() {
+        _undoAlarm.value = null
+    }
+
+    /**
+     * Duplicate an alarm with a new ID, same settings, enabled by default.
+     */
+    fun duplicateAlarm(alarm: Alarm) {
+        viewModelScope.launch {
+            val duplicate = alarm.copy(
+                id = 0,
+                label = if (alarm.label.isBlank()) "Copy" else "${alarm.label} (copy)",
+                isEnabled = true,
+                createdAt = System.currentTimeMillis(),
+                nextTriggerTime = 0
+            )
+            val id = repository.save(duplicate)
+            val saved = duplicate.copy(id = id)
+            val nextTrigger = calculator.calculate(saved)
+            repository.updateNextTrigger(id, nextTrigger)
+            scheduler.schedule(saved.copy(nextTriggerTime = nextTrigger))
         }
     }
 

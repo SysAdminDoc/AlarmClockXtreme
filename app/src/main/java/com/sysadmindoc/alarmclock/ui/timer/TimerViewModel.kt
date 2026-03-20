@@ -16,20 +16,26 @@ enum class TimerState { IDLE, RUNNING, PAUSED, FINISHED }
 
 data class TimerPreset(val label: String, val seconds: Long)
 
-data class TimerUiState(
-    val inputDigits: String = "",          // Raw numpad input "01030" = 1m 30s
-    val totalSeconds: Long = 0,            // Resolved total seconds
-    val remainingMillis: Long = 0,         // Countdown remaining
-    val state: TimerState = TimerState.IDLE,
-    val gradualVolumeEnabled: Boolean = true,
-    val overrideSystemVolume: Boolean = false,
-    val vibrationEnabled: Boolean = true,
-    val keepScreenOn: Boolean = false,
+data class TimerInstance(
+    val id: Int,
+    val label: String = "",
+    val totalSeconds: Long = 0,
+    val remainingMillis: Long = 0,
+    val state: TimerState = TimerState.RUNNING,
 ) {
     val displayHours: Int get() = (remainingMillis / 3600000).toInt()
     val displayMinutes: Int get() = ((remainingMillis % 3600000) / 60000).toInt()
     val displaySeconds: Int get() = ((remainingMillis % 60000) / 1000).toInt()
+    val progress: Float get() = if (totalSeconds > 0) {
+        remainingMillis.toFloat() / (totalSeconds * 1000f)
+    } else 0f
+}
 
+data class TimerUiState(
+    val inputDigits: String = "",
+    val activeTimers: List<TimerInstance> = emptyList(),
+    val isInputMode: Boolean = true,
+) {
     val inputHours: Int get() {
         val padded = inputDigits.padStart(6, '0')
         return padded.substring(0, 2).toIntOrNull() ?: 0
@@ -43,11 +49,28 @@ data class TimerUiState(
         return padded.substring(4, 6).toIntOrNull() ?: 0
     }
 
-    val progress: Float get() = if (totalSeconds > 0) {
-        remainingMillis.toFloat() / (totalSeconds * 1000f)
-    } else 0f
+    val canStart: Boolean get() = inputDigits.isNotEmpty()
 
-    val canStart: Boolean get() = inputDigits.isNotEmpty() && state == TimerState.IDLE
+    // For backward compat with single-timer UI properties
+    val state: TimerState get() = when {
+        activeTimers.any { it.state == TimerState.FINISHED } -> TimerState.FINISHED
+        activeTimers.any { it.state == TimerState.RUNNING } -> TimerState.RUNNING
+        activeTimers.any { it.state == TimerState.PAUSED } -> TimerState.PAUSED
+        else -> TimerState.IDLE
+    }
+
+    val totalSeconds: Long get() = activeTimers.firstOrNull()?.totalSeconds ?: 0
+    val remainingMillis: Long get() = activeTimers.firstOrNull()?.remainingMillis ?: 0
+    val displayHours: Int get() = activeTimers.firstOrNull()?.displayHours ?: 0
+    val displayMinutes: Int get() = activeTimers.firstOrNull()?.displayMinutes ?: 0
+    val displaySeconds: Int get() = activeTimers.firstOrNull()?.displaySeconds ?: 0
+    val progress: Float get() = activeTimers.firstOrNull()?.progress ?: 0f
+
+    // Keep these for TimerScreen backward compat
+    val gradualVolumeEnabled: Boolean = true
+    val overrideSystemVolume: Boolean = false
+    val vibrationEnabled: Boolean = true
+    val keepScreenOn: Boolean = false
 }
 
 val defaultPresets = listOf(
@@ -67,30 +90,25 @@ class TimerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TimerUiState())
     val uiState: StateFlow<TimerUiState> = _uiState.asStateFlow()
 
-    private var countdownJob: Job? = null
+    private var nextId = 1
+    private val countdownJobs = mutableMapOf<Int, Job>()
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
 
     fun appendDigit(digit: Int) {
         val current = _uiState.value
-        if (current.state != TimerState.IDLE) return
         if (current.inputDigits.length >= 6) return
-        // Don't allow leading zeros beyond what makes sense
-        val newDigits = current.inputDigits + digit.toString()
-        _uiState.value = current.copy(inputDigits = newDigits)
+        _uiState.value = current.copy(inputDigits = current.inputDigits + digit.toString())
     }
 
     fun deleteDigit() {
         val current = _uiState.value
-        if (current.state != TimerState.IDLE) return
         if (current.inputDigits.isEmpty()) return
         _uiState.value = current.copy(inputDigits = current.inputDigits.dropLast(1))
     }
 
     fun clearInput() {
-        val current = _uiState.value
-        if (current.state != TimerState.IDLE) return
-        _uiState.value = current.copy(inputDigits = "")
+        _uiState.value = _uiState.value.copy(inputDigits = "")
     }
 
     fun selectPreset(preset: TimerPreset) {
@@ -98,10 +116,7 @@ class TimerViewModel @Inject constructor(
         val mins = ((preset.seconds % 3600) / 60).toInt()
         val secs = (preset.seconds % 60).toInt()
         val digits = String.format("%02d%02d%02d", hours, mins, secs).trimStart('0')
-        _uiState.value = _uiState.value.copy(
-            inputDigits = digits,
-            state = TimerState.IDLE
-        )
+        _uiState.value = _uiState.value.copy(inputDigits = digits)
     }
 
     fun start() {
@@ -113,72 +128,102 @@ class TimerViewModel @Inject constructor(
                 current.inputSeconds
         if (totalSecs <= 0) return
 
+        val id = nextId++
         val totalMillis = totalSecs * 1000L
-        _uiState.value = current.copy(
+        val label = formatTimerLabel(current.inputHours, current.inputMinutes, current.inputSeconds)
+        val timer = TimerInstance(
+            id = id,
+            label = label,
             totalSeconds = totalSecs,
             remainingMillis = totalMillis,
             state = TimerState.RUNNING
         )
-        startCountdown(totalMillis)
+
+        val newTimers = _uiState.value.activeTimers + timer
+        _uiState.value = _uiState.value.copy(
+            activeTimers = newTimers,
+            inputDigits = "",
+            isInputMode = true
+        )
+        startCountdown(id, totalMillis)
     }
 
-    fun pause() {
-        countdownJob?.cancel()
-        _uiState.value = _uiState.value.copy(state = TimerState.PAUSED)
+    fun pause(timerId: Int? = null) {
+        val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.RUNNING }?.id ?: return
+        countdownJobs[id]?.cancel()
+        updateTimer(id) { it.copy(state = TimerState.PAUSED) }
     }
 
-    fun resume() {
-        val remaining = _uiState.value.remainingMillis
-        _uiState.value = _uiState.value.copy(state = TimerState.RUNNING)
-        startCountdown(remaining)
+    fun resume(timerId: Int? = null) {
+        val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.PAUSED }?.id ?: return
+        val timer = _uiState.value.activeTimers.find { it.id == id } ?: return
+        updateTimer(id) { it.copy(state = TimerState.RUNNING) }
+        startCountdown(id, timer.remainingMillis)
     }
 
-    fun stop() {
-        countdownJob?.cancel()
+    fun stop(timerId: Int? = null) {
+        val id = timerId ?: _uiState.value.activeTimers.firstOrNull()?.id ?: return
+        countdownJobs[id]?.cancel()
+        countdownJobs.remove(id)
+        stopAudioForTimer(id)
+        _uiState.value = _uiState.value.copy(
+            activeTimers = _uiState.value.activeTimers.filter { it.id != id }
+        )
+    }
+
+    fun dismissFinished(timerId: Int? = null) {
+        val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.FINISHED }?.id ?: return
         stopAudio()
-        _uiState.value = TimerUiState()
+        _uiState.value = _uiState.value.copy(
+            activeTimers = _uiState.value.activeTimers.filter { it.id != id }
+        )
     }
 
-    fun toggleGradualVolume(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(gradualVolumeEnabled = enabled)
+    // Legacy compat for single-timer UI
+    fun pause() = pause(null)
+    fun resume() = resume(null)
+    fun stop() = stop(null)
+    fun dismissFinished() = dismissFinished(null)
+    fun toggleGradualVolume(enabled: Boolean) {}
+    fun toggleOverrideVolume(enabled: Boolean) {}
+    fun toggleVibration(enabled: Boolean) {}
+    fun toggleKeepScreenOn(enabled: Boolean) {}
+
+    private fun updateTimer(id: Int, transform: (TimerInstance) -> TimerInstance) {
+        _uiState.value = _uiState.value.copy(
+            activeTimers = _uiState.value.activeTimers.map {
+                if (it.id == id) transform(it) else it
+            }
+        )
     }
 
-    fun toggleOverrideVolume(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(overrideSystemVolume = enabled)
-    }
-
-    fun toggleVibration(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(vibrationEnabled = enabled)
-    }
-
-    fun toggleKeepScreenOn(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(keepScreenOn = enabled)
-    }
-
-    fun dismissFinished() {
-        stopAudio()
-        _uiState.value = TimerUiState()
-    }
-
-    private fun startCountdown(millis: Long) {
-        countdownJob?.cancel()
-        countdownJob = viewModelScope.launch {
+    private fun startCountdown(id: Int, millis: Long) {
+        countdownJobs[id]?.cancel()
+        countdownJobs[id] = viewModelScope.launch {
             val startTime = System.currentTimeMillis()
             val endTime = startTime + millis
 
             while (isActive) {
                 val now = System.currentTimeMillis()
                 val remaining = (endTime - now).coerceAtLeast(0)
-                _uiState.value = _uiState.value.copy(remainingMillis = remaining)
+                updateTimer(id) { it.copy(remainingMillis = remaining) }
 
                 if (remaining <= 0) {
-                    _uiState.value = _uiState.value.copy(state = TimerState.FINISHED)
+                    updateTimer(id) { it.copy(state = TimerState.FINISHED) }
                     playFinishSound()
                     break
                 }
-                delay(50) // Update ~20 times/sec for smooth display
+                delay(50)
             }
         }
+    }
+
+    private fun formatTimerLabel(h: Int, m: Int, s: Int): String {
+        return buildString {
+            if (h > 0) append("${h}h ")
+            if (m > 0) append("${m}m ")
+            if (s > 0) append("${s}s")
+        }.trim()
     }
 
     private fun playFinishSound() {
@@ -199,19 +244,24 @@ class TimerViewModel @Inject constructor(
                 start()
             }
 
-            if (_uiState.value.vibrationEnabled) {
-                vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val vm = context.getSystemService(VibratorManager::class.java)
-                    vm.defaultVibrator
-                } else {
-                    @Suppress("DEPRECATION")
-                    context.getSystemService(Vibrator::class.java)
-                }
-                val pattern = longArrayOf(0, 500, 500, 500, 500)
-                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+            vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vm = context.getSystemService(VibratorManager::class.java)
+                vm.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                context.getSystemService(Vibrator::class.java)
             }
+            val pattern = longArrayOf(0, 500, 500, 500, 500)
+            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun stopAudioForTimer(id: Int) {
+        // Only stop audio if no other timer is finished
+        if (_uiState.value.activeTimers.none { it.id != id && it.state == TimerState.FINISHED }) {
+            stopAudio()
         }
     }
 
@@ -226,7 +276,7 @@ class TimerViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        countdownJob?.cancel()
+        countdownJobs.values.forEach { it.cancel() }
         stopAudio()
         super.onCleared()
     }

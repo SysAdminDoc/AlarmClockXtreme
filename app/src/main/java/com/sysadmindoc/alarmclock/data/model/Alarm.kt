@@ -28,6 +28,9 @@ data class Alarm(
     val maxSnoozeCount: Int = 3,            // 0 = unlimited
     val showOnLockScreen: Boolean = true,
     val challengeType: String = "NONE",     // ChallengeType enum name
+    val group: String = "",                  // User-defined group tag
+    val flashWake: Boolean = false,          // Gradually increase screen brightness
+    val vibrationPattern: String = "default", // default, gentle, heartbeat, escalating, sos
     val createdAt: Long = System.currentTimeMillis(),
     val nextTriggerTime: Long = 0           // Epoch millis of next scheduled fire
 ) {
