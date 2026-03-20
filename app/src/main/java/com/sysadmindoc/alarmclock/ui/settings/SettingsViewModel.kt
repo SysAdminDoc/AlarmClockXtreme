@@ -26,7 +26,7 @@ data class SettingsUiState(
     // Device info
     val androidVersion: String = "",
     val deviceModel: String = "",
-    val appVersion: String = "0.8.1"
+    val appVersion: String = "0.9.0"
 )
 
 @HiltViewModel

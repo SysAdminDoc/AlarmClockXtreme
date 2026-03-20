@@ -2,14 +2,17 @@ package com.sysadmindoc.alarmclock.ui.alarmfiring
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AlarmOff
+import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -19,7 +22,6 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.*
 import com.sysadmindoc.alarmclock.ui.theme.*
 import kotlinx.coroutines.delay
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 @Composable
 fun AlarmFiringScreen(
@@ -59,10 +61,43 @@ fun AlarmFiringScreen(
         }
     }
 
+    // Swipe detection state
+    var swipeHint by remember { mutableStateOf("") }
+    var swipeCumulativeDrag by remember { mutableFloatStateOf(0f) }
+    val swipeThreshold = 200f
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SurfaceDark),
+            .background(SurfaceDark)
+            .pointerInput(state.canDismiss) {
+                detectHorizontalDragGestures(
+                    onDragStart = { swipeCumulativeDrag = 0f },
+                    onDragEnd = {
+                        if (swipeCumulativeDrag > swipeThreshold && state.canDismiss) {
+                            onDismiss()
+                        } else if (swipeCumulativeDrag < -swipeThreshold) {
+                            onSnooze()
+                        }
+                        swipeHint = ""
+                        swipeCumulativeDrag = 0f
+                    },
+                    onDragCancel = {
+                        swipeHint = ""
+                        swipeCumulativeDrag = 0f
+                    },
+                    onHorizontalDrag = { _, dragAmount ->
+                        swipeCumulativeDrag += dragAmount
+                        swipeHint = when {
+                            swipeCumulativeDrag > swipeThreshold / 2 && state.canDismiss -> "Release to dismiss"
+                            swipeCumulativeDrag < -swipeThreshold / 2 -> "Release to snooze"
+                            swipeCumulativeDrag > 50 -> "Swipe right to dismiss"
+                            swipeCumulativeDrag < -50 -> "Swipe left to snooze"
+                            else -> ""
+                        }
+                    }
+                )
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
@@ -106,12 +141,23 @@ fun AlarmFiringScreen(
             when {
                 state.challengeSolved || challenge == null -> {
                     // Standard dismiss view (no challenge or challenge solved)
-                    Icon(
-                        Icons.Default.AlarmOff,
-                        contentDescription = "Dismiss alarm",
-                        tint = AccentRed.copy(alpha = pulseAlpha),
-                        modifier = Modifier.size(80.dp)
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.AlarmOff,
+                            contentDescription = "Dismiss alarm",
+                            tint = AccentRed.copy(alpha = pulseAlpha),
+                            modifier = Modifier.size(80.dp)
+                        )
+                        if (swipeHint.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                swipeHint,
+                                color = if (swipeHint.contains("Release")) AccentBlue else TextMuted,
+                                fontSize = 14.sp,
+                                fontWeight = if (swipeHint.contains("Release")) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
                 }
                 challenge is Challenge.MathChallenge -> {
                     MathChallengeView(
@@ -140,6 +186,25 @@ fun AlarmFiringScreen(
                         tappedIndices = state.memoryTappedIndices,
                         onTapTile = viewModel::tapMemoryTile
                     )
+                }
+            }
+        }
+
+        // Swipe hint area
+        if (swipeHint.isBlank()) {
+            Row(
+                modifier = Modifier.padding(horizontal = 32.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Snooze, null, tint = SnoozeYellow.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
+                    Text(" Swipe left", color = TextMuted, fontSize = 12.sp)
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Swipe right ", color = TextMuted, fontSize = 12.sp)
+                    Icon(Icons.Default.AlarmOff, null, tint = AccentRed.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
                 }
             }
         }
