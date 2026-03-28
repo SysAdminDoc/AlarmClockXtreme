@@ -14,7 +14,10 @@ enum class ChallengeType {
     WALK_STEPS,      // Walk N steps (uses step counter sensor)
     NFC_SCAN,        // Tap a registered NFC tag
     BARCODE_SCAN,    // Scan a registered barcode/QR code
-    PHOTO_MATCH      // Photograph a registered location to dismiss
+    PHOTO_MATCH,     // Photograph a registered location to dismiss
+    SQUAT,           // Do N squats (accelerometer)
+    WIFI_CONNECT,    // Connect to specific Wi-Fi network
+    MAZE             // Solve a simple maze puzzle
 }
 
 sealed class Challenge {
@@ -77,6 +80,25 @@ sealed class Challenge {
         override val type: ChallengeType = ChallengeType.PHOTO_MATCH,
         val referencePhotoUri: String  // URI to reference photo in filesDir
     ) : Challenge()
+
+    // v1.2.0: Squat challenge — accelerometer-based squat detection
+    data class SquatChallenge(
+        override val type: ChallengeType = ChallengeType.SQUAT,
+        val requiredSquats: Int = 10
+    ) : Challenge()
+
+    data class WifiChallenge(
+        override val type: ChallengeType = ChallengeType.WIFI_CONNECT,
+        val requiredSsid: String
+    ) : Challenge()
+
+    data class MazeChallenge(
+        override val type: ChallengeType = ChallengeType.MAZE,
+        val gridSize: Int = 5,
+        val walls: Set<Int> = emptySet(),  // Cell indices that are walls
+        val startPos: Int = 0,
+        val endPos: Int = 24
+    ) : Challenge()
 }
 
 private val TYPING_PHRASES = listOf(
@@ -114,6 +136,9 @@ object ChallengeGenerator {
         ChallengeType.NFC_SCAN -> Challenge.NfcChallenge(registeredTagId = "")
         ChallengeType.BARCODE_SCAN -> Challenge.BarcodeChallenge(registeredValue = "")
         ChallengeType.PHOTO_MATCH -> Challenge.PhotoMatchChallenge(referencePhotoUri = "")
+        ChallengeType.SQUAT -> Challenge.SquatChallenge(requiredSquats = 10)
+        ChallengeType.WIFI_CONNECT -> Challenge.WifiChallenge(requiredSsid = "")
+        ChallengeType.MAZE -> generateMaze()
     }
 
     private fun generateMathEasy(): Challenge.MathChallenge {
@@ -176,6 +201,22 @@ object ChallengeGenerator {
         return Challenge.MemoryPatternChallenge(
             pattern = indices,
             showDurationMs = 2500
+        )
+    }
+
+    private fun generateMaze(): Challenge.MazeChallenge {
+        val size = 5
+        val totalCells = size * size
+        // Generate random walls (about 30% of cells, excluding start and end)
+        val walls = (1 until totalCells - 1)
+            .shuffled()
+            .take((totalCells * 0.3).toInt())
+            .toSet()
+        return Challenge.MazeChallenge(
+            gridSize = size,
+            walls = walls,
+            startPos = 0,
+            endPos = totalCells - 1
         )
     }
 

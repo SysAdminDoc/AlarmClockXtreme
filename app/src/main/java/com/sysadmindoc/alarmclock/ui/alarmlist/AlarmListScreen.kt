@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,8 +52,17 @@ fun AlarmListScreen(
         )
     }
 
-    // Undo snackbar
+    // Snackbar host shared by undo and skip-next feedback
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Skip-next feedback snackbar
+    LaunchedEffect(Unit) {
+        viewModel.skipFeedbackEvents.collect { message ->
+            snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+        }
+    }
+
+    // Undo snackbar
     LaunchedEffect(state.undoAlarm) {
         state.undoAlarm?.let { alarm ->
             val result = snackbarHostState.showSnackbar(
@@ -262,7 +272,7 @@ private fun AlarmHeader(
                 .padding(4.dp)
         ) {
             TextButton(onClick = onCycleSort) {
-                Icon(Icons.Default.Sort, null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                Icon(Icons.AutoMirrored.Filled.Sort, null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(2.dp))
                 Text(sortLabel, color = TextSecondary, fontSize = 11.sp)
             }

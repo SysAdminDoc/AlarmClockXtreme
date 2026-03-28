@@ -587,3 +587,58 @@ fun PhotoMatchChallengeView(
         }
     }
 }
+
+/**
+ * v1.2.0: Squat challenge - do N squats detected by accelerometer.
+ */
+@Composable
+fun SquatChallengeView(
+    challenge: Challenge.SquatChallenge,
+    currentSquats: Int
+) {
+    val progress = (currentSquats.toFloat() / challenge.requiredSquats).coerceIn(0f, 1f)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        modifier = Modifier.padding(32.dp)
+    ) {
+        Text("Squat to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+
+        Icon(
+            Icons.Default.FitnessCenter,
+            contentDescription = "Squat exercise",
+            tint = DismissGreen,
+            modifier = Modifier.size(72.dp)
+        )
+
+        Box(contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.size(120.dp),
+                color = DismissGreen,
+                trackColor = SurfaceCard,
+                strokeWidth = 8.dp
+            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "$currentSquats",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Text(
+                    text = "/ ${challenge.requiredSquats}",
+                    fontSize = 14.sp,
+                    color = TextMuted
+                )
+            }
+        }
+
+        Text(
+            text = if (currentSquats == 0) "Start squatting!" else "${challenge.requiredSquats - currentSquats} squats remaining",
+            color = if (currentSquats > 0) DismissGreen else TextMuted,
+            fontSize = 16.sp
+        )
+    }
+}

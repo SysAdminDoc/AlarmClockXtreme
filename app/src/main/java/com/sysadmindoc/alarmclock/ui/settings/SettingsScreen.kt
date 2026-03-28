@@ -73,6 +73,7 @@ fun SettingsScreen(
                 SettingsToggle("24-hour format", state.settings.is24HourFormat, viewModel::toggle24Hour)
                 SettingsToggle("Show on lock screen", state.settings.showOnLockScreen, viewModel::toggleLockScreen)
                 SettingsToggle("Use phone speakers", state.settings.usePhoneSpeakers, viewModel::togglePhoneSpeakers)
+                SettingsToggle("Flip phone to snooze", state.settings.flipToSnoozeEnabled, viewModel::toggleFlipToSnooze)
                 SettingsValue("Default snooze", "${state.settings.defaultSnoozeDuration} min")
                 SettingsValue("Gradual volume", "${state.settings.defaultGradualVolume / 60}m ${state.settings.defaultGradualVolume % 60}s")
 
@@ -129,6 +130,21 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Integrations (Webhook)
+            IntegrationsSection(state, viewModel)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Public Holidays
+            HolidaysSection(state, viewModel)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Philips Hue
+            PhilipsHueSection(state, viewModel)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -478,6 +494,134 @@ private fun SettingsInfo(label: String, description: String) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
         Text(label, color = TextPrimary)
         Text(description, color = TextSecondary, fontSize = 12.sp)
+    }
+}
+
+@Composable
+private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+    SettingsGroup("Integrations (Webhook)") {
+        SettingsToggle("Enable webhook", state.settings.webhookEnabled, viewModel::toggleWebhook)
+        OutlinedTextField(
+            value = state.settings.webhookUrl,
+            onValueChange = viewModel::updateWebhookUrl,
+            label = { Text("Webhook URL (HTTPS)", color = TextMuted) },
+            placeholder = { Text("https://...", color = TextMuted) },
+            enabled = state.settings.webhookEnabled,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
+                cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                focusedLabelColor = AccentBlue
+            ),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            singleLine = true
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            state.webhookTestResult?.let { result ->
+                Text(result, color = if (result.contains("OK")) DismissGreen else AccentRed, fontSize = 12.sp)
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            OutlinedButton(
+                onClick = viewModel::testWebhook,
+                enabled = state.settings.webhookEnabled && state.settings.webhookUrl.isNotBlank(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
+            ) { Text("Test") }
+        }
+        Text(
+            "Fired on alarm fire, snooze, and dismiss events. POST with JSON body.",
+            color = TextMuted, fontSize = 11.sp,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun HolidaysSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+    SettingsGroup("Public Holidays") {
+        SettingsToggle("Skip alarms on holidays", state.settings.holidayAutoSkipEnabled, viewModel::toggleHolidayAutoSkip)
+        OutlinedTextField(
+            value = state.settings.holidayCountryCode,
+            onValueChange = viewModel::updateHolidayCountryCode,
+            label = { Text("Country code (ISO 3166-1, e.g. US, GB, DE)", color = TextMuted) },
+            enabled = state.settings.holidayAutoSkipEnabled,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
+                cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                focusedLabelColor = AccentBlue
+            ),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            singleLine = true
+        )
+        Text(
+            "Uses Nager.Date API (free, no key required). Holiday data is cached for 7 days.",
+            color = TextMuted, fontSize = 11.sp,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
+private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+    SettingsGroup("Philips Hue") {
+        OutlinedTextField(
+            value = state.settings.hueBridgeIp,
+            onValueChange = viewModel::updateHueBridgeIp,
+            label = { Text("Bridge IP address (e.g. 192.168.1.100)", color = TextMuted) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
+                cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                focusedLabelColor = AccentBlue
+            ),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            singleLine = true
+        )
+        OutlinedTextField(
+            value = state.settings.hueApiKey,
+            onValueChange = viewModel::updateHueApiKey,
+            label = { Text("Hue API key (username)", color = TextMuted) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
+                cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                focusedLabelColor = AccentBlue
+            ),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            singleLine = true
+        )
+        OutlinedTextField(
+            value = state.settings.hueLightIds,
+            onValueChange = viewModel::updateHueLightIds,
+            label = { Text("Light IDs (comma-separated, e.g. 1,2,3)", color = TextMuted) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
+                cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                focusedLabelColor = AccentBlue
+            ),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            singleLine = true
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            state.hueTestResult?.let { result ->
+                Text(result, color = if (result.contains("reachable")) DismissGreen else AccentRed, fontSize = 12.sp, modifier = Modifier.weight(1f))
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            OutlinedButton(
+                onClick = viewModel::testHue,
+                enabled = state.settings.hueBridgeIp.isNotBlank() && state.settings.hueApiKey.isNotBlank(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
+            ) { Text("Test") }
+        }
+        Text(
+            "Enable sunrise simulation per-alarm in the alarm edit screen.",
+            color = TextMuted, fontSize = 11.sp,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+        )
     }
 }
 

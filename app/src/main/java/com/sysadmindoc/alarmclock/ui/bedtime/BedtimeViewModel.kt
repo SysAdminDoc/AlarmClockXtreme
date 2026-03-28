@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.service.SleepSoundPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -31,7 +32,12 @@ data class BedtimeUiState(
     val bedtimeFormatted: String = "11:00 PM",
     val wakeTimeFormatted: String = "",
     val sleepDurationFormatted: String = "8h 0m",
-    val is24HourFormat: Boolean = false
+    val is24HourFormat: Boolean = false,
+    // F9: Sleep cycle calculator — list of formatted optimal sleep times
+    val sleepCycleOptions: List<String> = emptyList(),
+    // F10: Sleep sounds
+    val activeSoundResId: Int = 0,        // 0 = stopped
+    val sleepSoundFadeMinutes: Int = 30   // 0 = no fade
 )
 
 @HiltViewModel
@@ -40,6 +46,9 @@ class BedtimeViewModel @Inject constructor(
     private val repository: AlarmRepository,
     private val preferencesManager: PreferencesManager
 ) : ViewModel() {
+
+    // F10: Sleep sound player
+    private val sleepSoundPlayer = SleepSoundPlayer(context)
 
     private val _uiState = MutableStateFlow(BedtimeUiState())
     val uiState: StateFlow<BedtimeUiState> = _uiState.asStateFlow()
@@ -79,17 +88,37 @@ class BedtimeViewModel @Inject constructor(
             val suggestedBedtime = wakeTime.minusMinutes(sleepMinutes.toLong())
             val suggestedFormatted = suggestedBedtime.format(DateTimeFormatter.ofPattern("h:mm a"))
 
+            // F9: Compute sleep cycle options (90-min cycles, 15 min to fall asleep)
+            val cycles = computeSleepCycles(wakeTime, current.is24HourFormat)
+
             _uiState.value = current.copy(
                 nextAlarmTime = "Next alarm: $wakeFormatted",
                 wakeTimeFormatted = wakeFormatted,
-                suggestedBedtime = suggestedFormatted
+                suggestedBedtime = suggestedFormatted,
+                sleepCycleOptions = cycles
             )
         } else {
             _uiState.value = current.copy(
                 nextAlarmTime = "No alarm set",
                 wakeTimeFormatted = "",
-                suggestedBedtime = ""
+                suggestedBedtime = "",
+                sleepCycleOptions = emptyList()
             )
+        }
+    }
+
+    /**
+     * F9: Compute optimal sleep times based on 90-minute sleep cycles.
+     * Formula: wake_time - N * 90 minutes - 15 minutes (avg fall-asleep time)
+     * Returns 4 options for N = 5, 4, 3, 2 cycles (7.5h, 6h, 4.5h, 3h).
+     */
+    private fun computeSleepCycles(wakeTime: LocalTime, is24h: Boolean): List<String> {
+        val pattern = if (is24h) "HH:mm" else "h:mm a"
+        val formatter = DateTimeFormatter.ofPattern(pattern)
+        return (5 downTo 2).map { cycles ->
+            val totalMinutes = cycles * 90 + 15
+            val sleepTime = wakeTime.minusMinutes(totalMinutes.toLong())
+            "${sleepTime.format(formatter)} (${cycles * 90 / 60}h ${cycles * 90 % 60}m)"
         }
     }
 
@@ -184,6 +213,27 @@ class BedtimeViewModel @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.cancel(pendingIntent)
+    }
+
+    // F10: Sleep sound controls
+    fun playSound(rawResId: Int) {
+        val fadeMinutes = _uiState.value.sleepSoundFadeMinutes
+        sleepSoundPlayer.play(rawResId, fadeMinutes)
+        _uiState.value = _uiState.value.copy(activeSoundResId = rawResId)
+    }
+
+    fun stopSound() {
+        sleepSoundPlayer.stop()
+        _uiState.value = _uiState.value.copy(activeSoundResId = 0)
+    }
+
+    fun setSleepSoundFade(minutes: Int) {
+        _uiState.value = _uiState.value.copy(sleepSoundFadeMinutes = minutes)
+    }
+
+    override fun onCleared() {
+        sleepSoundPlayer.release()
+        super.onCleared()
     }
 
     private fun formatTime(hour: Int, minute: Int, is24h: Boolean = false): String {
