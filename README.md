@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-0.9.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%2010+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -127,3 +127,17 @@ Issues and PRs welcome. Please open an issue before starting major work to discu
 ## License
 
 Apache License 2.0 - see [LICENSE](LICENSE)
+
+---
+
+## Recent Improvements (v1.1.0)
+
+- **Full Audit Fix**: 56-issue comprehensive audit addressing crashes, data loss, race conditions, and correctness bugs across all layers.
+- **Backup/Restore**: Now preserves all 16 F1-F17 alarm fields and 15+ settings (previously lost on backup).
+- **Service Stability**: Fixed MediaPlayer NPE race, double-stopForeground crash, auto-silence job leak, notification ID collisions.
+- **24h Format**: World clock, stats, and event history now respect the user's 24-hour format preference.
+- **Challenges**: Fixed negative answer choices, ambiguous operator precedence, added accessibility labels.
+- **Timer/Stopwatch**: Timer uses monotonic clock (DST-safe), stopwatch lap splits calculate correctly.
+- **Thread Safety**: HolidayRepository file I/O synchronized, CrashLogger timestamp uniqueness, Converters handle malformed data.
+- **Widget**: Fixed missing DB migrations 3-4 and 4-5 that crashed widgets on upgraded devices.
+- **Infrastructure**: Network timeouts configured, DAO singletons, HolidaySyncWorker retry cap, Sonar variance startup fix.

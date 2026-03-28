@@ -9,7 +9,12 @@ enum class ChallengeType {
     MATH_HARD,       // Three operations or larger numbers
     SHAKE,           // Shake phone X times
     SEQUENCE,        // Tap numbers in ascending order
-    MEMORY_PATTERN   // Remember and tap a pattern of tiles
+    MEMORY_PATTERN,  // Remember and tap a pattern of tiles
+    TYPING,          // Type a displayed phrase exactly
+    WALK_STEPS,      // Walk N steps (uses step counter sensor)
+    NFC_SCAN,        // Tap a registered NFC tag
+    BARCODE_SCAN,    // Scan a registered barcode/QR code
+    PHOTO_MATCH      // Photograph a registered location to dismiss
 }
 
 sealed class Challenge {
@@ -42,7 +47,55 @@ sealed class Challenge {
         val showDurationMs: Long = 2000,
         var tappedSoFar: List<Int> = emptyList()
     ) : Challenge()
+
+    // F3: Typing challenge — must type the displayed phrase exactly
+    data class TypingChallenge(
+        override val type: ChallengeType = ChallengeType.TYPING,
+        val phrase: String
+    ) : Challenge()
+
+    // F4: Walk-steps challenge — step counter sensor must accumulate N steps
+    data class WalkChallenge(
+        override val type: ChallengeType = ChallengeType.WALK_STEPS,
+        val requiredSteps: Int = 30
+    ) : Challenge()
+
+    // F2: NFC tag challenge — must tap the pre-registered NFC tag
+    data class NfcChallenge(
+        override val type: ChallengeType = ChallengeType.NFC_SCAN,
+        val registeredTagId: String  // hex ID of the registered tag
+    ) : Challenge()
+
+    // F1: Barcode/QR challenge — must scan the pre-registered barcode
+    data class BarcodeChallenge(
+        override val type: ChallengeType = ChallengeType.BARCODE_SCAN,
+        val registeredValue: String  // barcode payload string
+    ) : Challenge()
+
+    // F16: Photo match challenge — must photograph the registered location
+    data class PhotoMatchChallenge(
+        override val type: ChallengeType = ChallengeType.PHOTO_MATCH,
+        val referencePhotoUri: String  // URI to reference photo in filesDir
+    ) : Challenge()
 }
+
+private val TYPING_PHRASES = listOf(
+    "The early bird catches the worm",
+    "Rise and shine, it is time to wake up",
+    "Good morning, today is going to be a great day",
+    "Wake up and be awesome",
+    "You have things to do and dreams to chase",
+    "Every morning is a fresh start",
+    "The sun is up and so should you be",
+    "Do not go back to sleep",
+    "Seize the day before the day seizes you",
+    "Success is built one morning at a time",
+    "Get up, dress up, show up",
+    "Today is your day to shine",
+    "Motivation is what gets you started",
+    "You are stronger than your snooze button",
+    "Turn off the alarm and turn on your life"
+)
 
 object ChallengeGenerator {
 
@@ -54,6 +107,13 @@ object ChallengeGenerator {
         ChallengeType.SHAKE -> Challenge.ShakeChallenge(requiredShakes = 30)
         ChallengeType.SEQUENCE -> generateSequence()
         ChallengeType.MEMORY_PATTERN -> generateMemoryPattern()
+        ChallengeType.TYPING -> Challenge.TypingChallenge(phrase = TYPING_PHRASES.random())
+        // WALK_STEPS, NFC_SCAN, BARCODE_SCAN, PHOTO_MATCH require alarm-level data;
+        // constructed directly in AlarmFiringViewModel using alarm fields
+        ChallengeType.WALK_STEPS -> Challenge.WalkChallenge(requiredSteps = 30)
+        ChallengeType.NFC_SCAN -> Challenge.NfcChallenge(registeredTagId = "")
+        ChallengeType.BARCODE_SCAN -> Challenge.BarcodeChallenge(registeredValue = "")
+        ChallengeType.PHOTO_MATCH -> Challenge.PhotoMatchChallenge(referencePhotoUri = "")
     }
 
     private fun generateMathEasy(): Challenge.MathChallenge {
@@ -82,7 +142,7 @@ object ChallengeGenerator {
         val answer = a + b * c
         return Challenge.MathChallenge(
             type = ChallengeType.MATH_MEDIUM,
-            expression = "$a + $b x $c = ?",
+            expression = "$a + ($b x $c) = ?",
             answer = answer,
             choices = generateChoices(answer)
         )
@@ -123,7 +183,8 @@ object ChallengeGenerator {
         val choices = mutableSetOf(answer)
         while (choices.size < 4) {
             val offset = Random.nextInt(-10, 11)
-            if (offset != 0) choices.add(answer + offset)
+            val choice = answer + offset
+            if (offset != 0 && choice >= 0) choices.add(choice)
         }
         return choices.shuffled()
     }
