@@ -14,6 +14,18 @@ class NextAlarmCalculator @Inject constructor() {
      * If no repeat days, schedules for today if time hasn't passed, otherwise tomorrow.
      */
     fun calculate(alarm: Alarm, fromTime: ZonedDateTime = ZonedDateTime.now()): Long {
+        // v1.2.0: Date-specific alarm overrides repeat days
+        if (alarm.specificDate.isNotBlank()) {
+            try {
+                val specificDate = java.time.LocalDate.parse(alarm.specificDate)
+                val specificDateTime = ZonedDateTime.of(specificDate, LocalTime.of(alarm.hour, alarm.minute), fromTime.zone)
+                if (specificDateTime.isAfter(fromTime)) {
+                    return specificDateTime.toInstant().toEpochMilli()
+                }
+                // Date is in the past — fall through to normal scheduling
+            } catch (_: Exception) { /* Invalid date format, fall through */ }
+        }
+
         val alarmTime = LocalTime.of(alarm.hour, alarm.minute)
         val today = fromTime.toLocalDate()
         val todayAlarmDateTime = ZonedDateTime.of(today, alarmTime, fromTime.zone)

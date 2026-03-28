@@ -194,6 +194,12 @@
                 android:resource="@xml/next_alarm_widget_info" />
         </receiver>
 
+        <!-- v1.2.0: Night Clock / Bedside Mode -->
+        <activity
+            android:name=".ui.nightclock.NightClockActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AlarmClockXtreme" />
+
     </application>
 
 </manifest>

@@ -556,6 +556,7 @@ class AlarmService : Service() {
             putExtra(MorningBriefingActivity.EXTRA_DATE, dateStr)
             putExtra(MorningBriefingActivity.EXTRA_WEATHER, "")  // Weather cached separately
             putExtra(MorningBriefingActivity.EXTRA_NEXT_EVENT, "")
+            putExtra(MorningBriefingActivity.EXTRA_ROUTINE, alarm.morningRoutine)
         }
         startActivity(intent)
     }

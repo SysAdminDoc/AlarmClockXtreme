@@ -32,6 +32,7 @@ class MorningBriefingActivity : ComponentActivity() {
         const val EXTRA_DATE = "briefing_date"
         const val EXTRA_WEATHER = "briefing_weather"
         const val EXTRA_NEXT_EVENT = "briefing_next_event"
+        const val EXTRA_ROUTINE = "briefing_routine"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,6 +54,7 @@ class MorningBriefingActivity : ComponentActivity() {
         val date = intent.getStringExtra(EXTRA_DATE) ?: ""
         val weather = intent.getStringExtra(EXTRA_WEATHER) ?: ""
         val nextEvent = intent.getStringExtra(EXTRA_NEXT_EVENT) ?: ""
+        val routine = intent.getStringExtra(EXTRA_ROUTINE) ?: ""
 
         setContent {
             com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme {
@@ -61,6 +63,7 @@ class MorningBriefingActivity : ComponentActivity() {
                     date = date,
                     weather = weather,
                     nextEvent = nextEvent,
+                    morningRoutine = routine,
                     onClose = { finish() }
                 )
             }
@@ -74,6 +77,7 @@ fun MorningBriefingScreen(
     date: String,
     weather: String,
     nextEvent: String,
+    morningRoutine: String = "",
     onClose: () -> Unit
 ) {
     Box(
@@ -140,6 +144,29 @@ fun MorningBriefingScreen(
                         Icon(Icons.Default.Event, null, tint = DismissGreen, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(nextEvent, color = TextPrimary, fontSize = 15.sp)
+                    }
+                }
+            }
+
+            // v1.2.0: Morning routine checklist
+            if (morningRoutine.isNotBlank()) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceCard.copy(alpha = 0.7f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("Morning Routine", color = AccentBlue, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        morningRoutine.split("\n").filter { it.isNotBlank() }.forEach { item ->
+                            Row(
+                                modifier = Modifier.padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.CheckBoxOutlineBlank, null, tint = TextMuted, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(item.trim(), color = TextPrimary, fontSize = 14.sp)
+                            }
+                        }
                     }
                 }
             }

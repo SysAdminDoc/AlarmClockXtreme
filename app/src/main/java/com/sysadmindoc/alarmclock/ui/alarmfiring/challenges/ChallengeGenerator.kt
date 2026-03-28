@@ -121,7 +121,7 @@ private val TYPING_PHRASES = listOf(
 
 object ChallengeGenerator {
 
-    fun generate(type: ChallengeType): Challenge = when (type) {
+    fun generate(type: ChallengeType, customPhrases: String = ""): Challenge = when (type) {
         ChallengeType.NONE -> Challenge.MathChallenge(ChallengeType.NONE, "0", 0, listOf(0))
         ChallengeType.MATH_EASY -> generateMathEasy()
         ChallengeType.MATH_MEDIUM -> generateMathMedium()
@@ -129,7 +129,13 @@ object ChallengeGenerator {
         ChallengeType.SHAKE -> Challenge.ShakeChallenge(requiredShakes = 30)
         ChallengeType.SEQUENCE -> generateSequence()
         ChallengeType.MEMORY_PATTERN -> generateMemoryPattern()
-        ChallengeType.TYPING -> Challenge.TypingChallenge(phrase = TYPING_PHRASES.random())
+        ChallengeType.TYPING -> {
+            val allPhrases = TYPING_PHRASES.toMutableList()
+            if (customPhrases.isNotBlank()) {
+                allPhrases.addAll(customPhrases.split("\n").filter { it.isNotBlank() })
+            }
+            Challenge.TypingChallenge(phrase = allPhrases.random())
+        }
         // WALK_STEPS, NFC_SCAN, BARCODE_SCAN, PHOTO_MATCH require alarm-level data;
         // constructed directly in AlarmFiringViewModel using alarm fields
         ChallengeType.WALK_STEPS -> Challenge.WalkChallenge(requiredSteps = 30)

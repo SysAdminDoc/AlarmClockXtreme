@@ -52,6 +52,14 @@ class AlarmClockApp : Application(), Configuration.Provider {
             holidaySync
         )
 
+        // v1.2.0: Schedule daily calendar auto-alarm check
+        val calendarSync = PeriodicWorkRequestBuilder<com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker>(1, TimeUnit.DAYS).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "calendar_auto_alarm",
+            ExistingPeriodicWorkPolicy.KEEP,
+            calendarSync
+        )
+
         // Start persistent next-alarm notification observer
         val entryPoint = EntryPointAccessors.fromApplication(this, AppEntryPoint::class.java)
         entryPoint.nextAlarmNotifier().startObserving()

@@ -642,3 +642,114 @@ fun SquatChallengeView(
         )
     }
 }
+
+/**
+ * v1.2.0: Maze challenge - navigate from start to end by tapping adjacent cells.
+ */
+@Composable
+fun MazeChallengeView(
+    challenge: Challenge.MazeChallenge,
+    currentPos: Int,
+    onTapCell: (Int) -> Unit
+) {
+    val size = challenge.gridSize
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.padding(32.dp)
+    ) {
+        Text("Navigate the maze to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (row in 0 until size) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    for (col in 0 until size) {
+                        val idx = row * size + col
+                        val isWall = idx in challenge.walls
+                        val isStart = idx == challenge.startPos
+                        val isEnd = idx == challenge.endPos
+                        val isCurrent = idx == currentPos
+
+                        val bgColor = when {
+                            isWall -> SurfaceDark
+                            isCurrent -> AccentBlue
+                            isStart -> DismissGreen.copy(alpha = 0.3f)
+                            isEnd -> AccentRed.copy(alpha = 0.5f)
+                            else -> SurfaceCard
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(bgColor)
+                                .clickable(enabled = !isWall) { onTapCell(idx) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when {
+                                isCurrent -> Icon(Icons.Default.Person, null, tint = TextPrimary, modifier = Modifier.size(24.dp))
+                                isStart -> Text("S", color = DismissGreen, fontWeight = FontWeight.Bold)
+                                isEnd -> Text("E", color = AccentRed, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Text(
+            "Tap adjacent cells to move. Reach the red E to dismiss.",
+            color = TextMuted, fontSize = 12.sp,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/**
+ * v1.2.0: Wi-Fi connect challenge - must connect to a specific Wi-Fi network.
+ */
+@Composable
+fun WifiChallengeView(
+    challenge: Challenge.WifiChallenge,
+    currentSsid: String
+) {
+    val isConnected = currentSsid.isNotBlank() &&
+        (currentSsid == challenge.requiredSsid || challenge.requiredSsid.isBlank())
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        modifier = Modifier.padding(32.dp)
+    ) {
+        Text("Connect to Wi-Fi to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+
+        Icon(
+            Icons.Default.Wifi,
+            contentDescription = "Wi-Fi",
+            tint = if (isConnected) DismissGreen else AccentBlue,
+            modifier = Modifier.size(80.dp)
+        )
+
+        if (challenge.requiredSsid.isNotBlank()) {
+            Text(
+                "Required network: ${challenge.requiredSsid}",
+                color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold
+            )
+        }
+
+        Text(
+            text = if (currentSsid.isBlank()) "Not connected to Wi-Fi"
+                   else "Connected to: $currentSsid",
+            color = if (isConnected) DismissGreen else SnoozeYellow,
+            fontSize = 14.sp
+        )
+
+        if (challenge.requiredSsid.isBlank()) {
+            Text("No network specified — connect to any Wi-Fi to dismiss",
+                color = SnoozeYellow, fontSize = 12.sp, textAlign = TextAlign.Center)
+        }
+    }
+}

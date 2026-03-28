@@ -44,6 +44,7 @@ class AlarmFiringActivity : ComponentActivity() {
     private var flipDetector: FlipDetector? = null
     private var nfcAdapter: NfcAdapter? = null
     private var alarmId: Long = -1
+    private var wifiPollingJob: kotlinx.coroutines.Job? = null
 
     // F16: Camera launcher for photo-match challenge
     private val photoLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
@@ -105,6 +106,10 @@ class AlarmFiringActivity : ComponentActivity() {
                 when {
                     challenge is Challenge.SquatChallenge && !state.challengeSolved -> startSquatDetection()
                     else -> stopSquatDetection()
+                }
+                when {
+                    challenge is Challenge.WifiChallenge && !state.challengeSolved -> startWifiPolling()
+                    else -> stopWifiPolling()
                 }
             }
         }
@@ -236,6 +241,28 @@ class AlarmFiringActivity : ComponentActivity() {
         squatDetector = null
     }
 
+    private fun startWifiPolling() {
+        if (wifiPollingJob != null) return
+        wifiPollingJob = lifecycleScope.launch {
+            val wifiManager = applicationContext.getSystemService(android.net.wifi.WifiManager::class.java)
+            while (true) {
+                @Suppress("DEPRECATION")
+                val info = wifiManager?.connectionInfo
+                @Suppress("DEPRECATION")
+                val ssid = info?.ssid?.removeSurrounding("\"") ?: ""
+                if (ssid != "<unknown ssid>") {
+                    viewModel.updateWifiSsid(ssid)
+                }
+                kotlinx.coroutines.delay(2000)
+            }
+        }
+    }
+
+    private fun stopWifiPolling() {
+        wifiPollingJob?.cancel()
+        wifiPollingJob = null
+    }
+
     private fun startFlipDetector() {
         if (flipDetector != null) return
         flipDetector = FlipDetector(
@@ -320,6 +347,7 @@ class AlarmFiringActivity : ComponentActivity() {
         stopShakeDetection()
         stopSquatDetection()
         stopWalkSteps()
+        stopWifiPolling()
         stopFlipDetector()
         super.onDestroy()
     }
