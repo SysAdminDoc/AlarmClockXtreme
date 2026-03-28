@@ -251,6 +251,19 @@ fun AlarmFiringScreen(
                         currentSquats = state.squatCount
                     )
                 }
+                challenge is Challenge.MazeChallenge -> {
+                    MazeChallengeView(
+                        challenge = challenge,
+                        currentPos = state.mazeCurrentPos,
+                        onTapCell = viewModel::tapMazeCell
+                    )
+                }
+                challenge is Challenge.WifiChallenge -> {
+                    WifiChallengeView(
+                        challenge = challenge,
+                        currentSsid = state.wifiCurrentSsid
+                    )
+                }
             }
         }
 

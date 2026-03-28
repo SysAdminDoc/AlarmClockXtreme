@@ -1,15 +1,18 @@
 package com.sysadmindoc.alarmclock.ui.theme
 
 import android.app.Activity
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Always dark - no light theme
+val LocalAccentColor = compositionLocalOf { AccentBlue }
+
 private val DarkColorScheme = darkColorScheme(
     primary = BluePrimary,
     onPrimary = TextPrimary,
@@ -29,10 +32,20 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun AlarmClockXtremeTheme(content: @Composable () -> Unit) {
-    val colorScheme = DarkColorScheme
-    val view = LocalView.current
+fun AlarmClockXtremeTheme(
+    accentColorHex: String? = null,
+    content: @Composable () -> Unit
+) {
+    val accent = if (accentColorHex != null && accentColorHex.startsWith("#")) {
+        try { Color(android.graphics.Color.parseColor(accentColorHex)) } catch (_: Exception) { AccentBlue }
+    } else AccentBlue
 
+    val colorScheme = DarkColorScheme.copy(
+        primary = accent,
+        secondary = accent
+    )
+
+    val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
@@ -43,9 +56,11 @@ fun AlarmClockXtremeTheme(content: @Composable () -> Unit) {
         }
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = AppTypography,
-        content = content
-    )
+    CompositionLocalProvider(LocalAccentColor provides accent) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = AppTypography,
+            content = content
+        )
+    }
 }

@@ -37,7 +37,11 @@ data class FiringUiState(
     // v1.2.0: Squat challenge
     val squatCount: Int = 0,
     // v1.2.0: Motivational quote
-    val motivationalQuote: String = ""
+    val motivationalQuote: String = "",
+    // v1.2.0: Maze challenge
+    val mazeCurrentPos: Int = 0,
+    // v1.2.0: Wi-Fi challenge
+    val wifiCurrentSsid: String = ""
 ) {
     val requiresChallenge: Boolean get() {
         val type = alarm?.challengeType ?: "NONE"
@@ -86,10 +90,26 @@ class AlarmFiringViewModel @Inject constructor(
             } else {
                 emptyList()
             }
-            challengeChainTypes = chainTypes
+            // v1.2.0: Adaptive difficulty — escalate if user snoozes a lot
+            // Read recent events to decide if we should bump difficulty
+            val adaptedChain = if (chainTypes.isNotEmpty()) {
+                try {
+                    val recentStats = eventRepository.getStats()
+                    if (recentStats.snoozeRate > 50) {
+                        chainTypes.map { type ->
+                            when (type) {
+                                ChallengeType.MATH_EASY -> ChallengeType.MATH_MEDIUM
+                                ChallengeType.MATH_MEDIUM -> ChallengeType.MATH_HARD
+                                else -> type
+                            }
+                        }
+                    } else chainTypes
+                } catch (_: Exception) { chainTypes }
+            } else chainTypes
+            challengeChainTypes = adaptedChain
 
-            val firstChallenge = if (chainTypes.isNotEmpty()) {
-                buildChallengeForType(chainTypes[0], alarm)
+            val firstChallenge = if (adaptedChain.isNotEmpty()) {
+                buildChallengeForType(adaptedChain[0], alarm)
             } else {
                 null
             }
@@ -99,8 +119,8 @@ class AlarmFiringViewModel @Inject constructor(
             _uiState.value = FiringUiState(
                 alarm = alarm,
                 challenge = firstChallenge,
-                challengeSolved = chainTypes.isEmpty(),
-                totalChallenges = maxOf(chainTypes.size, 1),
+                challengeSolved = adaptedChain.isEmpty(),
+                totalChallenges = maxOf(adaptedChain.size, 1),
                 currentChallengeIndex = 0,
                 motivationalQuote = quote
             )
@@ -140,7 +160,9 @@ class AlarmFiringViewModel @Inject constructor(
             wrongAttempts = 0,
             nfcScanStatus = "",
             barcodeScanStatus = "",
-            photoMatchStatus = ""
+            photoMatchStatus = "",
+            mazeCurrentPos = 0,
+            wifiCurrentSsid = ""
         )
     }
 
@@ -238,6 +260,38 @@ class AlarmFiringViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(challengeSolved = true)
         } else {
             _uiState.value = _uiState.value.copy(barcodeScanStatus = "Wrong code — scan the registered barcode")
+        }
+    }
+
+    // v1.2.0: Maze challenge - move to adjacent cell
+    fun tapMazeCell(cellIndex: Int) {
+        val challenge = _uiState.value.challenge as? Challenge.MazeChallenge ?: return
+        val currentPos = _uiState.value.mazeCurrentPos
+        val size = challenge.gridSize
+
+        // Check adjacency (up/down/left/right only)
+        val currentRow = currentPos / size
+        val currentCol = currentPos % size
+        val targetRow = cellIndex / size
+        val targetCol = cellIndex % size
+        val isAdjacent = (kotlin.math.abs(currentRow - targetRow) + kotlin.math.abs(currentCol - targetCol)) == 1
+
+        if (!isAdjacent || cellIndex in challenge.walls) return
+
+        _uiState.value = _uiState.value.copy(mazeCurrentPos = cellIndex)
+        if (cellIndex == challenge.endPos) {
+            _uiState.value = _uiState.value.copy(challengeSolved = true)
+        }
+    }
+
+    // v1.2.0: Wi-Fi challenge - update current SSID
+    fun updateWifiSsid(ssid: String) {
+        val challenge = _uiState.value.challenge as? Challenge.WifiChallenge ?: return
+        _uiState.value = _uiState.value.copy(wifiCurrentSsid = ssid)
+        if (challenge.requiredSsid.isBlank() && ssid.isNotBlank()) {
+            _uiState.value = _uiState.value.copy(challengeSolved = true)
+        } else if (ssid == challenge.requiredSsid) {
+            _uiState.value = _uiState.value.copy(challengeSolved = true)
         }
     }
 
