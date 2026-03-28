@@ -87,6 +87,15 @@ class NextAlarmNotifier @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // v1.2.0: Early dismiss action
+        val skipIntent = Intent(context, com.sysadmindoc.alarmclock.receiver.DismissReceiver::class.java).apply {
+            putExtra(com.sysadmindoc.alarmclock.domain.AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
+        }
+        val skipPi = PendingIntent.getBroadcast(
+            context, alarm.id.toInt() + 30000, skipIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         // Format time
         val triggerInstant = Instant.ofEpochMilli(alarm.nextTriggerTime)
         val localDateTime = triggerInstant.atZone(ZoneId.systemDefault()).toLocalDateTime()
@@ -107,6 +116,7 @@ class NextAlarmNotifier @Inject constructor(
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(pendingIntent)
+            .addAction(R.drawable.ic_alarm, "Skip this alarm", skipPi)
             .build()
 
         notificationManager.notify(NOTIFICATION_ID_PERSISTENT, notification)

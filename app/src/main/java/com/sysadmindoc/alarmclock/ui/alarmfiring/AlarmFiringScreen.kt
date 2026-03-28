@@ -28,6 +28,7 @@ fun AlarmFiringScreen(
     onDismiss: () -> Unit,
     onSnooze: () -> Unit,
     onSnoozeCustom: (Int) -> Unit = { onSnooze() },
+    onTakePhoto: () -> Unit = {},
     viewModel: AlarmFiringViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -134,6 +135,28 @@ fun AlarmFiringScreen(
             )
         }
 
+        // v1.2.0: Motivational quote
+        val quote = state.motivationalQuote
+        if (quote.isNotBlank()) {
+            Text(
+                text = quote,
+                fontSize = 13.sp,
+                color = TextMuted,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp, vertical = 8.dp)
+            )
+        }
+
+        // v1.2.0: Mission chain progress
+        if (state.totalChallenges > 1) {
+            Text(
+                text = "Challenge ${state.currentChallengeIndex + 1} of ${state.totalChallenges}",
+                color = AccentBlue,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
         // Challenge area or standard dismiss
         Box(
             modifier = Modifier.weight(1f),
@@ -186,6 +209,46 @@ fun AlarmFiringScreen(
                         phase = state.memoryPhase,
                         tappedIndices = state.memoryTappedIndices,
                         onTapTile = viewModel::tapMemoryTile
+                    )
+                }
+                challenge is Challenge.TypingChallenge -> {
+                    TypingChallengeView(
+                        challenge = challenge,
+                        currentInput = state.typingInput,
+                        onInputChanged = viewModel::updateTypingInput,
+                        onSubmit = viewModel::submitTyping,
+                        wrongAttempts = state.wrongAttempts
+                    )
+                }
+                challenge is Challenge.WalkChallenge -> {
+                    WalkChallengeView(
+                        challenge = challenge,
+                        currentSteps = state.currentSteps
+                    )
+                }
+                challenge is Challenge.NfcChallenge -> {
+                    NfcScanChallengeView(
+                        challenge = challenge,
+                        scanStatus = state.nfcScanStatus
+                    )
+                }
+                challenge is Challenge.BarcodeChallenge -> {
+                    BarcodeScanChallengeView(
+                        challenge = challenge,
+                        scanStatus = state.barcodeScanStatus
+                    )
+                }
+                challenge is Challenge.PhotoMatchChallenge -> {
+                    PhotoMatchChallengeView(
+                        challenge = challenge,
+                        photoMatchStatus = state.photoMatchStatus,
+                        onTakePhoto = onTakePhoto
+                    )
+                }
+                challenge is Challenge.SquatChallenge -> {
+                    com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.SquatChallengeView(
+                        challenge = challenge,
+                        currentSquats = state.squatCount
                     )
                 }
             }

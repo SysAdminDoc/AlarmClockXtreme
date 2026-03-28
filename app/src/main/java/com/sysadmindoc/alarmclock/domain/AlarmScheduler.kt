@@ -5,11 +5,22 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
 import com.sysadmindoc.alarmclock.receiver.AlarmReceiver
+import com.sysadmindoc.alarmclock.service.SmartAlarmService
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
+import com.sysadmindoc.alarmclock.worker.HueSunriseWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,7 +29,8 @@ class AlarmScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: AlarmRepository,
     private val calculator: NextAlarmCalculator,
-    private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+    private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager,
+    private val holidayRepository: HolidayRepository
 ) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -28,8 +40,8 @@ class AlarmScheduler @Inject constructor(
 
     /**
      * Schedule an alarm using setAlarmClock() for maximum reliability.
-     * Checks vacation mode before scheduling - if the next trigger time
-     * falls within a vacation window, the alarm is skipped but stays enabled.
+     * Checks vacation mode and holiday skip before scheduling.
+     * Also starts SmartAlarmService window and enqueues HueSunriseWorker if enabled.
      */
     suspend fun schedule(alarm: Alarm) {
         if (!alarm.isEnabled) {
@@ -39,10 +51,10 @@ class AlarmScheduler @Inject constructor(
 
         if (!canScheduleExactAlarms()) return
 
-        val triggerTime = calculator.calculate(alarm)
+        var triggerTime = calculator.calculate(alarm)
+        val settings = preferencesManager.getCurrentSettings()
 
         // Check vacation mode - skip scheduling if trigger falls within vacation window
-        val settings = preferencesManager.getCurrentSettings()
         if (settings.vacationModeEnabled &&
             settings.vacationStartMillis > 0 &&
             settings.vacationEndMillis > 0 &&
@@ -50,6 +62,30 @@ class AlarmScheduler @Inject constructor(
         ) {
             repository.updateNextTrigger(alarm.id, triggerTime)
             return // Don't schedule with AlarmManager, but keep nextTrigger for display
+        }
+
+        // F13: Holiday auto-skip
+        if (alarm.skipOnHolidays && settings.holidayAutoSkipEnabled) {
+            if (alarm.repeatDays.isEmpty()) {
+                // One-shot alarm: if the day is a holiday, don't fire at all
+                val triggerDate = Instant.ofEpochMilli(triggerTime)
+                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                if (holidayRepository.isHoliday(triggerDate)) {
+                    repository.updateNextTrigger(alarm.id, triggerTime)
+                    return
+                }
+            } else {
+                // Repeating alarm: advance past consecutive holidays to the next valid day
+                var attempts = 0
+                while (attempts < 14) {
+                    val triggerDate = Instant.ofEpochMilli(triggerTime)
+                        .atZone(ZoneId.systemDefault()).toLocalDate()
+                    if (!holidayRepository.isHoliday(triggerDate)) break
+                    val nextFrom = triggerDate.plusDays(1).atStartOfDay(ZoneId.systemDefault())
+                    triggerTime = calculator.calculate(alarm, nextFrom)
+                    attempts++
+                }
+            }
         }
 
         repository.updateNextTrigger(alarm.id, triggerTime)
@@ -67,14 +103,76 @@ class AlarmScheduler @Inject constructor(
         val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showIntent)
         alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
         WidgetUpdater.requestUpdate(context)
+
+        // F6: Smart alarm — start the motion-monitoring service early
+        if (alarm.smartAlarmEnabled && alarm.smartAlarmWindowMinutes > 0) {
+            val windowMs = alarm.smartAlarmWindowMinutes * 60_000L
+            val serviceStartTime = triggerTime - windowMs
+            val delayMs = (serviceStartTime - System.currentTimeMillis()).coerceAtLeast(0)
+            val smartIntent = Intent(context, SmartAlarmService::class.java).apply {
+                action = SmartAlarmService.ACTION_START_SMART
+                putExtra(SmartAlarmService.EXTRA_ALARM_ID, alarm.id)
+                putExtra(SmartAlarmService.EXTRA_TARGET_TIME, triggerTime)
+            }
+            // Schedule via a one-shot pending intent instead of WorkManager to preserve
+            // service startup accuracy (WorkManager has ~15min minimum flex)
+            val smartPending = PendingIntent.getForegroundService(
+                context,
+                (alarm.id + 50000).toInt(),
+                smartIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            if (delayMs == 0L) {
+                context.startForegroundService(smartIntent)
+            } else {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    serviceStartTime,
+                    smartPending
+                )
+            }
+        }
+
+        // F15: Philips Hue sunrise — enqueue worker to run before alarm fires
+        if (alarm.hueEnabled && alarm.huePreWakeMinutes > 0) {
+            val hueStartMs = triggerTime - (alarm.huePreWakeMinutes * 60_000L)
+            val hueDelayMs = (hueStartMs - System.currentTimeMillis()).coerceAtLeast(0)
+            val inputData = Data.Builder()
+                .putLong(HueSunriseWorker.KEY_ALARM_ID, alarm.id)
+                .build()
+            val workRequest = OneTimeWorkRequestBuilder<HueSunriseWorker>()
+                .setInitialDelay(hueDelayMs, TimeUnit.MILLISECONDS)
+                .setInputData(inputData)
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "hue_sunrise_${alarm.id}",
+                ExistingWorkPolicy.REPLACE,
+                workRequest
+            )
+        }
     }
 
     /**
-     * Cancel a scheduled alarm.
+     * Cancel a scheduled alarm and any associated workers/services.
      */
     fun cancel(alarmId: Long) {
         val pendingIntent = createPendingIntent(alarmId)
         alarmManager.cancel(pendingIntent)
+
+        // Cancel SmartAlarm pending intent (uses alarmId + 50000 offset)
+        val smartIntent = Intent(context, SmartAlarmService::class.java).apply {
+            action = SmartAlarmService.ACTION_START_SMART
+        }
+        val smartPending = PendingIntent.getForegroundService(
+            context,
+            (alarmId + 50000).toInt(),
+            smartIntent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (smartPending != null) alarmManager.cancel(smartPending)
+
+        // Cancel Hue sunrise worker if enqueued
+        WorkManager.getInstance(context).cancelUniqueWork("hue_sunrise_$alarmId")
         WidgetUpdater.requestUpdate(context)
     }
 

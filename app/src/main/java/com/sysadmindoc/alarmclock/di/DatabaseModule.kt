@@ -24,7 +24,7 @@ object DatabaseModule {
             AlarmDatabase::class.java,
             "alarm_clock.db"
         )
-            .addMigrations(AlarmDatabase.MIGRATION_1_2, AlarmDatabase.MIGRATION_2_3, AlarmDatabase.MIGRATION_3_4, AlarmDatabase.MIGRATION_4_5)
+            .addMigrations(AlarmDatabase.MIGRATION_1_2, AlarmDatabase.MIGRATION_2_3, AlarmDatabase.MIGRATION_3_4, AlarmDatabase.MIGRATION_4_5, AlarmDatabase.MIGRATION_5_6)
             .build()
     }
 
