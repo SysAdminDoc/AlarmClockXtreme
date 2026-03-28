@@ -5,19 +5,17 @@
 ![Platform](https://img.shields.io/badge/platform-Android%2010+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)
-![Status](https://img.shields.io/badge/status-beta-orange)
 
-> A feature-rich, open-source alarm clock for Android with dismiss challenges, weather dashboard, bedtime tracking, and a deep dark theme. No ads, no tracking, no accounts.
+> A feature-rich, open-source alarm clock for Android with 47 features, 15 dismiss challenges, smart wake intelligence, and a deep dark theme. No ads, no tracking, no accounts.
 
 <img width="772" height="568" alt="image" src="https://github.com/user-attachments/assets/01e2e354-3905-4dd2-bb86-112282ae1346" />
-
 
 ## Quick Start
 
 ```bash
 git clone https://github.com/SysAdminDoc/AlarmClockXtreme.git
 cd AlarmClockXtreme
-./gradlew assembleDebug
+./gradlew assemblePlayDebug
 # Install: adb install app/build/outputs/apk/play/debug/app-play-debug.apk
 ```
 
@@ -25,54 +23,127 @@ cd AlarmClockXtreme
 
 ## Features
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| Alarm Engine | setAlarmClock() for maximum reliability, survives Doze | Stable |
-| Dismiss Challenges | Math problems, shake detection, memory sequence | Stable |
-| Weather Dashboard | Current conditions, forecast via Open-Meteo (free, no API key) | Stable |
-| Calendar Integration | Today's events from device calendar | Stable |
-| Bedtime Tracking | Sleep goal, suggested bedtime, daily reminders | Stable |
-| Timer & Stopwatch | Countdown timer with notification, stopwatch with laps | Stable |
-| Home Widget | Glance-based widget showing next alarm countdown | Stable |
-| Vacation Mode | Date range auto-skip for repeating alarms | Stable |
-| Templates | Power Nap, Early Bird, Weekday, Weekend presets | Stable |
-| Backup/Restore | JSON export/import of all alarms and settings | Stable |
-| Statistics | Dismiss streaks, snooze rate, day-of-week breakdown | Stable |
-| Skip Next | Skip one occurrence of a repeating alarm | Stable |
-| Persistent Notification | Always-visible next alarm countdown in shade | Stable |
-| Ringtone Picker | Browse and preview system ringtones | Stable |
-| Swipe to Delete | Swipe alarm cards with undo snackbar | Stable |
-| Search & Sort | Filter alarms, sort by time/created/enabled | Stable |
-| Auto-Silence | Configurable timeout (0/5/10/15/30 min) | Stable |
-| Temperature Units | Fahrenheit / Celsius toggle | Stable |
-| 24-Hour Format | Respects system or manual override | Stable |
-| Alarm Groups | Tag alarms by group (Work, School, Gym), filter with chips | Stable |
-| Duplicate Alarm | Clone any alarm with all settings via overflow menu | Stable |
-| World Clock | Add time zones, live clocks with UTC offset | Stable |
-| Multiple Timers | Run several countdown timers concurrently | Stable |
-| Custom Vibration | 5 patterns: Default, Gentle, Heartbeat, Escalating, SOS | Stable |
-| Flash Wake | Gradual screen brightness increase with volume | Stable |
-| Swipe Gestures | Swipe right to dismiss, left to snooze on firing screen | Stable |
+### Core Alarm Engine
+| Feature | Description |
+|---------|-------------|
+| Reliable Scheduling | `setAlarmClock()` for maximum reliability, survives Doze mode |
+| Alarm Groups | Tag alarms (Work, School, Gym), filter with chips |
+| Alarm Profiles | Named configurations (Work, Travel, Weekend) for quick switching |
+| Date-Specific Alarms | Set alarm for a particular calendar date (overrides repeat days) |
+| Duplicate Alarm | Clone any alarm with all settings via overflow menu |
+| Skip Next | Skip one occurrence of a repeating alarm |
+| Vacation Mode | Date range auto-skip for all repeating alarms |
+| Holiday Auto-Skip | Skip public holidays via Nager.Date API (40+ countries) |
+| Templates | Power Nap, Early Bird, Weekday, Weekend presets |
+| Early Dismiss | Skip upcoming alarm from the persistent notification |
+| Calendar Auto-Alarm | Auto-create alarm before first calendar event daily |
+
+### Dismiss Challenges (15 Types)
+| Challenge | Description |
+|-----------|-------------|
+| Math (Easy/Medium/Hard) | Solve arithmetic problems with explicit operator precedence |
+| Shake Phone | Shake device N times (configurable) |
+| Number Sequence | Tap 6 numbers in ascending order |
+| Memory Pattern | Memorize and recreate a tile pattern on 3x3 grid |
+| Type a Phrase | Type a displayed phrase exactly (custom phrases supported) |
+| Walk Steps | Walk N steps using step counter sensor |
+| NFC Tag Scan | Tap a pre-registered NFC tag |
+| Barcode/QR Scan | Scan a pre-registered barcode |
+| Photo Match | Photograph a registered location (similarity scoring) |
+| Squats | Accelerometer-based squat detection |
+| Maze Puzzle | Navigate a randomized 5x5 maze |
+| Wi-Fi Connect | Connect to a specific Wi-Fi network |
+| Mission Chaining | Stack 2-5 challenges in sequence (e.g., Math + Shake + Typing) |
+| Adaptive Difficulty | Auto-escalates math difficulty based on snooze history |
+
+### Anti-Snooze Arsenal
+| Feature | Description |
+|---------|-------------|
+| Progressive Snooze | Each snooze shortens by 1 minute (10 -> 9 -> 8 -> ...) |
+| Backup Sound Escalation | Ultra-loud volume boost if no interaction within configurable delay |
+| Max Snooze Count | Auto-dismiss after N snoozes reached |
+| Guardian Angel | Emergency contact SMS + phone call if alarm not dismissed |
+| Wake Confirmation | Re-fires alarm if user doesn't confirm they're awake |
+| Flashlight Strobe | Camera flash LED strobe during alarm |
+
+### Wake Experience
+| Feature | Description |
+|---------|-------------|
+| Flash Wake | Gradual screen brightness increase alongside volume |
+| Sunrise Simulation | Screen transitions from deep red to warm yellow |
+| TTS Announcement | Speaks time, date, and weather after dismissal |
+| Morning Briefing | Full-screen good morning card with weather + calendar |
+| Morning Routine | Post-alarm checklist (stretch, water, journal, etc.) |
+| Motivational Quotes | Random inspirational quotes on alarm firing screen |
+| Swipe Gestures | Swipe right to dismiss, left to snooze |
+| Custom Snooze | Pick 1/3/5/15/30 minute snooze from firing screen |
+
+### Sound & Vibration
+| Feature | Description |
+|---------|-------------|
+| Ringtone Picker | Browse and preview system ringtones |
+| Spotify Integration | Play Spotify tracks/playlists as alarm sound |
+| Internet Radio | Stream any HTTP/HTTPS radio station URL |
+| Gradual Volume | Configurable fade-in (15s to 5 min) |
+| Custom Vibration | 5 patterns: Default, Gentle, Heartbeat, Escalating, SOS |
+| Silent Mode | Fire alarm with notification only, no sound |
+
+### Smart Features
+| Feature | Description |
+|---------|-------------|
+| Smart Alarm | Accelerometer-based light sleep detection, fires early during optimal window |
+| Sonar Sleep Tracking | Experimental ultrasonic breathing/movement detection |
+| Philips Hue Sunrise | Gradually ramp smart lights before alarm fires |
+| Webhook / Tasker | POST JSON on alarm fire/snooze/dismiss/miss events |
+| Flip-to-Snooze | Place phone face-down to snooze |
+
+### Dashboard & Utilities
+| Feature | Description |
+|---------|-------------|
+| Weather Dashboard | Current conditions + 3-day forecast via Open-Meteo (free, no API key) |
+| Calendar Integration | Today's events from device calendar |
+| World Clock | Live time zones with UTC offset, 24h format support |
+| Multiple Timers | Run several countdown timers concurrently (monotonic clock) |
+| Stopwatch | Lap tracking with best/worst marking |
+| Bedtime Tracking | Sleep goal, sleep cycle calculator, bedtime reminders, sleep sounds |
+| Statistics | Dismiss streaks, snooze rate, day-of-week breakdown, response times |
+| Night Clock | Always-on bedside display with minimal brightness |
+| Home Widget | Glance-based widget showing next alarm countdown |
+| Persistent Notification | Always-visible next alarm countdown in shade |
+| Accent Color | Customizable accent color within dark theme |
+
+### Data & Reliability
+| Feature | Description |
+|---------|-------------|
+| Backup/Restore | JSON export/import of all 47+ alarm fields and 34+ settings (v3 format) |
+| Boot Reschedule | All alarms re-registered after device reboot |
+| Manufacturer Compat | Onboarding warnings for Xiaomi/Samsung/Huawei battery killers |
+| Crash Logger | Automatic crash log files for debugging |
+| Auto-Silence | Configurable timeout (0/5/10/15/30 min), records as missed |
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    UI Layer (Compose)                     │
-│  Screens ← ViewModels ← StateFlow                       │
-├─────────────────────────────────────────────────────────┤
-│                   Domain Layer                           │
-│  AlarmScheduler │ NextAlarmCalculator                    │
-├─────────────────────────────────────────────────────────┤
-│                    Data Layer                             │
-│  Room DB │ DataStore │ Retrofit (Open-Meteo)             │
-├─────────────────────────────────────────────────────────┤
-│                   Android Platform                       │
-│  AlarmManager │ ForegroundService │ BroadcastReceivers   │
-└─────────────────────────────────────────────────────────┘
++---------------------------------------------------------+
+|                    UI Layer (Compose)                     |
+|  Screens <- ViewModels <- StateFlow                      |
+|  15 challenge views, 8 alarm edit sections               |
++---------------------------------------------------------+
+|                   Domain Layer                           |
+|  AlarmScheduler | NextAlarmCalculator                    |
+|  Date-specific + holiday + vacation skip logic           |
++---------------------------------------------------------+
+|                    Data Layer                            |
+|  Room DB v6 | DataStore | Retrofit (Open-Meteo, Nager)  |
+|  47-field Alarm entity | 34-field AppSettings            |
++---------------------------------------------------------+
+|                   Android Platform                       |
+|  AlarmManager | 3 ForegroundServices | 5 Workers         |
+|  5 BroadcastReceivers | Glance Widget                   |
++---------------------------------------------------------+
 ```
 
-**Tech stack:** Kotlin 2.1, Jetpack Compose (Material 3), Room, Hilt, Retrofit + Moshi (codegen), DataStore, Glance widgets, Coroutines/Flow
+**Tech stack:** Kotlin 2.1, Jetpack Compose (Material 3), Room, Hilt, Retrofit + Moshi (codegen), DataStore, Glance widgets, OkHttp, Coroutines/Flow, WorkManager
 
 ## Configuration
 
@@ -96,18 +167,33 @@ cd AlarmClockXtreme
 
 | Permission | Purpose | Required |
 |------------|---------|----------|
-| `SCHEDULE_EXACT_ALARM` | Fire alarms at exact time | Yes |
+| `USE_EXACT_ALARM` | Fire alarms at exact time | Yes |
 | `POST_NOTIFICATIONS` | Show alarm alerts | Yes |
 | `FOREGROUND_SERVICE` | Reliable alarm playback | Yes |
+| `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Alarm audio | Yes |
+| `FOREGROUND_SERVICE_DATA_SYNC` | Smart alarm monitoring | Yes |
+| `FOREGROUND_SERVICE_MICROPHONE` | Sonar sleep tracking | Yes |
 | `RECEIVE_BOOT_COMPLETED` | Reschedule after reboot | Yes |
-| `WAKE_LOCK` | Keep screen on during alarm | Yes |
-| `ACCESS_COARSE_LOCATION` | Weather for your area | Optional |
-| `READ_CALENDAR` | Today's events on dashboard | Optional |
+| `WAKE_LOCK` | Keep CPU during alarm | Yes |
 | `VIBRATE` | Alarm vibration | Yes |
+| `INTERNET` | Weather, holidays, webhooks, radio | Yes |
+| `ACCESS_COARSE_LOCATION` | Weather for your area | Optional |
+| `READ_CALENDAR` | Dashboard events + auto-alarm | Optional |
+| `NFC` | NFC tag dismiss challenge | Optional |
+| `CAMERA` | Barcode scan + photo match challenges | Optional |
+| `RECORD_AUDIO` | Sonar sleep tracking | Optional |
+| `ACTIVITY_RECOGNITION` | Walk steps + smart alarm | Optional |
+| `SEND_SMS` / `CALL_PHONE` | Guardian Angel emergency contact | Optional |
 
 ## Privacy
 
-No analytics. No ads. No tracking. No accounts. No data leaves your device except weather API calls to Open-Meteo (latitude/longitude only). Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
+No analytics. No ads. No tracking. No accounts. No data leaves your device except:
+- Weather API calls to Open-Meteo (latitude/longitude only)
+- Holiday API calls to Nager.Date (country code only)
+- Webhook calls to your own configured URL
+- Internet radio streaming to your configured station
+
+Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
 
 ## FAQ
 
@@ -120,6 +206,12 @@ Check Settings > Dashboard > Temperature unit. The app defaults to Fahrenheit. Y
 **Can I use this without Google Play Services?**
 Yes. The app has zero Google dependencies. Weather uses Open-Meteo (free, open-source). The F-Droid build variant excludes any Play-specific code.
 
+**How does Mission Chaining work?**
+In alarm edit, set the "Challenge chain" field to a comma-separated list of challenge types (e.g., `MATH_EASY,SHAKE,TYPING`). The alarm will require you to solve each challenge in order before dismissing.
+
+**What is Guardian Angel?**
+If enabled on an alarm, and you don't dismiss within the configured delay (default 5 minutes), the app sends an SMS and attempts to call your emergency contact. Requires SEND_SMS and CALL_PHONE permissions.
+
 ## Contributing
 
 Issues and PRs welcome. Please open an issue before starting major work to discuss approach.
@@ -127,28 +219,3 @@ Issues and PRs welcome. Please open an issue before starting major work to discu
 ## License
 
 Apache License 2.0 - see [LICENSE](LICENSE)
-
----
-
-## Recent Improvements (v1.2.0) - 30 New Features
-
-- **Mission Chaining**: Stack 2-5 dismiss challenges in sequence (e.g., Math + Shake + Typing)
-- **Backup Sound Escalation**: Ultra-loud secondary alarm if no interaction within configurable delay
-- **Progressive Snooze**: Each snooze shortens by 1 minute (10 -> 9 -> 8 -> ...)
-- **Squat Challenge**: Accelerometer-based squat detection as dismiss challenge
-- **Maze Challenge**: Navigate a simple maze puzzle to dismiss
-- **Wi-Fi Dismiss**: Must connect to a specific Wi-Fi network to dismiss
-- **Guardian Angel**: Emergency contact SMS + call if alarm not dismissed within timeout
-- **Sunrise Simulation**: Screen transitions from deep red to warm yellow simulating sunrise
-- **Internet Radio**: Stream radio stations as alarm sound (any HTTP/HTTPS URL)
-- **Flashlight Strobe**: Camera flash LED strobe during alarm firing
-- **Morning Routine Tracker**: Post-alarm checklist (stretch, water, journal, etc.)
-- **Early Dismiss**: Skip upcoming alarm from persistent notification
-- **Date-Specific Alarms**: Set alarm for a particular calendar date
-- **Alarm Profiles**: Tag alarms by profile (Work, Travel, Weekend)
-- **Motivational Quotes**: Random inspirational quotes on alarm firing screen
-- **Accent Color Customization**: Choose your own accent color within dark theme
-- **Adaptive Challenge Difficulty**: Auto-escalates based on snooze history (setting)
-- **Night Clock Mode**: Always-on bedside display (setting)
-- **Custom Typing Phrases**: User-defined phrases for typing challenge
-- **Calendar Auto-Alarm**: Auto-set alarm before first calendar event (setting)
