@@ -2,6 +2,48 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.1.0] - 2026-03-28
+
+### Fixed (56-issue audit)
+
+#### Critical
+- **MediaPlayer NPE race** - volumeJob now cancelled before releasing mediaPlayer in dismiss/snooze paths
+- **Auto-silence job leak** - previous auto-silence job cancelled when same alarm re-fires
+- **Double stopForeground crash** - tracked foreground state to prevent duplicate stop calls
+- **Notification ID collision** - SmartAlarmService (2003) and NextAlarmNotifier (2004) no longer collide
+- **Sonar audio leak** - stopSonarHardware() called on exception in startSonar()
+- **Sonar false positive** - variance returns MAX_VALUE until enough samples collected
+- **Backup data loss** - AlarmBackup now includes all 16 F1-F17 fields; SettingsBackup includes 15+ missing settings
+- **Import resilience** - individual alarm failures no longer abort entire import; continues with remaining alarms
+- **Converters crash** - toDayOfWeekSet handles malformed/out-of-range values gracefully instead of crashing
+- **Widget crash** - added MIGRATION_3_4 and MIGRATION_4_5 to widget's Room builder
+- **Version mismatch** - top-level and app build.gradle.kts now both say v1.1.0
+
+#### High
+- **TTS race** - uses applicationContext and try-catch around shutdown to survive service destruction
+- **PreferencesManager.update()** - reads actual persisted values instead of default-constructed baseline
+- **HolidaySyncWorker** - max 3 retries instead of infinite retry loop
+- **World clock 24h** - respects is24HourFormat preference (was hardcoded 12h)
+- **Stats 24h** - event history times use correct format based on preference
+- **Stopwatch lap splits** - uses maxByOrNull for correct previous lap total (was firstOrNull)
+- **Math challenge choices** - clamped to >= 0; no more negative answer options for addition
+- **Math medium** - expression now shows parentheses: "a + (b x c)" for clear operator precedence
+- **BedtimeReceiver** - checks bedtime enabled state before rescheduling for tomorrow
+- **Snooze rate** - clamped to 0-100% to prevent overflow
+
+#### Medium
+- **Timer monotonic clock** - uses SystemClock.elapsedRealtime() instead of System.currentTimeMillis()
+- **HolidayRepository thread safety** - Mutex guards file read/write operations
+- **HolidayRepository error handling** - isHoliday catches file read exceptions
+- **NetworkModule timeouts** - 15s connect/read/write timeouts on all Retrofit clients
+- **DatabaseModule** - AlarmDao and AlarmEventDao providers now @Singleton
+- **CrashLogger** - milliseconds + thread ID in filename prevents collisions
+- **SleepSoundPlayer** - fixed off-by-one in fade calculation (fadeMinutes=1 no longer skips hold)
+
+#### Low
+- **ShakeDetector** - removed unused lastAcceleration field
+- **Accessibility** - contentDescription on math challenge answer buttons and day-of-week chart labels
+
 ## [0.9.0] - 2026-03-20
 
 ### Added

@@ -21,7 +21,6 @@ class ShakeDetector(
 
     private var shakeCount = 0
     private var lastShakeTime = 0L
-    private var lastAcceleration = SensorManager.GRAVITY_EARTH
     private val shakeThreshold = 14f  // m/s^2 above gravity
     private val shakeCooldownMs = 250L
 
@@ -54,7 +53,6 @@ class ShakeDetector(
             onShake(shakeCount)
         }
 
-        lastAcceleration = acceleration
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}

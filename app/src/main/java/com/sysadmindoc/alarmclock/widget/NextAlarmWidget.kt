@@ -45,7 +45,7 @@ class NextAlarmWidget : GlanceAppWidget() {
                     AlarmDatabase::class.java,
                     "alarm_clock.db"
                 )
-                    .addMigrations(AlarmDatabase.MIGRATION_1_2, AlarmDatabase.MIGRATION_2_3)
+                    .addMigrations(AlarmDatabase.MIGRATION_1_2, AlarmDatabase.MIGRATION_2_3, AlarmDatabase.MIGRATION_3_4, AlarmDatabase.MIGRATION_4_5)
                     .allowMainThreadQueries()
                     .build()
                     .also { dbInstance = it }

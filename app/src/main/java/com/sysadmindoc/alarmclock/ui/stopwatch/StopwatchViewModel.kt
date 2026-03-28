@@ -70,7 +70,7 @@ class StopwatchViewModel @Inject constructor() : ViewModel() {
         if (current.state != StopwatchState.RUNNING) return
 
         val totalAtLap = current.elapsedMillis
-        val previousTotal = current.laps.firstOrNull()?.totalMillis ?: 0
+        val previousTotal = current.laps.maxByOrNull { it.number }?.totalMillis ?: 0
         val splitTime = totalAtLap - previousTotal
 
         val newLap = Lap(

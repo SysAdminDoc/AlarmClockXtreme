@@ -45,8 +45,12 @@ class BedtimeReceiver : BroadcastReceiver() {
 
         notificationManager.notify(NOTIFICATION_ID, notification)
 
-        // Reschedule for tomorrow (same time + 24h)
-        rescheduleForTomorrow(context)
+        // Reschedule for tomorrow only if bedtime is still enabled
+        val prefs = context.getSharedPreferences("app_prefs", 0)
+        val bedtimeEnabled = prefs.getBoolean("bedtime_reschedule", true)
+        if (bedtimeEnabled) {
+            rescheduleForTomorrow(context)
+        }
     }
 
     private fun rescheduleForTomorrow(context: Context) {

@@ -7,6 +7,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -31,7 +32,11 @@ data class WorldClockUiState(
 )
 
 @HiltViewModel
-class WorldClockViewModel @Inject constructor() : ViewModel() {
+class WorldClockViewModel @Inject constructor(
+    private val preferencesManager: PreferencesManager
+) : ViewModel() {
+
+    private var is24Hour = false
 
     private val _uiState = MutableStateFlow(WorldClockUiState())
     val uiState: StateFlow<WorldClockUiState> = _uiState.asStateFlow()
@@ -54,6 +59,11 @@ class WorldClockViewModel @Inject constructor() : ViewModel() {
     }
 
     init {
+        viewModelScope.launch {
+            preferencesManager.settings.collectLatest { settings ->
+                is24Hour = settings.is24HourFormat
+            }
+        }
         viewModelScope.launch {
             while (isActive) {
                 updateTimes()
@@ -80,7 +90,7 @@ class WorldClockViewModel @Inject constructor() : ViewModel() {
             WorldClockEntry(
                 zoneId = zoneId,
                 cityName = zoneId.substringAfterLast("/").replace("_", " "),
-                time = zdt.format(DateTimeFormatter.ofPattern("h:mm a")),
+                time = zdt.format(DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm" else "h:mm a")),
                 date = zdt.format(DateTimeFormatter.ofPattern("EEE, MMM d")),
                 offsetLabel = diffLabel,
                 isAhead = offset >= localOffset
@@ -89,7 +99,7 @@ class WorldClockViewModel @Inject constructor() : ViewModel() {
 
         _uiState.value = _uiState.value.copy(
             clocks = entries,
-            localTime = now.format(DateTimeFormatter.ofPattern("h:mm:ss a")),
+            localTime = now.format(DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm:ss" else "h:mm:ss a")),
             localZone = localZone.id.substringAfterLast("/").replace("_", " ")
         )
     }
