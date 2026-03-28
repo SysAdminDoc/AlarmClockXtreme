@@ -77,7 +77,11 @@ hueBridgeIp, hueApiKey, hueLightIds
 | HolidaySyncWorker | WorkManager | Weekly holiday data refresh (F13) |
 | WakeConfirmWorker | WorkManager | Post-alarm wake confirmation (F5) |
 
+## DB Schema (version 6)
+Note: DB version bumped from 5 to 6 in v1.2.0. MIGRATION_5_6 adds 21 columns for competitive features.
+
 ## Version History
+- v1.2.0 (2026-03-28): 30 competitive features. Mission chaining, backup sound escalation, progressive snooze, squat/maze/wifi challenges, guardian angel, sunrise simulation, internet radio, flashlight strobe, morning routine tracker, early dismiss, date-specific alarms, alarm profiles, motivational quotes, accent color, adaptive difficulty, night clock, custom typing phrases, calendar auto-alarm, location dismiss. DB v6. 2 new files (GuardianWorker, SquatDetector). 8 new AlarmEditScreen sections.
 - v1.1.0 (2026-03-28): 56-issue comprehensive audit. Fixed: MediaPlayer NPE race, auto-silence job leak, double-stopForeground crash, notification ID collision (SmartAlarm 2003, NextAlarmNotifier 2004), Sonar audio leak + false-positive deep sleep, backup data loss (16 alarm fields + 15 settings), widget missing migrations, Converters crash on malformed data, PreferencesManager update() baseline, TTS service destroy race, HolidaySyncWorker infinite retry, world clock/stats 24h format, stopwatch lap split math, math challenge negative choices + precedence, timer monotonic clock, HolidayRepository thread safety, network timeouts, DAO singletons, CrashLogger uniqueness, SleepSoundPlayer fade off-by-one, BedtimeReceiver settings check, accessibility labels.
 - v1.0.0 (2026-03-23): All F1-F17 features complete. Bug fixes: SmartAlarmService action, holiday skip for repeating alarms, TTS race condition, wake lock duration, webhook JSON, SonarSleepService drawable. Improvements: Skip Next snackbar feedback, snooze duration in notification, sleep sound placeholder WAVs.
 - v1.0.0 (2026-03-20): Custom snooze on firing screen, multi-select batch ops, memory challenge fix, media fallback

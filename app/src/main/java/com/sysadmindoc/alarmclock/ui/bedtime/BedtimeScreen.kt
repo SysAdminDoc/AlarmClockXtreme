@@ -2,7 +2,10 @@ package com.sysadmindoc.alarmclock.ui.bedtime
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -16,7 +19,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -208,6 +213,50 @@ fun BedtimeScreen(
             }
         }
 
+        // F10: Sleep sounds
+        SleepSoundsSection(state, viewModel)
+
+        // F9: Sleep cycle calculator
+        if (state.sleepCycleOptions.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Bedtime, null, tint = BlueLight, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Sleep Cycle Calculator",
+                            color = AccentBlue, fontWeight = FontWeight.Bold, fontSize = 13.sp
+                        )
+                    }
+                    Text(
+                        "Best times to fall asleep for your next alarm",
+                        color = TextMuted, fontSize = 11.sp,
+                        modifier = Modifier.padding(top = 2.dp, bottom = 10.dp)
+                    )
+                    state.sleepCycleOptions.forEachIndexed { i, option ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "${i + 1}.",
+                                color = AccentBlue, fontSize = 13.sp,
+                                modifier = Modifier.width(20.dp)
+                            )
+                            Text(option, color = TextPrimary, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(32.dp))
     }
 
@@ -235,6 +284,114 @@ fun BedtimeScreen(
             },
             containerColor = SurfaceMedium
         )
+    }
+}
+
+// F10: Sleep sound definitions
+// NOTE: Audio files are in app/src/main/res/raw/ as WAV (placeholder silence).
+//   Replace with real ambient audio: sleep_white_noise.wav, sleep_rain.wav,
+//   sleep_brown_noise.wav, sleep_ocean.wav, sleep_fan.wav
+private data class SleepSound(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val resName: String)
+
+private val SLEEP_SOUNDS = listOf(
+    SleepSound("White Noise", Icons.Default.Waves, "sleep_white_noise"),
+    SleepSound("Rain", Icons.Default.WaterDrop, "sleep_rain"),
+    SleepSound("Brown Noise", Icons.Default.GraphicEq, "sleep_brown_noise"),
+    SleepSound("Ocean", Icons.Default.Sailing, "sleep_ocean"),
+    SleepSound("Fan", Icons.Default.Air, "sleep_fan"),
+)
+
+@Composable
+private fun SleepSoundsSection(state: BedtimeUiState, viewModel: BedtimeViewModel) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    Spacer(modifier = Modifier.height(16.dp))
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.MusicNote, null, tint = BlueLight, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Sleep Sounds", color = AccentBlue, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Sound tiles (scrollable row)
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                itemsIndexed(SLEEP_SOUNDS) { _, sound ->
+                    val resId = context.resources.getIdentifier(sound.resName, "raw", context.packageName)
+                    val isActive = state.activeSoundResId == resId && resId != 0
+
+                    Card(
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isActive) AccentBlue.copy(alpha = 0.2f) else SurfaceCard
+                        ),
+                        modifier = Modifier
+                            .width(80.dp)
+                            .clickable {
+                                if (isActive) viewModel.stopSound()
+                                else if (resId != 0) viewModel.playSound(resId)
+                            }
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(8.dp)
+                        ) {
+                            Icon(
+                                sound.icon, null,
+                                tint = if (isActive) AccentBlue else TextSecondary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(sound.label, color = if (isActive) AccentBlue else TextSecondary, fontSize = 10.sp, textAlign = TextAlign.Center)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Fade timer
+            var showFadeMenu by remember { mutableStateOf(false) }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Fade out after", color = TextSecondary, fontSize = 13.sp)
+                Box {
+                    TextButton(onClick = { showFadeMenu = true }) {
+                        Text(
+                            if (state.sleepSoundFadeMinutes == 0) "Never"
+                            else "${state.sleepSoundFadeMinutes} min",
+                            color = AccentBlue, fontSize = 13.sp
+                        )
+                    }
+                    DropdownMenu(expanded = showFadeMenu, onDismissRequest = { showFadeMenu = false }) {
+                        listOf(0, 15, 30, 45, 60).forEach { mins ->
+                            DropdownMenuItem(
+                                text = { Text(if (mins == 0) "Never" else "$mins minutes") },
+                                onClick = {
+                                    viewModel.setSleepSoundFade(mins)
+                                    showFadeMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (state.activeSoundResId != 0) {
+                TextButton(onClick = viewModel::stopSound, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                    Text("Stop sound", color = AccentRed, fontSize = 12.sp)
+                }
+            }
+        }
     }
 }
 

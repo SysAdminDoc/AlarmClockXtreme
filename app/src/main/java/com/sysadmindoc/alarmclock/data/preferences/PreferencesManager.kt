@@ -58,6 +58,22 @@ data class AppSettings(
     val hueBridgeIp: String = "",
     val hueApiKey: String = "",
     val hueLightIds: String = "",         // Comma-separated Hue light IDs
+    // v1.2.0: Accent color (hex)
+    val accentColor: String = "#5B9EF4",
+    // v1.2.0: Adaptive challenge difficulty
+    val adaptiveDifficultyEnabled: Boolean = false,
+    // v1.2.0: Calendar auto-alarm
+    val calendarAutoAlarmEnabled: Boolean = false,
+    val calendarAutoAlarmMinutesBefore: Int = 60,
+    // v1.2.0: Guardian defaults
+    val guardianContactName: String = "",
+    val guardianContactPhone: String = "",
+    // v1.2.0: Custom typing phrases (newline-separated, appended to built-in)
+    val customTypingPhrases: String = "",
+    // v1.2.0: Night clock mode
+    val nightClockEnabled: Boolean = false,
+    // v1.2.0: Motivational quotes on alarm screen
+    val showMotivationalQuotes: Boolean = true,
 )
 
 @Singleton
@@ -97,6 +113,15 @@ class PreferencesManager @Inject constructor(
         val HUE_BRIDGE_IP = stringPreferencesKey("hue_bridge_ip")
         val HUE_API_KEY = stringPreferencesKey("hue_api_key")
         val HUE_LIGHT_IDS = stringPreferencesKey("hue_light_ids")
+        val ACCENT_COLOR = stringPreferencesKey("accent_color")
+        val ADAPTIVE_DIFFICULTY = booleanPreferencesKey("adaptive_difficulty")
+        val CALENDAR_AUTO_ALARM = booleanPreferencesKey("calendar_auto_alarm")
+        val CALENDAR_AUTO_ALARM_MINUTES = intPreferencesKey("calendar_auto_alarm_minutes")
+        val GUARDIAN_CONTACT_NAME = stringPreferencesKey("guardian_contact_name")
+        val GUARDIAN_CONTACT_PHONE = stringPreferencesKey("guardian_contact_phone")
+        val CUSTOM_TYPING_PHRASES = stringPreferencesKey("custom_typing_phrases")
+        val NIGHT_CLOCK = booleanPreferencesKey("night_clock")
+        val SHOW_MOTIVATIONAL_QUOTES = booleanPreferencesKey("show_motivational_quotes")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -138,6 +163,15 @@ class PreferencesManager @Inject constructor(
                 hueBridgeIp = prefs[Keys.HUE_BRIDGE_IP] ?: "",
                 hueApiKey = prefs[Keys.HUE_API_KEY] ?: "",
                 hueLightIds = prefs[Keys.HUE_LIGHT_IDS] ?: "",
+                accentColor = prefs[Keys.ACCENT_COLOR] ?: "#5B9EF4",
+                adaptiveDifficultyEnabled = prefs[Keys.ADAPTIVE_DIFFICULTY] ?: false,
+                calendarAutoAlarmEnabled = prefs[Keys.CALENDAR_AUTO_ALARM] ?: false,
+                calendarAutoAlarmMinutesBefore = prefs[Keys.CALENDAR_AUTO_ALARM_MINUTES] ?: 60,
+                guardianContactName = prefs[Keys.GUARDIAN_CONTACT_NAME] ?: "",
+                guardianContactPhone = prefs[Keys.GUARDIAN_CONTACT_PHONE] ?: "",
+                customTypingPhrases = prefs[Keys.CUSTOM_TYPING_PHRASES] ?: "",
+                nightClockEnabled = prefs[Keys.NIGHT_CLOCK] ?: false,
+                showMotivationalQuotes = prefs[Keys.SHOW_MOTIVATIONAL_QUOTES] ?: true,
             )
         }
 
@@ -180,6 +214,15 @@ class PreferencesManager @Inject constructor(
                 hueBridgeIp = prefs[Keys.HUE_BRIDGE_IP] ?: "",
                 hueApiKey = prefs[Keys.HUE_API_KEY] ?: "",
                 hueLightIds = prefs[Keys.HUE_LIGHT_IDS] ?: "",
+                accentColor = prefs[Keys.ACCENT_COLOR] ?: "#5B9EF4",
+                adaptiveDifficultyEnabled = prefs[Keys.ADAPTIVE_DIFFICULTY] ?: false,
+                calendarAutoAlarmEnabled = prefs[Keys.CALENDAR_AUTO_ALARM] ?: false,
+                calendarAutoAlarmMinutesBefore = prefs[Keys.CALENDAR_AUTO_ALARM_MINUTES] ?: 60,
+                guardianContactName = prefs[Keys.GUARDIAN_CONTACT_NAME] ?: "",
+                guardianContactPhone = prefs[Keys.GUARDIAN_CONTACT_PHONE] ?: "",
+                customTypingPhrases = prefs[Keys.CUSTOM_TYPING_PHRASES] ?: "",
+                nightClockEnabled = prefs[Keys.NIGHT_CLOCK] ?: false,
+                showMotivationalQuotes = prefs[Keys.SHOW_MOTIVATIONAL_QUOTES] ?: true,
             )
             val new = transform(old)
             prefs[Keys.IS_24_HOUR] = new.is24HourFormat
@@ -214,6 +257,15 @@ class PreferencesManager @Inject constructor(
             prefs[Keys.HUE_BRIDGE_IP] = new.hueBridgeIp
             prefs[Keys.HUE_API_KEY] = new.hueApiKey
             prefs[Keys.HUE_LIGHT_IDS] = new.hueLightIds
+            prefs[Keys.ACCENT_COLOR] = new.accentColor
+            prefs[Keys.ADAPTIVE_DIFFICULTY] = new.adaptiveDifficultyEnabled
+            prefs[Keys.CALENDAR_AUTO_ALARM] = new.calendarAutoAlarmEnabled
+            prefs[Keys.CALENDAR_AUTO_ALARM_MINUTES] = new.calendarAutoAlarmMinutesBefore
+            prefs[Keys.GUARDIAN_CONTACT_NAME] = new.guardianContactName
+            prefs[Keys.GUARDIAN_CONTACT_PHONE] = new.guardianContactPhone
+            prefs[Keys.CUSTOM_TYPING_PHRASES] = new.customTypingPhrases
+            prefs[Keys.NIGHT_CLOCK] = new.nightClockEnabled
+            prefs[Keys.SHOW_MOTIVATIONAL_QUOTES] = new.showMotivationalQuotes
         }
     }
 }

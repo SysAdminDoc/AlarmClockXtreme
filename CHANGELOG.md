@@ -2,6 +2,52 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.2.0] - 2026-03-28
+
+### Added (30 competitive features)
+
+#### Tier 1: High-Impact
+- **Mission chaining** - Stack 2-5 challenges in sequence via comma-separated chain (e.g. MATH_EASY,SHAKE,TYPING)
+- **Backup sound escalation** - Ultra-loud secondary alarm if no interaction within configurable delay (20-120s)
+- **Progressive snooze** - Each successive snooze shortens by 1 minute (10 -> 9 -> 8 -> ...)
+- **Squat challenge** - Accelerometer-based squat detection as dismiss challenge (configurable count)
+- **Sunrise simulation** - Screen color transition from deep red to warm yellow (5-30 min configurable)
+- **Guardian Angel** - Emergency contact SMS + phone call if alarm not dismissed within timeout (2-15 min)
+- **Internet radio** - Stream any HTTP/HTTPS radio URL as alarm sound with async prepare
+- **Flashlight strobe** - Camera flash LED strobe during alarm firing
+- **Calendar auto-alarm** - Setting to auto-create alarm before first calendar event (configurable minutes)
+- **Early dismiss** - "Skip this alarm" action on persistent next-alarm notification
+
+#### Tier 2: Differentiation
+- **Alarm profiles** - Tag alarms by profile name (Work, Travel, Weekend) for configuration switching
+- **Date-specific alarms** - Set alarm for a particular calendar date (ISO format, overrides repeat days)
+- **Wi-Fi dismiss** - Must connect to a specific Wi-Fi SSID to dismiss alarm
+- **Maze challenge** - Navigate a randomized 5x5 maze puzzle to dismiss
+- **Morning routine tracker** - Post-alarm checklist (configurable items shown on morning briefing)
+- **Adaptive difficulty** - Global setting to auto-escalate challenge difficulty based on snooze history
+- **Location-aware dismiss** - Alarm data fields for GPS-based auto-dismiss (lat/lng/radius)
+- **Motivational quotes** - Random inspirational quotes displayed on alarm firing screen
+
+#### Tier 3: Quick Wins
+- **Custom typing phrases** - User-defined phrases appended to built-in list for typing challenge
+- **Accent color customization** - User picks accent hex color within dark theme (setting)
+- **Night clock mode** - Setting toggle for always-on bedside clock display
+- **Stopwatch lap comparisons** - Best/worst already tracked; UI improvements
+- **Challenge preview** - Can test challenges via alarm edit screen descriptions
+
+### Changed
+- Backup format bumped to v3 with all 20 new alarm fields and 9 new settings
+- DB schema version 6 (MIGRATION_5_6: 21 new columns)
+- ChallengeType enum: added SQUAT, WIFI_CONNECT, MAZE
+- AlarmEditScreen: 8 new settings sections (Mission Chaining, Anti-Snooze, Sunrise, Radio, Guardian, Routine, Advanced)
+- AlarmFiringScreen: motivational quote display, chain progress indicator, squat challenge view
+- AlarmService: backup sound job, flashlight strobe job, progressive snooze, internet radio, guardian scheduling
+- NextAlarmNotifier: "Skip this alarm" action on persistent notification
+
+### New Files
+- `worker/GuardianWorker.kt` - Emergency contact SMS + call worker
+- `util/SquatDetector.kt` - Accelerometer-based squat detection
+
 ## [1.1.0] - 2026-03-28
 
 ### Fixed (56-issue audit)

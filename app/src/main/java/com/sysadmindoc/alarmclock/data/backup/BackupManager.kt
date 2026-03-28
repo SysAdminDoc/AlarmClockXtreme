@@ -47,13 +47,34 @@ data class AlarmBackup(
     val spotifyUri: String = "",
     val hueEnabled: Boolean = false,
     val huePreWakeMinutes: Int = 30,
-    val photoMatchUri: String = ""
+    val photoMatchUri: String = "",
+    // v1.2.0 fields
+    val challengeChain: String = "",
+    val progressiveSnooze: Boolean = false,
+    val backupSoundEnabled: Boolean = false,
+    val backupSoundDelaySec: Int = 40,
+    val sunriseSimulation: Boolean = false,
+    val sunriseMinutes: Int = 15,
+    val specificDate: String = "",
+    val profileName: String = "",
+    val earlyDismissMinutes: Int = 0,
+    val guardianEnabled: Boolean = false,
+    val guardianPhone: String = "",
+    val guardianDelaySec: Int = 300,
+    val locationDismissEnabled: Boolean = false,
+    val locationDismissLat: Double = 0.0,
+    val locationDismissLng: Double = 0.0,
+    val locationDismissRadius: Int = 100,
+    val wifiDismissSsid: String = "",
+    val internetRadioUrl: String = "",
+    val flashlightStrobe: Boolean = false,
+    val morningRoutine: String = ""
 )
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 2,
-    val appVersion: String = "1.1.0",
+    val version: Int = 3,
+    val appVersion: String = "1.2.0",
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
     val settings: SettingsBackup?
@@ -86,7 +107,17 @@ data class SettingsBackup(
     val holidayCountryCode: String = "",
     val hueBridgeIp: String = "",
     val hueApiKey: String = "",
-    val hueLightIds: String = ""
+    val hueLightIds: String = "",
+    // v1.2.0 settings
+    val accentColor: String = "#5B9EF4",
+    val adaptiveDifficultyEnabled: Boolean = false,
+    val calendarAutoAlarmEnabled: Boolean = false,
+    val calendarAutoAlarmMinutesBefore: Int = 60,
+    val guardianContactName: String = "",
+    val guardianContactPhone: String = "",
+    val customTypingPhrases: String = "",
+    val nightClockEnabled: Boolean = false,
+    val showMotivationalQuotes: Boolean = true
 )
 
 @Singleton
@@ -137,7 +168,27 @@ class BackupManager @Inject constructor(
                     spotifyUri = alarm.spotifyUri,
                     hueEnabled = alarm.hueEnabled,
                     huePreWakeMinutes = alarm.huePreWakeMinutes,
-                    photoMatchUri = alarm.photoMatchUri
+                    photoMatchUri = alarm.photoMatchUri,
+                    challengeChain = alarm.challengeChain,
+                    progressiveSnooze = alarm.progressiveSnooze,
+                    backupSoundEnabled = alarm.backupSoundEnabled,
+                    backupSoundDelaySec = alarm.backupSoundDelaySec,
+                    sunriseSimulation = alarm.sunriseSimulation,
+                    sunriseMinutes = alarm.sunriseMinutes,
+                    specificDate = alarm.specificDate,
+                    profileName = alarm.profileName,
+                    earlyDismissMinutes = alarm.earlyDismissMinutes,
+                    guardianEnabled = alarm.guardianEnabled,
+                    guardianPhone = alarm.guardianPhone,
+                    guardianDelaySec = alarm.guardianDelaySec,
+                    locationDismissEnabled = alarm.locationDismissEnabled,
+                    locationDismissLat = alarm.locationDismissLat,
+                    locationDismissLng = alarm.locationDismissLng,
+                    locationDismissRadius = alarm.locationDismissRadius,
+                    wifiDismissSsid = alarm.wifiDismissSsid,
+                    internetRadioUrl = alarm.internetRadioUrl,
+                    flashlightStrobe = alarm.flashlightStrobe,
+                    morningRoutine = alarm.morningRoutine
                 )
             },
             settings = SettingsBackup(
@@ -165,7 +216,16 @@ class BackupManager @Inject constructor(
                 holidayCountryCode = settings.holidayCountryCode,
                 hueBridgeIp = settings.hueBridgeIp,
                 hueApiKey = settings.hueApiKey,
-                hueLightIds = settings.hueLightIds
+                hueLightIds = settings.hueLightIds,
+                accentColor = settings.accentColor,
+                adaptiveDifficultyEnabled = settings.adaptiveDifficultyEnabled,
+                calendarAutoAlarmEnabled = settings.calendarAutoAlarmEnabled,
+                calendarAutoAlarmMinutesBefore = settings.calendarAutoAlarmMinutesBefore,
+                guardianContactName = settings.guardianContactName,
+                guardianContactPhone = settings.guardianContactPhone,
+                customTypingPhrases = settings.customTypingPhrases,
+                nightClockEnabled = settings.nightClockEnabled,
+                showMotivationalQuotes = settings.showMotivationalQuotes
             )
         )
 
@@ -230,7 +290,27 @@ class BackupManager @Inject constructor(
                         spotifyUri = ab.spotifyUri,
                         hueEnabled = ab.hueEnabled,
                         huePreWakeMinutes = ab.huePreWakeMinutes,
-                        photoMatchUri = ab.photoMatchUri
+                        photoMatchUri = ab.photoMatchUri,
+                        challengeChain = ab.challengeChain,
+                        progressiveSnooze = ab.progressiveSnooze,
+                        backupSoundEnabled = ab.backupSoundEnabled,
+                        backupSoundDelaySec = ab.backupSoundDelaySec,
+                        sunriseSimulation = ab.sunriseSimulation,
+                        sunriseMinutes = ab.sunriseMinutes,
+                        specificDate = ab.specificDate,
+                        profileName = ab.profileName,
+                        earlyDismissMinutes = ab.earlyDismissMinutes,
+                        guardianEnabled = ab.guardianEnabled,
+                        guardianPhone = ab.guardianPhone,
+                        guardianDelaySec = ab.guardianDelaySec,
+                        locationDismissEnabled = ab.locationDismissEnabled,
+                        locationDismissLat = ab.locationDismissLat,
+                        locationDismissLng = ab.locationDismissLng,
+                        locationDismissRadius = ab.locationDismissRadius,
+                        wifiDismissSsid = ab.wifiDismissSsid,
+                        internetRadioUrl = ab.internetRadioUrl,
+                        flashlightStrobe = ab.flashlightStrobe,
+                        morningRoutine = ab.morningRoutine
                     )
                     val id = repository.save(alarm)
                     if (alarm.isEnabled) {
@@ -270,7 +350,16 @@ class BackupManager @Inject constructor(
                         holidayCountryCode = s.holidayCountryCode,
                         hueBridgeIp = s.hueBridgeIp,
                         hueApiKey = s.hueApiKey,
-                        hueLightIds = s.hueLightIds
+                        hueLightIds = s.hueLightIds,
+                        accentColor = s.accentColor,
+                        adaptiveDifficultyEnabled = s.adaptiveDifficultyEnabled,
+                        calendarAutoAlarmEnabled = s.calendarAutoAlarmEnabled,
+                        calendarAutoAlarmMinutesBefore = s.calendarAutoAlarmMinutesBefore,
+                        guardianContactName = s.guardianContactName,
+                        guardianContactPhone = s.guardianContactPhone,
+                        customTypingPhrases = s.customTypingPhrases,
+                        nightClockEnabled = s.nightClockEnabled,
+                        showMotivationalQuotes = s.showMotivationalQuotes
                     )
                 }
             }

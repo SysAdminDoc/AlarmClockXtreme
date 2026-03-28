@@ -36,8 +36,6 @@ fun AlarmClockXtremeTheme(content: @Composable () -> Unit) {
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = SurfaceDark.toArgb()
-            window.navigationBarColor = SurfaceDark.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = false
                 isAppearanceLightNavigationBars = false

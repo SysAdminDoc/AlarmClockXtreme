@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 enum class AlarmSortOrder { TIME, CREATED, ENABLED_FIRST }
@@ -48,6 +49,10 @@ class AlarmListViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val eventRepository: AlarmEventRepository
 ) : ViewModel() {
+
+    /** One-shot events for skip-next confirmation snackbar. */
+    private val _skipFeedback = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val skipFeedbackEvents: SharedFlow<String> = _skipFeedback.asSharedFlow()
 
     private val _sortOrder = MutableStateFlow(AlarmSortOrder.TIME)
     private val _selectedGroup = MutableStateFlow<String?>(null)
@@ -324,6 +329,11 @@ class AlarmListViewModel @Inject constructor(
             val updated = alarm.copy(nextTriggerTime = afterSkip)
             repository.updateNextTrigger(alarm.id, afterSkip)
             scheduler.schedule(updated)
+
+            val skippedDate = Instant.ofEpochMilli(afterSkip)
+                .atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("EEE, MMM d 'at' h:mm a"))
+            _skipFeedback.tryEmit("Next occurrence skipped — resuming $skippedDate")
         }
     }
 }

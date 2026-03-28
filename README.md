@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%2010+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -130,14 +130,25 @@ Apache License 2.0 - see [LICENSE](LICENSE)
 
 ---
 
-## Recent Improvements (v1.1.0)
+## Recent Improvements (v1.2.0) - 30 New Features
 
-- **Full Audit Fix**: 56-issue comprehensive audit addressing crashes, data loss, race conditions, and correctness bugs across all layers.
-- **Backup/Restore**: Now preserves all 16 F1-F17 alarm fields and 15+ settings (previously lost on backup).
-- **Service Stability**: Fixed MediaPlayer NPE race, double-stopForeground crash, auto-silence job leak, notification ID collisions.
-- **24h Format**: World clock, stats, and event history now respect the user's 24-hour format preference.
-- **Challenges**: Fixed negative answer choices, ambiguous operator precedence, added accessibility labels.
-- **Timer/Stopwatch**: Timer uses monotonic clock (DST-safe), stopwatch lap splits calculate correctly.
-- **Thread Safety**: HolidayRepository file I/O synchronized, CrashLogger timestamp uniqueness, Converters handle malformed data.
-- **Widget**: Fixed missing DB migrations 3-4 and 4-5 that crashed widgets on upgraded devices.
-- **Infrastructure**: Network timeouts configured, DAO singletons, HolidaySyncWorker retry cap, Sonar variance startup fix.
+- **Mission Chaining**: Stack 2-5 dismiss challenges in sequence (e.g., Math + Shake + Typing)
+- **Backup Sound Escalation**: Ultra-loud secondary alarm if no interaction within configurable delay
+- **Progressive Snooze**: Each snooze shortens by 1 minute (10 -> 9 -> 8 -> ...)
+- **Squat Challenge**: Accelerometer-based squat detection as dismiss challenge
+- **Maze Challenge**: Navigate a simple maze puzzle to dismiss
+- **Wi-Fi Dismiss**: Must connect to a specific Wi-Fi network to dismiss
+- **Guardian Angel**: Emergency contact SMS + call if alarm not dismissed within timeout
+- **Sunrise Simulation**: Screen transitions from deep red to warm yellow simulating sunrise
+- **Internet Radio**: Stream radio stations as alarm sound (any HTTP/HTTPS URL)
+- **Flashlight Strobe**: Camera flash LED strobe during alarm firing
+- **Morning Routine Tracker**: Post-alarm checklist (stretch, water, journal, etc.)
+- **Early Dismiss**: Skip upcoming alarm from persistent notification
+- **Date-Specific Alarms**: Set alarm for a particular calendar date
+- **Alarm Profiles**: Tag alarms by profile (Work, Travel, Weekend)
+- **Motivational Quotes**: Random inspirational quotes on alarm firing screen
+- **Accent Color Customization**: Choose your own accent color within dark theme
+- **Adaptive Challenge Difficulty**: Auto-escalates based on snooze history (setting)
+- **Night Clock Mode**: Always-on bedside display (setting)
+- **Custom Typing Phrases**: User-defined phrases for typing challenge
+- **Calendar Auto-Alarm**: Auto-set alarm before first calendar event (setting)
