@@ -200,11 +200,11 @@ class TimerViewModel @Inject constructor(
     private fun startCountdown(id: Int, millis: Long) {
         countdownJobs[id]?.cancel()
         countdownJobs[id] = viewModelScope.launch {
-            val startTime = System.currentTimeMillis()
+            val startTime = android.os.SystemClock.elapsedRealtime()
             val endTime = startTime + millis
 
             while (isActive) {
-                val now = System.currentTimeMillis()
+                val now = android.os.SystemClock.elapsedRealtime()
                 val remaining = (endTime - now).coerceAtLeast(0)
                 updateTimer(id) { it.copy(remainingMillis = remaining) }
 

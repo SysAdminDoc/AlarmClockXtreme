@@ -36,7 +36,7 @@ class NextAlarmNotifier @Inject constructor(
 ) {
     companion object {
         const val CHANNEL_PERSISTENT = "persistent_alarm_channel"
-        const val NOTIFICATION_ID_PERSISTENT = 2001
+        const val NOTIFICATION_ID_PERSISTENT = 2004
     }
 
     private val notificationManager = context.getSystemService(NotificationManager::class.java)

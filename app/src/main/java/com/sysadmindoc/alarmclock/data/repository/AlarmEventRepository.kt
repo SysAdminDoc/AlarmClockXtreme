@@ -61,7 +61,7 @@ class AlarmEventRepository @Inject constructor(
             totalSkipped = skipped,
             totalMissed = missed,
             averageDismissTimeSec = (avgDismissMs / 1000).toInt(),
-            snoozeRate = if (total > 0) (withSnooze * 100 / total) else 0,
+            snoozeRate = if (total > 0) (withSnooze * 100 / total).coerceIn(0, 100) else 0,
             currentStreak = streak,
             alarmsThisWeek = thisWeek,
             dayOfWeekCounts = dowCounts,

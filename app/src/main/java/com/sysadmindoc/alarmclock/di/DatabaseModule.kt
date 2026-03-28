@@ -24,16 +24,18 @@ object DatabaseModule {
             AlarmDatabase::class.java,
             "alarm_clock.db"
         )
-            .addMigrations(AlarmDatabase.MIGRATION_1_2, AlarmDatabase.MIGRATION_2_3, AlarmDatabase.MIGRATION_3_4)
+            .addMigrations(AlarmDatabase.MIGRATION_1_2, AlarmDatabase.MIGRATION_2_3, AlarmDatabase.MIGRATION_3_4, AlarmDatabase.MIGRATION_4_5)
             .build()
     }
 
     @Provides
+    @Singleton
     fun provideAlarmDao(database: AlarmDatabase): AlarmDao {
         return database.alarmDao()
     }
 
     @Provides
+    @Singleton
     fun provideAlarmEventDao(database: AlarmDatabase): AlarmEventDao {
         return database.alarmEventDao()
     }
