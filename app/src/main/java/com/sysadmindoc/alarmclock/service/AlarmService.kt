@@ -107,6 +107,8 @@ class AlarmService : Service() {
     private var currentAlarmId: Long = -1
     private var alarmFiredAt: Long = 0
     private var autoSilenceJob: Job? = null
+    private var backupSoundJob: Job? = null
+    private var flashlightJob: Job? = null
     private var currentSnoozeCount: Int = 0
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var wakeLock: PowerManager.WakeLock? = null
@@ -206,6 +208,41 @@ class AlarmService : Service() {
                 stopSelf()
             }
         }
+
+        // v1.2.0: Backup sound escalation
+        if (alarm.backupSoundEnabled) {
+            backupSoundJob = serviceScope.launch {
+                delay(alarm.backupSoundDelaySec * 1000L)
+                // Escalate: set volume to max and switch to system alarm tone
+                val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+                val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+                audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
+                mediaPlayer?.setVolume(1f, 1f)
+            }
+        }
+
+        // v1.2.0: Flashlight strobe
+        if (alarm.flashlightStrobe) {
+            startFlashlightStrobe()
+        }
+
+        // v1.2.0: Guardian Angel — schedule emergency contact call if not dismissed
+        if (alarm.guardianEnabled && alarm.guardianPhone.isNotBlank()) {
+            val guardianData = workDataOf(
+                "alarm_id" to alarm.id,
+                "guardian_phone" to alarm.guardianPhone,
+                "alarm_label" to alarm.label
+            )
+            val guardianRequest = OneTimeWorkRequestBuilder<com.sysadmindoc.alarmclock.worker.GuardianWorker>()
+                .setInitialDelay(alarm.guardianDelaySec.toLong(), TimeUnit.SECONDS)
+                .setInputData(guardianData)
+                .build()
+            WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+                "guardian_${alarm.id}",
+                ExistingWorkPolicy.REPLACE,
+                guardianRequest
+            )
+        }
     }
 
     private fun buildAlarmNotification(alarm: Alarm): Notification {
@@ -273,6 +310,34 @@ class AlarmService : Service() {
                 return  // Spotify handles playback; no MediaPlayer needed
             } catch (_: Exception) {
                 // Spotify not installed or URI invalid — fall through to default audio
+            }
+        }
+
+        // v1.2.0: Internet radio stream
+        if (alarm.internetRadioUrl.isNotBlank()) {
+            try {
+                mediaPlayer = MediaPlayer().apply {
+                    setAudioAttributes(AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                    )
+                    setDataSource(alarm.internetRadioUrl)
+                    isLooping = false  // Streams don't loop
+                    prepareAsync()
+                    setOnPreparedListener { mp ->
+                        mp.start()
+                        if (alarm.overrideSystemVolume) {
+                            val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+                            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+                            val targetVol = (maxVol * alarm.volume / 100f).toInt().coerceIn(1, maxVol)
+                            audioManager.setStreamVolume(AudioManager.STREAM_ALARM, targetVol, 0)
+                        }
+                    }
+                }
+                return  // Radio handles playback
+            } catch (_: Exception) {
+                // Fall through to default audio
             }
         }
 
@@ -378,6 +443,8 @@ class AlarmService : Service() {
 
     private suspend fun snoozeAlarm(alarmId: Long, customMinutes: Int? = null) {
         autoSilenceJob?.cancel()
+        backupSoundJob?.cancel()
+        flashlightJob?.cancel()
         volumeJob?.cancel()
         stopAlarmPlayback()
         val alarm = repository.getById(alarmId)
@@ -388,7 +455,10 @@ class AlarmService : Service() {
                 recordEvent(alarm, AlarmEvent.ACTION_DISMISSED)
                 alarmScheduler.handleAlarmFired(alarmId)
             } else {
-                alarmScheduler.scheduleSnooze(alarm, customMinutes)
+                val effectiveSnooze = if (alarm.progressiveSnooze && customMinutes == null) {
+                    (alarm.snoozeDurationMinutes - currentSnoozeCount).coerceAtLeast(1)
+                } else customMinutes
+                alarmScheduler.scheduleSnooze(alarm, effectiveSnooze)
                 recordEvent(alarm, AlarmEvent.ACTION_SNOOZED)
             }
             // F8: Webhook on snooze
@@ -405,6 +475,8 @@ class AlarmService : Service() {
 
     private suspend fun dismissAlarm(alarmId: Long) {
         autoSilenceJob?.cancel()
+        backupSoundJob?.cancel()
+        flashlightJob?.cancel()
         volumeJob?.cancel()
         stopAlarmPlayback()
         val alarm = repository.getById(alarmId)
@@ -428,6 +500,9 @@ class AlarmService : Service() {
             if (alarm.wakeConfirmEnabled) {
                 scheduleWakeConfirmation(alarm)
             }
+
+            // v1.2.0: Cancel guardian if active (alarm was dismissed in time)
+            WorkManager.getInstance(applicationContext).cancelUniqueWork("guardian_${alarm.id}")
         }
         alarmScheduler.handleAlarmFired(alarmId)
         if (isForeground) {
@@ -543,9 +618,32 @@ class AlarmService : Service() {
         nm.notify(MISSED_NOTIFICATION_ID, notification)
     }
 
+    private fun startFlashlightStrobe() {
+        try {
+            val cameraManager = getSystemService(Context.CAMERA_SERVICE) as android.hardware.camera2.CameraManager
+            val cameraId = cameraManager.cameraIdList.firstOrNull() ?: return
+            flashlightJob = serviceScope.launch {
+                while (isActive) {
+                    try {
+                        cameraManager.setTorchMode(cameraId, true)
+                        delay(200)
+                        cameraManager.setTorchMode(cameraId, false)
+                        delay(300)
+                    } catch (_: Exception) { break }
+                }
+            }
+        } catch (_: Exception) {}
+    }
+
     private fun stopAlarmPlayback() {
         volumeJob?.cancel()
         volumeJob = null
+        flashlightJob?.cancel()
+        flashlightJob = null
+        try {
+            val cm = getSystemService(Context.CAMERA_SERVICE) as android.hardware.camera2.CameraManager
+            cm.cameraIdList.firstOrNull()?.let { cm.setTorchMode(it, false) }
+        } catch (_: Exception) {}
         try {
             mediaPlayer?.let {
                 if (it.isPlaying) it.stop()
@@ -559,6 +657,8 @@ class AlarmService : Service() {
 
     override fun onDestroy() {
         autoSilenceJob?.cancel()
+        backupSoundJob?.cancel()
+        flashlightJob?.cancel()
         stopAlarmPlayback()
         wakeLock?.let {
             if (it.isHeld) it.release()

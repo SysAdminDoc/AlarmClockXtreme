@@ -39,7 +39,51 @@ data class AlarmEditUiState(
     val isEnabled: Boolean = true,
     val createdAt: Long = 0,
     val is24HourFormat: Boolean = false,
-    val notFound: Boolean = false
+    val notFound: Boolean = false,
+    // F3: TTS morning announcement
+    val ttsEnabled: Boolean = false,
+    // F4: Walk-steps challenge
+    val walkStepsRequired: Int = 30,
+    // F5: Wake confirmation
+    val wakeConfirmEnabled: Boolean = false,
+    val wakeConfirmDelayMinutes: Int = 10,
+    // F6: Smart alarm (light-sleep detection)
+    val smartAlarmEnabled: Boolean = false,
+    val smartAlarmWindowMinutes: Int = 30,
+    // F13: Holiday skip
+    val skipOnHolidays: Boolean = false,
+    // F7: NFC tag challenge
+    val nfcTagId: String = "",
+    // F8: Barcode challenge
+    val barcodeValue: String = "",
+    // F14: Spotify ringtone
+    val spotifyUri: String = "",
+    // F15: Philips Hue sunrise
+    val hueEnabled: Boolean = false,
+    val huePreWakeMinutes: Int = 30,
+    // F16: Photo match challenge
+    val photoMatchUri: String = "",
+    // v1.2.0 new features
+    val challengeChain: String = "",
+    val progressiveSnooze: Boolean = false,
+    val backupSoundEnabled: Boolean = false,
+    val backupSoundDelaySec: Int = 40,
+    val sunriseSimulation: Boolean = false,
+    val sunriseMinutes: Int = 15,
+    val specificDate: String = "",
+    val profileName: String = "",
+    val earlyDismissMinutes: Int = 0,
+    val guardianEnabled: Boolean = false,
+    val guardianPhone: String = "",
+    val guardianDelaySec: Int = 300,
+    val locationDismissEnabled: Boolean = false,
+    val locationDismissLat: Double = 0.0,
+    val locationDismissLng: Double = 0.0,
+    val locationDismissRadius: Int = 100,
+    val wifiDismissSsid: String = "",
+    val internetRadioUrl: String = "",
+    val flashlightStrobe: Boolean = false,
+    val morningRoutine: String = ""
 )
 
 @HiltViewModel
@@ -85,7 +129,40 @@ class AlarmEditViewModel @Inject constructor(
                         isEditing = true,
                         isEnabled = alarm.isEnabled,
                         createdAt = alarm.createdAt,
-                        is24HourFormat = is24h
+                        is24HourFormat = is24h,
+                        ttsEnabled = alarm.ttsEnabled,
+                        walkStepsRequired = alarm.walkStepsRequired,
+                        wakeConfirmEnabled = alarm.wakeConfirmEnabled,
+                        wakeConfirmDelayMinutes = alarm.wakeConfirmDelayMinutes,
+                        smartAlarmEnabled = alarm.smartAlarmEnabled,
+                        smartAlarmWindowMinutes = alarm.smartAlarmWindowMinutes,
+                        skipOnHolidays = alarm.skipOnHolidays,
+                        nfcTagId = alarm.nfcTagId,
+                        barcodeValue = alarm.barcodeValue,
+                        spotifyUri = alarm.spotifyUri,
+                        hueEnabled = alarm.hueEnabled,
+                        huePreWakeMinutes = alarm.huePreWakeMinutes,
+                        photoMatchUri = alarm.photoMatchUri,
+                        challengeChain = alarm.challengeChain,
+                        progressiveSnooze = alarm.progressiveSnooze,
+                        backupSoundEnabled = alarm.backupSoundEnabled,
+                        backupSoundDelaySec = alarm.backupSoundDelaySec,
+                        sunriseSimulation = alarm.sunriseSimulation,
+                        sunriseMinutes = alarm.sunriseMinutes,
+                        specificDate = alarm.specificDate,
+                        profileName = alarm.profileName,
+                        earlyDismissMinutes = alarm.earlyDismissMinutes,
+                        guardianEnabled = alarm.guardianEnabled,
+                        guardianPhone = alarm.guardianPhone,
+                        guardianDelaySec = alarm.guardianDelaySec,
+                        locationDismissEnabled = alarm.locationDismissEnabled,
+                        locationDismissLat = alarm.locationDismissLat,
+                        locationDismissLng = alarm.locationDismissLng,
+                        locationDismissRadius = alarm.locationDismissRadius,
+                        wifiDismissSsid = alarm.wifiDismissSsid,
+                        internetRadioUrl = alarm.internetRadioUrl,
+                        flashlightStrobe = alarm.flashlightStrobe,
+                        morningRoutine = alarm.morningRoutine
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(notFound = true, is24HourFormat = is24h)
@@ -159,6 +236,79 @@ class AlarmEditViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(vibrationPattern = pattern)
     }
 
+    fun updateTtsEnabled(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(ttsEnabled = enabled)
+    }
+
+    fun updateWalkSteps(steps: Int) {
+        _uiState.value = _uiState.value.copy(walkStepsRequired = steps)
+    }
+
+    fun updateWakeConfirm(enabled: Boolean, delayMinutes: Int? = null) {
+        _uiState.value = _uiState.value.copy(
+            wakeConfirmEnabled = enabled,
+            wakeConfirmDelayMinutes = delayMinutes ?: _uiState.value.wakeConfirmDelayMinutes
+        )
+    }
+
+    fun updateSmartAlarm(enabled: Boolean, windowMinutes: Int? = null) {
+        _uiState.value = _uiState.value.copy(
+            smartAlarmEnabled = enabled,
+            smartAlarmWindowMinutes = windowMinutes ?: _uiState.value.smartAlarmWindowMinutes
+        )
+    }
+
+    fun updateSkipOnHolidays(skip: Boolean) {
+        _uiState.value = _uiState.value.copy(skipOnHolidays = skip)
+    }
+
+    fun updateNfcTagId(tagId: String) {
+        _uiState.value = _uiState.value.copy(nfcTagId = tagId)
+    }
+
+    fun updateBarcodeValue(value: String) {
+        _uiState.value = _uiState.value.copy(barcodeValue = value)
+    }
+
+    fun updateSpotifyUri(uri: String) {
+        _uiState.value = _uiState.value.copy(spotifyUri = uri)
+    }
+
+    fun updateHue(enabled: Boolean, preWakeMinutes: Int? = null) {
+        _uiState.value = _uiState.value.copy(
+            hueEnabled = enabled,
+            huePreWakeMinutes = preWakeMinutes ?: _uiState.value.huePreWakeMinutes
+        )
+    }
+
+    fun updatePhotoMatchUri(uri: String) {
+        _uiState.value = _uiState.value.copy(photoMatchUri = uri)
+    }
+
+    fun updateChallengeChain(chain: String) { _uiState.value = _uiState.value.copy(challengeChain = chain) }
+    fun updateProgressiveSnooze(enabled: Boolean) { _uiState.value = _uiState.value.copy(progressiveSnooze = enabled) }
+    fun updateBackupSound(enabled: Boolean, delaySec: Int? = null) {
+        _uiState.value = _uiState.value.copy(backupSoundEnabled = enabled, backupSoundDelaySec = delaySec ?: _uiState.value.backupSoundDelaySec)
+    }
+    fun updateSunriseSimulation(enabled: Boolean, minutes: Int? = null) {
+        _uiState.value = _uiState.value.copy(sunriseSimulation = enabled, sunriseMinutes = minutes ?: _uiState.value.sunriseMinutes)
+    }
+    fun updateSpecificDate(date: String) { _uiState.value = _uiState.value.copy(specificDate = date) }
+    fun updateProfileName(name: String) { _uiState.value = _uiState.value.copy(profileName = name) }
+    fun updateEarlyDismiss(minutes: Int) { _uiState.value = _uiState.value.copy(earlyDismissMinutes = minutes) }
+    fun updateGuardian(enabled: Boolean, phone: String? = null, delaySec: Int? = null) {
+        _uiState.value = _uiState.value.copy(
+            guardianEnabled = enabled,
+            guardianPhone = phone ?: _uiState.value.guardianPhone,
+            guardianDelaySec = delaySec ?: _uiState.value.guardianDelaySec
+        )
+    }
+    fun updateLocationDismiss(enabled: Boolean) { _uiState.value = _uiState.value.copy(locationDismissEnabled = enabled) }
+    fun updateWifiDismissSsid(ssid: String) { _uiState.value = _uiState.value.copy(wifiDismissSsid = ssid) }
+    fun updateInternetRadioUrl(url: String) { _uiState.value = _uiState.value.copy(internetRadioUrl = url) }
+    fun updateFlashlightStrobe(enabled: Boolean) { _uiState.value = _uiState.value.copy(flashlightStrobe = enabled) }
+    fun updateMorningRoutine(routine: String) { _uiState.value = _uiState.value.copy(morningRoutine = routine) }
+
     fun save(onComplete: () -> Unit) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true)
@@ -184,7 +334,40 @@ class AlarmEditViewModel @Inject constructor(
                 group = s.group,
                 flashWake = s.flashWake,
                 vibrationPattern = s.vibrationPattern,
-                createdAt = if (s.isEditing && s.createdAt > 0) s.createdAt else System.currentTimeMillis()
+                createdAt = if (s.isEditing && s.createdAt > 0) s.createdAt else System.currentTimeMillis(),
+                ttsEnabled = s.ttsEnabled,
+                walkStepsRequired = s.walkStepsRequired,
+                wakeConfirmEnabled = s.wakeConfirmEnabled,
+                wakeConfirmDelayMinutes = s.wakeConfirmDelayMinutes,
+                smartAlarmEnabled = s.smartAlarmEnabled,
+                smartAlarmWindowMinutes = s.smartAlarmWindowMinutes,
+                skipOnHolidays = s.skipOnHolidays,
+                nfcTagId = s.nfcTagId,
+                barcodeValue = s.barcodeValue,
+                spotifyUri = s.spotifyUri,
+                hueEnabled = s.hueEnabled,
+                huePreWakeMinutes = s.huePreWakeMinutes,
+                photoMatchUri = s.photoMatchUri,
+                challengeChain = s.challengeChain,
+                progressiveSnooze = s.progressiveSnooze,
+                backupSoundEnabled = s.backupSoundEnabled,
+                backupSoundDelaySec = s.backupSoundDelaySec,
+                sunriseSimulation = s.sunriseSimulation,
+                sunriseMinutes = s.sunriseMinutes,
+                specificDate = s.specificDate,
+                profileName = s.profileName,
+                earlyDismissMinutes = s.earlyDismissMinutes,
+                guardianEnabled = s.guardianEnabled,
+                guardianPhone = s.guardianPhone,
+                guardianDelaySec = s.guardianDelaySec,
+                locationDismissEnabled = s.locationDismissEnabled,
+                locationDismissLat = s.locationDismissLat,
+                locationDismissLng = s.locationDismissLng,
+                locationDismissRadius = s.locationDismissRadius,
+                wifiDismissSsid = s.wifiDismissSsid,
+                internetRadioUrl = s.internetRadioUrl,
+                flashlightStrobe = s.flashlightStrobe,
+                morningRoutine = s.morningRoutine
             )
 
             val savedId = repository.save(alarm)

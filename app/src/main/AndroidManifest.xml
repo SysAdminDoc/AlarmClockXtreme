@@ -36,6 +36,29 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
+    <!-- NFC for dismiss challenge -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
+
+    <!-- Step counter / activity recognition for walk-steps challenge and smart alarm -->
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
+    <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false" />
+
+    <!-- Camera for barcode scan and photo match challenges -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Audio for sonar sleep tracking (F17) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- Smart alarm foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- Sonar sleep tracking microphone service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+
     <!-- Manufacturer Battery Killer Detection -->
     <queries>
         <package android:name="com.samsung.android.lool" />
@@ -116,6 +139,48 @@
             android:name=".service.AlarmService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+
+        <!-- F6: Smart Alarm motion-monitoring service -->
+        <service
+            android:name=".service.SmartAlarmService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- F17: Sonar sleep tracking service (experimental) -->
+        <service
+            android:name=".service.SonarSleepService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+
+        <!-- F3: Morning Briefing overlay (shown on lock screen after dismissal) -->
+        <activity
+            android:name=".ui.alarmfiring.MorningBriefingActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.AlarmClockXtreme" />
+
+        <!-- F5: Wake Confirmation activity (shown on lock screen) -->
+        <activity
+            android:name=".ui.alarmfiring.WakeConfirmActivity"
+            android:exported="false"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.AlarmClockXtreme" />
+
+        <!-- WorkManager: disable default initializer so HiltWorkerFactory can be used -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
 
         <!-- Home Screen Widget -->
         <receiver
