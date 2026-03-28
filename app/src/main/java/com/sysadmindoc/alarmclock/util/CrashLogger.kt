@@ -2,6 +2,7 @@ package com.sysadmindoc.alarmclock.util
 
 import android.content.Context
 import android.util.Log
+import androidx.core.content.pm.PackageInfoCompat
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -48,8 +49,8 @@ object CrashLogger {
             files.take(files.size - MAX_LOG_FILES + 1).forEach { it.delete() }
         }
 
-        val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
-        val file = File(dir, "crash_$timestamp.txt")
+        val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.US).format(Date())
+        val file = File(dir, "crash_${timestamp}_${Thread.currentThread().id}.txt")
 
         val sw = StringWriter()
         val pw = PrintWriter(sw)
@@ -69,10 +70,8 @@ object CrashLogger {
     private fun getVersionInfo(context: Context): String {
         return try {
             val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            "${pInfo.versionName} (${pInfo.longVersionCode})"
-        } catch (_: Exception) {
-            "unknown"
-        }
+            "${pInfo.versionName} (${PackageInfoCompat.getLongVersionCode(pInfo)})"
+        } catch (e: Exception) { "Unknown" }
     }
 
     /**

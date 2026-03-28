@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,7 +34,8 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun StatsScreen(
-    viewModel: StatsViewModel = hiltViewModel()
+    viewModel: StatsViewModel = hiltViewModel(),
+    is24Hour: Boolean = false
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val stats = state.stats
@@ -228,11 +231,12 @@ private fun DayOfWeekChart(counts: Map<DayOfWeek, Int>, modifier: Modifier = Mod
 }
 
 @Composable
-private fun EventRow(event: AlarmEvent) {
-    val timeStr = remember(event.firedAt) {
+private fun EventRow(event: AlarmEvent, is24Hour: Boolean = false) {
+    val timeStr = remember(event.firedAt, is24Hour) {
+        val pattern = if (is24Hour) "MMM d, HH:mm" else "MMM d, h:mm a"
         Instant.ofEpochMilli(event.firedAt)
             .atZone(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("MMM d, h:mm a"))
+            .format(DateTimeFormatter.ofPattern(pattern))
     }
 
     val (actionIcon, actionColor) = when (event.action) {

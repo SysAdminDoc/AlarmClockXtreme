@@ -12,6 +12,11 @@ class Converters {
     @TypeConverter
     fun toDayOfWeekSet(value: String): Set<DayOfWeek> {
         if (value.isBlank()) return emptySet()
-        return value.split(",").map { DayOfWeek.of(it.trim().toInt()) }.toSet()
+        return value.split(",").mapNotNull { part ->
+            try {
+                val day = part.trim().toInt()
+                if (day in 1..7) DayOfWeek.of(day) else null
+            } catch (_: Exception) { null }
+        }.toSet()
     }
 }

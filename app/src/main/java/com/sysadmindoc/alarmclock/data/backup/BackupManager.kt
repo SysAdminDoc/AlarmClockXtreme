@@ -9,7 +9,6 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.DayOfWeek
 import javax.inject.Inject
@@ -31,13 +30,30 @@ data class AlarmBackup(
     val snoozeDurationMinutes: Int,
     val maxSnoozeCount: Int,
     val showOnLockScreen: Boolean,
-    val challengeType: String
+    val challengeType: String,
+    // F1-F17 feature fields
+    val group: String = "",
+    val flashWake: Boolean = false,
+    val vibrationPattern: String = "default",
+    val ttsEnabled: Boolean = false,
+    val walkStepsRequired: Int = 30,
+    val wakeConfirmEnabled: Boolean = false,
+    val wakeConfirmDelayMinutes: Int = 10,
+    val smartAlarmEnabled: Boolean = false,
+    val smartAlarmWindowMinutes: Int = 30,
+    val skipOnHolidays: Boolean = false,
+    val nfcTagId: String = "",
+    val barcodeValue: String = "",
+    val spotifyUri: String = "",
+    val hueEnabled: Boolean = false,
+    val huePreWakeMinutes: Int = 30,
+    val photoMatchUri: String = ""
 )
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 1,
-    val appVersion: String = "0.8.1",
+    val version: Int = 2,
+    val appVersion: String = "1.1.0",
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
     val settings: SettingsBackup?
@@ -54,10 +70,24 @@ data class SettingsBackup(
     val vacationStartMillis: Long,
     val vacationEndMillis: Long,
     val showWeatherOnDashboard: Boolean,
-    val showCalendarOnDashboard: Boolean
+    val showCalendarOnDashboard: Boolean,
+    // Previously missing settings
+    val temperatureUnit: String = "fahrenheit",
+    val bedtimeEnabled: Boolean = false,
+    val bedtimeHour: Int = 23,
+    val bedtimeMinute: Int = 0,
+    val sleepGoalHours: Int = 8,
+    val sleepGoalMinutes: Int = 0,
+    val bedtimeReminderMinutes: Int = 30,
+    val flipToSnoozeEnabled: Boolean = false,
+    val webhookEnabled: Boolean = false,
+    val webhookUrl: String = "",
+    val holidayAutoSkipEnabled: Boolean = false,
+    val holidayCountryCode: String = "",
+    val hueBridgeIp: String = "",
+    val hueApiKey: String = "",
+    val hueLightIds: String = ""
 )
-
-// Note: autoSilenceMinutes not backed up as it's device-specific preference
 
 @Singleton
 class BackupManager @Inject constructor(
@@ -70,9 +100,6 @@ class BackupManager @Inject constructor(
 
     private val adapter = moshi.adapter(BackupData::class.java).indent("  ")
 
-    /**
-     * Export all alarms and settings to a JSON string.
-     */
     suspend fun export(): String {
         val alarms = repository.getAll()
         val settings = preferencesManager.getCurrentSettings()
@@ -94,7 +121,23 @@ class BackupManager @Inject constructor(
                     snoozeDurationMinutes = alarm.snoozeDurationMinutes,
                     maxSnoozeCount = alarm.maxSnoozeCount,
                     showOnLockScreen = alarm.showOnLockScreen,
-                    challengeType = alarm.challengeType
+                    challengeType = alarm.challengeType,
+                    group = alarm.group,
+                    flashWake = alarm.flashWake,
+                    vibrationPattern = alarm.vibrationPattern,
+                    ttsEnabled = alarm.ttsEnabled,
+                    walkStepsRequired = alarm.walkStepsRequired,
+                    wakeConfirmEnabled = alarm.wakeConfirmEnabled,
+                    wakeConfirmDelayMinutes = alarm.wakeConfirmDelayMinutes,
+                    smartAlarmEnabled = alarm.smartAlarmEnabled,
+                    smartAlarmWindowMinutes = alarm.smartAlarmWindowMinutes,
+                    skipOnHolidays = alarm.skipOnHolidays,
+                    nfcTagId = alarm.nfcTagId,
+                    barcodeValue = alarm.barcodeValue,
+                    spotifyUri = alarm.spotifyUri,
+                    hueEnabled = alarm.hueEnabled,
+                    huePreWakeMinutes = alarm.huePreWakeMinutes,
+                    photoMatchUri = alarm.photoMatchUri
                 )
             },
             settings = SettingsBackup(
@@ -107,16 +150,28 @@ class BackupManager @Inject constructor(
                 vacationStartMillis = settings.vacationStartMillis,
                 vacationEndMillis = settings.vacationEndMillis,
                 showWeatherOnDashboard = settings.showWeatherOnDashboard,
-                showCalendarOnDashboard = settings.showCalendarOnDashboard
+                showCalendarOnDashboard = settings.showCalendarOnDashboard,
+                temperatureUnit = settings.temperatureUnit,
+                bedtimeEnabled = settings.bedtimeEnabled,
+                bedtimeHour = settings.bedtimeHour,
+                bedtimeMinute = settings.bedtimeMinute,
+                sleepGoalHours = settings.sleepGoalHours,
+                sleepGoalMinutes = settings.sleepGoalMinutes,
+                bedtimeReminderMinutes = settings.bedtimeReminderMinutes,
+                flipToSnoozeEnabled = settings.flipToSnoozeEnabled,
+                webhookEnabled = settings.webhookEnabled,
+                webhookUrl = settings.webhookUrl,
+                holidayAutoSkipEnabled = settings.holidayAutoSkipEnabled,
+                holidayCountryCode = settings.holidayCountryCode,
+                hueBridgeIp = settings.hueBridgeIp,
+                hueApiKey = settings.hueApiKey,
+                hueLightIds = settings.hueLightIds
             )
         )
 
         return adapter.toJson(backup)
     }
 
-    /**
-     * Export to a file URI (content:// from SAF).
-     */
     suspend fun exportToUri(uri: Uri): Result<Int> {
         return try {
             val json = export()
@@ -130,10 +185,6 @@ class BackupManager @Inject constructor(
         }
     }
 
-    /**
-     * Import alarms and settings from a file URI.
-     * Returns the number of alarms imported.
-     */
     suspend fun importFromUri(uri: Uri): Result<Int> {
         return try {
             val json = context.contentResolver.openInputStream(uri)?.use { stream ->
@@ -143,33 +194,52 @@ class BackupManager @Inject constructor(
             val backup = adapter.fromJson(json)
                 ?: return Result.failure(Exception("Invalid backup format"))
 
-            // Import alarms
             var count = 0
             for (ab in backup.alarms) {
-                val alarm = Alarm(
-                    hour = ab.hour,
-                    minute = ab.minute,
-                    label = ab.label,
-                    isEnabled = ab.isEnabled,
-                    repeatDays = ab.repeatDays.mapNotNull {
-                        try { DayOfWeek.valueOf(it) } catch (_: Exception) { null }
-                    }.toSet(),
-                    ringtoneUri = ab.ringtoneUri,
-                    vibrationEnabled = ab.vibrationEnabled,
-                    vibrationIntensity = ab.vibrationIntensity,
-                    volume = ab.volume,
-                    overrideSystemVolume = ab.overrideSystemVolume,
-                    gradualVolumeSeconds = ab.gradualVolumeSeconds,
-                    snoozeDurationMinutes = ab.snoozeDurationMinutes,
-                    maxSnoozeCount = ab.maxSnoozeCount,
-                    showOnLockScreen = ab.showOnLockScreen,
-                    challengeType = ab.challengeType
-                )
-                val id = repository.save(alarm)
-                if (alarm.isEnabled) {
-                    scheduler.schedule(alarm.copy(id = id))
+                try {
+                    val alarm = Alarm(
+                        hour = ab.hour,
+                        minute = ab.minute,
+                        label = ab.label,
+                        isEnabled = ab.isEnabled,
+                        repeatDays = ab.repeatDays.mapNotNull {
+                            try { DayOfWeek.valueOf(it) } catch (_: Exception) { null }
+                        }.toSet(),
+                        ringtoneUri = ab.ringtoneUri,
+                        vibrationEnabled = ab.vibrationEnabled,
+                        vibrationIntensity = ab.vibrationIntensity,
+                        volume = ab.volume,
+                        overrideSystemVolume = ab.overrideSystemVolume,
+                        gradualVolumeSeconds = ab.gradualVolumeSeconds,
+                        snoozeDurationMinutes = ab.snoozeDurationMinutes,
+                        maxSnoozeCount = ab.maxSnoozeCount,
+                        showOnLockScreen = ab.showOnLockScreen,
+                        challengeType = ab.challengeType,
+                        group = ab.group,
+                        flashWake = ab.flashWake,
+                        vibrationPattern = ab.vibrationPattern,
+                        ttsEnabled = ab.ttsEnabled,
+                        walkStepsRequired = ab.walkStepsRequired,
+                        wakeConfirmEnabled = ab.wakeConfirmEnabled,
+                        wakeConfirmDelayMinutes = ab.wakeConfirmDelayMinutes,
+                        smartAlarmEnabled = ab.smartAlarmEnabled,
+                        smartAlarmWindowMinutes = ab.smartAlarmWindowMinutes,
+                        skipOnHolidays = ab.skipOnHolidays,
+                        nfcTagId = ab.nfcTagId,
+                        barcodeValue = ab.barcodeValue,
+                        spotifyUri = ab.spotifyUri,
+                        hueEnabled = ab.hueEnabled,
+                        huePreWakeMinutes = ab.huePreWakeMinutes,
+                        photoMatchUri = ab.photoMatchUri
+                    )
+                    val id = repository.save(alarm)
+                    if (alarm.isEnabled) {
+                        scheduler.schedule(alarm.copy(id = id))
+                    }
+                    count++
+                } catch (_: Exception) {
+                    // Skip malformed alarm entries, continue importing
                 }
-                count++
             }
 
             // Import settings
@@ -185,7 +255,22 @@ class BackupManager @Inject constructor(
                         vacationStartMillis = s.vacationStartMillis,
                         vacationEndMillis = s.vacationEndMillis,
                         showWeatherOnDashboard = s.showWeatherOnDashboard,
-                        showCalendarOnDashboard = s.showCalendarOnDashboard
+                        showCalendarOnDashboard = s.showCalendarOnDashboard,
+                        temperatureUnit = s.temperatureUnit,
+                        bedtimeEnabled = s.bedtimeEnabled,
+                        bedtimeHour = s.bedtimeHour,
+                        bedtimeMinute = s.bedtimeMinute,
+                        sleepGoalHours = s.sleepGoalHours,
+                        sleepGoalMinutes = s.sleepGoalMinutes,
+                        bedtimeReminderMinutes = s.bedtimeReminderMinutes,
+                        flipToSnoozeEnabled = s.flipToSnoozeEnabled,
+                        webhookEnabled = s.webhookEnabled,
+                        webhookUrl = s.webhookUrl,
+                        holidayAutoSkipEnabled = s.holidayAutoSkipEnabled,
+                        holidayCountryCode = s.holidayCountryCode,
+                        hueBridgeIp = s.hueBridgeIp,
+                        hueApiKey = s.hueApiKey,
+                        hueLightIds = s.hueLightIds
                     )
                 }
             }

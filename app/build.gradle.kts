@@ -1,7 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// AlarmClockXtreme v1.0.0
+// AlarmClockXtreme v1.1.0
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 35
-        versionCode = 11
-        versionName = "1.0.0"
+        versionCode = 12
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -131,15 +131,23 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.53.1")
     ksp("com.google.dagger:hilt-compiler:2.53.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    // Hilt WorkManager integration (F5, F13, F15 workers)
+    implementation("androidx.hilt:hilt-work:1.2.0")
+    ksp("androidx.hilt:hilt-compiler:1.2.0")
+
+    // WorkManager (F5, F6, F13, F15)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 
     // DataStore for preferences
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
-    // Retrofit + Moshi for Open-Meteo weather API
+    // Retrofit + Moshi for Open-Meteo weather API and Nager.Date holidays
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-moshi:2.11.0")
     implementation("com.squareup.moshi:moshi:1.15.1")
     ksp("com.squareup.moshi:moshi-kotlin-codegen:1.15.1")
+    // OkHttp (explicit — also used by WebhookService and HueSunriseWorker)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // Glance widget
     implementation("androidx.glance:glance-appwidget:1.1.1")

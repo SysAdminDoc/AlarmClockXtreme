@@ -13,7 +13,9 @@ import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
 import android.os.*
+import android.speech.tts.TextToSpeech
 import androidx.core.app.NotificationCompat
+import androidx.work.*
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
@@ -23,8 +25,15 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.receiver.DismissReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeReceiver
 import com.sysadmindoc.alarmclock.ui.alarmfiring.AlarmFiringActivity
+import com.sysadmindoc.alarmclock.ui.alarmfiring.MorningBriefingActivity
+import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
@@ -41,6 +50,7 @@ class AlarmService : Service() {
     @Inject lateinit var alarmScheduler: AlarmScheduler
     @Inject lateinit var eventRepository: AlarmEventRepository
     @Inject lateinit var preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+    @Inject lateinit var webhookService: WebhookService
 
     companion object {
         const val ACTION_START_ALARM = "com.sysadmindoc.alarmclock.START_ALARM"
@@ -100,6 +110,7 @@ class AlarmService : Service() {
     private var currentSnoozeCount: Int = 0
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var wakeLock: PowerManager.WakeLock? = null
+    private var isForeground = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -112,7 +123,7 @@ class AlarmService : Service() {
             PowerManager.PARTIAL_WAKE_LOCK,
             "AlarmClockXtreme::AlarmWakeLock"
         ).apply {
-            acquire(5 * 60 * 1000L) // 5 minute max
+            acquire(30 * 60 * 1000L) // 30 minutes — covers max auto-silence; released in onDestroy()
         }
     }
 
@@ -121,6 +132,10 @@ class AlarmService : Service() {
             ACTION_START_ALARM -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1)
                 if (alarmId != -1L) {
+                    // Cancel any prior auto-silence/fade jobs before starting new alarm
+                    autoSilenceJob?.cancel()
+                    volumeJob?.cancel()
+                    stopAlarmPlayback()
                     if (alarmId != currentAlarmId) {
                         currentSnoozeCount = 0  // Reset for new alarm
                     }
@@ -150,6 +165,7 @@ class AlarmService : Service() {
 
         val notification = buildAlarmNotification(alarm)
         startForeground(NOTIFICATION_ID, notification)
+        isForeground = true
 
         val firingIntent = Intent(this, AlarmFiringActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -165,6 +181,11 @@ class AlarmService : Service() {
             startVibration(alarm)
         }
 
+        // F8: Webhook on alarm fire
+        serviceScope.launch {
+            webhookService.fire("fired", alarm.id, alarm.label, formatAlarmTime(alarm))
+        }
+
         // Auto-silence after timeout - records as missed
         val settings = preferencesManager.getCurrentSettings()
         val autoSilenceMinutes = settings.autoSilenceMinutes.toLong()
@@ -178,7 +199,10 @@ class AlarmService : Service() {
                 }
                 alarmScheduler.handleAlarmFired(alarmId)
                 stopAlarmPlayback()
-                stopForeground(STOP_FOREGROUND_REMOVE)
+                if (isForeground) {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    isForeground = false
+                }
                 stopSelf()
             }
         }
@@ -226,7 +250,7 @@ class AlarmService : Service() {
             .setFullScreenIntent(fullScreenPi, true)
             .setOngoing(true)
             .setAutoCancel(false)
-            .addAction(R.drawable.ic_alarm, "Snooze", snoozePi)
+            .addAction(R.drawable.ic_alarm, "Snooze ${alarm.snoozeDurationMinutes}m", snoozePi)
             .addAction(R.drawable.ic_alarm, "Dismiss", dismissPi)
             .build()
     }
@@ -234,6 +258,23 @@ class AlarmService : Service() {
     private fun startAudio(alarm: Alarm) {
         // Silent mode - skip audio entirely
         if (alarm.ringtoneUri == "silent") return
+
+        // F14: Spotify ringtone — open Spotify URI and skip MediaPlayer
+        if (alarm.spotifyUri.isNotBlank()) {
+            try {
+                val spotifyIntent = android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    Uri.parse(alarm.spotifyUri)
+                ).apply {
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra("android.intent.extra.START_PLAYBACK", true)
+                }
+                startActivity(spotifyIntent)
+                return  // Spotify handles playback; no MediaPlayer needed
+            } catch (_: Exception) {
+                // Spotify not installed or URI invalid — fall through to default audio
+            }
+        }
 
         val uri = if (alarm.ringtoneUri.isNotBlank()) {
             Uri.parse(alarm.ringtoneUri)
@@ -337,6 +378,7 @@ class AlarmService : Service() {
 
     private suspend fun snoozeAlarm(alarmId: Long, customMinutes: Int? = null) {
         autoSilenceJob?.cancel()
+        volumeJob?.cancel()
         stopAlarmPlayback()
         val alarm = repository.getById(alarmId)
         if (alarm != null) {
@@ -349,21 +391,120 @@ class AlarmService : Service() {
                 alarmScheduler.scheduleSnooze(alarm, customMinutes)
                 recordEvent(alarm, AlarmEvent.ACTION_SNOOZED)
             }
+            // F8: Webhook on snooze
+            serviceScope.launch {
+                webhookService.fire("snoozed", alarm.id, alarm.label, formatAlarmTime(alarm))
+            }
         }
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        if (isForeground) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            isForeground = false
+        }
         stopSelf()
     }
 
     private suspend fun dismissAlarm(alarmId: Long) {
         autoSilenceJob?.cancel()
+        volumeJob?.cancel()
         stopAlarmPlayback()
         val alarm = repository.getById(alarmId)
         if (alarm != null) {
             recordEvent(alarm, AlarmEvent.ACTION_DISMISSED)
+
+            // F8: Webhook on dismiss
+            serviceScope.launch {
+                webhookService.fire("dismissed", alarm.id, alarm.label, formatAlarmTime(alarm))
+            }
+
+            // F11: TTS morning announcement
+            if (alarm.ttsEnabled) {
+                speakMorningAnnouncement(alarm)
+            }
+
+            // F12: Morning briefing screen
+            showMorningBriefing(alarm)
+
+            // F5: Post-alarm wake confirmation
+            if (alarm.wakeConfirmEnabled) {
+                scheduleWakeConfirmation(alarm)
+            }
         }
         alarmScheduler.handleAlarmFired(alarmId)
-        stopForeground(STOP_FOREGROUND_REMOVE)
+        if (isForeground) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            isForeground = false
+        }
         stopSelf()
+    }
+
+    // F11: TTS morning announcement
+    private fun speakMorningAnnouncement(alarm: Alarm) {
+        val now = LocalTime.now()
+        val h = if (now.hour % 12 == 0) 12 else now.hour % 12
+        val minStr = when {
+            now.minute == 0 -> "o'clock"
+            now.minute < 10 -> "oh ${now.minute}"
+            else -> "${now.minute}"
+        }
+        val amPm = if (now.hour < 12) "A.M." else "P.M."
+        val today = LocalDate.now()
+        val dayName = today.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
+        val monthName = today.month.name.lowercase().replaceFirstChar { it.uppercase() }
+        val text = "It is $h $minStr $amPm. Today is $dayName, $monthName ${today.dayOfMonth}."
+
+        // TTS initialization is async — use OnInitListener to speak only when ready
+        // Use applicationContext to survive service destruction
+        val ttsRef = java.util.concurrent.atomic.AtomicReference<TextToSpeech?>()
+        val listener = TextToSpeech.OnInitListener { status ->
+            if (status == TextToSpeech.SUCCESS) {
+                ttsRef.get()?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "morning_announcement")
+                serviceScope.launch {
+                    delay(8000)
+                    try { ttsRef.getAndSet(null)?.shutdown() } catch (_: Exception) {}
+                }
+            } else {
+                try { ttsRef.getAndSet(null)?.shutdown() } catch (_: Exception) {}
+            }
+        }
+        ttsRef.set(TextToSpeech(applicationContext, listener))
+    }
+
+    // F12: Launch morning briefing Activity
+    private fun showMorningBriefing(alarm: Alarm) {
+        val now = LocalTime.now()
+        val timeStr = "${if (now.hour % 12 == 0) 12 else now.hour % 12}:${String.format("%02d", now.minute)} ${if (now.hour < 12) "AM" else "PM"}"
+        val dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
+
+        val intent = Intent(this, MorningBriefingActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            putExtra(MorningBriefingActivity.EXTRA_TIME, timeStr)
+            putExtra(MorningBriefingActivity.EXTRA_DATE, dateStr)
+            putExtra(MorningBriefingActivity.EXTRA_WEATHER, "")  // Weather cached separately
+            putExtra(MorningBriefingActivity.EXTRA_NEXT_EVENT, "")
+        }
+        startActivity(intent)
+    }
+
+    // F5: Schedule wake confirmation via WorkManager
+    private fun scheduleWakeConfirmation(alarm: Alarm) {
+        val data = workDataOf(WakeConfirmWorker.KEY_ALARM_ID to alarm.id)
+        val request = OneTimeWorkRequestBuilder<WakeConfirmWorker>()
+            .setInitialDelay(alarm.wakeConfirmDelayMinutes.toLong(), TimeUnit.MINUTES)
+            .setInputData(data)
+            .addTag("wake_confirm_${alarm.id}")
+            .build()
+        WorkManager.getInstance(applicationContext)
+            .enqueueUniqueWork(
+                "wake_confirm_${alarm.id}",
+                ExistingWorkPolicy.REPLACE,
+                request
+            )
+    }
+
+    private fun formatAlarmTime(alarm: Alarm): String {
+        val h = if (alarm.hour % 12 == 0) 12 else alarm.hour % 12
+        val amPm = if (alarm.hour < 12) "AM" else "PM"
+        return "$h:${String.format("%02d", alarm.minute)} $amPm"
     }
 
     private suspend fun recordEvent(alarm: Alarm, action: String) {
@@ -404,10 +545,13 @@ class AlarmService : Service() {
 
     private fun stopAlarmPlayback() {
         volumeJob?.cancel()
-        mediaPlayer?.let {
-            if (it.isPlaying) it.stop()
-            it.release()
-        }
+        volumeJob = null
+        try {
+            mediaPlayer?.let {
+                if (it.isPlaying) it.stop()
+                it.release()
+            }
+        } catch (_: Exception) { /* already released */ }
         mediaPlayer = null
         vibrator?.cancel()
         vibrator = null

@@ -46,6 +46,18 @@ data class AppSettings(
     val sleepGoalHours: Int = 8,
     val sleepGoalMinutes: Int = 0,
     val bedtimeReminderMinutes: Int = 30,
+    // F2: Flip-to-snooze (global toggle)
+    val flipToSnoozeEnabled: Boolean = false,
+    // F11: Webhook integrations
+    val webhookEnabled: Boolean = false,
+    val webhookUrl: String = "",
+    // F13: Public holiday auto-skip
+    val holidayAutoSkipEnabled: Boolean = false,
+    val holidayCountryCode: String = "",  // ISO 3166-1 alpha-2 (e.g. "US", "GB")
+    // F15: Philips Hue
+    val hueBridgeIp: String = "",
+    val hueApiKey: String = "",
+    val hueLightIds: String = "",         // Comma-separated Hue light IDs
 )
 
 @Singleton
@@ -77,6 +89,14 @@ class PreferencesManager @Inject constructor(
         val SLEEP_GOAL_HOURS = intPreferencesKey("sleep_goal_hours")
         val SLEEP_GOAL_MINUTES = intPreferencesKey("sleep_goal_minutes")
         val BEDTIME_REMINDER_MINUTES = intPreferencesKey("bedtime_reminder_minutes")
+        val FLIP_TO_SNOOZE = booleanPreferencesKey("flip_to_snooze")
+        val WEBHOOK_ENABLED = booleanPreferencesKey("webhook_enabled")
+        val WEBHOOK_URL = stringPreferencesKey("webhook_url")
+        val HOLIDAY_AUTO_SKIP = booleanPreferencesKey("holiday_auto_skip")
+        val HOLIDAY_COUNTRY_CODE = stringPreferencesKey("holiday_country_code")
+        val HUE_BRIDGE_IP = stringPreferencesKey("hue_bridge_ip")
+        val HUE_API_KEY = stringPreferencesKey("hue_api_key")
+        val HUE_LIGHT_IDS = stringPreferencesKey("hue_light_ids")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -110,6 +130,14 @@ class PreferencesManager @Inject constructor(
                 sleepGoalHours = prefs[Keys.SLEEP_GOAL_HOURS] ?: 8,
                 sleepGoalMinutes = prefs[Keys.SLEEP_GOAL_MINUTES] ?: 0,
                 bedtimeReminderMinutes = prefs[Keys.BEDTIME_REMINDER_MINUTES] ?: 30,
+                flipToSnoozeEnabled = prefs[Keys.FLIP_TO_SNOOZE] ?: false,
+                webhookEnabled = prefs[Keys.WEBHOOK_ENABLED] ?: false,
+                webhookUrl = prefs[Keys.WEBHOOK_URL] ?: "",
+                holidayAutoSkipEnabled = prefs[Keys.HOLIDAY_AUTO_SKIP] ?: false,
+                holidayCountryCode = prefs[Keys.HOLIDAY_COUNTRY_CODE] ?: "",
+                hueBridgeIp = prefs[Keys.HUE_BRIDGE_IP] ?: "",
+                hueApiKey = prefs[Keys.HUE_API_KEY] ?: "",
+                hueLightIds = prefs[Keys.HUE_LIGHT_IDS] ?: "",
             )
         }
 
@@ -118,33 +146,40 @@ class PreferencesManager @Inject constructor(
     }
 
     suspend fun update(transform: (AppSettings) -> AppSettings) {
-        val current = AppSettings() // defaults
         context.dataStore.edit { prefs ->
             val old = AppSettings(
-                is24HourFormat = prefs[Keys.IS_24_HOUR] ?: current.is24HourFormat,
-                defaultSnoozeDuration = prefs[Keys.DEFAULT_SNOOZE] ?: current.defaultSnoozeDuration,
-                defaultGradualVolume = prefs[Keys.DEFAULT_GRADUAL_VOLUME] ?: current.defaultGradualVolume,
-                usePhoneSpeakers = prefs[Keys.USE_PHONE_SPEAKERS] ?: current.usePhoneSpeakers,
-                showOnLockScreen = prefs[Keys.SHOW_ON_LOCK_SCREEN] ?: current.showOnLockScreen,
-                upcomingAlarmMinutes = prefs[Keys.UPCOMING_ALARM_MINUTES] ?: current.upcomingAlarmMinutes,
-                showNoAlarmsWarning = prefs[Keys.SHOW_NO_ALARMS_WARNING] ?: current.showNoAlarmsWarning,
-                vacationModeEnabled = prefs[Keys.VACATION_ENABLED] ?: current.vacationModeEnabled,
-                vacationStartMillis = prefs[Keys.VACATION_START] ?: current.vacationStartMillis,
-                vacationEndMillis = prefs[Keys.VACATION_END] ?: current.vacationEndMillis,
-                showWeatherOnDashboard = prefs[Keys.SHOW_WEATHER] ?: current.showWeatherOnDashboard,
-                showCalendarOnDashboard = prefs[Keys.SHOW_CALENDAR] ?: current.showCalendarOnDashboard,
-                lastKnownLatitude = prefs[Keys.LAST_LATITUDE] ?: current.lastKnownLatitude,
-                lastKnownLongitude = prefs[Keys.LAST_LONGITUDE] ?: current.lastKnownLongitude,
-                autoSilenceMinutes = prefs[Keys.AUTO_SILENCE] ?: current.autoSilenceMinutes,
-                temperatureUnit = prefs[Keys.TEMPERATURE_UNIT] ?: current.temperatureUnit,
-                locationName = prefs[Keys.LOCATION_NAME] ?: current.locationName,
-                useManualLocation = prefs[Keys.USE_MANUAL_LOCATION] ?: current.useManualLocation,
-                bedtimeEnabled = prefs[Keys.BEDTIME_ENABLED] ?: current.bedtimeEnabled,
-                bedtimeHour = prefs[Keys.BEDTIME_HOUR] ?: current.bedtimeHour,
-                bedtimeMinute = prefs[Keys.BEDTIME_MINUTE] ?: current.bedtimeMinute,
-                sleepGoalHours = prefs[Keys.SLEEP_GOAL_HOURS] ?: current.sleepGoalHours,
-                sleepGoalMinutes = prefs[Keys.SLEEP_GOAL_MINUTES] ?: current.sleepGoalMinutes,
-                bedtimeReminderMinutes = prefs[Keys.BEDTIME_REMINDER_MINUTES] ?: current.bedtimeReminderMinutes,
+                is24HourFormat = prefs[Keys.IS_24_HOUR] ?: false,
+                defaultSnoozeDuration = prefs[Keys.DEFAULT_SNOOZE] ?: 10,
+                defaultGradualVolume = prefs[Keys.DEFAULT_GRADUAL_VOLUME] ?: 60,
+                usePhoneSpeakers = prefs[Keys.USE_PHONE_SPEAKERS] ?: false,
+                showOnLockScreen = prefs[Keys.SHOW_ON_LOCK_SCREEN] ?: true,
+                upcomingAlarmMinutes = prefs[Keys.UPCOMING_ALARM_MINUTES] ?: 60,
+                showNoAlarmsWarning = prefs[Keys.SHOW_NO_ALARMS_WARNING] ?: true,
+                vacationModeEnabled = prefs[Keys.VACATION_ENABLED] ?: false,
+                vacationStartMillis = prefs[Keys.VACATION_START] ?: 0,
+                vacationEndMillis = prefs[Keys.VACATION_END] ?: 0,
+                showWeatherOnDashboard = prefs[Keys.SHOW_WEATHER] ?: true,
+                showCalendarOnDashboard = prefs[Keys.SHOW_CALENDAR] ?: true,
+                lastKnownLatitude = prefs[Keys.LAST_LATITUDE] ?: 0.0,
+                lastKnownLongitude = prefs[Keys.LAST_LONGITUDE] ?: 0.0,
+                autoSilenceMinutes = prefs[Keys.AUTO_SILENCE] ?: 10,
+                temperatureUnit = prefs[Keys.TEMPERATURE_UNIT] ?: "fahrenheit",
+                locationName = prefs[Keys.LOCATION_NAME] ?: "",
+                useManualLocation = prefs[Keys.USE_MANUAL_LOCATION] ?: false,
+                bedtimeEnabled = prefs[Keys.BEDTIME_ENABLED] ?: false,
+                bedtimeHour = prefs[Keys.BEDTIME_HOUR] ?: 23,
+                bedtimeMinute = prefs[Keys.BEDTIME_MINUTE] ?: 0,
+                sleepGoalHours = prefs[Keys.SLEEP_GOAL_HOURS] ?: 8,
+                sleepGoalMinutes = prefs[Keys.SLEEP_GOAL_MINUTES] ?: 0,
+                bedtimeReminderMinutes = prefs[Keys.BEDTIME_REMINDER_MINUTES] ?: 30,
+                flipToSnoozeEnabled = prefs[Keys.FLIP_TO_SNOOZE] ?: false,
+                webhookEnabled = prefs[Keys.WEBHOOK_ENABLED] ?: false,
+                webhookUrl = prefs[Keys.WEBHOOK_URL] ?: "",
+                holidayAutoSkipEnabled = prefs[Keys.HOLIDAY_AUTO_SKIP] ?: false,
+                holidayCountryCode = prefs[Keys.HOLIDAY_COUNTRY_CODE] ?: "",
+                hueBridgeIp = prefs[Keys.HUE_BRIDGE_IP] ?: "",
+                hueApiKey = prefs[Keys.HUE_API_KEY] ?: "",
+                hueLightIds = prefs[Keys.HUE_LIGHT_IDS] ?: "",
             )
             val new = transform(old)
             prefs[Keys.IS_24_HOUR] = new.is24HourFormat
@@ -171,6 +206,14 @@ class PreferencesManager @Inject constructor(
             prefs[Keys.SLEEP_GOAL_HOURS] = new.sleepGoalHours
             prefs[Keys.SLEEP_GOAL_MINUTES] = new.sleepGoalMinutes
             prefs[Keys.BEDTIME_REMINDER_MINUTES] = new.bedtimeReminderMinutes
+            prefs[Keys.FLIP_TO_SNOOZE] = new.flipToSnoozeEnabled
+            prefs[Keys.WEBHOOK_ENABLED] = new.webhookEnabled
+            prefs[Keys.WEBHOOK_URL] = new.webhookUrl
+            prefs[Keys.HOLIDAY_AUTO_SKIP] = new.holidayAutoSkipEnabled
+            prefs[Keys.HOLIDAY_COUNTRY_CODE] = new.holidayCountryCode
+            prefs[Keys.HUE_BRIDGE_IP] = new.hueBridgeIp
+            prefs[Keys.HUE_API_KEY] = new.hueApiKey
+            prefs[Keys.HUE_LIGHT_IDS] = new.hueLightIds
         }
     }
 }
