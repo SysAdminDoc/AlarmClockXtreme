@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
@@ -132,6 +134,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             PermissionRequestCard()
+            SettingsOverviewRow(state)
 
             if (state.needsBatteryGuidance || !state.isIgnoringBatteryOptimizations) {
                 BatteryOptimizationSection(state, viewModel)
@@ -321,6 +324,72 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun SettingsOverviewRow(state: SettingsUiState) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        SettingsOverviewTile(
+            title = "Reliability",
+            value = if (state.isIgnoringBatteryOptimizations) "Protected" else "Needs review",
+            supporting = if (state.isIgnoringBatteryOptimizations) "Battery rules look good" else "Battery settings can still block alarms",
+            icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
+            accent = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow,
+            modifier = Modifier.weight(1f)
+        )
+        SettingsOverviewTile(
+            title = "Dashboard",
+            value = dashboardSummary(state),
+            supporting = "Weather and calendar visibility",
+            icon = Icons.Default.Cloud,
+            accent = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f)
+        )
+        SettingsOverviewTile(
+            title = "Wake style",
+            value = if (state.settings.is24HourFormat) "24-hour" else "12-hour",
+            supporting = "Default snooze ${state.settings.defaultSnoozeDuration} min",
+            icon = Icons.Default.AutoAwesome,
+            accent = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun SettingsOverviewTile(
+    title: String,
+    value: String,
+    supporting: String,
+    icon: ImageVector,
+    accent: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier
+) {
+    AppSurfaceCard(
+        modifier = modifier,
+        highlighted = accent == DismissGreen || accent == SnoozeYellow
+    ) {
+        Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+        Text(
+            text = title,
+            color = TextMuted,
+            style = MaterialTheme.typography.labelMedium
+        )
+        Text(
+            text = value,
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = supporting,
+            color = TextSecondary,
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
 
@@ -524,7 +593,7 @@ private fun SettingsGroup(
     description: String? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppSectionTitle(
             title = title,
             description = description
@@ -543,7 +612,18 @@ private fun SettingsToggle(
     onToggle: (Boolean) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                if (checked) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                } else {
+                    SurfaceCard.copy(alpha = 0.26f)
+                }
+            )
+            .clickable { onToggle(!checked) }
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -575,8 +655,10 @@ private fun SettingsActionRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(SurfaceCard.copy(alpha = 0.26f))
             .clickable(onClick = onClick)
-            .padding(vertical = 2.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Row(
@@ -871,6 +953,13 @@ private fun UtilityShortcutCard(
     }
 }
 
+private fun dashboardSummary(state: SettingsUiState): String = when {
+    state.settings.showWeatherOnDashboard && state.settings.showCalendarOnDashboard -> "Weather + calendar"
+    state.settings.showWeatherOnDashboard -> "Weather only"
+    state.settings.showCalendarOnDashboard -> "Calendar only"
+    else -> "Minimal"
+}
+
 @Composable
 private fun DateField(
     label: String,
@@ -884,6 +973,7 @@ private fun DateField(
                 color = SurfaceCard.copy(alpha = 0.8f),
                 shape = RoundedCornerShape(18.dp)
             )
+            .border(1.dp, TextMuted.copy(alpha = 0.16f), RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {

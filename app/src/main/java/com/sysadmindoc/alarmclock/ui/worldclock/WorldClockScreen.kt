@@ -234,13 +234,21 @@ private fun AddTimeZoneDialog(
                     )
                 }
 
-                Column(
+                if (searchQuery.isBlank()) {
+                    AppEmptyState(
+                        icon = Icons.Default.Public,
+                        title = "Search for a city",
+                        description = "Type at least two characters to find a city or a time-zone region."
+                    )
+                }
+
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 300.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    searchResults.forEach { entry ->
+                    items(searchResults) { entry ->
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
