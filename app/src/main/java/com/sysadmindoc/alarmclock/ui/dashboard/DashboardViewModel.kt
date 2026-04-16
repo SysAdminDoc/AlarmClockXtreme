@@ -22,6 +22,8 @@ import javax.inject.Inject
 
 data class DashboardUiState(
     val todayDate: String = "",
+    val showWeather: Boolean = true,
+    val showCalendar: Boolean = true,
     // Weather
     val weatherLoading: Boolean = false,
     val temperature: String = "",
@@ -80,8 +82,33 @@ class DashboardViewModel @Inject constructor(
     }
 
     fun loadData() {
-        loadWeather()
-        loadCalendar()
+        viewModelScope.launch {
+            val settings = preferencesManager.getCurrentSettings()
+            _uiState.value = _uiState.value.copy(
+                showWeather = settings.showWeatherOnDashboard,
+                showCalendar = settings.showCalendarOnDashboard
+            )
+
+            if (settings.showWeatherOnDashboard) {
+                loadWeather()
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    weatherLoading = false,
+                    weatherError = null,
+                    forecast = emptyList()
+                )
+            }
+
+            if (settings.showCalendarOnDashboard) {
+                loadCalendar()
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    calendarEvents = emptyList(),
+                    calendarError = null,
+                    calendarPermissionNeeded = false
+                )
+            }
+        }
     }
 
     fun loadWeather() {

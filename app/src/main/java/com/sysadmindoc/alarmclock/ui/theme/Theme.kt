@@ -18,8 +18,12 @@ private val DarkColorScheme = darkColorScheme(
     onPrimary = TextPrimary,
     primaryContainer = BlueDark,
     onPrimaryContainer = TextPrimary,
-    secondary = AccentBlue,
+    secondary = BlueLight,
     onSecondary = TextPrimary,
+    secondaryContainer = SurfaceLight,
+    onSecondaryContainer = TextPrimary,
+    tertiary = SnoozeYellow,
+    onTertiary = SurfaceDark,
     background = SurfaceDark,
     onBackground = TextPrimary,
     surface = SurfaceMedium,
@@ -29,6 +33,8 @@ private val DarkColorScheme = darkColorScheme(
     error = AccentRed,
     onError = TextPrimary,
     outline = TextMuted,
+    outlineVariant = SurfaceLight,
+    surfaceTint = BluePrimary,
 )
 
 @Composable
@@ -42,13 +48,16 @@ fun AlarmClockXtremeTheme(
 
     val colorScheme = DarkColorScheme.copy(
         primary = accent,
-        secondary = accent
+        secondary = accent,
+        surfaceTint = accent
     )
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            window.navigationBarColor = SurfaceDark.toArgb()
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = false
                 isAppearanceLightNavigationBars = false
