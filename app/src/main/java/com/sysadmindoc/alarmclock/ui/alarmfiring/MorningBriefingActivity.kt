@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,9 +33,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
@@ -106,6 +109,8 @@ fun MorningBriefingScreen(
     onClose: () -> Unit
 ) {
     val routineItems = morningRoutine.split("\n").mapNotNull { it.trim().takeIf(String::isNotBlank) }
+    val hasWeather = weather.isNotBlank()
+    val hasEvent = nextEvent.isNotBlank()
 
     Box(
         modifier = Modifier
@@ -141,35 +146,79 @@ fun MorningBriefingScreen(
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+            AppSurfaceCard(
+                modifier = Modifier.fillMaxWidth(),
+                highlighted = true
             ) {
-                Icon(
-                    imageVector = Icons.Default.WbSunny,
-                    contentDescription = null,
-                    tint = SnoozeYellow,
-                    modifier = Modifier.size(68.dp)
-                )
-                Text(
-                    text = "Good morning",
-                    color = TextPrimary,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                if (time.isNotBlank()) {
-                    Text(
-                        text = time,
-                        color = TextPrimary,
-                        style = MaterialTheme.typography.displayLarge
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.WbSunny,
+                        contentDescription = null,
+                        tint = SnoozeYellow,
+                        modifier = Modifier.size(68.dp)
                     )
-                }
-                if (date.isNotBlank()) {
-                    Text(
-                        text = date,
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "Good morning",
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "You’re clear of the alarm. Here’s the shortest path into the day.",
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    if (time.isNotBlank()) {
+                        Text(
+                            text = time,
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.displayLarge
+                        )
+                    }
+                    if (date.isNotBlank()) {
+                        Text(
+                            text = date,
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            AppStatusChip(
+                                label = if (hasWeather) "Weather ready" else "No weather",
+                                icon = Icons.Default.Cloud,
+                                color = if (hasWeather) AccentBlue else TextMuted
+                            )
+                            AppStatusChip(
+                                label = if (hasEvent) "Next event" else "Open schedule",
+                                icon = Icons.Default.Event,
+                                color = if (hasEvent) DismissGreen else TextMuted
+                            )
+                            if (routineItems.isNotEmpty()) {
+                                AppStatusChip(
+                                    label = "${routineItems.size} routine items",
+                                    icon = Icons.Default.CheckCircleOutline,
+                                    color = SnoozeYellow
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -210,10 +259,9 @@ fun MorningBriefingScreen(
                         title = "Morning routine",
                         description = "A short checklist to get momentum without decision fatigue."
                     )
-                    routineItems.forEach { item ->
-                        BriefingRow(
-                            icon = Icons.Default.CheckCircleOutline,
-                            tint = DismissGreen,
+                    routineItems.forEachIndexed { index, item ->
+                        RoutineRow(
+                            index = index + 1,
                             text = item
                         )
                     }
@@ -223,20 +271,21 @@ fun MorningBriefingScreen(
             Button(
                 onClick = onClose,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = DismissGreen)
+                colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
+                shape = MaterialTheme.shapes.medium
             ) {
                 Text(
-                    text = "Start the day",
+                    text = "Close briefing",
                     fontWeight = FontWeight.SemiBold
                 )
             }
 
             Text(
-                text = "This screen closes intentionally so the transition out of the alarm feels clean.",
+                text = "This closes intentionally so the handoff from alarm to morning feels clean, not abrupt.",
                 color = TextMuted,
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center
             )
         }
     }
@@ -257,6 +306,27 @@ private fun BriefingRow(
             contentDescription = null,
             tint = tint,
             modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = text,
+            color = TextPrimary,
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+@Composable
+private fun RoutineRow(
+    index: Int,
+    text: String
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AppStatusChip(
+            label = index.toString(),
+            color = DismissGreen
         )
         Text(
             text = text,

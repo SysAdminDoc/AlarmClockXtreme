@@ -53,7 +53,7 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(Screen.Dashboard, "Day", Icons.Default.WbSunny),
+    BottomNavItem(Screen.Dashboard, "Today", Icons.Default.WbSunny),
     BottomNavItem(Screen.AlarmList, "Alarms", Icons.Default.Alarm),
     BottomNavItem(Screen.Timer, "Timer", Icons.Default.Timer),
     BottomNavItem(Screen.WorldClock, "World", Icons.Default.Language),

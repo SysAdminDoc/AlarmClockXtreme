@@ -101,6 +101,11 @@ class TimerViewModel @Inject constructor(
         _uiState.value = current.copy(inputDigits = current.inputDigits + digit.toString())
     }
 
+    fun appendDoubleZero() {
+        appendDigit(0)
+        appendDigit(0)
+    }
+
     fun deleteDigit() {
         val current = _uiState.value
         if (current.inputDigits.isEmpty()) return

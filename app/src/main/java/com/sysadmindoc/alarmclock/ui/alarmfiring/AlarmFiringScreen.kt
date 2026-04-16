@@ -159,7 +159,7 @@ fun AlarmFiringScreen(
         "Single-step dismissal"
     }
     val statusLine = when {
-        state.canDismiss -> "Everything is complete. Dismiss when you're ready."
+        state.canDismiss -> "Wake-up steps are complete. Dismiss now, or snooze if you need a short buffer."
         challenge == null -> "Swipe right or tap dismiss to stop the alarm."
         else -> challenge.statusDescription()
     }
@@ -249,7 +249,7 @@ fun AlarmFiringScreen(
                         )
                     }
                     AppStatusChip(
-                        label = if (state.canDismiss) "Ready" else "Active",
+                        label = if (state.canDismiss) "Dismiss ready" else "Dismiss locked",
                         icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
                         color = if (state.canDismiss) DismissGreen else SnoozeYellow
                     )
@@ -311,6 +311,11 @@ fun AlarmFiringScreen(
                         label = "Default snooze ${state.alarm?.snoozeDurationMinutes ?: 10} min",
                         icon = Icons.Default.Timer,
                         color = SnoozeYellow
+                    )
+                    AppStatusChip(
+                        label = "Flip to snooze",
+                        icon = Icons.Default.Snooze,
+                        color = TextMuted
                     )
                 }
 
@@ -492,11 +497,29 @@ fun AlarmFiringScreen(
                 AppSectionTitle(
                     title = "Alarm controls",
                     description = if (state.canDismiss) {
-                        "Choose the cleanest exit for this alarm."
+                        "Choose the cleanest exit for this alarm now that the wake-up work is done."
                     } else {
-                        "Snooze is always available. Dismiss becomes active after the current task is done."
+                        "Snooze is always available. Dismiss unlocks as soon as the current wake-up step is complete."
                     }
                 )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AppStatusChip(
+                        label = "Swipe left to snooze",
+                        icon = Icons.Default.Snooze,
+                        color = SnoozeYellow
+                    )
+                    AppStatusChip(
+                        label = if (state.canDismiss) "Swipe right to dismiss" else "Dismiss unlocks after challenge",
+                        icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
+                        color = if (state.canDismiss) DismissGreen else TextMuted
+                    )
+                }
 
                 Button(
                     onClick = onDismiss,

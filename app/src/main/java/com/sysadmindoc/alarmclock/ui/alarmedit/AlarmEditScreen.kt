@@ -105,22 +105,66 @@ fun AlarmEditScreen(
                     containerColor = SurfaceDark
                 )
             )
+        },
+        bottomBar = {
+            Surface(
+                color = SurfaceDark.copy(alpha = 0.98f),
+                tonalElevation = 6.dp,
+                shadowElevation = 18.dp
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.save(onNavigateBack) },
+                        enabled = !state.isSaving,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (state.isSaving) Icons.Default.Schedule else Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (state.isSaving) "Saving alarm..." else if (state.isEditing) "Save changes" else "Create alarm",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             AppSurfaceCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                highlighted = true
             ) {
                 AppSectionTitle(
-                    title = "Alarm time",
+                    title = "Alarm preview",
                     description = "Tap the time or days below to shape when this alarm should ring."
+                )
+
+                AppStatusChip(
+                    label = if (state.isEditing) "Editing existing alarm" else "New alarm",
+                    icon = if (state.isEditing) Icons.Default.Edit else Icons.Default.AddAlarm,
+                    color = MaterialTheme.colorScheme.primary
                 )
 
                 Box(
@@ -157,6 +201,13 @@ fun AlarmEditScreen(
                     }
                 }
 
+                Text(
+                    text = "Tap the time to adjust it precisely.",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+
                 DaySelector(
                     selectedDays = state.repeatDays,
                     onToggleDay = viewModel::toggleDay
@@ -183,8 +234,6 @@ fun AlarmEditScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Label
             SettingsSection("Label") {
                 OutlinedTextField(
@@ -198,8 +247,6 @@ fun AlarmEditScreen(
                     singleLine = true
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Group
             SettingsSection("Group") {
@@ -253,8 +300,6 @@ fun AlarmEditScreen(
                     singleLine = true
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Sound settings
             SettingsSection("Sound") {
@@ -339,8 +384,6 @@ fun AlarmEditScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Vibration
             SettingsSection("Vibration") {
                 SettingsRow(
@@ -395,8 +438,6 @@ fun AlarmEditScreen(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Snooze - interactive picker
             SettingsSection("Snooze") {
@@ -526,8 +567,6 @@ fun AlarmEditScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Wake effects
             SettingsSection("Wake Effects") {
                 SettingsRow(
@@ -546,8 +585,6 @@ fun AlarmEditScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Morning Announcement (TTS)
             SettingsSection("Morning Announcement") {
                 SettingsRow(
@@ -565,8 +602,6 @@ fun AlarmEditScreen(
                     tone = HintTone.Neutral
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Wake Confirmation
             SettingsSection("Wake Confirmation") {
@@ -607,8 +642,6 @@ fun AlarmEditScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Smart Alarm
             SettingsSection("Smart Alarm") {
                 SettingsRow(
@@ -648,8 +681,6 @@ fun AlarmEditScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Holiday Skip
             SettingsSection("Holidays") {
                 SettingsRow(
@@ -668,8 +699,6 @@ fun AlarmEditScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // Spotify Ringtone
             SettingsSection("Spotify Ringtone") {
                 OutlinedTextField(
@@ -686,8 +715,6 @@ fun AlarmEditScreen(
                     tone = HintTone.Warning
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // Philips Hue Sunrise
             SettingsSection("Philips Hue Sunrise") {
@@ -727,8 +754,6 @@ fun AlarmEditScreen(
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // v1.2.0: Mission Chaining
             SettingsSection("Mission Chaining") {
@@ -774,8 +799,6 @@ fun AlarmEditScreen(
                     tone = HintTone.Neutral
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // v1.2.0: Anti-Snooze Features
             SettingsSection("Anti-Snooze") {
@@ -839,8 +862,6 @@ fun AlarmEditScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // v1.2.0: Sunrise Simulation
             SettingsSection("Sunrise Simulation") {
                 SettingsRow(
@@ -877,8 +898,6 @@ fun AlarmEditScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // v1.2.0: Sound Source
             SettingsSection("Internet Radio") {
                 OutlinedTextField(
@@ -895,8 +914,6 @@ fun AlarmEditScreen(
                     tone = HintTone.Warning
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // v1.2.0: Guardian Angel
             SettingsSection("Guardian Angel") {
@@ -942,8 +959,6 @@ fun AlarmEditScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
             // v1.2.0: Morning Routine
             SettingsSection("Morning Routine") {
                 OutlinedTextField(
@@ -960,8 +975,6 @@ fun AlarmEditScreen(
                     tone = HintTone.Neutral
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // v1.2.0: Advanced
             SettingsSection("Advanced") {
@@ -1014,25 +1027,7 @@ fun AlarmEditScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Prominent save button
-            Button(
-                onClick = { viewModel.save(onNavigateBack) },
-                enabled = !state.isSaving,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(horizontal = 16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Check, null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Save Alarm", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
         }
     }
 
@@ -1101,7 +1096,7 @@ private fun DaySelector(
             val isSelected = day in selectedDays
             Box(
                 modifier = Modifier
-                    .size(width = 44.dp, height = 40.dp)
+                    .size(width = 46.dp, height = 48.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (isSelected) MaterialTheme.colorScheme.primary else SurfaceCard)
                     .clickable { onToggleDay(day) },

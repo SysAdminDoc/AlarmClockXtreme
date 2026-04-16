@@ -45,6 +45,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -290,6 +291,28 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
         }
 
         Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = if (state.inputDigits.isBlank()) {
+                    "Use the keypad below or start from a preset."
+                } else {
+                    "Tap 00 for quick entries, or clear and start fresh."
+                },
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f)
+            )
+            if (state.inputDigits.isNotBlank()) {
+                TextButton(onClick = viewModel::clearInput) {
+                    Text("Clear", color = TextMuted)
+                }
+            }
+        }
+
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
@@ -307,8 +330,8 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
 
         NumPad(
             onDigit = viewModel::appendDigit,
-            onDelete = viewModel::deleteDigit,
-            onClear = viewModel::clearInput
+            onDoubleZero = viewModel::appendDoubleZero,
+            onDelete = viewModel::deleteDigit
         )
 
         Button(
@@ -349,8 +372,8 @@ private fun TimeUnit(value: Int, unit: String) {
 @Composable
 private fun NumPad(
     onDigit: (Int) -> Unit,
-    onDelete: () -> Unit,
-    onClear: () -> Unit
+    onDoubleZero: () -> Unit,
+    onDelete: () -> Unit
 ) {
     val keys = listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, -2, 0, -1)
 
@@ -372,7 +395,7 @@ private fun NumPad(
                             .clickable {
                                 when (key) {
                                     -1 -> onDelete()
-                                    -2 -> onClear()
+                                    -2 -> onDoubleZero()
                                     else -> onDigit(key)
                                 }
                             },
