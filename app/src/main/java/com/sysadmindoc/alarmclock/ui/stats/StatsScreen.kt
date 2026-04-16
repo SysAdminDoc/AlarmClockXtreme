@@ -165,7 +165,7 @@ fun StatsScreen(
                 AppSurfaceCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     AppSectionTitle(
                         title = "Average wake-up time",
@@ -244,7 +244,7 @@ fun StatsScreen(
                 AppSurfaceCard(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     AppSectionTitle(
                         title = "Alarms by day",
@@ -354,7 +354,7 @@ private fun StatMiniCard(
     modifier: Modifier = Modifier
 ) {
     AppSurfaceCard(modifier = modifier, highlighted = true) {
-        Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(20.dp))
         Text(value, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
         Text(label, fontSize = 12.sp, color = TextSecondary)
     }
@@ -440,7 +440,7 @@ private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
             .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(actionIcon, null, tint = actionColor, modifier = Modifier.size(20.dp))
+        Icon(actionIcon, contentDescription = actionLabel, tint = actionColor, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
