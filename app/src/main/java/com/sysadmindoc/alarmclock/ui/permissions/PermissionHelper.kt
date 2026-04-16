@@ -1,10 +1,10 @@
 package com.sysadmindoc.alarmclock.ui.permissions
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,7 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import android.content.pm.PackageManager
+import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
+import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.*
 
 /**
@@ -61,6 +63,7 @@ fun PermissionRequestCard(
 ) {
     val context = LocalContext.current
     var permState by remember { mutableStateOf(checkPermissions(context)) }
+    val totalCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) 3 else 2
 
     // Build the list of permissions to request
     val permissionsToRequest = remember(permState) {
@@ -89,46 +92,84 @@ fun PermissionRequestCard(
     // Don't show if all granted
     if (permState.hasNotifications && permState.hasCalendar && permState.hasLocation) return
 
-    Card(
+    val missingCount = listOf(
+        permState.hasNotifications,
+        permState.hasCalendar,
+        permState.hasLocation
+    ).count { !it }
+    val grantedCount = totalCount - missingCount
+
+    AppSurfaceCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = AccentBlue.copy(alpha = 0.1f))
+        highlighted = true
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                "Permissions",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = TextPrimary
+        AppSectionTitle(
+            title = "Recommended permissions",
+            description = "A few optional permissions unlock weather, calendar, and clearer alarm alerts.",
+            action = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppStatusChip(
+                        label = "$grantedCount of $totalCount ready",
+                        icon = Icons.Default.CheckCircle,
+                        color = DismissGreen
+                    )
+                    AppStatusChip(
+                        label = if (missingCount == 1) "Final step" else "$missingCount missing",
+                        icon = Icons.Default.Security,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        )
+
+        if (!permState.hasNotifications) {
+            PermissionItem(
+                icon = Icons.Default.NotificationsActive,
+                title = "Notifications",
+                description = "Show active alarms, timer finish alerts, and wake-up reminders."
             )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (!permState.hasNotifications) {
-                PermissionItem(Icons.Default.Notifications, "Notifications", "Show alarm and timer alerts")
-            }
-            if (!permState.hasCalendar) {
-                PermissionItem(Icons.Default.CalendarMonth, "Calendar", "Show today's events on dashboard")
-            }
-            if (!permState.hasLocation) {
-                PermissionItem(Icons.Default.LocationOn, "Location", "Weather for your area on dashboard")
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Button(
-                onClick = {
-                    if (permissionsToRequest.isNotEmpty()) {
-                        launcher.launch(permissionsToRequest)
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Grant Permissions")
-            }
         }
+        if (!permState.hasCalendar) {
+            PermissionItem(
+                icon = Icons.Default.CalendarMonth,
+                title = "Calendar",
+                description = "Bring today’s events into the dashboard and morning briefing."
+            )
+        }
+        if (!permState.hasLocation) {
+            PermissionItem(
+                icon = Icons.Default.LocationOn,
+                title = "Location",
+                description = "Show local weather without asking you to set a city every time."
+            )
+        }
+
+        Button(
+            onClick = {
+                if (permissionsToRequest.isNotEmpty()) {
+                    launcher.launch(permissionsToRequest)
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(
+                if (missingCount == 1) {
+                    "Enable final permission"
+                } else {
+                    "Enable $missingCount permissions"
+                }
+            )
+        }
+
+        Text(
+            text = "Android will still ask you to confirm each request, and you can change them later in system settings.",
+            color = TextMuted,
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
 
@@ -138,12 +179,32 @@ private fun PermissionItem(icon: ImageVector, title: String, description: String
         modifier = Modifier.padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(icon, null, tint = AccentBlue, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(8.dp))
-        Column {
-            Text(title, color = TextPrimary, fontSize = 14.sp)
-            Text(description, color = TextMuted, fontSize = 11.sp)
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    icon,
+                    null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Text(description, color = TextSecondary, fontSize = 12.sp, lineHeight = 18.sp)
+        }
+        AppStatusChip(
+            label = "Missing",
+            color = SnoozeYellow
+        )
     }
 }
 

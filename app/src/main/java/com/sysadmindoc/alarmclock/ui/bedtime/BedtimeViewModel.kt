@@ -82,11 +82,19 @@ class BedtimeViewModel @Inject constructor(
         if (nextAlarm != null && nextAlarm.nextTriggerTime > System.currentTimeMillis()) {
             val wakeTime = java.time.Instant.ofEpochMilli(nextAlarm.nextTriggerTime)
                 .atZone(ZoneId.systemDefault()).toLocalTime()
-            val wakeFormatted = wakeTime.format(DateTimeFormatter.ofPattern("h:mm a"))
+            val wakeFormatted = formatTime(
+                hour = wakeTime.hour,
+                minute = wakeTime.minute,
+                is24h = current.is24HourFormat
+            )
 
             val sleepMinutes = current.sleepGoalHours * 60 + current.sleepGoalMinutes
             val suggestedBedtime = wakeTime.minusMinutes(sleepMinutes.toLong())
-            val suggestedFormatted = suggestedBedtime.format(DateTimeFormatter.ofPattern("h:mm a"))
+            val suggestedFormatted = formatTime(
+                hour = suggestedBedtime.hour,
+                minute = suggestedBedtime.minute,
+                is24h = current.is24HourFormat
+            )
 
             // F9: Compute sleep cycle options (90-min cycles, 15 min to fall asleep)
             val cycles = computeSleepCycles(wakeTime, current.is24HourFormat)

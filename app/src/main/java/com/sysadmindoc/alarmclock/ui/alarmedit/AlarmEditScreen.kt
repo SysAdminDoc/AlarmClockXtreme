@@ -2,6 +2,7 @@ package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,10 +15,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
+import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
+import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.*
 import java.time.DayOfWeek
@@ -31,6 +38,7 @@ fun AlarmEditScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTimePicker by remember { mutableStateOf(false) }
     var showRingtonePicker by remember { mutableStateOf(false) }
+    var showChainPicker by remember { mutableStateOf(false) }
 
     // Handle invalid alarm ID
     if (state.notFound) {
@@ -47,11 +55,39 @@ fun AlarmEditScreen(
         )
     }
 
+    if (showChainPicker) {
+        ChallengeChainPickerSheet(
+            currentChain = state.challengeChain.toChallengeChainList(),
+            onApply = { chain ->
+                viewModel.updateChallengeChain(chain.toChallengeChainValue())
+                showChainPicker = false
+            },
+            onDismiss = { showChainPicker = false }
+        )
+    }
+
     Scaffold(
         containerColor = SurfaceDark,
         topBar = {
+            val editorSubtitle = if (state.isEditing) {
+                "Refine timing, sound, and wake-up behavior."
+            } else {
+                "Build an alarm that feels intentional from the first ring."
+            }
             TopAppBar(
-                title = { Text(if (state.isEditing) "Edit Alarm" else "New Alarm") },
+                title = {
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = if (state.isEditing) "Edit Alarm" else "New Alarm",
+                            color = TextPrimary
+                        )
+                        Text(
+                            text = editorSubtitle,
+                            color = TextMuted,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.Close, "Cancel", tint = TextPrimary)
@@ -62,11 +98,11 @@ fun AlarmEditScreen(
                         onClick = { viewModel.save(onNavigateBack) },
                         enabled = !state.isSaving
                     ) {
-                        Text("SAVE", color = AccentBlue, fontWeight = FontWeight.Bold)
+                        Text("Save alarm", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = HeaderTop
+                    containerColor = SurfaceDark
                 )
             )
         }
@@ -77,46 +113,75 @@ fun AlarmEditScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
         ) {
-            // Time display - tap to edit
-            Box(
+            AppSurfaceCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showTimePicker = true }
-                    .padding(vertical = 32.dp),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
             ) {
-                if (state.is24HourFormat) {
-                    Text(
-                        text = "${String.format("%02d", state.hour)}:${String.format("%02d", state.minute)}",
-                        fontSize = 64.sp,
-                        fontWeight = FontWeight.Light,
-                        color = TextPrimary
-                    )
-                } else {
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        val hour12 = if (state.hour % 12 == 0) 12 else state.hour % 12
-                        val amPm = if (state.hour < 12) "AM" else "PM"
+                AppSectionTitle(
+                    title = "Alarm time",
+                    description = "Tap the time or days below to shape when this alarm should ring."
+                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showTimePicker = true }
+                        .padding(vertical = 8.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (state.is24HourFormat) {
                         Text(
-                            text = "$hour12:${String.format("%02d", state.minute)}",
+                            text = "${String.format("%02d", state.hour)}:${String.format("%02d", state.minute)}",
                             fontSize = 64.sp,
                             fontWeight = FontWeight.Light,
                             color = TextPrimary
                         )
-                        Text(
-                            text = " $amPm",
-                            fontSize = 24.sp,
-                            color = TextSecondary,
-                            modifier = Modifier.padding(bottom = 12.dp)
-                        )
+                    } else {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            val hour12 = if (state.hour % 12 == 0) 12 else state.hour % 12
+                            val amPm = if (state.hour < 12) "AM" else "PM"
+                            Text(
+                                text = "$hour12:${String.format("%02d", state.minute)}",
+                                fontSize = 64.sp,
+                                fontWeight = FontWeight.Light,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = " $amPm",
+                                fontSize = 24.sp,
+                                color = TextSecondary,
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            )
+                        }
                     }
                 }
-            }
 
-            // Day selector
-            DaySelector(
-                selectedDays = state.repeatDays,
-                onToggleDay = viewModel::toggleDay
-            )
+                DaySelector(
+                    selectedDays = state.repeatDays,
+                    onToggleDay = viewModel::toggleDay
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AppStatusChip(
+                        label = state.repeatDays.toAlarmRepeatSummary(),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    AppStatusChip(
+                        label = state.challengeSummary(),
+                        color = if (state.challengeType == "NONE" && state.challengeChain.isBlank()) TextMuted else SnoozeYellow
+                    )
+                    AppStatusChip(
+                        label = state.soundSummary(),
+                        color = DismissGreen
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -126,13 +191,7 @@ fun AlarmEditScreen(
                     value = state.label,
                     onValueChange = viewModel::updateLabel,
                     placeholder = { Text("Alarm label", color = TextMuted) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentBlue,
-                        unfocusedBorderColor = TextMuted,
-                        cursorColor = AccentBlue,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    ),
+                    colors = appOutlinedTextFieldColors(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
@@ -187,13 +246,7 @@ fun AlarmEditScreen(
                     value = state.group,
                     onValueChange = viewModel::updateGroup,
                     placeholder = { Text("Custom group name", color = TextMuted) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentBlue,
-                        unfocusedBorderColor = TextMuted,
-                        cursorColor = AccentBlue,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
-                    ),
+                    colors = appOutlinedTextFieldColors(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp),
@@ -227,10 +280,7 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.overrideSystemVolume,
                             onCheckedChange = viewModel::updateOverrideVolume,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentBlue,
-                                checkedTrackColor = AccentBlue.copy(alpha = 0.3f)
-                            )
+                            colors = appSwitchColors()
                         )
                     }
                 )
@@ -299,10 +349,7 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.vibrationEnabled,
                             onCheckedChange = viewModel::updateVibration,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentBlue,
-                                checkedTrackColor = AccentBlue.copy(alpha = 0.3f)
-                            )
+                            colors = appSwitchColors()
                         )
                     }
                 )
@@ -384,23 +431,7 @@ fun AlarmEditScreen(
 
             // Dismiss Challenge
             SettingsSection("Dismiss Challenge") {
-                val challengeOptions = listOf(
-                    "NONE" to "None",
-                    "MATH_EASY" to "Math (Easy)",
-                    "MATH_MEDIUM" to "Math (Medium)",
-                    "MATH_HARD" to "Math (Hard)",
-                    "SHAKE" to "Shake Phone",
-                    "SEQUENCE" to "Number Sequence",
-                    "MEMORY_PATTERN" to "Memory Pattern",
-                    "TYPING" to "Type a Phrase",
-                    "WALK_STEPS" to "Walk Steps",
-                    "NFC_SCAN" to "NFC Tag Scan",
-                    "BARCODE_SCAN" to "Barcode Scan",
-                    "PHOTO_MATCH" to "Photo Match",
-                    "SQUAT" to "Squats",
-                    "WIFI_CONNECT" to "Wi-Fi Connect",
-                    "MAZE" to "Maze Puzzle"
-                )
+                val challengeOptions = alarmChallengeOptions()
                 var expanded by remember { mutableStateOf(false) }
 
                 SettingsRow(label = "Challenge type") {
@@ -434,27 +465,8 @@ fun AlarmEditScreen(
                 }
 
                 if (state.challengeType != "NONE") {
-                    Text(
-                        text = when (state.challengeType) {
-                            "MATH_EASY" -> "Solve a simple math problem to dismiss"
-                            "MATH_MEDIUM" -> "Solve a two-operation math problem"
-                            "MATH_HARD" -> "Solve a harder math problem with larger numbers"
-                            "SHAKE" -> "Shake your phone 30 times to dismiss"
-                            "SEQUENCE" -> "Tap 6 numbers in ascending order"
-                            "MEMORY_PATTERN" -> "Memorize and recreate a 4-tile pattern on a 3x3 grid"
-                            "TYPING" -> "Type a random wake-up phrase to dismiss"
-                            "WALK_STEPS" -> "Walk a set number of steps to dismiss"
-                            "NFC_SCAN" -> "Scan a specific NFC tag to dismiss"
-                            "BARCODE_SCAN" -> "Scan the registered barcode to dismiss"
-                            "PHOTO_MATCH" -> "Take a photo matching a reference to dismiss"
-                            "SQUAT" -> "Do 10 squats with your phone to dismiss"
-                            "WIFI_CONNECT" -> "Connect to a specific Wi-Fi network to dismiss"
-                            "MAZE" -> "Navigate through a simple maze to dismiss"
-                            else -> ""
-                        },
-                        color = TextMuted,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    SettingsHint(
+                        text = state.challengeType.toAlarmChallengeDescription()
                     )
                 }
 
@@ -487,11 +499,7 @@ fun AlarmEditScreen(
                         value = state.nfcTagId,
                         onValueChange = viewModel::updateNfcTagId,
                         label = { Text("NFC Tag ID (tap tag to register in alarm screen)", color = TextMuted) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                            cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
-                            focusedLabelColor = AccentBlue
-                        ),
+                        colors = appOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
                     )
@@ -503,11 +511,7 @@ fun AlarmEditScreen(
                         value = state.barcodeValue,
                         onValueChange = viewModel::updateBarcodeValue,
                         label = { Text("Barcode value (scan to register in alarm screen)", color = TextMuted) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                            cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
-                            focusedLabelColor = AccentBlue
-                        ),
+                        colors = appOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
                     )
@@ -515,10 +519,9 @@ fun AlarmEditScreen(
 
                 // PHOTO_MATCH: reference photo URI field
                 if (state.challengeType == "PHOTO_MATCH") {
-                    Text(
+                    SettingsHint(
                         "Reference photo URI: ${state.photoMatchUri.ifBlank { "Not set" }}",
-                        color = TextMuted, fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        tone = if (state.photoMatchUri.isBlank()) HintTone.Warning else HintTone.Neutral
                     )
                 }
             }
@@ -533,18 +536,13 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.flashWake,
                             onCheckedChange = viewModel::updateFlashWake,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentBlue,
-                                checkedTrackColor = AccentBlue.copy(alpha = 0.3f)
-                            )
+                            colors = appSwitchColors()
                         )
                     }
                 )
-                Text(
+                SettingsHint(
                     "Gradually increases screen brightness alongside volume",
-                    color = TextMuted,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    tone = HintTone.Neutral
                 )
             }
 
@@ -558,17 +556,13 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.ttsEnabled,
                             onCheckedChange = viewModel::updateTtsEnabled,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentBlue,
-                                checkedTrackColor = AccentBlue.copy(alpha = 0.3f)
-                            )
+                            colors = appSwitchColors()
                         )
                     }
                 )
-                Text(
+                SettingsHint(
                     "Uses on-device text-to-speech to announce the time, date, and weather after dismissal",
-                    color = TextMuted, fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    tone = HintTone.Neutral
                 )
             }
 
@@ -582,10 +576,7 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.wakeConfirmEnabled,
                             onCheckedChange = { viewModel.updateWakeConfirm(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentBlue,
-                                checkedTrackColor = AccentBlue.copy(alpha = 0.3f)
-                            )
+                            colors = appSwitchColors()
                         )
                     }
                 )
@@ -609,10 +600,9 @@ fun AlarmEditScreen(
                             }
                         }
                     }
-                    Text(
+                    SettingsHint(
                         "A notification will appear after dismissal. If you don't confirm within the delay, the alarm re-fires.",
-                        color = TextMuted, fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        tone = HintTone.Warning
                     )
                 }
             }
@@ -627,10 +617,7 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.smartAlarmEnabled,
                             onCheckedChange = { viewModel.updateSmartAlarm(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentBlue,
-                                checkedTrackColor = AccentBlue.copy(alpha = 0.3f)
-                            )
+                            colors = appSwitchColors()
                         )
                     }
                 )
@@ -654,10 +641,9 @@ fun AlarmEditScreen(
                             }
                         }
                     }
-                    Text(
+                    SettingsHint(
                         "Monitors motion via accelerometer. Fires the alarm early if light sleep is detected within the window.",
-                        color = TextMuted, fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        tone = HintTone.Neutral
                     )
                 }
             }
@@ -672,17 +658,13 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.skipOnHolidays,
                             onCheckedChange = viewModel::updateSkipOnHolidays,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentBlue,
-                                checkedTrackColor = AccentBlue.copy(alpha = 0.3f)
-                            )
+                            colors = appSwitchColors()
                         )
                     }
                 )
-                Text(
+                SettingsHint(
                     "Requires holiday auto-skip and country code configured in Settings → Integrations",
-                    color = TextMuted, fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    tone = HintTone.Warning
                 )
             }
 
@@ -695,18 +677,13 @@ fun AlarmEditScreen(
                     onValueChange = viewModel::updateSpotifyUri,
                     label = { Text("Spotify URI (e.g. spotify:track:...)", color = TextMuted) },
                     placeholder = { Text("Leave blank to use default ringtone", color = TextMuted) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                        cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
-                        focusedLabelColor = AccentBlue
-                    ),
+                    colors = appOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     singleLine = true
                 )
-                Text(
+                SettingsHint(
                     "Requires Spotify installed. Falls back to default ringtone if unavailable.",
-                    color = TextMuted, fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    tone = HintTone.Warning
                 )
             }
 
@@ -720,10 +697,7 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.hueEnabled,
                             onCheckedChange = { viewModel.updateHue(it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = AccentBlue,
-                                checkedTrackColor = AccentBlue.copy(alpha = 0.3f)
-                            )
+                            colors = appSwitchColors()
                         )
                     }
                 )
@@ -747,10 +721,9 @@ fun AlarmEditScreen(
                             }
                         }
                     }
-                    Text(
+                    SettingsHint(
                         "Requires Hue bridge IP and API key configured in Settings → Philips Hue",
-                        color = TextMuted, fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        tone = HintTone.Warning
                     )
                 }
             }
@@ -759,32 +732,46 @@ fun AlarmEditScreen(
 
             // v1.2.0: Mission Chaining
             SettingsSection("Mission Chaining") {
+                val chainItems = state.challengeChain.toChallengeChainList()
                 SettingsRow(
                     label = "Challenge chain",
                     trailing = {
-                        TextButton(onClick = { /* TODO: chain picker dialog */ }) {
+                        TextButton(onClick = { showChainPicker = true }) {
                             Text(
-                                if (state.challengeChain.isBlank()) "Off" else "${state.challengeChain.split(",").size} challenges",
+                                if (chainItems.isEmpty()) "Choose" else "${chainItems.size} challenges",
                                 color = AccentBlue
                             )
                         }
                     }
                 )
+                if (chainItems.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        chainItems.forEachIndexed { index, challenge ->
+                            AppStatusChip(
+                                label = "${index + 1}. ${challenge.toAlarmChallengeSummary()}",
+                                color = SnoozeYellow
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = state.challengeChain,
                     onValueChange = viewModel::updateChallengeChain,
-                    label = { Text("Chain (comma-separated: MATH_EASY,SHAKE,TYPING)", color = TextMuted) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                        cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary
-                    ),
+                    label = { Text("Advanced chain override", color = TextMuted) },
+                    placeholder = { Text("MATH_EASY,SHAKE,TYPING", color = TextMuted) },
+                    colors = appOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
-                Text(
-                    "Stack multiple challenges in sequence. Overrides single challenge type when set.",
-                    color = TextMuted, fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                SettingsHint(
+                    "Stack multiple challenges in sequence. Use the picker above for a guided setup, or edit the raw chain directly if you already know the codes.",
+                    tone = HintTone.Neutral
                 )
             }
 
@@ -798,12 +785,14 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.progressiveSnooze,
                             onCheckedChange = viewModel::updateProgressiveSnooze,
-                            colors = SwitchDefaults.colors(checkedThumbColor = AccentBlue, checkedTrackColor = AccentBlue.copy(alpha = 0.3f))
+                            colors = appSwitchColors()
                         )
                     }
                 )
-                Text("Each snooze shortens by 1 minute (10 -> 9 -> 8 -> ...)", color = TextMuted, fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                SettingsHint(
+                    "Each snooze shortens by 1 minute, such as 10 → 9 → 8.",
+                    tone = HintTone.Neutral
+                )
 
                 SettingsRow(
                     label = "Backup sound escalation",
@@ -811,7 +800,7 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.backupSoundEnabled,
                             onCheckedChange = { viewModel.updateBackupSound(it) },
-                            colors = SwitchDefaults.colors(checkedThumbColor = AccentBlue, checkedTrackColor = AccentBlue.copy(alpha = 0.3f))
+                            colors = appSwitchColors()
                         )
                     }
                 )
@@ -832,8 +821,10 @@ fun AlarmEditScreen(
                             }
                         }
                     }
-                    Text("Cranks volume to max if no interaction within the delay", color = TextMuted, fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                    SettingsHint(
+                        "Cranks volume to maximum if there is no interaction within the delay.",
+                        tone = HintTone.Warning
+                    )
                 }
 
                 SettingsRow(
@@ -842,7 +833,7 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.flashlightStrobe,
                             onCheckedChange = viewModel::updateFlashlightStrobe,
-                            colors = SwitchDefaults.colors(checkedThumbColor = AccentBlue, checkedTrackColor = AccentBlue.copy(alpha = 0.3f))
+                            colors = appSwitchColors()
                         )
                     }
                 )
@@ -858,7 +849,7 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.sunriseSimulation,
                             onCheckedChange = { viewModel.updateSunriseSimulation(it) },
-                            colors = SwitchDefaults.colors(checkedThumbColor = AccentBlue, checkedTrackColor = AccentBlue.copy(alpha = 0.3f))
+                            colors = appSwitchColors()
                         )
                     }
                 )
@@ -879,8 +870,10 @@ fun AlarmEditScreen(
                             }
                         }
                     }
-                    Text("Screen transitions from deep red to warm yellow, simulating a sunrise", color = TextMuted, fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                    SettingsHint(
+                        "Transitions the screen from deep red to warm yellow to simulate sunrise.",
+                        tone = HintTone.Neutral
+                    )
                 }
             }
 
@@ -893,15 +886,14 @@ fun AlarmEditScreen(
                     onValueChange = viewModel::updateInternetRadioUrl,
                     label = { Text("Stream URL (http://...)", color = TextMuted) },
                     placeholder = { Text("Leave blank for default ringtone", color = TextMuted) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                        cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary
-                    ),
+                    colors = appOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     singleLine = true
                 )
-                Text("Stream internet radio as alarm sound. Falls back to default on failure.", color = TextMuted, fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                SettingsHint(
+                    "Streams internet radio as the alarm sound and falls back to the default ringtone on failure.",
+                    tone = HintTone.Warning
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -914,7 +906,7 @@ fun AlarmEditScreen(
                         Switch(
                             checked = state.guardianEnabled,
                             onCheckedChange = { viewModel.updateGuardian(it) },
-                            colors = SwitchDefaults.colors(checkedThumbColor = AccentBlue, checkedTrackColor = AccentBlue.copy(alpha = 0.3f))
+                            colors = appSwitchColors()
                         )
                     }
                 )
@@ -923,10 +915,7 @@ fun AlarmEditScreen(
                         value = state.guardianPhone,
                         onValueChange = { viewModel.updateGuardian(true, phone = it) },
                         label = { Text("Emergency phone number", color = TextMuted) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                            cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary
-                        ),
+                        colors = appOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
                     )
@@ -946,8 +935,10 @@ fun AlarmEditScreen(
                             }
                         }
                     }
-                    Text("Sends SMS and calls your emergency contact if the alarm is not dismissed within the delay", color = TextMuted, fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                    SettingsHint(
+                        "Sends an SMS and places a call if the alarm is not dismissed within the delay.",
+                        tone = HintTone.Danger
+                    )
                 }
             }
 
@@ -960,15 +951,14 @@ fun AlarmEditScreen(
                     onValueChange = viewModel::updateMorningRoutine,
                     label = { Text("Checklist items (one per line)", color = TextMuted) },
                     placeholder = { Text("Stretch\nDrink water\nBrush teeth", color = TextMuted) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                        cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary
-                    ),
+                    colors = appOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     minLines = 3, maxLines = 6
                 )
-                Text("Shown as a checklist after alarm dismissal on the morning briefing screen", color = TextMuted, fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                SettingsHint(
+                    "Shown as a checklist after dismissal on the morning briefing screen.",
+                    tone = HintTone.Neutral
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -980,10 +970,7 @@ fun AlarmEditScreen(
                         value = state.profileName,
                         onValueChange = viewModel::updateProfileName,
                         placeholder = { Text("e.g. Work, Travel, Weekend", color = TextMuted) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                            cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary
-                        ),
+                        colors = appOutlinedTextFieldColors(),
                         modifier = Modifier.width(180.dp),
                         singleLine = true
                     )
@@ -992,10 +979,7 @@ fun AlarmEditScreen(
                     value = state.specificDate,
                     onValueChange = viewModel::updateSpecificDate,
                     label = { Text("Specific date (YYYY-MM-DD, leave blank for repeat days)", color = TextMuted) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                        cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary
-                    ),
+                    colors = appOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
@@ -1015,17 +999,16 @@ fun AlarmEditScreen(
                         }
                     }
                 }
-                Text("Skip upcoming alarm from the persistent notification up to N minutes before it fires", color = TextMuted, fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
+                SettingsHint(
+                    "Allows a deliberate early skip from the upcoming-alarm notification before the ring begins.",
+                    tone = HintTone.Neutral
+                )
 
                 OutlinedTextField(
                     value = state.wifiDismissSsid,
                     onValueChange = viewModel::updateWifiDismissSsid,
                     label = { Text("Wi-Fi dismiss SSID (connect to this network to dismiss)", color = TextMuted) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                        cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary
-                    ),
+                    colors = appOutlinedTextFieldColors(),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
@@ -1081,9 +1064,9 @@ fun AlarmEditScreen(
                     state = timePickerState,
                     colors = TimePickerDefaults.colors(
                         clockDialColor = SurfaceCard,
-                        selectorColor = AccentBlue,
+                        selectorColor = MaterialTheme.colorScheme.primary,
                         containerColor = SurfaceMedium,
-                        timeSelectorSelectedContainerColor = AccentBlue.copy(alpha = 0.2f),
+                        timeSelectorSelectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                         timeSelectorUnselectedContainerColor = SurfaceCard
                     )
                 )
@@ -1099,28 +1082,28 @@ private fun DaySelector(
     onToggleDay: (DayOfWeek) -> Unit
 ) {
     val days = listOf(
-        DayOfWeek.MONDAY to "M",
-        DayOfWeek.TUESDAY to "T",
-        DayOfWeek.WEDNESDAY to "W",
-        DayOfWeek.THURSDAY to "T",
-        DayOfWeek.FRIDAY to "F",
-        DayOfWeek.SATURDAY to "S",
-        DayOfWeek.SUNDAY to "S"
+        DayOfWeek.MONDAY to "Mo",
+        DayOfWeek.TUESDAY to "Tu",
+        DayOfWeek.WEDNESDAY to "We",
+        DayOfWeek.THURSDAY to "Th",
+        DayOfWeek.FRIDAY to "Fr",
+        DayOfWeek.SATURDAY to "Sa",
+        DayOfWeek.SUNDAY to "Su"
     )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         days.forEach { (day, label) ->
             val isSelected = day in selectedDays
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(if (isSelected) AccentBlue else SurfaceCard)
+                    .size(width = 44.dp, height = 40.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (isSelected) MaterialTheme.colorScheme.primary else SurfaceCard)
                     .clickable { onToggleDay(day) },
                 contentAlignment = Alignment.Center
             ) {
@@ -1137,19 +1120,16 @@ private fun DaySelector(
 
 @Composable
 private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = AccentBlue,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        AppSectionTitle(
+            title = title,
+            description = alarmEditSectionDescription(title)
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(0.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
-        ) {
-            Column { content() }
+        AppSurfaceCard(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp)) {
+            content()
         }
     }
 }
@@ -1162,11 +1142,337 @@ private fun SettingsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = label, color = TextPrimary, modifier = Modifier.weight(1f))
+        Text(
+            text = label,
+            color = TextPrimary,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge
+        )
         if (trailing != null) trailing()
     }
+}
+
+private enum class HintTone {
+    Neutral,
+    Warning,
+    Danger
+}
+
+@Composable
+private fun SettingsHint(
+    text: String,
+    tone: HintTone = HintTone.Neutral
+) {
+    val accentColor = when (tone) {
+        HintTone.Neutral -> MaterialTheme.colorScheme.primary
+        HintTone.Warning -> SnoozeYellow
+        HintTone.Danger -> AccentRed
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(accentColor.copy(alpha = 0.10f))
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Text(
+            text = text,
+            color = if (tone == HintTone.Neutral) TextSecondary else accentColor,
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Start
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChallengeChainPickerSheet(
+    currentChain: List<String>,
+    onApply: (List<String>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var draftChain by remember(currentChain) { mutableStateOf(currentChain) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = SurfaceMedium,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = TextMuted) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            AppSectionTitle(
+                title = "Challenge chain",
+                description = "Pick the wake-up tasks in the order they should happen. The first item appears first when the alarm rings."
+            )
+
+            if (draftChain.isEmpty()) {
+                SettingsHint(
+                    "Start with two or more challenges when you want dismissal to feel more deliberate than a single math or shake task.",
+                    tone = HintTone.Neutral
+                )
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    draftChain.forEachIndexed { index, challenge ->
+                        AppStatusChip(
+                            label = "${index + 1}. ${challenge.toAlarmChallengeSummary()}",
+                            color = SnoozeYellow
+                        )
+                    }
+                }
+            }
+
+            alarmChallengeOptions()
+                .filter { (type, _) -> type != "NONE" }
+                .forEach { (type, label) ->
+                    val index = draftChain.indexOf(type)
+                    val isSelected = index >= 0
+
+                    AppSurfaceCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        highlighted = isSelected,
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = TextPrimary,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = type.toAlarmChallengeDescription(),
+                                    color = TextSecondary,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+
+                            if (isSelected) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                ) {
+                                    AppStatusChip(
+                                        label = "#${index + 1}",
+                                        color = SnoozeYellow
+                                    )
+                                    IconButton(
+                                        onClick = { draftChain = draftChain.moveItem(index, index - 1) },
+                                        enabled = index > 0
+                                    ) {
+                                        Icon(Icons.Default.KeyboardArrowUp, null, tint = if (index > 0) TextPrimary else TextMuted)
+                                    }
+                                    IconButton(
+                                        onClick = { draftChain = draftChain.moveItem(index, index + 1) },
+                                        enabled = index < draftChain.lastIndex
+                                    ) {
+                                        Icon(Icons.Default.KeyboardArrowDown, null, tint = if (index < draftChain.lastIndex) TextPrimary else TextMuted)
+                                    }
+                                    IconButton(
+                                        onClick = { draftChain = draftChain.filterNot { it == type } }
+                                    ) {
+                                        Icon(Icons.Default.Close, null, tint = AccentRed)
+                                    }
+                                }
+                            } else {
+                                TextButton(onClick = { draftChain = draftChain + type }) {
+                                    Text("Add", color = AccentBlue)
+                                }
+                            }
+                        }
+                    }
+                }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = { draftChain = emptyList() },
+                    enabled = draftChain.isNotEmpty()
+                ) {
+                    Text("Clear chain", color = if (draftChain.isNotEmpty()) AccentRed else TextMuted)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color = TextSecondary)
+                    }
+                    Button(
+                        onClick = { onApply(draftChain) },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
+                    ) {
+                        Text(if (draftChain.isEmpty()) "Disable chain" else "Use chain")
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+    }
+}
+
+private fun Set<DayOfWeek>.toAlarmRepeatSummary(): String {
+    val orderedDays = listOf(
+        DayOfWeek.MONDAY,
+        DayOfWeek.TUESDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY,
+        DayOfWeek.FRIDAY,
+        DayOfWeek.SATURDAY,
+        DayOfWeek.SUNDAY
+    )
+
+    val weekdaySet = orderedDays.take(5).toSet()
+    val weekendSet = orderedDays.takeLast(2).toSet()
+
+    return when {
+        isEmpty() -> "One-time"
+        size == orderedDays.size -> "Every day"
+        this == weekdaySet -> "Weekdays"
+        this == weekendSet -> "Weekends"
+        else -> orderedDays
+            .filter { it in this }
+            .joinToString(", ") { day ->
+                day.name.lowercase()
+                    .replaceFirstChar { it.uppercase() }
+                    .take(3)
+            }
+    }
+}
+
+private fun String.toAlarmChallengeSummary(): String = when (this) {
+    "NONE" -> "No challenge"
+    "MATH_EASY" -> "Easy math"
+    "MATH_MEDIUM" -> "Math puzzle"
+    "MATH_HARD" -> "Hard math"
+    "SHAKE" -> "Shake phone"
+    "SEQUENCE" -> "Number sequence"
+    "MEMORY_PATTERN" -> "Memory pattern"
+    "TYPING" -> "Type phrase"
+    "WALK_STEPS" -> "Walk steps"
+    "NFC_SCAN" -> "NFC scan"
+    "BARCODE_SCAN" -> "Barcode scan"
+    "PHOTO_MATCH" -> "Photo match"
+    "SQUAT" -> "Squats"
+    "WIFI_CONNECT" -> "Wi-Fi connect"
+    "MAZE" -> "Maze puzzle"
+    else -> replace('_', ' ')
+        .lowercase()
+        .replaceFirstChar { it.uppercase() }
+}
+
+private fun String.toAlarmChallengeDescription(): String = when (this) {
+    "MATH_EASY" -> "Solve a simple math problem to dismiss."
+    "MATH_MEDIUM" -> "Solve a two-operation problem before the alarm stops."
+    "MATH_HARD" -> "Use larger numbers and more focus when you need a stronger wake-up."
+    "SHAKE" -> "Shake the phone repeatedly to prove you are actually moving."
+    "SEQUENCE" -> "Tap numbers in ascending order without missing a step."
+    "MEMORY_PATTERN" -> "Memorize and recreate a short visual pattern."
+    "TYPING" -> "Type a wake-up phrase accurately before dismissal."
+    "WALK_STEPS" -> "Walk a set number of steps to get fully upright."
+    "NFC_SCAN" -> "Scan a specific NFC tag placed somewhere away from bed."
+    "BARCODE_SCAN" -> "Scan a saved barcode to finish the challenge."
+    "PHOTO_MATCH" -> "Match a reference photo so you need to move to the right spot."
+    "SQUAT" -> "Complete a quick squat set while holding the phone."
+    "WIFI_CONNECT" -> "Connect to a specific Wi-Fi network before the alarm stops."
+    "MAZE" -> "Finish a simple maze to prevent sleepy autopilot taps."
+    else -> "Dismissal requires this challenge before the alarm can stop."
+}
+
+private fun AlarmEditUiState.challengeSummary(): String {
+    if (challengeChain.isNotBlank()) {
+        val count = challengeChain.split(",")
+            .map { it.trim() }
+            .count { it.isNotEmpty() }
+        if (count > 0) return "$count-step chain"
+    }
+    return challengeType.toAlarmChallengeSummary()
+}
+
+private fun AlarmEditUiState.soundSummary(): String = when {
+    internetRadioUrl.isNotBlank() -> "Internet radio"
+    spotifyUri.isNotBlank() -> "Spotify"
+    ringtoneUri == "silent" -> "Silent wake"
+    ringtoneUri.isBlank() -> "Default sound"
+    else -> "Custom tone"
+}
+
+private fun alarmChallengeOptions(): List<Pair<String, String>> = listOf(
+    "NONE" to "None",
+    "MATH_EASY" to "Math (Easy)",
+    "MATH_MEDIUM" to "Math (Medium)",
+    "MATH_HARD" to "Math (Hard)",
+    "SHAKE" to "Shake Phone",
+    "SEQUENCE" to "Number Sequence",
+    "MEMORY_PATTERN" to "Memory Pattern",
+    "TYPING" to "Type a Phrase",
+    "WALK_STEPS" to "Walk Steps",
+    "NFC_SCAN" to "NFC Tag Scan",
+    "BARCODE_SCAN" to "Barcode Scan",
+    "PHOTO_MATCH" to "Photo Match",
+    "SQUAT" to "Squats",
+    "WIFI_CONNECT" to "Wi-Fi Connect",
+    "MAZE" to "Maze Puzzle"
+)
+
+private fun String.toChallengeChainList(): List<String> = split(",")
+    .map { it.trim() }
+    .filter { it.isNotEmpty() }
+
+private fun List<String>.toChallengeChainValue(): String = joinToString(",")
+
+private fun List<String>.moveItem(fromIndex: Int, toIndex: Int): List<String> {
+    if (fromIndex !in indices || toIndex !in indices) return this
+    val updated = toMutableList()
+    val item = updated.removeAt(fromIndex)
+    updated.add(toIndex, item)
+    return updated
+}
+
+private fun alarmEditSectionDescription(title: String): String = when (title) {
+    "Label" -> "Give the alarm a name that is easy to recognize at a glance."
+    "Group" -> "Organize alarms by context so related schedules stay easy to manage."
+    "Sound" -> "Shape the tone, volume, and ramp-up behavior of the alarm."
+    "Vibration" -> "Control how physical feedback supports the ring pattern."
+    "Snooze" -> "Decide how much room this alarm gives you to delay getting up."
+    "Dismiss Challenge" -> "Add a wake-up task so dismissing the alarm takes real intent."
+    "Wake Effects" -> "Layer in extra visual or physical cues to make waking up harder to ignore."
+    "Morning Announcement" -> "Let the alarm speak useful context once you are up."
+    "Wake Confirmation" -> "Require a second check-in if this alarm needs extra accountability."
+    "Smart Alarm" -> "Allow the alarm to ring inside a window when the timing is more natural."
+    "Holidays" -> "Prevent routine alarms from firing when the day should stay flexible."
+    "Spotify Ringtone" -> "Use music services when you want a less generic wake-up sound."
+    "Philips Hue Sunrise" -> "Coordinate bedside lighting with the alarm for a gentler rise."
+    "Mission Chaining" -> "Stack multiple wake-up steps when one challenge is not enough."
+    "Anti-Snooze" -> "Add guardrails that make repeated delay harder."
+    "Sunrise Simulation" -> "Blend the screen into a brighter pre-wake color transition."
+    "Internet Radio" -> "Wake up to a live stream instead of a local ringtone."
+    "Guardian Angel" -> "Escalate if missing this alarm has consequences beyond oversleeping."
+    "Morning Routine" -> "Capture the first few things you want to do once the alarm is done."
+    "Advanced" -> "Fine-tune fallback behavior and edge-case wake-up protections."
+    else -> "Review and fine-tune how this alarm behaves."
 }

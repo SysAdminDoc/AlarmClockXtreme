@@ -50,9 +50,9 @@ class AlarmListViewModel @Inject constructor(
     private val eventRepository: AlarmEventRepository
 ) : ViewModel() {
 
-    /** One-shot events for skip-next confirmation snackbar. */
-    private val _skipFeedback = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    val skipFeedbackEvents: SharedFlow<String> = _skipFeedback.asSharedFlow()
+    /** One-shot events for polished list action feedback. */
+    private val _feedback = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val feedbackEvents: SharedFlow<String> = _feedback.asSharedFlow()
 
     private val _sortOrder = MutableStateFlow(AlarmSortOrder.TIME)
     private val _selectedGroup = MutableStateFlow<String?>(null)
@@ -133,6 +133,11 @@ class AlarmListViewModel @Inject constructor(
         _isSelectionMode.value = _selectedIds.value.isNotEmpty()
     }
 
+    fun selectMany(alarmIds: Set<Long>) {
+        _selectedIds.value = alarmIds
+        _isSelectionMode.value = _selectedIds.value.isNotEmpty()
+    }
+
     fun clearSelection() {
         _selectedIds.value = emptySet()
         _isSelectionMode.value = false
@@ -146,30 +151,60 @@ class AlarmListViewModel @Inject constructor(
                 repository.getById(id)?.let { repository.delete(it) }
             }
             clearSelection()
+            if (ids.isNotEmpty()) {
+                emitFeedback(
+                    if (ids.size == 1) {
+                        "1 alarm deleted"
+                    } else {
+                        "${ids.size} alarms deleted"
+                    }
+                )
+            }
         }
     }
 
     fun enableSelected() {
         viewModelScope.launch {
+            var enabledCount = 0
             _selectedIds.value.forEach { id ->
                 val alarm = repository.getById(id) ?: return@forEach
                 if (!alarm.isEnabled) {
                     val nextTrigger = calculator.calculate(alarm)
                     repository.setEnabled(id, enabled = true, nextTrigger = nextTrigger)
                     scheduler.schedule(alarm.copy(isEnabled = true, nextTriggerTime = nextTrigger))
+                    enabledCount += 1
                 }
             }
             clearSelection()
+            if (enabledCount > 0) {
+                emitFeedback(
+                    if (enabledCount == 1) {
+                        "1 alarm enabled"
+                    } else {
+                        "$enabledCount alarms enabled"
+                    }
+                )
+            }
         }
     }
 
     fun disableSelected() {
         viewModelScope.launch {
+            val ids = _selectedIds.value.toList()
             _selectedIds.value.forEach { id ->
                 repository.setEnabled(id, enabled = false, nextTrigger = 0)
                 scheduler.cancel(id)
             }
             clearSelection()
+            if (ids.isNotEmpty()) {
+                emitFeedback(
+                    if (ids.size == 1) {
+                        "1 alarm paused"
+                    } else {
+                        "${ids.size} alarms paused"
+                    }
+                )
+            }
         }
     }
 
@@ -227,6 +262,13 @@ class AlarmListViewModel @Inject constructor(
             val nextTrigger = calculator.calculate(saved)
             repository.updateNextTrigger(id, nextTrigger)
             scheduler.schedule(saved.copy(nextTriggerTime = nextTrigger))
+            emitFeedback(
+                if (duplicate.label.isBlank()) {
+                    "Alarm duplicated"
+                } else {
+                    "\"${duplicate.label}\" duplicated"
+                }
+            )
         }
     }
 
@@ -251,6 +293,7 @@ class AlarmListViewModel @Inject constructor(
 
             val id = repository.save(alarm)
             scheduler.schedule(alarm.copy(id = id))
+            emitFeedback("Quick alarm set for ${formatFeedbackTime(triggerTime)}")
         }
     }
 
@@ -297,6 +340,13 @@ class AlarmListViewModel @Inject constructor(
             val id = repository.save(alarm)
             val saved = alarm.copy(id = id)
             scheduler.schedule(saved)
+            emitFeedback(
+                if (isRelative) {
+                    "${template.name} starts in ${template.minute} minutes"
+                } else {
+                    "${template.name} scheduled for ${formatTemplateTime(template)}"
+                }
+            )
         }
     }
 
@@ -333,7 +383,26 @@ class AlarmListViewModel @Inject constructor(
             val skippedDate = Instant.ofEpochMilli(afterSkip)
                 .atZone(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ofPattern("EEE, MMM d 'at' h:mm a"))
-            _skipFeedback.tryEmit("Next occurrence skipped — resuming $skippedDate")
+            emitFeedback("Next occurrence skipped — resuming $skippedDate")
         }
+    }
+
+    private fun emitFeedback(message: String) {
+        _feedback.tryEmit(message)
+    }
+
+    private fun formatFeedbackTime(triggerTime: Long): String {
+        return Instant.ofEpochMilli(triggerTime)
+            .atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("h:mm a"))
+    }
+
+    private fun formatTemplateTime(template: AlarmTemplate): String {
+        return Instant.ofEpochMilli(
+            System.currentTimeMillis()
+        ).atZone(ZoneId.systemDefault()).withHour(template.hour).withMinute(template.minute)
+            .withSecond(0)
+            .withNano(0)
+            .format(DateTimeFormatter.ofPattern("h:mm a"))
     }
 }

@@ -1,21 +1,54 @@
 package com.sysadmindoc.alarmclock.ui.templates
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.AlarmOn
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.WbTwilight
+import androidx.compose.material.icons.filled.Weekend
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.sysadmindoc.alarmclock.ui.theme.*
+import java.time.DayOfWeek
+import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
+import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
+import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
+import com.sysadmindoc.alarmclock.ui.theme.TextMuted
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,20 +63,40 @@ fun TemplatePickerSheet(
             BottomSheetDefaults.DragHandle(color = TextMuted)
         }
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-            Text(
-                "Alarm Templates",
-                style = MaterialTheme.typography.titleLarge,
-                color = TextPrimary,
-                modifier = Modifier.padding(bottom = 16.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            AppSectionTitle(
+                title = "Alarm Templates",
+                description = "Start with a thoughtful preset for common routines, then fine-tune the details afterward."
             )
 
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AppStatusChip(
+                    label = "${defaultTemplates.size} ready-made setups",
+                    color = MaterialTheme.colorScheme.primary
+                )
+                AppStatusChip(
+                    label = "Applies instantly",
+                    color = DismissGreen
+                )
+            }
+
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 32.dp)
             ) {
-                items(defaultTemplates) { template ->
-                    TemplateCard(template = template, onClick = { onSelect(template) })
+                items(defaultTemplates, key = { it.name }) { template ->
+                    TemplateCard(
+                        template = template,
+                        onClick = { onSelect(template) }
+                    )
                 }
             }
         }
@@ -51,63 +104,84 @@ fun TemplatePickerSheet(
 }
 
 @Composable
-private fun TemplateCard(template: AlarmTemplate, onClick: () -> Unit) {
-    Card(
+private fun TemplateCard(
+    template: AlarmTemplate,
+    onClick: () -> Unit
+) {
+    val accent = templateAccent(template)
+
+    AppSurfaceCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceCard)
+        highlighted = template.challengeType != "NONE" || template.gradualVolumeSeconds >= 120,
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            Icon(
-                imageVector = templateIcon(template),
-                contentDescription = template.name,
-                tint = AccentBlue,
-                modifier = Modifier.size(32.dp)
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(accent.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = templateIcon(template),
+                    contentDescription = null,
+                    tint = accent
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Text(
-                    template.name,
-                    fontWeight = FontWeight.Bold,
+                    text = template.name,
                     color = TextPrimary,
-                    fontSize = 16.sp
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    template.description,
-                    color = TextSecondary,
-                    fontSize = 13.sp
+                    text = templateTimeLabel(template),
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Light
                 )
-                // Tags
+                Text(
+                    text = template.description,
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (template.repeatDays.isNotEmpty()) {
-                        Tag(when {
-                            template.repeatDays.size == 7 -> "Daily"
-                            template.repeatDays.size == 5 -> "Weekdays"
-                            template.repeatDays.size == 2 -> "Weekends"
-                            else -> "${template.repeatDays.size} days"
-                        })
-                    }
+                    AppStatusChip(
+                        label = templateRepeatLabel(template.repeatDays),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    AppStatusChip(
+                        label = templateWakeStyleLabel(template),
+                        color = DismissGreen
+                    )
                     if (template.challengeType != "NONE") {
-                        Tag(template.challengeType.lowercase().replace("_", " ").replaceFirstChar { it.uppercase() })
-                    }
-                    if (template.gradualVolumeSeconds > 60) {
-                        Tag("Gentle")
+                        AppStatusChip(
+                            label = templateChallengeLabel(template.challengeType),
+                            color = SnoozeYellow
+                        )
                     }
                 }
             }
+
             Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = "Select template",
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Use template",
                 tint = TextMuted
             )
         }
@@ -115,26 +189,64 @@ private fun TemplateCard(template: AlarmTemplate, onClick: () -> Unit) {
 }
 
 @Composable
-private fun Tag(text: String) {
-    Surface(
-        shape = RoundedCornerShape(4.dp),
-        color = AccentBlue.copy(alpha = 0.15f)
-    ) {
-        Text(
-            text = text,
-            fontSize = 10.sp,
-            color = AccentBlue,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-        )
+private fun templateAccent(template: AlarmTemplate): Color = when {
+    template.challengeType != "NONE" -> SnoozeYellow
+    template.gradualVolumeSeconds >= 120 -> DismissGreen
+    template.name.contains("Work", ignoreCase = true) -> AccentBlue
+    else -> MaterialTheme.colorScheme.primary
+}
+
+private fun templateTimeLabel(template: AlarmTemplate): String {
+    val isRelative = template.hour == 0 && template.minute > 0 && template.repeatDays.isEmpty()
+    if (isRelative) {
+        return "Now + ${template.minute} min"
     }
+
+    val hour12 = when {
+        template.hour == 0 -> 12
+        template.hour > 12 -> template.hour - 12
+        else -> template.hour
+    }
+    val suffix = if (template.hour < 12) "AM" else "PM"
+    return "$hour12:${template.minute.toString().padStart(2, '0')} $suffix"
+}
+
+private fun templateRepeatLabel(repeatDays: Set<DayOfWeek>): String = when {
+    repeatDays.isEmpty() -> "One-time"
+    repeatDays.size == DayOfWeek.entries.size -> "Daily"
+    repeatDays == setOf(
+        DayOfWeek.MONDAY,
+        DayOfWeek.TUESDAY,
+        DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY,
+        DayOfWeek.FRIDAY
+    ) -> "Weekdays"
+    repeatDays == setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) -> "Weekends"
+    else -> "${repeatDays.size} days"
+}
+
+private fun templateWakeStyleLabel(template: AlarmTemplate): String = when {
+    template.gradualVolumeSeconds == 0 -> "Instant ring"
+    template.gradualVolumeSeconds >= 120 -> "Gentle wake"
+    else -> "Balanced wake"
+}
+
+private fun templateChallengeLabel(challengeType: String): String = when (challengeType) {
+    "MATH_EASY" -> "Easy math"
+    "MATH_HARD" -> "Hard math"
+    "SHAKE" -> "Shake phone"
+    else -> challengeType
+        .lowercase()
+        .replace('_', ' ')
+        .replaceFirstChar { it.uppercase() }
 }
 
 private fun templateIcon(template: AlarmTemplate): ImageVector = when {
-    template.name.contains("Early") -> Icons.Default.WbTwilight
-    template.name.contains("Work") -> Icons.Default.Work
-    template.name.contains("Weekend") -> Icons.Default.Weekend
-    template.name.contains("Nap") -> Icons.Default.Bedtime
-    template.name.contains("Heavy") -> Icons.Default.AlarmOn
-    template.name.contains("Medication") -> Icons.Default.MedicalServices
+    template.name.contains("Early", ignoreCase = true) -> Icons.Default.WbTwilight
+    template.name.contains("Work", ignoreCase = true) -> Icons.Default.Work
+    template.name.contains("Weekend", ignoreCase = true) -> Icons.Default.Weekend
+    template.name.contains("Nap", ignoreCase = true) -> Icons.Default.Bedtime
+    template.name.contains("Heavy", ignoreCase = true) -> Icons.Default.AlarmOn
+    template.name.contains("Medication", ignoreCase = true) -> Icons.Default.MedicalServices
     else -> Icons.Default.Alarm
 }

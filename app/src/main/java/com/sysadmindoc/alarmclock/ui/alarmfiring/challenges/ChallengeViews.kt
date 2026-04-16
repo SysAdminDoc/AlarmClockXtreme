@@ -1,34 +1,78 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring.challenges
 
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Nfc
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.sysadmindoc.alarmclock.ui.theme.*
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
+import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
+import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
+import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.TextMuted
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 
-/**
- * Math challenge - show expression, tap correct answer from 4 choices.
- */
 @Composable
 fun MathChallengeView(
     challenge: Challenge.MathChallenge,
@@ -39,33 +83,43 @@ fun MathChallengeView(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        modifier = Modifier.padding(32.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text(
-            text = "Solve to dismiss",
-            color = TextSecondary,
-            fontSize = 14.sp,
-            letterSpacing = 2.sp
-        )
+        ChallengeSupportText("Choose the correct answer to unlock dismiss.")
 
-        // Expression
-        Text(
-            text = challenge.expression,
-            fontSize = 36.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (wrongFlash) AccentRed else TextPrimary,
-            textAlign = TextAlign.Center
-        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = if (wrongFlash) AccentRed.copy(alpha = 0.14f) else SurfaceCard
+            )
+        ) {
+            Text(
+                text = challenge.expression,
+                color = if (wrongFlash) AccentRed else TextPrimary,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 28.dp)
+            )
+        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Answer grid (2x2)
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            for (row in challenge.choices.chunked(2)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            challenge.choices.chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     row.forEach { choice ->
-                        Button(
+                        OutlinedButton(
                             onClick = {
                                 if (choice == challenge.answer) {
                                     onCorrect()
@@ -76,27 +130,34 @@ fun MathChallengeView(
                             },
                             modifier = Modifier
                                 .weight(1f)
-                                .height(64.dp)
+                                .height(68.dp)
                                 .semantics { contentDescription = "Answer: $choice" },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = SurfaceCard
-                            ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = SurfaceCard.copy(alpha = 0.82f),
+                                contentColor = TextPrimary
+                            )
                         ) {
                             Text(
                                 text = choice.toString(),
                                 fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
             }
         }
+
+        if (wrongFlash) {
+            ChallengeNotice(
+                text = "That one was off. Try the next option.",
+                accent = AccentRed,
+                icon = Icons.Default.WarningAmber
+            )
+        }
     }
 
-    // Reset wrong flash
     LaunchedEffect(wrongFlash) {
         if (wrongFlash) {
             delay(400)
@@ -105,15 +166,13 @@ fun MathChallengeView(
     }
 }
 
-/**
- * Shake challenge - shake the phone N times.
- */
 @Composable
 fun ShakeChallengeView(
     challenge: Challenge.ShakeChallenge,
     currentShakes: Int
 ) {
     val progress = (currentShakes.toFloat() / challenge.requiredShakes).coerceIn(0f, 1f)
+    val remaining = (challenge.requiredShakes - currentShakes).coerceAtLeast(0)
 
     val infiniteTransition = rememberInfiniteTransition(label = "shake")
     val shakeOffset by infiniteTransition.animateFloat(
@@ -128,95 +187,89 @@ fun ShakeChallengeView(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        modifier = Modifier.padding(32.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text("Shake to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+        ChallengeSupportText("A strong shake helps break sleepy autopilot before the alarm unlocks.")
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Phone icon with shake animation
-        Icon(
-            Icons.Default.PhoneAndroid,
-            contentDescription = "Shake your phone",
-            tint = AccentBlue,
-            modifier = Modifier
-                .size(80.dp)
-                .offset(x = shakeOffset.dp)
-        )
-
-        // Progress ring
-        Box(contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.size(120.dp),
-                color = AccentBlue,
-                trackColor = SurfaceCard,
-                strokeWidth = 8.dp
-            )
-            Text(
-                text = "$currentShakes / ${challenge.requiredShakes}",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
+        ChallengeProgressHero(
+            icon = Icons.Default.PhoneAndroid,
+            accent = AccentBlue,
+            progress = progress,
+            statusLabel = "$currentShakes / ${challenge.requiredShakes} complete",
+            summary = if (currentShakes == 0) "Start shaking to build momentum." else "$remaining shakes remaining."
+        ) {
+            Icon(
+                imageVector = Icons.Default.PhoneAndroid,
+                contentDescription = "Shake your phone",
+                tint = AccentBlue,
+                modifier = Modifier
+                    .size(42.dp)
+                    .offset(x = shakeOffset.dp)
             )
         }
-
-        Text(
-            text = "Keep shaking!",
-            color = if (currentShakes > 0) AccentBlue else TextMuted,
-            fontSize = 16.sp
-        )
     }
 }
 
-/**
- * Sequence challenge - tap numbers in ascending order.
- */
 @Composable
 fun SequenceChallengeView(
     challenge: Challenge.SequenceChallenge,
     tappedIndices: Set<Int>,
     onTapNumber: (Int) -> Unit
 ) {
+    val nextExpected = challenge.correctOrder.getOrNull(tappedIndices.size)
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.padding(32.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text("Tap in ascending order", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
-
-        Text(
-            text = "${tappedIndices.size} / ${challenge.numbers.size}",
-            color = AccentBlue,
-            fontSize = 16.sp
+        ChallengeSupportText(
+            if (nextExpected != null) {
+                "Tap the numbers from lowest to highest. Next target: $nextExpected."
+            } else {
+                "Sequence complete."
+            }
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        AppStatusChip(
+            label = "${tappedIndices.size} of ${challenge.numbers.size} tapped",
+            color = AccentBlue
+        )
 
-        // Number grid (2x3)
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            for (row in challenge.numbers.withIndex().toList().chunked(3)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            challenge.numbers.withIndex().toList().chunked(3).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     row.forEach { (index, number) ->
                         val isTapped = index in tappedIndices
-                        Box(
+                        Card(
                             modifier = Modifier
-                                .size(72.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isTapped) DismissGreen.copy(alpha = 0.3f)
-                                    else SurfaceCard
-                                )
+                                .weight(1f)
+                                .height(78.dp)
                                 .clickable(enabled = !isTapped) { onTapNumber(index) },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = number.toString(),
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isTapped) DismissGreen else TextPrimary
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isTapped) DismissGreen.copy(alpha = 0.22f) else SurfaceCard
                             )
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = number.toString(),
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isTapped) DismissGreen else TextPrimary
+                                )
+                            }
                         }
                     }
                 }
@@ -225,9 +278,6 @@ fun SequenceChallengeView(
     }
 }
 
-/**
- * Memory pattern challenge - memorize lit tiles, then tap them back.
- */
 @Composable
 fun MemoryPatternChallengeView(
     challenge: Challenge.MemoryPatternChallenge,
@@ -238,26 +288,35 @@ fun MemoryPatternChallengeView(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.padding(32.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text(
-            text = when (phase) {
-                MemoryPhase.SHOWING -> "Memorize the pattern"
-                MemoryPhase.INPUT -> "Tap the tiles you saw"
-                MemoryPhase.WRONG -> "Wrong! Try again..."
+        AppStatusChip(
+            label = when (phase) {
+                MemoryPhase.SHOWING -> "Watch"
+                MemoryPhase.INPUT -> "Repeat"
+                MemoryPhase.WRONG -> "Retry"
             },
             color = when (phase) {
                 MemoryPhase.SHOWING -> SnoozeYellow
-                MemoryPhase.INPUT -> TextSecondary
+                MemoryPhase.INPUT -> AccentBlue
                 MemoryPhase.WRONG -> AccentRed
-            },
-            fontSize = 14.sp,
-            letterSpacing = 2.sp
+            }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        ChallengeSupportText(
+            text = when (phase) {
+                MemoryPhase.SHOWING -> "Memorize the highlighted tiles before the pattern disappears."
+                MemoryPhase.INPUT -> "Tap the same tiles in the same order."
+                MemoryPhase.WRONG -> "The pattern will show again in a moment."
+            },
+            accent = when (phase) {
+                MemoryPhase.WRONG -> AccentRed
+                else -> TextSecondary
+            }
+        )
 
-        // 3x3 grid
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             for (row in 0 until challenge.gridSize) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -272,30 +331,26 @@ fun MemoryPatternChallengeView(
                         Box(
                             modifier = Modifier
                                 .size(80.dp)
-                                .clip(RoundedCornerShape(12.dp))
+                                .clip(RoundedCornerShape(16.dp))
                                 .background(
                                     when {
-                                        isLit && phase == MemoryPhase.SHOWING -> AccentBlue.copy(alpha = 0.7f)
-                                        isLit && phase == MemoryPhase.INPUT -> DismissGreen.copy(alpha = 0.5f)
-                                        isLit && phase == MemoryPhase.WRONG -> AccentRed.copy(alpha = 0.5f)
+                                        isLit && phase == MemoryPhase.SHOWING -> AccentBlue.copy(alpha = 0.72f)
+                                        isLit && phase == MemoryPhase.INPUT -> DismissGreen.copy(alpha = 0.48f)
+                                        isLit && phase == MemoryPhase.WRONG -> AccentRed.copy(alpha = 0.48f)
                                         else -> SurfaceCard
                                     }
                                 )
-                                .clickable(enabled = phase == MemoryPhase.INPUT) {
-                                    onTapTile(index)
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {}
+                                .clickable(enabled = phase == MemoryPhase.INPUT) { onTapTile(index) }
+                        )
                     }
                 }
             }
         }
 
         if (phase == MemoryPhase.INPUT) {
-            Text(
-                "${tappedIndices.size} / ${challenge.pattern.size}",
-                color = AccentBlue,
-                fontSize = 16.sp
+            AppStatusChip(
+                label = "${tappedIndices.size} of ${challenge.pattern.size} matched",
+                color = AccentBlue
             )
         }
     }
@@ -303,9 +358,6 @@ fun MemoryPatternChallengeView(
 
 enum class MemoryPhase { SHOWING, INPUT, WRONG }
 
-/**
- * F3: Typing challenge — type the displayed phrase exactly.
- */
 @Composable
 fun TypingChallengeView(
     challenge: Challenge.TypingChallenge,
@@ -327,15 +379,18 @@ fun TypingChallengeView(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp),
-        modifier = Modifier.padding(32.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text("Type to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+        ChallengeSupportText("Type the phrase exactly as written, including spaces and punctuation.")
 
         Card(
+            modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = if (wrongFlash) AccentRed.copy(alpha = 0.15f) else SurfaceCard
             ),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(18.dp)
         ) {
             Text(
                 text = challenge.phrase,
@@ -343,7 +398,7 @@ fun TypingChallengeView(
                 fontWeight = FontWeight.Medium,
                 color = TextPrimary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(18.dp)
             )
         }
 
@@ -351,88 +406,61 @@ fun TypingChallengeView(
             value = currentInput,
             onValueChange = onInputChanged,
             placeholder = { Text("Type the phrase above…", color = TextMuted) },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AccentBlue,
-                unfocusedBorderColor = TextMuted,
-                cursorColor = AccentBlue,
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary
-            ),
+            colors = appOutlinedTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onSubmit() })
         )
 
+        if (wrongAttempts > 0) {
+            ChallengeNotice(
+                text = "Not quite. Match the phrase exactly before trying again.",
+                accent = AccentRed,
+                icon = Icons.Default.WarningAmber
+            )
+        }
+
         Button(
             onClick = onSubmit,
             enabled = currentInput.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(18.dp)
         ) {
-            Text("Submit", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("Check phrase", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
-/**
- * F4: Walk-steps challenge — walk N steps using the step counter sensor.
- */
 @Composable
 fun WalkChallengeView(
     challenge: Challenge.WalkChallenge,
     currentSteps: Int
 ) {
     val progress = (currentSteps.toFloat() / challenge.requiredSteps).coerceIn(0f, 1f)
+    val remaining = (challenge.requiredSteps - currentSteps).coerceAtLeast(0)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        modifier = Modifier.padding(32.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text("Walk to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+        ChallengeSupportText("Walking a few steps helps make sure you are genuinely up.")
 
-        Icon(
-            Icons.AutoMirrored.Filled.DirectionsWalk,
-            contentDescription = "Walk steps",
-            tint = DismissGreen,
-            modifier = Modifier.size(72.dp)
-        )
-
-        Box(contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.size(120.dp),
-                color = DismissGreen,
-                trackColor = SurfaceCard,
-                strokeWidth = 8.dp
-            )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "$currentSteps",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Text(
-                    text = "/ ${challenge.requiredSteps}",
-                    fontSize = 14.sp,
-                    color = TextMuted
-                )
-            }
-        }
-
-        Text(
-            text = if (currentSteps == 0) "Start walking!" else "${challenge.requiredSteps - currentSteps} steps remaining",
-            color = if (currentSteps > 0) DismissGreen else TextMuted,
-            fontSize = 16.sp
+        ChallengeProgressHero(
+            icon = Icons.AutoMirrored.Filled.DirectionsWalk,
+            accent = DismissGreen,
+            progress = progress,
+            statusLabel = "$currentSteps / ${challenge.requiredSteps} steps",
+            summary = if (currentSteps == 0) "Start walking to build progress." else "$remaining steps remaining."
         )
     }
 }
 
-/**
- * F2: NFC scan challenge — tap the pre-registered NFC tag.
- */
 @Composable
 fun NfcScanChallengeView(
     challenge: Challenge.NfcChallenge,
@@ -440,101 +468,117 @@ fun NfcScanChallengeView(
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "nfcPulse")
     val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f, targetValue = 1f,
+        initialValue = 0.4f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
         label = "nfcAlpha"
     )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-        modifier = Modifier.padding(32.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text("Scan NFC tag to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+        ChallengeSupportText("Tap the saved tag against the back of your phone to clear this step.")
 
-        Icon(
-            Icons.Default.Nfc,
-            contentDescription = "NFC scan",
-            tint = AccentBlue.copy(alpha = pulseAlpha),
-            modifier = Modifier.size(96.dp)
-        )
-
-        Text(
-            text = "Tap your registered NFC tag to the back of your phone",
-            color = TextSecondary,
-            fontSize = 14.sp,
-            textAlign = TextAlign.Center
-        )
+        ChallengeIconPanel(accent = AccentBlue.copy(alpha = 0.12f)) {
+            Icon(
+                imageVector = Icons.Default.Nfc,
+                contentDescription = "NFC scan",
+                tint = AccentBlue.copy(alpha = pulseAlpha),
+                modifier = Modifier.size(84.dp)
+            )
+        }
 
         if (scanStatus.isNotBlank()) {
-            Text(text = scanStatus, color = AccentRed, fontSize = 13.sp, textAlign = TextAlign.Center)
+            ChallengeNotice(
+                text = scanStatus,
+                accent = AccentRed,
+                icon = Icons.Default.WarningAmber
+            )
         }
 
         if (challenge.registeredTagId.isBlank()) {
-            Text(
-                "No tag registered — tap any NFC tag to dismiss",
-                color = SnoozeYellow,
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center
+            ChallengeNotice(
+                text = "No tag is registered yet. Any NFC tag will work for now.",
+                accent = SnoozeYellow,
+                icon = Icons.Default.Nfc
             )
         }
     }
 }
 
-/**
- * F1: Barcode/QR scan challenge — scan the pre-registered barcode.
- */
 @Composable
 fun BarcodeScanChallengeView(
     challenge: Challenge.BarcodeChallenge,
     scanStatus: String
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "barcodeScan")
-    val lineY by infiniteTransition.animateFloat(
-        initialValue = 0f, targetValue = 1f,
+    val lineProgress by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(1500), RepeatMode.Reverse),
         label = "scanLine"
     )
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-        modifier = Modifier.padding(32.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text("Scan barcode to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+        ChallengeSupportText("Point the camera at the saved barcode or QR code to unlock dismiss.")
 
-        Icon(
-            Icons.Default.QrCodeScanner,
-            contentDescription = "Barcode scan",
-            tint = AccentBlue,
-            modifier = Modifier.size(96.dp)
-        )
-
-        Text(
-            text = "Point the camera at your registered barcode or QR code",
-            color = TextSecondary,
-            fontSize = 14.sp,
-            textAlign = TextAlign.Center
-        )
+        ChallengeIconPanel(accent = AccentBlue.copy(alpha = 0.12f)) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.QrCodeScanner,
+                    contentDescription = "Barcode scan",
+                    tint = AccentBlue,
+                    modifier = Modifier.size(72.dp)
+                )
+                Box(
+                    modifier = Modifier
+                        .width(84.dp)
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(AccentBlue.copy(alpha = 0.18f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(lineProgress.coerceIn(0.18f, 1f))
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(AccentBlue)
+                    )
+                }
+            }
+        }
 
         if (scanStatus.isNotBlank()) {
-            Text(text = scanStatus, color = AccentRed, fontSize = 13.sp, textAlign = TextAlign.Center)
+            ChallengeNotice(
+                text = scanStatus,
+                accent = AccentRed,
+                icon = Icons.Default.WarningAmber
+            )
         }
 
         if (challenge.registeredValue.isBlank()) {
-            Text(
-                "No barcode registered — scan any code to dismiss",
-                color = SnoozeYellow,
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center
+            ChallengeNotice(
+                text = "No code is registered yet. Any barcode or QR code will work for now.",
+                accent = SnoozeYellow,
+                icon = Icons.Default.QrCodeScanner
             )
         }
     }
 }
 
-/**
- * F16: Photo match challenge — photograph the registered location to dismiss.
- */
 @Composable
 fun PhotoMatchChallengeView(
     challenge: Challenge.PhotoMatchChallenge,
@@ -543,109 +587,84 @@ fun PhotoMatchChallengeView(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-        modifier = Modifier.padding(32.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text("Photo match to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+        ChallengeSupportText("Take a fresh photo from the saved location or angle to prove you made it there.")
 
-        Icon(
-            Icons.Default.PhotoCamera,
-            contentDescription = "Take photo",
-            tint = AccentBlue,
-            modifier = Modifier.size(80.dp)
-        )
-
-        Text(
-            text = "Photograph the registered location to dismiss the alarm",
-            color = TextSecondary,
-            fontSize = 14.sp,
-            textAlign = TextAlign.Center
-        )
+        ChallengeIconPanel(accent = AccentBlue.copy(alpha = 0.12f)) {
+            Icon(
+                imageVector = Icons.Default.PhotoCamera,
+                contentDescription = "Take photo",
+                tint = AccentBlue,
+                modifier = Modifier.size(72.dp)
+            )
+        }
 
         if (photoMatchStatus.isNotBlank()) {
-            Text(text = photoMatchStatus, color = AccentRed, fontSize = 13.sp, textAlign = TextAlign.Center)
+            ChallengeNotice(
+                text = photoMatchStatus,
+                accent = AccentRed,
+                icon = Icons.Default.WarningAmber
+            )
         }
 
         if (challenge.referencePhotoUri.isBlank()) {
-            Text(
-                "No reference photo registered — take any photo to dismiss",
-                color = SnoozeYellow,
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center
+            ChallengeNotice(
+                text = "No reference photo is registered yet. Any photo will work for now.",
+                accent = SnoozeYellow,
+                icon = Icons.Default.PhotoCamera
             )
         }
 
         Button(
             onClick = onTakePhoto,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(18.dp)
         ) {
-            Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Take Photo", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
+            Text(
+                text = "Open camera",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp)
+            )
         }
     }
 }
 
-/**
- * v1.2.0: Squat challenge - do N squats detected by accelerometer.
- */
 @Composable
 fun SquatChallengeView(
     challenge: Challenge.SquatChallenge,
     currentSquats: Int
 ) {
     val progress = (currentSquats.toFloat() / challenge.requiredSquats).coerceIn(0f, 1f)
+    val remaining = (challenge.requiredSquats - currentSquats).coerceAtLeast(0)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        modifier = Modifier.padding(32.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text("Squat to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+        ChallengeSupportText("A short movement burst makes it harder to crawl back into bed.")
 
-        Icon(
-            Icons.Default.FitnessCenter,
-            contentDescription = "Squat exercise",
-            tint = DismissGreen,
-            modifier = Modifier.size(72.dp)
-        )
-
-        Box(contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.size(120.dp),
-                color = DismissGreen,
-                trackColor = SurfaceCard,
-                strokeWidth = 8.dp
-            )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "$currentSquats",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrimary
-                )
-                Text(
-                    text = "/ ${challenge.requiredSquats}",
-                    fontSize = 14.sp,
-                    color = TextMuted
-                )
-            }
-        }
-
-        Text(
-            text = if (currentSquats == 0) "Start squatting!" else "${challenge.requiredSquats - currentSquats} squats remaining",
-            color = if (currentSquats > 0) DismissGreen else TextMuted,
-            fontSize = 16.sp
+        ChallengeProgressHero(
+            icon = Icons.Default.FitnessCenter,
+            accent = DismissGreen,
+            progress = progress,
+            statusLabel = "$currentSquats / ${challenge.requiredSquats} squats",
+            summary = if (currentSquats == 0) "Start with one clean squat." else "$remaining squats remaining."
         )
     }
 }
 
-/**
- * v1.2.0: Maze challenge - navigate from start to end by tapping adjacent cells.
- */
 @Composable
 fun MazeChallengeView(
     challenge: Challenge.MazeChallenge,
@@ -657,11 +676,17 @@ fun MazeChallengeView(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        modifier = Modifier.padding(32.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text("Navigate the maze to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+        ChallengeSupportText("Tap adjacent cells only. Reach the exit without hitting the walls.")
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AppStatusChip(label = "You", icon = Icons.Default.Person, color = AccentBlue)
+            AppStatusChip(label = "Start", color = DismissGreen)
+            AppStatusChip(label = "Exit", color = AccentRed)
+        }
 
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             for (row in 0 until size) {
@@ -676,21 +701,21 @@ fun MazeChallengeView(
                         val bgColor = when {
                             isWall -> SurfaceDark
                             isCurrent -> AccentBlue
-                            isStart -> DismissGreen.copy(alpha = 0.3f)
-                            isEnd -> AccentRed.copy(alpha = 0.5f)
+                            isStart -> DismissGreen.copy(alpha = 0.28f)
+                            isEnd -> AccentRed.copy(alpha = 0.42f)
                             else -> SurfaceCard
                         }
 
                         Box(
                             modifier = Modifier
                                 .size(52.dp)
-                                .clip(RoundedCornerShape(6.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(bgColor)
                                 .clickable(enabled = !isWall) { onTapCell(idx) },
                             contentAlignment = Alignment.Center
                         ) {
                             when {
-                                isCurrent -> Icon(Icons.Default.Person, null, tint = TextPrimary, modifier = Modifier.size(24.dp))
+                                isCurrent -> Icon(Icons.Default.Person, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(22.dp))
                                 isStart -> Text("S", color = DismissGreen, fontWeight = FontWeight.Bold)
                                 isEnd -> Text("E", color = AccentRed, fontWeight = FontWeight.Bold)
                             }
@@ -699,18 +724,9 @@ fun MazeChallengeView(
                 }
             }
         }
-
-        Text(
-            "Tap adjacent cells to move. Reach the red E to dismiss.",
-            color = TextMuted, fontSize = 12.sp,
-            textAlign = TextAlign.Center
-        )
     }
 }
 
-/**
- * v1.2.0: Wi-Fi connect challenge - must connect to a specific Wi-Fi network.
- */
 @Composable
 fun WifiChallengeView(
     challenge: Challenge.WifiChallenge,
@@ -721,35 +737,158 @@ fun WifiChallengeView(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-        modifier = Modifier.padding(32.dp)
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        Text("Connect to Wi-Fi to dismiss", color = TextSecondary, fontSize = 14.sp, letterSpacing = 2.sp)
+        ChallengeSupportText("Reconnect to the planned Wi-Fi network before dismiss becomes available.")
 
-        Icon(
-            Icons.Default.Wifi,
-            contentDescription = "Wi-Fi",
-            tint = if (isConnected) DismissGreen else AccentBlue,
-            modifier = Modifier.size(80.dp)
-        )
-
-        if (challenge.requiredSsid.isNotBlank()) {
-            Text(
-                "Required network: ${challenge.requiredSsid}",
-                color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold
+        ChallengeIconPanel(
+            accent = if (isConnected) DismissGreen.copy(alpha = 0.12f) else AccentBlue.copy(alpha = 0.12f)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Wifi,
+                contentDescription = "Wi-Fi",
+                tint = if (isConnected) DismissGreen else AccentBlue,
+                modifier = Modifier.size(76.dp)
             )
         }
 
-        Text(
-            text = if (currentSsid.isBlank()) "Not connected to Wi-Fi"
-                   else "Connected to: $currentSsid",
-            color = if (isConnected) DismissGreen else SnoozeYellow,
-            fontSize = 14.sp
+        if (challenge.requiredSsid.isNotBlank()) {
+            ChallengeNotice(
+                text = "Required network: ${challenge.requiredSsid}",
+                accent = MaterialTheme.colorScheme.primary,
+                icon = Icons.Default.Wifi
+            )
+        }
+
+        ChallengeNotice(
+            text = if (currentSsid.isBlank()) "Not connected to Wi-Fi yet." else "Connected to: $currentSsid",
+            accent = if (isConnected) DismissGreen else SnoozeYellow,
+            icon = Icons.Default.Wifi
         )
 
         if (challenge.requiredSsid.isBlank()) {
-            Text("No network specified — connect to any Wi-Fi to dismiss",
-                color = SnoozeYellow, fontSize = 12.sp, textAlign = TextAlign.Center)
+            ChallengeNotice(
+                text = "No network is specified yet. Any Wi-Fi connection will work for now.",
+                accent = SnoozeYellow,
+                icon = Icons.Default.Wifi
+            )
         }
+    }
+}
+
+@Composable
+private fun ChallengeSupportText(
+    text: String,
+    accent: Color = TextSecondary
+) {
+    Text(
+        text = text,
+        color = accent,
+        style = MaterialTheme.typography.bodyMedium,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+private fun ChallengeNotice(
+    text: String,
+    accent: Color,
+    icon: ImageVector
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.12f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = text,
+                color = TextPrimary,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChallengeIconPanel(
+    accent: Color,
+    content: @Composable BoxScope.() -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = accent)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(132.dp)
+                .padding(20.dp),
+            contentAlignment = Alignment.Center,
+            content = content
+        )
+    }
+}
+
+@Composable
+private fun ChallengeProgressHero(
+    icon: ImageVector,
+    accent: Color,
+    progress: Float,
+    statusLabel: String,
+    summary: String,
+    iconContent: @Composable (() -> Unit)? = null
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.size(136.dp),
+                color = accent,
+                trackColor = SurfaceCard,
+                strokeWidth = 10.dp
+            )
+            if (iconContent != null) {
+                iconContent()
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(42.dp)
+                )
+            }
+        }
+
+        AppStatusChip(
+            label = statusLabel,
+            icon = icon,
+            color = accent
+        )
+
+        Text(
+            text = summary,
+            color = if (progress > 0f) accent else TextMuted,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center
+        )
     }
 }

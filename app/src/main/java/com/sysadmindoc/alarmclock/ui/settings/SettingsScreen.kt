@@ -4,29 +4,87 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.BeachAccess
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
+import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
+import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
+import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
-import com.sysadmindoc.alarmclock.ui.theme.*
+import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.TextMuted
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit = {},
@@ -37,201 +95,231 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) { viewModel.refreshBatteryStatus() }
+    LaunchedEffect(Unit) {
+        viewModel.refreshBatteryStatus()
+    }
+
+    var showDefaultSnoozeMenu by remember { mutableStateOf(false) }
+    var showGradualVolumeMenu by remember { mutableStateOf(false) }
+    var showAutoSilenceMenu by remember { mutableStateOf(false) }
+    var showTemperatureMenu by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SurfaceDark)
+            .verticalScroll(rememberScrollState())
     ) {
-        // Top bar with back arrow
-        TopAppBar(
-            title = { Text("Settings") },
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceMedium)
+        AlarmClockHeroHeader(
+            title = "Settings",
+            subtitle = "Tune the app once and it stays out of your way. Changes save immediately.",
+            overline = "Preferences",
+            badge = {
+                AppStatusChip(
+                    label = if (state.isIgnoringBatteryOptimizations) "Battery protected" else "Needs battery setup",
+                    icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
+                    color = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow
+                )
+                AppStatusChip(
+                    label = state.appVersion,
+                    icon = Icons.Default.AutoAwesome
+                )
+            }
         )
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            // Permissions
             PermissionRequestCard()
 
-            // Battery Optimization
             if (state.needsBatteryGuidance || !state.isIgnoringBatteryOptimizations) {
                 BatteryOptimizationSection(state, viewModel)
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Vacation Mode
             VacationModeSection(state, viewModel)
-            Spacer(modifier = Modifier.height(16.dp))
 
-            // Alarm Defaults
-            SettingsGroup("Alarm Defaults") {
-                SettingsToggle("24-hour format", state.settings.is24HourFormat, viewModel::toggle24Hour)
-                SettingsToggle("Show on lock screen", state.settings.showOnLockScreen, viewModel::toggleLockScreen)
-                SettingsToggle("Use phone speakers", state.settings.usePhoneSpeakers, viewModel::togglePhoneSpeakers)
-                SettingsToggle("Flip phone to snooze", state.settings.flipToSnoozeEnabled, viewModel::toggleFlipToSnooze)
-                SettingsValue("Default snooze", "${state.settings.defaultSnoozeDuration} min")
-                SettingsValue("Gradual volume", "${state.settings.defaultGradualVolume / 60}m ${state.settings.defaultGradualVolume % 60}s")
+            SettingsGroup(
+                title = "Alarm defaults",
+                description = "Set the behavior new alarms start with so setup feels faster and more predictable."
+            ) {
+                SettingsToggle(
+                    label = "24-hour format",
+                    checked = state.settings.is24HourFormat,
+                    supportingText = "Use military time everywhere in the app.",
+                    onToggle = viewModel::toggle24Hour
+                )
+                SettingsToggle(
+                    label = "Show on lock screen",
+                    checked = state.settings.showOnLockScreen,
+                    supportingText = "Keep alarm controls visible without unlocking.",
+                    onToggle = viewModel::toggleLockScreen
+                )
+                SettingsToggle(
+                    label = "Use phone speakers",
+                    checked = state.settings.usePhoneSpeakers,
+                    supportingText = "Route alarm playback through the loudspeaker even with accessories connected.",
+                    onToggle = viewModel::togglePhoneSpeakers
+                )
+                SettingsToggle(
+                    label = "Flip phone to snooze",
+                    checked = state.settings.flipToSnoozeEnabled,
+                    supportingText = "A quick face-down gesture can snooze instead of tapping the screen.",
+                    onToggle = viewModel::toggleFlipToSnooze
+                )
 
-                // Auto-silence
-                var showAutoSilenceMenu by remember { mutableStateOf(false) }
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                SettingsActionRow(
+                    label = "Default snooze",
+                    value = "${state.settings.defaultSnoozeDuration} min",
+                    supportingText = "Used whenever a new alarm doesn’t specify its own snooze length.",
+                    onClick = { showDefaultSnoozeMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showDefaultSnoozeMenu,
+                    onDismissRequest = { showDefaultSnoozeMenu = false }
                 ) {
-                    Text("Auto-silence after", color = TextPrimary)
-                    Box {
-                        TextButton(onClick = { showAutoSilenceMenu = true }) {
-                            Text(
-                                if (state.settings.autoSilenceMinutes == 0) "Never" else "${state.settings.autoSilenceMinutes} min",
-                                color = AccentBlue
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showAutoSilenceMenu,
-                            onDismissRequest = { showAutoSilenceMenu = false }
-                        ) {
-                            listOf(0, 5, 10, 15, 30).forEach { mins ->
-                                DropdownMenuItem(
-                                    text = { Text(if (mins == 0) "Never" else "$mins minutes") },
-                                    onClick = {
-                                        viewModel.updateAutoSilence(mins)
-                                        showAutoSilenceMenu = false
-                                    }
-                                )
+                    listOf(1, 3, 5, 10, 15, 20, 30).forEach { minutes ->
+                        DropdownMenuItem(
+                            text = { Text("$minutes minutes") },
+                            onClick = {
+                                viewModel.updateDefaultSnooze(minutes)
+                                showDefaultSnoozeMenu = false
                             }
-                        }
+                        )
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Dashboard
-            SettingsGroup("Dashboard") {
-                SettingsToggle("Show weather", state.settings.showWeatherOnDashboard, viewModel::toggleShowWeather)
-                SettingsToggle("Show calendar", state.settings.showCalendarOnDashboard, viewModel::toggleShowCalendar)
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                SettingsActionRow(
+                    label = "Default volume ramp",
+                    value = if (state.settings.defaultGradualVolume == 0) {
+                        "Off"
+                    } else {
+                        "${state.settings.defaultGradualVolume / 60}m ${state.settings.defaultGradualVolume % 60}s"
+                    },
+                    supportingText = "Controls how gently new alarms fade in before reaching full volume.",
+                    onClick = { showGradualVolumeMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showGradualVolumeMenu,
+                    onDismissRequest = { showGradualVolumeMenu = false }
                 ) {
-                    Text("Temperature unit", color = TextPrimary)
-                    TextButton(onClick = viewModel::toggleTemperatureUnit) {
-                        Text(
-                            if (state.settings.temperatureUnit == "celsius") "Celsius (\u00B0C)" else "Fahrenheit (\u00B0F)",
-                            color = AccentBlue
+                    listOf(0, 15, 30, 60, 90, 120, 180, 300).forEach { seconds ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    if (seconds == 0) "Off" else "${seconds / 60}m ${seconds % 60}s"
+                                )
+                            },
+                            onClick = {
+                                viewModel.updateDefaultGradualVolume(seconds)
+                                showGradualVolumeMenu = false
+                            }
+                        )
+                    }
+                }
+
+                SettingsActionRow(
+                    label = "Auto-silence",
+                    value = if (state.settings.autoSilenceMinutes == 0) "Never" else "${state.settings.autoSilenceMinutes} min",
+                    supportingText = "Fail-safe timeout for alarms that keep ringing unattended.",
+                    onClick = { showAutoSilenceMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showAutoSilenceMenu,
+                    onDismissRequest = { showAutoSilenceMenu = false }
+                ) {
+                    listOf(0, 5, 10, 15, 30).forEach { minutes ->
+                        DropdownMenuItem(
+                            text = { Text(if (minutes == 0) "Never" else "$minutes minutes") },
+                            onClick = {
+                                viewModel.updateAutoSilence(minutes)
+                                showAutoSilenceMenu = false
+                            }
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            SettingsGroup(
+                title = "Dashboard",
+                description = "Control what appears on the My Day screen so it stays useful without feeling busy."
+            ) {
+                SettingsToggle(
+                    label = "Show weather",
+                    checked = state.settings.showWeatherOnDashboard,
+                    supportingText = "Current conditions and a short forecast.",
+                    onToggle = viewModel::toggleShowWeather
+                )
+                SettingsToggle(
+                    label = "Show calendar",
+                    checked = state.settings.showCalendarOnDashboard,
+                    supportingText = "Display today’s events and meeting times.",
+                    onToggle = viewModel::toggleShowCalendar
+                )
+                SettingsActionRow(
+                    label = "Temperature unit",
+                    value = if (state.settings.temperatureUnit == "celsius") "Celsius (\u00B0C)" else "Fahrenheit (\u00B0F)",
+                    supportingText = "Applied across the dashboard and weather cards.",
+                    onClick = { showTemperatureMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showTemperatureMenu,
+                    onDismissRequest = { showTemperatureMenu = false }
+                ) {
+                    listOf("fahrenheit" to "Fahrenheit (\u00B0F)", "celsius" to "Celsius (\u00B0C)").forEach { (unit, label) ->
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            onClick = {
+                                if (unit != state.settings.temperatureUnit) {
+                                    viewModel.toggleTemperatureUnit()
+                                }
+                                showTemperatureMenu = false
+                            }
+                        )
+                    }
+                }
+            }
 
-            // Integrations (Webhook)
             IntegrationsSection(state, viewModel)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Public Holidays
             HolidaysSection(state, viewModel)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Philips Hue
             PhilipsHueSection(state, viewModel)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Backup & Restore
             BackupRestoreSection(viewModel)
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Alarm Statistics
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+            AppSectionTitle(
+                title = "Utilities",
+                description = "Quick access to companion tools that round out the app."
+            )
+            UtilityShortcutCard(
+                icon = Icons.Default.BarChart,
+                title = "Alarm statistics",
+                description = "Review streaks, response times, and habits over time.",
                 onClick = onNavigateToStats
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.BarChart, null, tint = AccentBlue)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Alarm Statistics", fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Text("View history, streaks, and patterns", color = TextSecondary, fontSize = 12.sp)
-                    }
-                    Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Stopwatch
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+            )
+            UtilityShortcutCard(
+                icon = Icons.Default.Speed,
+                title = "Stopwatch",
+                description = "Track laps with best and worst splits highlighted.",
                 onClick = onNavigateToStopwatch
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Speed, null, tint = AccentBlue)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Stopwatch", fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Text("Lap tracking with best/worst highlighting", color = TextSecondary, fontSize = 12.sp)
-                    }
-                    Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Bedtime
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+            )
+            UtilityShortcutCard(
+                icon = Icons.Default.Bedtime,
+                title = "Bedtime",
+                description = "Set a sleep goal and keep your routine feeling intentional.",
                 onClick = onNavigateToBedtime
+            )
+
+            SettingsGroup(
+                title = "About",
+                description = "A quick reference for what’s running on this device."
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Bedtime, null, tint = AccentBlue)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Bedtime", fontWeight = FontWeight.Bold, color = TextPrimary)
-                        Text("Sleep goal, bedtime reminders", color = TextSecondary, fontSize = 12.sp)
-                    }
-                    Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // About
-            SettingsGroup("About") {
-                SettingsValue("Version", state.appVersion)
-                SettingsValue("Device", state.deviceModel)
-                SettingsValue("Android", state.androidVersion)
+                SettingsInfo("Version", state.appVersion)
+                SettingsInfo("Device", state.deviceModel)
+                SettingsInfo("Android", state.androidVersion)
                 SettingsInfo("License", "Apache License 2.0")
-                SettingsInfo("Source Code", "github.com/SysAdminDoc/AlarmClockXtreme")
+                SettingsInfo("Source", "github.com/SysAdminDoc/AlarmClockXtreme")
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
@@ -245,87 +333,71 @@ private fun VacationModeSection(state: SettingsUiState, viewModel: SettingsViewM
 
     val startDate = if (settings.vacationStartMillis > 0) {
         Instant.ofEpochMilli(settings.vacationStartMillis)
-            .atZone(ZoneId.systemDefault()).toLocalDate()
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
             .format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
-    } else "Not set"
+    } else {
+        "Choose start date"
+    }
 
     val endDate = if (settings.vacationEndMillis > 0) {
         Instant.ofEpochMilli(settings.vacationEndMillis)
-            .atZone(ZoneId.systemDefault()).toLocalDate()
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
             .format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
-    } else "Not set"
+    } else {
+        "Choose end date"
+    }
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (settings.vacationModeEnabled)
-                SnoozeYellow.copy(alpha = 0.1f) else SurfaceMedium
+    AppSurfaceCard(highlighted = settings.vacationModeEnabled) {
+        AppSectionTitle(
+            title = "Vacation mode",
+            description = "Silence repeating alarms during a time away without turning them off permanently.",
+            action = {
+                AppStatusChip(
+                    label = if (settings.vacationModeEnabled) "Active" else "Off",
+                    icon = Icons.Default.BeachAccess,
+                    color = if (settings.vacationModeEnabled) SnoozeYellow else TextMuted
+                )
+            }
         )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    Icons.Default.BeachAccess,
-                    contentDescription = "Vacation mode",
-                    tint = if (settings.vacationModeEnabled) SnoozeYellow else TextMuted,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Vacation Mode", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextPrimary)
-                Spacer(modifier = Modifier.weight(1f))
-                Switch(
-                    checked = settings.vacationModeEnabled,
-                    onCheckedChange = { enabled ->
-                        if (enabled && settings.vacationStartMillis > 0 && settings.vacationEndMillis > 0) {
-                            viewModel.setVacationMode(true, settings.vacationStartMillis, settings.vacationEndMillis)
-                        } else {
-                            viewModel.setVacationMode(false)
-                        }
-                    },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = SnoozeYellow,
-                        checkedTrackColor = SnoozeYellow.copy(alpha = 0.3f)
-                    )
-                )
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                "Repeating alarms will be silenced during vacation dates. They stay enabled but won't fire.",
-                color = TextSecondary, fontSize = 12.sp
+        SettingsToggle(
+            label = "Enable vacation schedule",
+            checked = settings.vacationModeEnabled,
+            supportingText = "Repeating alarms stay enabled but skip dates inside the range below.",
+            onToggle = { enabled ->
+                if (enabled && settings.vacationStartMillis > 0 && settings.vacationEndMillis > 0) {
+                    viewModel.setVacationMode(true, settings.vacationStartMillis, settings.vacationEndMillis)
+                } else {
+                    viewModel.setVacationMode(false)
+                }
+            }
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            DateField(
+                modifier = Modifier.weight(1f),
+                label = "Starts",
+                value = startDate,
+                onClick = { showStartPicker = true }
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Date pickers
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Column(modifier = Modifier
-                    .weight(1f)
-                    .clickable { showStartPicker = true }) {
-                    Text("Start", color = TextMuted, fontSize = 12.sp)
-                    Text(startDate, color = AccentBlue, fontSize = 14.sp)
-                }
-                Column(modifier = Modifier
-                    .weight(1f)
-                    .clickable { showEndPicker = true }) {
-                    Text("End", color = TextMuted, fontSize = 12.sp)
-                    Text(endDate, color = AccentBlue, fontSize = 14.sp)
-                }
-            }
+            DateField(
+                modifier = Modifier.weight(1f),
+                label = "Ends",
+                value = endDate,
+                onClick = { showEndPicker = true }
+            )
         }
     }
 
-    // Start date picker
     if (showStartPicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = if (settings.vacationStartMillis > 0)
-                settings.vacationStartMillis else System.currentTimeMillis()
+            initialSelectedDateMillis = if (settings.vacationStartMillis > 0) {
+                settings.vacationStartMillis
+            } else {
+                System.currentTimeMillis()
+            }
         )
         DatePickerDialog(
             onDismissRequest = { showStartPicker = false },
@@ -339,24 +411,28 @@ private fun VacationModeSection(state: SettingsUiState, viewModel: SettingsViewM
                         )
                     }
                     showStartPicker = false
-                }) { Text("OK", color = AccentBlue) }
+                }) {
+                    Text("Save", color = MaterialTheme.colorScheme.primary)
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showStartPicker = false }) {
                     Text("Cancel", color = TextSecondary)
                 }
             },
-            colors = DatePickerDefaults.colors(containerColor = SurfaceMedium)
+            colors = DatePickerDefaults.colors(containerColor = SurfaceDark)
         ) {
             DatePicker(state = datePickerState)
         }
     }
 
-    // End date picker
     if (showEndPicker) {
         val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = if (settings.vacationEndMillis > 0)
-                settings.vacationEndMillis else System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000L)
+            initialSelectedDateMillis = if (settings.vacationEndMillis > 0) {
+                settings.vacationEndMillis
+            } else {
+                System.currentTimeMillis() + (7 * 24 * 60 * 60 * 1000L)
+            }
         )
         DatePickerDialog(
             onDismissRequest = { showEndPicker = false },
@@ -370,14 +446,16 @@ private fun VacationModeSection(state: SettingsUiState, viewModel: SettingsViewM
                         )
                     }
                     showEndPicker = false
-                }) { Text("OK", color = AccentBlue) }
+                }) {
+                    Text("Save", color = MaterialTheme.colorScheme.primary)
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showEndPicker = false }) {
                     Text("Cancel", color = TextSecondary)
                 }
             },
-            colors = DatePickerDefaults.colors(containerColor = SurfaceMedium)
+            colors = DatePickerDefaults.colors(containerColor = SurfaceDark)
         ) {
             DatePicker(state = datePickerState)
         }
@@ -386,56 +464,54 @@ private fun VacationModeSection(state: SettingsUiState, viewModel: SettingsViewM
 
 @Composable
 private fun BatteryOptimizationSection(state: SettingsUiState, viewModel: SettingsViewModel) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (state.isIgnoringBatteryOptimizations)
-                DismissGreen.copy(alpha = 0.1f) else AccentRed.copy(alpha = 0.1f)
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle
-                    else Icons.Default.Warning,
-                    null,
-                    tint = if (state.isIgnoringBatteryOptimizations) DismissGreen else AccentRed,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text("Battery Optimization", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextPrimary)
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+    val accent = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow
 
-            if (state.isIgnoringBatteryOptimizations) {
-                Text("Battery optimization disabled. Alarms will fire reliably.", color = TextSecondary, fontSize = 14.sp)
+    AppSurfaceCard(highlighted = !state.isIgnoringBatteryOptimizations) {
+        AppSectionTitle(
+            title = "Battery optimization",
+            description = if (state.isIgnoringBatteryOptimizations) {
+                "Your device is configured for reliable alarm delivery."
             } else {
-                Text("Battery optimization may prevent alarms from firing.", color = TextSecondary, fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = viewModel::requestBatteryExemption,
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-                    shape = RoundedCornerShape(8.dp)
-                ) { Text("Disable Battery Optimization") }
-            }
-
-            if (state.needsBatteryGuidance && state.batteryGuidanceSteps.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = TextMuted.copy(alpha = 0.2f))
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    state.batteryGuidanceTitle.ifBlank { "${state.manufacturerName} Settings" },
-                    fontWeight = FontWeight.Bold, fontSize = 14.sp, color = SnoozeYellow
+                "Some Android vendors aggressively pause background work. This is the biggest reliability risk for alarms."
+            },
+            action = {
+                AppStatusChip(
+                    label = if (state.isIgnoringBatteryOptimizations) "Ready" else "Action recommended",
+                    icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    color = accent
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                state.batteryGuidanceSteps.forEachIndexed { i, step ->
-                    Row(modifier = Modifier.padding(vertical = 2.dp)) {
-                        Text("${i + 1}.", color = AccentBlue, fontSize = 13.sp, modifier = Modifier.width(20.dp))
-                        Text(step, color = TextSecondary, fontSize = 13.sp)
-                    }
+            }
+        )
+
+        if (!state.isIgnoringBatteryOptimizations) {
+            Button(
+                onClick = viewModel::requestBatteryExemption,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text("Open battery settings")
+            }
+        }
+
+        if (state.needsBatteryGuidance && state.batteryGuidanceSteps.isNotEmpty()) {
+            HorizontalDivider(color = TextMuted.copy(alpha = 0.18f))
+            Text(
+                text = state.batteryGuidanceTitle.ifBlank { "${state.manufacturerName} battery steps" },
+                color = accent,
+                style = MaterialTheme.typography.titleSmall
+            )
+            state.batteryGuidanceSteps.forEachIndexed { index, step ->
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    AppStatusChip(
+                        label = "${index + 1}",
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = step,
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
@@ -443,185 +519,241 @@ private fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Settin
 }
 
 @Composable
-private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column {
-        Text(
-            title, style = MaterialTheme.typography.labelLarge, color = AccentBlue,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+private fun SettingsGroup(
+    title: String,
+    description: String? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        AppSectionTitle(
+            title = title,
+            description = description
         )
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(0.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
-        ) { Column { content() } }
+        AppSurfaceCard {
+            content()
+        }
     }
 }
 
 @Composable
-private fun SettingsToggle(label: String, checked: Boolean, onToggle: (Boolean) -> Unit) {
+private fun SettingsToggle(
+    label: String,
+    checked: Boolean,
+    supportingText: String? = null,
+    onToggle: (Boolean) -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = TextPrimary, modifier = Modifier.weight(1f))
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(label, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+            if (!supportingText.isNullOrBlank()) {
+                Text(supportingText, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        Spacer(modifier = Modifier.size(12.dp))
         Switch(
-            checked = checked, onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = AccentBlue,
-                checkedTrackColor = AccentBlue.copy(alpha = 0.3f),
-                uncheckedThumbColor = ToggleOff,
-                uncheckedTrackColor = ToggleTrackOff
-            )
+            checked = checked,
+            onCheckedChange = onToggle,
+            colors = appSwitchColors()
         )
     }
 }
 
 @Composable
-private fun SettingsValue(label: String, value: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+private fun SettingsActionRow(
+    label: String,
+    value: String,
+    supportingText: String? = null,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text(label, color = TextPrimary)
-        Text(value, color = AccentBlue)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label, color = TextPrimary, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(value, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
+            }
+        }
+        if (!supportingText.isNullOrBlank()) {
+            Text(supportingText, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 
 @Composable
 private fun SettingsInfo(label: String, description: String) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
-        Text(label, color = TextPrimary)
-        Text(description, color = TextSecondary, fontSize = 12.sp)
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+        Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
     }
 }
 
 @Composable
 private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewModel) {
-    SettingsGroup("Integrations (Webhook)") {
-        SettingsToggle("Enable webhook", state.settings.webhookEnabled, viewModel::toggleWebhook)
+    SettingsGroup(
+        title = "Webhook integrations",
+        description = "Connect alarm events to automations, home setups, or debugging endpoints."
+    ) {
+        SettingsToggle(
+            label = "Enable webhook",
+            checked = state.settings.webhookEnabled,
+            supportingText = "Send a JSON payload when alarms fire, snooze, dismiss, or fail.",
+            onToggle = viewModel::toggleWebhook
+        )
+
         OutlinedTextField(
             value = state.settings.webhookUrl,
             onValueChange = viewModel::updateWebhookUrl,
-            label = { Text("Webhook URL (HTTPS)", color = TextMuted) },
-            placeholder = { Text("https://...", color = TextMuted) },
+            label = { Text("Webhook URL") },
+            placeholder = { Text("https://example.com/hook") },
             enabled = state.settings.webhookEnabled,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
-                focusedLabelColor = AccentBlue
-            ),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            colors = appOutlinedTextFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
             singleLine = true
         )
+
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            state.webhookTestResult?.let { result ->
-                Text(result, color = if (result.contains("OK")) DismissGreen else AccentRed, fontSize = 12.sp)
-            }
-            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = state.webhookTestResult ?: "Use a secure HTTPS endpoint for best reliability.",
+                color = when {
+                    state.webhookTestResult?.contains("OK") == true -> DismissGreen
+                    state.webhookTestResult != null -> AccentRed
+                    else -> TextMuted
+                },
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.size(12.dp))
             OutlinedButton(
                 onClick = viewModel::testWebhook,
                 enabled = state.settings.webhookEnabled && state.settings.webhookUrl.isNotBlank(),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
-            ) { Text("Test") }
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Link, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.size(6.dp))
+                Text("Test")
+            }
         }
-        Text(
-            "Fired on alarm fire, snooze, and dismiss events. POST with JSON body.",
-            color = TextMuted, fontSize = 11.sp,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
     }
 }
 
 @Composable
 private fun HolidaysSection(state: SettingsUiState, viewModel: SettingsViewModel) {
-    SettingsGroup("Public Holidays") {
-        SettingsToggle("Skip alarms on holidays", state.settings.holidayAutoSkipEnabled, viewModel::toggleHolidayAutoSkip)
+    SettingsGroup(
+        title = "Public holidays",
+        description = "Automatically skip alarms on country-specific holidays without disabling the alarm itself."
+    ) {
+        SettingsToggle(
+            label = "Skip alarms on holidays",
+            checked = state.settings.holidayAutoSkipEnabled,
+            supportingText = "Useful for weekday alarms that should respect bank holidays and public closures.",
+            onToggle = viewModel::toggleHolidayAutoSkip
+        )
         OutlinedTextField(
             value = state.settings.holidayCountryCode,
             onValueChange = viewModel::updateHolidayCountryCode,
-            label = { Text("Country code (ISO 3166-1, e.g. US, GB, DE)", color = TextMuted) },
+            label = { Text("Country code") },
+            placeholder = { Text("US, GB, DE...") },
             enabled = state.settings.holidayAutoSkipEnabled,
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
-                focusedLabelColor = AccentBlue
-            ),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            colors = appOutlinedTextFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
             singleLine = true
         )
         Text(
-            "Uses Nager.Date API (free, no key required). Holiday data is cached for 7 days.",
-            color = TextMuted, fontSize = 11.sp,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            text = "Holiday data comes from Nager.Date and is cached locally for a week.",
+            color = TextMuted,
+            style = MaterialTheme.typography.bodySmall
         )
     }
 }
 
 @Composable
 private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewModel) {
-    SettingsGroup("Philips Hue") {
+    SettingsGroup(
+        title = "Philips Hue sunrise",
+        description = "Wake the room up gradually before the alarm sound takes over."
+    ) {
         OutlinedTextField(
             value = state.settings.hueBridgeIp,
             onValueChange = viewModel::updateHueBridgeIp,
-            label = { Text("Bridge IP address (e.g. 192.168.1.100)", color = TextMuted) },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
-                focusedLabelColor = AccentBlue
-            ),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            label = { Text("Bridge IP address") },
+            placeholder = { Text("192.168.1.100") },
+            colors = appOutlinedTextFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
             singleLine = true
         )
         OutlinedTextField(
             value = state.settings.hueApiKey,
             onValueChange = viewModel::updateHueApiKey,
-            label = { Text("Hue API key (username)", color = TextMuted) },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
-                focusedLabelColor = AccentBlue
-            ),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            label = { Text("Hue API key") },
+            placeholder = { Text("Press the Hue bridge button first") },
+            colors = appOutlinedTextFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
             singleLine = true
         )
         OutlinedTextField(
             value = state.settings.hueLightIds,
             onValueChange = viewModel::updateHueLightIds,
-            label = { Text("Light IDs (comma-separated, e.g. 1,2,3)", color = TextMuted) },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AccentBlue, unfocusedBorderColor = TextMuted,
-                cursorColor = AccentBlue, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
-                focusedLabelColor = AccentBlue
-            ),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            label = { Text("Light IDs") },
+            placeholder = { Text("1,2,3") },
+            colors = appOutlinedTextFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
             singleLine = true
         )
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            state.hueTestResult?.let { result ->
-                Text(result, color = if (result.contains("reachable")) DismissGreen else AccentRed, fontSize = 12.sp, modifier = Modifier.weight(1f))
-            }
-            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = state.hueTestResult ?: "Run a quick bridge check once the IP and API key are in place.",
+                color = when {
+                    state.hueTestResult?.contains("reachable") == true -> DismissGreen
+                    state.hueTestResult != null -> AccentRed
+                    else -> TextMuted
+                },
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.size(12.dp))
             OutlinedButton(
                 onClick = viewModel::testHue,
                 enabled = state.settings.hueBridgeIp.isNotBlank() && state.settings.hueApiKey.isNotBlank(),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
-            ) { Text("Test") }
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Cloud, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.size(6.dp))
+                Text("Test")
+            }
         }
-        Text(
-            "Enable sunrise simulation per-alarm in the alarm edit screen.",
-            color = TextMuted, fontSize = 11.sp,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-        )
     }
 }
 
@@ -637,53 +769,127 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { viewModel.importBackup(it) } }
 
-    SettingsGroup("Backup & Restore") {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+    SettingsGroup(
+        title = "Backup and restore",
+        description = "Keep a portable copy of alarms and app preferences for new devices or peace of mind."
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(
                 onClick = { exportLauncher.launch("alarmclock_backup.json") },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.size(6.dp))
                 Text("Export")
             }
             OutlinedButton(
                 onClick = { importLauncher.launch(arrayOf("application/json")) },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.size(6.dp))
                 Text("Import")
             }
         }
+
         Text(
-            "Export alarms and settings to JSON. Import on another device to restore.",
-            color = TextMuted, fontSize = 11.sp,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            text = "Backups include alarms and global settings in a JSON file.",
+            color = TextMuted,
+            style = MaterialTheme.typography.bodySmall
         )
     }
 
-    // Result snackbar
     backupResult?.let { message ->
-        Spacer(modifier = Modifier.height(8.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(containerColor = DismissGreen.copy(alpha = 0.15f))
-        ) {
-            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, null, tint = DismissGreen, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(message, color = TextPrimary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+        AppSurfaceCard(highlighted = !message.contains("failed", ignoreCase = true)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (message.contains("failed", ignoreCase = true)) Icons.Default.Warning else Icons.Default.Backup,
+                        contentDescription = null,
+                        tint = if (message.contains("failed", ignoreCase = true)) AccentRed else DismissGreen
+                    )
+                    Text(message, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
+                }
                 IconButton(onClick = viewModel::clearBackupResult) {
-                    Icon(Icons.Default.Close, null, tint = TextMuted, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Close, null, tint = TextMuted)
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun UtilityShortcutCard(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    onClick: () -> Unit
+) {
+    AppSurfaceCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                            shape = RoundedCornerShape(14.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+                    Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
+        }
+    }
+}
+
+@Composable
+private fun DateField(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .background(
+                color = SurfaceCard.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(18.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(label, color = TextMuted, style = MaterialTheme.typography.bodySmall)
+            Text(value, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

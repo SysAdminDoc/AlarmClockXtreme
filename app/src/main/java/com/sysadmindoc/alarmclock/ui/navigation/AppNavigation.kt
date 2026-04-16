@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -20,6 +21,7 @@ import androidx.navigation.navArgument
 import com.sysadmindoc.alarmclock.ui.alarmedit.AlarmEditScreen
 import com.sysadmindoc.alarmclock.ui.alarmlist.AlarmListScreen
 import com.sysadmindoc.alarmclock.ui.bedtime.BedtimeScreen
+import com.sysadmindoc.alarmclock.ui.components.BottomNavContainer
 import com.sysadmindoc.alarmclock.ui.dashboard.DashboardScreen
 import com.sysadmindoc.alarmclock.ui.onboarding.OnboardingScreen
 import com.sysadmindoc.alarmclock.ui.stats.StatsScreen
@@ -51,8 +53,8 @@ data class BottomNavItem(
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem(Screen.Dashboard, "My Day", Icons.Default.WbSunny),
-    BottomNavItem(Screen.AlarmList, "Alarm", Icons.Default.Alarm),
+    BottomNavItem(Screen.Dashboard, "Day", Icons.Default.WbSunny),
+    BottomNavItem(Screen.AlarmList, "Alarms", Icons.Default.Alarm),
     BottomNavItem(Screen.Timer, "Timer", Icons.Default.Timer),
     BottomNavItem(Screen.WorldClock, "World", Icons.Default.Language),
     BottomNavItem(Screen.Settings, "Settings", Icons.Default.Settings),
@@ -77,43 +79,48 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         containerColor = SurfaceDark,
         bottomBar = {
             if (showBottomBar) {
-                NavigationBar(
-                    containerColor = SurfaceMedium,
-                    contentColor = TextPrimary
-                ) {
-                    bottomNavItems.forEach { item ->
-                        val selected = currentDestination?.hierarchy?.any {
-                            it.route == item.screen.route
-                        } == true
+                BottomNavContainer {
+                    NavigationBar(
+                        containerColor = SurfaceMedium.copy(alpha = 0f),
+                        contentColor = TextPrimary,
+                        tonalElevation = 0.dp
+                    ) {
+                        bottomNavItems.forEach { item ->
+                            val selected = currentDestination?.hierarchy?.any {
+                                it.route == item.screen.route
+                            } == true
 
-                        NavigationBarItem(
-                            icon = {
-                                Icon(
-                                    item.icon,
-                                    contentDescription = item.label,
-                                    tint = if (selected) AccentBlue else TextMuted
-                                )
-                            },
-                            label = {
-                                Text(
-                                    item.label,
-                                    color = if (selected) AccentBlue else TextMuted
-                                )
-                            },
-                            selected = selected,
-                            onClick = {
-                                navController.navigate(item.screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+                            NavigationBarItem(
+                                icon = {
+                                    Icon(
+                                        item.icon,
+                                        contentDescription = item.label,
+                                        tint = if (selected) MaterialTheme.colorScheme.primary else TextMuted
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        item.label,
+                                        color = if (selected) MaterialTheme.colorScheme.primary else TextMuted,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                },
+                                selected = selected,
+                                alwaysShowLabel = true,
+                                onClick = {
+                                    navController.navigate(item.screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = AccentBlue.copy(alpha = 0.15f)
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }
@@ -161,11 +168,15 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             }
 
             composable(Screen.Bedtime.route) {
-                BedtimeScreen()
+                BedtimeScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             composable(Screen.Stopwatch.route) {
-                StopwatchScreen()
+                StopwatchScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             composable(Screen.WorldClock.route) {
@@ -187,7 +198,9 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             }
 
             composable(Screen.Stats.route) {
-                StatsScreen()
+                StatsScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
         }
     }

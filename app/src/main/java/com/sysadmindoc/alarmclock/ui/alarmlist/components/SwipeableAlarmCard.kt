@@ -17,7 +17,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
-import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 
 /**
  * Wraps content with a SwipeToDismiss gesture.
@@ -37,44 +36,75 @@ fun SwipeableAlarmCard(
                 true
             } else false
         },
-        positionalThreshold = { it * 0.4f }
+        positionalThreshold = { it * 0.55f }
     )
 
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
+            val willDelete = dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
             val color by animateColorAsState(
-                when (dismissState.targetValue) {
-                    SwipeToDismissBoxValue.EndToStart -> AccentRed.copy(alpha = 0.8f)
-                    else -> Color.Transparent
-                },
+                if (willDelete) AccentRed.copy(alpha = 0.86f) else AccentRed.copy(alpha = 0.28f),
                 label = "swipe_bg"
             )
             val scale by animateFloatAsState(
-                if (dismissState.targetValue == SwipeToDismissBoxValue.EndToStart) 1.2f else 0.8f,
+                if (willDelete) 1.05f else 0.86f,
                 label = "icon_scale"
             )
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(4.dp))
+                    .clip(RoundedCornerShape(24.dp))
                     .background(color)
                     .padding(end = 24.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    tint = Color.White,
-                    modifier = Modifier.scale(scale)
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = if (willDelete) "Release to delete" else "Swipe to delete",
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleSmall
+                        )
+                        Text(
+                            text = "Undo is available right after removal",
+                            color = Color.White.copy(alpha = 0.82f),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Surface(
+                        color = Color.White.copy(alpha = 0.14f),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .padding(12.dp)
+                                .scale(scale)
+                        )
+                    }
+                }
             }
         },
         modifier = modifier,
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = true
     ) {
-        content()
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 1.dp)
+        ) {
+            content()
+        }
     }
 }

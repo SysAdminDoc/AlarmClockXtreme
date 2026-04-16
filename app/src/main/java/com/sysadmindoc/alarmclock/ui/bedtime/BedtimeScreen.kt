@@ -1,266 +1,424 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.sysadmindoc.alarmclock.ui.bedtime
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.AlarmOff
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.GraphicEq
+import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Sailing
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.Waves
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sysadmindoc.alarmclock.ui.theme.*
+import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
+import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
+import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
+import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
+import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
+import com.sysadmindoc.alarmclock.ui.theme.BlueLight
+import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.TextMuted
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BedtimeScreen(
+    onNavigateBack: () -> Unit = {},
     viewModel: BedtimeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTimePicker by remember { mutableStateOf(false) }
 
-    Column(
+    val summaryLine = when {
+        state.wakeTimeFormatted.isNotBlank() -> {
+            "Plan around your ${state.wakeTimeFormatted} alarm and protect ${state.sleepDurationFormatted} of sleep."
+        }
+        state.isEnabled -> "Your wind-down reminder is set. Add an alarm to get a recommended bedtime."
+        else -> "Build a calmer night routine with a reminder, a target, and gentler wind-down cues."
+    }
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(SurfaceDark)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(SurfaceDark),
+        contentPadding = PaddingValues(bottom = 40.dp)
     ) {
-        // Header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Brush.verticalGradient(listOf(HeaderTop, HeaderBottom)))
-                .padding(horizontal = 20.dp, vertical = 24.dp)
-        ) {
-            Column {
-                Text("Bedtime", style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary, fontWeight = FontWeight.Bold)
-                Text("Sleep goal & reminder", color = TextSecondary)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Sleep arc visualization
-        SleepArc(
-            bedtimeHour = state.bedtimeHour,
-            bedtimeMinute = state.bedtimeMinute,
-            sleepHours = state.sleepGoalHours,
-            sleepMinutes = state.sleepGoalMinutes,
-            modifier = Modifier.size(240.dp)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Sleep duration label
-        Text(state.sleepDurationFormatted, fontSize = 32.sp, fontWeight = FontWeight.Light, color = TextPrimary)
-        Text("sleep goal", color = TextMuted, fontSize = 14.sp)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Enable toggle
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (state.isEnabled) AccentBlue.copy(alpha = 0.1f) else SurfaceMedium
-            )
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.Default.Bedtime, null, tint = if (state.isEnabled) AccentBlue else TextMuted)
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Bedtime Reminder", fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text(
-                        if (state.isEnabled) "Reminder ${state.reminderMinutesBefore}m before bedtime"
-                        else "Get notified when it's time to sleep",
-                        color = TextSecondary, fontSize = 12.sp
+        item {
+            AlarmClockHeroHeader(
+                title = "Bedtime",
+                subtitle = summaryLine,
+                overline = "Sleep planning",
+                badge = {
+                    AppStatusChip(
+                        label = if (state.isEnabled) "Reminder on" else "Reminder off",
+                        icon = Icons.Default.Bedtime,
+                        color = if (state.isEnabled) DismissGreen else TextMuted
                     )
-                }
-                Switch(
-                    checked = state.isEnabled,
-                    onCheckedChange = viewModel::toggleEnabled,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = AccentBlue,
-                        checkedTrackColor = AccentBlue.copy(alpha = 0.3f)
+                    AppStatusChip(
+                        label = state.sleepDurationFormatted,
+                        icon = Icons.Default.NightsStay,
+                        color = MaterialTheme.colorScheme.primary
                     )
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Bedtime & wake info
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Bedtime card
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceCard),
-                onClick = { showTimePicker = true }
-            ) {
-                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.NightsStay, null, tint = BlueLight, modifier = Modifier.size(28.dp))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Bedtime", color = TextMuted, fontSize = 12.sp)
-                    Text(state.bedtimeFormatted, color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-
-            // Wake time card
-            Card(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceCard)
-            ) {
-                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.WbSunny, null, tint = SnoozeYellow, modifier = Modifier.size(28.dp))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Wake up", color = TextMuted, fontSize = 12.sp)
-                    Text(
-                        state.wakeTimeFormatted.ifBlank { "--:--" },
-                        color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold
+                    AppStatusChip(
+                        label = state.wakeTimeFormatted.takeIf { it.isNotBlank() } ?: "No alarm linked",
+                        icon = if (state.wakeTimeFormatted.isNotBlank()) Icons.Default.WbSunny else Icons.Default.AlarmOff,
+                        color = if (state.wakeTimeFormatted.isNotBlank()) SnoozeYellow else TextMuted
                     )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Suggested bedtime
-        if (state.suggestedBedtime.isNotBlank()) {
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = DismissGreen.copy(alpha = 0.1f))
-            ) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Lightbulb, null, tint = DismissGreen)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text("Suggested bedtime", color = DismissGreen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        Text(
-                            "Go to bed by ${state.suggestedBedtime} to get ${state.sleepDurationFormatted} of sleep",
-                            color = TextSecondary, fontSize = 12.sp
-                        )
+                },
+                actions = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.Close, contentDescription = "Close bedtime", tint = TextMuted)
                     }
                 }
-            }
+            )
         }
 
-        // Sleep goal adjuster
-        Spacer(modifier = Modifier.height(16.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Sleep Goal", color = AccentBlue, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Spacer(modifier = Modifier.height(8.dp))
+        item {
+            AppSurfaceCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp),
+                highlighted = state.isEnabled
+            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = {
-                        val total = state.sleepGoalHours * 60 + state.sleepGoalMinutes - 30
-                        if (total >= 300) viewModel.updateSleepGoal(total / 60, total % 60) // Min 5h
-                    }) {
-                        Icon(Icons.Default.Remove, null, tint = TextSecondary)
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Bedtime,
+                            contentDescription = null,
+                            tint = if (state.isEnabled) DismissGreen else TextMuted,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Bedtime reminder",
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = if (state.isEnabled) {
+                                    "Remind me ${state.reminderMinutesBefore} minutes before ${state.bedtimeFormatted}."
+                                } else {
+                                    "Get a nudge before your target bedtime so nights feel less rushed."
+                                },
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = state.nextAlarmTime,
+                                color = TextMuted,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
-
-                    Text(
-                        state.sleepDurationFormatted,
-                        fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary,
-                        modifier = Modifier.padding(horizontal = 24.dp)
+                    Switch(
+                        checked = state.isEnabled,
+                        onCheckedChange = viewModel::toggleEnabled,
+                        colors = appSwitchColors()
                     )
-
-                    IconButton(onClick = {
-                        val total = state.sleepGoalHours * 60 + state.sleepGoalMinutes + 30
-                        if (total <= 720) viewModel.updateSleepGoal(total / 60, total % 60) // Max 12h
-                    }) {
-                        Icon(Icons.Default.Add, null, tint = TextSecondary)
-                    }
                 }
             }
         }
 
-        // F10: Sleep sounds
-        SleepSoundsSection(state, viewModel)
-
-        // F9: Sleep cycle calculator
-        if (state.sleepCycleOptions.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
+        item {
+            AppSurfaceCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Bedtime, null, tint = BlueLight, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "Sleep Cycle Calculator",
-                            color = AccentBlue, fontWeight = FontWeight.Bold, fontSize = 13.sp
-                        )
-                    }
-                    Text(
-                        "Best times to fall asleep for your next alarm",
-                        color = TextMuted, fontSize = 11.sp,
-                        modifier = Modifier.padding(top = 2.dp, bottom = 10.dp)
+                AppSectionTitle(
+                    title = "Tonight's sleep window",
+                    description = "Use your current goal and next alarm to see when sleep should start."
+                )
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    SleepArc(
+                        bedtimeHour = state.bedtimeHour,
+                        bedtimeMinute = state.bedtimeMinute,
+                        sleepHours = state.sleepGoalHours,
+                        sleepMinutes = state.sleepGoalMinutes,
+                        modifier = Modifier.size(240.dp)
                     )
-                    state.sleepCycleOptions.forEachIndexed { i, option ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                }
+
+                Text(
+                    text = state.sleepDurationFormatted,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = "Current sleep target",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    BedtimeMetricCard(
+                        title = "Bedtime",
+                        value = state.bedtimeFormatted,
+                        icon = Icons.Default.NightsStay,
+                        accent = BlueLight,
+                        modifier = Modifier.weight(1f),
+                        onClick = { showTimePicker = true }
+                    )
+                    BedtimeMetricCard(
+                        title = "Wake",
+                        value = state.wakeTimeFormatted.ifBlank { "--:--" },
+                        icon = Icons.Default.WbSunny,
+                        accent = SnoozeYellow,
+                        modifier = Modifier.weight(1f)
+                    )
+                    BedtimeMetricCard(
+                        title = "Reminder",
+                        value = "${state.reminderMinutesBefore} min",
+                        icon = Icons.Default.Schedule,
+                        accent = DismissGreen,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (state.wakeTimeFormatted.isBlank()) {
+                    AppEmptyState(
+                        icon = Icons.Default.AlarmOff,
+                        title = "No upcoming alarm",
+                        description = "Set an alarm to unlock suggested bedtimes and cycle-friendly options."
+                    )
+                }
+            }
+        }
+
+        if (state.suggestedBedtime.isNotBlank()) {
+            item {
+                AppSurfaceCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    highlighted = true
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lightbulb,
+                            contentDescription = null,
+                            tint = DismissGreen,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                "${i + 1}.",
-                                color = AccentBlue, fontSize = 13.sp,
-                                modifier = Modifier.width(20.dp)
+                                text = "Suggested bedtime",
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.titleMedium
                             )
-                            Text(option, color = TextPrimary, fontSize = 14.sp)
+                            Text(
+                                text = "Aim for ${state.suggestedBedtime} to protect ${state.sleepDurationFormatted} before your next alarm.",
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        item {
+            AppSurfaceCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                AppSectionTitle(
+                    title = "Sleep goal and reminder timing",
+                    description = "Adjust in 30-minute steps and pick how early you want the reminder."
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            val totalMinutes = state.sleepGoalHours * 60 + state.sleepGoalMinutes - 30
+                            if (totalMinutes >= 300) {
+                                viewModel.updateSleepGoal(totalMinutes / 60, totalMinutes % 60)
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Default.Remove, contentDescription = "Reduce sleep goal", tint = TextSecondary)
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    ) {
+                        Text(
+                            text = state.sleepDurationFormatted,
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        Text(
+                            text = "Sleep target",
+                            color = TextMuted,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            val totalMinutes = state.sleepGoalHours * 60 + state.sleepGoalMinutes + 30
+                            if (totalMinutes <= 720) {
+                                viewModel.updateSleepGoal(totalMinutes / 60, totalMinutes % 60)
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = "Increase sleep goal", tint = TextSecondary)
+                    }
+                }
+
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
+
+                Text(
+                    text = "Reminder lead time",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    listOf(15, 30, 45, 60).forEach { minutes ->
+                        FilterChip(
+                            selected = state.reminderMinutesBefore == minutes,
+                            onClick = { viewModel.updateReminderMinutes(minutes) },
+                            label = { Text("$minutes min") }
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            AppSurfaceCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                AppSectionTitle(
+                    title = "Cycle-friendly options",
+                    description = "Based on 90-minute sleep cycles and a short fall-asleep buffer."
+                )
+
+                if (state.sleepCycleOptions.isEmpty()) {
+                    AppEmptyState(
+                        icon = Icons.Default.NightsStay,
+                        title = "Waiting for your next alarm",
+                        description = "Once an alarm is set, bedtime will suggest easier cycle-aligned sleep times."
+                    )
+                } else {
+                    state.sleepCycleOptions.forEachIndexed { index, option ->
+                        SleepCycleOptionRow(index = index, option = option)
+                    }
+                }
+            }
+        }
+
+        item {
+            SleepSoundsSection(
+                state = state,
+                viewModel = viewModel,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
     }
 
-    // Bedtime picker dialog
     if (showTimePicker) {
         val timePickerState = rememberTimePickerState(
             initialHour = state.bedtimeHour,
@@ -270,28 +428,36 @@ fun BedtimeScreen(
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.updateBedtime(timePickerState.hour, timePickerState.minute)
-                    showTimePicker = false
-                }) { Text("OK", color = AccentBlue) }
+                TextButton(
+                    onClick = {
+                        viewModel.updateBedtime(timePickerState.hour, timePickerState.minute)
+                        showTimePicker = false
+                    }
+                ) {
+                    Text("Save", color = MaterialTheme.colorScheme.primary)
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Cancel", color = TextSecondary) }
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Cancel", color = TextSecondary)
+                }
             },
             text = {
-                TimePicker(state = timePickerState,
-                    colors = TimePickerDefaults.colors(containerColor = SurfaceMedium))
+                TimePicker(
+                    state = timePickerState,
+                    colors = TimePickerDefaults.colors(containerColor = SurfaceCard)
+                )
             },
-            containerColor = SurfaceMedium
+            containerColor = SurfaceDark
         )
     }
 }
 
-// F10: Sleep sound definitions
-// NOTE: Audio files are in app/src/main/res/raw/ as WAV (placeholder silence).
-//   Replace with real ambient audio: sleep_white_noise.wav, sleep_rain.wav,
-//   sleep_brown_noise.wav, sleep_ocean.wav, sleep_fan.wav
-private data class SleepSound(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val resName: String)
+private data class SleepSound(
+    val label: String,
+    val icon: ImageVector,
+    val resName: String
+)
 
 private val SLEEP_SOUNDS = listOf(
     SleepSound("White Noise", Icons.Default.Waves, "sleep_white_noise"),
@@ -302,102 +468,167 @@ private val SLEEP_SOUNDS = listOf(
 )
 
 @Composable
-private fun SleepSoundsSection(state: BedtimeUiState, viewModel: BedtimeViewModel) {
+private fun SleepSoundsSection(
+    state: BedtimeUiState,
+    viewModel: BedtimeViewModel,
+    modifier: Modifier = Modifier
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
 
-    Spacer(modifier = Modifier.height(16.dp))
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.MusicNote, null, tint = BlueLight, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Sleep Sounds", color = AccentBlue, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-            }
+    AppSurfaceCard(modifier = modifier) {
+        AppSectionTitle(
+            title = "Sleep sounds",
+            description = "Keep a calming soundscape playing while you wind down."
+        )
 
-            Spacer(modifier = Modifier.height(12.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            itemsIndexed(SLEEP_SOUNDS) { _, sound ->
+                val resId = context.resources.getIdentifier(sound.resName, "raw", context.packageName)
+                val isActive = state.activeSoundResId == resId && resId != 0
 
-            // Sound tiles (scrollable row)
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                itemsIndexed(SLEEP_SOUNDS) { _, sound ->
-                    val resId = context.resources.getIdentifier(sound.resName, "raw", context.packageName)
-                    val isActive = state.activeSoundResId == resId && resId != 0
-
-                    Card(
-                        shape = RoundedCornerShape(10.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isActive) AccentBlue.copy(alpha = 0.2f) else SurfaceCard
-                        ),
+                Card(
+                    modifier = Modifier
+                        .size(width = 112.dp, height = 108.dp)
+                        .clickable {
+                            if (isActive) viewModel.stopSound()
+                            else if (resId != 0) viewModel.playSound(resId)
+                        },
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isActive) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                        } else {
+                            SurfaceCard
+                        }
+                    )
+                ) {
+                    Column(
                         modifier = Modifier
-                            .width(80.dp)
-                            .clickable {
-                                if (isActive) viewModel.stopSound()
-                                else if (resId != 0) viewModel.playSound(resId)
-                            }
+                            .fillMaxSize()
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(8.dp)
-                        ) {
-                            Icon(
-                                sound.icon, null,
-                                tint = if (isActive) AccentBlue else TextSecondary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(sound.label, color = if (isActive) AccentBlue else TextSecondary, fontSize = 10.sp, textAlign = TextAlign.Center)
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Fade timer
-            var showFadeMenu by remember { mutableStateOf(false) }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Fade out after", color = TextSecondary, fontSize = 13.sp)
-                Box {
-                    TextButton(onClick = { showFadeMenu = true }) {
-                        Text(
-                            if (state.sleepSoundFadeMinutes == 0) "Never"
-                            else "${state.sleepSoundFadeMinutes} min",
-                            color = AccentBlue, fontSize = 13.sp
+                        Icon(
+                            imageVector = sound.icon,
+                            contentDescription = null,
+                            tint = if (isActive) MaterialTheme.colorScheme.primary else TextSecondary,
+                            modifier = Modifier.size(24.dp)
                         )
-                    }
-                    DropdownMenu(expanded = showFadeMenu, onDismissRequest = { showFadeMenu = false }) {
-                        listOf(0, 15, 30, 45, 60).forEach { mins ->
-                            DropdownMenuItem(
-                                text = { Text(if (mins == 0) "Never" else "$mins minutes") },
-                                onClick = {
-                                    viewModel.setSleepSoundFade(mins)
-                                    showFadeMenu = false
-                                }
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = sound.label,
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Text(
+                                text = if (isActive) "Playing" else "Tap to preview",
+                                color = if (isActive) MaterialTheme.colorScheme.primary else TextMuted,
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
                 }
             }
+        }
 
-            if (state.activeSoundResId != 0) {
-                TextButton(onClick = viewModel::stopSound, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text("Stop sound", color = AccentRed, fontSize = 12.sp)
-                }
+        HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
+
+        Text(
+            text = "Fade out after",
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelLarge
+        )
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            listOf(0, 15, 30, 45, 60).forEach { minutes ->
+                FilterChip(
+                    selected = state.sleepSoundFadeMinutes == minutes,
+                    onClick = { viewModel.setSleepSoundFade(minutes) },
+                    label = {
+                        Text(if (minutes == 0) "Never" else "$minutes min")
+                    }
+                )
+            }
+        }
+
+        if (state.activeSoundResId != 0) {
+            TextButton(
+                onClick = viewModel::stopSound,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text("Stop sound", color = TextSecondary)
             }
         }
     }
 }
 
-/**
- * Circular sleep arc showing bedtime-to-wake span on a 12-hour clock face.
- */
+@Composable
+private fun BedtimeMetricCard(
+    title: String,
+    value: String,
+    icon: ImageVector,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
+    Card(
+        modifier = modifier.then(
+            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+        ),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceCard)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                text = title,
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                text = value,
+                color = TextPrimary,
+                style = MaterialTheme.typography.titleSmall,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun SleepCycleOptionRow(index: Int, option: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AppStatusChip(
+            label = "${index + 1}",
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = option,
+            color = TextPrimary,
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
 @Composable
 private fun SleepArc(
     bedtimeHour: Int,
@@ -408,8 +639,6 @@ private fun SleepArc(
 ) {
     val sleepTotalMinutes = sleepHours * 60f + sleepMinutes
     val bedtimeTotalMinutes = bedtimeHour * 60f + bedtimeMinute
-
-    // Convert to 12-hour clock angles (0 = top, clockwise)
     val startAngle = ((bedtimeTotalMinutes % 720f) / 720f) * 360f - 90f
     val sweepAngle = (sleepTotalMinutes / 720f) * 360f
 
@@ -417,33 +646,30 @@ private fun SleepArc(
         val center = Offset(size.width / 2, size.height / 2)
         val radius = size.minDimension / 2 - 20f
 
-        // Background track
         drawCircle(
-            color = SurfaceCard,
+            color = SurfaceCard.copy(alpha = 0.8f),
             radius = radius,
             center = center,
             style = Stroke(width = 12f)
         )
 
-        // Sleep arc
         drawArc(
             brush = Brush.sweepGradient(
-                colors = listOf(BlueLight, AccentBlue, BlueLight),
+                colors = listOf(BlueLight, AccentBlue, SnoozeYellow, BlueLight),
                 center = center
             ),
             startAngle = startAngle,
             sweepAngle = sweepAngle,
             useCenter = false,
-            style = Stroke(width = 14f, cap = StrokeCap.Round)
+            style = Stroke(width = 16f, cap = StrokeCap.Round)
         )
 
-        // 12 hour markers
         for (i in 0 until 12) {
             val angle = (i / 12f) * 2 * PI - PI / 2
             val inner = radius - 16f
             val outer = radius - 6f
             drawLine(
-                color = TextMuted,
+                color = TextMuted.copy(alpha = if (i % 3 == 0) 1f else 0.6f),
                 start = Offset(
                     center.x + (inner * cos(angle)).toFloat(),
                     center.y + (inner * sin(angle)).toFloat()
@@ -456,7 +682,6 @@ private fun SleepArc(
             )
         }
 
-        // Bedtime dot
         val bedAngleRad = (startAngle + 90) * PI / 180
         drawCircle(
             color = BlueLight,
@@ -467,7 +692,6 @@ private fun SleepArc(
             )
         )
 
-        // Wake dot
         val wakeAngleRad = (startAngle + sweepAngle + 90) * PI / 180
         drawCircle(
             color = SnoozeYellow,
