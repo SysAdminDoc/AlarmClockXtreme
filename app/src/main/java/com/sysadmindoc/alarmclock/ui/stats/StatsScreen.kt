@@ -1,32 +1,69 @@
 package com.sysadmindoc.alarmclock.ui.stats
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Snooze
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
-import com.sysadmindoc.alarmclock.ui.theme.*
+import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
+import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
+import com.sysadmindoc.alarmclock.ui.components.AppLoadingCard
+import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
+import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.TextMuted
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.ZoneId
@@ -34,196 +71,346 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun StatsScreen(
+    onNavigateBack: () -> Unit = {},
     viewModel: StatsViewModel = hiltViewModel(),
     is24Hour: Boolean = false
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val stats = state.stats
+    var showClearDialog by remember { mutableStateOf(false) }
+
+    val summaryLine = when {
+        state.isLoading -> "Collecting history and response patterns."
+        state.recentEvents.isEmpty() -> "Your alarm habits will start to appear once you build some history."
+        else -> "Track consistency, snooze behavior, and which mornings are easiest to handle."
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(SurfaceDark),
-        contentPadding = PaddingValues(bottom = 32.dp)
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 40.dp)
     ) {
-        // Header
         item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(HeaderTop, HeaderBottom)))
-                    .padding(horizontal = 20.dp, vertical = 24.dp)
-            ) {
-                Column {
-                    Text("Statistics", style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimary, fontWeight = FontWeight.Bold)
-                    Text("Your alarm habits", color = TextSecondary)
+            AlarmClockHeroHeader(
+                title = "Statistics",
+                subtitle = summaryLine,
+                overline = "Alarm history",
+                badge = {
+                    AppStatusChip(
+                        label = "${stats.currentStreak} day streak",
+                        icon = Icons.Default.LocalFireDepartment,
+                        color = DismissGreen
+                    )
+                    AppStatusChip(
+                        label = "${stats.alarmsThisWeek} this week",
+                        icon = Icons.Default.CalendarMonth
+                    )
+                    if (state.recentEvents.isNotEmpty()) {
+                        AppStatusChip(
+                            label = "${state.recentEvents.size} recent events",
+                            icon = Icons.Default.BarChart,
+                            color = SnoozeYellow
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.Close, contentDescription = "Close statistics", tint = TextMuted)
+                    }
+                }
+            )
+        }
+
+        if (state.isLoading) {
+            items(3) {
+                AppLoadingCard(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    height = 150.dp
+                )
+            }
+        } else {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    StatMiniCard(
+                        label = "Streak",
+                        value = "${stats.currentStreak}d",
+                        color = DismissGreen,
+                        icon = Icons.Default.LocalFireDepartment,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatMiniCard(
+                        label = "This week",
+                        value = "${stats.alarmsThisWeek}",
+                        color = MaterialTheme.colorScheme.primary,
+                        icon = Icons.Default.CalendarMonth,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatMiniCard(
+                        label = "Snoozed",
+                        value = "${stats.snoozeRate}%",
+                        color = SnoozeYellow,
+                        icon = Icons.Default.Snooze,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
-        }
 
-        // Summary cards row
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                StatMiniCard("Streak", "${stats.currentStreak}d", DismissGreen, Icons.Default.LocalFireDepartment, Modifier.weight(1f))
-                StatMiniCard("This Week", "${stats.alarmsThisWeek}", AccentBlue, Icons.Default.DateRange, Modifier.weight(1f))
-                StatMiniCard("Snooze", "${stats.snoozeRate}%", SnoozeYellow, Icons.Default.Snooze, Modifier.weight(1f))
-            }
-        }
-
-        // Response time card
-        item {
-            Spacer(modifier = Modifier.height(12.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Average Wake-Up Time", color = AccentBlue, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
+            item {
+                AppSurfaceCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    AppSectionTitle(
+                        title = "Average wake-up time",
+                        description = "How long it usually takes to dismiss an alarm after it starts."
+                    )
                     Row(verticalAlignment = Alignment.Bottom) {
                         val mins = stats.averageDismissTimeSec / 60
                         val secs = stats.averageDismissTimeSec % 60
                         Text(
-                            if (mins > 0) "${mins}m ${secs}s" else "${secs}s",
-                            fontSize = 36.sp, fontWeight = FontWeight.Light, color = TextPrimary
+                            text = if (mins > 0) "${mins}m ${secs}s" else "${secs}s",
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.headlineLarge
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("to dismiss", color = TextMuted, fontSize = 14.sp,
-                            modifier = Modifier.padding(bottom = 6.dp))
+                        Text(
+                            text = "average response",
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    AppSurfaceCard(modifier = Modifier.weight(1f)) {
+                        AppSectionTitle(
+                            title = "Outcome mix",
+                            description = "How alarms usually resolve."
+                        )
+                        BreakdownRow("Dismissed", stats.totalDismissed, DismissGreen)
+                        BreakdownRow("Snoozed", stats.totalSnoozed, SnoozeYellow)
+                        BreakdownRow("Skipped", stats.totalSkipped, MaterialTheme.colorScheme.primary)
+                        BreakdownRow("Missed", stats.totalMissed, AccentRed)
+                    }
+
+                    AppSurfaceCard(modifier = Modifier.weight(1f)) {
+                        AppSectionTitle(
+                            title = "Busiest day",
+                            description = "Where alarms cluster most often."
+                        )
+                        val busiest = stats.dayOfWeekCounts.maxByOrNull { it.value }
+                        Text(
+                            text = busiest?.key?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "No data",
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                        Text(
+                            text = busiest?.let { "${it.value} alarms recorded" } ?: "Alarm history will fill this in.",
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        val calmest = stats.dayOfWeekAvgResponseSec
+                            .filterValues { it > 0 }
+                            .minByOrNull { it.value }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = calmest?.let {
+                                "Fastest responses: ${it.key.name.lowercase().replaceFirstChar { c -> c.uppercase() }} • ${it.value}s"
+                            } ?: "Need more dismiss history for day-by-day response trends.",
+                            color = TextMuted,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+
+            item {
+                AppSurfaceCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    AppSectionTitle(
+                        title = "Alarms by day",
+                        description = "A quick visual read on which days carry the most alarm load."
+                    )
+                    DayOfWeekChart(
+                        counts = stats.dayOfWeekCounts,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(132.dp)
+                    )
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AppSectionTitle(
+                        title = "Recent history",
+                        description = "The last few alarm outcomes, useful for spotting patterns."
+                    )
+                    if (state.recentEvents.isNotEmpty()) {
+                        OutlinedButton(
+                            onClick = { showClearDialog = true },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
+                        ) {
+                            Icon(Icons.Default.DeleteSweep, null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Clear")
+                        }
+                    }
+                }
+            }
+
+            if (state.recentEvents.isEmpty()) {
+                item {
+                    AppSurfaceCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        AppEmptyState(
+                            icon = Icons.Default.BarChart,
+                            title = "No alarm history yet",
+                            description = "Dismissed, snoozed, skipped, and missed alarms will appear here once the app has something to learn from."
+                        )
+                    }
+                }
+            } else {
+                item {
+                    AppSurfaceCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        state.recentEvents.forEachIndexed { index, event ->
+                            EventRow(event = event, is24Hour = is24Hour)
+                            if (index != state.recentEvents.lastIndex) {
+                                HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
+                            }
+                        }
                     }
                 }
             }
         }
+    }
 
-        // Breakdown card
-        item {
-            Spacer(modifier = Modifier.height(12.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Breakdown", color = AccentBlue, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    BreakdownRow("Dismissed", stats.totalDismissed, DismissGreen)
-                    BreakdownRow("Snoozed", stats.totalSnoozed, SnoozeYellow)
-                    BreakdownRow("Skipped", stats.totalSkipped, AccentBlue)
-                    BreakdownRow("Missed", stats.totalMissed, AccentRed)
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.clearHistory()
+                    showClearDialog = false
+                }) {
+                    Text("Clear history", color = AccentRed)
                 }
-            }
-        }
-
-        // Day of week chart
-        item {
-            Spacer(modifier = Modifier.height(12.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceMedium)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Alarms by Day", color = AccentBlue, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    DayOfWeekChart(stats.dayOfWeekCounts, modifier = Modifier.fillMaxWidth().height(100.dp))
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) {
+                    Text("Cancel", color = TextSecondary)
                 }
-            }
-        }
-
-        // Recent history
-        item {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Recent History",
-                color = TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
-            )
-        }
-
-        if (state.recentEvents.isEmpty()) {
-            item {
+            },
+            title = { Text("Clear alarm history?", color = TextPrimary) },
+            text = {
                 Text(
-                    "No alarm events recorded yet",
-                    color = TextMuted, fontSize = 14.sp,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+                    "This removes recorded alarm outcomes and resets the statistics shown on this screen.",
+                    color = TextSecondary
                 )
-            }
-        } else {
-            items(state.recentEvents) { event ->
-                EventRow(event)
-            }
-        }
+            },
+            containerColor = SurfaceDark
+        )
     }
 }
 
 @Composable
 private fun StatMiniCard(
-    label: String, value: String, color: Color, icon: ImageVector,
+    label: String,
+    value: String,
+    color: Color,
+    icon: ImageVector,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f))
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
-            Text(value, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-            Text(label, fontSize = 11.sp, color = TextMuted)
-        }
+    AppSurfaceCard(modifier = modifier, highlighted = true) {
+        Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
+        Text(value, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+        Text(label, fontSize = 12.sp, color = TextSecondary)
     }
 }
 
 @Composable
 private fun BreakdownRow(label: String, count: Int, color: Color) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
-                .background(color, RoundedCornerShape(4.dp))
+                .size(10.dp)
+                .background(color, RoundedCornerShape(999.dp))
         )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(label, color = TextPrimary, fontSize = 14.sp, modifier = Modifier.weight(1f))
-        Text(count.toString(), color = TextSecondary, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(label, color = TextPrimary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+        Text(count.toString(), color = TextSecondary, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
 private fun DayOfWeekChart(counts: Map<DayOfWeek, Int>, modifier: Modifier = Modifier) {
-    val maxCount = counts.values.maxOrNull() ?: 1
+    val maxCount = counts.values.maxOrNull()?.coerceAtLeast(1) ?: 1
 
     Row(modifier = modifier, verticalAlignment = Alignment.Bottom) {
         DayOfWeek.entries.forEach { day ->
             val count = counts[day] ?: 0
-            val heightRatio = if (maxCount > 0) count.toFloat() / maxCount else 0f
+            val heightRatio = if (count == 0) 0.08f else count.toFloat() / maxCount
 
             Column(
                 modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
             ) {
-                // Bar
+                Text(
+                    text = count.toString(),
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Spacer(modifier = Modifier.height(6.dp))
                 Box(
                     modifier = Modifier
-                        .width(20.dp)
-                        .fillMaxHeight(heightRatio.coerceAtLeast(0.05f))
-                        .background(AccentBlue, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                        .width(24.dp)
+                        .fillMaxHeight(heightRatio)
+                        .background(
+                            color = if (count > 0) MaterialTheme.colorScheme.primary else SurfaceCard,
+                            shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
+                        )
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    day.name.take(1),
-                    fontSize = 10.sp, color = TextMuted
+                    text = day.name.take(3),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
@@ -231,7 +418,7 @@ private fun DayOfWeekChart(counts: Map<DayOfWeek, Int>, modifier: Modifier = Mod
 }
 
 @Composable
-private fun EventRow(event: AlarmEvent, is24Hour: Boolean = false) {
+private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
     val timeStr = remember(event.firedAt, is24Hour) {
         val pattern = if (is24Hour) "MMM d, HH:mm" else "MMM d, h:mm a"
         Instant.ofEpochMilli(event.firedAt)
@@ -239,30 +426,40 @@ private fun EventRow(event: AlarmEvent, is24Hour: Boolean = false) {
             .format(DateTimeFormatter.ofPattern(pattern))
     }
 
-    val (actionIcon, actionColor) = when (event.action) {
-        AlarmEvent.ACTION_DISMISSED -> Icons.Default.CheckCircle to DismissGreen
-        AlarmEvent.ACTION_SNOOZED -> Icons.Default.Snooze to SnoozeYellow
-        AlarmEvent.ACTION_SKIPPED -> Icons.Default.SkipNext to AccentBlue
-        AlarmEvent.ACTION_MISSED -> Icons.Default.ErrorOutline to AccentRed
-        else -> Icons.Default.Alarm to TextMuted
+    val (actionIcon, actionColor, actionLabel) = when (event.action) {
+        AlarmEvent.ACTION_DISMISSED -> Triple(Icons.Default.CheckCircle, DismissGreen, "Dismissed")
+        AlarmEvent.ACTION_SNOOZED -> Triple(Icons.Default.Snooze, SnoozeYellow, "Snoozed")
+        AlarmEvent.ACTION_SKIPPED -> Triple(Icons.Default.SkipNext, MaterialTheme.colorScheme.primary, "Skipped")
+        AlarmEvent.ACTION_MISSED -> Triple(Icons.Default.ErrorOutline, AccentRed, "Missed")
+        else -> Triple(Icons.Default.BarChart, TextMuted, "Alarm event")
     }
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(actionIcon, null, tint = actionColor, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                event.alarmLabel.ifBlank { "Alarm" },
-                color = TextPrimary, fontSize = 14.sp
+                text = event.alarmLabel.ifBlank { "Alarm" },
+                color = TextPrimary,
+                style = MaterialTheme.typography.titleSmall
             )
-            Text(timeStr, color = TextMuted, fontSize = 11.sp)
+            Text(
+                text = "$actionLabel • $timeStr",
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
         if (event.responseTimeMs > 0) {
-            val sec = event.responseTimeMs / 1000
-            Text("${sec}s", color = TextSecondary, fontSize = 12.sp)
+            Text(
+                text = "${event.responseTimeMs / 1000}s",
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }

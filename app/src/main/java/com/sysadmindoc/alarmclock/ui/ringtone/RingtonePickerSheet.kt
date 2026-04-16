@@ -2,27 +2,67 @@ package com.sysadmindoc.alarmclock.ui.ringtone
 
 import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.sysadmindoc.alarmclock.ui.theme.*
+import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
+import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
+import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
+import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
+import com.sysadmindoc.alarmclock.ui.theme.TextMuted
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 
 data class RingtoneItem(
     val title: String,
@@ -31,11 +71,6 @@ data class RingtoneItem(
     val isSilent: Boolean = false
 )
 
-/**
- * Bottom sheet for selecting alarm ringtones.
- * Lists system alarm sounds + "Silent" + "Default" options.
- * Previews sound on tap with a short playback.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RingtonePickerSheet(
@@ -45,23 +80,54 @@ fun RingtonePickerSheet(
 ) {
     val context = LocalContext.current
     val ringtones = remember { loadRingtones(context) }
+    val currentSelection = remember(currentUri, ringtones) {
+        ringtones.firstOrNull { ringtone ->
+            when {
+                ringtone.isSilent -> currentUri == "silent"
+                ringtone.isDefault -> currentUri.isBlank()
+                else -> currentUri == ringtone.uri
+            }
+        }
+    }
+
+    var searchQuery by remember { mutableStateOf("") }
     var playingUri by remember { mutableStateOf<String?>(null) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
-    // Cleanup on dismiss
+    val filteredRingtones = remember(ringtones, searchQuery) {
+        if (searchQuery.isBlank()) {
+            ringtones
+        } else {
+            ringtones.filter { ringtone ->
+                ringtoneSearchText(ringtone).contains(searchQuery.trim(), ignoreCase = true)
+            }
+        }
+    }
+
     DisposableEffect(Unit) {
         onDispose {
             mediaPlayer?.release()
         }
     }
 
-    fun preview(uri: String) {
+    fun stopPreview() {
         mediaPlayer?.release()
-        if (uri.isBlank() || playingUri == uri) {
-            playingUri = null
-            mediaPlayer = null
+        mediaPlayer = null
+        playingUri = null
+    }
+
+    fun preview(uri: String) {
+        if (uri.isBlank()) {
+            stopPreview()
             return
         }
+
+        if (playingUri == uri) {
+            stopPreview()
+            return
+        }
+
+        stopPreview()
 
         try {
             mediaPlayer = MediaPlayer().apply {
@@ -76,62 +142,113 @@ fun RingtonePickerSheet(
                 isLooping = false
                 start()
                 setOnCompletionListener {
-                    playingUri = null
-                    it.release()
+                    stopPreview()
                 }
             }
             playingUri = uri
-        } catch (e: Exception) {
-            playingUri = null
+        } catch (_: Exception) {
+            stopPreview()
         }
     }
 
     ModalBottomSheet(
         onDismissRequest = {
-            mediaPlayer?.release()
+            stopPreview()
             onDismiss()
         },
         containerColor = SurfaceMedium,
         dragHandle = { BottomSheetDefaults.DragHandle(color = TextMuted) }
     ) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-            Text(
-                "Alarm Sound",
-                style = MaterialTheme.typography.titleLarge,
-                color = TextPrimary,
-                modifier = Modifier.padding(bottom = 16.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            AppSectionTitle(
+                title = "Alarm Sound",
+                description = "Preview tones before applying them. Default and silent options stay available at the top."
             )
 
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-                contentPadding = PaddingValues(bottom = 32.dp)
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(ringtones) { ringtone ->
-                    val isSelected = when {
-                        ringtone.isSilent -> currentUri == "silent"
-                        ringtone.isDefault -> currentUri.isBlank()
-                        else -> currentUri == ringtone.uri
-                    }
-                    val isPlaying = playingUri == ringtone.uri
+                AppStatusChip(
+                    label = currentSelection?.title ?: "Default Alarm",
+                    color = MaterialTheme.colorScheme.primary
+                )
+                AppStatusChip(
+                    label = "Tap a tone to preview",
+                    color = TextMuted
+                )
+            }
 
-                    RingtoneRow(
-                        ringtone = ringtone,
-                        isSelected = isSelected,
-                        isPlaying = isPlaying,
-                        onClick = {
-                            if (!ringtone.isSilent) preview(ringtone.uri)
-                        },
-                        onConfirm = {
-                            mediaPlayer?.release()
-                            val selectedUri = when {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted)
+                },
+                placeholder = {
+                    Text("Search alarm sounds", color = TextMuted)
+                },
+                singleLine = true,
+                colors = appOutlinedTextFieldColors()
+            )
+
+            if (filteredRingtones.isEmpty()) {
+                AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "No alarm tones match \"$searchQuery\". Try a simpler search term.",
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
+                    items(
+                        items = filteredRingtones,
+                        key = { ringtone ->
+                            when {
+                                ringtone.isDefault -> "default"
                                 ringtone.isSilent -> "silent"
-                                ringtone.isDefault -> ""
                                 else -> ringtone.uri
                             }
-                            onSelect(selectedUri)
-                            onDismiss()
                         }
-                    )
+                    ) { ringtone ->
+                        val isSelected = when {
+                            ringtone.isSilent -> currentUri == "silent"
+                            ringtone.isDefault -> currentUri.isBlank()
+                            else -> currentUri == ringtone.uri
+                        }
+                        val isPlaying = playingUri == ringtone.uri
+
+                        RingtoneRow(
+                            ringtone = ringtone,
+                            isSelected = isSelected,
+                            isPlaying = isPlaying,
+                            onPreview = {
+                                if (!ringtone.isDefault && !ringtone.isSilent) {
+                                    preview(ringtone.uri)
+                                }
+                            },
+                            onConfirm = {
+                                stopPreview()
+                                val selectedUri = when {
+                                    ringtone.isSilent -> "silent"
+                                    ringtone.isDefault -> ""
+                                    else -> ringtone.uri
+                                }
+                                onSelect(selectedUri)
+                                onDismiss()
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -143,100 +260,169 @@ private fun RingtoneRow(
     ringtone: RingtoneItem,
     isSelected: Boolean,
     isPlaying: Boolean,
-    onClick: () -> Unit,
+    onPreview: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    Card(
+    val accent = when {
+        ringtone.isSilent -> SnoozeYellow
+        ringtone.isDefault -> DismissGreen
+        isSelected || isPlaying -> MaterialTheme.colorScheme.primary
+        ringtone.title.contains("(notification)", ignoreCase = true) -> AccentBlue
+        else -> TextSecondary
+    }
+    val supportsPreview = !ringtone.isDefault && !ringtone.isSilent
+
+    AppSurfaceCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) AccentBlue.copy(alpha = 0.15f) else SurfaceCard
-        )
+            .clickable {
+                if (supportsPreview) onPreview() else onConfirm()
+            },
+        highlighted = isSelected || isPlaying,
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Play/pause icon
-            Icon(
-                imageVector = when {
-                    ringtone.isSilent -> Icons.AutoMirrored.Filled.VolumeOff
-                    isPlaying -> Icons.Default.Pause
-                    else -> Icons.Default.PlayArrow
-                },
-                contentDescription = if (isPlaying) "Pause preview" else "Play preview",
-                tint = if (isSelected) AccentBlue else TextMuted,
-                modifier = Modifier.size(24.dp)
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Title
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    ringtone.title,
-                    color = if (isSelected) AccentBlue else TextPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(accent.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = when {
+                        ringtone.isSilent -> Icons.AutoMirrored.Filled.VolumeOff
+                        isPlaying -> Icons.Default.Stop
+                        ringtone.title.contains("(notification)", ignoreCase = true) -> Icons.Default.Notifications
+                        else -> Icons.AutoMirrored.Filled.VolumeUp
+                    },
+                    contentDescription = null,
+                    tint = accent
                 )
-                if (ringtone.isDefault) {
-                    Text("Device default alarm sound", color = TextMuted, fontSize = 11.sp)
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = ringtone.title,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else TextPrimary,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = ringtoneSubtitle(ringtone, supportsPreview),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    when {
+                        isSelected -> AppStatusChip(
+                            label = "Selected",
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        isPlaying -> AppStatusChip(
+                            label = "Previewing",
+                            color = AccentBlue
+                        )
+                        ringtone.isDefault -> AppStatusChip(
+                            label = "Recommended",
+                            color = DismissGreen
+                        )
+                        ringtone.isSilent -> AppStatusChip(
+                            label = "Quiet mode",
+                            color = SnoozeYellow
+                        )
+                    }
                 }
             }
 
-            // Select button
-            if (isSelected) {
-                Icon(Icons.Default.CheckCircle, null, tint = AccentBlue, modifier = Modifier.size(20.dp))
-            } else {
-                IconButton(onClick = onConfirm) {
-                    Icon(Icons.Default.RadioButtonUnchecked, null, tint = TextMuted, modifier = Modifier.size(20.dp))
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Current alarm sound",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                } else {
+                    TextButton(onClick = onConfirm) {
+                        Text("Use", fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                if (supportsPreview) {
+                    IconButton(onClick = onPreview) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Stop preview" else "Preview sound",
+                            tint = if (isPlaying) MaterialTheme.colorScheme.primary else TextMuted
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(40.dp))
                 }
             }
         }
     }
 }
 
+private fun ringtoneSubtitle(ringtone: RingtoneItem, supportsPreview: Boolean): String = when {
+    ringtone.isDefault -> "Uses your device's current default alarm sound."
+    ringtone.isSilent -> "No audio. Best paired with vibration or other wake effects."
+    supportsPreview -> "Tap to preview, then choose Use when it feels right."
+    else -> "Ready to apply."
+}
+
+private fun ringtoneSearchText(ringtone: RingtoneItem): String = buildString {
+    append(ringtone.title)
+    if (ringtone.isDefault) append(" default recommended")
+    if (ringtone.isSilent) append(" silent quiet")
+}
+
 private fun loadRingtones(context: Context): List<RingtoneItem> {
     val ringtones = mutableListOf<RingtoneItem>()
 
-    // Default option
-    ringtones.add(RingtoneItem("Default Alarm", "", isDefault = true))
+    ringtones += RingtoneItem("Default Alarm", "", isDefault = true)
+    ringtones += RingtoneItem("Silent", "", isSilent = true)
 
-    // Silent option
-    ringtones.add(RingtoneItem("Silent", "", isSilent = true))
-
-    // System alarm ringtones
-    val manager = RingtoneManager(context)
-    manager.setType(RingtoneManager.TYPE_ALARM)
+    val alarmManager = RingtoneManager(context).apply {
+        setType(RingtoneManager.TYPE_ALARM)
+    }
 
     try {
-        val cursor = manager.cursor
+        val cursor = alarmManager.cursor
         while (cursor.moveToNext()) {
             val title = cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX)
-            val uri = manager.getRingtoneUri(cursor.position).toString()
-            ringtones.add(RingtoneItem(title, uri))
+            val uri = alarmManager.getRingtoneUri(cursor.position).toString()
+            ringtones += RingtoneItem(title = title, uri = uri)
         }
-    } catch (_: Exception) { }
+    } catch (_: Exception) {
+    }
 
-    // Also include notification sounds as alternatives
-    val notifManager = RingtoneManager(context)
-    notifManager.setType(RingtoneManager.TYPE_NOTIFICATION)
+    val notificationManager = RingtoneManager(context).apply {
+        setType(RingtoneManager.TYPE_NOTIFICATION)
+    }
 
     try {
-        val cursor = notifManager.cursor
+        val cursor = notificationManager.cursor
         while (cursor.moveToNext()) {
             val title = cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX)
-            val uri = notifManager.getRingtoneUri(cursor.position).toString()
-            // Avoid duplicates
+            val uri = notificationManager.getRingtoneUri(cursor.position).toString()
             if (ringtones.none { it.uri == uri }) {
-                ringtones.add(RingtoneItem("$title (notification)", uri))
+                ringtones += RingtoneItem(title = "$title (notification)", uri = uri)
             }
         }
-    } catch (_: Exception) { }
+    } catch (_: Exception) {
+    }
 
     return ringtones
 }
