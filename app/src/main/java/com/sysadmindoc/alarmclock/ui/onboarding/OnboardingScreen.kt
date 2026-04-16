@@ -167,7 +167,7 @@ fun OnboardingScreen(
                 )
                 if (!isLastPage) {
                     TextButton(onClick = onComplete) {
-                        Text("Skip", color = TextMuted)
+                        Text("Set up later", color = TextMuted)
                     }
                 }
             }
@@ -203,12 +203,23 @@ fun OnboardingScreen(
                 }
 
                 if (isLastPage) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        PermissionChip(Icons.Default.NotificationsActive, "Notifications")
-                        PermissionChip(Icons.Default.CalendarMonth, "Calendar")
-                        PermissionChip(Icons.Default.LocationOn, "Location")
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            PermissionChip(Icons.Default.NotificationsActive, "Notifications")
+                            PermissionChip(Icons.Default.CalendarMonth, "Calendar")
+                            PermissionChip(Icons.Default.LocationOn, "Location")
+                        }
+                        Text(
+                            text = "Recommended for weather, calendar, and dependable alerts. Optional, and easy to change later.",
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
 
@@ -240,15 +251,21 @@ fun OnboardingScreen(
                     shape = RoundedCornerShape(24.dp)
                 ) {
                     Text(
-                        text = if (isLastPage) "Continue with recommended permissions" else "Continue",
+                        text = if (isLastPage) "Enable recommended permissions" else "Continue",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
 
+                if (isLastPage) {
+                    TextButton(onClick = onComplete) {
+                        Text("Continue without permissions", color = TextMuted)
+                    }
+                }
+
                 Text(
                     text = if (isLastPage) {
-                        "You can skip or change any of these permissions later from Settings."
+                        "The app still works without them, and every permission can be revisited later from Settings."
                     } else {
                         "${pagerState.currentPage + 1} of ${onboardingPages.size}"
                     },

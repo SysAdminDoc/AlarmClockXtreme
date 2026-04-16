@@ -45,7 +45,7 @@ data class FiringUiState(
 ) {
     val requiresChallenge: Boolean get() {
         val type = alarm?.challengeType ?: "NONE"
-        return type != "NONE"
+        return challenge != null || alarm?.challengeChain?.isNotBlank() == true || type != "NONE"
     }
     val canDismiss: Boolean get() = !requiresChallenge || challengeSolved
 }
@@ -122,7 +122,8 @@ class AlarmFiringViewModel @Inject constructor(
                 challengeSolved = adaptedChain.isEmpty(),
                 totalChallenges = maxOf(adaptedChain.size, 1),
                 currentChallengeIndex = 0,
-                motivationalQuote = quote
+                motivationalQuote = quote,
+                mazeCurrentPos = (firstChallenge as? Challenge.MazeChallenge)?.startPos ?: 0
             )
         }
     }
@@ -161,7 +162,7 @@ class AlarmFiringViewModel @Inject constructor(
             nfcScanStatus = "",
             barcodeScanStatus = "",
             photoMatchStatus = "",
-            mazeCurrentPos = 0,
+            mazeCurrentPos = (nextChallenge as? Challenge.MazeChallenge)?.startPos ?: 0,
             wifiCurrentSsid = ""
         )
     }

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.CameraAlt
@@ -383,7 +385,7 @@ fun TypingChallengeView(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        ChallengeSupportText("Type the phrase exactly as written, including spaces and punctuation.")
+        ChallengeSupportText("Type the same words and punctuation. Letter case does not matter.")
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -789,7 +791,9 @@ private fun ChallengeSupportText(
         color = accent,
         style = MaterialTheme.typography.bodyMedium,
         textAlign = TextAlign.Center,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
     )
 }
 
@@ -802,6 +806,7 @@ private fun ChallengeNotice(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.22f)),
         colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.12f))
     ) {
         Row(
@@ -833,11 +838,20 @@ private fun ChallengeIconPanel(
 ) {
     Card(
         shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = accent)
+        border = BorderStroke(1.dp, accent.copy(alpha = 0.26f)),
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.12f))
     ) {
         Box(
             modifier = Modifier
                 .size(132.dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.22f),
+                            accent.copy(alpha = 0.08f)
+                        )
+                    )
+                )
                 .padding(20.dp),
             contentAlignment = Alignment.Center,
             content = content
@@ -890,5 +904,13 @@ private fun ChallengeProgressHero(
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center
         )
+
+        if (progress > 0f) {
+            Text(
+                text = "${(progress * 100).toInt()}% complete",
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }

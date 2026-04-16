@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -165,27 +166,68 @@ fun AppSurfaceCard(
     contentPadding: PaddingValues = PaddingValues(20.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val containerColor = if (highlighted) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
+    } else {
+        SurfaceMedium.copy(alpha = 0.98f)
+    }
+
     Card(
         modifier = modifier.animateContentSize(
             animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
         ),
         shape = AppCardShape,
-        border = BorderStroke(1.dp, AppCardBorderColor),
-        colors = CardDefaults.cardColors(
-            containerColor = if (highlighted) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+        border = BorderStroke(
+            1.dp,
+            if (highlighted) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.24f)
             } else {
-                SurfaceMedium.copy(alpha = 0.98f)
+                AppCardBorderColor
             }
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (highlighted) 8.dp else 3.dp
+        ),
+        colors = CardDefaults.cardColors(
+            containerColor = containerColor
         )
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(contentPadding),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-            content = content
-        )
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = if (highlighted) 0.05f else 0.03f),
+                            Color.Transparent
+                        )
+                    )
+                )
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                if (highlighted) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                } else {
+                                    SurfaceLight.copy(alpha = 0.16f)
+                                },
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(contentPadding),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                content = content
+            )
+        }
     }
 }
 
@@ -240,10 +282,13 @@ fun AppStatusChip(
         modifier = modifier,
         shape = AppChipShape,
         color = color.copy(alpha = 0.14f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.22f))
+        border = BorderStroke(1.dp, color.copy(alpha = 0.22f)),
+        tonalElevation = 2.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier
+                .defaultMinSize(minHeight = 34.dp)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -285,7 +330,14 @@ fun AppEmptyState(
             modifier = Modifier
                 .size(88.dp)
                 .clip(CircleShape)
-                .background(accent.copy(alpha = 0.13f)),
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            accent.copy(alpha = 0.22f),
+                            accent.copy(alpha = 0.08f)
+                        )
+                    )
+                ),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -385,6 +437,16 @@ fun appOutlinedTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedLabelColor = MaterialTheme.colorScheme.primary,
     unfocusedLabelColor = TextMuted,
     cursorColor = MaterialTheme.colorScheme.primary,
+    focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+    unfocusedLeadingIconColor = TextMuted,
+    focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+    unfocusedTrailingIconColor = TextMuted,
+    focusedSupportingTextColor = TextSecondary,
+    unfocusedSupportingTextColor = TextMuted,
+    errorBorderColor = MaterialTheme.colorScheme.error,
+    errorCursorColor = MaterialTheme.colorScheme.error,
+    errorLeadingIconColor = MaterialTheme.colorScheme.error,
+    errorTrailingIconColor = MaterialTheme.colorScheme.error,
     focusedContainerColor = SurfaceCard.copy(alpha = 0.6f),
     unfocusedContainerColor = SurfaceCard.copy(alpha = 0.45f),
     focusedPlaceholderColor = TextMuted,
