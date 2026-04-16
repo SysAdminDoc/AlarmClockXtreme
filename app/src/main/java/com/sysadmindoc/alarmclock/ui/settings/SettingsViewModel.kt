@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.backup.BackupManager
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
@@ -69,6 +70,7 @@ class SettingsViewModel @Inject constructor(
             batteryGuidanceTitle = guidance?.title ?: "",
             androidVersion = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
             deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
+            appVersion = BuildConfig.VERSION_NAME,
             webhookTestResult = webhookResult,
             hueTestResult = hueResult
         )

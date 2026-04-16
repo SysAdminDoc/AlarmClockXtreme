@@ -5,25 +5,50 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.CheckCircleOutline
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.sysadmindoc.alarmclock.ui.theme.*
+import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
+import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
+import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
+import com.sysadmindoc.alarmclock.ui.theme.HeaderTop
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.TextMuted
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 
 /**
  * F12: Morning briefing screen shown after alarm dismiss.
  * Receives weather/calendar summary as intent extras and displays a "Good morning" card.
- * Tap anywhere to close.
  */
 class MorningBriefingActivity : ComponentActivity() {
 
@@ -46,7 +71,7 @@ class MorningBriefingActivity : ComponentActivity() {
             @Suppress("DEPRECATION")
             window.addFlags(
                 android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                        android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
+                    android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
             )
         }
 
@@ -57,7 +82,7 @@ class MorningBriefingActivity : ComponentActivity() {
         val routine = intent.getStringExtra(EXTRA_ROUTINE) ?: ""
 
         setContent {
-            com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme {
+            AlarmClockXtremeTheme {
                 MorningBriefingScreen(
                     time = time,
                     date = date,
@@ -80,99 +105,163 @@ fun MorningBriefingScreen(
     morningRoutine: String = "",
     onClose: () -> Unit
 ) {
+    val routineItems = morningRoutine.split("\n").mapNotNull { it.trim().takeIf(String::isNotBlank) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(listOf(HeaderTop, SurfaceDark))
+                Brush.verticalGradient(
+                    colors = listOf(
+                        HeaderTop.copy(alpha = 0.92f),
+                        SurfaceDark
+                    )
+                )
             )
-            .clickable { onClose() },
-        contentAlignment = Alignment.Center
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            SnoozeYellow.copy(alpha = 0.18f),
+                            androidx.compose.ui.graphics.Color.Transparent
+                        )
+                    )
+                )
+        )
+
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(
-                Icons.Default.WbSunny,
-                contentDescription = null,
-                tint = SnoozeYellow,
-                modifier = Modifier.size(64.dp)
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WbSunny,
+                    contentDescription = null,
+                    tint = SnoozeYellow,
+                    modifier = Modifier.size(68.dp)
+                )
+                Text(
+                    text = "Good morning",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                if (time.isNotBlank()) {
+                    Text(
+                        text = time,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.displayLarge
+                    )
+                }
+                if (date.isNotBlank()) {
+                    Text(
+                        text = date,
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
+            }
+
+            AppSurfaceCard(
+                modifier = Modifier.fillMaxWidth(),
+                highlighted = true
+            ) {
+                AppSectionTitle(
+                    title = "Morning briefing",
+                    description = "A quick snapshot so you can start moving with context."
+                )
+                if (weather.isNotBlank()) {
+                    BriefingRow(
+                        icon = Icons.Default.Cloud,
+                        tint = AccentBlue,
+                        text = weather
+                    )
+                }
+                if (nextEvent.isNotBlank()) {
+                    BriefingRow(
+                        icon = Icons.Default.Event,
+                        tint = DismissGreen,
+                        text = nextEvent
+                    )
+                }
+                if (weather.isBlank() && nextEvent.isBlank()) {
+                    Text(
+                        text = "Nothing urgent is queued right now. Enjoy a calmer start to the day.",
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            if (routineItems.isNotEmpty()) {
+                AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                    AppSectionTitle(
+                        title = "Morning routine",
+                        description = "A short checklist to get momentum without decision fatigue."
+                    )
+                    routineItems.forEach { item ->
+                        BriefingRow(
+                            icon = Icons.Default.CheckCircleOutline,
+                            tint = DismissGreen,
+                            text = item
+                        )
+                    }
+                }
+            }
+
+            Button(
+                onClick = onClose,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = DismissGreen)
+            ) {
+                Text(
+                    text = "Start the day",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
 
             Text(
-                "Good Morning",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Light,
-                color = TextPrimary
+                text = "This screen closes intentionally so the transition out of the alarm feels clean.",
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
-
-            if (time.isNotBlank()) {
-                Text(time, fontSize = 56.sp, fontWeight = FontWeight.Thin, color = TextPrimary)
-            }
-
-            if (date.isNotBlank()) {
-                Text(date, fontSize = 16.sp, color = TextSecondary)
-            }
-
-            if (weather.isNotBlank()) {
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCard.copy(alpha = 0.7f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Cloud, null, tint = AccentBlue, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(weather, color = TextPrimary, fontSize = 15.sp)
-                    }
-                }
-            }
-
-            if (nextEvent.isNotBlank()) {
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCard.copy(alpha = 0.7f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Event, null, tint = DismissGreen, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(nextEvent, color = TextPrimary, fontSize = 15.sp)
-                    }
-                }
-            }
-
-            // v1.2.0: Morning routine checklist
-            if (morningRoutine.isNotBlank()) {
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCard.copy(alpha = 0.7f))
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Morning Routine", color = AccentBlue, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        morningRoutine.split("\n").filter { it.isNotBlank() }.forEach { item ->
-                            Row(
-                                modifier = Modifier.padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.CheckBoxOutlineBlank, null, tint = TextMuted, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(item.trim(), color = TextPrimary, fontSize = 14.sp)
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Tap anywhere to continue", color = TextMuted, fontSize = 13.sp)
         }
+    }
+}
+
+@Composable
+private fun BriefingRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: androidx.compose.ui.graphics.Color,
+    text: String
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = text,
+            color = TextPrimary,
+            style = MaterialTheme.typography.bodyLarge
+        )
     }
 }

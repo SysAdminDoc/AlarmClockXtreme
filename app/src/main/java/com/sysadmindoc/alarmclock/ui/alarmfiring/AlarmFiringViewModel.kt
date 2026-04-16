@@ -169,7 +169,7 @@ class AlarmFiringViewModel @Inject constructor(
     // Math challenge - check answer
     fun submitMathAnswer(correct: Boolean) {
         if (correct) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
                 wrongAttempts = _uiState.value.wrongAttempts + 1
@@ -182,7 +182,7 @@ class AlarmFiringViewModel @Inject constructor(
         val challenge = _uiState.value.challenge as? Challenge.ShakeChallenge ?: return
         _uiState.value = _uiState.value.copy(shakeCount = count)
         if (count >= challenge.requiredShakes) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         }
     }
 
@@ -198,7 +198,7 @@ class AlarmFiringViewModel @Inject constructor(
             val newTapped = tapped + index
             _uiState.value = _uiState.value.copy(sequenceTappedIndices = newTapped)
             if (newTapped.size == challenge.numbers.size) {
-                _uiState.value = _uiState.value.copy(challengeSolved = true)
+                proceedToNextChallenge()
             }
         } else {
             // Wrong - reset
@@ -217,7 +217,7 @@ class AlarmFiringViewModel @Inject constructor(
     fun submitTyping() {
         val challenge = _uiState.value.challenge as? Challenge.TypingChallenge ?: return
         if (_uiState.value.typingInput.trim().equals(challenge.phrase, ignoreCase = true)) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
                 wrongAttempts = _uiState.value.wrongAttempts + 1
@@ -230,7 +230,7 @@ class AlarmFiringViewModel @Inject constructor(
         val challenge = _uiState.value.challenge as? Challenge.WalkChallenge ?: return
         _uiState.value = _uiState.value.copy(currentSteps = steps)
         if (steps >= challenge.requiredSteps) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         }
     }
 
@@ -239,11 +239,11 @@ class AlarmFiringViewModel @Inject constructor(
         val challenge = _uiState.value.challenge as? Challenge.NfcChallenge ?: return
         if (challenge.registeredTagId.isBlank()) {
             // No tag registered — skip challenge
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
             return
         }
         if (tagId.equals(challenge.registeredTagId, ignoreCase = true)) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(nfcScanStatus = "Wrong tag — try the registered tag")
         }
@@ -253,11 +253,11 @@ class AlarmFiringViewModel @Inject constructor(
     fun onBarcodeDetected(value: String) {
         val challenge = _uiState.value.challenge as? Challenge.BarcodeChallenge ?: return
         if (challenge.registeredValue.isBlank()) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
             return
         }
         if (value == challenge.registeredValue) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(barcodeScanStatus = "Wrong code — scan the registered barcode")
         }
@@ -280,7 +280,7 @@ class AlarmFiringViewModel @Inject constructor(
 
         _uiState.value = _uiState.value.copy(mazeCurrentPos = cellIndex)
         if (cellIndex == challenge.endPos) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         }
     }
 
@@ -289,9 +289,9 @@ class AlarmFiringViewModel @Inject constructor(
         val challenge = _uiState.value.challenge as? Challenge.WifiChallenge ?: return
         _uiState.value = _uiState.value.copy(wifiCurrentSsid = ssid)
         if (challenge.requiredSsid.isBlank() && ssid.isNotBlank()) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         } else if (ssid == challenge.requiredSsid) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         }
     }
 
@@ -300,7 +300,7 @@ class AlarmFiringViewModel @Inject constructor(
         val challenge = _uiState.value.challenge as? Challenge.SquatChallenge ?: return
         _uiState.value = _uiState.value.copy(squatCount = count)
         if (count >= challenge.requiredSquats) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         }
     }
 
@@ -308,7 +308,7 @@ class AlarmFiringViewModel @Inject constructor(
     fun onPhotoTaken(similarityScore: Float) {
         // Score 0.0–1.0; fire solved if >= 0.65
         if (similarityScore >= 0.65f) {
-            _uiState.value = _uiState.value.copy(challengeSolved = true)
+            proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
                 photoMatchStatus = "Not a match — try again (${(similarityScore * 100).toInt()}% similar)",
@@ -334,7 +334,7 @@ class AlarmFiringViewModel @Inject constructor(
             val newTapped = tapped + index
             _uiState.value = _uiState.value.copy(memoryTappedIndices = newTapped)
             if (newTapped.size == challenge.pattern.size) {
-                _uiState.value = _uiState.value.copy(challengeSolved = true)
+                proceedToNextChallenge()
             }
         } else {
             // Wrong tile - show pattern again and reset
