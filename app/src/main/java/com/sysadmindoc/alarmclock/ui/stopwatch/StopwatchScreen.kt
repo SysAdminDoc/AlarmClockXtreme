@@ -115,7 +115,7 @@ fun StopwatchScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                 AppSectionTitle(

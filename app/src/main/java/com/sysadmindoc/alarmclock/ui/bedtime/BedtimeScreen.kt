@@ -161,7 +161,7 @@ fun BedtimeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Bedtime,
-                            contentDescription = null,
+                            contentDescription = "Bedtime reminder",
                             tint = if (state.isEnabled) DismissGreen else TextMuted,
                             modifier = Modifier.size(24.dp)
                         )
@@ -200,7 +200,7 @@ fun BedtimeScreen(
             AppSurfaceCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 AppSectionTitle(
                     title = "Tonight's sleep window",
@@ -287,7 +287,7 @@ fun BedtimeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Lightbulb,
-                            contentDescription = null,
+                            contentDescription = "Suggestion",
                             tint = DismissGreen,
                             modifier = Modifier.size(22.dp)
                         )
@@ -510,7 +510,7 @@ private fun SleepSoundsSection(
                     ) {
                         Icon(
                             imageVector = sound.icon,
-                            contentDescription = null,
+                            contentDescription = sound.label,
                             tint = if (isActive) MaterialTheme.colorScheme.primary else TextSecondary,
                             modifier = Modifier.size(24.dp)
                         )
@@ -577,7 +577,7 @@ private fun BedtimeMetricCard(
         modifier = modifier.then(
             if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
         ),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceCard)
     ) {
         Column(
@@ -589,7 +589,7 @@ private fun BedtimeMetricCard(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = title,
                 tint = accent,
                 modifier = Modifier.size(22.dp)
             )
