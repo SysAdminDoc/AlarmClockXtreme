@@ -75,45 +75,45 @@ class DashboardViewModel @Inject constructor(
 
     init {
         val today = LocalDate.now()
-        _uiState.value = _uiState.value.copy(
+        _uiState.update { it.copy(
             todayDate = today.format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
-        )
+        ) }
         loadData()
     }
 
     fun loadData() {
         viewModelScope.launch {
             val settings = preferencesManager.getCurrentSettings()
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { it.copy(
                 showWeather = settings.showWeatherOnDashboard,
                 showCalendar = settings.showCalendarOnDashboard
-            )
+            ) }
 
             if (settings.showWeatherOnDashboard) {
                 loadWeather()
             } else {
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { it.copy(
                     weatherLoading = false,
                     weatherError = null,
                     forecast = emptyList()
-                )
+                ) }
             }
 
             if (settings.showCalendarOnDashboard) {
                 loadCalendar()
             } else {
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { it.copy(
                     calendarEvents = emptyList(),
                     calendarError = null,
                     calendarPermissionNeeded = false
-                )
+                ) }
             }
         }
     }
 
     fun loadWeather() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(weatherLoading = true, weatherError = null)
+            _uiState.update { it.copy(weatherLoading = true, weatherError = null) }
 
             val settings = preferencesManager.getCurrentSettings()
             val isCelsius = settings.temperatureUnit == "celsius"
@@ -137,11 +137,11 @@ class DashboardViewModel @Inject constructor(
                 val location = LocationHelper.getLastKnownLocation(context)
 
                 if (location == null) {
-                    _uiState.value = _uiState.value.copy(
+                    _uiState.update { it.copy(
                         weatherLoading = false,
                         hasLocation = false,
                         weatherError = "Tap the location icon to set your city"
-                    )
+                    ) }
                     return@launch
                 }
                 lat = location.latitude
@@ -158,7 +158,7 @@ class DashboardViewModel @Inject constructor(
                     val current = response.current
                     val daily = response.daily
 
-                    _uiState.value = _uiState.value.copy(
+                    _uiState.update { it.copy(
                         weatherLoading = false,
                         hasLocation = true,
                         locationName = locName,
@@ -174,23 +174,23 @@ class DashboardViewModel @Inject constructor(
                         lowTemp = daily?.minTemp?.firstOrNull()?.let { "${it.toInt()}" } ?: "--",
                         precipChance = daily?.precipChance?.firstOrNull()?.let { "${it}%" } ?: "",
                         forecast = buildForecast(daily)
-                    )
+                    ) }
                 }
                 .onFailure { e ->
-                    _uiState.value = _uiState.value.copy(
+                    _uiState.update { it.copy(
                         weatherLoading = false,
                         weatherError = "Weather unavailable"
-                    )
+                    ) }
                 }
         }
     }
 
     fun showLocationPicker() {
-        _uiState.value = _uiState.value.copy(showLocationPicker = true, locationSearchResults = emptyList())
+        _uiState.update { it.copy(showLocationPicker = true, locationSearchResults = emptyList()) }
     }
 
     fun hideLocationPicker() {
-        _uiState.value = _uiState.value.copy(showLocationPicker = false, locationSearchResults = emptyList())
+        _uiState.update { it.copy(showLocationPicker = false, locationSearchResults = emptyList()) }
     }
 
     private var searchJob: kotlinx.coroutines.Job? = null
@@ -199,19 +199,19 @@ class DashboardViewModel @Inject constructor(
         if (query.length < 2) return
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(locationSearching = true)
+            _uiState.update { it.copy(locationSearching = true) }
             kotlinx.coroutines.delay(300) // Debounce 300ms
             try {
                 val response = geocodingApi.search(query)
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { it.copy(
                     locationSearchResults = response.results ?: emptyList(),
                     locationSearching = false
-                )
+                ) }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { it.copy(
                     locationSearchResults = emptyList(),
                     locationSearching = false
-                )
+                ) }
             }
         }
     }
@@ -228,10 +228,10 @@ class DashboardViewModel @Inject constructor(
                     useManualLocation = true
                 )
             }
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { it.copy(
                 showLocationPicker = false,
                 locationSearchResults = emptyList()
-            )
+            ) }
             loadWeather()
         }
     }
@@ -241,10 +241,10 @@ class DashboardViewModel @Inject constructor(
             preferencesManager.update {
                 it.copy(useManualLocation = false, locationName = "")
             }
-            _uiState.value = _uiState.value.copy(
+            _uiState.update { it.copy(
                 showLocationPicker = false,
                 locationSearchResults = emptyList()
-            )
+            ) }
             loadWeather()
         }
     }
@@ -253,21 +253,21 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val result = calendarRepository.getTodayEvents()
             result.onSuccess { events ->
-                _uiState.value = _uiState.value.copy(
+                _uiState.update { it.copy(
                     calendarEvents = events,
                     calendarError = null,
                     calendarPermissionNeeded = false
-                )
+                ) }
             }.onFailure { e ->
                 if (e is SecurityException) {
-                    _uiState.value = _uiState.value.copy(
+                    _uiState.update { it.copy(
                         calendarPermissionNeeded = true,
                         calendarError = "Calendar permission needed"
-                    )
+                    ) }
                 } else {
-                    _uiState.value = _uiState.value.copy(
+                    _uiState.update { it.copy(
                         calendarError = "Unable to load calendar"
-                    )
+                    ) }
                 }
             }
         }

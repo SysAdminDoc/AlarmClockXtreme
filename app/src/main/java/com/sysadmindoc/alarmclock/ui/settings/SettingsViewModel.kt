@@ -29,7 +29,7 @@ data class SettingsUiState(
     // Device info
     val androidVersion: String = "",
     val deviceModel: String = "",
-    val appVersion: String = "0.9.0",
+    val appVersion: String = "",
     // Webhook test result
     val webhookTestResult: String? = null,
     // Hue test result

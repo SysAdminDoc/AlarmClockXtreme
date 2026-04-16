@@ -77,13 +77,19 @@ class AlarmListViewModel @Inject constructor(
             SelectionSnapshot(sel, mode, undo, group)
         }
     ) { alarms, nextAlarm, settings, sort, snap ->
-        val sorted = when (sort) {
-            AlarmSortOrder.TIME -> alarms.sortedBy { it.hour * 60 + it.minute }
-            AlarmSortOrder.CREATED -> alarms.sortedByDescending { it.id }
-            AlarmSortOrder.ENABLED_FIRST -> alarms.sortedByDescending { it.isEnabled }
+        val filtered = if (snap.selectedGroup.isNullOrBlank()) {
+            alarms
+        } else {
+            alarms.filter { it.group == snap.selectedGroup }
         }
 
-        // Extract unique groups
+        val sorted = when (sort) {
+            AlarmSortOrder.TIME -> filtered.sortedBy { it.hour * 60 + it.minute }
+            AlarmSortOrder.CREATED -> filtered.sortedByDescending { it.id }
+            AlarmSortOrder.ENABLED_FIRST -> filtered.sortedByDescending { it.isEnabled }
+        }
+
+        // Extract unique groups from all alarms (not filtered)
         val groups = alarms.map { it.group }.distinct().sorted()
 
         AlarmListUiState(
