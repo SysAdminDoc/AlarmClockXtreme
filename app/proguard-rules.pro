@@ -1,4 +1,4 @@
-# AlarmClockXtreme v0.8.1 ProGuard / R8 Rules
+# AlarmClockXtreme v1.2.0 ProGuard / R8 Rules
 # Validated for: Hilt, Moshi (codegen-only), Retrofit, Room, Glance, Compose
 
 # ===== Room =====
