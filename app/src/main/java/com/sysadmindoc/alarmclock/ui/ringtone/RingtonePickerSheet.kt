@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -189,7 +190,7 @@ fun RingtonePickerSheet(
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted)
+                    Icon(Icons.Default.Search, contentDescription = "Search", tint = TextMuted)
                 },
                 placeholder = {
                     Text("Search alarm sounds", color = TextMuted)
@@ -200,15 +201,15 @@ fun RingtonePickerSheet(
 
             if (filteredRingtones.isEmpty()) {
                 AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "No alarm tones match \"$searchQuery\". Try a simpler search term.",
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodyMedium
+                    AppEmptyState(
+                        icon = Icons.Default.Search,
+                        title = "No matching tones",
+                        description = "Nothing matches \"$searchQuery\". Try a shorter or different term."
                     )
                 }
             } else {
                 LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
                     items(
@@ -300,7 +301,7 @@ private fun RingtoneRow(
                         ringtone.title.contains("(notification)", ignoreCase = true) -> Icons.Default.Notifications
                         else -> Icons.AutoMirrored.Filled.VolumeUp
                     },
-                    contentDescription = null,
+                    contentDescription = ringtone.title,
                     tint = accent
                 )
             }

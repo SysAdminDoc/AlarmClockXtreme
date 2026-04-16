@@ -629,7 +629,7 @@ fun PhotoMatchChallengeView(
             colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
             shape = RoundedCornerShape(18.dp)
         ) {
-            Icon(imageVector = Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(20.dp))
+            Icon(imageVector = Icons.Default.CameraAlt, contentDescription = "Open camera", modifier = Modifier.size(20.dp))
             Text(
                 text = "Open camera",
                 fontSize = 16.sp,
@@ -674,6 +674,23 @@ fun MazeChallengeView(
     onTapCell: (Int) -> Unit
 ) {
     val size = challenge.gridSize
+    var invalidFlashIdx by remember { mutableStateOf(-1) }
+
+    LaunchedEffect(invalidFlashIdx) {
+        if (invalidFlashIdx >= 0) {
+            delay(350)
+            invalidFlashIdx = -1
+        }
+    }
+
+    fun isAdjacent(from: Int, to: Int): Boolean {
+        val fromRow = from / size
+        val fromCol = from % size
+        val toRow = to / size
+        val toCol = to % size
+        return (fromRow == toRow && kotlin.math.abs(fromCol - toCol) == 1) ||
+               (fromCol == toCol && kotlin.math.abs(fromRow - toRow) == 1)
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -699,8 +716,10 @@ fun MazeChallengeView(
                         val isStart = idx == challenge.startPos
                         val isEnd = idx == challenge.endPos
                         val isCurrent = idx == currentPos
+                        val isInvalidFlash = idx == invalidFlashIdx
 
                         val bgColor = when {
+                            isInvalidFlash -> AccentRed.copy(alpha = 0.38f)
                             isWall -> SurfaceDark
                             isCurrent -> AccentBlue
                             isStart -> DismissGreen.copy(alpha = 0.28f)
@@ -713,11 +732,17 @@ fun MazeChallengeView(
                                 .size(52.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(bgColor)
-                                .clickable(enabled = !isWall) { onTapCell(idx) },
+                                .clickable(enabled = !isWall) {
+                                    if (!isAdjacent(currentPos, idx)) {
+                                        invalidFlashIdx = idx
+                                    } else {
+                                        onTapCell(idx)
+                                    }
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             when {
-                                isCurrent -> Icon(Icons.Default.Person, contentDescription = null, tint = TextPrimary, modifier = Modifier.size(22.dp))
+                                isCurrent -> Icon(Icons.Default.Person, contentDescription = "Your position", tint = TextPrimary, modifier = Modifier.size(22.dp))
                                 isStart -> Text("S", color = DismissGreen, fontWeight = FontWeight.Bold)
                                 isEnd -> Text("E", color = AccentRed, fontWeight = FontWeight.Bold)
                             }
@@ -725,6 +750,14 @@ fun MazeChallengeView(
                     }
                 }
             }
+        }
+
+        if (invalidFlashIdx >= 0) {
+            ChallengeNotice(
+                text = "Only adjacent cells are reachable. Tap a neighbor of your current position.",
+                accent = AccentRed,
+                icon = Icons.Default.WarningAmber
+            )
         }
     }
 }
@@ -825,7 +858,8 @@ private fun ChallengeNotice(
             Text(
                 text = text,
                 color = TextPrimary,
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f, fill = false)
             )
         }
     }
@@ -885,7 +919,7 @@ private fun ChallengeProgressHero(
             } else {
                 Icon(
                     imageVector = icon,
-                    contentDescription = null,
+                    contentDescription = statusLabel,
                     tint = accent,
                     modifier = Modifier.size(42.dp)
                 )
