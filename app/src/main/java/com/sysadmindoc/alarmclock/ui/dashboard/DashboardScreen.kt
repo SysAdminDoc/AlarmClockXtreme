@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -552,9 +554,12 @@ private fun LocationPickerDialog(
                     singleLine = true
                 )
 
-                TextButton(
+                OutlinedButton(
                     onClick = onUseDevice,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
                 ) {
                     Icon(Icons.Default.MyLocation, null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.size(8.dp))
@@ -567,13 +572,13 @@ private fun LocationPickerDialog(
                     }
 
                     results.isNotEmpty() -> {
-                        Column(
+                        LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = 280.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            results.take(6).forEach { result ->
+                            items(results.take(6)) { result ->
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -611,6 +616,14 @@ private fun LocationPickerDialog(
                                 }
                             }
                         }
+                    }
+
+                    query.isBlank() -> {
+                        AppEmptyState(
+                            icon = Icons.Default.Search,
+                            title = "Search for a city",
+                            description = "Type at least two characters to find a location, or use your current device location."
+                        )
                     }
 
                     query.length >= 2 -> {

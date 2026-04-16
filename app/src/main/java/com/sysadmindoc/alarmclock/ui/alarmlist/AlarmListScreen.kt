@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AssistChip
@@ -259,6 +260,7 @@ fun AlarmListScreen(
             AlarmHeader(
                 remainingTime = state.remainingTime,
                 hasAlarms = state.nextAlarm != null,
+                alarmCount = state.alarms.size,
                 vacationActive = state.vacationActive,
                 sortLabel = when (state.sortOrder) {
                     AlarmSortOrder.TIME -> "Sort by time"
@@ -412,20 +414,25 @@ fun AlarmListScreen(
 private fun AlarmHeader(
     remainingTime: String,
     hasAlarms: Boolean,
+    alarmCount: Int,
     vacationActive: Boolean,
     sortLabel: String,
     onCycleSort: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
     AlarmClockHeroHeader(
-        title = if (hasAlarms && remainingTime.isNotBlank()) "Next ring in $remainingTime" else "Wake-up lineup",
+        title = if (hasAlarms && remainingTime.isNotBlank()) "Next alarm in $remainingTime" else "Alarm schedule",
         subtitle = if (hasAlarms && remainingTime.isNotBlank()) {
-            "Everything important is visible at a glance, so you can trust what is scheduled next."
+            "Everything important is visible at a glance, so it is easy to trust what rings next."
         } else {
-            "Set alarms, quick timers, and templates from one calm control center."
+            "Create, group, and refine alarms from one calm control center."
         },
         overline = "Alarms",
         badge = {
+            AppStatusChip(
+                label = if (alarmCount == 1) "1 alarm" else "$alarmCount alarms",
+                icon = Icons.Default.Notifications
+            )
             AppStatusChip(
                 label = sortLabel,
                 icon = Icons.AutoMirrored.Filled.Sort
@@ -440,12 +447,12 @@ private fun AlarmHeader(
         },
         actions = {
             TextButton(onClick = onCycleSort) {
-                Icon(Icons.Default.Tune, null, tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.AutoMirrored.Filled.Sort, null, tint = MaterialTheme.colorScheme.primary)
                 Spacer(modifier = Modifier.width(6.dp))
                 Text("Sort", color = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Default.Tune, contentDescription = "Alarm settings", tint = TextMuted)
+                Icon(Icons.Default.Settings, contentDescription = "Alarm settings", tint = TextMuted)
             }
         }
     )
@@ -505,7 +512,7 @@ private fun QuickAlarmRow(onQuickAlarm: (Int) -> Unit) {
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            listOf(10 to "+10 min", 30 to "+30 min", 60 to "+1 hour", 120 to "+2 hours").forEach { (minutes, label) ->
+            listOf(10 to "10 min", 30 to "30 min", 60 to "1 hour", 120 to "2 hours").forEach { (minutes, label) ->
                 AssistChip(
                     onClick = { onQuickAlarm(minutes) },
                     label = { Text(label, color = TextPrimary) },
