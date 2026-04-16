@@ -213,17 +213,52 @@ object ChallengeGenerator {
     private fun generateMaze(): Challenge.MazeChallenge {
         val size = 5
         val totalCells = size * size
-        // Generate random walls (about 30% of cells, excluding start and end)
-        val walls = (1 until totalCells - 1)
-            .shuffled()
-            .take((totalCells * 0.3).toInt())
-            .toSet()
-        return Challenge.MazeChallenge(
-            gridSize = size,
-            walls = walls,
-            startPos = 0,
-            endPos = totalCells - 1
-        )
+        val start = 0
+        val end = totalCells - 1
+
+        // Regenerate until we get a solvable maze
+        while (true) {
+            val walls = (1 until totalCells - 1)
+                .shuffled()
+                .take((totalCells * 0.3).toInt())
+                .toSet()
+
+            if (isMazeSolvable(size, walls, start, end)) {
+                return Challenge.MazeChallenge(
+                    gridSize = size,
+                    walls = walls,
+                    startPos = start,
+                    endPos = end
+                )
+            }
+        }
+    }
+
+    private fun isMazeSolvable(size: Int, walls: Set<Int>, start: Int, end: Int): Boolean {
+        val visited = mutableSetOf(start)
+        val queue = ArrayDeque<Int>()
+        queue.add(start)
+
+        while (queue.isNotEmpty()) {
+            val cell = queue.removeFirst()
+            if (cell == end) return true
+
+            val row = cell / size
+            val col = cell % size
+            val neighbors = listOfNotNull(
+                if (row > 0) cell - size else null,       // up
+                if (row < size - 1) cell + size else null, // down
+                if (col > 0) cell - 1 else null,           // left
+                if (col < size - 1) cell + 1 else null     // right
+            )
+            for (n in neighbors) {
+                if (n !in walls && n !in visited) {
+                    visited.add(n)
+                    queue.add(n)
+                }
+            }
+        }
+        return false
     }
 
     private fun generateChoices(answer: Int): List<Int> {
