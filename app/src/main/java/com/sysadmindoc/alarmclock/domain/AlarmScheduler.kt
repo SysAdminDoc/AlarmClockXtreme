@@ -91,14 +91,7 @@ class AlarmScheduler @Inject constructor(
         repository.updateNextTrigger(alarm.id, triggerTime)
 
         val pendingIntent = createPendingIntent(alarm.id)
-
-        // Show info intent - opens app when user taps the alarm icon in status bar
-        val showIntent = PendingIntent.getActivity(
-            context,
-            alarm.id.toInt(),
-            context.packageManager.getLaunchIntentForPackage(context.packageName),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val showIntent = createShowIntent(alarm.id)
 
         val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showIntent)
         alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
@@ -172,7 +165,11 @@ class AlarmScheduler @Inject constructor(
         if (smartPending != null) alarmManager.cancel(smartPending)
 
         // Cancel Hue sunrise worker if enqueued
-        WorkManager.getInstance(context).cancelUniqueWork("hue_sunrise_$alarmId")
+        val wm = WorkManager.getInstance(context)
+        wm.cancelUniqueWork("hue_sunrise_$alarmId")
+        // Cancel guardian + wake-confirm workers if either is queued for this alarm
+        wm.cancelUniqueWork("guardian_$alarmId")
+        wm.cancelUniqueWork("wake_confirm_$alarmId")
         WidgetUpdater.requestUpdate(context)
     }
 
@@ -188,12 +185,7 @@ class AlarmScheduler @Inject constructor(
         repository.updateNextTrigger(alarm.id, snoozeTime)
 
         val pendingIntent = createPendingIntent(alarm.id)
-        val showIntent = PendingIntent.getActivity(
-            context,
-            alarm.id.toInt(),
-            context.packageManager.getLaunchIntentForPackage(context.packageName),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val showIntent = createShowIntent(alarm.id)
 
         val alarmClockInfo = AlarmManager.AlarmClockInfo(snoozeTime, showIntent)
         alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
@@ -232,12 +224,7 @@ class AlarmScheduler @Inject constructor(
         }
 
         val pendingIntent = createPendingIntent(alarm.id)
-        val showIntent = PendingIntent.getActivity(
-            context,
-            alarm.id.toInt(),
-            context.packageManager.getLaunchIntentForPackage(context.packageName),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val showIntent = createShowIntent(alarm.id)
 
         val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showIntent)
         alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
@@ -277,6 +264,25 @@ class AlarmScheduler @Inject constructor(
             context,
             alarmId.toInt(),
             intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+    }
+
+    /**
+     * The "tap the alarm icon in the status bar" intent used by AlarmClockInfo.
+     * Falls back to an explicit MainActivity launch if the package launch intent
+     * is unavailable (e.g., on devices that strip MAIN/LAUNCHER from system rebuilds).
+     */
+    private fun createShowIntent(alarmId: Long): PendingIntent {
+        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?: Intent().setClassName(
+                context.packageName,
+                "com.sysadmindoc.alarmclock.MainActivity"
+            ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+        return PendingIntent.getActivity(
+            context,
+            alarmId.toInt(),
+            launch,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }

@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.stopwatch
 
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,14 +40,17 @@ class StopwatchViewModel @Inject constructor() : ViewModel() {
     private var accumulatedTime: Long = 0
 
     fun start() {
-        startTime = System.currentTimeMillis()
+        // SystemClock.elapsedRealtime() is monotonic and unaffected by NTP, DST,
+        // or user clock-set actions — wall time would let the stopwatch jump
+        // backwards or forwards mid-run.
+        startTime = SystemClock.elapsedRealtime()
         _uiState.value = _uiState.value.copy(state = StopwatchState.RUNNING)
         startTicker()
     }
 
     fun pause() {
         tickerJob?.cancel()
-        accumulatedTime += System.currentTimeMillis() - startTime
+        accumulatedTime += SystemClock.elapsedRealtime() - startTime
         _uiState.value = _uiState.value.copy(
             state = StopwatchState.PAUSED,
             elapsedMillis = accumulatedTime
@@ -54,7 +58,7 @@ class StopwatchViewModel @Inject constructor() : ViewModel() {
     }
 
     fun resume() {
-        startTime = System.currentTimeMillis()
+        startTime = SystemClock.elapsedRealtime()
         _uiState.value = _uiState.value.copy(state = StopwatchState.RUNNING)
         startTicker()
     }
@@ -103,7 +107,7 @@ class StopwatchViewModel @Inject constructor() : ViewModel() {
         tickerJob?.cancel()
         tickerJob = viewModelScope.launch {
             while (isActive) {
-                val elapsed = accumulatedTime + (System.currentTimeMillis() - startTime)
+                val elapsed = accumulatedTime + (SystemClock.elapsedRealtime() - startTime)
                 _uiState.value = _uiState.value.copy(elapsedMillis = elapsed)
                 delay(16) // ~60fps
             }

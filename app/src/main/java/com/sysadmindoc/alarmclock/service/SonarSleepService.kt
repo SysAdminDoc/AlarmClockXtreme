@@ -132,10 +132,18 @@ class SonarSleepService : Service() {
                 play()
             }
 
-        // Continuously write tone buffer in a loop
+        // Continuously write tone buffer in a loop. Catch any exception from
+        // write() (e.g. AudioTrack released from stopSonarHardware) instead of
+        // letting it bubble up and crash the service.
         scope.launch {
             while (isActive) {
-                audioTrack?.write(samples, 0, samples.size)
+                try {
+                    val track = audioTrack ?: break
+                    val written = track.write(samples, 0, samples.size)
+                    if (written < 0) break
+                } catch (_: Exception) {
+                    break
+                }
             }
         }
     }
@@ -204,9 +212,22 @@ class SonarSleepService : Service() {
     }
 
     private fun stopSonarHardware() {
-        audioTrack?.let { if (it.playState == AudioTrack.PLAYSTATE_PLAYING) it.stop(); it.release() }
+        // Note: previous code relied on `;` inside a single-expression let, which was
+        // brittle. Using explicit blocks + try/catch makes both branches obviously
+        // safe even if the underlying audio resources are already released.
+        audioTrack?.let { track ->
+            try {
+                if (track.playState == AudioTrack.PLAYSTATE_PLAYING) track.stop()
+            } catch (_: Exception) {}
+            try { track.release() } catch (_: Exception) {}
+        }
         audioTrack = null
-        audioRecord?.let { if (it.recordingState == AudioRecord.RECORDSTATE_RECORDING) it.stop(); it.release() }
+        audioRecord?.let { record ->
+            try {
+                if (record.recordingState == AudioRecord.RECORDSTATE_RECORDING) record.stop()
+            } catch (_: Exception) {}
+            try { record.release() } catch (_: Exception) {}
+        }
         audioRecord = null
     }
 

@@ -47,12 +47,14 @@ class HueSunriseWorker @AssistedInject constructor(
         if (!alarm.hueEnabled) return Result.success()
 
         val settings = preferencesManager.getCurrentSettings()
-        val bridgeIp = settings.hueBridgeIp.ifBlank { return Result.failure() }
-        val apiKey = settings.hueApiKey.ifBlank { return Result.failure() }
+        val bridgeIp = sanitiseHost(settings.hueBridgeIp)
+            ?: return Result.failure()
+        val apiKey = sanitiseToken(settings.hueApiKey)
+            ?: return Result.failure()
         val lightIds = settings.hueLightIds
             .split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
+            .map { sanitiseToken(it.trim()) }
+            .filterNotNull()
         if (lightIds.isEmpty()) return Result.failure()
 
         val totalMs = alarm.huePreWakeMinutes * 60_000L
@@ -89,5 +91,28 @@ class HueSunriseWorker @AssistedInject constructor(
         } catch (_: Exception) {
             // Non-fatal: next step will retry
         }
+    }
+
+    /**
+     * The Hue bridge IP is user-entered, so we restrict it to characters legal in
+     * a hostname/IP (digits, letters, dot, dash, optional :port) to prevent path
+     * injection ("../") or scheme smuggling into the URL string.
+     */
+    private fun sanitiseHost(raw: String): String? {
+        val trimmed = raw.trim()
+        if (trimmed.isBlank()) return null
+        val pattern = Regex("^[A-Za-z0-9.\\-]{1,253}(:\\d{1,5})?$")
+        return if (pattern.matches(trimmed)) trimmed else null
+    }
+
+    /**
+     * Hue API keys and light IDs are alphanumeric (Philips spec uses [A-Za-z0-9-]),
+     * so anything else in user-entered values is treated as malformed. Prevents
+     * slashes / spaces / unicode from being concatenated into the URL.
+     */
+    private fun sanitiseToken(raw: String): String? {
+        if (raw.isBlank()) return null
+        val pattern = Regex("^[A-Za-z0-9_\\-]{1,128}$")
+        return if (pattern.matches(raw)) raw else null
     }
 }

@@ -100,6 +100,11 @@ fun AlarmFiringScreen(
     viewModel: AlarmFiringViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // These two prefs gate optional UI surfaces below; collecting them with the
+    // lifecycle keeps the firing screen reactive to a settings toggle made
+    // mid-alarm (rare, but possible if user pulls down quick settings).
+    val showQuotes by viewModel.showMotivationalQuotes.collectAsStateWithLifecycle()
+    val flipToSnoozeEnabled by viewModel.flipToSnoozeEnabled.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val is24Hour = DateFormat.is24HourFormat(context)
     val currentTime by produceState(initialValue = LocalTime.now()) {
@@ -312,24 +317,30 @@ fun AlarmFiringScreen(
                         icon = Icons.Default.Timer,
                         color = SnoozeYellow
                     )
-                    AppStatusChip(
-                        label = "Flip to snooze",
-                        icon = Icons.Default.Snooze,
-                        color = TextMuted
-                    )
-                }
-
-                state.motivationalQuote
-                    .takeIf { it.isNotBlank() }
-                    ?.let { quote ->
-                        Text(
-                            text = quote,
-                            color = TextMuted,
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
+                    // Only advertise flip-to-snooze when the user actually
+                    // enabled the global setting — otherwise the chip lies.
+                    if (flipToSnoozeEnabled) {
+                        AppStatusChip(
+                            label = "Flip to snooze",
+                            icon = Icons.Default.Snooze,
+                            color = TextMuted
                         )
                     }
+                }
+
+                if (showQuotes) {
+                    state.motivationalQuote
+                        .takeIf { it.isNotBlank() }
+                        ?.let { quote ->
+                            Text(
+                                text = quote,
+                                color = TextMuted,
+                                style = MaterialTheme.typography.bodyMedium,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                }
             }
 
             AppSurfaceCard(

@@ -14,11 +14,10 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.*
 import androidx.glance.text.*
 import androidx.glance.unit.ColorProvider
-import androidx.room.Room
+import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.MainActivity
-import com.sysadmindoc.alarmclock.data.local.AlarmDatabase
-import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -29,29 +28,11 @@ import java.time.format.DateTimeFormatter
  * Home screen widget showing next alarm time and countdown.
  * Uses Jetpack Glance for Compose-based widget rendering.
  *
- * Note: Glance widgets cannot use Hilt injection, so we access
- * Room directly here.
+ * Reuses the app's singleton Room database via Hilt's EntryPoint API so the
+ * widget and the rest of the app share one connection (avoids duplicate
+ * SQLite connections that historically caused stale data and corruption risk).
  */
 class NextAlarmWidget : GlanceAppWidget() {
-
-    companion object {
-        @Volatile
-        private var dbInstance: AlarmDatabase? = null
-
-        private fun getDatabase(context: Context): AlarmDatabase {
-            return dbInstance ?: synchronized(this) {
-                dbInstance ?: Room.databaseBuilder(
-                    context.applicationContext,
-                    AlarmDatabase::class.java,
-                    "alarm_clock.db"
-                )
-                    .addMigrations(AlarmDatabase.MIGRATION_1_2, AlarmDatabase.MIGRATION_2_3, AlarmDatabase.MIGRATION_3_4, AlarmDatabase.MIGRATION_4_5, AlarmDatabase.MIGRATION_5_6)
-                    .allowMainThreadQueries()
-                    .build()
-                    .also { dbInstance = it }
-            }
-        }
-    }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val alarmData = withContext(Dispatchers.IO) {
@@ -63,13 +44,16 @@ class NextAlarmWidget : GlanceAppWidget() {
         }
     }
 
-    private fun loadNextAlarm(context: Context): WidgetAlarmData? {
+    private suspend fun loadNextAlarm(context: Context): WidgetAlarmData? {
         return try {
-            val db = getDatabase(context)
-            val alarm = db.alarmDao().getNextAlarmSync()
+            val ep = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                AlarmClockApp.AppEntryPoint::class.java
+            )
+            val alarm = ep.alarmRepository().getNextAlarm()
 
             if (alarm != null && alarm.nextTriggerTime > System.currentTimeMillis()) {
-                val calc = NextAlarmCalculator()
+                val calc = ep.nextAlarmCalculator()
                 val remaining = calc.formatRemaining(alarm.nextTriggerTime)
                 val triggerInstant = Instant.ofEpochMilli(alarm.nextTriggerTime)
                 val localTime = triggerInstant.atZone(ZoneId.systemDefault()).toLocalDateTime()
@@ -83,7 +67,7 @@ class NextAlarmWidget : GlanceAppWidget() {
                     label = alarm.label
                 )
             } else null
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }

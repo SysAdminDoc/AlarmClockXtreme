@@ -232,10 +232,14 @@ class TimerViewModel @Inject constructor(
     }
 
     private fun playFinishSound() {
+        // If audio is already playing for a previous finished timer, don't allocate a
+        // second MediaPlayer — the existing tone covers all simultaneously-finished timers.
+        if (mediaPlayer != null) return
         try {
             val context = getApplication<Application>()
             val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                ?: return
 
             mediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(AudioAttributes.Builder()
@@ -249,16 +253,21 @@ class TimerViewModel @Inject constructor(
                 start()
             }
 
-            vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val vm = context.getSystemService(VibratorManager::class.java)
-                vm.defaultVibrator
-            } else {
-                @Suppress("DEPRECATION")
-                context.getSystemService(Vibrator::class.java)
+            if (vibrator == null) {
+                vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val vm = context.getSystemService(VibratorManager::class.java)
+                    vm?.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.getSystemService(Vibrator::class.java)
+                }
+                val pattern = longArrayOf(0, 500, 500, 500, 500)
+                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
             }
-            val pattern = longArrayOf(0, 500, 500, 500, 500)
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
         } catch (e: Exception) {
+            // Free the partial player on any prepare/start failure to avoid leaking it.
+            try { mediaPlayer?.release() } catch (_: Exception) {}
+            mediaPlayer = null
             e.printStackTrace()
         }
     }
@@ -271,12 +280,14 @@ class TimerViewModel @Inject constructor(
     }
 
     private fun stopAudio() {
-        mediaPlayer?.let {
-            if (it.isPlaying) it.stop()
-            it.release()
-        }
+        try {
+            mediaPlayer?.let {
+                if (it.isPlaying) it.stop()
+                it.release()
+            }
+        } catch (_: Exception) { /* already released */ }
         mediaPlayer = null
-        vibrator?.cancel()
+        try { vibrator?.cancel() } catch (_: Exception) {}
         vibrator = null
     }
 

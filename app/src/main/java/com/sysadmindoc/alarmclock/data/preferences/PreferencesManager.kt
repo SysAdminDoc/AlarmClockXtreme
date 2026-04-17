@@ -2,7 +2,15 @@ package com.sysadmindoc.alarmclock.data.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.core.MutablePreferences
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
@@ -129,143 +137,107 @@ class PreferencesManager @Inject constructor(
             if (e is IOException) emit(emptyPreferences())
             else throw e
         }
-        .map { prefs ->
-            AppSettings(
-                is24HourFormat = prefs[Keys.IS_24_HOUR] ?: false,
-                defaultSnoozeDuration = prefs[Keys.DEFAULT_SNOOZE] ?: 10,
-                defaultGradualVolume = prefs[Keys.DEFAULT_GRADUAL_VOLUME] ?: 60,
-                usePhoneSpeakers = prefs[Keys.USE_PHONE_SPEAKERS] ?: false,
-                showOnLockScreen = prefs[Keys.SHOW_ON_LOCK_SCREEN] ?: true,
-                upcomingAlarmMinutes = prefs[Keys.UPCOMING_ALARM_MINUTES] ?: 60,
-                showNoAlarmsWarning = prefs[Keys.SHOW_NO_ALARMS_WARNING] ?: true,
-                vacationModeEnabled = prefs[Keys.VACATION_ENABLED] ?: false,
-                vacationStartMillis = prefs[Keys.VACATION_START] ?: 0,
-                vacationEndMillis = prefs[Keys.VACATION_END] ?: 0,
-                showWeatherOnDashboard = prefs[Keys.SHOW_WEATHER] ?: true,
-                showCalendarOnDashboard = prefs[Keys.SHOW_CALENDAR] ?: true,
-                lastKnownLatitude = prefs[Keys.LAST_LATITUDE] ?: 0.0,
-                lastKnownLongitude = prefs[Keys.LAST_LONGITUDE] ?: 0.0,
-                autoSilenceMinutes = prefs[Keys.AUTO_SILENCE] ?: 10,
-                temperatureUnit = prefs[Keys.TEMPERATURE_UNIT] ?: "fahrenheit",
-                locationName = prefs[Keys.LOCATION_NAME] ?: "",
-                useManualLocation = prefs[Keys.USE_MANUAL_LOCATION] ?: false,
-                bedtimeEnabled = prefs[Keys.BEDTIME_ENABLED] ?: false,
-                bedtimeHour = prefs[Keys.BEDTIME_HOUR] ?: 23,
-                bedtimeMinute = prefs[Keys.BEDTIME_MINUTE] ?: 0,
-                sleepGoalHours = prefs[Keys.SLEEP_GOAL_HOURS] ?: 8,
-                sleepGoalMinutes = prefs[Keys.SLEEP_GOAL_MINUTES] ?: 0,
-                bedtimeReminderMinutes = prefs[Keys.BEDTIME_REMINDER_MINUTES] ?: 30,
-                flipToSnoozeEnabled = prefs[Keys.FLIP_TO_SNOOZE] ?: false,
-                webhookEnabled = prefs[Keys.WEBHOOK_ENABLED] ?: false,
-                webhookUrl = prefs[Keys.WEBHOOK_URL] ?: "",
-                holidayAutoSkipEnabled = prefs[Keys.HOLIDAY_AUTO_SKIP] ?: false,
-                holidayCountryCode = prefs[Keys.HOLIDAY_COUNTRY_CODE] ?: "",
-                hueBridgeIp = prefs[Keys.HUE_BRIDGE_IP] ?: "",
-                hueApiKey = prefs[Keys.HUE_API_KEY] ?: "",
-                hueLightIds = prefs[Keys.HUE_LIGHT_IDS] ?: "",
-                accentColor = prefs[Keys.ACCENT_COLOR] ?: "#5B9EF4",
-                adaptiveDifficultyEnabled = prefs[Keys.ADAPTIVE_DIFFICULTY] ?: false,
-                calendarAutoAlarmEnabled = prefs[Keys.CALENDAR_AUTO_ALARM] ?: false,
-                calendarAutoAlarmMinutesBefore = prefs[Keys.CALENDAR_AUTO_ALARM_MINUTES] ?: 60,
-                guardianContactName = prefs[Keys.GUARDIAN_CONTACT_NAME] ?: "",
-                guardianContactPhone = prefs[Keys.GUARDIAN_CONTACT_PHONE] ?: "",
-                customTypingPhrases = prefs[Keys.CUSTOM_TYPING_PHRASES] ?: "",
-                nightClockEnabled = prefs[Keys.NIGHT_CLOCK] ?: false,
-                showMotivationalQuotes = prefs[Keys.SHOW_MOTIVATIONAL_QUOTES] ?: true,
-            )
-        }
+        .map { it.toSettings() }
 
-    suspend fun getCurrentSettings(): AppSettings {
-        return settings.first()
-    }
+    suspend fun getCurrentSettings(): AppSettings = settings.first()
 
     suspend fun update(transform: (AppSettings) -> AppSettings) {
         context.dataStore.edit { prefs ->
-            val old = AppSettings(
-                is24HourFormat = prefs[Keys.IS_24_HOUR] ?: false,
-                defaultSnoozeDuration = prefs[Keys.DEFAULT_SNOOZE] ?: 10,
-                defaultGradualVolume = prefs[Keys.DEFAULT_GRADUAL_VOLUME] ?: 60,
-                usePhoneSpeakers = prefs[Keys.USE_PHONE_SPEAKERS] ?: false,
-                showOnLockScreen = prefs[Keys.SHOW_ON_LOCK_SCREEN] ?: true,
-                upcomingAlarmMinutes = prefs[Keys.UPCOMING_ALARM_MINUTES] ?: 60,
-                showNoAlarmsWarning = prefs[Keys.SHOW_NO_ALARMS_WARNING] ?: true,
-                vacationModeEnabled = prefs[Keys.VACATION_ENABLED] ?: false,
-                vacationStartMillis = prefs[Keys.VACATION_START] ?: 0,
-                vacationEndMillis = prefs[Keys.VACATION_END] ?: 0,
-                showWeatherOnDashboard = prefs[Keys.SHOW_WEATHER] ?: true,
-                showCalendarOnDashboard = prefs[Keys.SHOW_CALENDAR] ?: true,
-                lastKnownLatitude = prefs[Keys.LAST_LATITUDE] ?: 0.0,
-                lastKnownLongitude = prefs[Keys.LAST_LONGITUDE] ?: 0.0,
-                autoSilenceMinutes = prefs[Keys.AUTO_SILENCE] ?: 10,
-                temperatureUnit = prefs[Keys.TEMPERATURE_UNIT] ?: "fahrenheit",
-                locationName = prefs[Keys.LOCATION_NAME] ?: "",
-                useManualLocation = prefs[Keys.USE_MANUAL_LOCATION] ?: false,
-                bedtimeEnabled = prefs[Keys.BEDTIME_ENABLED] ?: false,
-                bedtimeHour = prefs[Keys.BEDTIME_HOUR] ?: 23,
-                bedtimeMinute = prefs[Keys.BEDTIME_MINUTE] ?: 0,
-                sleepGoalHours = prefs[Keys.SLEEP_GOAL_HOURS] ?: 8,
-                sleepGoalMinutes = prefs[Keys.SLEEP_GOAL_MINUTES] ?: 0,
-                bedtimeReminderMinutes = prefs[Keys.BEDTIME_REMINDER_MINUTES] ?: 30,
-                flipToSnoozeEnabled = prefs[Keys.FLIP_TO_SNOOZE] ?: false,
-                webhookEnabled = prefs[Keys.WEBHOOK_ENABLED] ?: false,
-                webhookUrl = prefs[Keys.WEBHOOK_URL] ?: "",
-                holidayAutoSkipEnabled = prefs[Keys.HOLIDAY_AUTO_SKIP] ?: false,
-                holidayCountryCode = prefs[Keys.HOLIDAY_COUNTRY_CODE] ?: "",
-                hueBridgeIp = prefs[Keys.HUE_BRIDGE_IP] ?: "",
-                hueApiKey = prefs[Keys.HUE_API_KEY] ?: "",
-                hueLightIds = prefs[Keys.HUE_LIGHT_IDS] ?: "",
-                accentColor = prefs[Keys.ACCENT_COLOR] ?: "#5B9EF4",
-                adaptiveDifficultyEnabled = prefs[Keys.ADAPTIVE_DIFFICULTY] ?: false,
-                calendarAutoAlarmEnabled = prefs[Keys.CALENDAR_AUTO_ALARM] ?: false,
-                calendarAutoAlarmMinutesBefore = prefs[Keys.CALENDAR_AUTO_ALARM_MINUTES] ?: 60,
-                guardianContactName = prefs[Keys.GUARDIAN_CONTACT_NAME] ?: "",
-                guardianContactPhone = prefs[Keys.GUARDIAN_CONTACT_PHONE] ?: "",
-                customTypingPhrases = prefs[Keys.CUSTOM_TYPING_PHRASES] ?: "",
-                nightClockEnabled = prefs[Keys.NIGHT_CLOCK] ?: false,
-                showMotivationalQuotes = prefs[Keys.SHOW_MOTIVATIONAL_QUOTES] ?: true,
-            )
+            val old = prefs.toSettings()
             val new = transform(old)
-            prefs[Keys.IS_24_HOUR] = new.is24HourFormat
-            prefs[Keys.DEFAULT_SNOOZE] = new.defaultSnoozeDuration
-            prefs[Keys.DEFAULT_GRADUAL_VOLUME] = new.defaultGradualVolume
-            prefs[Keys.USE_PHONE_SPEAKERS] = new.usePhoneSpeakers
-            prefs[Keys.SHOW_ON_LOCK_SCREEN] = new.showOnLockScreen
-            prefs[Keys.UPCOMING_ALARM_MINUTES] = new.upcomingAlarmMinutes
-            prefs[Keys.SHOW_NO_ALARMS_WARNING] = new.showNoAlarmsWarning
-            prefs[Keys.VACATION_ENABLED] = new.vacationModeEnabled
-            prefs[Keys.VACATION_START] = new.vacationStartMillis
-            prefs[Keys.VACATION_END] = new.vacationEndMillis
-            prefs[Keys.SHOW_WEATHER] = new.showWeatherOnDashboard
-            prefs[Keys.SHOW_CALENDAR] = new.showCalendarOnDashboard
-            prefs[Keys.LAST_LATITUDE] = new.lastKnownLatitude
-            prefs[Keys.LAST_LONGITUDE] = new.lastKnownLongitude
-            prefs[Keys.AUTO_SILENCE] = new.autoSilenceMinutes
-            prefs[Keys.TEMPERATURE_UNIT] = new.temperatureUnit
-            prefs[Keys.LOCATION_NAME] = new.locationName
-            prefs[Keys.USE_MANUAL_LOCATION] = new.useManualLocation
-            prefs[Keys.BEDTIME_ENABLED] = new.bedtimeEnabled
-            prefs[Keys.BEDTIME_HOUR] = new.bedtimeHour
-            prefs[Keys.BEDTIME_MINUTE] = new.bedtimeMinute
-            prefs[Keys.SLEEP_GOAL_HOURS] = new.sleepGoalHours
-            prefs[Keys.SLEEP_GOAL_MINUTES] = new.sleepGoalMinutes
-            prefs[Keys.BEDTIME_REMINDER_MINUTES] = new.bedtimeReminderMinutes
-            prefs[Keys.FLIP_TO_SNOOZE] = new.flipToSnoozeEnabled
-            prefs[Keys.WEBHOOK_ENABLED] = new.webhookEnabled
-            prefs[Keys.WEBHOOK_URL] = new.webhookUrl
-            prefs[Keys.HOLIDAY_AUTO_SKIP] = new.holidayAutoSkipEnabled
-            prefs[Keys.HOLIDAY_COUNTRY_CODE] = new.holidayCountryCode
-            prefs[Keys.HUE_BRIDGE_IP] = new.hueBridgeIp
-            prefs[Keys.HUE_API_KEY] = new.hueApiKey
-            prefs[Keys.HUE_LIGHT_IDS] = new.hueLightIds
-            prefs[Keys.ACCENT_COLOR] = new.accentColor
-            prefs[Keys.ADAPTIVE_DIFFICULTY] = new.adaptiveDifficultyEnabled
-            prefs[Keys.CALENDAR_AUTO_ALARM] = new.calendarAutoAlarmEnabled
-            prefs[Keys.CALENDAR_AUTO_ALARM_MINUTES] = new.calendarAutoAlarmMinutesBefore
-            prefs[Keys.GUARDIAN_CONTACT_NAME] = new.guardianContactName
-            prefs[Keys.GUARDIAN_CONTACT_PHONE] = new.guardianContactPhone
-            prefs[Keys.CUSTOM_TYPING_PHRASES] = new.customTypingPhrases
-            prefs[Keys.NIGHT_CLOCK] = new.nightClockEnabled
-            prefs[Keys.SHOW_MOTIVATIONAL_QUOTES] = new.showMotivationalQuotes
+            prefs.applySettings(new)
         }
+    }
+
+    /** Decode a Preferences snapshot into an AppSettings using the same defaults
+     *  applied by the data class. Centralised so [settings] and [update] can't
+     *  drift from each other (a previous source of bugs where new fields would
+     *  reset to default during update because only [settings] knew about them). */
+    private fun Preferences.toSettings(): AppSettings = AppSettings(
+        is24HourFormat = this[Keys.IS_24_HOUR] ?: false,
+        defaultSnoozeDuration = this[Keys.DEFAULT_SNOOZE] ?: 10,
+        defaultGradualVolume = this[Keys.DEFAULT_GRADUAL_VOLUME] ?: 60,
+        usePhoneSpeakers = this[Keys.USE_PHONE_SPEAKERS] ?: false,
+        showOnLockScreen = this[Keys.SHOW_ON_LOCK_SCREEN] ?: true,
+        upcomingAlarmMinutes = this[Keys.UPCOMING_ALARM_MINUTES] ?: 60,
+        showNoAlarmsWarning = this[Keys.SHOW_NO_ALARMS_WARNING] ?: true,
+        vacationModeEnabled = this[Keys.VACATION_ENABLED] ?: false,
+        vacationStartMillis = this[Keys.VACATION_START] ?: 0,
+        vacationEndMillis = this[Keys.VACATION_END] ?: 0,
+        showWeatherOnDashboard = this[Keys.SHOW_WEATHER] ?: true,
+        showCalendarOnDashboard = this[Keys.SHOW_CALENDAR] ?: true,
+        lastKnownLatitude = this[Keys.LAST_LATITUDE] ?: 0.0,
+        lastKnownLongitude = this[Keys.LAST_LONGITUDE] ?: 0.0,
+        autoSilenceMinutes = this[Keys.AUTO_SILENCE] ?: 10,
+        temperatureUnit = this[Keys.TEMPERATURE_UNIT] ?: "fahrenheit",
+        locationName = this[Keys.LOCATION_NAME] ?: "",
+        useManualLocation = this[Keys.USE_MANUAL_LOCATION] ?: false,
+        bedtimeEnabled = this[Keys.BEDTIME_ENABLED] ?: false,
+        bedtimeHour = this[Keys.BEDTIME_HOUR] ?: 23,
+        bedtimeMinute = this[Keys.BEDTIME_MINUTE] ?: 0,
+        sleepGoalHours = this[Keys.SLEEP_GOAL_HOURS] ?: 8,
+        sleepGoalMinutes = this[Keys.SLEEP_GOAL_MINUTES] ?: 0,
+        bedtimeReminderMinutes = this[Keys.BEDTIME_REMINDER_MINUTES] ?: 30,
+        flipToSnoozeEnabled = this[Keys.FLIP_TO_SNOOZE] ?: false,
+        webhookEnabled = this[Keys.WEBHOOK_ENABLED] ?: false,
+        webhookUrl = this[Keys.WEBHOOK_URL] ?: "",
+        holidayAutoSkipEnabled = this[Keys.HOLIDAY_AUTO_SKIP] ?: false,
+        holidayCountryCode = this[Keys.HOLIDAY_COUNTRY_CODE] ?: "",
+        hueBridgeIp = this[Keys.HUE_BRIDGE_IP] ?: "",
+        hueApiKey = this[Keys.HUE_API_KEY] ?: "",
+        hueLightIds = this[Keys.HUE_LIGHT_IDS] ?: "",
+        accentColor = this[Keys.ACCENT_COLOR] ?: "#5B9EF4",
+        adaptiveDifficultyEnabled = this[Keys.ADAPTIVE_DIFFICULTY] ?: false,
+        calendarAutoAlarmEnabled = this[Keys.CALENDAR_AUTO_ALARM] ?: false,
+        calendarAutoAlarmMinutesBefore = this[Keys.CALENDAR_AUTO_ALARM_MINUTES] ?: 60,
+        guardianContactName = this[Keys.GUARDIAN_CONTACT_NAME] ?: "",
+        guardianContactPhone = this[Keys.GUARDIAN_CONTACT_PHONE] ?: "",
+        customTypingPhrases = this[Keys.CUSTOM_TYPING_PHRASES] ?: "",
+        nightClockEnabled = this[Keys.NIGHT_CLOCK] ?: false,
+        showMotivationalQuotes = this[Keys.SHOW_MOTIVATIONAL_QUOTES] ?: true,
+    )
+
+    private fun MutablePreferences.applySettings(s: AppSettings) {
+        this[Keys.IS_24_HOUR] = s.is24HourFormat
+        this[Keys.DEFAULT_SNOOZE] = s.defaultSnoozeDuration
+        this[Keys.DEFAULT_GRADUAL_VOLUME] = s.defaultGradualVolume
+        this[Keys.USE_PHONE_SPEAKERS] = s.usePhoneSpeakers
+        this[Keys.SHOW_ON_LOCK_SCREEN] = s.showOnLockScreen
+        this[Keys.UPCOMING_ALARM_MINUTES] = s.upcomingAlarmMinutes
+        this[Keys.SHOW_NO_ALARMS_WARNING] = s.showNoAlarmsWarning
+        this[Keys.VACATION_ENABLED] = s.vacationModeEnabled
+        this[Keys.VACATION_START] = s.vacationStartMillis
+        this[Keys.VACATION_END] = s.vacationEndMillis
+        this[Keys.SHOW_WEATHER] = s.showWeatherOnDashboard
+        this[Keys.SHOW_CALENDAR] = s.showCalendarOnDashboard
+        this[Keys.LAST_LATITUDE] = s.lastKnownLatitude
+        this[Keys.LAST_LONGITUDE] = s.lastKnownLongitude
+        this[Keys.AUTO_SILENCE] = s.autoSilenceMinutes
+        this[Keys.TEMPERATURE_UNIT] = s.temperatureUnit
+        this[Keys.LOCATION_NAME] = s.locationName
+        this[Keys.USE_MANUAL_LOCATION] = s.useManualLocation
+        this[Keys.BEDTIME_ENABLED] = s.bedtimeEnabled
+        this[Keys.BEDTIME_HOUR] = s.bedtimeHour
+        this[Keys.BEDTIME_MINUTE] = s.bedtimeMinute
+        this[Keys.SLEEP_GOAL_HOURS] = s.sleepGoalHours
+        this[Keys.SLEEP_GOAL_MINUTES] = s.sleepGoalMinutes
+        this[Keys.BEDTIME_REMINDER_MINUTES] = s.bedtimeReminderMinutes
+        this[Keys.FLIP_TO_SNOOZE] = s.flipToSnoozeEnabled
+        this[Keys.WEBHOOK_ENABLED] = s.webhookEnabled
+        this[Keys.WEBHOOK_URL] = s.webhookUrl
+        this[Keys.HOLIDAY_AUTO_SKIP] = s.holidayAutoSkipEnabled
+        this[Keys.HOLIDAY_COUNTRY_CODE] = s.holidayCountryCode
+        this[Keys.HUE_BRIDGE_IP] = s.hueBridgeIp
+        this[Keys.HUE_API_KEY] = s.hueApiKey
+        this[Keys.HUE_LIGHT_IDS] = s.hueLightIds
+        this[Keys.ACCENT_COLOR] = s.accentColor
+        this[Keys.ADAPTIVE_DIFFICULTY] = s.adaptiveDifficultyEnabled
+        this[Keys.CALENDAR_AUTO_ALARM] = s.calendarAutoAlarmEnabled
+        this[Keys.CALENDAR_AUTO_ALARM_MINUTES] = s.calendarAutoAlarmMinutesBefore
+        this[Keys.GUARDIAN_CONTACT_NAME] = s.guardianContactName
+        this[Keys.GUARDIAN_CONTACT_PHONE] = s.guardianContactPhone
+        this[Keys.CUSTOM_TYPING_PHRASES] = s.customTypingPhrases
+        this[Keys.NIGHT_CLOCK] = s.nightClockEnabled
+        this[Keys.SHOW_MOTIVATIONAL_QUOTES] = s.showMotivationalQuotes
     }
 }

@@ -1,6 +1,8 @@
 package com.sysadmindoc.alarmclock.ui.worldclock
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -33,20 +35,33 @@ data class WorldClockUiState(
 
 @HiltViewModel
 class WorldClockViewModel @Inject constructor(
+    application: Application,
     private val preferencesManager: PreferencesManager
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private var is24Hour = false
 
     private val _uiState = MutableStateFlow(WorldClockUiState())
     val uiState: StateFlow<WorldClockUiState> = _uiState.asStateFlow()
 
-    private val savedZones = mutableListOf(
-        "America/New_York",
-        "America/Los_Angeles",
-        "Europe/London",
-        "Asia/Tokyo"
-    )
+    /**
+     * Saved zones are persisted in a tiny SharedPreferences string list so that
+     * adding/removing zones survives app restarts. Without this the user-curated
+     * world-clock list reset to defaults every cold-start.
+     */
+    private val prefs = application.getSharedPreferences("world_clock_prefs", Context.MODE_PRIVATE)
+    private val savedZones = mutableListOf<String>().apply {
+        val stored = prefs.getString("zones", null)
+        if (stored.isNullOrBlank()) {
+            addAll(DEFAULT_ZONES)
+        } else {
+            // Filter out any zones the JVM no longer knows about so a stale value
+            // can't crash ZoneId.of() during updateTimes().
+            val available = ZoneId.getAvailableZoneIds()
+            addAll(stored.split('|').filter { it in available })
+            if (isEmpty()) addAll(DEFAULT_ZONES)
+        }
+    }
 
     private val allZones: List<Pair<String, String>> by lazy {
         ZoneId.getAvailableZoneIds()
@@ -62,6 +77,8 @@ class WorldClockViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.settings.collectLatest { settings ->
                 is24Hour = settings.is24HourFormat
+                // Re-render after format toggle so existing rows update immediately.
+                updateTimes()
             }
         }
         viewModelScope.launch {
@@ -77,8 +94,10 @@ class WorldClockViewModel @Inject constructor(
         val localZone = ZoneId.systemDefault()
         val localOffset = now.offset.totalSeconds
 
-        val entries = savedZones.map { zoneId ->
-            val zone = ZoneId.of(zoneId)
+        // Each zone parse is wrapped so a single corrupt persisted entry can't
+        // poison the entire world-clock render.
+        val entries = savedZones.mapNotNull { zoneId ->
+            val zone = runCatching { ZoneId.of(zoneId) }.getOrNull() ?: return@mapNotNull null
             val zdt = now.withZoneSameInstant(zone)
             val offset = zdt.offset.totalSeconds
             val diffHours = (offset - localOffset) / 3600.0
@@ -135,15 +154,37 @@ class WorldClockViewModel @Inject constructor(
     }
 
     fun addZone(zoneId: String) {
+        // Refuse zones the JVM doesn't know — addZone is callable via search
+        // results so this also sanity-checks the search filter output.
+        if (zoneId !in ZoneId.getAvailableZoneIds()) {
+            hideAddDialog()
+            return
+        }
         if (zoneId !in savedZones) {
             savedZones.add(zoneId)
+            persistZones()
             updateTimes()
         }
         hideAddDialog()
     }
 
     fun removeZone(zoneId: String) {
-        savedZones.remove(zoneId)
-        updateTimes()
+        if (savedZones.remove(zoneId)) {
+            persistZones()
+            updateTimes()
+        }
+    }
+
+    private fun persistZones() {
+        prefs.edit().putString("zones", savedZones.joinToString("|")).apply()
+    }
+
+    companion object {
+        private val DEFAULT_ZONES = listOf(
+            "America/New_York",
+            "America/Los_Angeles",
+            "Europe/London",
+            "Asia/Tokyo"
+        )
     }
 }

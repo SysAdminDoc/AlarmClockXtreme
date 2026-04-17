@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Speed
@@ -60,9 +61,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -105,6 +108,7 @@ fun SettingsScreen(
     var showGradualVolumeMenu by remember { mutableStateOf(false) }
     var showAutoSilenceMenu by remember { mutableStateOf(false) }
     var showTemperatureMenu by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -286,6 +290,7 @@ fun SettingsScreen(
             IntegrationsSection(state, viewModel)
             HolidaysSection(state, viewModel)
             PhilipsHueSection(state, viewModel)
+            PersonalizationSection(state, viewModel)
             BackupRestoreSection(viewModel)
 
             AppSectionTitle(
@@ -309,6 +314,18 @@ fun SettingsScreen(
                 title = "Bedtime",
                 description = "Set a sleep goal and keep your routine feeling intentional.",
                 onClick = onNavigateToBedtime
+            )
+            UtilityShortcutCard(
+                icon = Icons.Default.DarkMode,
+                title = "Night clock",
+                description = "Full-screen bedside clock — dim red on black at minimum brightness. Long-press to exit.",
+                onClick = {
+                    val intent = Intent(
+                        context,
+                        com.sysadmindoc.alarmclock.ui.nightclock.NightClockActivity::class.java
+                    )
+                    context.startActivity(intent)
+                }
             )
 
             SettingsGroup(
@@ -714,6 +731,21 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
             singleLine = true
         )
 
+        // Warn if the user pasted a plain-http endpoint — alarm metadata (label,
+        // time) leaks across the network unencrypted otherwise. The Settings hint
+        // takes priority over the test result so it's always visible.
+        val urlLower = state.settings.webhookUrl.trim().lowercase()
+        val plainHttpWarning = state.settings.webhookEnabled &&
+                urlLower.startsWith("http://")
+
+        if (plainHttpWarning) {
+            Text(
+                text = "This URL is plain HTTP. Alarm event payloads will be sent unencrypted — prefer https:// when possible.",
+                color = SnoozeYellow,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -834,6 +866,110 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
                 Icon(Icons.Default.Cloud, null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.size(6.dp))
                 Text("Test")
+            }
+        }
+    }
+}
+
+/**
+ * v1.2.0 personalization controls. Until this audit pass these settings
+ * (`accentColor`, `showMotivationalQuotes`, `adaptiveDifficultyEnabled`,
+ * `customTypingPhrases`) lived in DataStore + the backup payload but had no
+ * UI surface — users couldn't change them.
+ */
+@Composable
+private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+    SettingsGroup(
+        title = "Personalization",
+        description = "Pick the accent color, enable adaptive difficulty, and tune the wake-up screen."
+    ) {
+        AccentColorPicker(
+            currentHex = state.settings.accentColor,
+            onPick = viewModel::updateAccentColor
+        )
+
+        SettingsToggle(
+            label = "Motivational quotes on alarm",
+            checked = state.settings.showMotivationalQuotes,
+            supportingText = "Shows a short quote on the firing screen alongside the time.",
+            onToggle = viewModel::toggleShowMotivationalQuotes
+        )
+        SettingsToggle(
+            label = "Adaptive challenge difficulty",
+            checked = state.settings.adaptiveDifficultyEnabled,
+            supportingText = "Auto-bumps math challenges (Easy → Medium → Hard) when your snooze rate climbs above 50%.",
+            onToggle = viewModel::toggleAdaptiveDifficulty
+        )
+
+        OutlinedTextField(
+            value = state.settings.customTypingPhrases,
+            onValueChange = viewModel::updateCustomTypingPhrases,
+            label = { Text("Custom typing phrases", color = TextMuted) },
+            placeholder = { Text("One phrase per line — appended to the built-in list", color = TextMuted) },
+            colors = appOutlinedTextFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            minLines = 2,
+            maxLines = 6
+        )
+    }
+}
+
+@Composable
+private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
+    // Six-swatch palette covers the most common requests (cool/warm/mono).
+    // Listed in the order users tend to reach for them; the first one is
+    // the historical default so users always have an obvious "reset" path.
+    val palette = listOf(
+        "#5B9EF4" to "Default blue",
+        "#7C5CFF" to "Violet",
+        "#FF6F8A" to "Coral",
+        "#FFB347" to "Amber",
+        "#5BD49A" to "Mint",
+        "#E0E4EA" to "Mono"
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "Accent color",
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleSmall
+        )
+        Text(
+            text = "Used for the primary alarm tint, dashboard chips, and switches.",
+            color = TextSecondary,
+            style = MaterialTheme.typography.bodySmall
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            palette.forEach { (hex, label) ->
+                val isSelected = hex.equals(currentHex, ignoreCase = true)
+                val color = runCatching { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(hex)) }
+                    .getOrDefault(androidx.compose.ui.graphics.Color.Gray)
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(color)
+                        .clickable { onPick(hex) }
+                        .then(
+                            if (isSelected) {
+                                Modifier.border(
+                                    width = 3.dp,
+                                    color = TextPrimary,
+                                    shape = androidx.compose.foundation.shape.CircleShape
+                                )
+                            } else Modifier
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSelected) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "$label selected",
+                            tint = TextPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
         }
     }
