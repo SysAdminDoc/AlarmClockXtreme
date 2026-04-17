@@ -30,10 +30,19 @@ object PhotoMatcher {
         val capturedThumb = Bitmap.createScaledBitmap(captured, THUMB_SIZE, THUMB_SIZE, true)
         val refThumb = Bitmap.createScaledBitmap(refBitmap, THUMB_SIZE, THUMB_SIZE, true)
 
-        val capturedHist = buildHistogram(capturedThumb)
-        val refHist = buildHistogram(refThumb)
-
-        return histogramIntersection(capturedHist, refHist)
+        val score = try {
+            val capturedHist = buildHistogram(capturedThumb)
+            val refHist = buildHistogram(refThumb)
+            histogramIntersection(capturedHist, refHist)
+        } finally {
+            // Free the intermediate thumbs and the loaded reference promptly so
+            // a sequence of failed photo-match attempts doesn't accumulate large
+            // bitmaps in the GC roots.
+            if (capturedThumb !== captured) capturedThumb.recycle()
+            if (refThumb !== refBitmap) refThumb.recycle()
+            refBitmap.recycle()
+        }
+        return score
     }
 
     /**

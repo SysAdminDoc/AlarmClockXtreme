@@ -27,6 +27,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -64,6 +65,14 @@ class AlarmFiringActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         alarmId = intent?.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1) ?: -1
+        // Defensive: if launched without a valid alarm id (rare — only really
+        // possible from a stale full-screen-intent or a third party), get out
+        // immediately rather than rendering broken state. The user will see
+        // the firing notification's actions if the AlarmService is still up.
+        if (alarmId == -1L) {
+            finish()
+            return
+        }
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
 
         // Show on lock screen
@@ -114,13 +123,17 @@ class AlarmFiringActivity : ComponentActivity() {
             }
         }
 
-        // F6: Flip-to-snooze — always active during alarm regardless of challenge
+        // F6: Flip-to-snooze — only register the sensor listener when:
+        //   1) the alarm has loaded, AND
+        //   2) the user has explicitly enabled the global flip-to-snooze setting.
+        // (Previously the detector was registered unconditionally, which both wasted
+        //  battery and could snooze alarms for users who never opted in.)
         lifecycleScope.launch {
-            viewModel.uiState.collectLatest { state ->
-                val settings = state.alarm
-                // Only start if we have loaded the alarm (settings not null)
-                if (settings != null) {
+            viewModel.flipToSnoozeEnabled.collectLatest { enabled ->
+                if (enabled && viewModel.uiState.value.alarm != null) {
                     startFlipDetector()
+                } else {
+                    stopFlipDetector()
                 }
             }
         }
@@ -245,13 +258,13 @@ class AlarmFiringActivity : ComponentActivity() {
         if (wifiPollingJob != null) return
         wifiPollingJob = lifecycleScope.launch {
             val wifiManager = applicationContext.getSystemService(android.net.wifi.WifiManager::class.java)
-            while (true) {
+            while (isActive) {
                 @Suppress("DEPRECATION")
-                val info = wifiManager?.connectionInfo
+                val info = try { wifiManager?.connectionInfo } catch (_: SecurityException) { null }
                 @Suppress("DEPRECATION")
-                val ssid = info?.ssid?.removeSurrounding("\"") ?: ""
-                if (ssid != "<unknown ssid>") {
-                    viewModel.updateWifiSsid(ssid)
+                val rawSsid = info?.ssid?.removeSurrounding("\"") ?: ""
+                if (rawSsid.isNotBlank() && rawSsid != "<unknown ssid>") {
+                    viewModel.updateWifiSsid(rawSsid)
                 }
                 kotlinx.coroutines.delay(2000)
             }

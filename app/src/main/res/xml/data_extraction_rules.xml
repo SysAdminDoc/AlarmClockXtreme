@@ -1,11 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cloud backup / device-transfer rules. The previous configuration only
+  preserved the Room database and SharedPreferences, which silently dropped:
+    - DataStore preferences (alarm_settings.preferences_pb) — vacation mode,
+      holiday config, Philips Hue creds, accent color, every v1.2.0 setting
+    - Photo-match reference photos saved to filesDir
+  After restore the user would have lost most of their configuration despite
+  the system reporting a "successful" backup.
+
+  Crash logs are explicitly excluded — they're large, transient, and contain
+  device fingerprint detail that's irrelevant on the new device.
+-->
 <data-extraction-rules>
     <cloud-backup>
         <include domain="database" path="alarm_clock.db" />
         <include domain="sharedpref" path="." />
+        <!-- DataStore preferences live under <filesDir>/datastore/<name>.preferences_pb -->
+        <include domain="file" path="datastore/" />
+        <!-- Photo-match reference photos used by the F16 challenge -->
+        <include domain="file" path="photo_match_" />
+        <!-- Crash logs are too noisy / device-specific to migrate -->
+        <exclude domain="file" path="crash_logs/" />
     </cloud-backup>
     <device-transfer>
         <include domain="database" path="alarm_clock.db" />
         <include domain="sharedpref" path="." />
+        <include domain="file" path="datastore/" />
+        <include domain="file" path="photo_match_" />
+        <exclude domain="file" path="crash_logs/" />
     </device-transfer>
 </data-extraction-rules>

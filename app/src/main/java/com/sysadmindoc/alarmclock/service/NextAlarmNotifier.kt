@@ -87,8 +87,9 @@ class NextAlarmNotifier @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // v1.2.0: Early dismiss action
-        val skipIntent = Intent(context, com.sysadmindoc.alarmclock.receiver.DismissReceiver::class.java).apply {
+        // v1.2.0: Skip next occurrence action — routes through SkipNextReceiver so it
+        // does NOT trigger the post-fire flow (TTS, morning briefing, wake confirmation).
+        val skipIntent = Intent(context, com.sysadmindoc.alarmclock.receiver.SkipNextReceiver::class.java).apply {
             putExtra(com.sysadmindoc.alarmclock.domain.AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
         }
         val skipPi = PendingIntent.getBroadcast(

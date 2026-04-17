@@ -226,15 +226,18 @@ class AlarmService : Service() {
             startFlashlightStrobe()
         }
 
-        // v1.2.0: Guardian Angel — schedule emergency contact call if not dismissed
+        // v1.2.0: Guardian Angel — schedule emergency contact call if not dismissed.
+        // Floor at 30 s so a misconfigured 0-second delay can't fire the guardian
+        // before the user has any reasonable chance to interact with the alarm.
         if (alarm.guardianEnabled && alarm.guardianPhone.isNotBlank()) {
+            val guardianDelay = alarm.guardianDelaySec.coerceAtLeast(30).toLong()
             val guardianData = workDataOf(
                 "alarm_id" to alarm.id,
                 "guardian_phone" to alarm.guardianPhone,
                 "alarm_label" to alarm.label
             )
             val guardianRequest = OneTimeWorkRequestBuilder<com.sysadmindoc.alarmclock.worker.GuardianWorker>()
-                .setInitialDelay(alarm.guardianDelaySec.toLong(), TimeUnit.SECONDS)
+                .setInitialDelay(guardianDelay, TimeUnit.SECONDS)
                 .setInputData(guardianData)
                 .build()
             WorkManager.getInstance(applicationContext).enqueueUniqueWork(
@@ -296,25 +299,42 @@ class AlarmService : Service() {
         // Silent mode - skip audio entirely
         if (alarm.ringtoneUri == "silent") return
 
-        // F14: Spotify ringtone — open Spotify URI and skip MediaPlayer
-        if (alarm.spotifyUri.isNotBlank()) {
+        // F14: Spotify ringtone — open Spotify URI and skip MediaPlayer.
+        // Only accept canonical Spotify schemes ("spotify:..." or
+        // "https://open.spotify.com/...") so a typo'd setting can't accidentally
+        // open the browser or another deep-linked app at alarm time.
+        val spotifyUri = alarm.spotifyUri.trim()
+        if (spotifyUri.isNotBlank() && (
+                spotifyUri.startsWith("spotify:", ignoreCase = true) ||
+                spotifyUri.startsWith("https://open.spotify.com/", ignoreCase = true)
+            )
+        ) {
             try {
+                val parsed = Uri.parse(spotifyUri)
                 val spotifyIntent = android.content.Intent(
                     android.content.Intent.ACTION_VIEW,
-                    Uri.parse(alarm.spotifyUri)
+                    parsed
                 ).apply {
+                    setPackage("com.spotify.music")
                     addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                     putExtra("android.intent.extra.START_PLAYBACK", true)
                 }
-                startActivity(spotifyIntent)
-                return  // Spotify handles playback; no MediaPlayer needed
+                // Verify Spotify is actually installed before launching; if not,
+                // fall through to the default ringtone path so the alarm still
+                // makes noise instead of silently no-oping.
+                if (spotifyIntent.resolveActivity(packageManager) != null) {
+                    startActivity(spotifyIntent)
+                    return  // Spotify handles playback; no MediaPlayer needed
+                }
             } catch (_: Exception) {
                 // Spotify not installed or URI invalid — fall through to default audio
             }
         }
 
-        // v1.2.0: Internet radio stream
-        if (alarm.internetRadioUrl.isNotBlank()) {
+        // v1.2.0: Internet radio stream. Defensive: only accept http(s) URLs so a
+        // malformed setting can't crash MediaPlayer with an unknown scheme.
+        val radioUrl = alarm.internetRadioUrl.trim()
+        if (radioUrl.isNotBlank() && (radioUrl.startsWith("http://", true) || radioUrl.startsWith("https://", true))) {
             try {
                 mediaPlayer = MediaPlayer().apply {
                     setAudioAttributes(AudioAttributes.Builder()
@@ -322,9 +342,8 @@ class AlarmService : Service() {
                         .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                         .build()
                     )
-                    setDataSource(alarm.internetRadioUrl)
+                    setDataSource(radioUrl)
                     isLooping = false  // Streams don't loop
-                    prepareAsync()
                     setOnPreparedListener { mp ->
                         mp.start()
                         if (alarm.overrideSystemVolume) {
@@ -334,21 +353,44 @@ class AlarmService : Service() {
                             audioManager.setStreamVolume(AudioManager.STREAM_ALARM, targetVol, 0)
                         }
                     }
+                    // Without an OnErrorListener, a stream failure (DNS, 404, codec
+                    // mismatch) results in a silent alarm — fall back to the device
+                    // default ringtone via the standard path below.
+                    setOnErrorListener { mp, _, _ ->
+                        try { mp.release() } catch (_: Exception) {}
+                        if (mediaPlayer === mp) mediaPlayer = null
+                        // Re-enter startAudio without the radio URL so the default
+                        // ringtone path runs. Done on the service scope so the
+                        // OnErrorListener returns immediately.
+                        serviceScope.launch {
+                            startAudio(alarm.copy(internetRadioUrl = ""))
+                        }
+                        true
+                    }
+                    prepareAsync()
                 }
                 return  // Radio handles playback
             } catch (_: Exception) {
                 // Fall through to default audio
+                try { mediaPlayer?.release() } catch (_: Exception) {}
+                mediaPlayer = null
             }
         }
 
         val uri = if (alarm.ringtoneUri.isNotBlank()) {
-            Uri.parse(alarm.ringtoneUri)
+            runCatching { Uri.parse(alarm.ringtoneUri) }.getOrNull()
         } else {
             RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        } ?: run {
+            // Stripped-down AOSP / managed-profile devices may not report any
+            // default ringtone. Don't crash — leave the alarm silent (the
+            // notification + vibration + flashlight still fire) and bail out.
+            return
         }
 
         try {
+            val fadeInMs = alarm.gradualVolumeSeconds * 1000L
             mediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ALARM)
@@ -366,11 +408,13 @@ class AlarmService : Service() {
                     audioManager.setStreamVolume(AudioManager.STREAM_ALARM, targetVol, 0)
                 }
 
-                setVolume(0f, 0f)
+                // For a fade-in we start at 0 so the first sample isn't the loud
+                // attack of the ringtone; otherwise start at full so the user
+                // hears the alarm immediately at the configured level.
+                if (fadeInMs > 0) setVolume(0f, 0f) else setVolume(1f, 1f)
                 start()
             }
 
-            val fadeInMs = alarm.gradualVolumeSeconds * 1000L
             if (fadeInMs > 0) {
                 volumeJob = serviceScope.launch {
                     val steps = 50
@@ -381,8 +425,6 @@ class AlarmService : Service() {
                         mediaPlayer?.setVolume(volume, volume)
                     }
                 }
-            } else {
-                mediaPlayer?.setVolume(1f, 1f)
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -412,12 +454,13 @@ class AlarmService : Service() {
 
     private fun startVibration(alarm: Alarm) {
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vm.defaultVibrator
+            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
-            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
+        // Devices without a vibrator (some tablets, Wear shells, emulators) — skip silently.
+        if (vibrator == null || vibrator?.hasVibrator() != true) return
 
         val (pattern, amplitudes) = when (alarm.vibrationPattern) {
             "gentle" -> longArrayOf(0, 200, 1200, 200, 1200) to intArrayOf(0, 60, 0, 60, 0)
@@ -449,6 +492,13 @@ class AlarmService : Service() {
         stopAlarmPlayback()
         val alarm = repository.getById(alarmId)
         if (alarm != null) {
+            // Snoozing means the user interacted with the alarm, so cancel any pending
+            // Guardian Angel call/SMS — they're plainly awake enough to hit snooze.
+            // The next fire after snooze will re-arm Guardian if still configured.
+            if (alarm.guardianEnabled) {
+                WorkManager.getInstance(applicationContext)
+                    .cancelUniqueWork("guardian_${alarm.id}")
+            }
             currentSnoozeCount++
             if (alarm.maxSnoozeCount > 0 && currentSnoozeCount > alarm.maxSnoozeCount) {
                 // Max snoozes reached - treat as dismiss
@@ -513,6 +563,17 @@ class AlarmService : Service() {
     }
 
     // F11: TTS morning announcement
+    //
+    // Shutdown is driven by [UtteranceProgressListener] (onDone/onError/onStop)
+    // rather than a serviceScope.delay-based timer. The previous approach
+    // relied on a coroutine launched in serviceScope; when the service was
+    // destroyed within 8 s of dismiss (which is the common case — dismiss
+    // immediately stops the service) the cleanup coroutine was cancelled
+    // before it could call `tts.shutdown()`, leaking the TTS engine.
+    //
+    // Hard 30 s safety net is scheduled via the AppContext-bound
+    // ScheduledExecutorService below (independent of serviceScope) so a
+    // pathological TTS backend never holds the engine forever.
     private fun speakMorningAnnouncement(alarm: Alarm) {
         val now = LocalTime.now()
         val h = if (now.hour % 12 == 0) 12 else now.hour % 12
@@ -527,19 +588,40 @@ class AlarmService : Service() {
         val monthName = today.month.name.lowercase().replaceFirstChar { it.uppercase() }
         val text = "It is $h $minStr $amPm. Today is $dayName, $monthName ${today.dayOfMonth}."
 
-        // TTS initialization is async — use OnInitListener to speak only when ready
-        // Use applicationContext to survive service destruction
         val ttsRef = java.util.concurrent.atomic.AtomicReference<TextToSpeech?>()
+        val safetyCancel = java.util.concurrent.atomic.AtomicReference<java.util.concurrent.ScheduledFuture<*>?>()
+        val safetyExecutor = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { r ->
+            Thread(r, "AlarmTtsSafety").apply { isDaemon = true }
+        }
+
+        fun shutdownAll() {
+            try { safetyCancel.getAndSet(null)?.cancel(false) } catch (_: Exception) {}
+            try { ttsRef.getAndSet(null)?.shutdown() } catch (_: Exception) {}
+            try { safetyExecutor.shutdownNow() } catch (_: Exception) {}
+        }
+
         val listener = TextToSpeech.OnInitListener { status ->
-            if (status == TextToSpeech.SUCCESS) {
-                ttsRef.get()?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "morning_announcement")
-                serviceScope.launch {
-                    delay(8000)
-                    try { ttsRef.getAndSet(null)?.shutdown() } catch (_: Exception) {}
-                }
-            } else {
-                try { ttsRef.getAndSet(null)?.shutdown() } catch (_: Exception) {}
+            if (status != TextToSpeech.SUCCESS) {
+                shutdownAll()
+                return@OnInitListener
             }
+            val tts = ttsRef.get() ?: return@OnInitListener
+            tts.setOnUtteranceProgressListener(
+                object : android.speech.tts.UtteranceProgressListener() {
+                    override fun onStart(utteranceId: String?) {}
+                    override fun onDone(utteranceId: String?) { shutdownAll() }
+                    @Deprecated("legacy", ReplaceWith(""))
+                    override fun onError(utteranceId: String?) { shutdownAll() }
+                    override fun onError(utteranceId: String?, errorCode: Int) { shutdownAll() }
+                    override fun onStop(utteranceId: String?, interrupted: Boolean) { shutdownAll() }
+                }
+            )
+            tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "morning_announcement")
+            // Hard cap: even if the TTS engine never reports completion (some
+            // OEM impls swallow callbacks) we won't leak past 30 s.
+            safetyCancel.set(
+                safetyExecutor.schedule({ shutdownAll() }, 30, java.util.concurrent.TimeUnit.SECONDS)
+            )
         }
         ttsRef.set(TextToSpeech(applicationContext, listener))
     }
@@ -561,11 +643,16 @@ class AlarmService : Service() {
         startActivity(intent)
     }
 
-    // F5: Schedule wake confirmation via WorkManager
+    // F5: Schedule wake confirmation via WorkManager. Clamp the configured
+    // delay to a sane minimum so a value of 0 (or a negative one resulting
+    // from a corrupt setting) doesn't fire the worker the same instant we
+    // dismissed — which would race the worker's prompt against the morning
+    // briefing animation.
     private fun scheduleWakeConfirmation(alarm: Alarm) {
+        val delayMinutes = alarm.wakeConfirmDelayMinutes.coerceAtLeast(1).toLong()
         val data = workDataOf(WakeConfirmWorker.KEY_ALARM_ID to alarm.id)
         val request = OneTimeWorkRequestBuilder<WakeConfirmWorker>()
-            .setInitialDelay(alarm.wakeConfirmDelayMinutes.toLong(), TimeUnit.MINUTES)
+            .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
             .setInputData(data)
             .addTag("wake_confirm_${alarm.id}")
             .build()

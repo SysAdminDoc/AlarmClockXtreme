@@ -54,13 +54,25 @@ data class FiringUiState(
 class AlarmFiringViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: AlarmRepository,
-    private val eventRepository: com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
+    private val eventRepository: com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository,
+    private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 ) : ViewModel() {
 
     private val alarmId: Long = savedStateHandle.get<Long>(AlarmScheduler.EXTRA_ALARM_ID) ?: -1
 
     private val _uiState = MutableStateFlow(FiringUiState())
     val uiState: StateFlow<FiringUiState> = _uiState.asStateFlow()
+
+    /** Exposes the global flip-to-snooze preference so the Activity only registers
+     *  the orientation listener when the user has actually opted in. */
+    val flipToSnoozeEnabled: StateFlow<Boolean> = preferencesManager.settings
+        .map { it.flipToSnoozeEnabled }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** Whether the user has opted into motivational quotes on the firing screen. */
+    val showMotivationalQuotes: StateFlow<Boolean> = preferencesManager.settings
+        .map { it.showMotivationalQuotes }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
     // v1.2.0: Challenge chain list built from alarm config
     private var challengeChainTypes: List<ChallengeType> = emptyList()
