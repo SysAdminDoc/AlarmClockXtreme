@@ -75,6 +75,10 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.ShakeChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.SquatChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.TypingChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.WalkChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.CountSheepChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.DateBackwardsChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.SimonSaysChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.StroopChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.WifiChallengeView
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -478,6 +482,42 @@ fun AlarmFiringScreen(
                                 currentSsid = state.wifiCurrentSsid
                             )
                         }
+
+                        challenge is Challenge.CountSheepChallenge -> {
+                            CountSheepChallengeView(
+                                challenge = challenge,
+                                tapped = state.sheepTapped,
+                                wrongTaps = state.sheepWrongTaps,
+                                onSheepTap = viewModel::onSheepTapped,
+                                onGoatTap = viewModel::onGoatTapped
+                            )
+                        }
+
+                        challenge is Challenge.SimonSaysChallenge -> {
+                            SimonSaysChallengeView(
+                                challenge = challenge,
+                                playingIndex = state.simonPlayingIndex,
+                                inputIndices = state.simonInputIndices,
+                                errorFlash = state.simonErrorFlash,
+                                onPadTap = viewModel::onSimonPadTap
+                            )
+                        }
+
+                        challenge is Challenge.DateBackwardsChallenge -> {
+                            DateBackwardsChallengeView(
+                                challenge = challenge,
+                                input = state.dateBackwardsInput,
+                                onInputChange = viewModel::updateDateBackwardsInput,
+                                onSubmit = viewModel::submitDateBackwards
+                            )
+                        }
+
+                        challenge is Challenge.StroopChallenge -> {
+                            StroopChallengeView(
+                                challenge = challenge,
+                                onPick = viewModel::onStroopPick
+                            )
+                        }
                     }
                 }
 
@@ -621,6 +661,10 @@ private fun Challenge?.headline(): String = when (this) {
     is Challenge.SquatChallenge -> "Complete the movement check"
     is Challenge.MazeChallenge -> "Navigate out of the maze"
     is Challenge.WifiChallenge -> "Connect to the right network"
+    is Challenge.CountSheepChallenge -> "Count the sheep"
+    is Challenge.SimonSaysChallenge -> "Play back the pattern"
+    is Challenge.DateBackwardsChallenge -> "Type the date backwards"
+    is Challenge.StroopChallenge -> "Tap the ink color"
 }
 
 private fun Challenge?.supportingText(): String = when (this) {
@@ -637,6 +681,10 @@ private fun Challenge?.supportingText(): String = when (this) {
     is Challenge.SquatChallenge -> "A short movement challenge helps you actually get moving."
     is Challenge.MazeChallenge -> "Stay focused and reach the exit."
     is Challenge.WifiChallenge -> "This alarm clears once you reconnect where you planned."
+    is Challenge.CountSheepChallenge -> "A light-focus wake-up \u2014 tap only the sheep."
+    is Challenge.SimonSaysChallenge -> "Watch the four-color sequence, then repeat it in order."
+    is Challenge.DateBackwardsChallenge -> "Reading + typing cognitive gate \u2014 hard to do half-asleep."
+    is Challenge.StroopChallenge -> "Classic interference test \u2014 pick the ink, ignore the word."
 }
 
 private fun Challenge?.statusDescription(): String = when (this) {
@@ -652,6 +700,10 @@ private fun Challenge?.statusDescription(): String = when (this) {
     is Challenge.SquatChallenge -> "Complete the required number of squats."
     is Challenge.MazeChallenge -> "Find the exit without hitting walls."
     is Challenge.WifiChallenge -> "Reconnect to the required Wi-Fi network."
+    is Challenge.CountSheepChallenge -> "Tap every sheep; avoid the goats."
+    is Challenge.SimonSaysChallenge -> "Wait for playback, then tap the pads in order."
+    is Challenge.DateBackwardsChallenge -> "Type today's date reversed exactly."
+    is Challenge.StroopChallenge -> "Tap the color the word is painted in."
     null -> "Swipe or tap dismiss when you're ready."
 }
 

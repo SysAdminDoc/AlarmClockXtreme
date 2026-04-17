@@ -68,13 +68,20 @@ data class AlarmBackup(
     val wifiDismissSsid: String = "",
     val internetRadioUrl: String = "",
     val flashlightStrobe: Boolean = false,
-    val morningRoutine: String = ""
+    val morningRoutine: String = "",
+    // v1.4.0 fields
+    val hardwareButtonAction: String = "NONE",
+    val dismissAtRingtoneEnd: Boolean = false,
+    val ringtonePool: String = "",
+    // v1.5.0 fields
+    val solarOffsetMinutes: Int = 0,
+    val solarAnchor: String = "SUNRISE"
 )
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 3,
-    val appVersion: String = "1.2.0",
+    val version: Int = 5,
+    val appVersion: String = "1.5.0",
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
     val settings: SettingsBackup?
@@ -117,7 +124,15 @@ data class SettingsBackup(
     val guardianContactPhone: String = "",
     val customTypingPhrases: String = "",
     val nightClockEnabled: Boolean = false,
-    val showMotivationalQuotes: Boolean = true
+    val showMotivationalQuotes: Boolean = true,
+    // v1.4.0 settings
+    val dynamicColorEnabled: Boolean = false,
+    val coverToSnoozeEnabled: Boolean = false,
+    val bedtimeChecklist: String = "",
+    val sleepSoundTimerMinutes: Int = 0,
+    val sleepSoundFadeSeconds: Int = 60,
+    val repeatMissedAlarms: Boolean = true,
+    val napDefaultMinutes: Int = 20
 )
 
 @Singleton
@@ -133,7 +148,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 3
+        const val MAX_SUPPORTED_BACKUP_VERSION = 5
     }
 
     suspend fun export(): String {
@@ -193,7 +208,12 @@ class BackupManager @Inject constructor(
                     wifiDismissSsid = alarm.wifiDismissSsid,
                     internetRadioUrl = alarm.internetRadioUrl,
                     flashlightStrobe = alarm.flashlightStrobe,
-                    morningRoutine = alarm.morningRoutine
+                    morningRoutine = alarm.morningRoutine,
+                    hardwareButtonAction = alarm.hardwareButtonAction,
+                    dismissAtRingtoneEnd = alarm.dismissAtRingtoneEnd,
+                    ringtonePool = alarm.ringtonePool,
+                    solarOffsetMinutes = alarm.solarOffsetMinutes,
+                    solarAnchor = alarm.solarAnchor
                 )
             },
             settings = SettingsBackup(
@@ -230,7 +250,14 @@ class BackupManager @Inject constructor(
                 guardianContactPhone = settings.guardianContactPhone,
                 customTypingPhrases = settings.customTypingPhrases,
                 nightClockEnabled = settings.nightClockEnabled,
-                showMotivationalQuotes = settings.showMotivationalQuotes
+                showMotivationalQuotes = settings.showMotivationalQuotes,
+                dynamicColorEnabled = settings.dynamicColorEnabled,
+                coverToSnoozeEnabled = settings.coverToSnoozeEnabled,
+                bedtimeChecklist = settings.bedtimeChecklist,
+                sleepSoundTimerMinutes = settings.sleepSoundTimerMinutes,
+                sleepSoundFadeSeconds = settings.sleepSoundFadeSeconds,
+                repeatMissedAlarms = settings.repeatMissedAlarms,
+                napDefaultMinutes = settings.napDefaultMinutes
             )
         )
 
@@ -334,7 +361,12 @@ class BackupManager @Inject constructor(
                         wifiDismissSsid = ab.wifiDismissSsid,
                         internetRadioUrl = ab.internetRadioUrl,
                         flashlightStrobe = ab.flashlightStrobe,
-                        morningRoutine = ab.morningRoutine
+                        morningRoutine = ab.morningRoutine,
+                        hardwareButtonAction = ab.hardwareButtonAction,
+                        dismissAtRingtoneEnd = ab.dismissAtRingtoneEnd,
+                        ringtonePool = ab.ringtonePool,
+                        solarOffsetMinutes = ab.solarOffsetMinutes,
+                        solarAnchor = ab.solarAnchor
                     )
                     val id = repository.save(alarm)
                     if (alarm.isEnabled) {
@@ -383,7 +415,14 @@ class BackupManager @Inject constructor(
                         guardianContactPhone = s.guardianContactPhone,
                         customTypingPhrases = s.customTypingPhrases,
                         nightClockEnabled = s.nightClockEnabled,
-                        showMotivationalQuotes = s.showMotivationalQuotes
+                        showMotivationalQuotes = s.showMotivationalQuotes,
+                        dynamicColorEnabled = s.dynamicColorEnabled,
+                        coverToSnoozeEnabled = s.coverToSnoozeEnabled,
+                        bedtimeChecklist = s.bedtimeChecklist,
+                        sleepSoundTimerMinutes = s.sleepSoundTimerMinutes,
+                        sleepSoundFadeSeconds = s.sleepSoundFadeSeconds,
+                        repeatMissedAlarms = s.repeatMissedAlarms,
+                        napDefaultMinutes = s.napDefaultMinutes
                     )
                 }
             }

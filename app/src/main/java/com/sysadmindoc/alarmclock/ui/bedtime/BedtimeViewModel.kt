@@ -38,7 +38,11 @@ data class BedtimeUiState(
     val sleepCycleOptions: List<String> = emptyList(),
     // F10: Sleep sounds
     val activeSoundResId: Int = 0,        // 0 = stopped
-    val sleepSoundFadeMinutes: Int = 30   // 0 = no fade
+    val sleepSoundFadeMinutes: Int = 30,  // Total timer; 0 = no fade
+    val sleepSoundFadeSeconds: Int = 60,  // v1.4.0: length of the final taper
+    // v1.4.0: Pre-sleep checklist (newline-separated wind-down items)
+    val bedtimeChecklist: List<String> = emptyList(),
+    val bedtimeChecklistDone: Set<Int> = emptySet()
 )
 
 @HiltViewModel
@@ -61,6 +65,10 @@ class BedtimeViewModel @Inject constructor(
     private fun loadPersistedState() {
         viewModelScope.launch {
             val settings = preferencesManager.getCurrentSettings()
+            val checklistItems = settings.bedtimeChecklist
+                .split("\n")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
             _uiState.value = BedtimeUiState(
                 isEnabled = settings.bedtimeEnabled,
                 bedtimeHour = settings.bedtimeHour,
@@ -70,7 +78,10 @@ class BedtimeViewModel @Inject constructor(
                 reminderMinutesBefore = settings.bedtimeReminderMinutes,
                 bedtimeFormatted = formatTime(settings.bedtimeHour, settings.bedtimeMinute, settings.is24HourFormat),
                 sleepDurationFormatted = "${settings.sleepGoalHours}h ${settings.sleepGoalMinutes}m",
-                is24HourFormat = settings.is24HourFormat
+                is24HourFormat = settings.is24HourFormat,
+                sleepSoundFadeMinutes = if (settings.sleepSoundTimerMinutes > 0) settings.sleepSoundTimerMinutes else 30,
+                sleepSoundFadeSeconds = settings.sleepSoundFadeSeconds.coerceIn(5, 600),
+                bedtimeChecklist = checklistItems
             )
             refreshAlarmInfo()
         }
@@ -236,10 +247,12 @@ class BedtimeViewModel @Inject constructor(
         alarmManager.cancel(pendingIntent)
     }
 
-    // F10: Sleep sound controls
+    // F10: Sleep sound controls. v1.4.0 — honours the fade-duration setting
+    // so users can choose a slower taper than the previous hard-coded 60s.
     fun playSound(rawResId: Int) {
         val fadeMinutes = _uiState.value.sleepSoundFadeMinutes
-        sleepSoundPlayer.play(rawResId, fadeMinutes)
+        val fadeSeconds = _uiState.value.sleepSoundFadeSeconds
+        sleepSoundPlayer.play(rawResId, fadeMinutes, fadeSeconds)
         _uiState.value = _uiState.value.copy(activeSoundResId = rawResId)
     }
 
@@ -250,6 +263,28 @@ class BedtimeViewModel @Inject constructor(
 
     fun setSleepSoundFade(minutes: Int) {
         _uiState.value = _uiState.value.copy(sleepSoundFadeMinutes = minutes)
+    }
+
+    /** v1.5.0: Seconds-scale final-taper control, exposed directly on the
+     *  Bedtime tab rather than buried in Settings. Persists so the choice
+     *  survives the current sleep session. */
+    fun setSleepSoundFadeSeconds(seconds: Int) {
+        val clamped = seconds.coerceIn(5, 600)
+        _uiState.value = _uiState.value.copy(sleepSoundFadeSeconds = clamped)
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(sleepSoundFadeSeconds = clamped) }
+        }
+    }
+
+    // v1.4.0: Toggle an individual pre-sleep checklist entry.
+    fun toggleChecklistItem(index: Int) {
+        val current = _uiState.value.bedtimeChecklistDone
+        val updated = if (index in current) current - index else current + index
+        _uiState.value = _uiState.value.copy(bedtimeChecklistDone = updated)
+    }
+
+    fun resetChecklist() {
+        _uiState.value = _uiState.value.copy(bedtimeChecklistDone = emptySet())
     }
 
     override fun onCleared() {

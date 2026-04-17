@@ -283,7 +283,10 @@ fun AlarmListScreen(
                     )
                 }
 
-                QuickAlarmRow(onQuickAlarm = viewModel::createQuickAlarm)
+                QuickAlarmRow(
+                    onQuickAlarm = viewModel::createQuickAlarm,
+                    napDefaultMinutes = state.napDefaultMinutes
+                )
 
                 if (state.alarms.size > 3) {
                     AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
@@ -500,7 +503,10 @@ private fun GroupFilterRow(
 }
 
 @Composable
-private fun QuickAlarmRow(onQuickAlarm: (Int) -> Unit) {
+private fun QuickAlarmRow(
+    onQuickAlarm: (Int) -> Unit,
+    napDefaultMinutes: Int = 20
+) {
     AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
         AppSectionTitle(
             title = "Quick alarms",
@@ -517,6 +523,46 @@ private fun QuickAlarmRow(onQuickAlarm: (Int) -> Unit) {
                     onClick = { onQuickAlarm(minutes) },
                     label = { Text(label, color = TextPrimary) },
                     colors = AssistChipDefaults.assistChipColors(containerColor = SurfaceCard),
+                    border = null
+                )
+            }
+        }
+        // v1.4.0 nap row, v1.5.0 pre-selects the user's default.
+        Text(
+            text = "Power nap",
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Always include the user's default nap length, even if it's not
+            // one of the standard chip values, so the setting is honored here.
+            val napOptions = (listOf(15, 20, 25, 45, 90) + napDefaultMinutes)
+                .filter { it > 0 }
+                .distinct()
+                .sorted()
+            napOptions.forEach { minutes ->
+                val isDefault = minutes == napDefaultMinutes
+                AssistChip(
+                    onClick = { onQuickAlarm(minutes) },
+                    label = {
+                        Text(
+                            text = if (isDefault) "$minutes min nap \u2022 default" else "$minutes min nap",
+                            color = TextPrimary
+                        )
+                    },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = if (isDefault) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
+                        } else {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        }
+                    ),
                     border = null
                 )
             }

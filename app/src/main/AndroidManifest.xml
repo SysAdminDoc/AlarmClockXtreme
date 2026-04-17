@@ -226,6 +226,28 @@
             android:exported="false"
             android:theme="@style/Theme.AlarmClockXtreme" />
 
+        <!-- v1.4.0: Quick Settings tile — "Skip next alarm" (tap to skip from shade) -->
+        <service
+            android:name=".service.SkipNextAlarmTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_alarm"
+            android:label="@string/qs_tile_skip_next_alarm"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <!-- v1.4.0: Repeat-missed-alarm handler — fires on screen unlock if the
+             last alarm auto-silenced within the configured window. -->
+        <receiver
+            android:name=".receiver.MissedAlarmUnlockReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.USER_PRESENT" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

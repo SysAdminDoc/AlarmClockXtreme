@@ -108,6 +108,20 @@ class SettingsViewModel @Inject constructor(
     fun updateCustomTypingPhrases(phrases: String) =
         updateSettings { it.copy(customTypingPhrases = phrases) }
 
+    // v1.4.0 personalization + wake-up settings
+    fun toggleDynamicColor(enabled: Boolean) =
+        updateSettings { it.copy(dynamicColorEnabled = enabled) }
+    fun toggleCoverToSnooze(enabled: Boolean) =
+        updateSettings { it.copy(coverToSnoozeEnabled = enabled) }
+    fun toggleRepeatMissed(enabled: Boolean) =
+        updateSettings { it.copy(repeatMissedAlarms = enabled) }
+    fun updateBedtimeChecklist(items: String) =
+        updateSettings { it.copy(bedtimeChecklist = items) }
+    fun updateSleepSoundTimer(minutes: Int) =
+        updateSettings { it.copy(sleepSoundTimerMinutes = minutes.coerceAtLeast(0)) }
+    fun updateSleepSoundFade(seconds: Int) =
+        updateSettings { it.copy(sleepSoundFadeSeconds = seconds.coerceIn(5, 600)) }
+
     fun toggle24Hour(enabled: Boolean) = updateSettings { it.copy(is24HourFormat = enabled) }
     fun togglePhoneSpeakers(enabled: Boolean) = updateSettings { it.copy(usePhoneSpeakers = enabled) }
     fun toggleLockScreen(enabled: Boolean) = updateSettings { it.copy(showOnLockScreen = enabled) }

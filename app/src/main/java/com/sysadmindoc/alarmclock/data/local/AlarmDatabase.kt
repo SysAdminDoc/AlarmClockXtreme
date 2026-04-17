@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 
-@Database(entities = [Alarm::class, AlarmEvent::class], version = 6, exportSchema = true)
+@Database(entities = [Alarm::class, AlarmEvent::class], version = 8, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
@@ -112,6 +112,25 @@ abstract class AlarmDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE alarms ADD COLUMN flashlightStrobe INTEGER NOT NULL DEFAULT 0")
                 // Morning routine
                 db.execSQL("ALTER TABLE alarms ADD COLUMN morningRoutine TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // v1.4.0: Hardware button action (NONE/SNOOZE/DISMISS)
+                db.execSQL("ALTER TABLE alarms ADD COLUMN hardwareButtonAction TEXT NOT NULL DEFAULT 'NONE'")
+                // v1.4.0: Auto-dismiss when the ringtone/track finishes naturally
+                db.execSQL("ALTER TABLE alarms ADD COLUMN dismissAtRingtoneEnd INTEGER NOT NULL DEFAULT 0")
+                // v1.4.0: Random ringtone pool (comma-separated URIs)
+                db.execSQL("ALTER TABLE alarms ADD COLUMN ringtonePool TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // v1.5.0: Sunrise/sunset-relative firing (minutes offset, anchor)
+                db.execSQL("ALTER TABLE alarms ADD COLUMN solarOffsetMinutes INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE alarms ADD COLUMN solarAnchor TEXT NOT NULL DEFAULT 'SUNRISE'")
             }
         }
     }
