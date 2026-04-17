@@ -1,24 +1,36 @@
 package com.sysadmindoc.alarmclock.domain
 
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.util.SolarCalculator
+import kotlinx.coroutines.runBlocking
 import java.time.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class NextAlarmCalculator @Inject constructor() {
+class NextAlarmCalculator @Inject constructor(
+    private val preferencesManager: PreferencesManager
+) {
 
     /**
      * Calculate the next trigger time in epoch millis for an alarm.
      * If alarm has repeat days, finds the next matching day.
      * If no repeat days, schedules for today if time hasn't passed, otherwise tomorrow.
+     *
+     * v1.5.0: When [Alarm.solarOffsetMinutes] is non-zero, the fixed clock
+     * time is overridden with `sunrise-or-sunset + offset` at the user's
+     * last known location. Falls back to the clock time if no location is
+     * known or the location hits a polar day/night.
      */
     fun calculate(alarm: Alarm, fromTime: ZonedDateTime = ZonedDateTime.now()): Long {
         // v1.2.0: Date-specific alarm overrides repeat days
         if (alarm.specificDate.isNotBlank()) {
             try {
                 val specificDate = java.time.LocalDate.parse(alarm.specificDate)
-                val specificDateTime = ZonedDateTime.of(specificDate, LocalTime.of(alarm.hour, alarm.minute), fromTime.zone)
+                val specificTime = solarTimeFor(alarm, specificDate, fromTime.zone)
+                    ?: LocalTime.of(alarm.hour, alarm.minute)
+                val specificDateTime = ZonedDateTime.of(specificDate, specificTime, fromTime.zone)
                 if (specificDateTime.isAfter(fromTime)) {
                     return specificDateTime.toInstant().toEpochMilli()
                 }
@@ -26,24 +38,33 @@ class NextAlarmCalculator @Inject constructor() {
             } catch (_: Exception) { /* Invalid date format, fall through */ }
         }
 
-        val alarmTime = LocalTime.of(alarm.hour, alarm.minute)
         val today = fromTime.toLocalDate()
-        val todayAlarmDateTime = ZonedDateTime.of(today, alarmTime, fromTime.zone)
+        val todayTime = solarTimeFor(alarm, today, fromTime.zone)
+            ?: LocalTime.of(alarm.hour, alarm.minute)
+        val todayAlarmDateTime = ZonedDateTime.of(today, todayTime, fromTime.zone)
 
         if (alarm.repeatDays.isEmpty()) {
             // One-shot alarm: today if in future, otherwise tomorrow
             return if (todayAlarmDateTime.isAfter(fromTime)) {
                 todayAlarmDateTime.toInstant().toEpochMilli()
             } else {
-                todayAlarmDateTime.plusDays(1).toInstant().toEpochMilli()
+                val tomorrow = today.plusDays(1)
+                val tomorrowTime = solarTimeFor(alarm, tomorrow, fromTime.zone)
+                    ?: LocalTime.of(alarm.hour, alarm.minute)
+                ZonedDateTime.of(tomorrow, tomorrowTime, fromTime.zone)
+                    .toInstant().toEpochMilli()
             }
         }
 
-        // Repeating alarm: find next matching day
+        // Repeating alarm: find next matching day (solar time is recomputed per day
+        // because sunrise/sunset drifts by minutes across the week).
         for (daysAhead in 0L..7L) {
-            val candidate = todayAlarmDateTime.plusDays(daysAhead)
-            val dayOfWeek = candidate.dayOfWeek
+            val candidateDate = today.plusDays(daysAhead)
+            val dayOfWeek = candidateDate.dayOfWeek
             if (dayOfWeek in alarm.repeatDays) {
+                val candidateTime = solarTimeFor(alarm, candidateDate, fromTime.zone)
+                    ?: LocalTime.of(alarm.hour, alarm.minute)
+                val candidate = ZonedDateTime.of(candidateDate, candidateTime, fromTime.zone)
                 if (daysAhead == 0L && !candidate.isAfter(fromTime)) {
                     continue  // Today's time already passed
                 }
@@ -53,6 +74,30 @@ class NextAlarmCalculator @Inject constructor() {
 
         // Fallback (shouldn't reach here with valid repeatDays)
         return todayAlarmDateTime.plusDays(1).toInstant().toEpochMilli()
+    }
+
+    /**
+     * Returns the solar-adjusted LocalTime for the alarm on [date], or null
+     * if the alarm isn't using solar offset (caller should fall back to the
+     * fixed hour/minute).
+     */
+    private fun solarTimeFor(alarm: Alarm, date: LocalDate, zone: ZoneId): LocalTime? {
+        if (alarm.solarOffsetMinutes == 0) return null
+
+        val settings = runBlocking { preferencesManager.getCurrentSettings() }
+        val lat = settings.lastKnownLatitude
+        val lng = settings.lastKnownLongitude
+        // No location yet — refuse to silently use an arbitrary one. Fall back
+        // to the clock time so the alarm still fires where the user expects.
+        if (lat == 0.0 && lng == 0.0) return null
+
+        val anchor = if (alarm.solarAnchor.equals("SUNSET", ignoreCase = true)) {
+            SolarCalculator.sunset(date, lat, lng, zone)
+        } else {
+            SolarCalculator.sunrise(date, lat, lng, zone)
+        } ?: return null
+
+        return anchor.plusMinutes(alarm.solarOffsetMinutes.toLong())
     }
 
     /**

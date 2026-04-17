@@ -41,7 +41,16 @@ data class FiringUiState(
     // v1.2.0: Maze challenge
     val mazeCurrentPos: Int = 0,
     // v1.2.0: Wi-Fi challenge
-    val wifiCurrentSsid: String = ""
+    val wifiCurrentSsid: String = "",
+    // v1.4.0: Count-the-Sheep challenge
+    val sheepTapped: Int = 0,
+    val sheepWrongTaps: Int = 0,
+    // v1.5.0: Simon-says state
+    val simonPlayingIndex: Int = -1,       // -1 = idle; otherwise the lit pad
+    val simonInputIndices: List<Int> = emptyList(),
+    val simonErrorFlash: Boolean = false,
+    // v1.5.0: Date-backwards input buffer
+    val dateBackwardsInput: String = ""
 ) {
     val requiresChallenge: Boolean get() {
         val type = alarm?.challengeType ?: "NONE"
@@ -73,6 +82,11 @@ class AlarmFiringViewModel @Inject constructor(
     val showMotivationalQuotes: StateFlow<Boolean> = preferencesManager.settings
         .map { it.showMotivationalQuotes }
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+
+    /** v1.4.0: Whether "cover the phone" snooze is enabled globally. */
+    val coverToSnoozeEnabled: StateFlow<Boolean> = preferencesManager.settings
+        .map { it.coverToSnoozeEnabled }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     // v1.2.0: Challenge chain list built from alarm config
     private var challengeChainTypes: List<ChallengeType> = emptyList()
@@ -137,6 +151,10 @@ class AlarmFiringViewModel @Inject constructor(
                 motivationalQuote = quote,
                 mazeCurrentPos = (firstChallenge as? Challenge.MazeChallenge)?.startPos ?: 0
             )
+            // Start Simon sequence playback when Simon is the very first challenge.
+            if (firstChallenge is Challenge.SimonSaysChallenge) {
+                playSimonSequence(firstChallenge)
+            }
         }
     }
 
@@ -175,8 +193,18 @@ class AlarmFiringViewModel @Inject constructor(
             barcodeScanStatus = "",
             photoMatchStatus = "",
             mazeCurrentPos = (nextChallenge as? Challenge.MazeChallenge)?.startPos ?: 0,
-            wifiCurrentSsid = ""
+            wifiCurrentSsid = "",
+            sheepTapped = 0,
+            sheepWrongTaps = 0,
+            simonPlayingIndex = -1,
+            simonInputIndices = emptyList(),
+            simonErrorFlash = false,
+            dateBackwardsInput = ""
         )
+        // Kick off Simon playback whenever the new challenge is Simon-says.
+        if (nextChallenge is Challenge.SimonSaysChallenge) {
+            playSimonSequence(nextChallenge)
+        }
     }
 
     // Math challenge - check answer
@@ -315,6 +343,93 @@ class AlarmFiringViewModel @Inject constructor(
         if (count >= challenge.requiredSquats) {
             proceedToNextChallenge()
         }
+    }
+
+    // v1.5.0: Simon-says — play the sequence then accept taps
+    private var simonJob: kotlinx.coroutines.Job? = null
+    private fun playSimonSequence(challenge: Challenge.SimonSaysChallenge) {
+        simonJob?.cancel()
+        simonJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(500)
+            for (idx in challenge.sequence) {
+                _uiState.value = _uiState.value.copy(simonPlayingIndex = idx)
+                kotlinx.coroutines.delay(challenge.showDurationMs)
+                _uiState.value = _uiState.value.copy(simonPlayingIndex = -1)
+                kotlinx.coroutines.delay(200)
+            }
+            // Playback done — state already idle (playingIndex = -1).
+        }
+    }
+
+    fun onSimonPadTap(index: Int) {
+        val challenge = _uiState.value.challenge as? Challenge.SimonSaysChallenge ?: return
+        if (_uiState.value.simonPlayingIndex >= 0) return // ignore taps during playback
+        val nextExpected = challenge.sequence.getOrNull(_uiState.value.simonInputIndices.size) ?: return
+        if (index == nextExpected) {
+            val updated = _uiState.value.simonInputIndices + index
+            _uiState.value = _uiState.value.copy(simonInputIndices = updated)
+            if (updated.size == challenge.sequence.size) {
+                proceedToNextChallenge()
+            }
+        } else {
+            _uiState.value = _uiState.value.copy(
+                simonInputIndices = emptyList(),
+                simonErrorFlash = true,
+                wrongAttempts = _uiState.value.wrongAttempts + 1
+            )
+            // Flash briefly then replay the sequence from the start.
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(700)
+                _uiState.value = _uiState.value.copy(simonErrorFlash = false)
+                playSimonSequence(challenge)
+            }
+        }
+    }
+
+    // v1.5.0: Date-backwards typing
+    fun updateDateBackwardsInput(input: String) {
+        _uiState.value = _uiState.value.copy(dateBackwardsInput = input)
+    }
+    fun submitDateBackwards() {
+        val challenge = _uiState.value.challenge as? Challenge.DateBackwardsChallenge ?: return
+        if (_uiState.value.dateBackwardsInput.trim() == challenge.expectedInput) {
+            proceedToNextChallenge()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                wrongAttempts = _uiState.value.wrongAttempts + 1
+            )
+        }
+    }
+
+    // v1.5.0: Stroop color-word pick
+    fun onStroopPick(index: Int) {
+        val challenge = _uiState.value.challenge as? Challenge.StroopChallenge ?: return
+        if (index == challenge.inkColorIndex) {
+            proceedToNextChallenge()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                wrongAttempts = _uiState.value.wrongAttempts + 1
+            )
+        }
+    }
+
+    // v1.4.0: Count-the-Sheep challenge
+    fun onSheepTapped() {
+        val challenge = _uiState.value.challenge as? Challenge.CountSheepChallenge ?: return
+        val next = _uiState.value.sheepTapped + 1
+        _uiState.value = _uiState.value.copy(sheepTapped = next)
+        if (next >= challenge.targetCount) {
+            proceedToNextChallenge()
+        }
+    }
+
+    fun onGoatTapped() {
+        if (_uiState.value.challenge !is Challenge.CountSheepChallenge) return
+        _uiState.value = _uiState.value.copy(
+            sheepTapped = maxOf(0, _uiState.value.sheepTapped - 1),
+            sheepWrongTaps = _uiState.value.sheepWrongTaps + 1,
+            wrongAttempts = _uiState.value.wrongAttempts + 1
+        )
     }
 
     // F16: Photo match challenge

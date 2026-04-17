@@ -83,4 +83,7 @@
     <string name="delete">Delete</string>
     <string name="undo">Undo</string>
     <string name="alarm_deleted">Alarm deleted</string>
+
+    <!-- v1.4.0: Quick Settings tile -->
+    <string name="qs_tile_skip_next_alarm">Skip next alarm</string>
 </resources>

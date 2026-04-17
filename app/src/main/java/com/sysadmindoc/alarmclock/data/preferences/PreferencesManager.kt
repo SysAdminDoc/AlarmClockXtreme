@@ -82,6 +82,20 @@ data class AppSettings(
     val nightClockEnabled: Boolean = false,
     // v1.2.0: Motivational quotes on alarm screen
     val showMotivationalQuotes: Boolean = true,
+    // v1.4.0: Use Android 12+ Material You dynamic color palette (overrides accent)
+    val dynamicColorEnabled: Boolean = false,
+    // v1.4.0: Proximity-sensor "cover phone to snooze" (global toggle, pairs with flip-to-snooze)
+    val coverToSnoozeEnabled: Boolean = false,
+    // v1.4.0: Pre-sleep bedtime checklist (newline-separated items; shown on Bedtime tab)
+    val bedtimeChecklist: String = "",
+    // v1.4.0: Sleep-sound auto-fade timer in minutes (0 = disabled)
+    val sleepSoundTimerMinutes: Int = 0,
+    // v1.4.0: Fade-out duration of the sleep-sound timer in seconds
+    val sleepSoundFadeSeconds: Int = 60,
+    // v1.4.0: Repeat missed alarms — re-fire briefly on next unlock if recent miss
+    val repeatMissedAlarms: Boolean = true,
+    // v1.4.0: Nap mode default duration (minutes) surfaced from the dashboard FAB
+    val napDefaultMinutes: Int = 20,
 )
 
 @Singleton
@@ -130,6 +144,13 @@ class PreferencesManager @Inject constructor(
         val CUSTOM_TYPING_PHRASES = stringPreferencesKey("custom_typing_phrases")
         val NIGHT_CLOCK = booleanPreferencesKey("night_clock")
         val SHOW_MOTIVATIONAL_QUOTES = booleanPreferencesKey("show_motivational_quotes")
+        val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+        val COVER_TO_SNOOZE = booleanPreferencesKey("cover_to_snooze")
+        val BEDTIME_CHECKLIST = stringPreferencesKey("bedtime_checklist")
+        val SLEEP_SOUND_TIMER = intPreferencesKey("sleep_sound_timer_minutes")
+        val SLEEP_SOUND_FADE = intPreferencesKey("sleep_sound_fade_seconds")
+        val REPEAT_MISSED_ALARMS = booleanPreferencesKey("repeat_missed_alarms")
+        val NAP_DEFAULT_MINUTES = intPreferencesKey("nap_default_minutes")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -195,6 +216,13 @@ class PreferencesManager @Inject constructor(
         customTypingPhrases = this[Keys.CUSTOM_TYPING_PHRASES] ?: "",
         nightClockEnabled = this[Keys.NIGHT_CLOCK] ?: false,
         showMotivationalQuotes = this[Keys.SHOW_MOTIVATIONAL_QUOTES] ?: true,
+        dynamicColorEnabled = this[Keys.DYNAMIC_COLOR] ?: false,
+        coverToSnoozeEnabled = this[Keys.COVER_TO_SNOOZE] ?: false,
+        bedtimeChecklist = this[Keys.BEDTIME_CHECKLIST] ?: "",
+        sleepSoundTimerMinutes = this[Keys.SLEEP_SOUND_TIMER] ?: 0,
+        sleepSoundFadeSeconds = this[Keys.SLEEP_SOUND_FADE] ?: 60,
+        repeatMissedAlarms = this[Keys.REPEAT_MISSED_ALARMS] ?: true,
+        napDefaultMinutes = this[Keys.NAP_DEFAULT_MINUTES] ?: 20,
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
@@ -239,5 +267,12 @@ class PreferencesManager @Inject constructor(
         this[Keys.CUSTOM_TYPING_PHRASES] = s.customTypingPhrases
         this[Keys.NIGHT_CLOCK] = s.nightClockEnabled
         this[Keys.SHOW_MOTIVATIONAL_QUOTES] = s.showMotivationalQuotes
+        this[Keys.DYNAMIC_COLOR] = s.dynamicColorEnabled
+        this[Keys.COVER_TO_SNOOZE] = s.coverToSnoozeEnabled
+        this[Keys.BEDTIME_CHECKLIST] = s.bedtimeChecklist
+        this[Keys.SLEEP_SOUND_TIMER] = s.sleepSoundTimerMinutes
+        this[Keys.SLEEP_SOUND_FADE] = s.sleepSoundFadeSeconds
+        this[Keys.REPEAT_MISSED_ALARMS] = s.repeatMissedAlarms
+        this[Keys.NAP_DEFAULT_MINUTES] = s.napDefaultMinutes
     }
 }

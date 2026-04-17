@@ -83,7 +83,17 @@ data class AlarmEditUiState(
     val wifiDismissSsid: String = "",
     val internetRadioUrl: String = "",
     val flashlightStrobe: Boolean = false,
-    val morningRoutine: String = ""
+    val morningRoutine: String = "",
+    // v1.4.0: Hardware button action during firing (NONE/SNOOZE/DISMISS)
+    val hardwareButtonAction: String = "NONE",
+    // v1.4.0: Auto-dismiss when the chosen ringtone finishes naturally
+    val dismissAtRingtoneEnd: Boolean = false,
+    // v1.4.0: Random ringtone pool (comma-separated URIs)
+    val ringtonePool: String = "",
+    // v1.5.0: Sunrise/sunset-relative firing (minutes offset; 0 = use fixed time)
+    val solarOffsetMinutes: Int = 0,
+    // v1.5.0: Solar-offset anchor: "SUNRISE" or "SUNSET"
+    val solarAnchor: String = "SUNRISE"
 )
 
 @HiltViewModel
@@ -162,7 +172,12 @@ class AlarmEditViewModel @Inject constructor(
                         wifiDismissSsid = alarm.wifiDismissSsid,
                         internetRadioUrl = alarm.internetRadioUrl,
                         flashlightStrobe = alarm.flashlightStrobe,
-                        morningRoutine = alarm.morningRoutine
+                        morningRoutine = alarm.morningRoutine,
+                        hardwareButtonAction = alarm.hardwareButtonAction,
+                        dismissAtRingtoneEnd = alarm.dismissAtRingtoneEnd,
+                        ringtonePool = alarm.ringtonePool,
+                        solarOffsetMinutes = alarm.solarOffsetMinutes,
+                        solarAnchor = alarm.solarAnchor
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(notFound = true, is24HourFormat = is24h)
@@ -308,6 +323,47 @@ class AlarmEditViewModel @Inject constructor(
     fun updateInternetRadioUrl(url: String) { _uiState.value = _uiState.value.copy(internetRadioUrl = url) }
     fun updateFlashlightStrobe(enabled: Boolean) { _uiState.value = _uiState.value.copy(flashlightStrobe = enabled) }
     fun updateMorningRoutine(routine: String) { _uiState.value = _uiState.value.copy(morningRoutine = routine) }
+    // v1.4.0 setters
+    fun updateHardwareButtonAction(action: String) {
+        val sanitized = when (action.uppercase()) {
+            "SNOOZE", "DISMISS" -> action.uppercase()
+            else -> "NONE"
+        }
+        _uiState.value = _uiState.value.copy(hardwareButtonAction = sanitized)
+    }
+    fun updateDismissAtRingtoneEnd(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(dismissAtRingtoneEnd = enabled)
+    }
+    fun updateRingtonePool(pool: String) {
+        // Normalise: trim each URI, drop blanks, dedupe while preserving order.
+        val cleaned = pool.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .joinToString(",")
+        _uiState.value = _uiState.value.copy(ringtonePool = cleaned)
+    }
+    fun addRingtoneToPool(uri: String) {
+        if (uri.isBlank()) return
+        val current = _uiState.value.ringtonePool
+            .split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
+        if (uri !in current) current.add(uri)
+        _uiState.value = _uiState.value.copy(ringtonePool = current.joinToString(","))
+    }
+    fun removeRingtoneFromPool(uri: String) {
+        val remaining = _uiState.value.ringtonePool
+            .split(",").map { it.trim() }.filter { it.isNotEmpty() && it != uri }
+        _uiState.value = _uiState.value.copy(ringtonePool = remaining.joinToString(","))
+    }
+    // v1.5.0 setters
+    fun updateSolarOffset(minutes: Int) {
+        // Clamp ±12h so a typo can't strand an alarm off the day grid.
+        _uiState.value = _uiState.value.copy(solarOffsetMinutes = minutes.coerceIn(-720, 720))
+    }
+    fun updateSolarAnchor(anchor: String) {
+        val sanitized = if (anchor.uppercase() == "SUNSET") "SUNSET" else "SUNRISE"
+        _uiState.value = _uiState.value.copy(solarAnchor = sanitized)
+    }
 
     fun save(onComplete: () -> Unit) {
         // Re-entrancy guard: a fast double-tap on the Save button would otherwise
@@ -371,7 +427,12 @@ class AlarmEditViewModel @Inject constructor(
                 wifiDismissSsid = s.wifiDismissSsid,
                 internetRadioUrl = s.internetRadioUrl,
                 flashlightStrobe = s.flashlightStrobe,
-                morningRoutine = s.morningRoutine
+                morningRoutine = s.morningRoutine,
+                hardwareButtonAction = s.hardwareButtonAction,
+                dismissAtRingtoneEnd = s.dismissAtRingtoneEnd,
+                ringtonePool = s.ringtonePool,
+                solarOffsetMinutes = s.solarOffsetMinutes,
+                solarAnchor = s.solarAnchor
             )
 
             try {

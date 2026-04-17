@@ -11,3 +11,6 @@ captures/
 .cxx/
 CLAUDE.md
 ChatGPT*.png
+keystore.properties
+releases/
+

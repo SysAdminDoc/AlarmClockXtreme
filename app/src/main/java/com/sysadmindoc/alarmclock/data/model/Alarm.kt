@@ -88,7 +88,22 @@ data class Alarm(
     // v1.2.0: Flashlight strobe during alarm
     val flashlightStrobe: Boolean = false,
     // v1.2.0: Morning routine checklist (newline-separated items)
-    val morningRoutine: String = ""
+    val morningRoutine: String = "",
+    // v1.4.0: Hardware-button action during firing ("NONE" / "SNOOZE" / "DISMISS").
+    // Volume keys honour the user's choice; NONE leaves volume at system default.
+    val hardwareButtonAction: String = "NONE",
+    // v1.4.0: Auto-dismiss when the chosen ringtone / track finishes naturally
+    // (skips the default infinite loop). Ignored for internet radio.
+    val dismissAtRingtoneEnd: Boolean = false,
+    // v1.4.0: Random pick from comma-separated ringtone URIs.
+    // When set, supersedes [ringtoneUri] on each fire.
+    val ringtonePool: String = "",
+    // v1.5.0: Sunrise/sunset-relative firing — when non-zero, the alarm's
+    // clock time is overridden by solar anchor + offset (minutes, can be
+    // negative). Uses last known location. 0 = use [hour]/[minute] directly.
+    val solarOffsetMinutes: Int = 0,
+    // v1.5.0: Solar anchor — "SUNRISE" or "SUNSET"
+    val solarAnchor: String = "SUNRISE"
 ) {
     val time: LocalTime get() = LocalTime.of(hour, minute)
 
