@@ -15,7 +15,7 @@ class SleepSoundPlayer(private val context: Context) {
     private var fadeJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
-    fun play(rawResId: Int, fadeOutMinutes: Int) {
+    fun play(rawResId: Int, fadeOutMinutes: Int, fadeDurationSeconds: Int = 60) {
         stop()
         try {
             mediaPlayer = MediaPlayer.create(context, rawResId)?.apply {
@@ -31,7 +31,7 @@ class SleepSoundPlayer(private val context: Context) {
             }
 
             if (fadeOutMinutes > 0) {
-                scheduleFade(fadeOutMinutes)
+                scheduleFade(fadeOutMinutes, fadeDurationSeconds.coerceIn(5, 600))
             }
         } catch (_: Exception) {}
     }
@@ -47,14 +47,15 @@ class SleepSoundPlayer(private val context: Context) {
 
     fun isPlaying() = mediaPlayer?.isPlaying == true
 
-    private fun scheduleFade(fadeMinutes: Int) {
+    private fun scheduleFade(totalMinutes: Int, fadeDurationSeconds: Int) {
         fadeJob = scope.launch {
-            val holdMs = fadeMinutes * 60 * 1000L - 60_000L
+            val totalMs = totalMinutes * 60 * 1000L
+            val fadeMs = fadeDurationSeconds * 1000L
+            val holdMs = totalMs - fadeMs
             if (holdMs > 0) delay(holdMs)
 
-            // Fade out over the final minute
             val steps = 60
-            val stepDelayMs = 60_000L / steps
+            val stepDelayMs = fadeMs / steps
             for (i in steps downTo 0) {
                 val vol = i.toFloat() / steps
                 mediaPlayer?.setVolume(vol, vol)

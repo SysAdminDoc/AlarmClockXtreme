@@ -6,6 +6,7 @@ import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Build
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
@@ -20,6 +21,7 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.Challenge
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
 import com.sysadmindoc.alarmclock.util.FlipDetector
 import com.sysadmindoc.alarmclock.util.PhotoMatcher
+import com.sysadmindoc.alarmclock.util.ProximityCoverDetector
 import com.sysadmindoc.alarmclock.util.ShakeDetector
 import com.sysadmindoc.alarmclock.util.SquatDetector
 import com.sysadmindoc.alarmclock.util.StepCounterListener
@@ -43,6 +45,7 @@ class AlarmFiringActivity : ComponentActivity() {
     private var squatDetector: SquatDetector? = null
     private var stepCounterListener: StepCounterListener? = null
     private var flipDetector: FlipDetector? = null
+    private var coverDetector: ProximityCoverDetector? = null
     private var nfcAdapter: NfcAdapter? = null
     private var alarmId: Long = -1
     private var wifiPollingJob: kotlinx.coroutines.Job? = null
@@ -134,6 +137,19 @@ class AlarmFiringActivity : ComponentActivity() {
                     startFlipDetector()
                 } else {
                     stopFlipDetector()
+                }
+            }
+        }
+
+        // v1.4.0: Cover-to-snooze — hold a hand over the proximity sensor to snooze.
+        // Registered only when the user has opted in (shares the proximity sensor
+        // with FlipDetector, so we don't double-register when both are active).
+        lifecycleScope.launch {
+            viewModel.coverToSnoozeEnabled.collectLatest { enabled ->
+                if (enabled && viewModel.uiState.value.alarm != null) {
+                    startCoverDetector()
+                } else {
+                    stopCoverDetector()
                 }
             }
         }
@@ -290,6 +306,42 @@ class AlarmFiringActivity : ComponentActivity() {
         flipDetector = null
     }
 
+    private fun startCoverDetector() {
+        if (coverDetector != null) return
+        coverDetector = ProximityCoverDetector(
+            context = this,
+            onCovered = { snooze() }
+        ).also { it.start() }
+    }
+
+    private fun stopCoverDetector() {
+        coverDetector?.stop()
+        coverDetector = null
+    }
+
+    // v1.4.0: Per-alarm hardware-button action. Volume keys intercepted so the
+    // user can snooze or dismiss without looking at the screen. NONE falls
+    // through to the system's volume control.
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val action = viewModel.uiState.value.alarm?.hardwareButtonAction ?: "NONE"
+        if (action == "NONE" || event.action != KeyEvent.ACTION_DOWN) {
+            return super.dispatchKeyEvent(event)
+        }
+        return when (event.keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP,
+            KeyEvent.KEYCODE_VOLUME_DOWN,
+            KeyEvent.KEYCODE_HEADSETHOOK,
+            KeyEvent.KEYCODE_CAMERA -> {
+                when (action) {
+                    "SNOOZE" -> snooze()
+                    "DISMISS" -> if (viewModel.uiState.value.canDismiss) dismiss() else snooze()
+                }
+                true
+            }
+            else -> super.dispatchKeyEvent(event)
+        }
+    }
+
     private fun snooze(customMinutes: Int? = null) {
         val intent = Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_SNOOZE
@@ -362,6 +414,7 @@ class AlarmFiringActivity : ComponentActivity() {
         stopWalkSteps()
         stopWifiPolling()
         stopFlipDetector()
+        stopCoverDetector()
         super.onDestroy()
     }
 }

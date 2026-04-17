@@ -2,6 +2,132 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.5.0] - 2026-04-17
+
+First roadmap-driven release. Closes v1.4.0 follow-up gaps and ships a
+batch of small borrowable ideas from Section 3 and Section 9.
+
+### Added
+
+- **Three new dismiss challenges** (19 total):
+  - `SIMON_SAYS` — watch a 4-pad color sequence (length 4-6) and play it
+    back. Wrong tap flashes red and restarts the round.
+  - `DATE_BACKWARDS` — type today's ISO date reversed character-by-character
+    (e.g. `2026-04-17` → `71-40-6202`). Cognitive gate that's easy on
+    groggy motor skills but hard without actually reading.
+  - `STROOP` — classic interference test; the displayed color-word is
+    painted in a different ink color and the user taps the INK, not the
+    word. Four-color palette.
+- **Sunrise/sunset-relative alarm firing** (`solarOffsetMinutes`,
+  `solarAnchor`). Alarm edit → Advanced → Solar anchor + offset. When
+  set, the alarm fires at sunrise/sunset ± offset at the last known
+  location. Uses a compact NOAA solar-position approximation (~1-min
+  accuracy). Falls back to the fixed clock time when no location is
+  cached or during polar day/night.
+- **What's-new dialog** on first launch after update. `WhatsNewTracker`
+  records the versionCode we last showed highlights for; fresh installs
+  skip the dialog.
+- **Alarm-edit UI** for the v1.4.0 fields that previously had no surface:
+  - Hardware-button action dropdown (NONE / SNOOZE / DISMISS).
+  - "Dismiss when song finishes" toggle.
+  - Ringtone pool multi-line editor (one URI per line).
+- **Bedtime: seconds-scale final-taper slider** (15s/30s/60s/2m/5m/10m)
+  for the sleep-sound fade-out. Lives directly on the Bedtime tab so
+  power users don't have to dive into Settings.
+- **Power-nap chips highlight the user's default.** `napDefaultMinutes`
+  from AppSettings now surfaces in the Quick Alarms row with a distinct
+  accent and a " • default" label.
+
+### Changed
+
+- **DB v8.** `MIGRATION_7_8` adds `solarOffsetMinutes` (Int, default 0)
+  and `solarAnchor` (String, default "SUNRISE").
+- **`NextAlarmCalculator` now injects `PreferencesManager`** so it can
+  read the cached location for solar math. Solar time is recomputed per
+  candidate day in the repeating-alarm loop (sunrise drifts minutes daily).
+- **Backup format v5.** Alarm and settings backups carry the two new
+  solar fields. `MAX_SUPPORTED_BACKUP_VERSION = 5`; earlier versions
+  still import via Moshi default-filling.
+- **`SleepSoundPlayer.scheduleFade()`** takes `fadeDurationSeconds`
+  directly (5-600s clamp). BedtimeViewModel persists the choice via a
+  new `setSleepSoundFadeSeconds` setter.
+
+### Fixed
+
+- `ChallengeType` enum gains `SIMON_SAYS`, `DATE_BACKWARDS`, `STROOP`
+  and `ChallengeGenerator` covers each — earlier versions would have
+  thrown `IllegalArgumentException` on `valueOf()` for these.
+
+## [1.4.0] - 2026-04-17
+
+### Added (competitive-research pass — features absorbed from Alarmy, Sleep as
+Android, BlackyHawky Clock, Fossify Clock, Google Clock, Turbo Alarm)
+
+- **Count-the-Sheep dismiss challenge.** A playful CAPTCHA — sheep and goats
+  drift across a starry panel; tap every sheep to a randomised target count
+  without catching a goat. Joins the 15-challenge roster as
+  `ChallengeType.COUNT_SHEEP`.
+- **Quick Settings tile (Skip next alarm).** `SkipNextAlarmTileService` —
+  shade tile shows the next alarm's day + time; one tap routes through the
+  existing `SkipNextReceiver` so skip semantics match the persistent
+  notification action (repeating: recompute; one-shot: disable). Inactive
+  state when no alarm is queued.
+- **Material You dynamic colors (Android 12+).** Opt-in toggle in Settings →
+  Personalization. On Android 12+ the primary/secondary/tertiary palette
+  derives from the user's wallpaper (while keeping the app's deep-dark
+  surfaces). On older devices the toggle is persisted but no-op, with
+  help copy that names the requirement so the setting never feels broken.
+- **Cover-to-snooze.** New `ProximityCoverDetector` — hold a hand over the
+  proximity sensor for ~1.5 s during an alarm to snooze. Global toggle, pairs
+  with flip-to-snooze for phones where face-down accelerometer is flaky
+  (e.g. in a phone stand).
+- **Hardware-button action per alarm.** `Alarm.hardwareButtonAction` —
+  `NONE` / `SNOOZE` / `DISMISS`. Volume Up/Down, Camera, Headset Hook keys
+  are intercepted via `dispatchKeyEvent` when the alarm is firing and the
+  alarm has opted into a non-NONE action. `NONE` falls through to normal
+  system volume control. (Edit-screen UI surfacing tracked on ROADMAP.)
+- **Dismiss at ringtone end.** `Alarm.dismissAtRingtoneEnd` — when set, the
+  alarm's `MediaPlayer` loops off and an `OnCompletionListener` auto-dismisses
+  the alarm once the song / ringtone finishes naturally. Ideal for Spotify
+  users or anyone who wants "wake to one song."
+- **Random ringtone pool.** `Alarm.ringtonePool` — comma-separated list of
+  alarm tones. On each fire the service picks a random URI from the pool
+  (supersedes `ringtoneUri`). Anti-habituation: the brain stops tuning out
+  a single wake-up sound.
+- **Repeat missed alarms safety net.** If an alarm auto-silences and the
+  new `repeatMissedAlarms` pref is on, `MissedAlarmUnlockReceiver`
+  (listening on `USER_PRESENT`) re-fires that alarm the next time the user
+  unlocks within 10 minutes. State is cleared on every re-fire so a single
+  miss can only retrigger once.
+- **Bedtime wind-down checklist.** Mirror of the morning-routine feature —
+  `AppSettings.bedtimeChecklist` (newline-separated items) renders as a
+  tappable pre-sleep checklist on the Bedtime tab, with a reset affordance.
+- **Configurable sleep-sound timer + fade.** `SleepSoundPlayer.play(...)`
+  now accepts a `fadeDurationSeconds` (5–600) and respects
+  `AppSettings.sleepSoundTimerMinutes` and `sleepSoundFadeSeconds`, so the
+  final taper can be as short as 5 s or as slow as 10 min.
+- **Power-nap preset row.** Alarm list → Quick alarms now carries a second
+  row with cycle-aware nap lengths (15/20/25/45/90 min) on top of the
+  existing reminder durations.
+- **Backup format v4.** `AlarmBackup` and `SettingsBackup` extended with
+  the v1.4.0 alarm fields and seven new preference fields.
+  `MAX_SUPPORTED_BACKUP_VERSION = 4`; v1–v3 backups still import via
+  Moshi's default-filling behaviour.
+
+### Changed
+
+- **DB v7.** `MIGRATION_6_7` adds `hardwareButtonAction`,
+  `dismissAtRingtoneEnd`, `ringtonePool`.
+- **`AlarmService.startAudio()` refactored.** Split into `startAudio()`
+  (pool-pick + silent-mode gate) and `startAudioInternal()` (existing
+  Spotify/radio/default paths). Keeps the pool logic at one well-defined
+  layer that wins over a static `ringtoneUri`.
+- **`AppSettings` gained seven v1.4.0 preferences.** `dynamicColorEnabled`,
+  `coverToSnoozeEnabled`, `bedtimeChecklist`, `sleepSoundTimerMinutes`,
+  `sleepSoundFadeSeconds`, `repeatMissedAlarms`, `napDefaultMinutes` — all
+  round-tripped through `toSettings()` / `applySettings()` for drift-free
+  persistence.
+
 ## [1.3.3] - 2026-04-16
 
 ### Fixed (audit pass 4 — service lifecycle, worker delays, backup validation)

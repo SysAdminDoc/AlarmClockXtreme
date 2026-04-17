@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.theme
 
 import android.app.Activity
+import android.os.Build
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -8,6 +9,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
@@ -50,17 +52,31 @@ private val DarkColorScheme = darkColorScheme(
 @Composable
 fun AlarmClockXtremeTheme(
     accentColorHex: String? = null,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val accent = if (accentColorHex != null && accentColorHex.startsWith("#")) {
+    val context = LocalContext.current
+    val parsedAccent = if (accentColorHex != null && accentColorHex.startsWith("#")) {
         try { Color(android.graphics.Color.parseColor(accentColorHex)) } catch (_: Exception) { AccentBlue }
     } else AccentBlue
 
-    val colorScheme = DarkColorScheme.copy(
-        primary = accent,
-        secondary = accent,
-        surfaceTint = accent
-    )
+    val supportsDynamic = dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val colorScheme = if (supportsDynamic) {
+        // Material You: derive the palette from the user's wallpaper. Keep the
+        // app's deep-dark surfaces so the identity of the dark theme isn't lost.
+        dynamicDarkColorScheme(context).copy(
+            background = SurfaceDark,
+            surface = SurfaceMedium,
+            surfaceVariant = SurfaceCard
+        )
+    } else {
+        DarkColorScheme.copy(
+            primary = parsedAccent,
+            secondary = parsedAccent,
+            surfaceTint = parsedAccent
+        )
+    }
+    val accent = if (supportsDynamic) colorScheme.primary else parsedAccent
 
     val view = LocalView.current
     if (!view.isInEditMode) {

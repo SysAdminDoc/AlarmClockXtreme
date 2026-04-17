@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AlarmOff
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Lightbulb
@@ -408,6 +409,19 @@ fun BedtimeScreen(
             }
         }
 
+        if (state.bedtimeChecklist.isNotEmpty()) {
+            item {
+                WindDownChecklistSection(
+                    state = state,
+                    onToggle = viewModel::toggleChecklistItem,
+                    onReset = viewModel::resetChecklist,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+        }
+
         item {
             SleepSoundsSection(
                 state = state,
@@ -548,6 +562,39 @@ private fun SleepSoundsSection(
                     onClick = { viewModel.setSleepSoundFade(minutes) },
                     label = {
                         Text(if (minutes == 0) "Never" else "$minutes min")
+                    }
+                )
+            }
+        }
+
+        // v1.5.0: Final-taper duration. Until this pass the fade was hard-coded
+        // to 60s; users with deeper-sleep routines asked for a longer slide.
+        Text(
+            text = "Final taper length",
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelLarge
+        )
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            val tapers = listOf(15, 30, 60, 120, 300, 600)
+            tapers.forEach { seconds ->
+                FilterChip(
+                    selected = state.sleepSoundFadeSeconds == seconds,
+                    onClick = {
+                        // The VM setter only exists for the underlying DataStore
+                        // path; adjust our local UI state and persist directly.
+                        viewModel.setSleepSoundFadeSeconds(seconds)
+                    },
+                    label = {
+                        Text(
+                            when {
+                                seconds < 60 -> "${seconds}s"
+                                seconds % 60 == 0 -> "${seconds / 60} min"
+                                else -> "${seconds}s"
+                            }
+                        )
                     }
                 )
             }
@@ -701,5 +748,56 @@ private fun SleepArc(
                 center.y + (radius * sin(wakeAngleRad - PI / 2)).toFloat()
             )
         )
+    }
+}
+
+@Composable
+private fun WindDownChecklistSection(
+    state: BedtimeUiState,
+    onToggle: (Int) -> Unit,
+    onReset: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AppSurfaceCard(modifier = modifier) {
+        AppSectionTitle(
+            title = "Wind-down checklist",
+            description = "Tick each step as you settle in for the night."
+        )
+
+        state.bedtimeChecklist.forEachIndexed { index, item ->
+            val done = index in state.bedtimeChecklistDone
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onToggle(index) }
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = if (done) Icons.Default.CheckCircle else Icons.Default.Bedtime,
+                    contentDescription = if (done) "Completed" else "Not done",
+                    tint = if (done) DismissGreen else TextMuted,
+                    modifier = Modifier.size(22.dp)
+                )
+                Text(
+                    text = item,
+                    color = if (done) TextMuted else TextPrimary,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+            if (index < state.bedtimeChecklist.lastIndex) {
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.10f))
+            }
+        }
+
+        if (state.bedtimeChecklistDone.isNotEmpty()) {
+            TextButton(
+                onClick = onReset,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text("Reset checklist", color = TextSecondary)
+            }
+        }
     }
 }

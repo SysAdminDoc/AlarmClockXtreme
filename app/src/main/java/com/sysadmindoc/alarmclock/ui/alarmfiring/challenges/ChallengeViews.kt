@@ -948,3 +948,273 @@ private fun ChallengeProgressHero(
         }
     }
 }
+
+// v1.4.0: Count-the-Sheep challenge. Sheep and goats drift across the screen.
+// Tapping a sheep increments the count; tapping a goat decrements it.
+@Composable
+fun CountSheepChallengeView(
+    challenge: Challenge.CountSheepChallenge,
+    tapped: Int,
+    wrongTaps: Int,
+    onSheepTap: () -> Unit,
+    onGoatTap: () -> Unit
+) {
+    val progress = (tapped.toFloat() / challenge.targetCount).coerceIn(0f, 1f)
+    val transition = rememberInfiniteTransition(label = "sheep-drift")
+    val drift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 6000, easing = androidx.compose.animation.core.LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "sheep-drift-value"
+    )
+
+    // Stable arrangement per challenge instance: rows of sheep + a few goats interleaved.
+    data class Creature(val emoji: String, val row: Int, val phase: Float, val isSheep: Boolean)
+    val creatures = remember(challenge.targetCount) {
+        val rng = kotlin.random.Random(challenge.targetCount * 131)
+        val totalRows = 6
+        val perRow = 4
+        val out = mutableListOf<Creature>()
+        repeat(totalRows) { row ->
+            repeat(perRow) { col ->
+                val isSheep = rng.nextFloat() < 0.75f
+                out.add(
+                    Creature(
+                        emoji = if (isSheep) "\uD83D\uDC11" else "\uD83D\uDC10",
+                        row = row,
+                        phase = (col.toFloat() / perRow) + rng.nextFloat() * 0.05f,
+                        isSheep = isSheep
+                    )
+                )
+            }
+        }
+        out
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
+    ) {
+        ChallengeSupportText("Tap every sheep. Skip the goats \u2014 they subtract from your count.")
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(260.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            AccentBlue.copy(alpha = 0.18f),
+                            SurfaceDark
+                        )
+                    )
+                )
+        ) {
+            val rowHeight = 40.dp
+            creatures.forEach { c ->
+                // Phase-shifted horizontal drift per creature
+                val x = (((drift + c.phase) % 1f) * 1.4f) - 0.2f
+                Box(
+                    modifier = Modifier
+                        .offset(
+                            x = (x * 320f).dp,
+                            y = (c.row * 40).dp + 8.dp
+                        )
+                        .size(rowHeight)
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { if (c.isSheep) onSheepTap() else onGoatTap() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = c.emoji, fontSize = 28.sp)
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+        ) {
+            AppStatusChip(
+                label = "Sheep $tapped / ${challenge.targetCount}",
+                color = if (progress >= 1f) DismissGreen else AccentBlue
+            )
+            if (wrongTaps > 0) {
+                AppStatusChip(
+                    label = "Missed $wrongTaps",
+                    color = AccentRed
+                )
+            }
+        }
+    }
+}
+
+// v1.5.0: Simon-says color-sequence challenge.
+@Composable
+fun SimonSaysChallengeView(
+    challenge: Challenge.SimonSaysChallenge,
+    playingIndex: Int,          // -1 when idle; otherwise the pad currently lit
+    inputIndices: List<Int>,    // Positions the user has tapped so far
+    errorFlash: Boolean,
+    onPadTap: (Int) -> Unit
+) {
+    val colors = listOf(
+        Color(0xFFEF4444), // Red
+        Color(0xFF22C55E), // Green
+        Color(0xFF3B82F6), // Blue
+        Color(0xFFFACC15)  // Yellow
+    )
+    val names = listOf("Red", "Green", "Blue", "Yellow")
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp)
+    ) {
+        ChallengeSupportText(
+            text = "Watch the sequence, then tap it back in order. One wrong tap restarts the round.",
+            accent = if (errorFlash) AccentRed else TextSecondary
+        )
+
+        // 2x2 color pad grid.
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            for (row in 0 until 2) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    for (col in 0 until 2) {
+                        val idx = row * 2 + col
+                        val lit = idx == playingIndex
+                        val alpha = if (lit) 1f else 0.45f
+                        Box(
+                            modifier = Modifier
+                                .size(96.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(colors[idx].copy(alpha = alpha))
+                                .clickable(enabled = playingIndex < 0) { onPadTap(idx) }
+                                .semantics { contentDescription = "${names[idx]} pad" },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (lit) {
+                                Text("\u25CF", color = TextPrimary, fontSize = 28.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        AppStatusChip(
+            label = "${inputIndices.size} / ${challenge.sequence.size} correct",
+            color = if (inputIndices.size == challenge.sequence.size) DismissGreen else AccentBlue
+        )
+    }
+}
+
+// v1.5.0: Type today's date backwards challenge.
+@Composable
+fun DateBackwardsChallengeView(
+    challenge: Challenge.DateBackwardsChallenge,
+    input: String,
+    onInputChange: (String) -> Unit,
+    onSubmit: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp)
+    ) {
+        ChallengeSupportText(
+            "Today is ${challenge.targetDate}. Type it reversed character-by-character."
+        )
+
+        Text(
+            text = challenge.targetDate,
+            color = TextPrimary,
+            fontSize = 30.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Text(
+            text = "\u2192  ${challenge.expectedInput}",
+            color = TextMuted,
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        OutlinedTextField(
+            value = input,
+            onValueChange = onInputChange,
+            placeholder = { Text("Type the reversed date", color = TextMuted) },
+            singleLine = true,
+            colors = appOutlinedTextFieldColors(),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onSubmit() }),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Button(
+            onClick = onSubmit,
+            enabled = input.length == challenge.expectedInput.length,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp)
+        ) {
+            Text("Check")
+        }
+    }
+}
+
+// v1.5.0: Stroop-interference color-word test.
+@Composable
+fun StroopChallengeView(
+    challenge: Challenge.StroopChallenge,
+    onPick: (Int) -> Unit
+) {
+    val palette = listOf(
+        Color(0xFFEF4444), // Red
+        Color(0xFF22C55E), // Green
+        Color(0xFF3B82F6), // Blue
+        Color(0xFFFACC15)  // Yellow
+    )
+    val names = listOf("Red", "Green", "Blue", "Yellow")
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp)
+    ) {
+        ChallengeSupportText("Tap the INK COLOR of the word, not the word itself.")
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .clip(RoundedCornerShape(22.dp))
+                .background(SurfaceCard),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = challenge.wordLabel,
+                color = palette[challenge.inkColorIndex],
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Black
+            )
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            challenge.choices.forEach { idx ->
+                Box(
+                    modifier = Modifier
+                        .size(width = 72.dp, height = 56.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(palette[idx])
+                        .clickable { onPick(idx) }
+                        .semantics { contentDescription = "${names[idx]} choice" }
+                )
+            }
+        }
+    }
+}

@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.3.3-blue)
+![Version](https://img.shields.io/badge/version-1.5.0-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%2010+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -27,6 +27,7 @@ cd AlarmClockXtreme
 | Feature | Description |
 |---------|-------------|
 | Reliable Scheduling | `setAlarmClock()` for maximum reliability, survives Doze mode |
+| Solar-Relative Firing | Fire relative to sunrise/sunset with a configurable offset (NOAA approximation) |
 | Alarm Groups | Tag alarms (Work, School, Gym), filter with chips |
 | Alarm Profiles | Named configurations (Work, Travel, Weekend) for quick switching |
 | Date-Specific Alarms | Set alarm for a particular calendar date (overrides repeat days) |
@@ -38,7 +39,7 @@ cd AlarmClockXtreme
 | Early Dismiss | Skip upcoming alarm from the persistent notification |
 | Calendar Auto-Alarm | Auto-create alarm before first calendar event daily |
 
-### Dismiss Challenges (15 Types)
+### Dismiss Challenges (19 Types)
 | Challenge | Description |
 |-----------|-------------|
 | Math (Easy/Medium/Hard) | Solve arithmetic problems with explicit operator precedence |
@@ -53,6 +54,10 @@ cd AlarmClockXtreme
 | Squats | Accelerometer-based squat detection |
 | Maze Puzzle | Navigate a randomized 5x5 maze |
 | Wi-Fi Connect | Connect to a specific Wi-Fi network |
+| Count the Sheep | Tap every drifting sheep; avoid the decoy goats (novel CAPTCHA) |
+| Simon Says | Watch a 4-pad color sequence and play it back in order |
+| Type Date Backwards | Type today's ISO date reversed character-by-character |
+| Stroop Test | Tap the INK color of a color-word, not the word itself |
 | Mission Chaining | Stack 2-5 challenges in sequence (e.g., Math + Shake + Typing) |
 | Adaptive Difficulty | Auto-escalates math difficulty based on snooze history |
 
@@ -65,6 +70,9 @@ cd AlarmClockXtreme
 | Guardian Angel | Emergency contact SMS + phone call if alarm not dismissed |
 | Wake Confirmation | Re-fires alarm if user doesn't confirm they're awake |
 | Flashlight Strobe | Camera flash LED strobe during alarm |
+| Repeat Missed Alarms | Auto-silenced alarm re-fires briefly on next unlock (configurable) |
+| Cover-to-Snooze | Hold a hand over the proximity sensor for ~1.5s to snooze |
+| Hardware Button Action | Map volume / headset / camera keys to snooze or dismiss per alarm |
 
 ### Wake Experience
 | Feature | Description |
@@ -82,6 +90,8 @@ cd AlarmClockXtreme
 | Feature | Description |
 |---------|-------------|
 | Ringtone Picker | Browse and preview system ringtones |
+| Random Ringtone Pool | Per-alarm pool of URIs; a random one is picked each fire (anti-habituation) |
+| Dismiss at Ringtone End | Auto-dismiss when the chosen song/tone finishes (Spotify-friendly) |
 | Spotify Integration | Play Spotify tracks/playlists as alarm sound |
 | Internet Radio | Stream any HTTP/HTTPS radio station URL |
 | Gradual Volume | Configurable fade-in (15s to 5 min) |
@@ -110,7 +120,11 @@ cd AlarmClockXtreme
 | Night Clock | Always-on bedside display with minimal brightness |
 | Home Widget | Glance-based widget showing next alarm countdown |
 | Persistent Notification | Always-visible next alarm countdown in shade |
+| Quick Settings Tile | Skip the next alarm from the system shade with one tap |
 | Accent Color | Customizable accent color within dark theme |
+| Material You | Opt-in dynamic color from wallpaper palette (Android 12+) |
+| Wind-Down Checklist | Pre-sleep checklist rendered on the Bedtime tab |
+| Configurable Sleep Timer | Sleep-sound fade-out with 5s-10min taper and configurable hold |
 
 ### Data & Reliability
 | Feature | Description |
