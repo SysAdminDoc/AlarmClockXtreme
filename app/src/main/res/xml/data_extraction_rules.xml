@@ -8,8 +8,11 @@
   After restore the user would have lost most of their configuration despite
   the system reporting a "successful" backup.
 
-  Crash logs are explicitly excluded — they're large, transient, and contain
-  device fingerprint detail that's irrelevant on the new device.
+  Crash logs are intentionally not included (they're large, transient, and
+  contain device-fingerprint detail that's irrelevant on the new device).
+  Android lint requires <exclude> entries to live underneath an <include>
+  path; since crash_logs is not in any include above, we simply leave it
+  out entirely rather than listing a redundant exclude.
 -->
 <data-extraction-rules>
     <cloud-backup>
@@ -19,14 +22,11 @@
         <include domain="file" path="datastore/" />
         <!-- Photo-match reference photos used by the F16 challenge -->
         <include domain="file" path="photo_match_" />
-        <!-- Crash logs are too noisy / device-specific to migrate -->
-        <exclude domain="file" path="crash_logs/" />
     </cloud-backup>
     <device-transfer>
         <include domain="database" path="alarm_clock.db" />
         <include domain="sharedpref" path="." />
         <include domain="file" path="datastore/" />
         <include domain="file" path="photo_match_" />
-        <exclude domain="file" path="crash_logs/" />
     </device-transfer>
 </data-extraction-rules>

@@ -1025,6 +1025,113 @@ fun AlarmEditScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
+
+                // v1.4.0: Hardware-button action (Volume/Camera/Headset-hook keys
+                // during firing). NONE = normal volume control passes through.
+                var showHwMenu by remember { mutableStateOf(false) }
+                SettingsRow(label = "Hardware-button action") {
+                    Box {
+                        TextButton(onClick = { showHwMenu = true }) {
+                            Text(state.hardwareButtonAction.lowercase().replaceFirstChar { it.uppercase() }, color = AccentBlue)
+                        }
+                        DropdownMenu(expanded = showHwMenu, onDismissRequest = { showHwMenu = false }) {
+                            listOf("NONE" to "None (default)", "SNOOZE" to "Snooze on any key", "DISMISS" to "Dismiss on any key").forEach { (value, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = { viewModel.updateHardwareButtonAction(value); showHwMenu = false }
+                                )
+                            }
+                        }
+                    }
+                }
+                SettingsHint(
+                    "Volume, camera, or headset keys during the alarm trigger the chosen action. NONE leaves normal volume control intact.",
+                    tone = HintTone.Neutral
+                )
+
+                // v1.4.0: Dismiss-at-ringtone-end. Great for single-song wake-ups.
+                SettingsRow(label = "Dismiss when song finishes") {
+                    Switch(
+                        checked = state.dismissAtRingtoneEnd,
+                        onCheckedChange = viewModel::updateDismissAtRingtoneEnd,
+                        colors = appSwitchColors()
+                    )
+                }
+                SettingsHint(
+                    "Turns off looping and auto-dismisses the alarm when the chosen ringtone or track finishes naturally. Internet radio ignores this setting.",
+                    tone = HintTone.Neutral
+                )
+
+                // v1.4.0: Ringtone pool (anti-habituation). Newline-separated for
+                // manual paste of content:// URIs or file:// paths — power-user
+                // feature, intentionally not a file-picker (the existing picker
+                // only handles one URI at a time).
+                OutlinedTextField(
+                    value = state.ringtonePool.replace(",", "\n"),
+                    onValueChange = { viewModel.updateRingtonePool(it.replace("\n", ",")) },
+                    label = { Text("Ringtone pool (one URI per line)", color = TextMuted) },
+                    placeholder = { Text("Paste content:// or file:// URIs; a random one plays per fire", color = TextMuted) },
+                    colors = appOutlinedTextFieldColors(),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    minLines = 2,
+                    maxLines = 6
+                )
+                SettingsHint(
+                    "When the pool is non-empty, a random entry is picked each fire and overrides the single Ringtone setting above. Leave empty to disable.",
+                    tone = HintTone.Neutral
+                )
+
+                // v1.5.0: Sunrise/sunset-relative firing. Overrides the clock time
+                // when offset is non-zero; uses last-known location for the solar
+                // calc (cached by weather pulls) with a sensible fallback to clock.
+                var showAnchorMenu by remember { mutableStateOf(false) }
+                SettingsRow(label = "Solar anchor") {
+                    Box {
+                        TextButton(onClick = { showAnchorMenu = true }) {
+                            Text(state.solarAnchor.lowercase().replaceFirstChar { it.uppercase() }, color = AccentBlue)
+                        }
+                        DropdownMenu(expanded = showAnchorMenu, onDismissRequest = { showAnchorMenu = false }) {
+                            listOf("SUNRISE" to "Sunrise", "SUNSET" to "Sunset").forEach { (value, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = { viewModel.updateSolarAnchor(value); showAnchorMenu = false }
+                                )
+                            }
+                        }
+                    }
+                }
+                var showOffsetMenu by remember { mutableStateOf(false) }
+                SettingsRow(label = "Solar offset") {
+                    Box {
+                        TextButton(onClick = { showOffsetMenu = true }) {
+                            val label = when {
+                                state.solarOffsetMinutes == 0 -> "Off (use clock time)"
+                                state.solarOffsetMinutes > 0 -> "+${state.solarOffsetMinutes} min"
+                                else -> "${state.solarOffsetMinutes} min"
+                            }
+                            Text(label, color = AccentBlue)
+                        }
+                        DropdownMenu(expanded = showOffsetMenu, onDismissRequest = { showOffsetMenu = false }) {
+                            listOf(0, -30, -15, 15, 30, 60, 120).forEach { mins ->
+                                DropdownMenuItem(
+                                    text = {
+                                        val lbl = when {
+                                            mins == 0 -> "Off (use clock time)"
+                                            mins > 0 -> "+$mins min (after ${state.solarAnchor.lowercase()})"
+                                            else -> "$mins min (before ${state.solarAnchor.lowercase()})"
+                                        }
+                                        Text(lbl)
+                                    },
+                                    onClick = { viewModel.updateSolarOffset(mins); showOffsetMenu = false }
+                                )
+                            }
+                        }
+                    }
+                }
+                SettingsHint(
+                    "When the offset is non-zero the clock time above is ignored and the alarm fires relative to solar noon/dusk at your last known location.",
+                    tone = HintTone.Neutral
+                )
             }
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -1431,7 +1538,11 @@ private fun alarmChallengeOptions(): List<Pair<String, String>> = listOf(
     "PHOTO_MATCH" to "Photo Match",
     "SQUAT" to "Squats",
     "WIFI_CONNECT" to "Wi-Fi Connect",
-    "MAZE" to "Maze Puzzle"
+    "MAZE" to "Maze Puzzle",
+    "COUNT_SHEEP" to "Count the Sheep",
+    "SIMON_SAYS" to "Simon Says",
+    "DATE_BACKWARDS" to "Type date backwards",
+    "STROOP" to "Stroop color test"
 )
 
 private fun String.toChallengeChainList(): List<String> = split(",")

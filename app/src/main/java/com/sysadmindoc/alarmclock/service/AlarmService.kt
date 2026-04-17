@@ -198,6 +198,16 @@ class AlarmService : Service() {
                 if (missedAlarm != null) {
                     recordEvent(missedAlarm, com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent.ACTION_MISSED)
                     showMissedNotification(missedAlarm, autoSilenceMinutes)
+                    // v1.4.0: Repeat missed alarms — record the alarm id / timestamp
+                    // so MissedAlarmUnlockReceiver can re-fire when the user unlocks
+                    // soon after. Guard on the user-level preference.
+                    if (settings.repeatMissedAlarms) {
+                        getSharedPreferences("missed_alarm_state", MODE_PRIVATE)
+                            .edit()
+                            .putLong("last_missed_at", System.currentTimeMillis())
+                            .putLong("last_missed_id", missedAlarm.id)
+                            .apply()
+                    }
                 }
                 alarmScheduler.handleAlarmFired(alarmId)
                 stopAlarmPlayback()
@@ -299,6 +309,23 @@ class AlarmService : Service() {
         // Silent mode - skip audio entirely
         if (alarm.ringtoneUri == "silent") return
 
+        // v1.4.0: Random pick from a ringtone pool (comma-separated URIs).
+        // Picking at this layer means the pool wins over a static ringtoneUri
+        // so the user doesn't habituate to a single sound. We copy the alarm
+        // to preserve the pool for future fires and let the rest of the method
+        // operate on a single resolved URI.
+        val pooledAlarm = alarm.ringtonePool.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .takeIf { it.isNotEmpty() }
+            ?.let { pool -> alarm.copy(ringtoneUri = pool.random()) }
+            ?: alarm
+
+        startAudioInternal(pooledAlarm)
+    }
+
+    private fun startAudioInternal(alarm: Alarm) {
+
         // F14: Spotify ringtone — open Spotify URI and skip MediaPlayer.
         // Only accept canonical Spotify schemes ("spotify:..." or
         // "https://open.spotify.com/...") so a typo'd setting can't accidentally
@@ -398,7 +425,18 @@ class AlarmService : Service() {
                     .build()
                 )
                 setDataSource(applicationContext, uri)
-                isLooping = true
+                // v1.4.0: "Dismiss at ringtone end" — honour a song/ringtone's
+                // natural length by disabling the loop and auto-dismissing
+                // when playback completes.
+                isLooping = !alarm.dismissAtRingtoneEnd
+                if (alarm.dismissAtRingtoneEnd) {
+                    setOnCompletionListener {
+                        val id = currentAlarmId
+                        if (id != -1L) {
+                            serviceScope.launch { dismissAlarm(id) }
+                        }
+                    }
+                }
                 prepare()
 
                 if (alarm.overrideSystemVolume) {

@@ -901,11 +901,48 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
             onToggle = viewModel::toggleAdaptiveDifficulty
         )
 
+        // v1.4.0: Material You — respects the user's wallpaper palette on Android 12+.
+        // On older devices the toggle is still persisted but has no visual effect,
+        // so the help copy names the requirement rather than silently no-op'ing.
+        SettingsToggle(
+            label = "Material You dynamic color",
+            checked = state.settings.dynamicColorEnabled,
+            supportingText = "Blends the app accent with your wallpaper palette (Android 12+).",
+            onToggle = viewModel::toggleDynamicColor
+        )
+
+        SettingsToggle(
+            label = "Cover-to-snooze",
+            checked = state.settings.coverToSnoozeEnabled,
+            supportingText = "Hold a hand over the proximity sensor for ~1.5 s during an alarm to snooze.",
+            onToggle = viewModel::toggleCoverToSnooze
+        )
+
+        SettingsToggle(
+            label = "Repeat missed alarms",
+            checked = state.settings.repeatMissedAlarms,
+            supportingText = "If an alarm auto-silences, re-fire it briefly when you unlock within 10 minutes.",
+            onToggle = viewModel::toggleRepeatMissed
+        )
+
         OutlinedTextField(
             value = state.settings.customTypingPhrases,
             onValueChange = viewModel::updateCustomTypingPhrases,
             label = { Text("Custom typing phrases", color = TextMuted) },
             placeholder = { Text("One phrase per line — appended to the built-in list", color = TextMuted) },
+            colors = appOutlinedTextFieldColors(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            minLines = 2,
+            maxLines = 6
+        )
+
+        // v1.4.0: Pre-sleep checklist items, shown on the Bedtime tab.
+        OutlinedTextField(
+            value = state.settings.bedtimeChecklist,
+            onValueChange = viewModel::updateBedtimeChecklist,
+            label = { Text("Bedtime wind-down checklist", color = TextMuted) },
+            placeholder = { Text("One item per line (e.g. Dim lights, Phone on charger, Set alarm)", color = TextMuted) },
             colors = appOutlinedTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),

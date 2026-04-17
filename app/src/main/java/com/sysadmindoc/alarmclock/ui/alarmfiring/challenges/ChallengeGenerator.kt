@@ -17,7 +17,11 @@ enum class ChallengeType {
     PHOTO_MATCH,     // Photograph a registered location to dismiss
     SQUAT,           // Do N squats (accelerometer)
     WIFI_CONNECT,    // Connect to specific Wi-Fi network
-    MAZE             // Solve a simple maze puzzle
+    MAZE,            // Solve a simple maze puzzle
+    COUNT_SHEEP,     // Tap exactly N grazing sheep as they drift across the screen
+    SIMON_SAYS,      // v1.5.0: Watch a growing color sequence and repeat it back
+    DATE_BACKWARDS,  // v1.5.0: Type today's date in reverse (YYYY-MM-DD -> DD-MM-YYYY reversed)
+    STROOP           // v1.5.0: Tap the ink color of a color-word, not the word itself
 }
 
 sealed class Challenge {
@@ -99,6 +103,40 @@ sealed class Challenge {
         val startPos: Int = 0,
         val endPos: Int = 24
     ) : Challenge()
+
+    // v1.4.0: Count-the-Sheep challenge — tap sheep as they drift across the screen.
+    // Tapping a sheep increments the count; decoy "goats" penalise wrong taps.
+    data class CountSheepChallenge(
+        override val type: ChallengeType = ChallengeType.COUNT_SHEEP,
+        val targetCount: Int
+    ) : Challenge()
+
+    // v1.5.0: Simon-says — app lights up a sequence of N colored tiles;
+    // user taps them back in order. One wrong tap restarts the round.
+    data class SimonSaysChallenge(
+        override val type: ChallengeType = ChallengeType.SIMON_SAYS,
+        val sequence: List<Int>,     // Indices 0..3 into a 4-color pad
+        val showDurationMs: Long = 600
+    ) : Challenge()
+
+    // v1.5.0: Type today's date backwards — e.g. "2026-04-17" -> "71-40-6202".
+    // Simple cognitive gate that's easy on groggy motor skills but
+    // impossible to solve without waking up enough to read.
+    data class DateBackwardsChallenge(
+        override val type: ChallengeType = ChallengeType.DATE_BACKWARDS,
+        val targetDate: String,      // ISO date shown to the user
+        val expectedInput: String    // Date reversed character-by-character
+    ) : Challenge()
+
+    // v1.5.0: Stroop test — display a color-word painted in a different ink
+    // color and ask the user to tap the ink color (not the word). Classic
+    // cognitive-interference task.
+    data class StroopChallenge(
+        override val type: ChallengeType = ChallengeType.STROOP,
+        val wordLabel: String,       // e.g. "RED"
+        val inkColorIndex: Int,      // 0..3 (index into a four-color palette)
+        val choices: List<Int>       // Shuffled list of the four palette indices
+    ) : Challenge()
 }
 
 private val TYPING_PHRASES = listOf(
@@ -145,6 +183,31 @@ object ChallengeGenerator {
         ChallengeType.SQUAT -> Challenge.SquatChallenge(requiredSquats = 10)
         ChallengeType.WIFI_CONNECT -> Challenge.WifiChallenge(requiredSsid = "")
         ChallengeType.MAZE -> generateMaze()
+        ChallengeType.COUNT_SHEEP -> Challenge.CountSheepChallenge(
+            targetCount = Random.nextInt(6, 11)
+        )
+        ChallengeType.SIMON_SAYS -> Challenge.SimonSaysChallenge(
+            sequence = List(Random.nextInt(4, 7)) { Random.nextInt(0, 4) }
+        )
+        ChallengeType.DATE_BACKWARDS -> {
+            val today = java.time.LocalDate.now().toString() // YYYY-MM-DD
+            Challenge.DateBackwardsChallenge(
+                targetDate = today,
+                expectedInput = today.reversed()
+            )
+        }
+        ChallengeType.STROOP -> {
+            // Four colors: red, green, blue, yellow — both words and inks.
+            val inkIndex = Random.nextInt(0, 4)
+            // Pick a DIFFERENT word so the interference actually exists.
+            val wordIndex = ((inkIndex + Random.nextInt(1, 4)) % 4)
+            val labels = listOf("RED", "GREEN", "BLUE", "YELLOW")
+            Challenge.StroopChallenge(
+                wordLabel = labels[wordIndex],
+                inkColorIndex = inkIndex,
+                choices = listOf(0, 1, 2, 3).shuffled()
+            )
+        }
     }
 
     private fun generateMathEasy(): Challenge.MathChallenge {

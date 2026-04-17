@@ -38,7 +38,8 @@ data class AlarmListUiState(
     val selectedGroup: String? = null,
     val undoAlarm: Alarm? = null,
     val selectedIds: Set<Long> = emptySet(),
-    val isSelectionMode: Boolean = false
+    val isSelectionMode: Boolean = false,
+    val napDefaultMinutes: Int = 20
 )
 
 @HiltViewModel
@@ -106,7 +107,8 @@ class AlarmListViewModel @Inject constructor(
             selectedGroup = snap.selectedGroup,
             undoAlarm = snap.undoAlarm,
             selectedIds = snap.selectedIds,
-            isSelectionMode = snap.isSelectionMode
+            isSelectionMode = snap.isSelectionMode,
+            napDefaultMinutes = settings.napDefaultMinutes
         )
     }.stateIn(
         viewModelScope,
