@@ -2,6 +2,252 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.3.3] - 2026-04-16
+
+### Fixed (audit pass 4 — service lifecycle, worker delays, backup validation)
+
+- **`AlarmService.speakMorningAnnouncement` no longer leaks the TTS engine.**
+  The cleanup hook was a coroutine launched in `serviceScope` with `delay(8000)`;
+  on the common path (alarm dismissed → service stops → scope cancelled within
+  ~200 ms) the cleanup never ran and `TextToSpeech.shutdown()` was skipped.
+  Replaced with an `UtteranceProgressListener.onDone/onError/onStop` cleanup,
+  plus a 30 s safety net on a daemon `ScheduledExecutorService` independent
+  of the service scope.
+- **`scheduleWakeConfirmation` floors `wakeConfirmDelayMinutes` at 1.** A
+  corrupt or zero value would otherwise have raced the wake-confirm prompt
+  against the morning briefing animation in the same instant.
+- **`AlarmService` Guardian Angel scheduling floors `guardianDelaySec` at 30.**
+  Prevents an emergency-contact alert from firing before the user has any
+  reasonable chance to interact with the alarm if the per-alarm delay is
+  somehow zero or negative.
+- **`BackupManager.importFromUri` validates the backup version.** A random
+  JSON file (or a future-format export) used to be silently parsed as an
+  empty backup with all defaults; we now reject `version > 3` with a clear
+  error and accept `version 1..3` (Moshi tolerates older formats by filling
+  defaults for missing fields).
+- **`BackupManager.exportToUri` opens the output stream first.** Previously
+  the entire DB was queried and the JSON serialised before discovering a
+  permission-denied / cancelled SAF intent — wasting work and confusing
+  error timing.
+
+## [1.3.2] - 2026-04-16
+
+### Fixed (audit pass 3 — workers, widgets, orphan settings, backup integrity)
+
+#### Critical correctness
+- **`CalendarAutoAlarmWorker` no longer creates duplicate alarms.** Each daily
+  run previously inserted a brand-new `Alarm` row, accumulating to 7+
+  duplicates per week. The worker now keeps a single reusable auto-alarm row
+  identified by a reserved `profileName`, queries
+  `CalendarContract.Instances` (so RRULE-expanded recurring events are
+  honoured — `Events` alone missed them), pins the alarm to a `specificDate`
+  for tomorrow, and disables (rather than deletes) the row when tomorrow has
+  no events so user-edits to time/sound persist.
+
+#### Backup integrity
+- **`data_extraction_rules.xml` now includes DataStore preferences.** Cloud
+  backup and device-transfer were silently dropping the entire
+  `alarm_settings.preferences_pb` file — vacation mode, holiday config,
+  Philips Hue creds, accent color, every v1.2.0 personalization setting were
+  not migrating. Photo-match reference photos are also included; transient
+  crash logs are explicitly excluded. The manifest now references the rules
+  file via `android:dataExtractionRules="@xml/data_extraction_rules"` —
+  without that attribute the rules file was unused.
+
+#### Reliability
+- **`WidgetUpdater` no longer leaks a Job per call.** Replaced the
+  per-call `CoroutineScope(Dispatchers.IO)` allocation with a single
+  process-scoped `SupervisorJob` so toggling alarms doesn't accumulate
+  unrooted jobs.
+
+#### UX — orphan settings finally exposed
+- New **Personalization** section in Settings exposes:
+  - Accent color picker (six-swatch palette: Default Blue / Violet / Coral /
+    Amber / Mint / Mono). Previously the `accentColor` setting was read by
+    `MainActivity` but had no UI to change it — users were stuck on the
+    factory blue forever.
+  - **Show motivational quotes** toggle, which actually gates the quote
+    rendering on the firing screen (previously the quote always rendered
+    regardless of `showMotivationalQuotes`).
+  - **Adaptive challenge difficulty** toggle (the
+    `AlarmFiringViewModel` was already reading `snoozeRate` and bumping
+    math difficulty, but the user setting that gates the feature was an
+    orphan).
+  - **Custom typing phrases** multi-line editor — `ChallengeGenerator`
+    already merges these with the built-in list.
+- **Flip-to-snooze chip on the firing screen** is hidden when the user
+  hasn't enabled the global setting (the chip was previously a lie).
+- **`StatsScreen` honours the 24-hour preference.** The screen took a
+  defaultable parameter the nav graph never passed, so event timestamps
+  always rendered in 12-hour format. The `StatsViewModel` now collects the
+  setting itself.
+
+#### Hardening
+- **`SettingsViewModel.updateAccentColor` validates the hex string** through
+  `android.graphics.Color.parseColor` before persisting, so a bad value
+  (or someone editing the settings file by hand) can't blank out the theme.
+
+## [1.3.1] - 2026-04-16
+
+### Fixed (audit pass 2 — wider net)
+
+#### Correctness
+- **`StopwatchViewModel` is now monotonic** — `SystemClock.elapsedRealtime()`
+  replaces `System.currentTimeMillis()`, so an NTP sync, DST flip, or
+  user-initiated clock change mid-run can no longer rewind or fast-forward
+  the stopwatch.
+- **`StatsViewModel` keeps aggregates live** — totals/streak/snooze rate now
+  recompute every time the recent-events flow ticks, so the screen no longer
+  shows stale numbers if an alarm fires while it's open.
+- **`WorldClockViewModel` persists user-curated zones** — saved zones are
+  written to a SharedPreferences string-list, survive cold-starts, and skip
+  any zone the JVM no longer recognises (no more crash from a stale entry).
+  Toggling 24-hour format also re-renders immediately instead of waiting
+  for the next 1-second tick.
+- **`AlarmEditViewModel.save()` is re-entrancy guarded** — a fast double-tap
+  on Save no longer creates two alarm rows. The `isSaving` flag now also
+  resets in a `finally` so a transient DB/scheduler exception doesn't strand
+  the user on a permanently-disabled "Saving..." button.
+- **Edit flow tears down old schedules when the alarm is disabled** —
+  previously, editing an enabled alarm into a disabled one left the prior
+  AlarmManager registration armed.
+- **`AlarmService` audio path hardening:**
+  - Internet-radio URL is restricted to http(s) and gets a real
+    `OnErrorListener` that falls back to the device default ringtone on
+    stream failure (DNS, 404, codec). Previously a failing stream produced
+    a silent alarm.
+  - Spotify ringtone is restricted to the canonical `spotify:` /
+    `https://open.spotify.com/` schemes, package-targeted at
+    `com.spotify.music`, and `resolveActivity()`-checked before launch so a
+    typo'd URI can't accidentally open the browser. The package is also
+    declared in `<queries>` so this works on Android 11+.
+  - Both `RingtoneManager.getDefaultUri()` calls returning null is now
+    handled — the alarm goes silent gracefully (notification + vibration
+    + flashlight still fire) instead of throwing NPE into the catch block.
+  - `Uri.parse(alarm.ringtoneUri)` is `runCatching`-wrapped so a corrupt
+    custom-ringtone URI no longer crashes setDataSource.
+
+#### Reliability / robustness
+- **`ChallengeGenerator.generateMaze()`** — bounded retry (50 attempts) plus
+  a guaranteed-solvable empty-walls fallback. The previous `while (true)`
+  could in theory deadlock the alarm-firing flow on a pathological RNG
+  outcome.
+- **`SonarSleepService` audio-write loop** is null-safe and exits cleanly on
+  any `write()` exception (e.g. AudioTrack released mid-loop).
+- **`SonarSleepService.stopSonarHardware`** rewritten to use explicit blocks
+  instead of the brittle `let { if(...) it.stop(); it.release() }` semicolon
+  trick — both stop and release branches are now obviously reachable.
+
+#### Security / privacy
+- **`SettingsScreen` warns on plain-http webhook URLs** — alarm event
+  payloads (label, time, action) were being sent unencrypted without any UI
+  surface flagging it.
+
+#### UX
+- **Night clock is reachable from Settings** — was previously orphan code
+  declared in the manifest with no in-app launcher. New "Night clock" tile
+  in the Settings → Utilities section starts the bedside-mode activity.
+- **`Theme.kt` is preview-safe** — `view.context as Activity` is now a soft
+  `as?` cast, so the theme can be hosted in any non-Activity Compose preview
+  or wrapped context without `ClassCastException`.
+
+#### Tests
+- **+4 unit tests** covering `ChallengeGenerator.generateMaze` solvability,
+  bounds invariants, walk-step minimum, and math-choice integrity.
+
+## [1.3.0] - 2026-04-16
+
+### Fixed (production hardening pass)
+
+#### Critical correctness
+- **"Skip this alarm" notification action no longer triggers post-fire flow.**
+  Previously the persistent next-alarm notification routed "Skip this alarm"
+  through `DismissReceiver` -> `AlarmService.ACTION_DISMISS`, which fired the
+  morning briefing, scheduled the wake-confirmation worker, sent a `dismissed`
+  webhook event and recorded a `DISMISSED` stat with `firedAt = 0`. A new
+  `SkipNextReceiver` records a proper `SKIPPED` event and just re-arms the
+  next occurrence (or disables one-shot alarms).
+- **Wake-confirmation worker actually prompts the user now.** It previously
+  polled SharedPreferences for a confirmation token that no UI ever wrote,
+  causing every wake-confirm cycle to re-fire the alarm. The worker now posts
+  a high-priority full-screen-intent notification opening `WakeConfirmActivity`
+  and waits up to 60 s before re-firing if still unconfirmed.
+- **`AlarmScheduler.schedule()` is null-safe against `getLaunchIntentForPackage`
+  returning null** on stripped/system-rebuilt installs (would NPE the show-info
+  PendingIntent on every schedule).
+- **`AlarmDao.observeNextAlarm`/`getNextAlarm` now exclude `nextTriggerTime = 0`**
+  so the persistent notification, widget, and dashboard "next alarm" surfaces
+  no longer latch onto an unscheduled alarm.
+- **Defensive finish in `AlarmFiringActivity`** when launched without an alarm
+  id (rare stale full-screen-intent path).
+
+#### Race conditions / leaks
+- **`TimerViewModel` no longer leaks MediaPlayers** when multiple timers
+  finish simultaneously — only the first allocates audio and the existing
+  tone covers all finished timers.
+- **`HolidayRepository` cache reads are now mutex-guarded** and parsed dates
+  are kept in memory so repeating-alarm holiday probes (up to 14 candidates
+  per schedule call) hit the disk at most once.
+- **`AlarmFiringActivity` Wi-Fi polling loop** now respects coroutine
+  cancellation (`while (isActive)` instead of `while (true)`) and tolerates
+  `SecurityException` from `WifiManager.connectionInfo`.
+- **Flip-to-snooze sensor** is only registered when the user has explicitly
+  enabled the global setting (it was previously registered for every alarm,
+  which both wasted battery and could snooze for users who never opted in).
+- **`SonarSleepService`** audio-write loop catches release-during-write
+  exceptions; resource cleanup branches are no longer dependent on the prior
+  brittle `let { if(...) it.stop(); it.release() }` semicolon trick.
+
+#### Security / data safety
+- **`HueSunriseWorker` validates the bridge IP, API key, and light IDs**
+  against strict character sets before interpolating them into the URL,
+  preventing `..` traversal or scheme smuggling from a malformed user value.
+- **`WebhookService.isAllowedWebhookUrl`** rejects non-http(s) schemes
+  (`javascript:`, `file://`, etc.) and malformed input before they reach
+  OkHttp's URL parser. Both `fire()` and `test()` call it.
+- **`GuardianWorker` sanitises the phone number** to legal `tel:` characters
+  and degrades gracefully when permissions are missing — `SEND_SMS` is no-op
+  if not granted, and `CALL_PHONE` falls back to `ACTION_DIAL`.
+- **Permissions declared:** `SEND_SMS`, `CALL_PHONE` (Guardian Angel) and
+  `ACCESS_WIFI_STATE` (Wi-Fi dismiss challenge) — previously these features
+  silently failed with `SecurityException`.
+- **`AlarmScheduler.cancel()`** now also cancels guardian and wake-confirm
+  workers in addition to the Hue sunrise worker, so disabling/deleting an
+  alarm cleans up every related background task.
+
+#### UX / polish
+- **Bedtime reminder no longer reschedules itself forever after disable.**
+  `BedtimeReceiver` checks a SharedPreferences mirror that the
+  `BedtimeViewModel` writes whenever the user toggles bedtime.
+- **`MainActivity` handles `ACTION_SHOW_ALARMS`** so the system clock's
+  upcoming-alarm chip and Google Assistant can open the app's alarm list.
+- **Alarm fade-in glitch fixed** — without a fade we no longer briefly
+  attack at zero volume before snapping to full.
+- **`Snooze` cancels Guardian Angel** since the user demonstrably interacted.
+  The next fire after snooze re-arms it.
+- **Dashboard tolerates malformed weather rows** — a single bad date in the
+  Open-Meteo response no longer crashes the whole forecast.
+- **`NextAlarmCalculator.formatRemaining`** renders `<1m` for sub-minute
+  remainders instead of the misleading `0m` it used to show in the last
+  minute before fire.
+
+#### Maintainability
+- **`PreferencesManager.update()` deduplicated** — both decode and apply now
+  go through `Preferences.toSettings()` / `MutablePreferences.applySettings()`
+  so adding a new field can no longer accidentally reset every existing one.
+- **`Converters.kt`** sanitises corrupt `repeatDays` cells (whitespace,
+  empties, out-of-range integers, nulls) and guarantees a stable serialised
+  ordering so observers can de-dupe.
+- **`NextAlarmWidget`** uses Hilt `EntryPointAccessors` to share the app's
+  singleton Room database instead of constructing a second
+  `AlarmDatabase` instance with `allowMainThreadQueries()`. Resolves a
+  long-standing dual-connection corruption risk.
+
+#### Tests
+- **+9 unit tests** covering `NextAlarmCalculator` specific-date precedence,
+  expired-date fall-through, malformed input, sub-minute formatting, and the
+  new `WebhookService.isAllowedWebhookUrl` allow-list.
+
 ## [1.2.0] - 2026-03-28
 
 ### Added (30 competitive features)

@@ -57,7 +57,9 @@ class NextAlarmCalculator @Inject constructor() {
 
     /**
      * Format remaining time until alarm as human-readable string.
-     * e.g. "2d 13h 57m"
+     * e.g. "2d 13h 57m". For sub-minute remainders we render "<1m" so the user
+     * never sees the misleading "0m" label that the previous formatter produced
+     * in the last 60 seconds before fire.
      */
     fun formatRemaining(triggerTimeMillis: Long): String {
         val now = System.currentTimeMillis()
@@ -68,10 +70,12 @@ class NextAlarmCalculator @Inject constructor() {
         val hours = (diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000)
         val minutes = (diff % (60 * 60 * 1000)) / (60 * 1000)
 
+        if (days == 0L && hours == 0L && minutes == 0L) return "<1m"
+
         return buildString {
             if (days > 0) append("${days}d ")
             if (hours > 0) append("${hours}h ")
-            append("${minutes}m")
+            if (minutes > 0 || (days == 0L && hours == 0L)) append("${minutes}m")
         }.trim()
     }
 }

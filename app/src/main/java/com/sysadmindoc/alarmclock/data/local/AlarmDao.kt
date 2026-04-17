@@ -22,13 +22,13 @@ interface AlarmDao {
     @Query("SELECT * FROM alarms ORDER BY hour ASC, minute ASC")
     suspend fun getAll(): List<Alarm>
 
-    @Query("SELECT * FROM alarms WHERE isEnabled = 1 ORDER BY nextTriggerTime ASC LIMIT 1")
+    // Only consider alarms with a real future trigger so the "next alarm" surface
+    // (notification, widget, dashboard) doesn't latch onto a stale trigger from a
+    // disabled-then-re-enabled alarm whose nextTriggerTime hasn't been recomputed yet.
+    @Query("SELECT * FROM alarms WHERE isEnabled = 1 AND nextTriggerTime > 0 ORDER BY nextTriggerTime ASC LIMIT 1")
     suspend fun getNextAlarm(): Alarm?
 
-    @Query("SELECT * FROM alarms WHERE isEnabled = 1 ORDER BY nextTriggerTime ASC LIMIT 1")
-    fun getNextAlarmSync(): Alarm?
-
-    @Query("SELECT * FROM alarms WHERE isEnabled = 1 ORDER BY nextTriggerTime ASC LIMIT 1")
+    @Query("SELECT * FROM alarms WHERE isEnabled = 1 AND nextTriggerTime > 0 ORDER BY nextTriggerTime ASC LIMIT 1")
     fun observeNextAlarm(): Flow<Alarm?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)

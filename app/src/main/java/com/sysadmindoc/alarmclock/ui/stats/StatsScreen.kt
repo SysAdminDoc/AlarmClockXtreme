@@ -72,11 +72,14 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun StatsScreen(
     onNavigateBack: () -> Unit = {},
-    viewModel: StatsViewModel = hiltViewModel(),
-    is24Hour: Boolean = false
+    viewModel: StatsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val stats = state.stats
+    // Pull the 24-hour preference straight from the ViewModel so EventRow
+    // timestamps match the rest of the app. The previous parameterised
+    // signature defaulted to false because the nav graph never passed it.
+    val is24Hour = state.is24Hour
     var showClearDialog by remember { mutableStateOf(false) }
 
     val summaryLine = when {

@@ -89,6 +89,25 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
+    // v1.2.0 personalization — these settings exist in PreferencesManager but
+    // had no UI surface until this audit pass. Setters live alongside the
+    // existing toggle helpers so the SettingsScreen call-site stays uniform.
+    fun toggleShowMotivationalQuotes(enabled: Boolean) =
+        updateSettings { it.copy(showMotivationalQuotes = enabled) }
+    fun toggleAdaptiveDifficulty(enabled: Boolean) =
+        updateSettings { it.copy(adaptiveDifficultyEnabled = enabled) }
+    fun updateAccentColor(hex: String) {
+        // Defensive: only persist a value that parses cleanly so a corrupt
+        // input can't blank-out the entire theme.
+        val sanitised = hex.trim()
+        val parses = runCatching { android.graphics.Color.parseColor(sanitised) }.isSuccess
+        if (parses && sanitised.startsWith("#")) {
+            updateSettings { it.copy(accentColor = sanitised) }
+        }
+    }
+    fun updateCustomTypingPhrases(phrases: String) =
+        updateSettings { it.copy(customTypingPhrases = phrases) }
+
     fun toggle24Hour(enabled: Boolean) = updateSettings { it.copy(is24HourFormat = enabled) }
     fun togglePhoneSpeakers(enabled: Boolean) = updateSettings { it.copy(usePhoneSpeakers = enabled) }
     fun toggleLockScreen(enabled: Boolean) = updateSettings { it.copy(showOnLockScreen = enabled) }
