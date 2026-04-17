@@ -15,11 +15,27 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 /**
  * v1.2.0: Calendar auto-alarm worker.
- * Checks tomorrow's first calendar event and creates/updates an auto-alarm.
+ * Each daily run looks at tomorrow's first calendar event (expanded from
+ * `CalendarContract.Instances` so RRULE-based recurring events count) and
+ * keeps a single auto-alarm pointed at it.
+ *
+ * Hardening over the original implementation:
+ *  - **Single reusable auto-alarm row** identified by [AUTO_PROFILE]. The
+ *    previous version inserted a fresh `Alarm` on every run, which produced
+ *    7 duplicates after a week.
+ *  - Queries `CalendarContract.Instances` (the expanded view) instead of raw
+ *    `Events`, so a weekly stand-up scheduled with RRULE actually shows up.
+ *  - Uses `specificDate` so the alarm only fires on tomorrow's date — the
+ *    next worker run will re-target it.
+ *  - If tomorrow has no events, the auto-alarm is disabled (cancelled), not
+ *    deleted — preserving the row so user-edits to time/sound persist.
+ *  - Per-event cap in code instead of relying on `LIMIT` inside the cursor
+ *    sort order (which CalendarContract sometimes ignores).
  */
 @HiltWorker
 class CalendarAutoAlarmWorker @AssistedInject constructor(
@@ -30,45 +46,112 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
     private val scheduler: AlarmScheduler
 ) : CoroutineWorker(context, workerParams) {
 
+    companion object {
+        /** Identifier stored in `Alarm.profileName` to recognise the row this
+         *  worker owns. Users browsing alarm lists can also see the badge. */
+        private const val AUTO_PROFILE = "calendar_auto"
+        private const val GROUP = "Calendar"
+    }
+
     override suspend fun doWork(): Result {
         val settings = preferencesManager.getCurrentSettings()
-        if (!settings.calendarAutoAlarmEnabled) return Result.success()
+        if (!settings.calendarAutoAlarmEnabled) {
+            // Feature disabled — also disable any existing auto-alarm so it
+            // doesn't keep firing after the user toggled it off.
+            findExistingAutoAlarm()?.let { existing ->
+                if (existing.isEnabled) {
+                    repository.setEnabled(existing.id, enabled = false, nextTrigger = 0)
+                    scheduler.cancel(existing.id)
+                }
+            }
+            return Result.success()
+        }
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR)
             != PackageManager.PERMISSION_GRANTED) return Result.success()
 
-        val minutesBefore = settings.calendarAutoAlarmMinutesBefore
-        val tomorrowStart = java.time.LocalDate.now().plusDays(1)
-            .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-        val tomorrowEnd = tomorrowStart + 24 * 60 * 60 * 1000L
+        val minutesBefore = settings.calendarAutoAlarmMinutesBefore.coerceAtLeast(0)
+        val tomorrow = LocalDate.now().plusDays(1)
+        val tomorrowStartMs = tomorrow.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val tomorrowEndMs = tomorrowStartMs + 24 * 60 * 60 * 1000L
 
-        try {
-            val uri = CalendarContract.Events.CONTENT_URI
-            val projection = arrayOf(CalendarContract.Events.DTSTART, CalendarContract.Events.TITLE)
-            val selection = "${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} < ?"
-            val selectionArgs = arrayOf(tomorrowStart.toString(), tomorrowEnd.toString())
-            val sortOrder = "${CalendarContract.Events.DTSTART} ASC LIMIT 1"
+        val firstEvent = try {
+            queryFirstEventBetween(tomorrowStartMs, tomorrowEndMs)
+        } catch (_: SecurityException) {
+            return Result.success()
+        } catch (_: Exception) {
+            return Result.retry()
+        }
 
-            context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val dtStart = cursor.getLong(0)
-                    val title = cursor.getString(1) ?: "Calendar Event"
+        val existing = findExistingAutoAlarm()
 
-                    val alarmTime = Instant.ofEpochMilli(dtStart - minutesBefore * 60 * 1000L)
-                        .atZone(ZoneId.systemDefault())
-
-                    val alarm = Alarm(
-                        hour = alarmTime.hour,
-                        minute = alarmTime.minute,
-                        label = "Before: $title",
-                        isEnabled = true,
-                        group = "Calendar"
-                    )
-                    val id = repository.save(alarm)
-                    scheduler.schedule(alarm.copy(id = id))
-                }
+        if (firstEvent == null) {
+            // Tomorrow is event-free: park any existing auto-alarm in disabled
+            // state so it doesn't surprise-fire from a stale schedule.
+            if (existing != null && existing.isEnabled) {
+                repository.setEnabled(existing.id, enabled = false, nextTrigger = 0)
+                scheduler.cancel(existing.id)
             }
-        } catch (_: Exception) {}
+            return Result.success()
+        }
 
+        val alarmInstant = Instant.ofEpochMilli(firstEvent.startMs - minutesBefore * 60_000L)
+        val alarmZdt = alarmInstant.atZone(ZoneId.systemDefault())
+        val alarmDate = alarmZdt.toLocalDate()
+
+        val updated = (existing ?: Alarm()).copy(
+            id = existing?.id ?: 0,
+            hour = alarmZdt.hour,
+            minute = alarmZdt.minute,
+            label = "Before: ${firstEvent.title}",
+            isEnabled = true,
+            group = GROUP,
+            profileName = AUTO_PROFILE,
+            specificDate = alarmDate.toString(),
+            // Repeat days deliberately empty — this is a one-shot tied to a date.
+            repeatDays = emptySet(),
+            nextTriggerTime = 0
+        )
+
+        // Cancel any previous schedule before re-arming with the new time/date.
+        if (existing != null) scheduler.cancel(existing.id)
+        val savedId = repository.save(updated)
+        scheduler.schedule(updated.copy(id = savedId))
         return Result.success()
+    }
+
+    private suspend fun findExistingAutoAlarm(): Alarm? {
+        // The auto-alarm is uniquely identified by profileName, so a single
+        // table scan over (typically a handful of) rows suffices. Avoids
+        // adding a dedicated DAO query just for one feature.
+        return repository.getAll().firstOrNull { it.profileName == AUTO_PROFILE }
+    }
+
+    private data class CalEvent(val startMs: Long, val title: String)
+
+    private fun queryFirstEventBetween(startMs: Long, endMs: Long): CalEvent? {
+        val projection = arrayOf(
+            CalendarContract.Instances.BEGIN,
+            CalendarContract.Instances.TITLE
+        )
+        val selection = "${CalendarContract.Instances.BEGIN} >= ? AND ${CalendarContract.Instances.BEGIN} < ?"
+        val selectionArgs = arrayOf(startMs.toString(), endMs.toString())
+        val sortOrder = "${CalendarContract.Instances.BEGIN} ASC"
+
+        // Build the time-bounded Instances URI (this is what makes RRULE-expanded
+        // recurring events appear; querying Events directly misses them).
+        val uri = CalendarContract.Instances.CONTENT_URI.buildUpon()
+            .appendPath(startMs.toString())
+            .appendPath(endMs.toString())
+            .build()
+
+        context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                return CalEvent(
+                    startMs = cursor.getLong(0),
+                    title = cursor.getString(1) ?: "Calendar Event"
+                )
+            }
+        }
+        return null
     }
 }

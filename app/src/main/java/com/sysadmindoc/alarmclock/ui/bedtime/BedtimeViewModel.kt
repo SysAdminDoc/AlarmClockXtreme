@@ -185,6 +185,14 @@ class BedtimeViewModel @Inject constructor(
                 bedtimeReminderMinutes = s.reminderMinutesBefore
             )
         }
+        // Mirror the enabled flag into a synchronous SharedPreferences key so
+        // BedtimeReceiver.onReceive() — which can't suspend on DataStore — knows
+        // whether to re-arm tomorrow's reminder. Without this, disabling bedtime
+        // in the UI would still leave the reminder rescheduling itself forever.
+        context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("bedtime_reschedule", s.isEnabled)
+            .apply()
     }
 
     private fun scheduleBedtimeReminder() {

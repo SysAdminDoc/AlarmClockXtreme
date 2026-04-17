@@ -65,7 +65,9 @@ fun AlarmClockXtremeTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
+            // `view.context as Activity` would crash in any non-Activity host
+            // (preview, ContextWrapper from a service, etc.). Bail safely.
+            val window = (view.context as? Activity)?.window ?: return@SideEffect
             window.statusBarColor = android.graphics.Color.TRANSPARENT
             window.navigationBarColor = SurfaceDark.toArgb()
             WindowCompat.getInsetsController(window, view).apply {

@@ -310,6 +310,10 @@ class AlarmEditViewModel @Inject constructor(
     fun updateMorningRoutine(routine: String) { _uiState.value = _uiState.value.copy(morningRoutine = routine) }
 
     fun save(onComplete: () -> Unit) {
+        // Re-entrancy guard: a fast double-tap on the Save button would otherwise
+        // create two alarm rows. The state flag still updates, but races against
+        // recomposition; this synchronous check is reliable.
+        if (_uiState.value.isSaving) return
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true)
             val s = _uiState.value
@@ -370,14 +374,26 @@ class AlarmEditViewModel @Inject constructor(
                 morningRoutine = s.morningRoutine
             )
 
-            val savedId = repository.save(alarm)
-            val savedAlarm = alarm.copy(
-                id = if (s.isEditing) alarmId else savedId
-            )
-            if (savedAlarm.isEnabled) {
-                scheduler.schedule(savedAlarm)
+            try {
+                val savedId = repository.save(alarm)
+                val savedAlarm = alarm.copy(
+                    id = if (s.isEditing) alarmId else savedId
+                )
+                if (savedAlarm.isEnabled) {
+                    scheduler.schedule(savedAlarm)
+                } else {
+                    // Edit flow may have just disabled the alarm — make sure any
+                    // previously-armed AlarmManager / worker entry is torn down.
+                    if (s.isEditing) scheduler.cancel(alarmId)
+                }
+                onComplete()
+            } catch (_: Exception) {
+                // Don't strand the user on a "Saving..." button if the DB or
+                // scheduler call throws. The error is shallow because the user
+                // can re-tap save; an in-context toast would be ideal but the
+                // existing screen has no snackbar host wired up.
+                _uiState.value = _uiState.value.copy(isSaving = false)
             }
-            onComplete()
         }
     }
 }

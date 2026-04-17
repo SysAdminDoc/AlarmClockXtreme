@@ -81,4 +81,64 @@ class NextAlarmCalculatorTest {
         assertTrue("Should be roughly 23h ahead", diff > 22 * 60 * 60 * 1000L)
         assertTrue("Should be less than 25h", diff < 25 * 60 * 60 * 1000L)
     }
+
+    @Test
+    fun `formatRemaining shows under-1m for sub-minute deltas`() {
+        // Inside the same minute, none of d/h/m would be > 0 — historically this
+        // produced a misleading "0m" label. We now render "<1m" instead.
+        val in10Sec = System.currentTimeMillis() + 10_000L
+        val result = calculator.formatRemaining(in10Sec)
+        assertEquals("<1m", result)
+    }
+
+    @Test
+    fun `formatRemaining drops zero hours but keeps minutes`() {
+        // Multi-day diff with zero-hour component should not render "Xd m" with empty hours.
+        val twoDaysFiveMin = System.currentTimeMillis() +
+                2 * 24 * 60 * 60 * 1000L + 5 * 60 * 1000L
+        val result = calculator.formatRemaining(twoDaysFiveMin)
+        assertTrue("Should contain 2d", result.contains("2d"))
+        assertTrue("Should contain 5m", result.contains("5m"))
+    }
+
+    @Test
+    fun `specific date in future overrides repeat days`() {
+        val now = ZonedDateTime.now()
+        val tomorrow = now.toLocalDate().plusDays(1)
+        val alarm = Alarm(
+            hour = 7, minute = 0,
+            repeatDays = setOf(DayOfWeek.SUNDAY),
+            specificDate = tomorrow.toString()
+        )
+        val result = calculator.calculate(alarm, now)
+        val resultDate = java.time.Instant.ofEpochMilli(result)
+            .atZone(now.zone).toLocalDate()
+        assertEquals("Specific date should win over repeatDays", tomorrow, resultDate)
+    }
+
+    @Test
+    fun `specific date in past falls through to repeat days`() {
+        val now = ZonedDateTime.now()
+        val yesterday = now.toLocalDate().minusDays(1)
+        val alarm = Alarm(
+            hour = 7, minute = 0,
+            repeatDays = DayOfWeek.entries.toSet(),
+            specificDate = yesterday.toString()
+        )
+        val result = calculator.calculate(alarm, now)
+        // Expired specificDate must NOT keep firing the alarm forever in the past.
+        assertTrue("Past specificDate should fall through to repeatDays scheduling",
+            result > now.toInstant().toEpochMilli())
+    }
+
+    @Test
+    fun `malformed specific date is ignored`() {
+        val alarm = Alarm(
+            hour = 9, minute = 0,
+            repeatDays = DayOfWeek.entries.toSet(),
+            specificDate = "not-a-date"
+        )
+        val result = calculator.calculate(alarm)
+        assertTrue("Should still produce a future trigger", result > System.currentTimeMillis())
+    }
 }

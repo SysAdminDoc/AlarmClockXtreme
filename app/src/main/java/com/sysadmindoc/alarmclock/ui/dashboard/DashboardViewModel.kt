@@ -277,8 +277,11 @@ class DashboardViewModel @Inject constructor(
         if (daily == null) return emptyList()
         val dates = daily.time ?: return emptyList()
 
-        return dates.mapIndexed { i, dateStr ->
-            val date = LocalDate.parse(dateStr)
+        // Tolerate malformed entries: a single bad date string from the upstream
+        // weather API should not crash the entire dashboard, so each row is
+        // built independently and skipped on parse failure.
+        return dates.mapIndexedNotNull { i, dateStr ->
+            val date = runCatching { LocalDate.parse(dateStr) }.getOrNull() ?: return@mapIndexedNotNull null
             ForecastDay(
                 date = dateStr,
                 dayName = if (i == 0) "Today" else date.format(DateTimeFormatter.ofPattern("EEE")),

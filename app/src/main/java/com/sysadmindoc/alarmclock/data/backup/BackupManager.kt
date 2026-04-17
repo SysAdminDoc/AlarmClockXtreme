@@ -131,6 +131,11 @@ class BackupManager @Inject constructor(
 
     private val adapter = moshi.adapter(BackupData::class.java).indent("  ")
 
+    companion object {
+        /** Highest backup format version we know how to read end-to-end. */
+        const val MAX_SUPPORTED_BACKUP_VERSION = 3
+    }
+
     suspend fun export(): String {
         val alarms = repository.getAll()
         val settings = preferencesManager.getCurrentSettings()
@@ -234,12 +239,18 @@ class BackupManager @Inject constructor(
 
     suspend fun exportToUri(uri: Uri): Result<Int> {
         return try {
+            // Open the output stream FIRST so a permission-denied / cancelled
+            // SAF intent fails fast without doing any DB work. Previously we
+            // read every alarm and built the JSON before discovering the URI
+            // was unwritable.
+            val stream = context.contentResolver.openOutputStream(uri)
+                ?: return Result.failure(java.io.IOException("Unable to open file for writing"))
             val json = export()
-            context.contentResolver.openOutputStream(uri)?.use { stream ->
-                stream.write(json.toByteArray())
-            }
-            val backup = adapter.fromJson(json)
-            Result.success(backup?.alarms?.size ?: 0)
+            stream.use { it.write(json.toByteArray(Charsets.UTF_8)) }
+            // Re-parse the JSON we just wrote to count alarms — cheap and avoids
+            // a second DB query that could race with a concurrent edit.
+            val alarmCount = adapter.fromJson(json)?.alarms?.size ?: 0
+            Result.success(alarmCount)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -253,6 +264,19 @@ class BackupManager @Inject constructor(
 
             val backup = adapter.fromJson(json)
                 ?: return Result.failure(Exception("Invalid backup format"))
+
+            // Version sanity. We tolerate older backups (1/2 → 3 with defaults
+            // for missing fields, a deliberate Moshi behavior) but reject
+            // anything outside the known range so a random JSON file can't be
+            // mistaken for a backup and silently wipe nothing into the app.
+            if (backup.version !in 1..MAX_SUPPORTED_BACKUP_VERSION) {
+                return Result.failure(
+                    Exception(
+                        "Unsupported backup version ${backup.version}. " +
+                            "This app understands versions 1–$MAX_SUPPORTED_BACKUP_VERSION."
+                    )
+                )
+            }
 
             var count = 0
             for (ab in backup.alarms) {

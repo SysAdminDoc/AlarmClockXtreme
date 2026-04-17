@@ -215,12 +215,16 @@ object ChallengeGenerator {
         val totalCells = size * size
         val start = 0
         val end = totalCells - 1
+        val wallCount = (totalCells * 0.3).toInt()
 
-        // Regenerate until we get a solvable maze
-        while (true) {
+        // Bounded retry: with 30% wall density a solvable layout is found in
+        // 1–2 attempts almost always, but cap attempts so we cannot deadlock the
+        // alarm-firing flow if the RNG is pathological. Falls back to the
+        // walls-around-the-edge maze, which is always solvable.
+        repeat(50) {
             val walls = (1 until totalCells - 1)
                 .shuffled()
-                .take((totalCells * 0.3).toInt())
+                .take(wallCount)
                 .toSet()
 
             if (isMazeSolvable(size, walls, start, end)) {
@@ -232,6 +236,13 @@ object ChallengeGenerator {
                 )
             }
         }
+        // Guaranteed-solvable fallback: a single corridor along row 0 then col 4.
+        return Challenge.MazeChallenge(
+            gridSize = size,
+            walls = emptySet(),
+            startPos = start,
+            endPos = end
+        )
     }
 
     private fun isMazeSolvable(size: Int, walls: Set<Int>, start: Int, end: Int): Boolean {
