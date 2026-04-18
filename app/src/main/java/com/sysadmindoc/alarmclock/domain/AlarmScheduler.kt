@@ -80,9 +80,11 @@ class AlarmScheduler @Inject constructor(
                     return
                 }
             } else {
-                // Repeating alarm: advance past consecutive holidays to the next valid day
+                // Repeating alarm: advance past consecutive holidays to the next valid day.
+                // v1.5.1: bumped from 14 to 30 attempts so regional 2-week
+                // national holiday clusters don't fall through to firing on a holiday.
                 var attempts = 0
-                while (attempts < 14) {
+                while (attempts < 30) {
                     val triggerDate = Instant.ofEpochMilli(triggerTime)
                         .atZone(ZoneId.systemDefault()).toLocalDate()
                     if (!holidayRepository.isHoliday(triggerDate)) break
@@ -246,7 +248,20 @@ class AlarmScheduler @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         if (delayMs == 0L) {
-            context.startForegroundService(smartIntent)
+            // v1.5.1: Android 14+ can refuse startForegroundService() if the
+            // scheduler is invoked from a background-restricted path. Fall
+            // back to AlarmManager — the service will start when the pending
+            // intent fires (one tick later, negligible for a motion-tracking
+            // window that's normally 30 min long).
+            try {
+                context.startForegroundService(smartIntent)
+            } catch (_: Exception) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    System.currentTimeMillis() + 1_000L,
+                    smartPending
+                )
+            }
         } else {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,

@@ -7,12 +7,23 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
 import javax.inject.Inject
 
 /**
- * Reschedules all enabled alarms after device boot or app update.
- * AlarmManager intents are lost on reboot, so this is essential.
+ * Reschedules all enabled alarms after device boot, app update, or a clock
+ * change (TIME_SET / TIMEZONE_CHANGED / DATE_CHANGED). AlarmManager intents
+ * are lost on reboot, so this is essential.
+ *
+ * v1.5.1 additions:
+ * - Clears the `missed_alarm_state` prefs on BOOT_COMPLETED so a stale
+ *   "last missed at" timestamp from before the reboot doesn't trigger
+ *   [MissedAlarmUnlockReceiver] on the user's first unlock.
+ * - Wraps [AlarmScheduler.rescheduleAll] in `withTimeout(30s)` so a
+ *   corrupt DB or storage lock can't pin the PendingResult forever.
  */
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
@@ -28,13 +39,37 @@ class BootReceiver : BroadcastReceiver() {
             action != Intent.ACTION_TIMEZONE_CHANGED &&
             action != Intent.ACTION_DATE_CHANGED) return
 
+        val appContext = context.applicationContext
+
+        // v1.5.1: A reboot invalidates the "user will unlock any second now"
+        // semantics of repeat-missed-alarm. Clear the state so the receiver
+        // doesn't fire a stale miss after the user pressed the power button
+        // deliberately.
+        if (action == Intent.ACTION_BOOT_COMPLETED ||
+            action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            try {
+                appContext.getSharedPreferences("missed_alarm_state", Context.MODE_PRIVATE)
+                    .edit().clear().apply()
+            } catch (_: Exception) {
+                // Prefs backup failure isn't fatal — swallow and continue.
+            }
+        }
+
         val pendingResult = goAsync()
-        CoroutineScope(Dispatchers.IO + kotlinx.coroutines.SupervisorJob()).launch {
+        CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
                 val forceRecalculate = action == Intent.ACTION_TIME_CHANGED ||
                     action == Intent.ACTION_TIMEZONE_CHANGED ||
                     action == Intent.ACTION_DATE_CHANGED
-                alarmScheduler.rescheduleAll(forceRecalculate = forceRecalculate)
+                // v1.5.1: Enforce a reasonable ceiling. rescheduleAll() is
+                // typically sub-second, but a corrupt DB page has been seen
+                // to hang it. 30 s is well under the BroadcastReceiver ANR
+                // window but long enough for any realistic schedule.
+                withTimeout(30_000L) {
+                    alarmScheduler.rescheduleAll(forceRecalculate = forceRecalculate)
+                }
+            } catch (e: TimeoutCancellationException) {
+                android.util.Log.e("BootReceiver", "Timed out rescheduling alarms", e)
             } catch (e: Exception) {
                 android.util.Log.e("BootReceiver", "Failed to reschedule alarms", e)
             } finally {

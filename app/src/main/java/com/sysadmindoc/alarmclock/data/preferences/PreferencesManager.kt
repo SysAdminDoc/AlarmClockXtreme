@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import java.io.IOException
 import java.util.Locale
 import javax.inject.Inject
@@ -164,6 +165,14 @@ private fun AppSettings.sanitized(): AppSettings {
 class PreferencesManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    // v1.5.1: Lock-free latest-settings snapshot kept in sync by [settings]'s
+    // collectors. Callers that can't suspend (scheduler math from a `combine`
+    // block, sensor callbacks, receivers that need a quick peek) read this
+    // instead of blocking DataStore. Initialised with defaults so the first
+    // read before DataStore has emitted is still safe.
+    @Volatile
+    private var cachedSettings: AppSettings = AppSettings()
+
     private object Keys {
         val IS_24_HOUR = booleanPreferencesKey("is_24_hour")
         val DEFAULT_SNOOZE = intPreferencesKey("default_snooze")
@@ -221,8 +230,18 @@ class PreferencesManager @Inject constructor(
             else throw e
         }
         .map { it.toSettings().sanitized() }
+        .onEach { cachedSettings = it }
 
     suspend fun getCurrentSettings(): AppSettings = settings.first()
+
+    /**
+     * v1.5.1: Non-suspend snapshot for callers that cannot afford a DataStore
+     * round-trip (e.g., [NextAlarmCalculator.solarTimeFor] invoked from a
+     * ViewModel `combine { }` running on Dispatchers.Main). The value lags
+     * DataStore by exactly one emission, which is fine for every consumer
+     * because every settings write also triggers the flow collectors.
+     */
+    fun getCachedSettings(): AppSettings = cachedSettings
 
     suspend fun update(transform: (AppSettings) -> AppSettings) {
         context.dataStore.edit { prefs ->
