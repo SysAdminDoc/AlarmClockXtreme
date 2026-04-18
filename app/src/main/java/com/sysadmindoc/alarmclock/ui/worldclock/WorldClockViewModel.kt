@@ -92,28 +92,11 @@ class WorldClockViewModel @Inject constructor(
     private fun updateTimes() {
         val now = ZonedDateTime.now()
         val localZone = ZoneId.systemDefault()
-        val localOffset = now.offset.totalSeconds
 
         // Each zone parse is wrapped so a single corrupt persisted entry can't
         // poison the entire world-clock render.
         val entries = savedZones.mapNotNull { zoneId ->
-            val zone = runCatching { ZoneId.of(zoneId) }.getOrNull() ?: return@mapNotNull null
-            val zdt = now.withZoneSameInstant(zone)
-            val offset = zdt.offset.totalSeconds
-            val diffHours = (offset - localOffset) / 3600.0
-            val diffLabel = when {
-                diffHours == 0.0 -> "Same time"
-                diffHours > 0 -> "${formatDiff(diffHours)}h ahead"
-                else -> "${formatDiff(diffHours)}h behind"
-            }
-            WorldClockEntry(
-                zoneId = zoneId,
-                cityName = zoneId.substringAfterLast("/").replace("_", " "),
-                time = zdt.format(DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm" else "h:mm a")),
-                date = zdt.format(DateTimeFormatter.ofPattern("EEE, MMM d")),
-                offsetLabel = diffLabel,
-                isAhead = diffHours >= 0
-            )
+            buildWorldClockEntry(zoneId = zoneId, now = now)
         }
 
         _uiState.value = _uiState.value.copy(
@@ -142,6 +125,7 @@ class WorldClockViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(searchResults = emptyList())
             return
         }
+        val now = ZonedDateTime.now()
         val results = allZones
             .filter { (zoneId, city) ->
                 city.contains(query, ignoreCase = true) ||
@@ -149,7 +133,7 @@ class WorldClockViewModel @Inject constructor(
             }
             .filter { (zoneId, _) -> zoneId !in savedZones }
             .take(20)
-            .map { (zoneId, city) -> WorldClockEntry(zoneId = zoneId, cityName = city) }
+            .mapNotNull { (zoneId, _) -> buildWorldClockEntry(zoneId = zoneId, now = now) }
         _uiState.value = _uiState.value.copy(searchResults = results)
     }
 
@@ -177,6 +161,31 @@ class WorldClockViewModel @Inject constructor(
 
     private fun persistZones() {
         prefs.edit().putString("zones", savedZones.joinToString("|")).apply()
+    }
+
+    private fun buildWorldClockEntry(
+        zoneId: String,
+        now: ZonedDateTime
+    ): WorldClockEntry? {
+        val zone = runCatching { ZoneId.of(zoneId) }.getOrNull() ?: return null
+        val zdt = now.withZoneSameInstant(zone)
+        val localOffset = now.offset.totalSeconds
+        val offset = zdt.offset.totalSeconds
+        val diffHours = (offset - localOffset) / 3600.0
+        val diffLabel = when {
+            diffHours == 0.0 -> "Same time"
+            diffHours > 0 -> "${formatDiff(diffHours)}h ahead"
+            else -> "${formatDiff(diffHours)}h behind"
+        }
+
+        return WorldClockEntry(
+            zoneId = zoneId,
+            cityName = zoneId.substringAfterLast("/").replace("_", " "),
+            time = zdt.format(DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm" else "h:mm a")),
+            date = zdt.format(DateTimeFormatter.ofPattern("EEE, MMM d")),
+            offsetLabel = diffLabel,
+            isAhead = diffHours >= 0
+        )
     }
 
     companion object {

@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.data
 
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.ui.timer.TimerUiState
 import org.junit.Assert.*
 import org.junit.Test
 import java.time.DayOfWeek
@@ -71,5 +72,66 @@ class AlarmTest {
     fun `alarm with max time`() {
         val alarm = Alarm(hour = 23, minute = 59)
         assertEquals(LocalTime.of(23, 59), alarm.time)
+    }
+
+    @Test
+    fun `sanitized clamps invalid values and normalizes noisy text`() {
+        val alarm = Alarm(
+            hour = 99,
+            minute = 99,
+            label = "  Morning run  ",
+            vibrationIntensity = 99,
+            volume = -10,
+            snoozeDurationMinutes = 0,
+            maxSnoozeCount = 99,
+            group = "  Fitness  ",
+            walkStepsRequired = 0,
+            wakeConfirmDelayMinutes = 0,
+            smartAlarmWindowMinutes = 999,
+            specificDate = "not-a-date",
+            profileName = "  Daily  ",
+            guardianDelaySec = 1,
+            locationDismissRadius = 1,
+            challengeType = "not-real",
+            vibrationPattern = "buzzstorm",
+            challengeChain = "MATH_EASY, ,NOT_REAL,STROOP,NONE",
+            morningRoutine = " hydrate \n \n stretch ",
+            hardwareButtonAction = "volume-up",
+            ringtonePool = " tone://1, tone://1 , tone://2 ",
+            solarOffsetMinutes = 9999,
+            solarAnchor = "dusk"
+        )
+
+        val sanitized = alarm.sanitized()
+
+        assertEquals(23, sanitized.hour)
+        assertEquals(59, sanitized.minute)
+        assertEquals("Morning run", sanitized.label)
+        assertEquals(2, sanitized.vibrationIntensity)
+        assertEquals(0, sanitized.volume)
+        assertEquals(1, sanitized.snoozeDurationMinutes)
+        assertEquals(20, sanitized.maxSnoozeCount)
+        assertEquals("NONE", sanitized.challengeType)
+        assertEquals("Fitness", sanitized.group)
+        assertEquals("default", sanitized.vibrationPattern)
+        assertEquals(1, sanitized.walkStepsRequired)
+        assertEquals(1, sanitized.wakeConfirmDelayMinutes)
+        assertEquals(180, sanitized.smartAlarmWindowMinutes)
+        assertEquals("MATH_EASY,STROOP", sanitized.challengeChain)
+        assertEquals("", sanitized.specificDate)
+        assertEquals("Daily", sanitized.profileName)
+        assertEquals(30, sanitized.guardianDelaySec)
+        assertEquals(25, sanitized.locationDismissRadius)
+        assertEquals("hydrate\nstretch", sanitized.morningRoutine)
+        assertEquals("NONE", sanitized.hardwareButtonAction)
+        assertEquals("tone://1,tone://2", sanitized.ringtonePool)
+        assertEquals(720, sanitized.solarOffsetMinutes)
+        assertEquals("SUNRISE", sanitized.solarAnchor)
+    }
+
+    @Test
+    fun `timer ui canStart ignores all-zero input`() {
+        assertFalse(TimerUiState(inputDigits = "000000").canStart)
+        assertTrue(TimerUiState(inputDigits = "15").canStart)
     }
 }

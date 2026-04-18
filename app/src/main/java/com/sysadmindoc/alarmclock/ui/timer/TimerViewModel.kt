@@ -49,7 +49,7 @@ data class TimerUiState(
         return padded.substring(4, 6).toIntOrNull() ?: 0
     }
 
-    val canStart: Boolean get() = inputDigits.isNotEmpty()
+    val canStart: Boolean get() = (inputHours * 3600L + inputMinutes * 60L + inputSeconds) > 0
 
     // For backward compat with single-timer UI properties
     val state: TimerState get() = when {
@@ -155,7 +155,7 @@ class TimerViewModel @Inject constructor(
 
     fun pause(timerId: Int? = null) {
         val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.RUNNING }?.id ?: return
-        countdownJobs[id]?.cancel()
+        countdownJobs.remove(id)?.cancel()
         updateTimer(id) { it.copy(state = TimerState.PAUSED) }
     }
 
@@ -178,7 +178,7 @@ class TimerViewModel @Inject constructor(
 
     fun dismissFinished(timerId: Int? = null) {
         val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.FINISHED }?.id ?: return
-        stopAudio()
+        stopAudioForTimer(id)
         _uiState.value = _uiState.value.copy(
             activeTimers = _uiState.value.activeTimers.filter { it.id != id }
         )
@@ -203,24 +203,32 @@ class TimerViewModel @Inject constructor(
     }
 
     private fun startCountdown(id: Int, millis: Long) {
-        countdownJobs[id]?.cancel()
-        countdownJobs[id] = viewModelScope.launch {
-            val startTime = android.os.SystemClock.elapsedRealtime()
-            val endTime = startTime + millis
+        countdownJobs.remove(id)?.cancel()
+        var countdownJob: Job? = null
+        countdownJob = viewModelScope.launch {
+            try {
+                val startTime = android.os.SystemClock.elapsedRealtime()
+                val endTime = startTime + millis
 
-            while (isActive) {
-                val now = android.os.SystemClock.elapsedRealtime()
-                val remaining = (endTime - now).coerceAtLeast(0)
-                updateTimer(id) { it.copy(remainingMillis = remaining) }
+                while (isActive) {
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    val remaining = (endTime - now).coerceAtLeast(0)
+                    updateTimer(id) { it.copy(remainingMillis = remaining) }
 
-                if (remaining <= 0) {
-                    updateTimer(id) { it.copy(state = TimerState.FINISHED) }
-                    playFinishSound()
-                    break
+                    if (remaining <= 0) {
+                        updateTimer(id) { it.copy(state = TimerState.FINISHED) }
+                        playFinishSound()
+                        break
+                    }
+                    delay(50)
                 }
-                delay(50)
+            } finally {
+                if (countdownJobs[id] === countdownJob) {
+                    countdownJobs.remove(id)
+                }
             }
         }
+        countdownJobs[id] = countdownJob
     }
 
     private fun formatTimerLabel(h: Int, m: Int, s: Int): String {
