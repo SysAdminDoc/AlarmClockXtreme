@@ -39,7 +39,7 @@ class NextAlarmCalculator private constructor(
             try {
                 val specificDate = java.time.LocalDate.parse(alarm.specificDate)
                 val specificTime = solarTimeFor(alarm, specificDate, fromTime.zone)
-                    ?: LocalTime.of(alarm.hour, alarm.minute)
+                    ?: alarm.time
                 val specificDateTime = ZonedDateTime.of(specificDate, specificTime, fromTime.zone)
                 if (specificDateTime.isAfter(fromTime)) {
                     return specificDateTime.toInstant().toEpochMilli()
@@ -50,7 +50,7 @@ class NextAlarmCalculator private constructor(
 
         val today = fromTime.toLocalDate()
         val todayTime = solarTimeFor(alarm, today, fromTime.zone)
-            ?: LocalTime.of(alarm.hour, alarm.minute)
+            ?: alarm.time
         val todayAlarmDateTime = ZonedDateTime.of(today, todayTime, fromTime.zone)
 
         if (alarm.repeatDays.isEmpty()) {
@@ -60,7 +60,7 @@ class NextAlarmCalculator private constructor(
             } else {
                 val tomorrow = today.plusDays(1)
                 val tomorrowTime = solarTimeFor(alarm, tomorrow, fromTime.zone)
-                    ?: LocalTime.of(alarm.hour, alarm.minute)
+                    ?: alarm.time
                 ZonedDateTime.of(tomorrow, tomorrowTime, fromTime.zone)
                     .toInstant().toEpochMilli()
             }
@@ -73,7 +73,7 @@ class NextAlarmCalculator private constructor(
             val dayOfWeek = candidateDate.dayOfWeek
             if (dayOfWeek in alarm.repeatDays) {
                 val candidateTime = solarTimeFor(alarm, candidateDate, fromTime.zone)
-                    ?: LocalTime.of(alarm.hour, alarm.minute)
+                    ?: alarm.time
                 val candidate = ZonedDateTime.of(candidateDate, candidateTime, fromTime.zone)
                 if (daysAhead == 0L && !candidate.isAfter(fromTime)) {
                     continue  // Today's time already passed

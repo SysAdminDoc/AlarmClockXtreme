@@ -75,7 +75,7 @@ class SkipNextReceiver : BroadcastReceiver() {
                         .atZone(ZoneId.systemDefault())
                     val nextTrigger = calculator.calculate(alarm, nextFrom)
                     repo.updateNextTrigger(alarm.id, nextTrigger)
-                    scheduler.schedule(alarm.copy(nextTriggerTime = nextTrigger))
+                    scheduler.scheduleAt(alarm.copy(nextTriggerTime = nextTrigger), nextTrigger)
                 }
             } finally {
                 pending.finish()

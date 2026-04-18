@@ -16,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 
 data class SettingsUiState(
@@ -148,8 +149,11 @@ class SettingsViewModel @Inject constructor(
         }
     }
     // F13: Holidays
-    fun toggleHolidayAutoSkip(enabled: Boolean) = updateSettings { it.copy(holidayAutoSkipEnabled = enabled) }
-    fun updateHolidayCountryCode(code: String) = updateSettings { it.copy(holidayCountryCode = code.uppercase().trim()) }
+    fun toggleHolidayAutoSkip(enabled: Boolean) =
+        updateSettingsAndReschedule { it.copy(holidayAutoSkipEnabled = enabled) }
+    fun updateHolidayCountryCode(code: String) = updateSettingsAndReschedule {
+        it.copy(holidayCountryCode = code.trim().uppercase(Locale.US))
+    }
     // F15: Hue
     fun updateHueBridgeIp(ip: String) = updateSettings { it.copy(hueBridgeIp = ip.trim()) }
     fun updateHueApiKey(key: String) = updateSettings { it.copy(hueApiKey = key.trim()) }
@@ -187,13 +191,20 @@ class SettingsViewModel @Inject constructor(
                 )
             }
             // Reschedule all alarms to apply/remove vacation filter
-            alarmScheduler.rescheduleAll()
+            alarmScheduler.rescheduleAll(forceRecalculate = true)
         }
     }
 
     private fun updateSettings(transform: (AppSettings) -> AppSettings) {
         viewModelScope.launch {
             preferencesManager.update(transform)
+        }
+    }
+
+    private fun updateSettingsAndReschedule(transform: (AppSettings) -> AppSettings) {
+        viewModelScope.launch {
+            preferencesManager.update(transform)
+            alarmScheduler.rescheduleAll(forceRecalculate = true)
         }
     }
 

@@ -56,7 +56,7 @@ data class FiringUiState(
         val type = alarm?.challengeType ?: "NONE"
         return challenge != null || alarm?.challengeChain?.isNotBlank() == true || type != "NONE"
     }
-    val canDismiss: Boolean get() = !requiresChallenge || challengeSolved
+    val canDismiss: Boolean get() = challengeSolved || challenge == null
 }
 
 @HiltViewModel
@@ -118,7 +118,8 @@ class AlarmFiringViewModel @Inject constructor(
             }
             // v1.2.0: Adaptive difficulty — escalate if user snoozes a lot
             // Read recent events to decide if we should bump difficulty
-            val adaptedChain = if (chainTypes.isNotEmpty()) {
+            val adaptiveDifficultyEnabled = preferencesManager.getCurrentSettings().adaptiveDifficultyEnabled
+            val adaptedChain = if (adaptiveDifficultyEnabled && chainTypes.isNotEmpty()) {
                 try {
                     val recentStats = eventRepository.getStats()
                     if (recentStats.snoozeRate > 50) {
