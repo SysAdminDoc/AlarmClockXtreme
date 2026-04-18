@@ -65,6 +65,15 @@ class AlarmService : Service() {
         const val MISSED_NOTIFICATION_ID = 1003
         const val DEFAULT_AUTO_SILENCE_MINUTES = 10L
 
+        /**
+         * v1.5.1: Live-alarm flag surfaced to [MissedAlarmUnlockReceiver] so a
+         * replayed miss can't stack a second foreground service on top of an
+         * alarm that's currently firing. Volatile-safe; single-writer
+         * (AlarmService), many-readers (receivers).
+         */
+        @Volatile
+        internal var activeAlarmId: Long = -1L
+
         fun createNotificationChannels(context: Context) {
             val nm = context.getSystemService(NotificationManager::class.java)
 
@@ -113,6 +122,11 @@ class AlarmService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var wakeLock: PowerManager.WakeLock? = null
     private var isForeground = false
+    // v1.5.1: Guard against re-entering startAudio() from the internet-radio
+    // error path — if both the radio and the default fallback fail, we could
+    // otherwise leak orphaned MediaPlayer instances.
+    @Volatile
+    private var audioStarting: Boolean = false
     private val runtimeStatePrefs by lazy {
         getSharedPreferences("alarm_runtime_state", MODE_PRIVATE)
     }
@@ -142,6 +156,7 @@ class AlarmService : Service() {
                     volumeJob?.cancel()
                     stopAlarmPlayback()
                     currentAlarmId = alarmId
+                    activeAlarmId = alarmId
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                     alarmFiredAt = System.currentTimeMillis()
                     serviceScope.launch { startAlarm(alarmId) }
@@ -150,10 +165,22 @@ class AlarmService : Service() {
             ACTION_SNOOZE -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
                 val customMinutes = intent.getIntExtra(EXTRA_CUSTOM_SNOOZE_MINUTES, -1)
+                // v1.5.1: If the service was killed+restarted between fire and
+                // snooze, currentSnoozeCount is 0 (fresh instance). Re-read the
+                // persisted count so the progressive-snooze ladder doesn't reset.
+                if (currentAlarmId == -1L && alarmId > 0L) {
+                    currentAlarmId = alarmId
+                    currentSnoozeCount = readPersistedSnoozeCount(alarmId)
+                }
                 serviceScope.launch { snoozeAlarm(alarmId, if (customMinutes > 0) customMinutes else null) }
             }
             ACTION_DISMISS -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
+                // v1.5.1: Same service-restart protection as ACTION_SNOOZE.
+                if (currentAlarmId == -1L && alarmId > 0L) {
+                    currentAlarmId = alarmId
+                    currentSnoozeCount = readPersistedSnoozeCount(alarmId)
+                }
                 serviceScope.launch { dismissAlarm(alarmId) }
             }
         }
@@ -161,8 +188,13 @@ class AlarmService : Service() {
     }
 
     private suspend fun startAlarm(alarmId: Long) {
-        val alarm = repository.getById(alarmId) ?: run {
+        // v1.5.1: Sanitise before any downstream logic touches the row. This
+        // catches corrupt challengeType / vibrationPattern / specificDate /
+        // ringtonePool entries so a bad backup restore or buggy older-version
+        // write can't crash the firing path.
+        val alarm = repository.getById(alarmId)?.sanitized() ?: run {
             clearAlarmRuntimeState(alarmId)
+            activeAlarmId = -1L
             stopSelf()
             return
         }
@@ -214,6 +246,7 @@ class AlarmService : Service() {
                 clearAlarmRuntimeState(alarmId)
                 currentSnoozeCount = 0
                 currentAlarmId = -1
+                activeAlarmId = -1L
                 alarmScheduler.handleAlarmFired(alarmId)
                 stopAlarmPlayback()
                 if (isForeground) {
@@ -289,13 +322,8 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val time = alarm.time
-        val timeText = String.format(
-            "%d:%02d %s",
-            if (time.hour % 12 == 0) 12 else time.hour % 12,
-            time.minute,
-            if (time.hour < 12) "AM" else "PM"
-        )
+        // v1.5.1: 24h preference honoured via shared formatter.
+        val timeText = formatAlarmTime(alarm)
 
         return NotificationCompat.Builder(this, CHANNEL_ALARM)
             .setSmallIcon(R.drawable.ic_alarm)
@@ -316,19 +344,29 @@ class AlarmService : Service() {
         // Silent mode - skip audio entirely
         if (alarm.ringtoneUri == "silent") return
 
-        // v1.4.0: Random pick from a ringtone pool (comma-separated URIs).
-        // Picking at this layer means the pool wins over a static ringtoneUri
-        // so the user doesn't habituate to a single sound. We copy the alarm
-        // to preserve the pool for future fires and let the rest of the method
-        // operate on a single resolved URI.
-        val pooledAlarm = alarm.ringtonePool.split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .takeIf { it.isNotEmpty() }
-            ?.let { pool -> alarm.copy(ringtoneUri = pool.random()) }
-            ?: alarm
+        // v1.5.1: Re-entry guard — the internet-radio error path re-calls
+        // startAudio on serviceScope; without this, a transient failure
+        // during the default-fallback path could recurse and leak
+        // MediaPlayers. The guard is released when the method returns.
+        if (audioStarting) return
+        audioStarting = true
+        try {
+            // v1.4.0: Random pick from a ringtone pool (comma-separated URIs).
+            // Picking at this layer means the pool wins over a static ringtoneUri
+            // so the user doesn't habituate to a single sound. We copy the alarm
+            // to preserve the pool for future fires and let the rest of the method
+            // operate on a single resolved URI.
+            val pooledAlarm = alarm.ringtonePool.split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .takeIf { it.isNotEmpty() }
+                ?.let { pool -> alarm.copy(ringtoneUri = pool.random()) }
+                ?: alarm
 
-        startAudioInternal(pooledAlarm)
+            startAudioInternal(pooledAlarm)
+        } finally {
+            audioStarting = false
+        }
     }
 
     private fun startAudioInternal(alarm: Alarm) {
@@ -535,7 +573,7 @@ class AlarmService : Service() {
         flashlightJob?.cancel()
         volumeJob?.cancel()
         stopAlarmPlayback()
-        val alarm = repository.getById(alarmId)
+        val alarm = repository.getById(alarmId)?.sanitized()
         if (alarm != null) {
             // Snoozing means the user interacted with the alarm, so cancel any pending
             // Guardian Angel call/SMS — they're plainly awake enough to hit snooze.
@@ -552,6 +590,7 @@ class AlarmService : Service() {
                 clearAlarmRuntimeState(alarmId)
                 currentSnoozeCount = 0
                 currentAlarmId = -1
+                activeAlarmId = -1L
                 alarmScheduler.handleAlarmFired(alarmId)
             } else {
                 currentSnoozeCount = nextSnoozeCount
@@ -570,6 +609,7 @@ class AlarmService : Service() {
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
             currentAlarmId = -1
+            activeAlarmId = -1L
         }
         if (isForeground) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -584,12 +624,13 @@ class AlarmService : Service() {
         flashlightJob?.cancel()
         volumeJob?.cancel()
         stopAlarmPlayback()
-        val alarm = repository.getById(alarmId)
+        val alarm = repository.getById(alarmId)?.sanitized()
         if (alarm != null) {
             recordEvent(alarm, AlarmEvent.ACTION_DISMISSED)
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
             currentAlarmId = -1
+            activeAlarmId = -1L
 
             // F8: Webhook on dismiss
             serviceScope.launch {
@@ -615,6 +656,7 @@ class AlarmService : Service() {
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
             currentAlarmId = -1
+            activeAlarmId = -1L
         }
         alarmScheduler.handleAlarmFired(alarmId)
         if (isForeground) {
@@ -685,7 +727,15 @@ class AlarmService : Service() {
                 safetyExecutor.schedule({ shutdownAll() }, 30, java.util.concurrent.TimeUnit.SECONDS)
             )
         }
-        ttsRef.set(TextToSpeech(applicationContext, listener))
+        // v1.5.1: TextToSpeech constructor can throw on stripped-down AOSP or
+        // managed-profile devices with no TTS engine installed. Don't crash
+        // the service — the alarm is already dismissed, announcement is
+        // best-effort.
+        try {
+            ttsRef.set(TextToSpeech(applicationContext, listener))
+        } catch (_: Exception) {
+            shutdownAll()
+        }
     }
 
     // F12: Launch morning briefing Activity
@@ -728,9 +778,15 @@ class AlarmService : Service() {
 
     private fun formatAlarmTime(alarm: Alarm): String {
         val time = alarm.time
-        val h = if (time.hour % 12 == 0) 12 else time.hour % 12
-        val amPm = if (time.hour < 12) "AM" else "PM"
-        return "$h:${String.format("%02d", time.minute)} $amPm"
+        // v1.5.1: Respect the user's 24-hour preference (uses the app's cached
+        // snapshot so this is safe from any thread).
+        return if (preferencesManager.getCachedSettings().is24HourFormat) {
+            String.format(Locale.US, "%02d:%02d", time.hour, time.minute)
+        } else {
+            val h = if (time.hour % 12 == 0) 12 else time.hour % 12
+            val amPm = if (time.hour < 12) "AM" else "PM"
+            String.format(Locale.US, "%d:%02d %s", h, time.minute, amPm)
+        }
     }
 
     private suspend fun recordEvent(alarm: Alarm, action: String) {
@@ -776,10 +832,8 @@ class AlarmService : Service() {
 
     private fun showMissedNotification(alarm: Alarm, autoSilenceMinutes: Long = DEFAULT_AUTO_SILENCE_MINUTES) {
         val nm = getSystemService(NotificationManager::class.java)
-        val time = alarm.time
-        val hour12 = if (time.hour % 12 == 0) 12 else time.hour % 12
-        val amPm = if (time.hour < 12) "AM" else "PM"
-        val timeStr = "$hour12:${String.format("%02d", time.minute)} $amPm"
+        // v1.5.1: 24-hour preference honoured.
+        val timeStr = formatAlarmTime(alarm)
 
         val notification = NotificationCompat.Builder(this, CHANNEL_MISSED)
             .setSmallIcon(R.drawable.ic_alarm)
@@ -797,13 +851,23 @@ class AlarmService : Service() {
             val cameraManager = getSystemService(Context.CAMERA_SERVICE) as android.hardware.camera2.CameraManager
             val cameraId = cameraManager.cameraIdList.firstOrNull() ?: return
             flashlightJob = serviceScope.launch {
-                while (isActive) {
-                    try {
-                        cameraManager.setTorchMode(cameraId, true)
-                        delay(200)
-                        cameraManager.setTorchMode(cameraId, false)
-                        delay(300)
-                    } catch (_: Exception) { break }
+                try {
+                    while (isActive) {
+                        try {
+                            cameraManager.setTorchMode(cameraId, true)
+                            delay(200)
+                            cameraManager.setTorchMode(cameraId, false)
+                            delay(300)
+                        } catch (_: Exception) {
+                            // Sensor access revoked mid-strobe (rare but possible
+                            // when the user opens the Camera app during an alarm).
+                            break
+                        }
+                    }
+                } finally {
+                    // v1.5.1: Always ensure the torch ends up OFF, even if the
+                    // loop broke after a successful "on" call.
+                    try { cameraManager.setTorchMode(cameraId, false) } catch (_: Exception) {}
                 }
             }
         } catch (_: Exception) {}

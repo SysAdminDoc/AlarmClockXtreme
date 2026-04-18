@@ -4,24 +4,35 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.util.SolarCalculator
-import kotlinx.coroutines.runBlocking
-import java.time.*
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class NextAlarmCalculator private constructor(
-    private val currentSettings: suspend () -> AppSettings
+    private val settingsProvider: () -> AppSettings
 ) {
 
+    /**
+     * v1.5.1: Settings are read via a non-suspend cached snapshot exposed by
+     * [PreferencesManager.getCachedSettings]. The previous `runBlocking`
+     * implementation could ANR the main thread when called from ViewModel
+     * `combine` blocks while DataStore was slow (first launch, large prefs,
+     * managed profile edge cases).
+     */
     @Inject
     constructor(preferencesManager: PreferencesManager) : this(
-        currentSettings = { preferencesManager.getCurrentSettings() }
+        settingsProvider = { preferencesManager.getCachedSettings() }
     )
 
-    constructor() : this(
-        currentSettings = { AppSettings() }
-    )
+    /** Test-friendly constructor — supply settings inline. */
+    constructor(settings: AppSettings) : this(settingsProvider = { settings })
+
+    /** Convenience for tests + default-construction sites that don't need solar math. */
+    constructor() : this(settingsProvider = { AppSettings() })
 
     /**
      * Calculate the next trigger time in epoch millis for an alarm.
@@ -37,7 +48,7 @@ class NextAlarmCalculator private constructor(
         // v1.2.0: Date-specific alarm overrides repeat days
         if (alarm.specificDate.isNotBlank()) {
             try {
-                val specificDate = java.time.LocalDate.parse(alarm.specificDate)
+                val specificDate = LocalDate.parse(alarm.specificDate)
                 val specificTime = solarTimeFor(alarm, specificDate, fromTime.zone)
                     ?: alarm.time
                 val specificDateTime = ZonedDateTime.of(specificDate, specificTime, fromTime.zone)
@@ -88,17 +99,22 @@ class NextAlarmCalculator private constructor(
 
     /**
      * Returns the solar-adjusted LocalTime for the alarm on [date], or null
-     * if the alarm isn't using solar offset (caller should fall back to the
-     * fixed hour/minute).
+     * if the alarm isn't using solar offset, location isn't known, or the
+     * day is polar day/night. Caller falls back to the fixed hour/minute.
+     *
+     * v1.5.1: Uses a non-suspend settings snapshot to avoid blocking the
+     * thread this calculator runs on (often Dispatchers.Main in
+     * ViewModel `combine` blocks).
      */
     private fun solarTimeFor(alarm: Alarm, date: LocalDate, zone: ZoneId): LocalTime? {
         if (alarm.solarOffsetMinutes == 0) return null
 
-        val settings = runBlocking { currentSettings() }
+        val settings = settingsProvider()
         val lat = settings.lastKnownLatitude
         val lng = settings.lastKnownLongitude
-        // No location yet — refuse to silently use an arbitrary one. Fall back
-        // to the clock time so the alarm still fires where the user expects.
+        // Treat (0, 0) as "unset" — the DataStore default for unknown location.
+        // The 1° penalty around Null Island is accepted: a user legitimately at
+        // (0, 0) will simply fall back to clock time.
         if (lat == 0.0 && lng == 0.0) return null
 
         val anchor = if (alarm.solarAnchor.equals("SUNSET", ignoreCase = true)) {

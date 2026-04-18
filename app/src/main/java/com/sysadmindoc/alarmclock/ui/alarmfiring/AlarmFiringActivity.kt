@@ -28,7 +28,11 @@ import com.sysadmindoc.alarmclock.util.StepCounterListener
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -154,18 +158,30 @@ class AlarmFiringActivity : ComponentActivity() {
             }
         }
 
-        // Flash wake - gradually increase screen brightness
+        // v1.5.1: Kick off flash-wake + sunrise simulation exactly once, the
+        // first time the alarm becomes non-null. The jobs themselves have
+        // start-guards, but previously `collectLatest` re-evaluated on every
+        // state emission and cancelled the coroutine body mid-check, which
+        // thrashed the dispatcher without effect.
         lifecycleScope.launch {
-            viewModel.uiState.collectLatest { state ->
-                val alarm = state.alarm ?: return@collectLatest
-                if (alarm.flashWake && alarm.gradualVolumeSeconds > 0) {
-                    startFlashWake(alarm.gradualVolumeSeconds)
+            viewModel.uiState
+                .map { it.alarm }
+                .filterNotNull()
+                .distinctUntilChanged { a, b -> a.id == b.id }
+                .collect { alarm ->
+                    if (alarm.flashWake && alarm.gradualVolumeSeconds > 0) {
+                        startFlashWake(alarm.gradualVolumeSeconds)
+                    }
+                    if (alarm.sunriseSimulation && alarm.sunriseMinutes > 0) {
+                        startSunriseSimulation(alarm.sunriseMinutes)
+                    }
                 }
-                // v1.2.0: Sunrise simulation — tint window background from dark red to warm yellow
-                if (alarm.sunriseSimulation && alarm.sunriseMinutes > 0) {
-                    startSunriseSimulation(alarm.sunriseMinutes)
-                }
-            }
+        }
+
+        // v1.5.1: If the alarm row disappeared between schedule and fire,
+        // the view model signals finish so we don't render a blank screen.
+        lifecycleScope.launch {
+            viewModel.finishEvents.collect { finish() }
         }
 
         setContent {

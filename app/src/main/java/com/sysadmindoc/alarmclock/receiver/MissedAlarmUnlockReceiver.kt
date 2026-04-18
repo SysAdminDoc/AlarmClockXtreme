@@ -48,9 +48,20 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                 val at = store.getLong("last_missed_at", 0L)
                 val id = store.getLong("last_missed_id", -1L)
                 val ageMs = System.currentTimeMillis() - at
-                val withinWindow = at > 0 && ageMs in 0..(10 * 60 * 1000L)
+                // v1.5.1: half-open window so a second unlock at exactly the
+                // boundary can't stack a replay on top of the next alarm.
+                val withinWindow = at > 0 && ageMs in 0 until (10 * 60 * 1000L)
 
                 if (!settings.repeatMissedAlarms || !withinWindow || id <= 0L) {
+                    store.edit().clear().apply()
+                    return@launch
+                }
+
+                // v1.5.1: Don't replay the miss if an alarm is already firing
+                // right now. Otherwise the foreground service could be started
+                // twice (once for the live alarm, once for the replay) and
+                // audio would conflict.
+                if (com.sysadmindoc.alarmclock.service.AlarmService.activeAlarmId != -1L) {
                     store.edit().clear().apply()
                     return@launch
                 }

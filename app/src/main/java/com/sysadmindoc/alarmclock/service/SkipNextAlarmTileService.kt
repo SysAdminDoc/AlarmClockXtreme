@@ -13,6 +13,7 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
@@ -51,6 +52,13 @@ class SkipNextAlarmTileService : TileService() {
                 putExtra(AlarmScheduler.EXTRA_ALARM_ID, next.id)
             }
             applicationContext.sendBroadcast(skip)
+            // v1.5.1: Refresh twice — once immediately (optimistic "skipped"
+            // state) and once after the broadcast has realistically
+            // propagated through SkipNextReceiver -> repository -> DAO.
+            // Without the second refresh the tile shows the pre-skip time
+            // until the user next swipes the shade.
+            refreshTile()
+            delay(600L)
             refreshTile()
         }
     }
