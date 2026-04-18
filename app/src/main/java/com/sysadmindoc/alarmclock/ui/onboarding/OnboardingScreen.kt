@@ -160,11 +160,23 @@ fun OnboardingScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Alarm Clock Xtreme",
-                    color = TextPrimary,
-                    style = MaterialTheme.typography.titleMedium
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    AppStatusChip(
+                        label = "Welcome",
+                        icon = Icons.Default.Alarm,
+                        color = onboardingPages[pagerState.currentPage].accentColor
+                    )
+                    Text(
+                        text = "Alarm Clock Xtreme",
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "Dependable mornings with less friction",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
                 if (!isLastPage) {
                     TextButton(onClick = onComplete) {
                         Text("Set up later", color = TextMuted)
@@ -202,11 +214,32 @@ fun OnboardingScreen(
                     }
                 }
 
+                AppStatusChip(
+                    label = onboardingPages[pagerState.currentPage].title,
+                    icon = onboardingPages[pagerState.currentPage].icon,
+                    color = onboardingPages[pagerState.currentPage].accentColor
+                )
+
                 if (isLastPage) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    AppSurfaceCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        highlighted = true
                     ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AppStatusChip(
+                                label = "Recommended setup",
+                                icon = Icons.Default.Shield,
+                                color = onboardingPages[pagerState.currentPage].accentColor
+                            )
+                            AppStatusChip(
+                                label = "Optional",
+                                color = TextMuted
+                            )
+                        }
+
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -267,7 +300,7 @@ fun OnboardingScreen(
                     text = if (isLastPage) {
                         "The app still works without them, and every permission can be revisited later from Settings."
                     } else {
-                        "${pagerState.currentPage + 1} of ${onboardingPages.size}"
+                        "Step ${pagerState.currentPage + 1} of ${onboardingPages.size}"
                     },
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall,

@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.domain
 
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.util.SolarCalculator
 import kotlinx.coroutines.runBlocking
@@ -9,9 +10,18 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class NextAlarmCalculator @Inject constructor(
-    private val preferencesManager: PreferencesManager
+class NextAlarmCalculator private constructor(
+    private val currentSettings: suspend () -> AppSettings
 ) {
+
+    @Inject
+    constructor(preferencesManager: PreferencesManager) : this(
+        currentSettings = { preferencesManager.getCurrentSettings() }
+    )
+
+    constructor() : this(
+        currentSettings = { AppSettings() }
+    )
 
     /**
      * Calculate the next trigger time in epoch millis for an alarm.
@@ -84,7 +94,7 @@ class NextAlarmCalculator @Inject constructor(
     private fun solarTimeFor(alarm: Alarm, date: LocalDate, zone: ZoneId): LocalTime? {
         if (alarm.solarOffsetMinutes == 0) return null
 
-        val settings = runBlocking { preferencesManager.getCurrentSettings() }
+        val settings = runBlocking { currentSettings() }
         val lat = settings.lastKnownLatitude
         val lng = settings.lastKnownLongitude
         // No location yet — refuse to silently use an arbitrary one. Fall back

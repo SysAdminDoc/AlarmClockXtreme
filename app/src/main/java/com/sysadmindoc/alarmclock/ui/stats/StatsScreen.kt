@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -92,7 +95,7 @@ fun StatsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SurfaceDark),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 40.dp)
+        contentPadding = PaddingValues(bottom = 40.dp)
     ) {
         item {
             AlarmClockHeroHeader(
@@ -134,33 +137,40 @@ fun StatsScreen(
             }
         } else {
             item {
-                Row(
+                LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp)
                 ) {
-                    StatMiniCard(
-                        label = "Streak",
-                        value = "${stats.currentStreak}d",
-                        color = DismissGreen,
-                        icon = Icons.Default.LocalFireDepartment,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatMiniCard(
-                        label = "This week",
-                        value = "${stats.alarmsThisWeek}",
-                        color = MaterialTheme.colorScheme.primary,
-                        icon = Icons.Default.CalendarMonth,
-                        modifier = Modifier.weight(1f)
-                    )
-                    StatMiniCard(
-                        label = "Snoozed",
-                        value = "${stats.snoozeRate}%",
-                        color = SnoozeYellow,
-                        icon = Icons.Default.Snooze,
-                        modifier = Modifier.weight(1f)
-                    )
+                    item {
+                        StatMiniCard(
+                            label = "Streak",
+                            value = "${stats.currentStreak}d",
+                            color = DismissGreen,
+                            icon = Icons.Default.LocalFireDepartment,
+                            modifier = Modifier.width(138.dp)
+                        )
+                    }
+                    item {
+                        StatMiniCard(
+                            label = "This week",
+                            value = "${stats.alarmsThisWeek}",
+                            color = MaterialTheme.colorScheme.primary,
+                            icon = Icons.Default.CalendarMonth,
+                            modifier = Modifier.width(138.dp)
+                        )
+                    }
+                    item {
+                        StatMiniCard(
+                            label = "Snoozed",
+                            value = "${stats.snoozeRate}%",
+                            color = SnoozeYellow,
+                            icon = Icons.Default.Snooze,
+                            modifier = Modifier.width(138.dp)
+                        )
+                    }
                 }
             }
 
@@ -194,13 +204,13 @@ fun StatsScreen(
             }
 
             item {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    AppSurfaceCard(modifier = Modifier.weight(1f)) {
+                    AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                         AppSectionTitle(
                             title = "Outcome mix",
                             description = "How alarms usually resolve."
@@ -211,7 +221,7 @@ fun StatsScreen(
                         BreakdownRow("Missed", stats.totalMissed, AccentRed)
                     }
 
-                    AppSurfaceCard(modifier = Modifier.weight(1f)) {
+                    AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                         AppSectionTitle(
                             title = "Busiest day",
                             description = "Where alarms cluster most often."
@@ -281,7 +291,7 @@ fun StatsScreen(
                         ) {
                             Icon(Icons.Default.DeleteSweep, null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Clear")
+                            Text("Clear history")
                         }
                     }
                 }
@@ -339,7 +349,7 @@ fun StatsScreen(
             title = { Text("Clear alarm history?", color = TextPrimary) },
             text = {
                 Text(
-                    "This removes recorded alarm outcomes and resets the statistics shown on this screen.",
+                    "This removes recorded alarm outcomes and resets the statistics shown on this screen. It does not delete your actual alarms.",
                     color = TextSecondary
                 )
             },
@@ -441,27 +451,45 @@ private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Icon(actionIcon, contentDescription = actionLabel, tint = actionColor, modifier = Modifier.size(20.dp))
-        Spacer(modifier = Modifier.width(12.dp))
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = actionColor.copy(alpha = 0.14f)
+        ) {
+            Box(
+                modifier = Modifier.size(42.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(actionIcon, contentDescription = actionLabel, tint = actionColor, modifier = Modifier.size(20.dp))
+            }
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = event.alarmLabel.ifBlank { "Alarm" },
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleSmall
             )
-            Text(
-                text = "$actionLabel • $timeStr",
-                color = TextSecondary,
-                style = MaterialTheme.typography.bodySmall
-            )
+            Row(
+                modifier = Modifier.padding(top = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AppStatusChip(
+                    label = actionLabel,
+                    color = actionColor
+                )
+                AppStatusChip(
+                    label = timeStr,
+                    icon = Icons.Default.CalendarMonth,
+                    color = TextMuted
+                )
+            }
         }
         if (event.responseTimeMs > 0) {
-            Text(
-                text = "${event.responseTimeMs / 1000}s",
-                color = TextMuted,
-                style = MaterialTheme.typography.bodySmall
+            AppStatusChip(
+                label = "${event.responseTimeMs / 1000}s",
+                color = TextMuted
             )
         }
     }

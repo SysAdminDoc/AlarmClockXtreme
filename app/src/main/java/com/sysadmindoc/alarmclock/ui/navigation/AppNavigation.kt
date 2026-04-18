@@ -8,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -94,15 +95,14 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                                 icon = {
                                     Icon(
                                         item.icon,
-                                        contentDescription = item.label,
-                                        tint = if (selected) MaterialTheme.colorScheme.primary else TextMuted
+                                        contentDescription = item.label
                                     )
                                 },
                                 label = {
                                     Text(
                                         item.label,
-                                        color = if (selected) MaterialTheme.colorScheme.primary else TextMuted,
-                                        style = MaterialTheme.typography.labelSmall
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
                                     )
                                 },
                                 selected = selected,
@@ -117,7 +117,11 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                                     }
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                                    unselectedIconColor = TextMuted,
+                                    unselectedTextColor = TextMuted
                                 )
                             )
                         }

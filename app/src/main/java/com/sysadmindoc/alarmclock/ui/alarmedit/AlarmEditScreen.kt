@@ -1,10 +1,13 @@
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -14,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -1196,25 +1200,46 @@ private fun DaySelector(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
+            .padding(horizontal = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         days.forEach { (day, label) ->
             val isSelected = day in selectedDays
-            Box(
+            Surface(
                 modifier = Modifier
-                    .size(width = 46.dp, height = 48.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (isSelected) MaterialTheme.colorScheme.primary else SurfaceCard)
-                    .clickable { onToggleDay(day) },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = label,
-                    color = if (isSelected) TextPrimary else TextSecondary,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 14.sp
+                    .weight(1f)
+                    .height(54.dp)
+                    .selectable(
+                        selected = isSelected,
+                        role = Role.Checkbox,
+                        onClick = { onToggleDay(day) }
+                    ),
+                shape = RoundedCornerShape(18.dp),
+                color = if (isSelected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                } else {
+                    SurfaceCard.copy(alpha = 0.86f)
+                },
+                border = BorderStroke(
+                    1.dp,
+                    if (isSelected) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.38f)
+                    } else {
+                        TextMuted.copy(alpha = 0.14f)
+                    }
                 )
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = label,
+                        color = if (isSelected) TextPrimary else TextSecondary,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
     }
@@ -1230,7 +1255,7 @@ private fun SettingsSection(title: String, content: @Composable ColumnScope.() -
             title = title,
             description = alarmEditSectionDescription(title)
         )
-        AppSurfaceCard(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp)) {
+        AppSurfaceCard(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
             content()
         }
     }
@@ -1241,20 +1266,31 @@ private fun SettingsRow(
     label: String,
     trailing: @Composable (() -> Unit)? = null
 ) {
-    Row(
+    Surface(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = SurfaceCard.copy(alpha = 0.34f),
+        border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
     ) {
-        Text(
-            text = label,
-            color = TextPrimary,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.bodyLarge
-        )
-        if (trailing != null) trailing()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = label,
+                color = TextPrimary,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleSmall
+            )
+            if (trailing != null) {
+                Spacer(modifier = Modifier.width(12.dp))
+                trailing()
+            }
+        }
     }
 }
 
@@ -1281,14 +1317,35 @@ private fun SettingsHint(
             .padding(horizontal = 16.dp, vertical = 2.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(accentColor.copy(alpha = 0.10f))
+            .border(
+                width = 1.dp,
+                color = accentColor.copy(alpha = 0.14f),
+                shape = RoundedCornerShape(16.dp)
+            )
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
-        Text(
-            text = text,
-            color = if (tone == HintTone.Neutral) TextSecondary else accentColor,
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Start
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = when (tone) {
+                    HintTone.Neutral -> Icons.Default.Info
+                    HintTone.Warning -> Icons.Default.WarningAmber
+                    HintTone.Danger -> Icons.Default.PriorityHigh
+                },
+                contentDescription = null,
+                tint = accentColor,
+                modifier = Modifier.padding(top = 1.dp)
+            )
+            Text(
+                text = text,
+                color = if (tone == HintTone.Neutral) TextSecondary else accentColor,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Start,
+                modifier = Modifier.weight(1f)
+            )
+        }
     }
 }
 
