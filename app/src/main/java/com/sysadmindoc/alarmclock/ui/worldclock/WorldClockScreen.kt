@@ -45,7 +45,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
-import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
@@ -180,7 +180,7 @@ private fun WorldClockCard(
                 AppStatusChip(
                     label = entry.offsetLabel,
                     icon = Icons.Default.Language,
-                    color = if (entry.isAhead) MaterialTheme.colorScheme.primary else TextMuted
+                    color = worldClockAccent(entry)
                 )
             }
 
@@ -316,7 +316,7 @@ private fun AddTimeZoneDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 14.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                             ) {
                                 Column(
@@ -325,12 +325,32 @@ private fun AddTimeZoneDialog(
                                 ) {
                                     Text(entry.cityName, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
                                     Text(entry.zoneId, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                                    AppStatusChip(
+                                        label = entry.offsetLabel,
+                                        icon = Icons.Default.Language,
+                                        color = worldClockAccent(entry)
+                                    )
                                 }
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
+                                Column(
+                                    horizontalAlignment = androidx.compose.ui.Alignment.End,
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = entry.time,
+                                        color = TextPrimary,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = entry.date,
+                                        color = TextMuted,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                    AppStatusChip(
+                                        label = "Add",
+                                        icon = Icons.Default.Add,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
                     }
@@ -339,4 +359,11 @@ private fun AddTimeZoneDialog(
         },
         containerColor = SurfaceDark
     )
+}
+
+@Composable
+private fun worldClockAccent(entry: WorldClockEntry) = when {
+    entry.offsetLabel == "Same time" -> DismissGreen
+    entry.isAhead -> MaterialTheme.colorScheme.primary
+    else -> TextMuted
 }

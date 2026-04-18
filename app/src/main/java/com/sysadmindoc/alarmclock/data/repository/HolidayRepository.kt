@@ -37,6 +37,12 @@ class HolidayRepository @Inject constructor(
     @Volatile private var memoryCacheLoadedAt: Long = 0L
     @Volatile private var memoryCacheDates: Set<String> = emptySet()
 
+    private data class CacheMeta(
+        val countryCode: String = "",
+        val fetchedAtMillis: Long = 0L,
+        val coveredYears: Set<Int> = emptySet()
+    )
+
     /** Returns true if [date] is a public holiday for the configured country. */
     suspend fun isHoliday(date: LocalDate): Boolean {
         val settings = preferencesManager.getCurrentSettings()
@@ -70,7 +76,12 @@ class HolidayRepository @Inject constructor(
             fetchAndCacheLocked(countryCode, year)
             // Also pre-fetch next year in December
             if (LocalDate.now().monthValue == 12) {
-                fetchAndCacheLocked(countryCode, year + 1, append = true)
+                fetchAndCacheLocked(
+                    countryCode = countryCode,
+                    year = year + 1,
+                    append = true,
+                    coveredYears = setOf(year)
+                )
             }
             memoryCacheDates = readCacheDatesLocked()
             memoryCacheCountry = countryCode
@@ -79,30 +90,65 @@ class HolidayRepository @Inject constructor(
     }
 
     private suspend fun ensureCacheValidLocked(countryCode: String, year: Int) {
-        val meta = if (metaFile.exists()) runCatching { metaFile.readText() }.getOrDefault("") else ""
-        val parts = meta.split("|")
-        val cachedCountry = parts.getOrNull(0) ?: ""
-        val cachedTs = parts.getOrNull(1)?.toLongOrNull() ?: 0L
-        val expired = System.currentTimeMillis() - cachedTs > cacheTtlMs
-        if (cachedCountry != countryCode || expired) {
+        val meta = readMetaLocked()
+        val expired = System.currentTimeMillis() - meta.fetchedAtMillis > cacheTtlMs
+        if (meta.countryCode != countryCode || expired || !cacheFile.exists()) {
             fetchAndCacheLocked(countryCode, year)
+        } else if (year !in meta.coveredYears) {
+            fetchAndCacheLocked(
+                countryCode = countryCode,
+                year = year,
+                append = true,
+                coveredYears = meta.coveredYears
+            )
         }
     }
 
-    private suspend fun fetchAndCacheLocked(countryCode: String, year: Int, append: Boolean = false) {
+    private suspend fun fetchAndCacheLocked(
+        countryCode: String,
+        year: Int,
+        append: Boolean = false,
+        coveredYears: Set<Int> = emptySet()
+    ) {
         try {
             val holidays = holidayApi.getPublicHolidays(year, countryCode)
-            val dates = holidays.map { it.date }
-            val content = dates.joinToString("\n")
-            if (append && cacheFile.exists()) {
-                cacheFile.appendText("\n" + content)
+            val fetchedDates = holidays.map { it.date }.toSet()
+            val allDates = if (append && cacheFile.exists()) {
+                (readCacheDatesLocked() + fetchedDates).sorted()
             } else {
-                cacheFile.writeText(content)
+                fetchedDates.sorted()
             }
-            metaFile.writeText("$countryCode|${System.currentTimeMillis()}")
+            cacheFile.writeText(allDates.joinToString("\n"))
+            writeMetaLocked(
+                CacheMeta(
+                    countryCode = countryCode,
+                    fetchedAtMillis = System.currentTimeMillis(),
+                    coveredYears = coveredYears + year
+                )
+            )
         } catch (_: Exception) {
             // Keep stale cache on network failure — do not update meta timestamp
         }
+    }
+
+    private fun readMetaLocked(): CacheMeta {
+        val raw = if (metaFile.exists()) runCatching { metaFile.readText() }.getOrDefault("") else ""
+        val parts = raw.split("|")
+        return CacheMeta(
+            countryCode = parts.getOrNull(0).orEmpty(),
+            fetchedAtMillis = parts.getOrNull(1)?.toLongOrNull() ?: 0L,
+            coveredYears = parts.getOrNull(2)
+                ?.split(",")
+                ?.mapNotNull { it.trim().toIntOrNull() }
+                ?.toSet()
+                ?: emptySet()
+        )
+    }
+
+    private fun writeMetaLocked(meta: CacheMeta) {
+        metaFile.writeText(
+            "${meta.countryCode}|${meta.fetchedAtMillis}|${meta.coveredYears.sorted().joinToString(",")}"
+        )
     }
 
     private fun readCacheDatesLocked(): Set<String> {

@@ -3,7 +3,9 @@ package com.sysadmindoc.alarmclock.data.model
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalTime
+import java.util.Locale
 
 /**
  * Core alarm entity stored in Room database.
@@ -105,7 +107,38 @@ data class Alarm(
     // v1.5.0: Solar anchor — "SUNRISE" or "SUNSET"
     val solarAnchor: String = "SUNRISE"
 ) {
-    val time: LocalTime get() = LocalTime.of(hour, minute)
+    companion object {
+        private val VALID_CHALLENGE_TYPES = setOf(
+            "NONE",
+            "MATH_EASY",
+            "MATH_MEDIUM",
+            "MATH_HARD",
+            "SHAKE",
+            "SEQUENCE",
+            "MEMORY_PATTERN",
+            "TYPING",
+            "WALK_STEPS",
+            "NFC_SCAN",
+            "BARCODE_SCAN",
+            "PHOTO_MATCH",
+            "SQUAT",
+            "WIFI_CONNECT",
+            "MAZE",
+            "COUNT_SHEEP",
+            "SIMON_SAYS",
+            "DATE_BACKWARDS",
+            "STROOP"
+        )
+        private val VALID_VIBRATION_PATTERNS = setOf(
+            "default",
+            "gentle",
+            "heartbeat",
+            "escalating",
+            "sos"
+        )
+    }
+
+    val time: LocalTime get() = LocalTime.of(hour.coerceIn(0, 23), minute.coerceIn(0, 59))
 
     val repeatLabel: String get() = when {
         repeatDays.isEmpty() -> "Once"
@@ -115,5 +148,81 @@ data class Alarm(
         repeatDays == setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) -> "Weekend"
         else -> repeatDays.sortedBy { it.value }
             .joinToString(", ") { it.name.take(3).lowercase().replaceFirstChar { c -> c.uppercase() } }
+    }
+
+    /**
+     * Defensive normalisation for anything that bypasses the UI layer:
+     * backup restore, future migrations, corrupted persistence, or tests that
+     * construct alarms manually. Keeps the persisted shape predictable and
+     * prevents obviously-invalid values from crashing scheduling.
+     */
+    fun sanitized(): Alarm {
+        val normalizedPool = ringtonePool.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .joinToString(",")
+        val normalizedSpecificDate = specificDate.trim().takeIf {
+            it.isNotBlank() && runCatching { LocalDate.parse(it) }.isSuccess
+        }.orEmpty()
+        val normalizedChallengeType = challengeType
+            .trim()
+            .uppercase(Locale.US)
+            .takeIf { it in VALID_CHALLENGE_TYPES }
+            ?: "NONE"
+        val normalizedChallengeChain = challengeChain.split(",")
+            .map { it.trim().uppercase(Locale.US) }
+            .filter { it in VALID_CHALLENGE_TYPES && it != "NONE" }
+            .distinct()
+            .joinToString(",")
+        val normalizedVibrationPattern = vibrationPattern
+            .trim()
+            .lowercase(Locale.US)
+            .takeIf { it in VALID_VIBRATION_PATTERNS }
+            ?: "default"
+
+        return copy(
+            hour = hour.coerceIn(0, 23),
+            minute = minute.coerceIn(0, 59),
+            label = label.trim().take(120),
+            vibrationIntensity = vibrationIntensity.coerceIn(0, 2),
+            volume = volume.coerceIn(0, 100),
+            gradualVolumeSeconds = gradualVolumeSeconds.coerceIn(0, 300),
+            snoozeDurationMinutes = snoozeDurationMinutes.coerceIn(1, 180),
+            maxSnoozeCount = maxSnoozeCount.coerceIn(0, 20),
+            challengeType = normalizedChallengeType,
+            group = group.trim().take(40),
+            vibrationPattern = normalizedVibrationPattern,
+            walkStepsRequired = walkStepsRequired.coerceIn(1, 10_000),
+            wakeConfirmDelayMinutes = wakeConfirmDelayMinutes.coerceIn(1, 180),
+            smartAlarmWindowMinutes = smartAlarmWindowMinutes.coerceIn(0, 180),
+            nfcTagId = nfcTagId.trim(),
+            barcodeValue = barcodeValue.trim(),
+            spotifyUri = spotifyUri.trim(),
+            huePreWakeMinutes = huePreWakeMinutes.coerceIn(0, 180),
+            photoMatchUri = photoMatchUri.trim(),
+            challengeChain = normalizedChallengeChain,
+            backupSoundDelaySec = backupSoundDelaySec.coerceIn(5, 900),
+            sunriseMinutes = sunriseMinutes.coerceIn(0, 120),
+            specificDate = normalizedSpecificDate,
+            profileName = profileName.trim().take(40),
+            earlyDismissMinutes = earlyDismissMinutes.coerceIn(0, 180),
+            guardianPhone = guardianPhone.trim(),
+            guardianDelaySec = guardianDelaySec.coerceIn(30, 3600),
+            locationDismissRadius = locationDismissRadius.coerceIn(25, 5_000),
+            wifiDismissSsid = wifiDismissSsid.trim(),
+            internetRadioUrl = internetRadioUrl.trim(),
+            morningRoutine = morningRoutine.lines()
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+                .joinToString("\n"),
+            hardwareButtonAction = when (hardwareButtonAction.uppercase(Locale.US)) {
+                "SNOOZE", "DISMISS" -> hardwareButtonAction.uppercase(Locale.US)
+                else -> "NONE"
+            },
+            ringtonePool = normalizedPool,
+            solarOffsetMinutes = solarOffsetMinutes.coerceIn(-720, 720),
+            solarAnchor = if (solarAnchor.equals("SUNSET", ignoreCase = true)) "SUNSET" else "SUNRISE"
+        )
     }
 }

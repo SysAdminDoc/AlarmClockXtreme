@@ -12,12 +12,14 @@ import com.sysadmindoc.alarmclock.data.remote.WeatherCodes
 import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
 import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
+import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.util.LocationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
 import javax.inject.Inject
 
 data class DashboardUiState(
@@ -67,8 +69,13 @@ class DashboardViewModel @Inject constructor(
     private val weatherRepository: WeatherRepository,
     private val calendarRepository: CalendarRepository,
     private val preferencesManager: PreferencesManager,
+    private val alarmScheduler: AlarmScheduler,
     private val geocodingApi: GeocodingApi
 ) : AndroidViewModel(application) {
+
+    companion object {
+        private const val SOLAR_RESCHEDULE_LOCATION_DELTA = 0.1
+    }
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
@@ -127,7 +134,7 @@ class DashboardViewModel @Inject constructor(
             val lon: Double
             val locName: String
 
-            if (settings.useManualLocation && settings.lastKnownLatitude != 0.0) {
+            if (settings.useManualLocation && settings.locationName.isNotBlank()) {
                 lat = settings.lastKnownLatitude
                 lon = settings.lastKnownLongitude
                 locName = settings.locationName
@@ -140,6 +147,17 @@ class DashboardViewModel @Inject constructor(
                     _uiState.update { it.copy(
                         weatherLoading = false,
                         hasLocation = false,
+                        locationName = "",
+                        temperature = "",
+                        feelsLike = "",
+                        humidity = "",
+                        windSpeed = "",
+                        weatherDescription = "",
+                        weatherIcon = "",
+                        highTemp = "",
+                        lowTemp = "",
+                        precipChance = "",
+                        forecast = emptyList(),
                         weatherError = "Tap the location icon to set your city"
                     ) }
                     return@launch
@@ -148,8 +166,18 @@ class DashboardViewModel @Inject constructor(
                 lon = location.longitude
                 locName = "Current Location"
 
+                val shouldRescheduleSolarAlarms = shouldRescheduleSolarAlarms(
+                    previous = settings,
+                    newLatitude = lat,
+                    newLongitude = lon,
+                    newLocationName = "",
+                    useManualLocation = false
+                )
                 preferencesManager.update {
                     it.copy(lastKnownLatitude = lat, lastKnownLongitude = lon)
+                }
+                if (shouldRescheduleSolarAlarms) {
+                    alarmScheduler.rescheduleAll(forceRecalculate = true)
                 }
             }
 
@@ -179,6 +207,18 @@ class DashboardViewModel @Inject constructor(
                 .onFailure { e ->
                     _uiState.update { it.copy(
                         weatherLoading = false,
+                        hasLocation = locName.isNotBlank(),
+                        locationName = locName,
+                        temperature = "",
+                        feelsLike = "",
+                        humidity = "",
+                        windSpeed = "",
+                        weatherDescription = "",
+                        weatherIcon = "",
+                        highTemp = "",
+                        lowTemp = "",
+                        precipChance = "",
+                        forecast = emptyList(),
                         weatherError = "Weather unavailable"
                     ) }
                 }
@@ -196,7 +236,11 @@ class DashboardViewModel @Inject constructor(
     private var searchJob: kotlinx.coroutines.Job? = null
 
     fun searchLocation(query: String) {
-        if (query.length < 2) return
+        if (query.length < 2) {
+            searchJob?.cancel()
+            _uiState.update { it.copy(locationSearchResults = emptyList(), locationSearching = false) }
+            return
+        }
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             _uiState.update { it.copy(locationSearching = true) }
@@ -220,13 +264,25 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             val lat = result.latitude ?: return@launch
             val lon = result.longitude ?: return@launch
+            val settings = preferencesManager.getCurrentSettings()
+            val displayName = result.displayName
+            val shouldRescheduleSolarAlarms = shouldRescheduleSolarAlarms(
+                previous = settings,
+                newLatitude = lat,
+                newLongitude = lon,
+                newLocationName = displayName,
+                useManualLocation = true
+            )
             preferencesManager.update {
                 it.copy(
                     lastKnownLatitude = lat,
                     lastKnownLongitude = lon,
-                    locationName = result.displayName,
+                    locationName = displayName,
                     useManualLocation = true
                 )
+            }
+            if (shouldRescheduleSolarAlarms) {
+                alarmScheduler.rescheduleAll(forceRecalculate = true)
             }
             _uiState.update { it.copy(
                 showLocationPicker = false,
@@ -261,11 +317,13 @@ class DashboardViewModel @Inject constructor(
             }.onFailure { e ->
                 if (e is SecurityException) {
                     _uiState.update { it.copy(
+                        calendarEvents = emptyList(),
                         calendarPermissionNeeded = true,
                         calendarError = "Calendar permission needed"
                     ) }
                 } else {
                     _uiState.update { it.copy(
+                        calendarEvents = emptyList(),
                         calendarError = "Unable to load calendar"
                     ) }
                 }
@@ -291,5 +349,18 @@ class DashboardViewModel @Inject constructor(
                 precipChance = daily.precipChance?.getOrNull(i)?.let { "${it}%" } ?: ""
             )
         }
+    }
+
+    private fun shouldRescheduleSolarAlarms(
+        previous: com.sysadmindoc.alarmclock.data.preferences.AppSettings,
+        newLatitude: Double,
+        newLongitude: Double,
+        newLocationName: String,
+        useManualLocation: Boolean
+    ): Boolean {
+        if (previous.useManualLocation != useManualLocation) return true
+        if (useManualLocation && previous.locationName != newLocationName) return true
+        return abs(previous.lastKnownLatitude - newLatitude) >= SOLAR_RESCHEDULE_LOCATION_DELTA ||
+            abs(previous.lastKnownLongitude - newLongitude) >= SOLAR_RESCHEDULE_LOCATION_DELTA
     }
 }
