@@ -393,9 +393,16 @@ fun AlarmListScreen(
                                 SwipeableAlarmCard(
                                     onDelete = { viewModel.deleteAlarm(alarm) }
                                 ) {
+                                    // v1.5.2: Surface vacation suppression per-card.
+                                    val suppressedByVacation = alarm.isEnabled &&
+                                        state.vacationStartMillis > 0L &&
+                                        state.vacationEndMillis > state.vacationStartMillis &&
+                                        alarm.nextTriggerTime in
+                                            state.vacationStartMillis..state.vacationEndMillis
                                     AlarmCard(
                                         alarm = alarm,
                                         is24Hour = state.is24HourFormat,
+                                        suppressedByVacation = suppressedByVacation,
                                         onToggle = { viewModel.toggleAlarm(alarm) },
                                         onClick = { onEditAlarm(alarm.id) },
                                         onDelete = { viewModel.deleteAlarm(alarm) },
@@ -575,6 +582,7 @@ private fun QuickAlarmRow(
 private fun AlarmCard(
     alarm: Alarm,
     is24Hour: Boolean,
+    suppressedByVacation: Boolean = false,
     onToggle: () -> Unit,
     onClick: () -> Unit,
     onDelete: () -> Unit,
@@ -667,8 +675,13 @@ private fun AlarmCard(
             }
 
             Text(
-                text = nextOccurrenceLabel(alarm, is24Hour),
-                color = TextMuted,
+                // v1.5.2: Be honest when vacation mode is swallowing the fire.
+                text = if (suppressedByVacation) {
+                    "Paused until vacation ends"
+                } else {
+                    nextOccurrenceLabel(alarm, is24Hour)
+                },
+                color = if (suppressedByVacation) SnoozeYellow else TextMuted,
                 style = MaterialTheme.typography.bodySmall
             )
 
@@ -678,6 +691,16 @@ private fun AlarmCard(
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (suppressedByVacation) {
+                    // v1.5.2: Honest per-alarm badge — previously the list said
+                    // "Next alarm in 3 days" even though vacation mode was
+                    // suppressing the alarm from ever firing.
+                    AppStatusChip(
+                        label = "Paused by vacation",
+                        icon = Icons.Default.BeachAccess,
+                        color = SnoozeYellow
+                    )
+                }
                 AppStatusChip(
                     label = if (alarm.isEnabled) "Enabled" else "Paused",
                     icon = if (alarm.isEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,

@@ -39,7 +39,13 @@ data class AlarmListUiState(
     val undoAlarm: Alarm? = null,
     val selectedIds: Set<Long> = emptySet(),
     val isSelectionMode: Boolean = false,
-    val napDefaultMinutes: Int = 20
+    val napDefaultMinutes: Int = 20,
+    // v1.5.2: Current vacation window bounds surfaced so the list card can
+    // flag individual alarms whose next trigger falls inside it — before
+    // this, the scheduler silently suppressed them while the UI still said
+    // "Next alarm in 3 days". 0/0 = no active window.
+    val vacationStartMillis: Long = 0L,
+    val vacationEndMillis: Long = 0L
 )
 
 @HiltViewModel
@@ -108,7 +114,9 @@ class AlarmListViewModel @Inject constructor(
             undoAlarm = snap.undoAlarm,
             selectedIds = snap.selectedIds,
             isSelectionMode = snap.isSelectionMode,
-            napDefaultMinutes = settings.napDefaultMinutes
+            napDefaultMinutes = settings.napDefaultMinutes,
+            vacationStartMillis = if (settings.vacationModeEnabled) settings.vacationStartMillis else 0L,
+            vacationEndMillis = if (settings.vacationModeEnabled) settings.vacationEndMillis else 0L
         )
     }.stateIn(
         viewModelScope,
