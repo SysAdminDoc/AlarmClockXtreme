@@ -33,10 +33,9 @@ class ProximityCoverDetector(
     // devices report `maximumRange` as 0 or a microscopic value, which
     // would otherwise make every sample look "covered" or "uncovered"
     // depending on rounding. Clamp to a sane minimum of 3 cm.
-    private val threshold: Float = run {
-        val max = proximity?.maximumRange ?: DEFAULT_MAX_RANGE_CM
-        (if (max > 0.5f) max else DEFAULT_MAX_RANGE_CM) * 0.5f
-    }
+    //
+    // v1.5.2: Threshold selection moved to a pure helper for unit testing.
+    private val threshold: Float = computeThreshold(proximity?.maximumRange ?: DEFAULT_MAX_RANGE_CM)
     private var coveredSinceMs = 0L
     private var triggered = false
 
@@ -74,12 +73,21 @@ class ProximityCoverDetector(
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
-    private companion object {
+    companion object {
         /**
          * Typical smartphone proximity sensors max out around 5 cm. This
          * default is only used when the driver reports an implausible
          * max range.
          */
         const val DEFAULT_MAX_RANGE_CM = 5f
+
+        /** Half of a plausible `maximumRange`, floored so that a driver
+         *  reporting 0 / microscopic range doesn't produce a useless
+         *  threshold. Extracted as a pure function so v1.5.2 unit tests
+         *  can pin the behaviour. */
+        fun computeThreshold(sensorMaxRange: Float): Float {
+            val clamped = if (sensorMaxRange > 0.5f) sensorMaxRange else DEFAULT_MAX_RANGE_CM
+            return clamped * 0.5f
+        }
     }
 }

@@ -2,6 +2,52 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.5.2] - 2026-04-18
+
+Follow-up polish pass closing the three "remaining risks" flagged in the
+v1.5.1 audit. Still no schema change, no new user features —
+testability, deprecation cleanup, and one small honesty UX fix.
+
+### Added
+
+- **`MissedAlarmReplayPolicy` pure decision object + 9 unit tests.** The
+  10-minute replay window, feature-flag gate, clock-drift tolerance,
+  and live-alarm guard all live in a single pure function so they can
+  be pinned without BroadcastReceiver / Hilt / DataStore wiring.
+  `MissedAlarmUnlockReceiver` now routes through it.
+- **`ProximityCoverDetector.computeThreshold(sensorMaxRange)` helper + 6
+  unit tests.** Extracted so the clamp behaviour (0 / microscopic /
+  negative range → fallback to 5 cm default) is testable on the JVM
+  without SensorManager.
+- **"Paused by vacation" per-alarm badge on the alarm list.** When an
+  alarm's next trigger falls inside the active vacation window, the
+  card now shows a yellow `Paused by vacation` chip and the secondary
+  line reads "Paused until vacation ends" instead of the misleading
+  "Next alarm in 3 days". `AlarmListViewModel` surfaces the current
+  `vacationStartMillis` / `vacationEndMillis` bounds for this.
+
+### Fixed
+
+- **`Window.statusBarColor` / `navigationBarColor` deprecation noise in
+  `Theme.kt`.** These setters were deprecated on Android 15 (API 35)
+  because edge-to-edge is now enforced system-wide (the host
+  activities already call `enableEdgeToEdge()`). Guarded with
+  `Build.VERSION.SDK_INT < VANILLA_ICE_CREAM` and suppressed the
+  deprecation warning; older devices still get the expected bar
+  colouring.
+- **Dead duplicate "clear missed state" call in
+  `MissedAlarmUnlockReceiver`.** The policy now owns state clearing;
+  the inline second `store.edit().clear().apply()` after the decision
+  was redundant and has been removed.
+
+### Build + test matrix
+
+- `assemblePlayDebug` — green
+- `testPlayDebugUnitTest` — all tests green, 15 new unit tests added
+  (9 for MissedAlarmReplayPolicy + 6 for ProximityCoverDetector)
+- `assemblePlayRelease` — green; signed APK in
+  `releases/AlarmClockXtreme-1.5.2-play-release.apk`
+
 ## [1.5.1] - 2026-04-18
 
 Production-hardening pass driven by a dedicated audit. Targets real bug

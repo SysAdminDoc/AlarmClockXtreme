@@ -84,8 +84,21 @@ fun AlarmClockXtremeTheme(
             // `view.context as Activity` would crash in any non-Activity host
             // (preview, ContextWrapper from a service, etc.). Bail safely.
             val window = (view.context as? Activity)?.window ?: return@SideEffect
-            window.statusBarColor = android.graphics.Color.TRANSPARENT
-            window.navigationBarColor = SurfaceDark.toArgb()
+
+            // v1.5.2: The direct `statusBarColor` / `navigationBarColor`
+            // setters were deprecated in Android 15 (API 35) because edge-
+            // to-edge is now enforced system-wide and the host activities
+            // already call `enableEdgeToEdge()`. Keep the setters for
+            // older OS versions so nav-bar contrast stays correct below
+            // the transparent region, but suppress the deprecation noise
+            // and skip the call on API 35+ where it is a no-op.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                @Suppress("DEPRECATION")
+                window.statusBarColor = android.graphics.Color.TRANSPARENT
+                @Suppress("DEPRECATION")
+                window.navigationBarColor = SurfaceDark.toArgb()
+            }
+
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = false
                 isAppearanceLightNavigationBars = false
