@@ -9,6 +9,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -142,6 +144,7 @@ fun AlarmClockHeroHeader(
 
             if (badge != null) {
                 Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     content = badge
@@ -238,13 +241,12 @@ fun AppSectionTitle(
     description: String? = null,
     action: (@Composable RowScope.() -> Unit)? = null
 ) {
-    Row(
+    Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(if (action != null) 10.dp else 0.dp)
     ) {
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
@@ -262,11 +264,17 @@ fun AppSectionTitle(
             }
         }
         if (action != null) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                content = action
-            )
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = action
+                )
+            }
         }
     }
 }
@@ -471,9 +479,10 @@ fun BottomNavContainer(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(30.dp),
         color = SurfaceMedium.copy(alpha = 0.98f),
-        border = BorderStroke(1.dp, AppCardBorderColor)
+        border = BorderStroke(1.dp, AppCardBorderColor),
+        shadowElevation = 12.dp
     ) {
         Box(
             modifier = Modifier
@@ -493,12 +502,12 @@ fun BottomNavContainer(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
                                 Color.Transparent
                             )
                         )
                     )
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 content()
             }

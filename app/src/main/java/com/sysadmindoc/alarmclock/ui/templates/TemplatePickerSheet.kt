@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.AlarmOn
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.MedicalServices
+import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material.icons.filled.Weekend
 import androidx.compose.material.icons.filled.Work
@@ -70,7 +71,7 @@ fun TemplatePickerSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             AppSectionTitle(
-                title = "Alarm Templates",
+                title = "Quick-start templates",
                 description = "Start with a thoughtful preset for common routines, then fine-tune the details afterward."
             )
 
@@ -83,8 +84,12 @@ fun TemplatePickerSheet(
                     color = MaterialTheme.colorScheme.primary
                 )
                 AppStatusChip(
-                    label = "Applies instantly",
+                    label = "Creates a draft alarm",
                     color = DismissGreen
+                )
+                AppStatusChip(
+                    label = "Fully editable",
+                    color = TextMuted
                 )
             }
 
@@ -176,6 +181,11 @@ private fun TemplateCard(
                             color = SnoozeYellow
                         )
                     }
+                    AppStatusChip(
+                        label = "${template.snoozeDurationMinutes} min snooze",
+                        icon = Icons.Default.Snooze,
+                        color = AccentBlue
+                    )
                 }
             }
 

@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +14,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Snooze
@@ -147,24 +152,30 @@ private fun WakeConfirmScreen(
                     description = "A quick second check for alarms that need extra accountability."
                 )
 
-                AppStatusChip(
-                    label = "Confirm to stop re-checks",
-                    icon = Icons.Default.CheckCircle,
-                    color = DismissGreen
-                )
-                AppStatusChip(
-                    label = "Skip and the alarm may ring again",
-                    icon = Icons.Default.WarningAmber,
-                    color = AccentRed
-                )
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AppStatusChip(
+                        label = "Confirm to stop re-checks",
+                        icon = Icons.Default.CheckCircle,
+                        color = DismissGreen
+                    )
+                    AppStatusChip(
+                        label = "Skip and the alarm may ring again",
+                        icon = Icons.Default.WarningAmber,
+                        color = AccentRed
+                    )
+                }
 
                 Button(
                     onClick = onConfirmAwake,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = DismissGreen)
+                    colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
+                    shape = MaterialTheme.shapes.large
                 ) {
                     Text(
-                        text = "Confirm I'm awake",
+                        text = "Yes, I'm up",
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -172,21 +183,22 @@ private fun WakeConfirmScreen(
                 OutlinedButton(
                     onClick = onKeepChecking,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary)
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
+                    shape = MaterialTheme.shapes.large
                 ) {
                     Icon(
                         imageVector = Icons.Default.Snooze,
                         contentDescription = null,
                         modifier = Modifier.size(18.dp)
                     )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Not yet",
-                        modifier = Modifier.padding(start = 8.dp)
+                        text = "Check again later"
                     )
                 }
 
                 Text(
-                    text = "Choosing \"Not yet\" just closes this screen and leaves the follow-up protection in place.",
+                    text = "Choosing \"Check again later\" simply closes this screen and keeps the follow-up protection active.",
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,

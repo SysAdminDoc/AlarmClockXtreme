@@ -30,6 +30,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -258,61 +259,69 @@ private fun StopwatchDial(state: StopwatchUiState) {
 
 @Composable
 private fun ControlsRow(state: StopwatchUiState, viewModel: StopwatchViewModel) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        when (state.state) {
-            StopwatchState.IDLE -> {
-                Button(
-                    onClick = viewModel::start,
-                    modifier = Modifier.size(78.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = "Start stopwatch", modifier = Modifier.size(34.dp))
-                }
+    when (state.state) {
+        StopwatchState.IDLE -> {
+            Button(
+                onClick = viewModel::start,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp),
+                shape = RoundedCornerShape(22.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(
+                    Icons.Default.PlayArrow,
+                    contentDescription = "Start stopwatch",
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Start stopwatch",
+                    fontWeight = FontWeight.SemiBold
+                )
             }
+        }
 
-            StopwatchState.RUNNING -> {
-                OutlinedButton(
+        StopwatchState.RUNNING -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StopwatchSecondaryButton(
+                    label = "Lap",
+                    icon = Icons.Default.Flag,
                     onClick = viewModel::lap,
-                    modifier = Modifier.size(58.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary)
-                ) {
-                    Icon(Icons.Default.Flag, contentDescription = "Mark lap")
-                }
-                Spacer(modifier = Modifier.width(24.dp))
-                Button(
+                    modifier = Modifier.weight(1f)
+                )
+                StopwatchPrimaryButton(
+                    label = "Pause",
+                    icon = Icons.Default.Pause,
                     onClick = viewModel::pause,
-                    modifier = Modifier.size(78.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Default.Pause, contentDescription = "Pause stopwatch", modifier = Modifier.size(34.dp))
-                }
+                    modifier = Modifier.weight(1.35f)
+                )
             }
+        }
 
-            StopwatchState.PAUSED -> {
-                OutlinedButton(
+        StopwatchState.PAUSED -> {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StopwatchSecondaryButton(
+                    label = "Reset",
+                    icon = Icons.Default.Refresh,
                     onClick = viewModel::reset,
-                    modifier = Modifier.size(58.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
-                ) {
-                    Icon(Icons.Default.Refresh, contentDescription = "Reset stopwatch")
-                }
-                Spacer(modifier = Modifier.width(24.dp))
-                Button(
+                    accent = AccentRed,
+                    modifier = Modifier.weight(1f)
+                )
+                StopwatchPrimaryButton(
+                    label = "Resume",
+                    icon = Icons.Default.PlayArrow,
                     onClick = viewModel::resume,
-                    modifier = Modifier.size(78.dp),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = "Resume stopwatch", modifier = Modifier.size(34.dp))
-                }
+                    modifier = Modifier.weight(1.35f)
+                )
             }
         }
     }
@@ -326,46 +335,118 @@ private fun LapRow(lap: Lap) {
         else -> TextPrimary
     }
 
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.width(72.dp)) {
-            Text(
-                text = "Lap ${lap.number}",
-                color = TextPrimary,
-                style = MaterialTheme.typography.titleSmall
-            )
-            Text(
-                text = when {
-                    lap.isBest -> "Best"
-                    lap.isWorst -> "Slowest"
-                    else -> "Split"
-                },
-                color = when {
-                    lap.isBest -> DismissGreen
-                    lap.isWorst -> AccentRed
-                    else -> TextMuted
-                },
-                style = MaterialTheme.typography.bodySmall
-            )
+            .padding(vertical = 6.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = when {
+            lap.isBest -> DismissGreen.copy(alpha = 0.1f)
+            lap.isWorst -> AccentRed.copy(alpha = 0.09f)
+            else -> SurfaceCard.copy(alpha = 0.72f)
         }
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(modifier = Modifier.width(84.dp)) {
+                Text(
+                    text = "Lap ${lap.number}",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = when {
+                        lap.isBest -> "Best split"
+                        lap.isWorst -> "Slowest split"
+                        else -> "Split"
+                    },
+                    color = when {
+                        lap.isBest -> DismissGreen
+                        lap.isWorst -> AccentRed
+                        else -> TextMuted
+                    },
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
 
-        Text(
-            text = formatMillis(lap.splitMillis),
-            color = textColor,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f)
-        )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = formatMillis(lap.splitMillis),
+                    color = textColor,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Split time",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
 
-        Text(
-            text = formatMillis(lap.totalMillis),
-            color = TextSecondary,
-            fontSize = 14.sp
-        )
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = formatMillis(lap.totalMillis),
+                    color = TextSecondary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "Total",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StopwatchPrimaryButton(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(22.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+    ) {
+        Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(label, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun StopwatchSecondaryButton(
+    label: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    accent: androidx.compose.ui.graphics.Color = TextSecondary
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(22.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
+    ) {
+        Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(label, fontWeight = FontWeight.Medium)
     }
 }
 

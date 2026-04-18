@@ -180,9 +180,19 @@ fun RingtonePickerSheet(
                     color = MaterialTheme.colorScheme.primary
                 )
                 AppStatusChip(
+                    label = "${filteredRingtones.size} result${if (filteredRingtones.size == 1) "" else "s"}",
+                    color = DismissGreen
+                )
+                AppStatusChip(
                     label = "Tap a tone to preview",
                     color = TextMuted
                 )
+                if (playingUri != null) {
+                    AppStatusChip(
+                        label = "Preview playing",
+                        color = AccentBlue
+                    )
+                }
             }
 
             OutlinedTextField(
