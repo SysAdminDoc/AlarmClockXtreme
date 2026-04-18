@@ -113,6 +113,9 @@ class AlarmService : Service() {
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var wakeLock: PowerManager.WakeLock? = null
     private var isForeground = false
+    private val runtimeStatePrefs by lazy {
+        getSharedPreferences("alarm_runtime_state", MODE_PRIVATE)
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -138,10 +141,8 @@ class AlarmService : Service() {
                     autoSilenceJob?.cancel()
                     volumeJob?.cancel()
                     stopAlarmPlayback()
-                    if (alarmId != currentAlarmId) {
-                        currentSnoozeCount = 0  // Reset for new alarm
-                    }
                     currentAlarmId = alarmId
+                    currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                     alarmFiredAt = System.currentTimeMillis()
                     serviceScope.launch { startAlarm(alarmId) }
                 }
@@ -161,6 +162,7 @@ class AlarmService : Service() {
 
     private suspend fun startAlarm(alarmId: Long) {
         val alarm = repository.getById(alarmId) ?: run {
+            clearAlarmRuntimeState(alarmId)
             stopSelf()
             return
         }
@@ -209,6 +211,9 @@ class AlarmService : Service() {
                             .apply()
                     }
                 }
+                clearAlarmRuntimeState(alarmId)
+                currentSnoozeCount = 0
+                currentAlarmId = -1
                 alarmScheduler.handleAlarmFired(alarmId)
                 stopAlarmPlayback()
                 if (isForeground) {
@@ -284,10 +289,12 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val timeText = String.format("%d:%02d %s",
-            if (alarm.hour % 12 == 0) 12 else alarm.hour % 12,
-            alarm.minute,
-            if (alarm.hour < 12) "AM" else "PM"
+        val time = alarm.time
+        val timeText = String.format(
+            "%d:%02d %s",
+            if (time.hour % 12 == 0) 12 else time.hour % 12,
+            time.minute,
+            if (time.hour < 12) "AM" else "PM"
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ALARM)
@@ -537,12 +544,18 @@ class AlarmService : Service() {
                 WorkManager.getInstance(applicationContext)
                     .cancelUniqueWork("guardian_${alarm.id}")
             }
-            currentSnoozeCount++
-            if (alarm.maxSnoozeCount > 0 && currentSnoozeCount > alarm.maxSnoozeCount) {
+            val nextSnoozeCount = currentSnoozeCount + 1
+            if (alarm.maxSnoozeCount > 0 && nextSnoozeCount > alarm.maxSnoozeCount) {
                 // Max snoozes reached - treat as dismiss
+                currentSnoozeCount = alarm.maxSnoozeCount
                 recordEvent(alarm, AlarmEvent.ACTION_DISMISSED)
+                clearAlarmRuntimeState(alarmId)
+                currentSnoozeCount = 0
+                currentAlarmId = -1
                 alarmScheduler.handleAlarmFired(alarmId)
             } else {
+                currentSnoozeCount = nextSnoozeCount
+                persistSnoozeCount(alarmId, currentSnoozeCount)
                 val effectiveSnooze = if (alarm.progressiveSnooze && customMinutes == null) {
                     (alarm.snoozeDurationMinutes - currentSnoozeCount).coerceAtLeast(1)
                 } else customMinutes
@@ -553,6 +566,10 @@ class AlarmService : Service() {
             serviceScope.launch {
                 webhookService.fire("snoozed", alarm.id, alarm.label, formatAlarmTime(alarm))
             }
+        } else {
+            clearAlarmRuntimeState(alarmId)
+            currentSnoozeCount = 0
+            currentAlarmId = -1
         }
         if (isForeground) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -570,6 +587,9 @@ class AlarmService : Service() {
         val alarm = repository.getById(alarmId)
         if (alarm != null) {
             recordEvent(alarm, AlarmEvent.ACTION_DISMISSED)
+            clearAlarmRuntimeState(alarmId)
+            currentSnoozeCount = 0
+            currentAlarmId = -1
 
             // F8: Webhook on dismiss
             serviceScope.launch {
@@ -591,6 +611,10 @@ class AlarmService : Service() {
 
             // v1.2.0: Cancel guardian if active (alarm was dismissed in time)
             WorkManager.getInstance(applicationContext).cancelUniqueWork("guardian_${alarm.id}")
+        } else {
+            clearAlarmRuntimeState(alarmId)
+            currentSnoozeCount = 0
+            currentAlarmId = -1
         }
         alarmScheduler.handleAlarmFired(alarmId)
         if (isForeground) {
@@ -703,9 +727,10 @@ class AlarmService : Service() {
     }
 
     private fun formatAlarmTime(alarm: Alarm): String {
-        val h = if (alarm.hour % 12 == 0) 12 else alarm.hour % 12
-        val amPm = if (alarm.hour < 12) "AM" else "PM"
-        return "$h:${String.format("%02d", alarm.minute)} $amPm"
+        val time = alarm.time
+        val h = if (time.hour % 12 == 0) 12 else time.hour % 12
+        val amPm = if (time.hour < 12) "AM" else "PM"
+        return "$h:${String.format("%02d", time.minute)} $amPm"
     }
 
     private suspend fun recordEvent(alarm: Alarm, action: String) {
@@ -722,16 +747,39 @@ class AlarmService : Service() {
                 action = action,
                 actionAt = now,
                 challengeType = alarm.challengeType,
+                snoozeCount = currentSnoozeCount.coerceAtLeast(0),
                 dayOfWeek = dayOfWeek
             )
         )
     }
 
+    private fun readPersistedSnoozeCount(alarmId: Long): Int {
+        if (alarmId <= 0L) return 0
+        return runtimeStatePrefs.getInt(snoozeCountKey(alarmId), 0).coerceAtLeast(0)
+    }
+
+    private fun persistSnoozeCount(alarmId: Long, count: Int) {
+        if (alarmId <= 0L) return
+        runtimeStatePrefs.edit()
+            .putInt(snoozeCountKey(alarmId), count.coerceAtLeast(0))
+            .apply()
+    }
+
+    private fun clearAlarmRuntimeState(alarmId: Long) {
+        if (alarmId <= 0L) return
+        runtimeStatePrefs.edit()
+            .remove(snoozeCountKey(alarmId))
+            .apply()
+    }
+
+    private fun snoozeCountKey(alarmId: Long): String = "snooze_count_$alarmId"
+
     private fun showMissedNotification(alarm: Alarm, autoSilenceMinutes: Long = DEFAULT_AUTO_SILENCE_MINUTES) {
         val nm = getSystemService(NotificationManager::class.java)
-        val hour12 = if (alarm.hour % 12 == 0) 12 else alarm.hour % 12
-        val amPm = if (alarm.hour < 12) "AM" else "PM"
-        val timeStr = "$hour12:${String.format("%02d", alarm.minute)} $amPm"
+        val time = alarm.time
+        val hour12 = if (time.hour % 12 == 0) 12 else time.hour % 12
+        val amPm = if (time.hour < 12) "AM" else "PM"
+        val timeStr = "$hour12:${String.format("%02d", time.minute)} $amPm"
 
         val notification = NotificationCompat.Builder(this, CHANNEL_MISSED)
             .setSmallIcon(R.drawable.ic_alarm)

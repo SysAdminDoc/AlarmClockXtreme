@@ -37,7 +37,7 @@ class AlarmEventRepository @Inject constructor(
         val missed = dao.countByAction(AlarmEvent.ACTION_MISSED)
         val avgDismissMs = dao.averageDismissTimeMs() ?: 0L
         val withSnooze = dao.countWithSnooze()
-        val total = dismissed + snoozed + missed
+        val total = dismissed + skipped + missed
 
         // Week stats
         val weekAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)

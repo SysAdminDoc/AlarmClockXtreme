@@ -19,8 +19,8 @@ class AlarmRepository @Inject constructor(
     suspend fun getNextAlarm(): Alarm? = dao.getNextAlarm()
     suspend fun getAll(): List<Alarm> = dao.getAll()
 
-    suspend fun save(alarm: Alarm): Long = dao.insert(alarm)
-    suspend fun update(alarm: Alarm) = dao.update(alarm)
+    suspend fun save(alarm: Alarm): Long = dao.insert(alarm.sanitized())
+    suspend fun update(alarm: Alarm) = dao.update(alarm.sanitized())
     suspend fun delete(alarm: Alarm) = dao.delete(alarm)
     suspend fun deleteById(id: Long) = dao.deleteById(id)
 

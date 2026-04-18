@@ -25,7 +25,7 @@ interface AlarmEventDao {
     suspend fun averageDismissTimeMs(): Long?
 
     // Stats: snooze rate (% of events that included at least one snooze)
-    @Query("SELECT COUNT(*) FROM alarm_events WHERE snoozeCount > 0")
+    @Query("SELECT COUNT(*) FROM alarm_events WHERE action IN ('DISMISSED', 'MISSED', 'SKIPPED') AND snoozeCount > 0")
     suspend fun countWithSnooze(): Int
 
     // Stats: events per day of week (1=Monday..7=Sunday)

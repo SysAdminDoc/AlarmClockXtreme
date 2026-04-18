@@ -243,8 +243,13 @@ class AlarmListViewModel @Inject constructor(
         _undoAlarm.value = null
         viewModelScope.launch {
             val id = repository.save(alarm)
-            if (alarm.isEnabled) {
-                scheduler.schedule(alarm.copy(id = id))
+            val restored = alarm.copy(id = id)
+            if (restored.isEnabled) {
+                if (restored.nextTriggerTime > System.currentTimeMillis()) {
+                    scheduler.scheduleAt(restored, restored.nextTriggerTime)
+                } else {
+                    scheduler.schedule(restored)
+                }
             }
         }
     }
@@ -300,7 +305,7 @@ class AlarmListViewModel @Inject constructor(
             )
 
             val id = repository.save(alarm)
-            scheduler.schedule(alarm.copy(id = id))
+            scheduler.scheduleAt(alarm.copy(id = id), triggerTime)
             emitFeedback("Quick alarm set for ${formatFeedbackTime(triggerTime)}")
         }
     }
@@ -347,7 +352,11 @@ class AlarmListViewModel @Inject constructor(
 
             val id = repository.save(alarm)
             val saved = alarm.copy(id = id)
-            scheduler.schedule(saved)
+            if (isRelative) {
+                scheduler.scheduleAt(saved, saved.nextTriggerTime)
+            } else {
+                scheduler.schedule(saved)
+            }
             emitFeedback(
                 if (isRelative) {
                     "${template.name} starts in ${template.minute} minutes"
@@ -386,7 +395,7 @@ class AlarmListViewModel @Inject constructor(
             val afterSkip = calculator.calculate(alarm, afterSkipTime)
             val updated = alarm.copy(nextTriggerTime = afterSkip)
             repository.updateNextTrigger(alarm.id, afterSkip)
-            scheduler.schedule(updated)
+            scheduler.scheduleAt(updated, afterSkip)
 
             val skippedDate = Instant.ofEpochMilli(afterSkip)
                 .atZone(ZoneId.systemDefault())

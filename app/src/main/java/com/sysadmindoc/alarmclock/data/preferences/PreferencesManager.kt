@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.data.preferences
 
 import android.content.Context
+import android.graphics.Color
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.io.IOException
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -98,6 +100,66 @@ data class AppSettings(
     val napDefaultMinutes: Int = 20,
 )
 
+private fun AppSettings.sanitized(): AppSettings {
+    val vacationWindowValid =
+        vacationModeEnabled && vacationStartMillis > 0 && vacationEndMillis > vacationStartMillis
+    val normalizedAccent = accentColor.trim().takeIf {
+        it.startsWith("#") && runCatching { Color.parseColor(it) }.isSuccess
+    } ?: "#5B9EF4"
+    val normalizedTemperatureUnit =
+        if (temperatureUnit.equals("celsius", ignoreCase = true)) "celsius" else "fahrenheit"
+    val normalizedHolidayCountryCode = holidayCountryCode
+        .trim()
+        .uppercase(Locale.US)
+        .filter(Char::isLetter)
+        .take(2)
+    val normalizedCustomTypingPhrases = customTypingPhrases
+        .lineSequence()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .joinToString("\n")
+    val normalizedBedtimeChecklist = bedtimeChecklist
+        .lineSequence()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .joinToString("\n")
+    val normalizedLocationName = locationName.trim().take(120)
+
+    return copy(
+        defaultSnoozeDuration = defaultSnoozeDuration.coerceIn(1, 180),
+        defaultGradualVolume = defaultGradualVolume.coerceIn(0, 300),
+        upcomingAlarmMinutes = upcomingAlarmMinutes.coerceIn(0, 1_440),
+        vacationModeEnabled = vacationWindowValid,
+        vacationStartMillis = if (vacationWindowValid) vacationStartMillis else 0,
+        vacationEndMillis = if (vacationWindowValid) vacationEndMillis else 0,
+        lastKnownLatitude = lastKnownLatitude.coerceIn(-90.0, 90.0),
+        lastKnownLongitude = lastKnownLongitude.coerceIn(-180.0, 180.0),
+        autoSilenceMinutes = autoSilenceMinutes.coerceIn(0, 240),
+        temperatureUnit = normalizedTemperatureUnit,
+        locationName = normalizedLocationName,
+        useManualLocation = useManualLocation && normalizedLocationName.isNotBlank(),
+        bedtimeHour = bedtimeHour.coerceIn(0, 23),
+        bedtimeMinute = bedtimeMinute.coerceIn(0, 59),
+        sleepGoalHours = sleepGoalHours.coerceIn(1, 16),
+        sleepGoalMinutes = sleepGoalMinutes.coerceIn(0, 59),
+        bedtimeReminderMinutes = bedtimeReminderMinutes.coerceIn(0, 180),
+        webhookUrl = webhookUrl.trim(),
+        holidayCountryCode = normalizedHolidayCountryCode,
+        hueBridgeIp = hueBridgeIp.trim(),
+        hueApiKey = hueApiKey.trim(),
+        hueLightIds = hueLightIds.trim(),
+        accentColor = normalizedAccent,
+        calendarAutoAlarmMinutesBefore = calendarAutoAlarmMinutesBefore.coerceIn(0, 720),
+        guardianContactName = guardianContactName.trim().take(80),
+        guardianContactPhone = guardianContactPhone.trim().take(40),
+        customTypingPhrases = normalizedCustomTypingPhrases,
+        bedtimeChecklist = normalizedBedtimeChecklist,
+        sleepSoundTimerMinutes = sleepSoundTimerMinutes.coerceIn(0, 240),
+        sleepSoundFadeSeconds = sleepSoundFadeSeconds.coerceIn(5, 600),
+        napDefaultMinutes = napDefaultMinutes.coerceIn(1, 180)
+    )
+}
+
 @Singleton
 class PreferencesManager @Inject constructor(
     @ApplicationContext private val context: Context
@@ -158,14 +220,14 @@ class PreferencesManager @Inject constructor(
             if (e is IOException) emit(emptyPreferences())
             else throw e
         }
-        .map { it.toSettings() }
+        .map { it.toSettings().sanitized() }
 
     suspend fun getCurrentSettings(): AppSettings = settings.first()
 
     suspend fun update(transform: (AppSettings) -> AppSettings) {
         context.dataStore.edit { prefs ->
-            val old = prefs.toSettings()
-            val new = transform(old)
+            val old = prefs.toSettings().sanitized()
+            val new = transform(old).sanitized()
             prefs.applySettings(new)
         }
     }

@@ -5,6 +5,8 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import java.time.DayOfWeek
+import java.time.Instant
+import java.time.ZoneId
 import java.time.ZonedDateTime
 
 class NextAlarmCalculatorTest {
@@ -140,5 +142,18 @@ class NextAlarmCalculatorTest {
         )
         val result = calculator.calculate(alarm)
         assertTrue("Should still produce a future trigger", result > System.currentTimeMillis())
+    }
+
+    @Test
+    fun `calculate clamps invalid alarm time instead of crashing`() {
+        val fromTime = ZonedDateTime.of(2026, 1, 1, 22, 30, 0, 0, ZoneId.of("UTC"))
+        val alarm = Alarm(hour = 99, minute = 99, repeatDays = emptySet())
+
+        val result = calculator.calculate(alarm, fromTime)
+        val resultDateTime = Instant.ofEpochMilli(result).atZone(fromTime.zone)
+
+        assertEquals(23, resultDateTime.hour)
+        assertEquals(59, resultDateTime.minute)
+        assertEquals(fromTime.toLocalDate(), resultDateTime.toLocalDate())
     }
 }

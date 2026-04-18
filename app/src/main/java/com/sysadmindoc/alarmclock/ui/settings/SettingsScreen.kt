@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
@@ -67,13 +68,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -96,6 +100,8 @@ import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
+import kotlinx.coroutines.delay
 
 @Composable
 fun SettingsScreen(
@@ -805,15 +811,13 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
             onToggle = viewModel::toggleWebhook
         )
 
-        OutlinedTextField(
+        BufferedSettingsTextField(
             value = state.settings.webhookUrl,
-            onValueChange = viewModel::updateWebhookUrl,
+            onCommit = viewModel::updateWebhookUrl,
             label = { Text("Webhook URL") },
             placeholder = { Text("https://example.com/hook") },
             enabled = state.settings.webhookEnabled,
-            colors = appOutlinedTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
             singleLine = true
         )
 
@@ -873,19 +877,29 @@ private fun HolidaysSection(state: SettingsUiState, viewModel: SettingsViewModel
             supportingText = "Useful for weekday alarms that should respect bank holidays and public closures.",
             onToggle = viewModel::toggleHolidayAutoSkip
         )
-        OutlinedTextField(
+        BufferedSettingsTextField(
             value = state.settings.holidayCountryCode,
-            onValueChange = viewModel::updateHolidayCountryCode,
+            onCommit = viewModel::updateHolidayCountryCode,
+            transformInput = { newValue ->
+                newValue
+                    .filter(Char::isLetter)
+                    .uppercase(Locale.US)
+                    .take(2)
+            },
             label = { Text("Country code") },
             placeholder = { Text("US, GB, DE...") },
-            enabled = state.settings.holidayAutoSkipEnabled,
-            colors = appOutlinedTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
-            singleLine = true
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Characters
+            )
         )
         Text(
-            text = "Holiday data comes from Nager.Date and is cached locally for a week.",
+            text = if (state.settings.holidayAutoSkipEnabled) {
+                "Holiday data comes from Nager.Date and is cached locally for a week."
+            } else {
+                "Choose the country now if you want. Holiday skipping only activates when the toggle above is on."
+            },
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
@@ -898,34 +912,28 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
         title = "Philips Hue sunrise",
         description = "Wake the room up gradually before the alarm sound takes over."
     ) {
-        OutlinedTextField(
+        BufferedSettingsTextField(
             value = state.settings.hueBridgeIp,
-            onValueChange = viewModel::updateHueBridgeIp,
+            onCommit = viewModel::updateHueBridgeIp,
             label = { Text("Bridge IP address") },
             placeholder = { Text("192.168.1.100") },
-            colors = appOutlinedTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
             singleLine = true
         )
-        OutlinedTextField(
+        BufferedSettingsTextField(
             value = state.settings.hueApiKey,
-            onValueChange = viewModel::updateHueApiKey,
+            onCommit = viewModel::updateHueApiKey,
             label = { Text("Hue API key") },
             placeholder = { Text("Press the Hue bridge button first") },
-            colors = appOutlinedTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
             singleLine = true
         )
-        OutlinedTextField(
+        BufferedSettingsTextField(
             value = state.settings.hueLightIds,
-            onValueChange = viewModel::updateHueLightIds,
+            onCommit = viewModel::updateHueLightIds,
             label = { Text("Light IDs") },
             placeholder = { Text("1,2,3") },
-            colors = appOutlinedTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
             singleLine = true
         )
         Row(
@@ -1011,29 +1019,35 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
             onToggle = viewModel::toggleRepeatMissed
         )
 
-        OutlinedTextField(
+        BufferedSettingsTextField(
             value = state.settings.customTypingPhrases,
-            onValueChange = viewModel::updateCustomTypingPhrases,
+            onCommit = viewModel::updateCustomTypingPhrases,
             label = { Text("Custom typing phrases", color = TextMuted) },
             placeholder = { Text("One phrase per line — appended to the built-in list", color = TextMuted) },
-            colors = appOutlinedTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
             minLines = 2,
             maxLines = 6
         )
+        Text(
+            text = "These are added after the built-in phrase library, so you can make typing challenges sound more like you.",
+            color = TextMuted,
+            style = MaterialTheme.typography.bodySmall
+        )
 
         // v1.4.0: Pre-sleep checklist items, shown on the Bedtime tab.
-        OutlinedTextField(
+        BufferedSettingsTextField(
             value = state.settings.bedtimeChecklist,
-            onValueChange = viewModel::updateBedtimeChecklist,
+            onCommit = viewModel::updateBedtimeChecklist,
             label = { Text("Bedtime wind-down checklist", color = TextMuted) },
             placeholder = { Text("One item per line (e.g. Dim lights, Phone on charger, Set alarm)", color = TextMuted) },
-            colors = appOutlinedTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
             minLines = 2,
             maxLines = 6
+        )
+        Text(
+            text = "This appears in Bedtime so your routine stays consistent even when the rest of the day feels busy.",
+            color = TextMuted,
+            style = MaterialTheme.typography.bodySmall
         )
     }
 }
@@ -1217,6 +1231,61 @@ private fun dashboardSummary(state: SettingsUiState): String = when {
     state.settings.showWeatherOnDashboard -> "Weather only"
     state.settings.showCalendarOnDashboard -> "Calendar only"
     else -> "Minimal"
+}
+
+@Composable
+private fun BufferedSettingsTextField(
+    value: String,
+    onCommit: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    transformInput: (String) -> String = { it },
+    label: @Composable (() -> Unit)? = null,
+    placeholder: @Composable (() -> Unit)? = null,
+    singleLine: Boolean = false,
+    minLines: Int = 1,
+    maxLines: Int = Int.MAX_VALUE,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    commitDelayMillis: Long = if (singleLine) 220 else 350
+) {
+    var draft by rememberSaveable { mutableStateOf(value) }
+    var isFocused by remember { mutableStateOf(false) }
+
+    LaunchedEffect(value, isFocused) {
+        if (!isFocused && draft != value) {
+            draft = value
+        }
+    }
+
+    LaunchedEffect(draft, value, commitDelayMillis) {
+        if (draft != value) {
+            delay(commitDelayMillis)
+            if (draft != value) {
+                onCommit(draft)
+            }
+        }
+    }
+
+    OutlinedTextField(
+        value = draft,
+        onValueChange = { draft = transformInput(it) },
+        enabled = enabled,
+        label = label,
+        placeholder = placeholder,
+        colors = appOutlinedTextFieldColors(),
+        modifier = modifier.onFocusChanged { focusState ->
+            val lostFocus = isFocused && !focusState.isFocused
+            isFocused = focusState.isFocused
+            if (lostFocus && draft != value) {
+                onCommit(draft)
+            }
+        },
+        shape = RoundedCornerShape(18.dp),
+        singleLine = singleLine,
+        minLines = minLines,
+        maxLines = maxLines,
+        keyboardOptions = keyboardOptions
+    )
 }
 
 @Composable

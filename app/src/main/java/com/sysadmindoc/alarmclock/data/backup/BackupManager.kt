@@ -11,6 +11,7 @@ import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.DayOfWeek
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -149,6 +150,71 @@ class BackupManager @Inject constructor(
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
         const val MAX_SUPPORTED_BACKUP_VERSION = 5
+    }
+
+    private fun AlarmBackup.toAlarmOrNull(): Alarm? {
+        return runCatching {
+            Alarm(
+                hour = hour,
+                minute = minute,
+                label = label,
+                isEnabled = isEnabled,
+                repeatDays = repeatDays.mapNotNull {
+                    runCatching { DayOfWeek.valueOf(it.trim().uppercase(Locale.US)) }.getOrNull()
+                }.toSet(),
+                ringtoneUri = ringtoneUri,
+                vibrationEnabled = vibrationEnabled,
+                vibrationIntensity = vibrationIntensity,
+                volume = volume,
+                overrideSystemVolume = overrideSystemVolume,
+                gradualVolumeSeconds = gradualVolumeSeconds,
+                snoozeDurationMinutes = snoozeDurationMinutes,
+                maxSnoozeCount = maxSnoozeCount,
+                showOnLockScreen = showOnLockScreen,
+                challengeType = challengeType,
+                group = group,
+                flashWake = flashWake,
+                vibrationPattern = vibrationPattern,
+                ttsEnabled = ttsEnabled,
+                walkStepsRequired = walkStepsRequired,
+                wakeConfirmEnabled = wakeConfirmEnabled,
+                wakeConfirmDelayMinutes = wakeConfirmDelayMinutes,
+                smartAlarmEnabled = smartAlarmEnabled,
+                smartAlarmWindowMinutes = smartAlarmWindowMinutes,
+                skipOnHolidays = skipOnHolidays,
+                nfcTagId = nfcTagId,
+                barcodeValue = barcodeValue,
+                spotifyUri = spotifyUri,
+                hueEnabled = hueEnabled,
+                huePreWakeMinutes = huePreWakeMinutes,
+                photoMatchUri = photoMatchUri,
+                challengeChain = challengeChain,
+                progressiveSnooze = progressiveSnooze,
+                backupSoundEnabled = backupSoundEnabled,
+                backupSoundDelaySec = backupSoundDelaySec,
+                sunriseSimulation = sunriseSimulation,
+                sunriseMinutes = sunriseMinutes,
+                specificDate = specificDate,
+                profileName = profileName,
+                earlyDismissMinutes = earlyDismissMinutes,
+                guardianEnabled = guardianEnabled,
+                guardianPhone = guardianPhone,
+                guardianDelaySec = guardianDelaySec,
+                locationDismissEnabled = locationDismissEnabled,
+                locationDismissLat = locationDismissLat,
+                locationDismissLng = locationDismissLng,
+                locationDismissRadius = locationDismissRadius,
+                wifiDismissSsid = wifiDismissSsid,
+                internetRadioUrl = internetRadioUrl,
+                flashlightStrobe = flashlightStrobe,
+                morningRoutine = morningRoutine,
+                hardwareButtonAction = hardwareButtonAction,
+                dismissAtRingtoneEnd = dismissAtRingtoneEnd,
+                ringtonePool = ringtonePool,
+                solarOffsetMinutes = solarOffsetMinutes,
+                solarAnchor = solarAnchor
+            ).sanitized()
+        }.getOrNull()
     }
 
     suspend fun export(): String {
@@ -305,78 +371,7 @@ class BackupManager @Inject constructor(
                 )
             }
 
-            var count = 0
-            for (ab in backup.alarms) {
-                try {
-                    val alarm = Alarm(
-                        hour = ab.hour,
-                        minute = ab.minute,
-                        label = ab.label,
-                        isEnabled = ab.isEnabled,
-                        repeatDays = ab.repeatDays.mapNotNull {
-                            try { DayOfWeek.valueOf(it) } catch (_: Exception) { null }
-                        }.toSet(),
-                        ringtoneUri = ab.ringtoneUri,
-                        vibrationEnabled = ab.vibrationEnabled,
-                        vibrationIntensity = ab.vibrationIntensity,
-                        volume = ab.volume,
-                        overrideSystemVolume = ab.overrideSystemVolume,
-                        gradualVolumeSeconds = ab.gradualVolumeSeconds,
-                        snoozeDurationMinutes = ab.snoozeDurationMinutes,
-                        maxSnoozeCount = ab.maxSnoozeCount,
-                        showOnLockScreen = ab.showOnLockScreen,
-                        challengeType = ab.challengeType,
-                        group = ab.group,
-                        flashWake = ab.flashWake,
-                        vibrationPattern = ab.vibrationPattern,
-                        ttsEnabled = ab.ttsEnabled,
-                        walkStepsRequired = ab.walkStepsRequired,
-                        wakeConfirmEnabled = ab.wakeConfirmEnabled,
-                        wakeConfirmDelayMinutes = ab.wakeConfirmDelayMinutes,
-                        smartAlarmEnabled = ab.smartAlarmEnabled,
-                        smartAlarmWindowMinutes = ab.smartAlarmWindowMinutes,
-                        skipOnHolidays = ab.skipOnHolidays,
-                        nfcTagId = ab.nfcTagId,
-                        barcodeValue = ab.barcodeValue,
-                        spotifyUri = ab.spotifyUri,
-                        hueEnabled = ab.hueEnabled,
-                        huePreWakeMinutes = ab.huePreWakeMinutes,
-                        photoMatchUri = ab.photoMatchUri,
-                        challengeChain = ab.challengeChain,
-                        progressiveSnooze = ab.progressiveSnooze,
-                        backupSoundEnabled = ab.backupSoundEnabled,
-                        backupSoundDelaySec = ab.backupSoundDelaySec,
-                        sunriseSimulation = ab.sunriseSimulation,
-                        sunriseMinutes = ab.sunriseMinutes,
-                        specificDate = ab.specificDate,
-                        profileName = ab.profileName,
-                        earlyDismissMinutes = ab.earlyDismissMinutes,
-                        guardianEnabled = ab.guardianEnabled,
-                        guardianPhone = ab.guardianPhone,
-                        guardianDelaySec = ab.guardianDelaySec,
-                        locationDismissEnabled = ab.locationDismissEnabled,
-                        locationDismissLat = ab.locationDismissLat,
-                        locationDismissLng = ab.locationDismissLng,
-                        locationDismissRadius = ab.locationDismissRadius,
-                        wifiDismissSsid = ab.wifiDismissSsid,
-                        internetRadioUrl = ab.internetRadioUrl,
-                        flashlightStrobe = ab.flashlightStrobe,
-                        morningRoutine = ab.morningRoutine,
-                        hardwareButtonAction = ab.hardwareButtonAction,
-                        dismissAtRingtoneEnd = ab.dismissAtRingtoneEnd,
-                        ringtonePool = ab.ringtonePool,
-                        solarOffsetMinutes = ab.solarOffsetMinutes,
-                        solarAnchor = ab.solarAnchor
-                    )
-                    val id = repository.save(alarm)
-                    if (alarm.isEnabled) {
-                        scheduler.schedule(alarm.copy(id = id))
-                    }
-                    count++
-                } catch (_: Exception) {
-                    // Skip malformed alarm entries, continue importing
-                }
-            }
+            val importedAlarms = backup.alarms.mapNotNull { it.toAlarmOrNull() }
 
             // Import settings
             backup.settings?.let { s ->
@@ -426,6 +421,19 @@ class BackupManager @Inject constructor(
                     )
                 }
             }
+
+            var count = 0
+            val alarmsToSchedule = mutableListOf<Alarm>()
+            for (alarm in importedAlarms) {
+                val savedId = repository.save(alarm.copy(nextTriggerTime = 0))
+                val savedAlarm = alarm.copy(id = savedId, nextTriggerTime = 0)
+                if (savedAlarm.isEnabled) {
+                    alarmsToSchedule += savedAlarm
+                }
+                count++
+            }
+
+            alarmsToSchedule.forEach { scheduler.schedule(it) }
 
             Result.success(count)
         } catch (e: Exception) {
