@@ -47,33 +47,27 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                     .getSharedPreferences("missed_alarm_state", Context.MODE_PRIVATE)
                 val at = store.getLong("last_missed_at", 0L)
                 val id = store.getLong("last_missed_id", -1L)
-                val ageMs = System.currentTimeMillis() - at
-                // v1.5.1: half-open window so a second unlock at exactly the
-                // boundary can't stack a replay on top of the next alarm.
-                val withinWindow = at > 0 && ageMs in 0 until (10 * 60 * 1000L)
 
-                if (!settings.repeatMissedAlarms || !withinWindow || id <= 0L) {
+                // v1.5.2: Single source of truth for the replay decision lives
+                // in [MissedAlarmReplayPolicy] so it can be unit-tested without
+                // BroadcastReceiver / Hilt wiring.
+                val decision = MissedAlarmReplayPolicy.shouldReplay(
+                    repeatMissedEnabled = settings.repeatMissedAlarms,
+                    lastMissedAtMs = at,
+                    lastMissedId = id,
+                    alarmCurrentlyFiringId =
+                        com.sysadmindoc.alarmclock.service.AlarmService.activeAlarmId,
+                    nowMs = System.currentTimeMillis()
+                )
+                if (decision.shouldClearState) {
                     store.edit().clear().apply()
-                    return@launch
                 }
+                if (!decision.shouldReplay) return@launch
 
-                // v1.5.1: Don't replay the miss if an alarm is already firing
-                // right now. Otherwise the foreground service could be started
-                // twice (once for the live alarm, once for the replay) and
-                // audio would conflict.
-                if (com.sysadmindoc.alarmclock.service.AlarmService.activeAlarmId != -1L) {
-                    store.edit().clear().apply()
-                    return@launch
-                }
-
-                val alarm = ep.alarmRepository().getById(id) ?: run {
-                    store.edit().clear().apply()
-                    return@launch
-                }
-
-                // Clear the record first so the re-fired alarm can't retrigger itself
-                // if the user dismisses it quickly and unlocks again.
-                store.edit().clear().apply()
+                // Policy has already cleared the record above; if the DB
+                // row vanished between the record write and now, we just
+                // silently drop the replay.
+                val alarm = ep.alarmRepository().getById(id) ?: return@launch
 
                 val fireIntent = Intent(context, AlarmService::class.java).apply {
                     action = AlarmService.ACTION_START_ALARM
