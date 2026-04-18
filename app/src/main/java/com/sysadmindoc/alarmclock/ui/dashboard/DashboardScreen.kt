@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,10 +13,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
@@ -44,6 +47,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -268,66 +272,78 @@ private fun WeatherSection(
 
                     HorizontalDivider(color = TextMuted.copy(alpha = 0.18f))
 
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        WeatherMetric(
-                            label = "High",
-                            value = "${state.highTemp}\u00B0",
-                            icon = Icons.Default.ArrowUpward,
-                            accent = AccentRed
-                        )
-                        WeatherMetric(
-                            label = "Low",
-                            value = "${state.lowTemp}\u00B0",
-                            icon = Icons.Default.ArrowDownward,
-                            accent = MaterialTheme.colorScheme.primary
-                        )
-                        WeatherMetric(
-                            label = "Feels like",
-                            value = state.feelsLike.removePrefix("Feels like "),
-                            icon = Icons.Default.Thermostat
-                        )
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        WeatherMetric(
-                            label = "Humidity",
-                            value = state.humidity,
-                            icon = Icons.Default.WaterDrop
-                        )
-                        WeatherMetric(
-                            label = "Wind",
-                            value = state.windSpeed,
-                            icon = Icons.Default.Air
-                        )
-                        WeatherMetric(
-                            label = "Rain",
-                            value = if (state.precipChance.isBlank()) "0%" else state.precipChance,
-                            icon = Icons.Default.Umbrella
-                        )
-                    }
-                }
-
-                if (state.forecast.isNotEmpty()) {
-                    AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
-                        AppSectionTitle(
-                            title = "Next 3 days",
-                            description = "A quick glance at what is coming up."
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            WeatherMetric(
+                                label = "High",
+                                value = "${state.highTemp}\u00B0",
+                                icon = Icons.Default.ArrowUpward,
+                                accent = AccentRed,
+                                modifier = Modifier.weight(1f)
+                            )
+                            WeatherMetric(
+                                label = "Low",
+                                value = "${state.lowTemp}\u00B0",
+                                icon = Icons.Default.ArrowDownward,
+                                accent = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.weight(1f)
+                            )
+                            WeatherMetric(
+                                label = "Feels like",
+                                value = state.feelsLike.removePrefix("Feels like "),
+                                icon = Icons.Default.Thermostat,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            state.forecast.take(3).forEach { day ->
+                            WeatherMetric(
+                                label = "Humidity",
+                                value = state.humidity,
+                                icon = Icons.Default.WaterDrop,
+                                modifier = Modifier.weight(1f)
+                            )
+                            WeatherMetric(
+                                label = "Wind",
+                                value = state.windSpeed,
+                                icon = Icons.Default.Air,
+                                modifier = Modifier.weight(1f)
+                            )
+                            WeatherMetric(
+                                label = "Rain",
+                                value = if (state.precipChance.isBlank()) "0%" else state.precipChance,
+                                icon = Icons.Default.Umbrella,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                if (state.forecast.isNotEmpty()) {
+                    AppSurfaceCard(contentPadding = PaddingValues(16.dp)) {
+                        AppSectionTitle(
+                            title = "Next 3 days",
+                            description = "A quick glance at what is coming up."
+                        )
+
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(horizontal = 2.dp)
+                        ) {
+                            items(state.forecast.take(3)) { day ->
                                 ForecastCard(
                                     day = day,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.width(168.dp)
                                 )
                             }
                         }
@@ -343,9 +359,16 @@ private fun WeatherMetric(
     label: String,
     value: String,
     icon: ImageVector,
-    accent: Color = TextMuted
+    accent: Color = TextMuted,
+    modifier: Modifier = Modifier
 ) {
     Column(
+        modifier = modifier
+            .background(
+                color = SurfaceCard.copy(alpha = 0.7f),
+                shape = RoundedCornerShape(18.dp)
+            )
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         Row(
@@ -369,40 +392,53 @@ private fun ForecastCard(
     day: ForecastDay,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Surface(
         modifier = modifier
-            .background(
-                color = SurfaceCard.copy(alpha = 0.75f),
-                shape = RoundedCornerShape(18.dp)
-            )
-            .padding(horizontal = 12.dp, vertical = 14.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = SurfaceCard.copy(alpha = 0.82f)
     ) {
         Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(
-                text = day.dayName,
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.labelLarge
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = day.dayName,
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                    Text(
+                        text = day.date,
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (day.precipChance.isNotBlank()) {
+                    AppStatusChip(
+                        label = "${day.precipChance} rain",
+                        icon = Icons.Default.Umbrella,
+                        color = BlueLight
+                    )
+                }
+            }
+
             Text(
                 text = "${day.high}\u00B0 / ${day.low}\u00B0",
                 color = TextPrimary,
-                style = MaterialTheme.typography.titleSmall
+                style = MaterialTheme.typography.titleMedium
             )
             Text(
                 text = day.description,
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )
-            if (day.precipChance.isNotBlank()) {
-                Text(
-                    text = "${day.precipChance} rain",
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
         }
     }
 }
@@ -466,24 +502,35 @@ private fun EventRow(event: CalendarEvent) {
 
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            AppStatusChip(
+                label = event.timeRange,
+                icon = Icons.Default.Schedule,
+                color = if (event.calendarColor != 0) Color(event.calendarColor) else MaterialTheme.colorScheme.primary
+            )
             Text(
                 text = event.title,
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleSmall
             )
-            Text(
-                text = event.timeRange,
-                color = TextSecondary,
-                style = MaterialTheme.typography.bodyMedium
-            )
             if (event.location.isNotBlank()) {
-                Text(
-                    text = event.location,
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = TextMuted,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Text(
+                        text = event.location,
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
     }
@@ -536,8 +583,29 @@ private fun LocationPickerDialog(
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AppStatusChip(
+                        label = if (results.isEmpty()) "Search a city" else "${results.size.coerceAtMost(6)} matches",
+                        icon = Icons.Default.LocationOn,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    AppStatusChip(
+                        label = "Optional",
+                        icon = Icons.Default.Cloud,
+                        color = TextMuted
+                    )
+                }
+
+                Text(
+                    text = "Use a city, ZIP code, or device location so the dashboard can stay accurate without extra setup later.",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+
                 OutlinedTextField(
                     value = query,
                     onValueChange = { newQuery ->
@@ -576,25 +644,41 @@ private fun LocationPickerDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = 280.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             items(results.take(6)) { result ->
-                                Box(
+                                Surface(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(
-                                            color = SurfaceCard.copy(alpha = 0.75f),
-                                            shape = RoundedCornerShape(16.dp)
-                                        )
-                                        .clickable { onSelect(result) }
-                                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                                        .clickable { onSelect(result) },
+                                    shape = RoundedCornerShape(18.dp),
+                                    color = SurfaceCard.copy(alpha = 0.82f)
                                 ) {
                                     Row(
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
                                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(Icons.Default.LocationOn, null, tint = TextMuted)
-                                        Column {
+                                        Surface(
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier.size(38.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.LocationOn,
+                                                    null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
                                             Text(
                                                 text = result.name ?: "Unknown location",
                                                 color = TextPrimary,
@@ -612,6 +696,11 @@ private fun LocationPickerDialog(
                                                 style = MaterialTheme.typography.bodySmall
                                             )
                                         }
+                                        Text(
+                                            text = "Use",
+                                            color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
                                     }
                                 }
                             }

@@ -673,7 +673,9 @@ private fun AlarmCard(
             )
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AppStatusChip(
@@ -728,49 +730,74 @@ private fun SelectionActionBar(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 10.dp),
         highlighted = true,
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp, vertical = 12.dp)
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 14.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onClearSelection) {
-                    Icon(Icons.Default.Close, "Clear selection", tint = TextPrimary)
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onClearSelection) {
+                        Icon(Icons.Default.Close, "Clear selection", tint = TextPrimary)
+                    }
+                    Column {
+                        Text("$selectedCount selected", color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            if (selectedCount == totalCount) {
+                                "Bulk actions apply to everything currently on screen"
+                            } else {
+                                "Bulk actions apply only to the alarms you selected"
+                            },
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
-                Column {
-                    Text("$selectedCount selected", color = TextPrimary, style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        if (selectedCount == totalCount) {
-                            "Bulk actions apply to everything currently on screen"
-                        } else {
-                            "Bulk actions apply only to the alarms you selected"
-                        },
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+
+                if (selectedCount < totalCount) {
+                    TextButton(onClick = onSelectAll) {
+                        Text("Select visible", color = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
 
-            if (selectedCount < totalCount) {
-                TextButton(onClick = onSelectAll) {
-                    Text("Select visible", color = MaterialTheme.colorScheme.primary)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onEnableSelected,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DismissGreen)
+                ) {
+                    Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Enable")
                 }
-            }
-
-            IconButton(onClick = onEnableSelected) {
-                Icon(Icons.Default.NotificationsActive, "Enable selected", tint = DismissGreen)
-            }
-            IconButton(onClick = onDisableSelected) {
-                Icon(Icons.Default.NotificationsOff, "Disable selected", tint = TextMuted)
-            }
-            IconButton(onClick = onDeleteSelected) {
-                Icon(Icons.Default.Delete, "Delete selected", tint = AccentRed)
+                OutlinedButton(
+                    onClick = onDisableSelected,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary)
+                ) {
+                    Icon(Icons.Default.NotificationsOff, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Pause")
+                }
+                Button(
+                    onClick = onDeleteSelected,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
+                ) {
+                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Delete")
+                }
             }
         }
     }

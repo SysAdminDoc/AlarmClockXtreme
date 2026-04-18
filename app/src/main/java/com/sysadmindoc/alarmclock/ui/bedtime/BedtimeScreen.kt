@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -52,6 +53,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -186,6 +188,20 @@ fun BedtimeScreen(
                                 color = TextMuted,
                                 style = MaterialTheme.typography.bodySmall
                             )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                AppStatusChip(
+                                    label = if (state.isEnabled) "${state.reminderMinutesBefore} min early" else "Optional",
+                                    icon = Icons.Default.Schedule,
+                                    color = if (state.isEnabled) DismissGreen else TextMuted
+                                )
+                                AppStatusChip(
+                                    label = if (state.wakeTimeFormatted.isNotBlank()) "Linked to alarm" else "Needs alarm",
+                                    icon = if (state.wakeTimeFormatted.isNotBlank()) Icons.Default.CheckCircle else Icons.Default.AlarmOff,
+                                    color = if (state.wakeTimeFormatted.isNotBlank()) MaterialTheme.colorScheme.primary else SnoozeYellow
+                                )
+                            }
                         }
                     }
                     Switch(
@@ -236,32 +252,42 @@ fun BedtimeScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Row(
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 2.dp)
                 ) {
-                    BedtimeMetricCard(
-                        title = "Bedtime",
-                        value = state.bedtimeFormatted,
-                        icon = Icons.Default.NightsStay,
-                        accent = BlueLight,
-                        modifier = Modifier.weight(1f),
-                        onClick = { showTimePicker = true }
-                    )
-                    BedtimeMetricCard(
-                        title = "Wake",
-                        value = state.wakeTimeFormatted.ifBlank { "--:--" },
-                        icon = Icons.Default.WbSunny,
-                        accent = SnoozeYellow,
-                        modifier = Modifier.weight(1f)
-                    )
-                    BedtimeMetricCard(
-                        title = "Reminder",
-                        value = "${state.reminderMinutesBefore} min",
-                        icon = Icons.Default.Schedule,
-                        accent = DismissGreen,
-                        modifier = Modifier.weight(1f)
-                    )
+                    item {
+                        BedtimeMetricCard(
+                            title = "Bedtime",
+                            value = state.bedtimeFormatted,
+                            icon = Icons.Default.NightsStay,
+                            accent = BlueLight,
+                            modifier = Modifier.width(152.dp),
+                            helper = "Tap to edit",
+                            onClick = { showTimePicker = true }
+                        )
+                    }
+                    item {
+                        BedtimeMetricCard(
+                            title = "Wake",
+                            value = state.wakeTimeFormatted.ifBlank { "--:--" },
+                            icon = Icons.Default.WbSunny,
+                            accent = SnoozeYellow,
+                            modifier = Modifier.width(152.dp),
+                            helper = if (state.wakeTimeFormatted.isBlank()) "No alarm linked" else "Next alarm"
+                        )
+                    }
+                    item {
+                        BedtimeMetricCard(
+                            title = "Reminder",
+                            value = "${state.reminderMinutesBefore} min",
+                            icon = Icons.Default.Schedule,
+                            accent = DismissGreen,
+                            modifier = Modifier.width(152.dp),
+                            helper = if (state.isEnabled) "Before bedtime" else "Turn on above"
+                        )
+                    }
                 }
 
                 if (state.wakeTimeFormatted.isBlank()) {
@@ -322,22 +348,26 @@ fun BedtimeScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(
+                    val lowerGoal = state.sleepGoalHours * 60 + state.sleepGoalMinutes - 30
+                    val upperGoal = state.sleepGoalHours * 60 + state.sleepGoalMinutes + 30
+
+                    BedtimeAdjusterButton(
+                        label = "Less",
+                        icon = Icons.Default.Remove,
+                        enabled = lowerGoal >= 300,
+                        modifier = Modifier.weight(1f),
                         onClick = {
-                            val totalMinutes = state.sleepGoalHours * 60 + state.sleepGoalMinutes - 30
-                            if (totalMinutes >= 300) {
-                                viewModel.updateSleepGoal(totalMinutes / 60, totalMinutes % 60)
+                            if (lowerGoal >= 300) {
+                                viewModel.updateSleepGoal(lowerGoal / 60, lowerGoal % 60)
                             }
                         }
-                    ) {
-                        Icon(Icons.Default.Remove, contentDescription = "Reduce sleep goal", tint = TextSecondary)
-                    }
+                    )
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(horizontal = 24.dp)
+                        modifier = Modifier.weight(1.1f)
                     ) {
                         Text(
                             text = state.sleepDurationFormatted,
@@ -349,17 +379,23 @@ fun BedtimeScreen(
                             color = TextMuted,
                             style = MaterialTheme.typography.bodySmall
                         )
+                        AppStatusChip(
+                            label = "30-minute steps",
+                            icon = Icons.Default.Schedule,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
-                    IconButton(
+                    BedtimeAdjusterButton(
+                        label = "More",
+                        icon = Icons.Default.Add,
+                        enabled = upperGoal <= 720,
+                        modifier = Modifier.weight(1f),
                         onClick = {
-                            val totalMinutes = state.sleepGoalHours * 60 + state.sleepGoalMinutes + 30
-                            if (totalMinutes <= 720) {
-                                viewModel.updateSleepGoal(totalMinutes / 60, totalMinutes % 60)
+                            if (upperGoal <= 720) {
+                                viewModel.updateSleepGoal(upperGoal / 60, upperGoal % 60)
                             }
                         }
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = "Increase sleep goal", tint = TextSecondary)
-                    }
+                    )
                 }
 
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
@@ -618,6 +654,7 @@ private fun BedtimeMetricCard(
     icon: ImageVector,
     accent: Color,
     modifier: Modifier = Modifier,
+    helper: String? = null,
     onClick: (() -> Unit)? = null
 ) {
     Card(
@@ -651,28 +688,42 @@ private fun BedtimeMetricCard(
                 style = MaterialTheme.typography.titleSmall,
                 textAlign = TextAlign.Center
             )
+            if (!helper.isNullOrBlank()) {
+                Text(
+                    text = helper,
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun SleepCycleOptionRow(index: Int, option: String) {
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+        shape = RoundedCornerShape(18.dp),
+        color = SurfaceCard.copy(alpha = if (index == 0) 0.82f else 0.7f)
     ) {
-        AppStatusChip(
-            label = "${index + 1}",
-            color = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = option,
-            color = TextPrimary,
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AppStatusChip(
+                label = if (index == 0) "Best match" else "${index + 1}",
+                color = if (index == 0) DismissGreen else MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = option,
+                color = TextPrimary,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
     }
 }
 
@@ -761,33 +812,47 @@ private fun WindDownChecklistSection(
     AppSurfaceCard(modifier = modifier) {
         AppSectionTitle(
             title = "Wind-down checklist",
-            description = "Tick each step as you settle in for the night."
+            description = "Tick each step as you settle in for the night.",
+            action = {
+                AppStatusChip(
+                    label = "${state.bedtimeChecklistDone.size}/${state.bedtimeChecklist.size} done",
+                    icon = Icons.Default.CheckCircle,
+                    color = if (state.bedtimeChecklistDone.isEmpty()) TextMuted else DismissGreen
+                )
+            }
         )
 
         state.bedtimeChecklist.forEachIndexed { index, item ->
             val done = index in state.bedtimeChecklistDone
-            Row(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onToggle(index) }
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .clickable { onToggle(index) },
+                shape = RoundedCornerShape(18.dp),
+                color = if (done) DismissGreen.copy(alpha = 0.09f) else SurfaceCard.copy(alpha = 0.72f)
             ) {
-                Icon(
-                    imageVector = if (done) Icons.Default.CheckCircle else Icons.Default.Bedtime,
-                    contentDescription = if (done) "Completed" else "Not done",
-                    tint = if (done) DismissGreen else TextMuted,
-                    modifier = Modifier.size(22.dp)
-                )
-                Text(
-                    text = item,
-                    color = if (done) TextMuted else TextPrimary,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-            }
-            if (index < state.bedtimeChecklist.lastIndex) {
-                HorizontalDivider(color = TextMuted.copy(alpha = 0.10f))
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = if (done) Icons.Default.CheckCircle else Icons.Default.Bedtime,
+                        contentDescription = if (done) "Completed" else "Not done",
+                        tint = if (done) DismissGreen else TextMuted,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = item,
+                        color = if (done) TextMuted else TextPrimary,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+                    AppStatusChip(
+                        label = if (done) "Done" else "Up next",
+                        color = if (done) DismissGreen else MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
 
@@ -798,6 +863,40 @@ private fun WindDownChecklistSection(
             ) {
                 Text("Reset checklist", color = TextSecondary)
             }
+        }
+    }
+}
+
+@Composable
+private fun BedtimeAdjusterButton(
+    label: String,
+    icon: ImageVector,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .clickable(enabled = enabled, onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        color = if (enabled) SurfaceCard.copy(alpha = 0.78f) else SurfaceCard.copy(alpha = 0.42f)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = if (enabled) TextSecondary else TextMuted,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = label,
+                color = if (enabled) TextPrimary else TextMuted,
+                style = MaterialTheme.typography.labelLarge
+            )
         }
     }
 }

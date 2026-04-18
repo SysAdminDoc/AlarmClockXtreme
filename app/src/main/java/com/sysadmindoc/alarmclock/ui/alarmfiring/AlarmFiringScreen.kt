@@ -156,6 +156,7 @@ fun AlarmFiringScreen(
     var swipeHint by remember { mutableStateOf("") }
     var swipeCumulativeDrag by remember { mutableFloatStateOf(0f) }
     val swipeThreshold = 200f
+    val defaultSnoozeMinutes = state.alarm?.snoozeDurationMinutes ?: 10
 
     val timePattern = if (is24Hour) "HH:mm" else "h:mm"
     val timeText = currentTime.format(DateTimeFormatter.ofPattern(timePattern))
@@ -526,7 +527,11 @@ fun AlarmFiringScreen(
                 Text(
                     text = if (swipeHint.isBlank()) {
                         if (state.canDismiss) {
-                            "Swipe left to snooze or right to dismiss. Flip the phone over for a quick snooze."
+                            if (flipToSnoozeEnabled) {
+                                "Swipe left to snooze or right to dismiss. Flip the phone over for a quick snooze."
+                            } else {
+                                "Swipe left to snooze or right to dismiss."
+                            }
                         } else {
                             "Swipe left to snooze if you need a short reset. Dismiss unlocks once the wake-up task is complete."
                         }
@@ -579,8 +584,9 @@ fun AlarmFiringScreen(
                         .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (state.canDismiss) DismissGreen else AccentRed.copy(alpha = 0.42f),
-                        disabledContainerColor = AccentRed.copy(alpha = 0.18f)
+                        containerColor = DismissGreen,
+                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        disabledContentColor = TextMuted
                     ),
                     shape = RoundedCornerShape(20.dp)
                 ) {
@@ -611,7 +617,7 @@ fun AlarmFiringScreen(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Snooze for ${state.alarm?.snoozeDurationMinutes ?: 10} min",
+                        text = "Snooze for $defaultSnoozeMinutes min",
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -632,13 +638,11 @@ fun AlarmFiringScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         listOf(1, 3, 5, 15, 30).forEach { minutes ->
-                            OutlinedButton(
-                                onClick = { onSnoozeCustom(minutes) },
-                                shape = RoundedCornerShape(16.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = SnoozeYellow)
-                            ) {
-                                Text("$minutes min")
-                            }
+                            QuickSnoozeButton(
+                                minutes = minutes,
+                                isDefault = minutes == defaultSnoozeMinutes,
+                                onClick = { onSnoozeCustom(minutes) }
+                            )
                         }
                     }
                 }
@@ -708,3 +712,37 @@ private fun Challenge?.statusDescription(): String = when (this) {
 }
 
 private val EaseInOutCubic = CubicBezierEasing(0.65f, 0f, 0.35f, 1f)
+
+@Composable
+private fun QuickSnoozeButton(
+    minutes: Int,
+    isDefault: Boolean,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier
+            .height(44.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (isDefault) SnoozeYellow.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+            contentColor = if (isDefault) SnoozeYellow else TextSecondary
+        )
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "$minutes min",
+                fontWeight = FontWeight.SemiBold
+            )
+            if (isDefault) {
+                AppStatusChip(
+                    label = "Default",
+                    color = SnoozeYellow
+                )
+            }
+        }
+    }
+}
