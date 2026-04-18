@@ -2,6 +2,110 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.5.1] - 2026-04-18
+
+Production-hardening pass driven by a dedicated audit. Targets real bug
+classes identified in v1.5.0 — ANR sources, service-restart data loss,
+missed-alarm replay races, and sensor-quirk edge cases — without any
+new user-facing features.
+
+### Fixed — Critical
+
+- **Eliminated `runBlocking` ANR risk in `NextAlarmCalculator`.**
+  `solarTimeFor()` previously called `runBlocking { preferencesManager
+  .getCurrentSettings() }` on the synchronous calculation path. When the
+  calculator was invoked from ViewModel `combine` blocks running on
+  Dispatchers.Main (e.g., [AlarmListViewModel] status bar updates) this
+  could block the main thread if DataStore was slow. Replaced with a
+  non-suspend cached snapshot exposed via
+  `PreferencesManager.getCachedSettings()`. The cache is kept current by
+  the existing `settings` Flow collectors.
+- **Alarms are now `sanitized()` before firing.** `AlarmService.startAlarm`,
+  `snoozeAlarm` and `dismissAlarm` run every Room row through
+  `Alarm.sanitized()` on entry, not just the backup restore path. A
+  corrupt `challengeType`, `vibrationPattern`, `ringtonePool` or
+  `specificDate` can no longer reach the firing UI.
+- **Progressive-snooze count survives service restart.** If the OS killed
+  the service between fire and the user tapping Snooze, the next
+  `onStartCommand` was starting with `currentSnoozeCount = 0` and
+  resetting the progressive-snooze ladder. Entry points now re-read the
+  persisted count from `alarm_runtime_state` SharedPrefs when the
+  in-memory state is fresh.
+
+### Fixed — High
+
+- **`MissedAlarmUnlockReceiver` no longer stacks on a live alarm.**
+  Added `AlarmService.activeAlarmId` volatile flag and the receiver now
+  refuses to replay a miss if another alarm is currently firing (prevents
+  double-foreground-service / audio conflict). Window widened from
+  closed `0..600_000ms` to half-open `0 until 600_000ms` so the boundary
+  can't straddle two consecutive alarms.
+- **Missed-alarm state cleared on reboot.** `BootReceiver` now wipes
+  `missed_alarm_state` on `BOOT_COMPLETED` / `MY_PACKAGE_REPLACED` so
+  a stale miss from before the reboot can't fire on the user's first
+  post-boot unlock.
+- **`BootReceiver` has a 30-second timeout** around `rescheduleAll()`.
+  A corrupt DB page could previously pin the `PendingResult` until the
+  broadcast-receiver ANR watchdog killed the process.
+- **Radio-error audio fallback guarded against recursion.** A
+  `@Volatile audioStarting` flag prevents `startAudio` from re-entering
+  while the previous call is still mid-flight (can happen when the
+  internet-radio `OnErrorListener` fires before the radio `MediaPlayer`
+  construct returned).
+- **`SmartAlarmService` scheduling wraps `startForegroundService` in
+  try/catch** with an `AlarmManager` fallback. Android 14+ background
+  restrictions can deny the immediate-start path on some edges; the
+  fallback runs the service one second later without user impact.
+- **`ProximityCoverDetector` clamps `maximumRange`.** Some OEM proximity
+  sensors report `0` or microscopic ranges, which made
+  `maximumRange * 0.5f` too small to ever trip (or always trip). Floor
+  now at a physically plausible 3 cm (with a 5 cm default when the
+  driver value is implausible).
+
+### Fixed — Medium
+
+- **`TextToSpeech` constructor try/catch.** On stripped-down AOSP or
+  managed-profile devices with no TTS engine, the constructor throws
+  and was un-caught; the morning-announcement path now falls through
+  cleanly.
+- **Flashlight strobe always ends with the torch OFF.** A mid-strobe
+  exception could leave the LED stuck on; the coroutine's `finally`
+  block now forces `setTorchMode(false)`.
+- **All alarm-time formatting honours the 24-hour preference.**
+  `AlarmService.buildAlarmNotification`, `formatAlarmTime` and
+  `showMissedNotification` shared a manual AM/PM formatter that ignored
+  `AppSettings.is24HourFormat`. All three now route through a single
+  helper that respects the setting.
+- **Quick Settings tile re-refreshes after skip.** The post-click
+  broadcast to `SkipNextReceiver` is async, so the tile showed stale
+  time until the user next opened the shade. Added a 600 ms follow-up
+  refresh.
+- **Firing activity finishes on "alarm not found".**
+  `AlarmFiringViewModel` now emits a `finishEvents` signal when the
+  row disappeared between schedule and fire; the activity observes it
+  and closes (instead of rendering a blank screen).
+- **Firing activity fx moved out of `collectLatest`.** `flashWake` /
+  sunrise simulation are kicked off exactly once when the alarm becomes
+  non-null, using `distinctUntilChanged` keyed on alarm id. Previously
+  every state emission retriggered the `collectLatest` body (benign
+  because of class-field guards, but wasteful).
+- **Holiday auto-skip loop extended from 14 to 30 attempts** so back-
+  to-back regional 2-week holiday clusters don't fall through to firing
+  on a holiday.
+
+### Changed
+
+- `NextAlarmCalculator` constructor split: test-friendly `(AppSettings)`
+  and `()` variants keep the unit tests green while production DI
+  routes through `(PreferencesManager)`.
+- `PreferencesManager.settings` pipes through `onEach { cachedSettings = it }`
+  so the snapshot is kept current without any extra wiring.
+
+### Migration
+
+No schema or backup-format change. Existing v1.5.0 installs upgrade
+in place.
+
 ## [1.5.0] - 2026-04-17
 
 First roadmap-driven release. Closes v1.4.0 follow-up gaps and ships a
