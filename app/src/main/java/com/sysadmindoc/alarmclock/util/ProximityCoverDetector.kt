@@ -15,6 +15,10 @@ import android.hardware.SensorManager
  *
  * A short hold is required to avoid accidental snoozes from hand-wave
  * gestures or brief pocket contact while the alarm starts.
+ *
+ * v1.5.1: Guarded against quirky OEM proximity sensors that report
+ * `maximumRange <= 0` (contact-only or bugged drivers). Threshold now
+ * floors at a physically plausible 3 cm.
  */
 class ProximityCoverDetector(
     context: Context,
@@ -23,7 +27,16 @@ class ProximityCoverDetector(
 ) : SensorEventListener {
 
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val proximity = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
+    private val proximity: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
+
+    // v1.5.1: Precompute a safe threshold at registration time. Some
+    // devices report `maximumRange` as 0 or a microscopic value, which
+    // would otherwise make every sample look "covered" or "uncovered"
+    // depending on rounding. Clamp to a sane minimum of 3 cm.
+    private val threshold: Float = run {
+        val max = proximity?.maximumRange ?: DEFAULT_MAX_RANGE_CM
+        (if (max > 0.5f) max else DEFAULT_MAX_RANGE_CM) * 0.5f
+    }
     private var coveredSinceMs = 0L
     private var triggered = false
 
@@ -43,8 +56,7 @@ class ProximityCoverDetector(
         event ?: return
         if (event.sensor.type != Sensor.TYPE_PROXIMITY) return
 
-        val maxRange = proximity?.maximumRange ?: 5f
-        val isCovered = event.values[0] < maxRange * 0.5f
+        val isCovered = event.values[0] < threshold
         val now = System.currentTimeMillis()
 
         if (isCovered) {
@@ -61,4 +73,13 @@ class ProximityCoverDetector(
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    private companion object {
+        /**
+         * Typical smartphone proximity sensors max out around 5 cm. This
+         * default is only used when the driver reports an implausible
+         * max range.
+         */
+        const val DEFAULT_MAX_RANGE_CM = 5f
+    }
 }

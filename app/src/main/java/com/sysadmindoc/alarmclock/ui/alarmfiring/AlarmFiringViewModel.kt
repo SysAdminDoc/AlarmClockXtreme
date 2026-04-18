@@ -72,6 +72,15 @@ class AlarmFiringViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(FiringUiState())
     val uiState: StateFlow<FiringUiState> = _uiState.asStateFlow()
 
+    /**
+     * v1.5.1: One-shot signal that the firing activity should close itself
+     * (alarm row disappeared between schedule and fire — DB corruption,
+     * manual row delete, etc.). Without this the activity would render a
+     * blank firing screen with no user feedback and no way to clear it.
+     */
+    private val _finish = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val finishEvents: SharedFlow<Unit> = _finish.asSharedFlow()
+
     /** Exposes the global flip-to-snooze preference so the Activity only registers
      *  the orientation listener when the user has actually opted in. */
     val flipToSnoozeEnabled: StateFlow<Boolean> = preferencesManager.settings
@@ -98,7 +107,13 @@ class AlarmFiringViewModel @Inject constructor(
 
     private fun loadAlarm() {
         viewModelScope.launch {
-            val alarm = repository.getById(alarmId) ?: return@launch
+            // v1.5.1: Signal the activity to finish if the row disappeared
+            // between schedule and fire. Also sanitise the row so corrupt
+            // challengeType / vibrationPattern don't make it into the UI.
+            val alarm = repository.getById(alarmId)?.sanitized() ?: run {
+                _finish.tryEmit(Unit)
+                return@launch
+            }
             currentAlarm = alarm
             val challengeType = try {
                 ChallengeType.valueOf(alarm.challengeType)
