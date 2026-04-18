@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.worldclock
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -170,6 +172,11 @@ private fun WorldClockCard(
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
+                Text(
+                    entry.zoneId,
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
                 AppStatusChip(
                     label = entry.offsetLabel,
                     icon = Icons.Default.Language,
@@ -186,8 +193,14 @@ private fun WorldClockCard(
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.headlineSmall
                 )
-                IconButton(onClick = onRemove) {
-                    Icon(Icons.Default.Close, contentDescription = "Remove city", tint = TextMuted)
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = SurfaceCard.copy(alpha = 0.72f),
+                    border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
+                ) {
+                    IconButton(onClick = onRemove) {
+                        Icon(Icons.Default.Close, contentDescription = "Remove city", tint = TextMuted)
+                    }
                 }
             }
         }
@@ -202,6 +215,9 @@ private fun AddTimeZoneDialog(
     onSelect: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val showPrompt = searchQuery.isBlank()
+    val showNoResults = searchResults.isEmpty() && searchQuery.length >= 2
+
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {},
@@ -211,7 +227,14 @@ private fun AddTimeZoneDialog(
             }
         },
         title = {
-            Text("Add time zone", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Add a city", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "Search by city name or time-zone region, then tap a result to add it.",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -226,20 +249,52 @@ private fun AddTimeZoneDialog(
                     singleLine = true
                 )
 
-                if (searchResults.isEmpty() && searchQuery.length >= 2) {
-                    AppEmptyState(
-                        icon = Icons.Default.Search,
-                        title = "No matching cities",
-                        description = "Try a broader city name or search by time-zone region."
+                if (searchResults.isNotEmpty()) {
+                    AppStatusChip(
+                        label = "${searchResults.size} match${if (searchResults.size == 1) "" else "es"}",
+                        icon = Icons.Default.Public,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
-                if (searchQuery.isBlank()) {
-                    AppEmptyState(
-                        icon = Icons.Default.Public,
-                        title = "Search for a city",
-                        description = "Type at least two characters to find a city or a time-zone region."
-                    )
+                if (showPrompt || showNoResults) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = SurfaceCard.copy(alpha = 0.78f),
+                        border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.14f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = if (showNoResults) Icons.Default.Search else Icons.Default.Public,
+                                    contentDescription = null,
+                                    tint = if (showNoResults) TextMuted else MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = if (showNoResults) "No matching cities yet" else "Search for a city",
+                                    color = TextPrimary,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                            }
+                            Text(
+                                text = if (showNoResults) {
+                                    "Try a broader city name or search by a time-zone region like Europe or America."
+                                } else {
+                                    "Type at least two characters to search the available time zones."
+                                },
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
                 }
 
                 LazyColumn(
@@ -249,19 +304,33 @@ private fun AddTimeZoneDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(searchResults) { entry ->
-                        Box(
+                        Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(
-                                    color = SurfaceCard.copy(alpha = 0.8f),
-                                    shape = RoundedCornerShape(16.dp)
-                                )
-                                .clickable { onSelect(entry.zoneId) }
-                                .padding(horizontal = 14.dp, vertical = 12.dp)
+                                .clickable { onSelect(entry.zoneId) },
+                            shape = RoundedCornerShape(16.dp),
+                            color = SurfaceCard.copy(alpha = 0.82f),
+                            border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
                         ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(entry.cityName, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
-                                Text(entry.zoneId, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(entry.cityName, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+                                    Text(entry.zoneId, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                             }
                         }
                     }

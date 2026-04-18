@@ -2,9 +2,12 @@ package com.sysadmindoc.alarmclock.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Intent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,9 +17,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
@@ -51,6 +57,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -61,11 +68,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import android.content.Intent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -293,40 +300,44 @@ fun SettingsScreen(
             PersonalizationSection(state, viewModel)
             BackupRestoreSection(viewModel)
 
-            AppSectionTitle(
+            SettingsGroup(
                 title = "Utilities",
                 description = "Quick access to companion tools that round out the app."
-            )
-            UtilityShortcutCard(
-                icon = Icons.Default.BarChart,
-                title = "Alarm statistics",
-                description = "Review streaks, response times, and habits over time.",
-                onClick = onNavigateToStats
-            )
-            UtilityShortcutCard(
-                icon = Icons.Default.Speed,
-                title = "Stopwatch",
-                description = "Track laps with best and worst splits highlighted.",
-                onClick = onNavigateToStopwatch
-            )
-            UtilityShortcutCard(
-                icon = Icons.Default.Bedtime,
-                title = "Bedtime",
-                description = "Set a sleep goal and keep your routine feeling intentional.",
-                onClick = onNavigateToBedtime
-            )
-            UtilityShortcutCard(
-                icon = Icons.Default.DarkMode,
-                title = "Night clock",
-                description = "Full-screen bedside clock — dim red on black at minimum brightness. Long-press to exit.",
-                onClick = {
-                    val intent = Intent(
-                        context,
-                        com.sysadmindoc.alarmclock.ui.nightclock.NightClockActivity::class.java
-                    )
-                    context.startActivity(intent)
-                }
-            )
+            ) {
+                UtilityShortcutCard(
+                    icon = Icons.Default.BarChart,
+                    title = "Alarm statistics",
+                    description = "Review streaks, response times, and habits over time.",
+                    onClick = onNavigateToStats
+                )
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
+                UtilityShortcutCard(
+                    icon = Icons.Default.Speed,
+                    title = "Stopwatch",
+                    description = "Track laps with best and worst splits highlighted.",
+                    onClick = onNavigateToStopwatch
+                )
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
+                UtilityShortcutCard(
+                    icon = Icons.Default.Bedtime,
+                    title = "Bedtime",
+                    description = "Set a sleep goal and keep your routine feeling intentional.",
+                    onClick = onNavigateToBedtime
+                )
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
+                UtilityShortcutCard(
+                    icon = Icons.Default.DarkMode,
+                    title = "Night clock",
+                    description = "Full-screen bedside clock with a warm low-light glow for bedside use.",
+                    onClick = {
+                        val intent = Intent(
+                            context,
+                            com.sysadmindoc.alarmclock.ui.nightclock.NightClockActivity::class.java
+                        )
+                        context.startActivity(intent)
+                    }
+                )
+            }
 
             SettingsGroup(
                 title = "About",
@@ -346,34 +357,42 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsOverviewRow(state: SettingsUiState) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        SettingsOverviewTile(
-            title = "Reliability",
-            value = if (state.isIgnoringBatteryOptimizations) "Protected" else "Needs review",
-            supporting = if (state.isIgnoringBatteryOptimizations) "Battery rules look good" else "Battery settings can still block alarms",
-            icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
-            accent = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow,
-            modifier = Modifier.weight(1f)
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        AppSectionTitle(
+            title = "At a glance",
+            description = "The highest-impact preferences, without digging through every category."
         )
-        SettingsOverviewTile(
-            title = "Dashboard",
-            value = dashboardSummary(state),
-            supporting = "Weather and calendar visibility",
-            icon = Icons.Default.Cloud,
-            accent = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f)
-        )
-        SettingsOverviewTile(
-            title = "Wake style",
-            value = if (state.settings.is24HourFormat) "24-hour" else "12-hour",
-            supporting = "Default snooze ${state.settings.defaultSnoozeDuration} min",
-            icon = Icons.Default.AutoAwesome,
-            accent = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.weight(1f)
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            SettingsOverviewTile(
+                title = "Reliability",
+                value = if (state.isIgnoringBatteryOptimizations) "Protected" else "Needs review",
+                supporting = if (state.isIgnoringBatteryOptimizations) "Battery rules look good" else "Battery settings can still block alarms",
+                icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
+                accent = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow,
+                modifier = Modifier.width(190.dp)
+            )
+            SettingsOverviewTile(
+                title = "Dashboard",
+                value = dashboardSummary(state),
+                supporting = "Weather and calendar visibility",
+                icon = Icons.Default.Cloud,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.width(190.dp)
+            )
+            SettingsOverviewTile(
+                title = "Wake style",
+                value = if (state.settings.is24HourFormat) "24-hour" else "12-hour",
+                supporting = "Default snooze ${state.settings.defaultSnoozeDuration} min",
+                icon = Icons.Default.AutoAwesome,
+                accent = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.width(190.dp)
+            )
+        }
     }
 }
 
@@ -387,10 +406,21 @@ private fun SettingsOverviewTile(
     modifier: Modifier = Modifier
 ) {
     AppSurfaceCard(
-        modifier = modifier,
+        modifier = modifier.heightIn(min = 160.dp),
         highlighted = accent == DismissGreen || accent == SnoozeYellow
     ) {
-        Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = accent.copy(alpha = 0.14f)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(20.dp))
+            }
+        }
         Text(
             text = title,
             color = TextMuted,
@@ -628,37 +658,63 @@ private fun SettingsToggle(
     supportingText: String? = null,
     onToggle: (Boolean) -> Unit
 ) {
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                if (checked) {
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-                } else {
-                    SurfaceCard.copy(alpha = 0.26f)
-                }
-            )
-            .clickable { onToggle(!checked) }
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = onToggle
+            ),
+        shape = RoundedCornerShape(20.dp),
+        color = if (checked) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        } else {
+            SurfaceCard.copy(alpha = 0.28f)
+        },
+        border = BorderStroke(
+            1.dp,
+            if (checked) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+            } else {
+                TextMuted.copy(alpha = 0.14f)
+            }
+        )
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(label, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
-            if (!supportingText.isNullOrBlank()) {
-                Text(supportingText, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(label, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+                if (!supportingText.isNullOrBlank()) {
+                    Text(supportingText, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Spacer(modifier = Modifier.size(12.dp))
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = if (checked) "On" else "Off",
+                    color = if (checked) MaterialTheme.colorScheme.primary else TextMuted,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Switch(
+                    checked = checked,
+                    onCheckedChange = null,
+                    colors = appSwitchColors()
+                )
             }
         }
-        Spacer(modifier = Modifier.size(12.dp))
-        Switch(
-            checked = checked,
-            onCheckedChange = onToggle,
-            colors = appSwitchColors()
-        )
     }
 }
 
@@ -669,40 +725,70 @@ private fun SettingsActionRow(
     supportingText: String? = null,
     onClick: () -> Unit
 ) {
-    Column(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(SurfaceCard.copy(alpha = 0.26f))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .clickable(role = Role.Button, onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        color = SurfaceCard.copy(alpha = 0.28f),
+        border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.14f))
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(label, color = TextPrimary, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(value, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
-                Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
+                Text(
+                    label,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f)
+                )
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            value,
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelLarge
+                        )
+                        Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
             }
-        }
-        if (!supportingText.isNullOrBlank()) {
-            Text(supportingText, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            if (!supportingText.isNullOrBlank()) {
+                Text(supportingText, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }
 
 @Composable
 private fun SettingsInfo(label: String, description: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(label, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
-        Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = SurfaceCard.copy(alpha = 0.24f),
+        border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(label, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+            Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 
@@ -976,7 +1062,10 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
             color = TextSecondary,
             style = MaterialTheme.typography.bodySmall
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             palette.forEach { (hex, label) ->
                 val isSelected = hex.equals(currentHex, ignoreCase = true)
                 val color = runCatching { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(hex)) }
@@ -1090,39 +1179,36 @@ private fun UtilityShortcutCard(
     description: String,
     onClick: () -> Unit
 ) {
-    AppSurfaceCard(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 2.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        shape = RoundedCornerShape(14.dp)
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                            shape = RoundedCornerShape(14.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
-                }
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(title, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
-                    Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-                }
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
             }
-            Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+                Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+            }
         }
+        Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
     }
 }
 

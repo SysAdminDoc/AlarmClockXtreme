@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +29,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -272,7 +274,7 @@ fun MorningBriefingScreen(
                 onClick = onClose,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
-                shape = MaterialTheme.shapes.medium
+                shape = RoundedCornerShape(22.dp)
             ) {
                 Text(
                     text = "Close briefing",
@@ -297,21 +299,28 @@ private fun BriefingRow(
     tint: androidx.compose.ui.graphics.Color,
     text: String
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = tint.copy(alpha = 0.1f)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(20.dp)
-        )
-        Text(
-            text = text,
-            color = TextPrimary,
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = text,
+                color = TextPrimary,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
     }
 }
 
@@ -320,18 +329,25 @@ private fun RoutineRow(
     index: Int,
     text: String
 ) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = DismissGreen.copy(alpha = 0.08f)
     ) {
-        AppStatusChip(
-            label = index.toString(),
-            color = DismissGreen
-        )
-        Text(
-            text = text,
-            color = TextPrimary,
-            style = MaterialTheme.typography.bodyLarge
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AppStatusChip(
+                label = index.toString(),
+                color = DismissGreen
+            )
+            Text(
+                text = text,
+                color = TextPrimary,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
     }
 }

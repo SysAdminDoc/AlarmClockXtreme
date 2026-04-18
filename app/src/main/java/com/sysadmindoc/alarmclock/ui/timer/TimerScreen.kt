@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -44,6 +45,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -53,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
@@ -290,6 +293,19 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             TimeUnit(state.inputSeconds, "s")
         }
 
+        if (state.inputDigits.isNotBlank()) {
+            AppStatusChip(
+                label = String.format(
+                    "%02d:%02d:%02d selected",
+                    state.inputHours,
+                    state.inputMinutes,
+                    state.inputSeconds
+                ),
+                icon = Icons.Default.Timer,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -384,27 +400,43 @@ private fun NumPad(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 row.forEach { key ->
-                    Box(
+                    val accent = when (key) {
+                        -1 -> AccentRed
+                        -2 -> MaterialTheme.colorScheme.primary
+                        else -> TextPrimary
+                    }
+                    Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .aspectRatio(1.2f)
-                            .background(
-                                color = SurfaceMedium,
-                                shape = RoundedCornerShape(22.dp)
-                            )
-                            .clickable {
+                            .aspectRatio(1.12f)
+                            .clickable(role = Role.Button) {
                                 when (key) {
                                     -1 -> onDelete()
                                     -2 -> onDoubleZero()
                                     else -> onDigit(key)
                                 }
                             },
-                        contentAlignment = Alignment.Center
+                        shape = RoundedCornerShape(24.dp),
+                        color = if (key < 0) SurfaceCard.copy(alpha = 0.88f) else SurfaceMedium,
+                        border = BorderStroke(
+                            1.dp,
+                            if (key < 0) accent.copy(alpha = 0.22f) else TextMuted.copy(alpha = 0.12f)
+                        )
                     ) {
-                        when (key) {
-                            -1 -> Icon(Icons.AutoMirrored.Filled.Backspace, "Delete digit", tint = TextSecondary)
-                            -2 -> Text("00", color = TextPrimary, fontSize = 22.sp)
-                            else -> Text(key.toString(), color = TextPrimary, fontSize = 24.sp, textAlign = TextAlign.Center)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    color = if (key < 0) accent.copy(alpha = 0.08f) else androidx.compose.ui.graphics.Color.Transparent,
+                                    shape = RoundedCornerShape(24.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            when (key) {
+                                -1 -> Icon(Icons.AutoMirrored.Filled.Backspace, "Delete digit", tint = accent)
+                                -2 -> Text("00", color = accent, fontSize = 22.sp, fontWeight = FontWeight.Medium)
+                                else -> Text(key.toString(), color = TextPrimary, fontSize = 24.sp, textAlign = TextAlign.Center)
+                            }
                         }
                     }
                 }

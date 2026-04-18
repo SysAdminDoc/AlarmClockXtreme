@@ -19,6 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -39,18 +42,22 @@ data class PermissionState(
 @Composable
 fun rememberPermissionState(): PermissionState {
     val context = LocalContext.current
-    return remember {
-        PermissionState(
-            hasNotifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-                        PackageManager.PERMISSION_GRANTED
-            } else true,
-            hasCalendar = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) ==
-                    PackageManager.PERMISSION_GRANTED,
-            hasLocation = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                    PackageManager.PERMISSION_GRANTED
-        )
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var permissionState by remember(context) { mutableStateOf(checkPermissions(context)) }
+
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                permissionState = checkPermissions(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
+
+    return permissionState
 }
 
 /**
@@ -62,8 +69,21 @@ fun PermissionRequestCard(
     onPermissionsGranted: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var permState by remember { mutableStateOf(checkPermissions(context)) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var permState by remember(context) { mutableStateOf(checkPermissions(context)) }
     val totalCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) 3 else 2
+
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                permState = checkPermissions(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // Build the list of permissions to request
     val permissionsToRequest = remember(permState) {
@@ -82,7 +102,7 @@ fun PermissionRequestCard(
 
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { results ->
+    ) { _ ->
         permState = checkPermissions(context)
         if (permState.hasNotifications && permState.hasCalendar && permState.hasLocation) {
             onPermissionsGranted()
@@ -176,35 +196,50 @@ fun PermissionRequestCard(
 @Composable
 private fun PermissionItem(icon: ImageVector, title: String, description: String) {
     Row(
-        modifier = Modifier.padding(vertical = 4.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Surface(
-            shape = RoundedCornerShape(14.dp),
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            color = SurfaceCard.copy(alpha = 0.78f)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    icon,
-                    null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                ) {
+                    Box(
+                        modifier = Modifier.size(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            icon,
+                            null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(title, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text(description, color = TextSecondary, fontSize = 12.sp, lineHeight = 18.sp)
+                }
+                AppStatusChip(
+                    label = "Missing",
+                    color = SnoozeYellow
                 )
             }
         }
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-            Text(description, color = TextSecondary, fontSize = 12.sp, lineHeight = 18.sp)
-        }
-        AppStatusChip(
-            label = "Missing",
-            color = SnoozeYellow
-        )
     }
 }
 
