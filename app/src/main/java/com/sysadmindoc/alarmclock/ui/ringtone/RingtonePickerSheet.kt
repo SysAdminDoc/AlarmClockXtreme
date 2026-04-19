@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
@@ -94,6 +95,7 @@ fun RingtonePickerSheet(
     var searchQuery by remember { mutableStateOf("") }
     var playingUri by remember { mutableStateOf<String?>(null) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+    var previewError by remember { mutableStateOf("") }
 
     val filteredRingtones = remember(ringtones, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -147,8 +149,10 @@ fun RingtonePickerSheet(
                 }
             }
             playingUri = uri
+            previewError = ""
         } catch (_: Exception) {
             stopPreview()
+            previewError = "Could not preview that tone. You can still select it for the alarm."
         }
     }
 
@@ -193,6 +197,20 @@ fun RingtonePickerSheet(
                         color = AccentBlue
                     )
                 }
+                if (previewError.isNotBlank()) {
+                    AppStatusChip(
+                        label = "Preview unavailable",
+                        color = SnoozeYellow
+                    )
+                }
+            }
+
+            if (previewError.isNotBlank()) {
+                Text(
+                    text = previewError,
+                    color = SnoozeYellow,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
 
             OutlinedTextField(
@@ -286,7 +304,7 @@ private fun RingtoneRow(
     AppSurfaceCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
+            .clickable(role = Role.Button) {
                 if (supportsPreview) onPreview() else onConfirm()
             },
         highlighted = isSelected || isPlaying,
