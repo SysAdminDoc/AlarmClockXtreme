@@ -94,7 +94,7 @@ fun MathChallengeView(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (wrongFlash) AccentRed.copy(alpha = 0.14f) else SurfaceCard
             )
@@ -134,7 +134,7 @@ fun MathChallengeView(
                                 .weight(1f)
                                 .height(68.dp)
                                 .semantics { contentDescription = "Answer: $choice" },
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = SurfaceCard.copy(alpha = 0.82f),
                                 contentColor = TextPrimary
@@ -256,7 +256,7 @@ fun SequenceChallengeView(
                                 .weight(1f)
                                 .height(78.dp)
                                 .clickable(enabled = !isTapped) { onTapNumber(index) },
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(14.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isTapped) DismissGreen.copy(alpha = 0.22f) else SurfaceCard
                             )
@@ -333,7 +333,7 @@ fun MemoryPatternChallengeView(
                         Box(
                             modifier = Modifier
                                 .size(80.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(14.dp))
                                 .background(
                                     when {
                                         isLit && phase == MemoryPhase.SHOWING -> AccentBlue.copy(alpha = 0.72f)
@@ -392,7 +392,7 @@ fun TypingChallengeView(
             colors = CardDefaults.cardColors(
                 containerColor = if (wrongFlash) AccentRed.copy(alpha = 0.15f) else SurfaceCard
             ),
-            shape = RoundedCornerShape(18.dp)
+            shape = RoundedCornerShape(16.dp)
         ) {
             Text(
                 text = challenge.phrase,
@@ -429,7 +429,7 @@ fun TypingChallengeView(
                 .fillMaxWidth()
                 .height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-            shape = RoundedCornerShape(18.dp)
+            shape = RoundedCornerShape(14.dp)
         ) {
             Text("Check phrase", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
@@ -439,7 +439,10 @@ fun TypingChallengeView(
 @Composable
 fun WalkChallengeView(
     challenge: Challenge.WalkChallenge,
-    currentSteps: Int
+    currentSteps: Int,
+    walkStatus: String,
+    fallbackAllowed: Boolean,
+    onContinueWithoutSensor: () -> Unit
 ) {
     val progress = (currentSteps.toFloat() / challenge.requiredSteps).coerceIn(0f, 1f)
     val remaining = (challenge.requiredSteps - currentSteps).coerceAtLeast(0)
@@ -460,6 +463,26 @@ fun WalkChallengeView(
             statusLabel = "$currentSteps / ${challenge.requiredSteps} steps",
             summary = if (currentSteps == 0) "Start walking to build progress." else "$remaining steps remaining."
         )
+
+        if (walkStatus.isNotBlank()) {
+            ChallengeNotice(
+                text = walkStatus,
+                accent = SnoozeYellow,
+                icon = Icons.Default.WarningAmber
+            )
+        }
+
+        if (fallbackAllowed) {
+            OutlinedButton(
+                onClick = onContinueWithoutSensor,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Continue without step count")
+            }
+        }
     }
 }
 
@@ -515,8 +538,10 @@ fun NfcScanChallengeView(
 @Composable
 fun BarcodeScanChallengeView(
     challenge: Challenge.BarcodeChallenge,
-    scanStatus: String
+    scanStatus: String,
+    onCodeEntered: (String) -> Unit
 ) {
+    var codeInput by remember(challenge.registeredValue) { mutableStateOf("") }
     val infiniteTransition = rememberInfiniteTransition(label = "barcodeScan")
     val lineProgress by infiniteTransition.animateFloat(
         initialValue = 0.25f,
@@ -532,7 +557,7 @@ fun BarcodeScanChallengeView(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        ChallengeSupportText("Point the camera at the saved barcode or QR code to unlock dismiss.")
+        ChallengeSupportText("Enter the saved barcode or QR payload to unlock dismiss.")
 
         ChallengeIconPanel(accent = AccentBlue.copy(alpha = 0.12f)) {
             Column(
@@ -573,10 +598,47 @@ fun BarcodeScanChallengeView(
 
         if (challenge.registeredValue.isBlank()) {
             ChallengeNotice(
-                text = "No code is registered yet. Any barcode or QR code will work for now.",
+                text = "No code is registered yet. Continue to complete this challenge.",
                 accent = SnoozeYellow,
                 icon = Icons.Default.QrCodeScanner
             )
+            Button(
+                onClick = { onCodeEntered("") },
+                colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Continue without saved code")
+            }
+        } else {
+            OutlinedTextField(
+                value = codeInput,
+                onValueChange = { codeInput = it },
+                label = { Text("Barcode or QR value") },
+                singleLine = true,
+                colors = appOutlinedTextFieldColors(),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        val trimmed = codeInput.trim()
+                        if (trimmed.isNotEmpty()) onCodeEntered(trimmed)
+                    }
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Button(
+                onClick = { onCodeEntered(codeInput.trim()) },
+                enabled = codeInput.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Submit code")
+            }
         }
     }
 }
@@ -627,7 +689,7 @@ fun PhotoMatchChallengeView(
                 .fillMaxWidth()
                 .height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-            shape = RoundedCornerShape(18.dp)
+            shape = RoundedCornerShape(14.dp)
         ) {
             Icon(imageVector = Icons.Default.CameraAlt, contentDescription = "Open camera", modifier = Modifier.size(20.dp))
             Text(
@@ -765,7 +827,10 @@ fun MazeChallengeView(
 @Composable
 fun WifiChallengeView(
     challenge: Challenge.WifiChallenge,
-    currentSsid: String
+    currentSsid: String,
+    wifiStatus: String,
+    fallbackAllowed: Boolean,
+    onContinueWithoutSsid: () -> Unit
 ) {
     val isConnected = currentSsid.isNotBlank() &&
         (currentSsid == challenge.requiredSsid || challenge.requiredSsid.isBlank())
@@ -811,6 +876,26 @@ fun WifiChallengeView(
                 icon = Icons.Default.Wifi
             )
         }
+
+        if (wifiStatus.isNotBlank()) {
+            ChallengeNotice(
+                text = wifiStatus,
+                accent = SnoozeYellow,
+                icon = Icons.Default.WarningAmber
+            )
+        }
+
+        if (fallbackAllowed) {
+            OutlinedButton(
+                onClick = onContinueWithoutSsid,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Continue without Wi-Fi check")
+            }
+        }
     }
 }
 
@@ -838,7 +923,7 @@ private fun ChallengeNotice(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(14.dp),
         border = BorderStroke(1.dp, accent.copy(alpha = 0.22f)),
         colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.12f))
     ) {
@@ -871,17 +956,17 @@ private fun ChallengeIconPanel(
     content: @Composable BoxScope.() -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         border = BorderStroke(1.dp, accent.copy(alpha = 0.26f)),
         colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.12f))
     ) {
         Box(
             modifier = Modifier
-                .size(132.dp)
+                .size(124.dp)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            accent.copy(alpha = 0.22f),
+                            accent.copy(alpha = 0.18f),
                             accent.copy(alpha = 0.08f)
                         )
                     )
@@ -1007,7 +1092,7 @@ fun CountSheepChallengeView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(260.dp)
-                .clip(RoundedCornerShape(22.dp))
+                .clip(RoundedCornerShape(18.dp))
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -1028,7 +1113,7 @@ fun CountSheepChallengeView(
                             y = (c.row * 40).dp + 8.dp
                         )
                         .size(rowHeight)
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(16.dp))
                         .clickable { if (c.isSheep) onSheepTap() else onGoatTap() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -1093,7 +1178,7 @@ fun SimonSaysChallengeView(
                         Box(
                             modifier = Modifier
                                 .size(96.dp)
-                                .clip(RoundedCornerShape(20.dp))
+                                .clip(RoundedCornerShape(16.dp))
                                 .background(colors[idx].copy(alpha = alpha))
                                 .clickable(enabled = playingIndex < 0) { onPadTap(idx) }
                                 .semantics { contentDescription = "${names[idx]} pad" },
@@ -1160,9 +1245,9 @@ fun DateBackwardsChallengeView(
             onClick = onSubmit,
             enabled = input.length == challenge.expectedInput.length,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp)
+            shape = RoundedCornerShape(14.dp)
         ) {
-            Text("Check")
+            Text("Check date")
         }
     }
 }
@@ -1192,7 +1277,7 @@ fun StroopChallengeView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp)
-                .clip(RoundedCornerShape(22.dp))
+                .clip(RoundedCornerShape(18.dp))
                 .background(SurfaceCard),
             contentAlignment = Alignment.Center
         ) {
@@ -1209,7 +1294,7 @@ fun StroopChallengeView(
                 Box(
                     modifier = Modifier
                         .size(width = 72.dp, height = 56.dp)
-                        .clip(RoundedCornerShape(18.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(palette[idx])
                         .clickable { onPick(idx) }
                         .semantics { contentDescription = "${names[idx]} choice" }

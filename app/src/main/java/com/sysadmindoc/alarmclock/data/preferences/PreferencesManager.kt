@@ -102,8 +102,10 @@ data class AppSettings(
 )
 
 private fun AppSettings.sanitized(): AppSettings {
+    val normalizedVacationStart = vacationStartMillis.coerceAtLeast(0)
+    val normalizedVacationEnd = vacationEndMillis.coerceAtLeast(0)
     val vacationWindowValid =
-        vacationModeEnabled && vacationStartMillis > 0 && vacationEndMillis > vacationStartMillis
+        normalizedVacationStart > 0 && normalizedVacationEnd > normalizedVacationStart
     val normalizedAccent = accentColor.trim().takeIf {
         it.startsWith("#") && runCatching { Color.parseColor(it) }.isSuccess
     } ?: "#5B9EF4"
@@ -130,9 +132,9 @@ private fun AppSettings.sanitized(): AppSettings {
         defaultSnoozeDuration = defaultSnoozeDuration.coerceIn(1, 180),
         defaultGradualVolume = defaultGradualVolume.coerceIn(0, 300),
         upcomingAlarmMinutes = upcomingAlarmMinutes.coerceIn(0, 1_440),
-        vacationModeEnabled = vacationWindowValid,
-        vacationStartMillis = if (vacationWindowValid) vacationStartMillis else 0,
-        vacationEndMillis = if (vacationWindowValid) vacationEndMillis else 0,
+        vacationModeEnabled = vacationModeEnabled && vacationWindowValid,
+        vacationStartMillis = normalizedVacationStart,
+        vacationEndMillis = normalizedVacationEnd,
         lastKnownLatitude = lastKnownLatitude.coerceIn(-90.0, 90.0),
         lastKnownLongitude = lastKnownLongitude.coerceIn(-180.0, 180.0),
         autoSilenceMinutes = autoSilenceMinutes.coerceIn(0, 240),
@@ -237,9 +239,9 @@ class PreferencesManager @Inject constructor(
     /**
      * v1.5.1: Non-suspend snapshot for callers that cannot afford a DataStore
      * round-trip (e.g., [NextAlarmCalculator.solarTimeFor] invoked from a
-     * ViewModel `combine { }` running on Dispatchers.Main). The value lags
-     * DataStore by exactly one emission, which is fine for every consumer
-     * because every settings write also triggers the flow collectors.
+     * ViewModel `combine { }` running on Dispatchers.Main). Writes refresh this
+     * snapshot inside the same edit block so immediate reschedules see the new
+     * settings without waiting for the next DataStore flow emission.
      */
     fun getCachedSettings(): AppSettings = cachedSettings
 
@@ -247,6 +249,7 @@ class PreferencesManager @Inject constructor(
         context.dataStore.edit { prefs ->
             val old = prefs.toSettings().sanitized()
             val new = transform(old).sanitized()
+            cachedSettings = new
             prefs.applySettings(new)
         }
     }

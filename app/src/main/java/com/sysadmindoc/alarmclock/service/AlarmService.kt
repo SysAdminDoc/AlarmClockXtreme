@@ -14,6 +14,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.*
 import android.speech.tts.TextToSpeech
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.*
 import com.sysadmindoc.alarmclock.R
@@ -64,6 +65,7 @@ class AlarmService : Service() {
         const val NOTIFICATION_ID = 1001
         const val MISSED_NOTIFICATION_ID = 1003
         const val DEFAULT_AUTO_SILENCE_MINUTES = 10L
+        private const val TAG = "AlarmService"
 
         /**
          * v1.5.1: Live-alarm flag surfaced to [MissedAlarmUnlockReceiver] so a
@@ -510,7 +512,9 @@ class AlarmService : Service() {
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.w(TAG, "Failed to start configured alarm sound; falling back to default tone", e)
+            try { mediaPlayer?.release() } catch (_: Exception) {}
+            mediaPlayer = null
             // Fallback to default alarm sound
             try {
                 val fallbackUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)

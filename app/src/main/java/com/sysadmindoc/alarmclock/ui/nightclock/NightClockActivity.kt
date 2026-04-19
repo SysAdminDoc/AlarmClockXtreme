@@ -172,7 +172,7 @@ fun NightClockScreen(onExit: () -> Unit) {
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(18.dp),
                     color = Color.White.copy(alpha = 0.04f)
                 ) {
                     Text(

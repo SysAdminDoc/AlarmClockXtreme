@@ -596,7 +596,7 @@ private fun AlarmCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (alarm.isEnabled) SurfaceMedium else SurfaceCard.copy(alpha = 0.7f)
         ),
@@ -839,10 +839,10 @@ private fun SelectableAlarmCard(
             .fillMaxWidth()
             .combinedClickable(onClick = onToggleSelect)
             .then(
-                if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(24.dp))
+                if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(18.dp))
                 else Modifier
             ),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)

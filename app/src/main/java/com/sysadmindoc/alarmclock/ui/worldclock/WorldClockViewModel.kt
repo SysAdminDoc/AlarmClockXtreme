@@ -13,6 +13,7 @@ import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import javax.inject.Inject
 
 data class WorldClockEntry(
@@ -108,7 +109,7 @@ class WorldClockViewModel @Inject constructor(
 
     private fun formatDiff(hours: Double): String {
         val abs = kotlin.math.abs(hours)
-        return if (abs == abs.toLong().toDouble()) "${abs.toLong()}" else String.format("%.1f", abs)
+        return if (abs == abs.toLong().toDouble()) "${abs.toLong()}" else String.format(Locale.US, "%.1f", abs)
     }
 
     fun showAddDialog() {
