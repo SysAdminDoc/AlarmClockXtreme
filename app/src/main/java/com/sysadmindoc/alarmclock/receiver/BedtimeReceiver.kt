@@ -55,6 +55,11 @@ class BedtimeReceiver : BroadcastReceiver() {
 
     private fun rescheduleForTomorrow(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S &&
+            !alarmManager.canScheduleExactAlarms()
+        ) {
+            return
+        }
         val rescheduleIntent = Intent("com.sysadmindoc.alarmclock.BEDTIME_REMINDER")
         rescheduleIntent.setPackage(context.packageName)
         val pendingIntent = android.app.PendingIntent.getBroadcast(

@@ -134,6 +134,21 @@ class NextAlarmCalculatorTest {
     }
 
     @Test
+    fun `expired one-shot specific date returns no trigger`() {
+        val now = ZonedDateTime.of(2026, 4, 19, 9, 0, 0, 0, ZoneId.of("UTC"))
+        val alarm = Alarm(
+            hour = 7,
+            minute = 0,
+            repeatDays = emptySet(),
+            specificDate = now.toLocalDate().minusDays(1).toString()
+        )
+
+        val result = calculator.calculate(alarm, now)
+
+        assertEquals("Expired one-shot date alarm should not roll to tomorrow", 0L, result)
+    }
+
+    @Test
     fun `malformed specific date is ignored`() {
         val alarm = Alarm(
             hour = 9, minute = 0,

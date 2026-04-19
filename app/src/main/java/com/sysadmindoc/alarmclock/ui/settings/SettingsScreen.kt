@@ -489,10 +489,18 @@ private fun VacationModeSection(state: SettingsUiState, viewModel: SettingsViewM
             checked = settings.vacationModeEnabled,
             supportingText = "Repeating alarms stay enabled but skip dates inside the range below.",
             onToggle = { enabled ->
-                if (enabled && settings.vacationStartMillis > 0 && settings.vacationEndMillis > 0) {
-                    viewModel.setVacationMode(true, settings.vacationStartMillis, settings.vacationEndMillis)
+                if (enabled) {
+                    val start = settings.vacationStartMillis.takeIf { it > 0 }
+                        ?: System.currentTimeMillis()
+                    val end = settings.vacationEndMillis.takeIf { it > start }
+                        ?: (start + 7 * 24 * 60 * 60 * 1000L)
+                    viewModel.setVacationMode(true, start, end)
                 } else {
-                    viewModel.setVacationMode(false)
+                    viewModel.setVacationMode(
+                        false,
+                        settings.vacationStartMillis,
+                        settings.vacationEndMillis
+                    )
                 }
             }
         )
@@ -672,7 +680,7 @@ private fun SettingsToggle(
                 role = Role.Switch,
                 onValueChange = onToggle
             ),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(14.dp),
         color = if (checked) {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
         } else {
@@ -690,7 +698,7 @@ private fun SettingsToggle(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 13.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -735,12 +743,12 @@ private fun SettingsActionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.Button, onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(14.dp),
         color = SurfaceCard.copy(alpha = 0.28f),
         border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.14f))
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
@@ -755,7 +763,7 @@ private fun SettingsActionRow(
                     modifier = Modifier.weight(1f)
                 )
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 ) {
                     Row(
@@ -782,7 +790,7 @@ private fun SettingsActionRow(
 @Composable
 private fun SettingsInfo(label: String, description: String) {
     Surface(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(14.dp),
         color = SurfaceCard.copy(alpha = 0.24f),
         border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
     ) {
@@ -1280,7 +1288,7 @@ private fun BufferedSettingsTextField(
                 onCommit(draft)
             }
         },
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(14.dp),
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
@@ -1299,9 +1307,9 @@ private fun DateField(
         modifier = modifier
             .background(
                 color = SurfaceCard.copy(alpha = 0.8f),
-                shape = RoundedCornerShape(18.dp)
+                shape = RoundedCornerShape(14.dp)
             )
-            .border(1.dp, TextMuted.copy(alpha = 0.16f), RoundedCornerShape(18.dp))
+            .border(1.dp, TextMuted.copy(alpha = 0.16f), RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {

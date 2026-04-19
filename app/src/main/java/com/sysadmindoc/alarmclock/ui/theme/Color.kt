@@ -7,15 +7,15 @@ val BluePrimary = Color(0xFF67B6FF)
 val BlueLight = Color(0xFF9CD2FF)
 val BlueDark = Color(0xFF255A91)
 
-// Surface colors - layered, slightly warmer dark neutrals
-val SurfaceDark = Color(0xFF07111F)
-val SurfaceMedium = Color(0xFF101C30)
-val SurfaceLight = Color(0xFF162742)
-val SurfaceCard = Color(0xFF182D4A)
+// Surface colors - restrained dark neutrals with just enough blue to feel branded.
+val SurfaceDark = Color(0xFF080D14)
+val SurfaceMedium = Color(0xFF101823)
+val SurfaceLight = Color(0xFF172435)
+val SurfaceCard = Color(0xFF162231)
 
 // Hero gradient
 val HeaderTop = Color(0xFF2F7FD7)
-val HeaderBottom = Color(0xFF0D182B)
+val HeaderBottom = Color(0xFF0B111A)
 
 // Text
 val TextPrimary = Color(0xFFF4F7FB)

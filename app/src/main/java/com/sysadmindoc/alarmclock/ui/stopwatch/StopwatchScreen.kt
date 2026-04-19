@@ -266,7 +266,7 @@ private fun ControlsRow(state: StopwatchUiState, viewModel: StopwatchViewModel) 
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 6.dp),
-                shape = RoundedCornerShape(22.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(
@@ -421,7 +421,7 @@ private fun StopwatchPrimaryButton(
     Button(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
@@ -441,7 +441,7 @@ private fun StopwatchSecondaryButton(
     OutlinedButton(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp))

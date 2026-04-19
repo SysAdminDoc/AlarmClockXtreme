@@ -65,6 +65,7 @@
          SEND_SMS is missing. -->
     <uses-permission android:name="android.permission.SEND_SMS" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <!-- v1.2.0: Wi-Fi dismiss challenge needs to read the connected SSID -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />

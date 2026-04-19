@@ -395,7 +395,7 @@ private fun ForecastCard(
     Surface(
         modifier = modifier
             .fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = SurfaceCard.copy(alpha = 0.82f)
     ) {
         Column(
