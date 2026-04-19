@@ -543,7 +543,7 @@ private fun SleepSoundsSection(
                             if (isActive) viewModel.stopSound()
                             else if (resId != 0) viewModel.playSound(resId)
                         },
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (isActive) {
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
@@ -661,7 +661,7 @@ private fun BedtimeMetricCard(
         modifier = modifier.then(
             if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
         ),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceCard)
     ) {
         Column(
@@ -878,7 +878,7 @@ private fun BedtimeAdjusterButton(
     Surface(
         modifier = modifier
             .clickable(enabled = enabled, onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = if (enabled) SurfaceCard.copy(alpha = 0.78f) else SurfaceCard.copy(alpha = 0.42f)
     ) {
         Column(

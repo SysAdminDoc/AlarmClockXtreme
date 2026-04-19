@@ -436,7 +436,10 @@ fun AlarmFiringScreen(
                         challenge is Challenge.WalkChallenge -> {
                             WalkChallengeView(
                                 challenge = challenge,
-                                currentSteps = state.currentSteps
+                                currentSteps = state.currentSteps,
+                                walkStatus = state.walkStatus,
+                                fallbackAllowed = state.walkFallbackAllowed,
+                                onContinueWithoutSensor = viewModel::continueWalkChallengeWithoutSensor
                             )
                         }
 
@@ -450,7 +453,8 @@ fun AlarmFiringScreen(
                         challenge is Challenge.BarcodeChallenge -> {
                             BarcodeScanChallengeView(
                                 challenge = challenge,
-                                scanStatus = state.barcodeScanStatus
+                                scanStatus = state.barcodeScanStatus,
+                                onCodeEntered = viewModel::onBarcodeDetected
                             )
                         }
 
@@ -480,7 +484,10 @@ fun AlarmFiringScreen(
                         challenge is Challenge.WifiChallenge -> {
                             WifiChallengeView(
                                 challenge = challenge,
-                                currentSsid = state.wifiCurrentSsid
+                                currentSsid = state.wifiCurrentSsid,
+                                wifiStatus = state.wifiStatus,
+                                fallbackAllowed = state.wifiFallbackAllowed,
+                                onContinueWithoutSsid = viewModel::continueWifiChallengeWithoutSsid
                             )
                         }
 
@@ -588,7 +595,7 @@ fun AlarmFiringScreen(
                         disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
                         disabledContentColor = TextMuted
                     ),
-                    shape = RoundedCornerShape(20.dp)
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
                         text = if (state.canDismiss) "Dismiss alarm" else "Finish wake-up challenge",
@@ -602,7 +609,7 @@ fun AlarmFiringScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(16.dp),
                     border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
                         width = 1.5.dp
                     ),

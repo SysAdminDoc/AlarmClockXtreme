@@ -25,6 +25,8 @@ data class FiringUiState(
     val typingInput: String = "",
     // F4: Walk-steps challenge
     val currentSteps: Int = 0,
+    val walkStatus: String = "",
+    val walkFallbackAllowed: Boolean = false,
     // F2: NFC scan status
     val nfcScanStatus: String = "",
     // F1: Barcode scan status
@@ -42,6 +44,8 @@ data class FiringUiState(
     val mazeCurrentPos: Int = 0,
     // v1.2.0: Wi-Fi challenge
     val wifiCurrentSsid: String = "",
+    val wifiStatus: String = "",
+    val wifiFallbackAllowed: Boolean = false,
     // v1.4.0: Count-the-Sheep challenge
     val sheepTapped: Int = 0,
     val sheepWrongTaps: Int = 0,
@@ -200,6 +204,8 @@ class AlarmFiringViewModel @Inject constructor(
             shakeCount = 0,
             squatCount = 0,
             currentSteps = 0,
+            walkStatus = "",
+            walkFallbackAllowed = false,
             sequenceTappedIndices = emptySet(),
             memoryPhase = MemoryPhase.SHOWING,
             memoryTappedIndices = emptySet(),
@@ -210,6 +216,8 @@ class AlarmFiringViewModel @Inject constructor(
             photoMatchStatus = "",
             mazeCurrentPos = (nextChallenge as? Challenge.MazeChallenge)?.startPos ?: 0,
             wifiCurrentSsid = "",
+            wifiStatus = "",
+            wifiFallbackAllowed = false,
             sheepTapped = 0,
             sheepWrongTaps = 0,
             simonPlayingIndex = -1,
@@ -291,6 +299,20 @@ class AlarmFiringViewModel @Inject constructor(
         }
     }
 
+    fun onWalkChallengeUnavailable(message: String) {
+        if (_uiState.value.challenge !is Challenge.WalkChallenge) return
+        _uiState.value = _uiState.value.copy(
+            walkStatus = message,
+            walkFallbackAllowed = true
+        )
+    }
+
+    fun continueWalkChallengeWithoutSensor() {
+        if (_uiState.value.challenge !is Challenge.WalkChallenge) return
+        if (!_uiState.value.walkFallbackAllowed) return
+        proceedToNextChallenge()
+    }
+
     // F2: NFC scan challenge
     fun onNfcTagDetected(tagId: String) {
         val challenge = _uiState.value.challenge as? Challenge.NfcChallenge ?: return
@@ -344,12 +366,30 @@ class AlarmFiringViewModel @Inject constructor(
     // v1.2.0: Wi-Fi challenge - update current SSID
     fun updateWifiSsid(ssid: String) {
         val challenge = _uiState.value.challenge as? Challenge.WifiChallenge ?: return
-        _uiState.value = _uiState.value.copy(wifiCurrentSsid = ssid)
+        _uiState.value = _uiState.value.copy(
+            wifiCurrentSsid = ssid,
+            wifiStatus = "",
+            wifiFallbackAllowed = false
+        )
         if (challenge.requiredSsid.isBlank() && ssid.isNotBlank()) {
             proceedToNextChallenge()
         } else if (ssid == challenge.requiredSsid) {
             proceedToNextChallenge()
         }
+    }
+
+    fun onWifiChallengeUnavailable(message: String) {
+        if (_uiState.value.challenge !is Challenge.WifiChallenge) return
+        _uiState.value = _uiState.value.copy(
+            wifiStatus = message,
+            wifiFallbackAllowed = true
+        )
+    }
+
+    fun continueWifiChallengeWithoutSsid() {
+        if (_uiState.value.challenge !is Challenge.WifiChallenge) return
+        if (!_uiState.value.wifiFallbackAllowed) return
+        proceedToNextChallenge()
     }
 
     // v1.2.0: Squat challenge
@@ -459,6 +499,11 @@ class AlarmFiringViewModel @Inject constructor(
                 wrongAttempts = _uiState.value.wrongAttempts + 1
             )
         }
+    }
+
+    fun onPhotoCaptureUnavailable(message: String) {
+        if (_uiState.value.challenge !is Challenge.PhotoMatchChallenge) return
+        _uiState.value = _uiState.value.copy(photoMatchStatus = message)
     }
 
     // Memory pattern challenge

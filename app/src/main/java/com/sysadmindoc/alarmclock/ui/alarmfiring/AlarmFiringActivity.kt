@@ -1,7 +1,9 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring
 
+import android.Manifest
 import android.app.KeyguardManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Build
@@ -14,6 +16,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmService
@@ -51,8 +54,11 @@ class AlarmFiringActivity : ComponentActivity() {
     private var flipDetector: FlipDetector? = null
     private var coverDetector: ProximityCoverDetector? = null
     private var nfcAdapter: NfcAdapter? = null
+    private var nfcDispatchEnabled = false
     private var alarmId: Long = -1
     private var wifiPollingJob: kotlinx.coroutines.Job? = null
+    private var walkPermissionRequestInFlight = false
+    private var wifiPermissionRequestInFlight = false
 
     // F16: Camera launcher for photo-match challenge
     private val photoLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
@@ -64,6 +70,38 @@ class AlarmFiringActivity : ComponentActivity() {
                     viewModel.onPhotoTaken(score)
                 }
             }
+        } else {
+            viewModel.onPhotoCaptureUnavailable("No photo captured. Try again.")
+        }
+    }
+
+    private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            photoLauncher.launch(null)
+        } else {
+            viewModel.onPhotoCaptureUnavailable("Camera permission is required for photo match.")
+        }
+    }
+
+    private val activityRecognitionPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        walkPermissionRequestInFlight = false
+        if (granted) {
+            startWalkSteps()
+        } else {
+            viewModel.onWalkChallengeUnavailable("Activity recognition permission is required to count steps on this device.")
+        }
+    }
+
+    private val wifiLocationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        wifiPermissionRequestInFlight = false
+        if (granted) {
+            startWifiPolling()
+        } else {
+            viewModel.onWifiChallengeUnavailable("Location permission is required for Android to reveal the current Wi-Fi network name.")
         }
     }
 
@@ -126,6 +164,10 @@ class AlarmFiringActivity : ComponentActivity() {
                 when {
                     challenge is Challenge.WifiChallenge && !state.challengeSolved -> startWifiPolling()
                     else -> stopWifiPolling()
+                }
+                when {
+                    challenge is Challenge.NfcChallenge && !state.challengeSolved -> enableNfcForegroundDispatch()
+                    else -> disableNfcForegroundDispatch()
                 }
             }
         }
@@ -190,7 +232,7 @@ class AlarmFiringActivity : ComponentActivity() {
                     onDismiss = { dismiss() },
                     onSnooze = { snooze() },
                     onSnoozeCustom = { minutes -> snooze(minutes) },
-                    onTakePhoto = { photoLauncher.launch(null) },
+                    onTakePhoto = { launchPhotoCapture() },
                     viewModel = viewModel
                 )
             }
@@ -209,6 +251,16 @@ class AlarmFiringActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         disableNfcForegroundDispatch()
+    }
+
+    private fun launchPhotoCapture() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            photoLauncher.launch(null)
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -234,6 +286,7 @@ class AlarmFiringActivity : ComponentActivity() {
     }
 
     private fun enableNfcForegroundDispatch() {
+        if (nfcDispatchEnabled) return
         try {
             val intent = Intent(this, AlarmFiringActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             val pi = android.app.PendingIntent.getActivity(
@@ -241,13 +294,18 @@ class AlarmFiringActivity : ComponentActivity() {
                 android.app.PendingIntent.FLAG_MUTABLE
             )
             nfcAdapter?.enableForegroundDispatch(this, pi, null, null)
+            nfcDispatchEnabled = true
         } catch (_: Exception) {}
     }
 
     private fun disableNfcForegroundDispatch() {
+        if (!nfcDispatchEnabled) return
         try {
             nfcAdapter?.disableForegroundDispatch(this)
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        } finally {
+            nfcDispatchEnabled = false
+        }
     }
 
     private fun startShakeDetection() {
@@ -264,9 +322,26 @@ class AlarmFiringActivity : ComponentActivity() {
 
     private fun startWalkSteps() {
         if (stepCounterListener != null) return
-        stepCounterListener = StepCounterListener(this) { steps ->
+        if (viewModel.uiState.value.walkFallbackAllowed) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            if (!walkPermissionRequestInFlight) {
+                walkPermissionRequestInFlight = true
+                activityRecognitionPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+            }
+            return
+        }
+
+        val listener = StepCounterListener(this) { steps ->
             viewModel.updateStepCount(steps)
-        }.also { it.start() }
+        }
+        if (!listener.isAvailable()) {
+            viewModel.onWalkChallengeUnavailable("This device does not expose a step sensor.")
+            return
+        }
+        stepCounterListener = listener.also { it.start() }
     }
 
     private fun stopWalkSteps() {
@@ -288,11 +363,30 @@ class AlarmFiringActivity : ComponentActivity() {
 
     private fun startWifiPolling() {
         if (wifiPollingJob != null) return
+        if (viewModel.uiState.value.wifiFallbackAllowed) return
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            if (!wifiPermissionRequestInFlight) {
+                wifiPermissionRequestInFlight = true
+                wifiLocationPermissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+            }
+            return
+        }
+        val wifiManager = applicationContext.getSystemService(android.net.wifi.WifiManager::class.java)
+        if (wifiManager == null) {
+            viewModel.onWifiChallengeUnavailable("This device does not expose Wi-Fi connection details.")
+            return
+        }
         wifiPollingJob = lifecycleScope.launch {
-            val wifiManager = applicationContext.getSystemService(android.net.wifi.WifiManager::class.java)
             while (isActive) {
                 @Suppress("DEPRECATION")
-                val info = try { wifiManager?.connectionInfo } catch (_: SecurityException) { null }
+                val info = try {
+                    wifiManager.connectionInfo
+                } catch (_: SecurityException) {
+                    viewModel.onWifiChallengeUnavailable("Android blocked access to the current Wi-Fi network name.")
+                    return@launch
+                }
                 @Suppress("DEPRECATION")
                 val rawSsid = info?.ssid?.removeSurrounding("\"") ?: ""
                 if (rawSsid.isNotBlank() && rawSsid != "<unknown ssid>") {
@@ -338,12 +432,12 @@ class AlarmFiringActivity : ComponentActivity() {
     // v1.4.0: Per-alarm hardware-button action. Volume keys intercepted so the
     // user can snooze or dismiss without looking at the screen. NONE falls
     // through to the system's volume control.
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         val action = viewModel.uiState.value.alarm?.hardwareButtonAction ?: "NONE"
-        if (action == "NONE" || event.action != KeyEvent.ACTION_DOWN) {
-            return super.dispatchKeyEvent(event)
+        if (action == "NONE" || (event?.repeatCount ?: 0) > 0) {
+            return super.onKeyDown(keyCode, event)
         }
-        return when (event.keyCode) {
+        return when (keyCode) {
             KeyEvent.KEYCODE_VOLUME_UP,
             KeyEvent.KEYCODE_VOLUME_DOWN,
             KeyEvent.KEYCODE_HEADSETHOOK,
@@ -354,7 +448,7 @@ class AlarmFiringActivity : ComponentActivity() {
                 }
                 true
             }
-            else -> super.dispatchKeyEvent(event)
+            else -> super.onKeyDown(keyCode, event)
         }
     }
 

@@ -416,7 +416,7 @@ private fun NumPad(
                                     else -> onDigit(key)
                                 }
                             },
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(16.dp),
                         color = if (key < 0) SurfaceCard.copy(alpha = 0.88f) else SurfaceMedium,
                         border = BorderStroke(
                             1.dp,
@@ -428,7 +428,7 @@ private fun NumPad(
                                 .fillMaxSize()
                                 .background(
                                     color = if (key < 0) accent.copy(alpha = 0.08f) else androidx.compose.ui.graphics.Color.Transparent,
-                                    shape = RoundedCornerShape(24.dp)
+                                    shape = RoundedCornerShape(16.dp)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {

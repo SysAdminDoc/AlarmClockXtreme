@@ -10,19 +10,19 @@ val AppTypography = Typography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 56.sp,
         lineHeight = 60.sp,
-        letterSpacing = (-1.2).sp
+        letterSpacing = 0.sp
     ),
     headlineLarge = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 32.sp,
         lineHeight = 38.sp,
-        letterSpacing = (-0.4).sp
+        letterSpacing = 0.sp
     ),
     headlineMedium = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp,
         lineHeight = 34.sp,
-        letterSpacing = (-0.2).sp
+        letterSpacing = 0.sp
     ),
     headlineSmall = TextStyle(
         fontWeight = FontWeight.SemiBold,

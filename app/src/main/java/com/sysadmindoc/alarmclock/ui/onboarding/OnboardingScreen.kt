@@ -143,7 +143,7 @@ fun OnboardingScreen(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            onboardingPages[pagerState.currentPage].accentColor.copy(alpha = 0.22f),
+                            onboardingPages[pagerState.currentPage].accentColor.copy(alpha = 0.16f),
                             Color.Transparent
                         )
                     )
@@ -281,7 +281,7 @@ fun OnboardingScreen(
                         .fillMaxWidth()
                         .height(58.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = onboardingPages[pagerState.currentPage].accentColor),
-                    shape = RoundedCornerShape(24.dp)
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
                         text = if (isLastPage) "Enable recommended permissions" else "Continue",

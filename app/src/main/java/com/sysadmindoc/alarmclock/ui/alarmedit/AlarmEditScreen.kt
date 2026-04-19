@@ -1,5 +1,9 @@
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,11 +21,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
@@ -31,6 +37,7 @@ import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.*
+import com.sysadmindoc.alarmclock.util.PhotoMatcher
 import java.time.DayOfWeek
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,10 +46,54 @@ fun AlarmEditScreen(
     onNavigateBack: () -> Unit,
     viewModel: AlarmEditViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTimePicker by remember { mutableStateOf(false) }
     var showRingtonePicker by remember { mutableStateOf(false) }
     var showChainPicker by remember { mutableStateOf(false) }
+    var photoReferenceStatus by remember { mutableStateOf("") }
+
+    val photoReferenceLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap == null) {
+            photoReferenceStatus = "No reference photo captured."
+            return@rememberLauncherForActivityResult
+        }
+
+        val referenceKey = if (state.isEditing && state.createdAt > 0) {
+            state.createdAt
+        } else {
+            System.currentTimeMillis()
+        }
+        runCatching {
+            PhotoMatcher.saveReference(context, referenceKey, bitmap)
+        }.onSuccess { uri ->
+            viewModel.updatePhotoMatchUri(uri)
+            photoReferenceStatus = "Reference photo saved."
+        }.onFailure {
+            photoReferenceStatus = "Could not save reference photo."
+        }
+        if (!bitmap.isRecycled) bitmap.recycle()
+    }
+    val photoPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            photoReferenceLauncher.launch(null)
+        } else {
+            photoReferenceStatus = "Camera permission is required to capture a reference photo."
+        }
+    }
+    val captureReferencePhoto = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            photoReferenceLauncher.launch(null)
+        } else {
+            photoPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
 
     // Handle invalid alarm ID
     if (state.notFound) {
@@ -543,7 +594,7 @@ fun AlarmEditScreen(
                     OutlinedTextField(
                         value = state.nfcTagId,
                         onValueChange = viewModel::updateNfcTagId,
-                        label = { Text("NFC Tag ID (tap tag to register in alarm screen)", color = TextMuted) },
+                        label = { Text("NFC tag ID", color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
@@ -555,7 +606,7 @@ fun AlarmEditScreen(
                     OutlinedTextField(
                         value = state.barcodeValue,
                         onValueChange = viewModel::updateBarcodeValue,
-                        label = { Text("Barcode value (scan to register in alarm screen)", color = TextMuted) },
+                        label = { Text("Barcode or QR value", color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
@@ -564,10 +615,34 @@ fun AlarmEditScreen(
 
                 // PHOTO_MATCH: reference photo URI field
                 if (state.challengeType == "PHOTO_MATCH") {
+                    SettingsRow(label = "Reference photo") {
+                        OutlinedButton(
+                            onClick = captureReferencePhoto,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhotoCamera,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (state.photoMatchUri.isBlank()) "Capture" else "Replace")
+                        }
+                    }
                     SettingsHint(
-                        "Reference photo URI: ${state.photoMatchUri.ifBlank { "Not set" }}",
+                        if (state.photoMatchUri.isBlank()) {
+                            "Capture a reference photo from the place or angle the alarm should require."
+                        } else {
+                            "Reference photo saved for this alarm."
+                        },
                         tone = if (state.photoMatchUri.isBlank()) HintTone.Warning else HintTone.Neutral
                     )
+                    if (photoReferenceStatus.isNotBlank()) {
+                        SettingsHint(
+                            photoReferenceStatus,
+                            tone = if (state.photoMatchUri.isBlank()) HintTone.Warning else HintTone.Neutral
+                        )
+                    }
                 }
             }
 

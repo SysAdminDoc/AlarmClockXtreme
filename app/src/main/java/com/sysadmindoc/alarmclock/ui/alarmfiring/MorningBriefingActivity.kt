@@ -274,7 +274,7 @@ fun MorningBriefingScreen(
                 onClick = onClose,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
-                shape = RoundedCornerShape(22.dp)
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Text(
                     text = "Close briefing",
