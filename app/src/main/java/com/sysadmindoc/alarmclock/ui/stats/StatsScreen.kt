@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -333,12 +334,23 @@ fun StatsScreen(
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.DeleteSweep,
+                    contentDescription = null,
+                    tint = AccentRed
+                )
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.clearHistory()
-                    showClearDialog = false
-                }) {
-                    Text("Clear history", color = AccentRed)
+                Button(
+                    onClick = {
+                        viewModel.clearHistory()
+                        showClearDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Clear history")
                 }
             },
             dismissButton = {
@@ -346,14 +358,22 @@ fun StatsScreen(
                     Text("Cancel", color = TextSecondary)
                 }
             },
-            title = { Text("Clear alarm history?", color = TextPrimary) },
+            title = {
+                Text(
+                    "Clear alarm history?",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
             text = {
                 Text(
                     "This removes recorded alarm outcomes and resets the statistics shown on this screen. It does not delete your actual alarms.",
                     color = TextSecondary
                 )
             },
-            containerColor = SurfaceDark
+            containerColor = SurfaceDark,
+            shape = RoundedCornerShape(22.dp)
         )
     }
 }

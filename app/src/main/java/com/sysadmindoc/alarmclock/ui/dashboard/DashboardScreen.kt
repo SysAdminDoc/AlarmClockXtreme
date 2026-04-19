@@ -725,6 +725,7 @@ private fun LocationPickerDialog(
                 }
             }
         },
-        containerColor = SurfaceDark.copy(alpha = 0.98f)
+        containerColor = SurfaceDark.copy(alpha = 0.98f),
+        shape = RoundedCornerShape(22.dp)
     )
 }

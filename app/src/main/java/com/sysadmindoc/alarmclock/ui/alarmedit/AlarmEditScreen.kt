@@ -52,6 +52,14 @@ fun AlarmEditScreen(
     var showRingtonePicker by remember { mutableStateOf(false) }
     var showChainPicker by remember { mutableStateOf(false) }
     var photoReferenceStatus by remember { mutableStateOf("") }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(state.saveError) {
+        state.saveError?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearSaveError()
+        }
+    }
 
     val photoReferenceLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicturePreview()
@@ -123,6 +131,7 @@ fun AlarmEditScreen(
 
     Scaffold(
         containerColor = SurfaceDark,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             val editorSubtitle = if (state.isEditing) {
                 "Refine timing, sound, and wake-up behavior."
@@ -153,7 +162,11 @@ fun AlarmEditScreen(
                         onClick = { viewModel.save(onNavigateBack) },
                         enabled = !state.isSaving
                     ) {
-                        Text("Save alarm", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(
+                            if (state.isSaving) "Saving..." else "Save",
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -182,11 +195,19 @@ fun AlarmEditScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
                         shape = RoundedCornerShape(18.dp)
                     ) {
-                        Icon(
-                            imageVector = if (state.isSaving) Icons.Default.Schedule else Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        if (state.isSaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = TextPrimary
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = if (state.isSaving) "Saving alarm..." else if (state.isEditing) "Save changes" else "Create alarm",
@@ -225,7 +246,7 @@ fun AlarmEditScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { showTimePicker = true }
+                        .clickable(role = Role.Button) { showTimePicker = true }
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -309,12 +330,10 @@ fun AlarmEditScreen(
                 val defaultGroups = listOf("", "Work", "School", "Gym", "Medication", "Personal")
                 SettingsRow(label = "Alarm group") {
                     Box {
-                        TextButton(onClick = { showGroupMenu = true }) {
-                            Text(
-                                state.group.ifBlank { "None" },
-                                color = AccentBlue
-                            )
-                        }
+                        SettingsValueButton(
+                            label = state.group.ifBlank { "None" },
+                            onClick = { showGroupMenu = true }
+                        )
                         DropdownMenu(
                             expanded = showGroupMenu,
                             onDismissRequest = { showGroupMenu = false }
@@ -361,16 +380,14 @@ fun AlarmEditScreen(
                 SettingsRow(
                     label = "Alarm sound",
                     trailing = {
-                        TextButton(onClick = { showRingtonePicker = true }) {
-                            Text(
-                                when (state.ringtoneUri) {
-                                    "" -> "Default"
-                                    "silent" -> "Silent"
-                                    else -> "Custom"
-                                },
-                                color = AccentBlue
-                            )
-                        }
+                        SettingsValueButton(
+                            label = when (state.ringtoneUri) {
+                                "" -> "Default"
+                                "silent" -> "Silent"
+                                else -> "Custom"
+                            },
+                            onClick = { showRingtonePicker = true }
+                        )
                     }
                 )
 
@@ -405,15 +422,13 @@ fun AlarmEditScreen(
                 var showGradualMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = "Gradually increase volume") {
                     Box {
-                        TextButton(onClick = { showGradualMenu = true }) {
-                            Text(
-                                text = when (state.gradualVolumeSeconds) {
-                                    0 -> "Off"
-                                    else -> "${state.gradualVolumeSeconds / 60}m ${state.gradualVolumeSeconds % 60}s"
-                                },
-                                color = AccentBlue
-                            )
-                        }
+                        SettingsValueButton(
+                            label = when (state.gradualVolumeSeconds) {
+                                0 -> "Off"
+                                else -> "${state.gradualVolumeSeconds / 60}m ${state.gradualVolumeSeconds % 60}s"
+                            },
+                            onClick = { showGradualMenu = true }
+                        )
                         DropdownMenu(
                             expanded = showGradualMenu,
                             onDismissRequest = { showGradualMenu = false }
@@ -464,12 +479,10 @@ fun AlarmEditScreen(
                     )
                     SettingsRow(label = "Vibration pattern") {
                         Box {
-                            TextButton(onClick = { showPatternMenu = true }) {
-                                Text(
-                                    patterns.find { it.first == state.vibrationPattern }?.second?.substringBefore(" (") ?: "Default",
-                                    color = AccentBlue
-                                )
-                            }
+                            SettingsValueButton(
+                                label = patterns.find { it.first == state.vibrationPattern }?.second?.substringBefore(" (") ?: "Default",
+                                onClick = { showPatternMenu = true }
+                            )
                             DropdownMenu(
                                 expanded = showPatternMenu,
                                 onDismissRequest = { showPatternMenu = false }
@@ -499,9 +512,10 @@ fun AlarmEditScreen(
                 var showSnoozeMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = "Snooze duration") {
                     Box {
-                        TextButton(onClick = { showSnoozeMenu = true }) {
-                            Text("${state.snoozeDurationMinutes} min", color = AccentBlue)
-                        }
+                        SettingsValueButton(
+                            label = "${state.snoozeDurationMinutes} min",
+                            onClick = { showSnoozeMenu = true }
+                        )
                         DropdownMenu(
                             expanded = showSnoozeMenu,
                             onDismissRequest = { showSnoozeMenu = false }
@@ -532,12 +546,10 @@ fun AlarmEditScreen(
 
                 SettingsRow(label = "Challenge type") {
                     Box {
-                        TextButton(onClick = { expanded = true }) {
-                            Text(
-                                challengeOptions.find { it.first == state.challengeType }?.second ?: "None",
-                                color = AccentBlue
-                            )
-                        }
+                        SettingsValueButton(
+                            label = challengeOptions.find { it.first == state.challengeType }?.second ?: "None",
+                            onClick = { expanded = true }
+                        )
                         DropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false }
@@ -571,9 +583,10 @@ fun AlarmEditScreen(
                     var showStepsMenu by remember { mutableStateOf(false) }
                     SettingsRow(label = "Steps required") {
                         Box {
-                            TextButton(onClick = { showStepsMenu = true }) {
-                                Text("${state.walkStepsRequired} steps", color = AccentBlue)
-                            }
+                            SettingsValueButton(
+                                label = "${state.walkStepsRequired} steps",
+                                onClick = { showStepsMenu = true }
+                            )
                             DropdownMenu(
                                 expanded = showStepsMenu,
                                 onDismissRequest = { showStepsMenu = false }
@@ -698,9 +711,10 @@ fun AlarmEditScreen(
                     var showDelayMenu by remember { mutableStateOf(false) }
                     SettingsRow(label = "Re-alarm delay if not confirmed") {
                         Box {
-                            TextButton(onClick = { showDelayMenu = true }) {
-                                Text("${state.wakeConfirmDelayMinutes} min", color = AccentBlue)
-                            }
+                            SettingsValueButton(
+                                label = "${state.wakeConfirmDelayMinutes} min",
+                                onClick = { showDelayMenu = true }
+                            )
                             DropdownMenu(
                                 expanded = showDelayMenu,
                                 onDismissRequest = { showDelayMenu = false }
@@ -737,9 +751,10 @@ fun AlarmEditScreen(
                     var showWindowMenu by remember { mutableStateOf(false) }
                     SettingsRow(label = "Detection window") {
                         Box {
-                            TextButton(onClick = { showWindowMenu = true }) {
-                                Text("${state.smartAlarmWindowMinutes} min before", color = AccentBlue)
-                            }
+                            SettingsValueButton(
+                                label = "${state.smartAlarmWindowMinutes} min before",
+                                onClick = { showWindowMenu = true }
+                            )
                             DropdownMenu(
                                 expanded = showWindowMenu,
                                 onDismissRequest = { showWindowMenu = false }
@@ -811,9 +826,10 @@ fun AlarmEditScreen(
                     var showHueMenu by remember { mutableStateOf(false) }
                     SettingsRow(label = "Start lights before alarm") {
                         Box {
-                            TextButton(onClick = { showHueMenu = true }) {
-                                Text("${state.huePreWakeMinutes} min before", color = AccentBlue)
-                            }
+                            SettingsValueButton(
+                                label = "${state.huePreWakeMinutes} min before",
+                                onClick = { showHueMenu = true }
+                            )
                             DropdownMenu(
                                 expanded = showHueMenu,
                                 onDismissRequest = { showHueMenu = false }
@@ -840,12 +856,10 @@ fun AlarmEditScreen(
                 SettingsRow(
                     label = "Challenge chain",
                     trailing = {
-                        TextButton(onClick = { showChainPicker = true }) {
-                            Text(
-                                if (chainItems.isEmpty()) "Choose" else "${chainItems.size} challenges",
-                                color = AccentBlue
-                            )
-                        }
+                        SettingsValueButton(
+                            label = if (chainItems.isEmpty()) "Choose" else "${chainItems.size} challenges",
+                            onClick = { showChainPicker = true }
+                        )
                     }
                 )
                 if (chainItems.isNotEmpty()) {
@@ -910,9 +924,10 @@ fun AlarmEditScreen(
                     var showDelayMenu by remember { mutableStateOf(false) }
                     SettingsRow(label = "Escalate after") {
                         Box {
-                            TextButton(onClick = { showDelayMenu = true }) {
-                                Text("${state.backupSoundDelaySec}s", color = AccentBlue)
-                            }
+                            SettingsValueButton(
+                                label = "${state.backupSoundDelaySec}s",
+                                onClick = { showDelayMenu = true }
+                            )
                             DropdownMenu(expanded = showDelayMenu, onDismissRequest = { showDelayMenu = false }) {
                                 listOf(20, 30, 40, 60, 90, 120).forEach { sec ->
                                     DropdownMenuItem(
@@ -957,9 +972,10 @@ fun AlarmEditScreen(
                     var showMenu by remember { mutableStateOf(false) }
                     SettingsRow(label = "Duration") {
                         Box {
-                            TextButton(onClick = { showMenu = true }) {
-                                Text("${state.sunriseMinutes} min", color = AccentBlue)
-                            }
+                            SettingsValueButton(
+                                label = "${state.sunriseMinutes} min",
+                                onClick = { showMenu = true }
+                            )
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                                 listOf(5, 10, 15, 20, 30).forEach { mins ->
                                     DropdownMenuItem(
@@ -1018,9 +1034,10 @@ fun AlarmEditScreen(
                     var showDelayMenu by remember { mutableStateOf(false) }
                     SettingsRow(label = "Alert after") {
                         Box {
-                            TextButton(onClick = { showDelayMenu = true }) {
-                                Text("${state.guardianDelaySec / 60} min", color = AccentBlue)
-                            }
+                            SettingsValueButton(
+                                label = "${state.guardianDelaySec / 60} min",
+                                onClick = { showDelayMenu = true }
+                            )
                             DropdownMenu(expanded = showDelayMenu, onDismissRequest = { showDelayMenu = false }) {
                                 listOf(120, 180, 300, 600, 900).forEach { sec ->
                                     DropdownMenuItem(
@@ -1078,9 +1095,10 @@ fun AlarmEditScreen(
                 var showEarlyMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = "Early dismiss window") {
                     Box {
-                        TextButton(onClick = { showEarlyMenu = true }) {
-                            Text(if (state.earlyDismissMinutes == 0) "Disabled" else "${state.earlyDismissMinutes} min", color = AccentBlue)
-                        }
+                        SettingsValueButton(
+                            label = if (state.earlyDismissMinutes == 0) "Disabled" else "${state.earlyDismissMinutes} min",
+                            onClick = { showEarlyMenu = true }
+                        )
                         DropdownMenu(expanded = showEarlyMenu, onDismissRequest = { showEarlyMenu = false }) {
                             listOf(0, 15, 30, 60).forEach { mins ->
                                 DropdownMenuItem(
@@ -1110,9 +1128,10 @@ fun AlarmEditScreen(
                 var showHwMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = "Hardware-button action") {
                     Box {
-                        TextButton(onClick = { showHwMenu = true }) {
-                            Text(state.hardwareButtonAction.lowercase().replaceFirstChar { it.uppercase() }, color = AccentBlue)
-                        }
+                        SettingsValueButton(
+                            label = state.hardwareButtonAction.lowercase().replaceFirstChar { it.uppercase() },
+                            onClick = { showHwMenu = true }
+                        )
                         DropdownMenu(expanded = showHwMenu, onDismissRequest = { showHwMenu = false }) {
                             listOf("NONE" to "None (default)", "SNOOZE" to "Snooze on any key", "DISMISS" to "Dismiss on any key").forEach { (value, label) ->
                                 DropdownMenuItem(
@@ -1166,9 +1185,10 @@ fun AlarmEditScreen(
                 var showAnchorMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = "Solar anchor") {
                     Box {
-                        TextButton(onClick = { showAnchorMenu = true }) {
-                            Text(state.solarAnchor.lowercase().replaceFirstChar { it.uppercase() }, color = AccentBlue)
-                        }
+                        SettingsValueButton(
+                            label = state.solarAnchor.lowercase().replaceFirstChar { it.uppercase() },
+                            onClick = { showAnchorMenu = true }
+                        )
                         DropdownMenu(expanded = showAnchorMenu, onDismissRequest = { showAnchorMenu = false }) {
                             listOf("SUNRISE" to "Sunrise", "SUNSET" to "Sunset").forEach { (value, label) ->
                                 DropdownMenuItem(
@@ -1182,14 +1202,15 @@ fun AlarmEditScreen(
                 var showOffsetMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = "Solar offset") {
                     Box {
-                        TextButton(onClick = { showOffsetMenu = true }) {
-                            val label = when {
-                                state.solarOffsetMinutes == 0 -> "Off (use clock time)"
-                                state.solarOffsetMinutes > 0 -> "+${state.solarOffsetMinutes} min"
-                                else -> "${state.solarOffsetMinutes} min"
-                            }
-                            Text(label, color = AccentBlue)
+                        val solarOffsetLabel = when {
+                            state.solarOffsetMinutes == 0 -> "Off (use clock time)"
+                            state.solarOffsetMinutes > 0 -> "+${state.solarOffsetMinutes} min"
+                            else -> "${state.solarOffsetMinutes} min"
                         }
+                        SettingsValueButton(
+                            label = solarOffsetLabel,
+                            onClick = { showOffsetMenu = true }
+                        )
                         DropdownMenu(expanded = showOffsetMenu, onDismissRequest = { showOffsetMenu = false }) {
                             listOf(0, -30, -15, 15, 30, 60, 120).forEach { mins ->
                                 DropdownMenuItem(
@@ -1232,12 +1253,22 @@ fun AlarmEditScreen(
                     viewModel.updateTime(timePickerState.hour, timePickerState.minute)
                     showTimePicker = false
                 }) {
-                    Text("OK", color = AccentBlue)
+                    Text("Save time", color = AccentBlue)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) {
-                    Text("Cancel", color = TextSecondary)
+                    Text("Keep current", color = TextSecondary)
+                }
+            },
+            title = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppStatusChip(
+                        label = if (state.is24HourFormat) "24-hour time" else "12-hour time",
+                        icon = Icons.Default.Schedule,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text("Choose alarm time", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                 }
             },
             text = {
@@ -1252,7 +1283,8 @@ fun AlarmEditScreen(
                     )
                 )
             },
-            containerColor = SurfaceMedium
+            containerColor = SurfaceMedium,
+            shape = RoundedCornerShape(22.dp)
         )
     }
 }
@@ -1365,6 +1397,43 @@ private fun SettingsRow(
                 Spacer(modifier = Modifier.width(12.dp))
                 trailing()
             }
+        }
+    }
+}
+
+@Composable
+private fun SettingsValueButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val shape = RoundedCornerShape(12.dp)
+    Surface(
+        modifier = modifier
+            .clip(shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .defaultMinSize(minHeight = 40.dp),
+        shape = shape,
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f))
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 11.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
@@ -1517,18 +1586,30 @@ private fun ChallengeChainPickerSheet(
                                         onClick = { draftChain = draftChain.moveItem(index, index - 1) },
                                         enabled = index > 0
                                     ) {
-                                        Icon(Icons.Default.KeyboardArrowUp, null, tint = if (index > 0) TextPrimary else TextMuted)
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowUp,
+                                            contentDescription = "Move $label earlier",
+                                            tint = if (index > 0) TextPrimary else TextMuted
+                                        )
                                     }
                                     IconButton(
                                         onClick = { draftChain = draftChain.moveItem(index, index + 1) },
                                         enabled = index < draftChain.lastIndex
                                     ) {
-                                        Icon(Icons.Default.KeyboardArrowDown, null, tint = if (index < draftChain.lastIndex) TextPrimary else TextMuted)
+                                        Icon(
+                                            imageVector = Icons.Default.KeyboardArrowDown,
+                                            contentDescription = "Move $label later",
+                                            tint = if (index < draftChain.lastIndex) TextPrimary else TextMuted
+                                        )
                                     }
                                     IconButton(
                                         onClick = { draftChain = draftChain.filterNot { it == type } }
                                     ) {
-                                        Icon(Icons.Default.Close, null, tint = AccentRed)
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "Remove $label",
+                                            tint = AccentRed
+                                        )
                                     }
                                 }
                             } else {

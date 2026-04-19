@@ -36,6 +36,7 @@ data class AlarmEditUiState(
     val vibrationPattern: String = "default",
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
+    val saveError: String? = null,
     val isEnabled: Boolean = true,
     val createdAt: Long = 0,
     val is24HourFormat: Boolean = false,
@@ -365,13 +366,17 @@ class AlarmEditViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(solarAnchor = sanitized)
     }
 
+    fun clearSaveError() {
+        _uiState.value = _uiState.value.copy(saveError = null)
+    }
+
     fun save(onComplete: () -> Unit) {
         // Re-entrancy guard: a fast double-tap on the Save button would otherwise
         // create two alarm rows. The state flag still updates, but races against
         // recomposition; this synchronous check is reliable.
         if (_uiState.value.isSaving) return
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isSaving = true)
+            _uiState.value = _uiState.value.copy(isSaving = true, saveError = null)
             val s = _uiState.value
 
             val alarm = Alarm(
@@ -449,11 +454,10 @@ class AlarmEditViewModel @Inject constructor(
                 }
                 onComplete()
             } catch (_: Exception) {
-                // Don't strand the user on a "Saving..." button if the DB or
-                // scheduler call throws. The error is shallow because the user
-                // can re-tap save; an in-context toast would be ideal but the
-                // existing screen has no snackbar host wired up.
-                _uiState.value = _uiState.value.copy(isSaving = false)
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    saveError = "Could not save this alarm. Check the details and try again."
+                )
             }
         }
     }
