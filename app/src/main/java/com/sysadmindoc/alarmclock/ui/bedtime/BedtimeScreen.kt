@@ -68,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -484,12 +485,22 @@ fun BedtimeScreen(
                         showTimePicker = false
                     }
                 ) {
-                    Text("Save", color = MaterialTheme.colorScheme.primary)
+                    Text("Save bedtime", color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) {
-                    Text("Cancel", color = TextSecondary)
+                    Text("Keep current", color = TextSecondary)
+                }
+            },
+            title = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppStatusChip(
+                        label = "Wind-down target",
+                        icon = Icons.Default.Bedtime,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text("Choose bedtime", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                 }
             },
             text = {
@@ -498,7 +509,8 @@ fun BedtimeScreen(
                     colors = TimePickerDefaults.colors(containerColor = SurfaceCard)
                 )
             },
-            containerColor = SurfaceDark
+            containerColor = SurfaceDark,
+            shape = RoundedCornerShape(22.dp)
         )
     }
 }
@@ -539,7 +551,7 @@ private fun SleepSoundsSection(
                 Card(
                     modifier = Modifier
                         .size(width = 112.dp, height = 108.dp)
-                        .clickable {
+                        .clickable(role = Role.Button) {
                             if (isActive) viewModel.stopSound()
                             else if (resId != 0) viewModel.playSound(resId)
                         },
@@ -659,7 +671,7 @@ private fun BedtimeMetricCard(
 ) {
     Card(
         modifier = modifier.then(
-            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+            if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier
         ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceCard)
@@ -827,7 +839,7 @@ private fun WindDownChecklistSection(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onToggle(index) },
+                    .clickable(role = Role.Checkbox) { onToggle(index) },
                 shape = RoundedCornerShape(18.dp),
                 color = if (done) DismissGreen.copy(alpha = 0.09f) else SurfaceCard.copy(alpha = 0.72f)
             ) {
@@ -877,7 +889,7 @@ private fun BedtimeAdjusterButton(
 ) {
     Surface(
         modifier = modifier
-            .clickable(enabled = enabled, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         color = if (enabled) SurfaceCard.copy(alpha = 0.78f) else SurfaceCard.copy(alpha = 0.42f)
     ) {

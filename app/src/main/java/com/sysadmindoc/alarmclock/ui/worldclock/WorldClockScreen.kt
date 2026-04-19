@@ -19,11 +19,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,7 +38,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
@@ -45,6 +52,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
+import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
@@ -57,6 +65,7 @@ fun WorldClockScreen(
     viewModel: WorldClockViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var pendingRemoval by remember { mutableStateOf<WorldClockEntry?>(null) }
 
     Scaffold(
         containerColor = SurfaceDark,
@@ -128,7 +137,7 @@ fun WorldClockScreen(
                     items(state.clocks, key = { it.zoneId }) { entry ->
                         WorldClockCard(
                             entry = entry,
-                            onRemove = { viewModel.removeZone(entry.zoneId) }
+                            onRemove = { pendingRemoval = entry }
                         )
                     }
                 }
@@ -143,6 +152,51 @@ fun WorldClockScreen(
             onQueryChange = viewModel::searchZones,
             onSelect = viewModel::addZone,
             onDismiss = viewModel::hideAddDialog
+        )
+    }
+
+    pendingRemoval?.let { entry ->
+        AlertDialog(
+            onDismissRequest = { pendingRemoval = null },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = AccentRed
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.removeZone(entry.zoneId)
+                        pendingRemoval = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text("Remove city")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingRemoval = null }) {
+                    Text("Keep city", color = TextSecondary)
+                }
+            },
+            title = {
+                Text(
+                    text = "Remove ${entry.cityName}?",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleLarge
+                )
+            },
+            text = {
+                Text(
+                    text = "This removes the saved world clock for ${entry.zoneId}. You can add it again later.",
+                    color = TextSecondary
+                )
+            },
+            containerColor = SurfaceDark,
+            shape = RoundedCornerShape(22.dp)
         )
     }
 }
@@ -307,7 +361,7 @@ private fun AddTimeZoneDialog(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onSelect(entry.zoneId) },
+                                .clickable(role = Role.Button) { onSelect(entry.zoneId) },
                             shape = RoundedCornerShape(16.dp),
                             color = SurfaceCard.copy(alpha = 0.82f),
                             border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
@@ -357,7 +411,8 @@ private fun AddTimeZoneDialog(
                 }
             }
         },
-        containerColor = SurfaceDark
+        containerColor = SurfaceDark,
+        shape = RoundedCornerShape(22.dp)
     )
 }
 

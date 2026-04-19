@@ -16,6 +16,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
@@ -45,8 +48,12 @@ fun WhatsNewDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Got it", color = MaterialTheme.colorScheme.primary)
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text("Continue")
             }
         },
         title = {
@@ -71,7 +78,7 @@ fun WhatsNewDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Later", color = TextMuted)
+                Text("Review later", color = TextMuted)
             }
         },
         text = {
@@ -121,6 +128,7 @@ fun WhatsNewDialog(
                 }
             }
         },
-        containerColor = SurfaceDark
+        containerColor = SurfaceMedium,
+        shape = RoundedCornerShape(22.dp)
     )
 }

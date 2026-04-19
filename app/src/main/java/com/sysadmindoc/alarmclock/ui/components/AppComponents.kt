@@ -403,12 +403,12 @@ fun AppLoadingCard(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .alpha(alpha)
     ) {
         Spacer(
             modifier = Modifier
                 .fillMaxWidth(0.35f)
                 .height(18.dp)
+                .alpha(alpha)
                 .clip(RoundedCornerShape(10.dp))
                 .background(SurfaceCard)
         )
@@ -416,6 +416,7 @@ fun AppLoadingCard(
             modifier = Modifier
                 .fillMaxWidth(0.7f)
                 .height(42.dp)
+                .alpha(alpha)
                 .clip(RoundedCornerShape(16.dp))
                 .background(SurfaceLight)
         )
@@ -423,6 +424,7 @@ fun AppLoadingCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(12.dp)
+                .alpha(alpha)
                 .clip(RoundedCornerShape(10.dp))
                 .background(SurfaceCard)
         )
@@ -430,6 +432,7 @@ fun AppLoadingCard(
             modifier = Modifier
                 .fillMaxWidth(0.82f)
                 .height(12.dp)
+                .alpha(alpha)
                 .clip(RoundedCornerShape(10.dp))
                 .background(SurfaceCard)
         )

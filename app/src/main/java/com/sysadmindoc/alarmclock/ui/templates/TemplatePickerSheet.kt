@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.DayOfWeek
@@ -118,7 +119,7 @@ private fun TemplateCard(
     AppSurfaceCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         highlighted = template.challengeType != "NONE" || template.gradualVolumeSeconds >= 120,
         contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)
     ) {

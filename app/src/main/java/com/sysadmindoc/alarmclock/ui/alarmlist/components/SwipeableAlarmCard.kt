@@ -44,7 +44,7 @@ fun SwipeableAlarmCard(
         backgroundContent = {
             val willDelete = dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
             val color by animateColorAsState(
-                if (willDelete) AccentRed.copy(alpha = 0.86f) else AccentRed.copy(alpha = 0.28f),
+                if (willDelete) AccentRed.copy(alpha = 0.86f) else Color.Transparent,
                 label = "swipe_bg"
             )
             val scale by animateFloatAsState(
