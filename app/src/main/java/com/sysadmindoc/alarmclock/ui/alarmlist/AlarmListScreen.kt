@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -55,14 +54,12 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -172,13 +169,21 @@ fun AlarmListScreen(
     if (showBulkDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showBulkDeleteConfirmation = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = AccentRed
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
                         showBulkDeleteConfirmation = false
                         viewModel.deleteSelected()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
                         if (state.selectedIds.size == 1) "Delete alarm" else "Delete ${state.selectedIds.size} alarms"
@@ -197,7 +202,9 @@ fun AlarmListScreen(
                     } else {
                         "Delete ${state.selectedIds.size} selected alarms?"
                     },
-                    color = TextPrimary
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
                 )
             },
             text = {
@@ -210,35 +217,14 @@ fun AlarmListScreen(
                     color = TextSecondary
                 )
             },
-            containerColor = SurfaceMedium
+            containerColor = SurfaceMedium,
+            shape = RoundedCornerShape(22.dp)
         )
     }
 
     Scaffold(
         containerColor = SurfaceDark,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        floatingActionButton = {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                SmallFloatingActionButton(
-                    onClick = { showTemplates = true },
-                    containerColor = SurfaceCard,
-                    contentColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = "Alarm templates", modifier = Modifier.size(18.dp))
-                }
-                FloatingActionButton(
-                    onClick = onAddAlarm,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = TextPrimary,
-                    shape = CircleShape
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add alarm")
-                }
-            }
-        }
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
             modifier = Modifier
@@ -257,162 +243,207 @@ fun AlarmListScreen(
                 )
             }
 
-            AlarmHeader(
-                remainingTime = state.remainingTime,
-                hasAlarms = state.nextAlarm != null,
-                alarmCount = state.alarms.size,
-                vacationActive = state.vacationActive,
-                sortLabel = when (state.sortOrder) {
-                    AlarmSortOrder.TIME -> "Sort by time"
-                    AlarmSortOrder.CREATED -> "Newest first"
-                    AlarmSortOrder.ENABLED_FIRST -> "Active first"
-                },
-                onCycleSort = viewModel::cycleSortOrder,
-                onOpenSettings = onOpenSettings
-            )
-
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                if (state.groups.any { it.isNotBlank() }) {
-                    GroupFilterRow(
-                        groups = state.groups.filter { it.isNotBlank() },
-                        selectedGroup = state.selectedGroup,
-                        onSelectGroup = viewModel::selectGroup
+                item {
+                    AlarmHeader(
+                        remainingTime = state.remainingTime,
+                        hasAlarms = state.nextAlarm != null,
+                        alarmCount = state.alarms.size,
+                        vacationActive = state.vacationActive,
+                        sortLabel = when (state.sortOrder) {
+                            AlarmSortOrder.TIME -> "Sort by time"
+                            AlarmSortOrder.CREATED -> "Newest first"
+                            AlarmSortOrder.ENABLED_FIRST -> "Active first"
+                        },
+                        onCycleSort = viewModel::cycleSortOrder,
+                        onOpenSettings = onOpenSettings
                     )
                 }
 
-                QuickAlarmRow(
-                    onQuickAlarm = viewModel::createQuickAlarm,
-                    napDefaultMinutes = state.napDefaultMinutes
-                )
-
-                if (state.alarms.size > 3) {
-                    AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
-                        AppSectionTitle(
-                            title = "Search alarms",
-                            description = "Filter by label, repeat schedule, or group."
-                        )
-                        OutlinedTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            placeholder = { Text("Try “weekday”, “gym”, or “medication”") },
-                            leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
-                            trailingIcon = {
-                                if (searchQuery.isNotBlank()) {
-                                    IconButton(onClick = { searchQuery = "" }) {
-                                        Icon(Icons.Default.Clear, null, tint = TextMuted)
-                                    }
-                                }
-                            },
-                            colors = appOutlinedTextFieldColors(),
-                            shape = RoundedCornerShape(18.dp),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-            }
-
-            when {
-                state.alarms.isEmpty() -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        AppSurfaceCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
+                if (state.groups.any { it.isNotBlank() } || state.alarms.size > 3) {
+                    item {
+                        Column(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
                         ) {
-                            AppEmptyState(
-                                icon = Icons.Default.AlarmAdd,
-                                title = "No alarms yet",
-                                description = "Create your first wake-up, or start from a template if you want a polished head start.",
-                                footer = {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        Button(
-                                            onClick = onAddAlarm,
-                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                        ) {
-                                            Text("Create alarm")
-                                        }
-                                        OutlinedButton(
-                                            onClick = { showTemplates = true },
-                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                                        ) {
-                                            Text("Browse templates")
-                                        }
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-
-                filteredAlarms.isEmpty() -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        AppSurfaceCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp)
-                        ) {
-                            AppEmptyState(
-                                icon = Icons.Default.Search,
-                                title = "No alarms match that search",
-                                description = "Try a different label or clear your filters to bring everything back.",
-                                footer = {
-                                    TextButton(onClick = { searchQuery = "" }) {
-                                        Text("Clear search", color = MaterialTheme.colorScheme.primary)
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-
-                else -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            start = 16.dp,
-                            end = 16.dp,
-                            top = 4.dp,
-                            bottom = 120.dp
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        items(filteredAlarms, key = { it.id }) { alarm ->
-                            val isSelected = alarm.id in state.selectedIds
-                            if (state.isSelectionMode) {
-                                SelectableAlarmCard(
-                                    alarm = alarm,
-                                    is24Hour = state.is24HourFormat,
-                                    isSelected = isSelected,
-                                    onToggleSelect = { viewModel.toggleSelection(alarm.id) }
+                            if (state.groups.any { it.isNotBlank() }) {
+                                GroupFilterRow(
+                                    groups = state.groups.filter { it.isNotBlank() },
+                                    selectedGroup = state.selectedGroup,
+                                    onSelectGroup = viewModel::selectGroup
                                 )
-                            } else {
-                                SwipeableAlarmCard(
-                                    onDelete = { viewModel.deleteAlarm(alarm) }
-                                ) {
-                                    // v1.5.2: Surface vacation suppression per-card.
-                                    val suppressedByVacation = alarm.isEnabled &&
-                                        state.vacationStartMillis > 0L &&
-                                        state.vacationEndMillis > state.vacationStartMillis &&
-                                        alarm.nextTriggerTime in
-                                            state.vacationStartMillis..state.vacationEndMillis
-                                    AlarmCard(
-                                        alarm = alarm,
-                                        is24Hour = state.is24HourFormat,
-                                        suppressedByVacation = suppressedByVacation,
-                                        onToggle = { viewModel.toggleAlarm(alarm) },
-                                        onClick = { onEditAlarm(alarm.id) },
-                                        onDelete = { viewModel.deleteAlarm(alarm) },
-                                        onSkipNext = { viewModel.skipNextOccurrence(alarm) },
-                                        onDuplicate = { viewModel.duplicateAlarm(alarm) },
-                                        onLongClick = { viewModel.toggleSelection(alarm.id) }
+                            }
+
+                            if (state.alarms.size > 3) {
+                                AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
+                                    AppSectionTitle(
+                                        title = "Search alarms",
+                                        description = "Filter by label, repeat schedule, or group."
+                                    )
+                                    OutlinedTextField(
+                                        value = searchQuery,
+                                        onValueChange = { searchQuery = it },
+                                        placeholder = { Text("Try “weekday”, “gym”, or “medication”") },
+                                        leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
+                                        trailingIcon = {
+                                            if (searchQuery.isNotBlank()) {
+                                                IconButton(onClick = { searchQuery = "" }) {
+                                                    Icon(Icons.Default.Clear, null, tint = TextMuted)
+                                                }
+                                            }
+                                        },
+                                        colors = appOutlinedTextFieldColors(),
+                                        shape = RoundedCornerShape(18.dp),
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }
                         }
+                    }
+                }
+
+                when {
+                    state.alarms.isEmpty() -> {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(320.dp)
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                                    AppEmptyState(
+                                        icon = Icons.Default.AlarmAdd,
+                                        title = "No alarms yet",
+                                        description = "Create your first wake-up, or start from a template if you want a polished head start.",
+                                        footer = {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                                Button(
+                                                    onClick = onAddAlarm,
+                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                                ) {
+                                                    Text("Create alarm")
+                                                }
+                                                OutlinedButton(
+                                                    onClick = { showTemplates = true },
+                                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                                                ) {
+                                                    Text("Browse templates")
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    filteredAlarms.isEmpty() -> {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(320.dp)
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                                    AppEmptyState(
+                                        icon = Icons.Default.Search,
+                                        title = "No alarms match that search",
+                                        description = "Try a different label or clear your filters to bring everything back.",
+                                        footer = {
+                                            TextButton(onClick = { searchQuery = "" }) {
+                                                Text("Clear search", color = MaterialTheme.colorScheme.primary)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        item {
+                            AppSectionTitle(
+                                title = "Saved alarms",
+                                description = "Tap an alarm to edit it. Long-press to select multiple alarms.",
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                action = {
+                                    OutlinedButton(
+                                        onClick = { showTemplates = true },
+                                        colors = ButtonDefaults.outlinedButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    ) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Templates")
+                                    }
+                                    Button(
+                                        onClick = onAddAlarm,
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                        shape = RoundedCornerShape(16.dp)
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("New alarm")
+                                    }
+                                }
+                            )
+                        }
+                        items(filteredAlarms, key = { it.id }) { alarm ->
+                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                                val isSelected = alarm.id in state.selectedIds
+                                if (state.isSelectionMode) {
+                                    SelectableAlarmCard(
+                                        alarm = alarm,
+                                        is24Hour = state.is24HourFormat,
+                                        isSelected = isSelected,
+                                        onToggleSelect = { viewModel.toggleSelection(alarm.id) }
+                                    )
+                                } else {
+                                    SwipeableAlarmCard(
+                                        onDelete = { viewModel.deleteAlarm(alarm) }
+                                    ) {
+                                        // v1.5.2: Surface vacation suppression per-card.
+                                        val suppressedByVacation = alarm.isEnabled &&
+                                            state.vacationStartMillis > 0L &&
+                                            state.vacationEndMillis > state.vacationStartMillis &&
+                                            alarm.nextTriggerTime in
+                                                state.vacationStartMillis..state.vacationEndMillis
+                                        AlarmCard(
+                                            alarm = alarm,
+                                            is24Hour = state.is24HourFormat,
+                                            suppressedByVacation = suppressedByVacation,
+                                            onToggle = { viewModel.toggleAlarm(alarm) },
+                                            onClick = { onEditAlarm(alarm.id) },
+                                            onDelete = { viewModel.deleteAlarm(alarm) },
+                                            onSkipNext = { viewModel.skipNextOccurrence(alarm) },
+                                            onDuplicate = { viewModel.duplicateAlarm(alarm) },
+                                            onLongClick = { viewModel.toggleSelection(alarm.id) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                        QuickAlarmRow(
+                            onQuickAlarm = viewModel::createQuickAlarm,
+                            napDefaultMinutes = state.napDefaultMinutes
+                        )
                     }
                 }
             }
