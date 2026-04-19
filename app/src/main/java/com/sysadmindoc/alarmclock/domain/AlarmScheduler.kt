@@ -57,15 +57,23 @@ class AlarmScheduler @Inject constructor(
         }
 
         var triggerTime = calculator.calculate(sanitizedAlarm)
+        if (triggerTime <= System.currentTimeMillis()) {
+            cancelScheduledEntries(sanitizedAlarm.id)
+            repository.setEnabled(sanitizedAlarm.id, enabled = false, nextTrigger = 0)
+            WidgetUpdater.requestUpdate(context)
+            return
+        }
         val settings = preferencesManager.getCurrentSettings()
 
-        // Check vacation mode - skip scheduling if trigger falls within vacation window
-        if (isSuppressedByVacation(triggerTime, settings)) {
-            cancelScheduledEntries(sanitizedAlarm.id)
-            repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
-            WidgetUpdater.requestUpdate(context)
-            return // Don't schedule with AlarmManager, but keep nextTrigger for display
-        }
+        // Vacation mode skips repeating-alarm occurrences inside the configured
+        // window, then schedules the first occurrence after the window ends.
+        val vacationAdjustment = VacationAlarmPolicy.adjustTrigger(
+            alarm = sanitizedAlarm,
+            initialTriggerTime = triggerTime,
+            settings = settings,
+            calculateFrom = calculator::calculate
+        )
+        triggerTime = vacationAdjustment.triggerTime
 
         // F13: Holiday auto-skip
         if (sanitizedAlarm.skipOnHolidays && settings.holidayAutoSkipEnabled) {
@@ -171,14 +179,14 @@ class AlarmScheduler @Inject constructor(
         }
 
         val settings = preferencesManager.getCurrentSettings()
-        if (isSuppressedByVacation(triggerTime, settings)) {
-            cancelScheduledEntries(sanitizedAlarm.id)
-            repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
-            WidgetUpdater.requestUpdate(context)
-            return
-        }
+        val vacationAdjustment = VacationAlarmPolicy.adjustTrigger(
+            alarm = sanitizedAlarm,
+            initialTriggerTime = triggerTime,
+            settings = settings,
+            calculateFrom = calculator::calculate
+        )
 
-        scheduleAt(sanitizedAlarm, triggerTime)
+        scheduleAt(sanitizedAlarm, vacationAdjustment.triggerTime)
     }
 
     /**
@@ -203,16 +211,6 @@ class AlarmScheduler @Inject constructor(
         } else {
             true
         }
-    }
-
-    private fun isSuppressedByVacation(
-        triggerTime: Long,
-        settings: com.sysadmindoc.alarmclock.data.preferences.AppSettings
-    ): Boolean {
-        return settings.vacationModeEnabled &&
-            settings.vacationStartMillis > 0 &&
-            settings.vacationEndMillis > 0 &&
-            triggerTime in settings.vacationStartMillis..settings.vacationEndMillis
     }
 
     private fun scheduleAlarmClock(alarmId: Long, triggerTime: Long) {

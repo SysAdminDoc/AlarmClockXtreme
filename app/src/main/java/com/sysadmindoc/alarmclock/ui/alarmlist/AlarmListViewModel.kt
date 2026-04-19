@@ -9,6 +9,7 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.domain.VacationAlarmPolicy
 import com.sysadmindoc.alarmclock.ui.templates.AlarmTemplate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -96,8 +97,13 @@ class AlarmListViewModel @Inject constructor(
             AlarmSortOrder.ENABLED_FIRST -> filtered.sortedByDescending { it.isEnabled }
         }
 
-        // Extract unique groups from all alarms (not filtered)
-        val groups = alarms.map { it.group }.distinct().sorted()
+        // Extract unique groups from all alarms (not filtered), hiding the
+        // empty/default group so the chip row never gets a blank filter.
+        val groups = alarms.map { it.group.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
+        val now = System.currentTimeMillis()
 
         AlarmListUiState(
             alarms = sorted,
@@ -105,8 +111,7 @@ class AlarmListViewModel @Inject constructor(
             remainingTime = if (nextAlarm != null && nextAlarm.nextTriggerTime > 0) {
                 calculator.formatRemaining(nextAlarm.nextTriggerTime)
             } else "",
-            vacationActive = settings.vacationModeEnabled &&
-                    settings.vacationEndMillis > System.currentTimeMillis(),
+            vacationActive = VacationAlarmPolicy.isActive(settings, now),
             sortOrder = sort,
             is24HourFormat = settings.is24HourFormat,
             groups = groups,
@@ -115,8 +120,12 @@ class AlarmListViewModel @Inject constructor(
             selectedIds = snap.selectedIds,
             isSelectionMode = snap.isSelectionMode,
             napDefaultMinutes = settings.napDefaultMinutes,
-            vacationStartMillis = if (settings.vacationModeEnabled) settings.vacationStartMillis else 0L,
-            vacationEndMillis = if (settings.vacationModeEnabled) settings.vacationEndMillis else 0L
+            vacationStartMillis = if (VacationAlarmPolicy.hasConfiguredWindow(settings)) {
+                settings.vacationStartMillis
+            } else 0L,
+            vacationEndMillis = if (VacationAlarmPolicy.hasConfiguredWindow(settings)) {
+                settings.vacationEndMillis
+            } else 0L
         )
     }.stateIn(
         viewModelScope,

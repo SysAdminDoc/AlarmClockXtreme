@@ -55,7 +55,10 @@ class NextAlarmCalculator private constructor(
                 if (specificDateTime.isAfter(fromTime)) {
                     return specificDateTime.toInstant().toEpochMilli()
                 }
-                // Date is in the past — fall through to normal scheduling
+                // A one-shot date-specific alarm has expired. Repeating alarms
+                // are allowed to fall through so their repeat-day schedule can
+                // resume after the one-off date has passed.
+                if (alarm.repeatDays.isEmpty()) return 0L
             } catch (_: Exception) { /* Invalid date format, fall through */ }
         }
 

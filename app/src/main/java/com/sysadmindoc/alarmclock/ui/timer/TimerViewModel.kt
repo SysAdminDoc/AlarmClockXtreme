@@ -5,6 +5,7 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.*
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -86,6 +87,10 @@ val defaultPresets = listOf(
 class TimerViewModel @Inject constructor(
     application: Application
 ) : AndroidViewModel(application) {
+
+    companion object {
+        private const val TAG = "TimerViewModel"
+    }
 
     private val _uiState = MutableStateFlow(TimerUiState())
     val uiState: StateFlow<TimerUiState> = _uiState.asStateFlow()
@@ -276,7 +281,7 @@ class TimerViewModel @Inject constructor(
             // Free the partial player on any prepare/start failure to avoid leaking it.
             try { mediaPlayer?.release() } catch (_: Exception) {}
             mediaPlayer = null
-            e.printStackTrace()
+            Log.w(TAG, "Failed to play timer completion sound", e)
         }
     }
 

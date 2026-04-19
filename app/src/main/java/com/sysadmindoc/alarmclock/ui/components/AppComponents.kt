@@ -63,8 +63,8 @@ import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import com.sysadmindoc.alarmclock.ui.theme.ToggleOff
 import com.sysadmindoc.alarmclock.ui.theme.ToggleTrackOff
 
-val AppCardShape = RoundedCornerShape(24.dp)
-val AppCardBorderColor = TextMuted.copy(alpha = 0.16f)
+val AppCardShape = RoundedCornerShape(18.dp)
+val AppCardBorderColor = TextMuted.copy(alpha = 0.12f)
 val AppChipShape = RoundedCornerShape(999.dp)
 
 @Composable
@@ -83,8 +83,8 @@ fun AlarmClockHeroHeader(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        HeaderTop.copy(alpha = 0.95f),
-                        SurfaceLight.copy(alpha = 0.96f),
+                        HeaderTop.copy(alpha = 0.62f),
+                        SurfaceLight.copy(alpha = 0.88f),
                         HeaderBottom,
                         SurfaceDark
                     )
@@ -97,7 +97,7 @@ fun AlarmClockHeroHeader(
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.26f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
                             Color.Transparent
                         )
                     )
@@ -108,7 +108,7 @@ fun AlarmClockHeroHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             if (actions != null) {
@@ -166,13 +166,13 @@ fun AlarmClockHeroHeader(
 fun AppSurfaceCard(
     modifier: Modifier = Modifier,
     highlighted: Boolean = false,
-    contentPadding: PaddingValues = PaddingValues(20.dp),
+    contentPadding: PaddingValues = PaddingValues(18.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
     val containerColor = if (highlighted) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.13f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
     } else {
-        SurfaceMedium.copy(alpha = 0.98f)
+        SurfaceMedium.copy(alpha = 0.96f)
     }
 
     Card(
@@ -189,7 +189,7 @@ fun AppSurfaceCard(
             }
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (highlighted) 8.dp else 3.dp
+            defaultElevation = if (highlighted) 4.dp else 1.dp
         ),
         colors = CardDefaults.cardColors(
             containerColor = containerColor
@@ -216,7 +216,7 @@ fun AppSurfaceCard(
                                 if (highlighted) {
                                     MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                 } else {
-                                    SurfaceLight.copy(alpha = 0.16f)
+                                    SurfaceLight.copy(alpha = 0.10f)
                                 },
                                 Color.Transparent
                             )
@@ -227,7 +227,7 @@ fun AppSurfaceCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(contentPadding),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 content = content
             )
         }
@@ -289,14 +289,14 @@ fun AppStatusChip(
     Surface(
         modifier = modifier,
         shape = AppChipShape,
-        color = color.copy(alpha = 0.14f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.22f)),
-        tonalElevation = 2.dp
+        color = color.copy(alpha = 0.12f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.20f)),
+        tonalElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
                 .defaultMinSize(minHeight = 34.dp)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 11.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -305,14 +305,14 @@ fun AppStatusChip(
                     imageVector = icon,
                     contentDescription = null,
                     tint = color,
-                    modifier = Modifier.size(14.dp)
+                    modifier = Modifier.size(13.dp)
                 )
             }
             Text(
                 text = label,
                 color = color,
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
         }
     }
@@ -336,13 +336,13 @@ fun AppEmptyState(
     ) {
         Box(
             modifier = Modifier
-                .size(88.dp)
+                .size(72.dp)
                 .clip(CircleShape)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            accent.copy(alpha = 0.22f),
-                            accent.copy(alpha = 0.08f)
+                            accent.copy(alpha = 0.18f),
+                            accent.copy(alpha = 0.06f)
                         )
                     )
                 ),
@@ -352,7 +352,7 @@ fun AppEmptyState(
                 imageVector = icon,
                 contentDescription = null,
                 tint = accent,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(30.dp)
             )
         }
         Column(
@@ -478,11 +478,11 @@ fun BottomNavContainer(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        shape = RoundedCornerShape(30.dp),
-        color = SurfaceMedium.copy(alpha = 0.98f),
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        shape = RoundedCornerShape(20.dp),
+        color = SurfaceMedium.copy(alpha = 0.96f),
         border = BorderStroke(1.dp, AppCardBorderColor),
-        shadowElevation = 12.dp
+        shadowElevation = 8.dp
     ) {
         Box(
             modifier = Modifier
@@ -491,7 +491,7 @@ fun BottomNavContainer(
                     Brush.verticalGradient(
                         colors = listOf(
                             SurfaceLight.copy(alpha = 0.24f),
-                            SurfaceMedium.copy(alpha = 0.98f)
+                            SurfaceMedium.copy(alpha = 0.96f)
                         )
                     )
                 )
@@ -507,7 +507,7 @@ fun BottomNavContainer(
                             )
                         )
                     )
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .padding(horizontal = 8.dp, vertical = 5.dp)
             ) {
                 content()
             }
