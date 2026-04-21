@@ -2,7 +2,77 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
-## [1.5.2] - 2026-04-18
+## [1.5.3] - 2026-04-19
+
+Premium UX and UI polish pass — no new features, no schema changes.
+Every change targets feel, clarity, and visual consistency.
+
+### Changed
+
+- **Navigation transitions.** All tab and screen switches now use a
+  subtle `slideInHorizontally + fadeIn` / `slideOut + fadeOut` animation
+  instead of an instant cut. Feels dramatically more polished on real
+  hardware.
+
+- **AlarmCard: Removed redundant "Enabled"/"Paused" chip.** The
+  `Switch` toggle already communicates on/off state visually. The
+  chip was visual noise and directly contradicted the "Paused by
+  vacation" chip when vacation mode was active (both showing
+  simultaneously). Removed; the vacation-pause chip is kept.
+
+- **AlarmCard: `animateItem()` on lazy list items.** Alarm cards now
+  animate when order changes (after sort, enable/disable, or delete)
+  instead of teleporting. Requires no extra API opt-in on Compose 1.7+.
+
+- **AlarmCard: Challenge type chip now shows polished labels.**
+  Previously rendered raw enum strings like "Math easy" (from
+  `lowercase().replaceFirstChar`). Now uses the same lookup map as the
+  edit screen: "Math (Easy)", "Simon Says", "Barcode Scan", etc.
+
+- **AlarmList: Removed redundant "Search alarms" section title** from
+  the search card. The field placeholder text ("Try "weekday"…") already
+  communicates function; the title above it added vertical height with
+  no information gain.
+
+- **Quick alarms: "Power nap" now has a divider.** The label between
+  the two chip rows was floating with no visual separator. Added a
+  subtle `HorizontalDivider` to clearly delineate the sub-section.
+
+- **AlarmEdit: Removed duplicate Save button from TopAppBar.** There
+  was a `TextButton("Save")` in the `TopAppBar` *and* a full-width
+  `Button("Create alarm" / "Save changes")` in the `bottomBar`. Two
+  save CTAs is confusing. The bottom bar button is the clear primary
+  action; the TopAppBar one is removed.
+
+- **AlarmEdit: Group section now shows custom text field only when
+  needed.** Previously an `OutlinedTextField` for custom group name was
+  always visible below the dropdown, creating two overlapping inputs.
+  Now: the dropdown shows preset groups plus a "Custom…" item; the text
+  field only appears when a custom (non-preset) group is active.
+
+- **Settings: Removed "On" / "Off" text labels from `SettingsToggle`.**
+  The text labels were rendered above the `Switch` widget in a small
+  column — a classic amateur pattern. The Switch itself communicates
+  state visually by design. Removed the text; layout is now a clean
+  label + description row with the Switch on the right.
+
+- **Settings: Fixed "0m 15s" time formatting in volume ramp.** Seconds
+  values under one minute were displaying as "0m 15s". Now formats as
+  "15s" (no leading "0m"), "2m" (no trailing "0s"), or "1m 30s" for
+  combined values.
+
+- **Onboarding: Pager indicator dot width is now animated.** The active
+  dot expands from 8 dp to a 28 dp pill. Previously this was an instant
+  snap; now uses `animateDpAsState` with a 250 ms tween for a smooth
+  morphing transition consistent with modern design patterns.
+
+- **Typography: Added named `TextStyle` constants for large clock
+  displays.** Three screens were using hardcoded `fontSize = 40/52/64.sp`
+  for alarm time, temperature, and edit-time-preview displays. These
+  now reference `ClockTimeSmall`, `ClockTimeDisplay`, and `ClockTimeLarge`
+  from `Type.kt` — a single place to tune the clock face aesthetic.
+
+
 
 Follow-up polish pass closing the three "remaining risks" flagged in the
 v1.5.1 audit. Still no schema change, no new user features —

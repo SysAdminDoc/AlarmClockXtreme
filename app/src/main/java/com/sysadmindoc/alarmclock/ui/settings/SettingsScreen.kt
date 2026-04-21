@@ -211,11 +211,7 @@ fun SettingsScreen(
 
                 SettingsActionRow(
                     label = "Default volume ramp",
-                    value = if (state.settings.defaultGradualVolume == 0) {
-                        "Off"
-                    } else {
-                        "${state.settings.defaultGradualVolume / 60}m ${state.settings.defaultGradualVolume % 60}s"
-                    },
+                    value = formatSeconds(state.settings.defaultGradualVolume),
                     supportingText = "Controls how gently new alarms fade in before reaching full volume.",
                     onClick = { showGradualVolumeMenu = true }
                 )
@@ -226,9 +222,7 @@ fun SettingsScreen(
                     listOf(0, 15, 30, 60, 90, 120, 180, 300).forEach { seconds ->
                         DropdownMenuItem(
                             text = {
-                                Text(
-                                    if (seconds == 0) "Off" else "${seconds / 60}m ${seconds % 60}s"
-                                )
+                                Text(formatSeconds(seconds))
                             },
                             onClick = {
                                 viewModel.updateDefaultGradualVolume(seconds)
@@ -712,22 +706,11 @@ private fun SettingsToggle(
                 }
             }
             Spacer(modifier = Modifier.size(12.dp))
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = if (checked) "On" else "Off",
-                    color = if (checked) MaterialTheme.colorScheme.primary else TextMuted,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Switch(
-                    checked = checked,
-                    onCheckedChange = null,
-                    colors = appSwitchColors()
-                )
-            }
+            Switch(
+                checked = checked,
+                onCheckedChange = null,
+                colors = appSwitchColors()
+            )
         }
     }
 }
@@ -1317,5 +1300,16 @@ private fun DateField(
             Text(label, color = TextMuted, style = MaterialTheme.typography.bodySmall)
             Text(value, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
         }
+    }
+}
+
+private fun formatSeconds(totalSeconds: Int): String {
+    if (totalSeconds == 0) return "Off"
+    val m = totalSeconds / 60
+    val s = totalSeconds % 60
+    return when {
+        m == 0  -> "${s}s"
+        s == 0  -> "${m}m"
+        else    -> "${m}m ${s}s"
     }
 }
