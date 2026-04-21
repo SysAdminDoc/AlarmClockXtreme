@@ -54,6 +54,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -92,6 +93,7 @@ import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.templates.TemplatePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.ClockTimeSmall
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
@@ -282,10 +284,6 @@ fun AlarmListScreen(
 
                             if (state.alarms.size > 3) {
                                 AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
-                                    AppSectionTitle(
-                                        title = "Search alarms",
-                                        description = "Filter by label, repeat schedule, or group."
-                                    )
                                     OutlinedTextField(
                                         value = searchQuery,
                                         onValueChange = { searchQuery = it },
@@ -401,7 +399,9 @@ fun AlarmListScreen(
                             )
                         }
                         items(filteredAlarms, key = { it.id }) { alarm ->
-                            Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+                            Box(modifier = Modifier
+                                .padding(horizontal = 16.dp)
+                                .animateItem()) {
                                 val isSelected = alarm.id in state.selectedIds
                                 if (state.isSelectionMode) {
                                     SelectableAlarmCard(
@@ -566,11 +566,15 @@ private fun QuickAlarmRow(
             }
         }
         // v1.4.0 nap row, v1.5.0 pre-selects the user's default.
+        HorizontalDivider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+        )
         Text(
             text = "Power nap",
             color = TextSecondary,
             style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(top = 4.dp)
+            modifier = Modifier.padding(bottom = 4.dp)
         )
         Row(
             modifier = Modifier
@@ -652,8 +656,7 @@ private fun AlarmCard(
                     Text(
                         text = formatAlarmTime(alarm, is24Hour),
                         color = if (alarm.isEnabled) TextPrimary else TextMuted,
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Light
+                        style = ClockTimeSmall
                     )
                     Text(
                         text = alarm.label.ifBlank { alarm.repeatLabel },
@@ -733,11 +736,6 @@ private fun AlarmCard(
                     )
                 }
                 AppStatusChip(
-                    label = if (alarm.isEnabled) "Enabled" else "Paused",
-                    icon = if (alarm.isEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
-                    color = if (alarm.isEnabled) DismissGreen else TextMuted
-                )
-                AppStatusChip(
                     label = alarm.repeatLabel,
                     icon = Icons.Default.CheckCircle,
                     color = MaterialTheme.colorScheme.primary
@@ -756,7 +754,7 @@ private fun AlarmCard(
                     }
                     if (alarm.challengeType != "NONE") {
                         AppStatusChip(
-                            label = alarm.challengeType.lowercase().replace("_", " ").replaceFirstChar { it.uppercase() },
+                            label = challengeTypeLabel(alarm.challengeType),
                             color = SnoozeYellow
                         )
                     }
@@ -929,6 +927,28 @@ private fun formatAlarmTime(alarm: Alarm, is24Hour: Boolean): String {
         val amPm = if (alarm.hour < 12) "AM" else "PM"
         "$hour12:${String.format("%02d", alarm.minute)} $amPm"
     }
+}
+
+private fun challengeTypeLabel(type: String): String = when (type) {
+    "MATH_EASY"      -> "Math (Easy)"
+    "MATH_MEDIUM"    -> "Math (Medium)"
+    "MATH_HARD"      -> "Math (Hard)"
+    "SHAKE"          -> "Shake Phone"
+    "SEQUENCE"       -> "Number Sequence"
+    "MEMORY_PATTERN" -> "Memory Pattern"
+    "TYPING"         -> "Type a Phrase"
+    "WALK_STEPS"     -> "Walk Steps"
+    "NFC_SCAN"       -> "NFC Tag Scan"
+    "BARCODE_SCAN"   -> "Barcode Scan"
+    "PHOTO_MATCH"    -> "Photo Match"
+    "SQUAT"          -> "Squats"
+    "WIFI_CONNECT"   -> "Wi-Fi Connect"
+    "MAZE"           -> "Maze Puzzle"
+    "COUNT_SHEEP"    -> "Count the Sheep"
+    "SIMON_SAYS"     -> "Simon Says"
+    "DATE_BACKWARDS" -> "Type Date Backwards"
+    "STROOP"         -> "Stroop Color Test"
+    else             -> type.lowercase().replace("_", " ").replaceFirstChar { it.uppercase() }
 }
 
 private fun nextOccurrenceLabel(alarm: Alarm, is24Hour: Boolean): String {
