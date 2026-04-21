@@ -177,11 +177,7 @@ class SettingsViewModel @Inject constructor(
     fun setVacationMode(enabled: Boolean, startMillis: Long = 0, endMillis: Long = 0) {
         viewModelScope.launch {
             // Validate: end must be after start when enabling
-            val validEnabled = if (enabled && startMillis > 0 && endMillis > 0) {
-                endMillis > startMillis
-            } else {
-                enabled && startMillis > 0 && endMillis > 0
-            }
+            val validEnabled = enabled && startMillis > 0 && endMillis > 0 && endMillis > startMillis
 
             preferencesManager.update {
                 it.copy(

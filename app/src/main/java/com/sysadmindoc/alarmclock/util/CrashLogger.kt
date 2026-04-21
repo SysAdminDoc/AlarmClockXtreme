@@ -50,7 +50,7 @@ object CrashLogger {
         }
 
         val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.US).format(Date())
-        val file = File(dir, "crash_${timestamp}_${Thread.currentThread().id}.txt")
+        val file = File(dir, "crash_${timestamp}_${thread.id}.txt")
 
         val sw = StringWriter()
         val pw = PrintWriter(sw)

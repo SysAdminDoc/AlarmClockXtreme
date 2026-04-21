@@ -133,7 +133,11 @@ class SmartAlarmService : Service(), SensorEventListener {
             action = AlarmService.ACTION_START_ALARM
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
         }
-        startForegroundService(intent)
+        try {
+            startForegroundService(intent)
+        } catch (e: Exception) {
+            android.util.Log.e("SmartAlarmService", "startForegroundService failed for alarm $alarmId", e)
+        }
         stopSelf()
     }
 

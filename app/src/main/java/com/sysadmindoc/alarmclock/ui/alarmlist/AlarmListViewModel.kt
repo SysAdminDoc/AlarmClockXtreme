@@ -94,7 +94,9 @@ class AlarmListViewModel @Inject constructor(
         val sorted = when (sort) {
             AlarmSortOrder.TIME -> filtered.sortedBy { it.hour * 60 + it.minute }
             AlarmSortOrder.CREATED -> filtered.sortedByDescending { it.id }
-            AlarmSortOrder.ENABLED_FIRST -> filtered.sortedByDescending { it.isEnabled }
+            AlarmSortOrder.ENABLED_FIRST -> filtered.sortedWith(
+                compareByDescending<Alarm> { it.isEnabled }.thenBy { it.hour * 60 + it.minute }
+            )
         }
 
         // Extract unique groups from all alarms (not filtered), hiding the
@@ -390,6 +392,7 @@ class AlarmListViewModel @Inject constructor(
      */
     fun skipNextOccurrence(alarm: Alarm) {
         if (alarm.repeatDays.isEmpty()) return // Only for repeating alarms
+        if (alarm.nextTriggerTime <= 0L) return // No scheduled occurrence to skip
         viewModelScope.launch {
             // Record skip event
             eventRepository.record(
