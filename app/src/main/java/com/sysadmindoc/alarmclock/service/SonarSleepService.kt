@@ -75,7 +75,7 @@ class SonarSleepService : Service() {
             ACTION_START -> startSonar()
             ACTION_STOP -> stopSonarAndSelf()
         }
-        return START_STICKY
+        return START_NOT_STICKY  // Experimental sleep session; don't auto-restart on death
     }
 
     override fun onDestroy() {

@@ -123,6 +123,9 @@ class AlarmService : Service() {
     private var currentSnoozeCount: Int = 0
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var wakeLock: PowerManager.WakeLock? = null
+    // Written and read from serviceScope (Dispatchers.IO, potentially multiple threads);
+    // @Volatile ensures cross-thread visibility for the isForeground check/write pattern.
+    @Volatile
     private var isForeground = false
     // v1.5.1: Guard against re-entering startAudio() from the internet-radio
     // error path — if both the radio and the default fallback fail, we could

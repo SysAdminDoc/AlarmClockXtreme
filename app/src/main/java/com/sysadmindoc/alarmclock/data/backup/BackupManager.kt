@@ -2,6 +2,7 @@ package com.sysadmindoc.alarmclock.data.backup
 
 import android.content.Context
 import android.net.Uri
+import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
@@ -82,7 +83,7 @@ data class AlarmBackup(
 @JsonClass(generateAdapter = true)
 data class BackupData(
     val version: Int = 5,
-    val appVersion: String = "1.5.0",
+    val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
     val settings: SettingsBackup?
