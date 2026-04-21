@@ -1,4 +1,4 @@
-# AlarmClockXtreme v1.2.0 ProGuard / R8 Rules
+# AlarmClockXtreme v1.5.2 ProGuard / R8 Rules
 # Validated for: Hilt, Moshi (codegen-only), Retrofit, Room, Glance, Compose
 
 # ===== Room =====
@@ -64,3 +64,11 @@
 
 # ===== Preferences DataStore =====
 -keep class com.sysadmindoc.alarmclock.data.preferences.** { *; }
+
+# ===== Challenge types — enum names are persisted in Room (challengeType /
+#       challengeChain columns) and restored via ChallengeType.valueOf().
+#       R8 must not rename these constants or valueOf() will silently fail. =====
+-keep enum com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.ChallengeType { *; }
+
+# ===== Workers =====
+-keep @androidx.hilt.work.HiltWorker class * { *; }

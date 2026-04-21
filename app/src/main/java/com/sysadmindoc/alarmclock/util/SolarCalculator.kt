@@ -40,6 +40,9 @@ object SolarCalculator {
     ): LocalTime? {
         // Day of year 1..366. Solar noon as an approximation.
         val n = date.dayOfYear
+        // γ anchors to solar noon: hour=12 → (12-12)/24 = 0. Declination and
+        // equation-of-time change less than 0.1° across a single day, so this
+        // noon-fixed evaluation is sufficient for alarm-grade accuracy (~1 min).
         val gamma = 2.0 * PI / 365.0 * (n - 1 + (12.0 - 12.0) / 24.0)
 
         // Solar declination in radians (per NOAA approximation).

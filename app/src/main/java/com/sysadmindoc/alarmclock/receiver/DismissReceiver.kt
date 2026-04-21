@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmService
 
@@ -18,6 +19,10 @@ class DismissReceiver : BroadcastReceiver() {
             action = AlarmService.ACTION_DISMISS
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
         }
-        context.startForegroundService(serviceIntent)
+        try {
+            context.startForegroundService(serviceIntent)
+        } catch (e: Exception) {
+            Log.e("DismissReceiver", "startForegroundService failed for alarm $alarmId", e)
+        }
     }
 }

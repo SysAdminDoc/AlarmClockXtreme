@@ -68,7 +68,10 @@
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <!-- v1.2.0: Wi-Fi dismiss challenge needs to read the connected SSID -->
+    <!-- ACCESS_FINE_LOCATION is required on Android 12+ (API 31+) for
+         WifiManager.connectionInfo to return a real SSID instead of <unknown ssid> -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <!-- Manufacturer Battery Killer Detection + Spotify ringtone visibility (Android 11+) -->
     <queries>

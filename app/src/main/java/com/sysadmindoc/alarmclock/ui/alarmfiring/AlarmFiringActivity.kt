@@ -364,12 +364,19 @@ class AlarmFiringActivity : ComponentActivity() {
     private fun startWifiPolling() {
         if (wifiPollingJob != null) return
         if (viewModel.uiState.value.wifiFallbackAllowed) return
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) !=
+        // Android 12+ requires ACCESS_FINE_LOCATION for WifiManager.connectionInfo to
+        // return a real SSID. Coarse-only always yields "<unknown ssid>" on API 31+.
+        val requiredPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Manifest.permission.ACCESS_FINE_LOCATION
+        } else {
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        }
+        if (ContextCompat.checkSelfPermission(this, requiredPermission) !=
             PackageManager.PERMISSION_GRANTED
         ) {
             if (!wifiPermissionRequestInFlight) {
                 wifiPermissionRequestInFlight = true
-                wifiLocationPermissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+                wifiLocationPermissionLauncher.launch(requiredPermission)
             }
             return
         }
@@ -379,6 +386,7 @@ class AlarmFiringActivity : ComponentActivity() {
             return
         }
         wifiPollingJob = lifecycleScope.launch {
+            var unknownSsidCount = 0
             while (isActive) {
                 @Suppress("DEPRECATION")
                 val info = try {
@@ -390,7 +398,18 @@ class AlarmFiringActivity : ComponentActivity() {
                 @Suppress("DEPRECATION")
                 val rawSsid = info?.ssid?.removeSurrounding("\"") ?: ""
                 if (rawSsid.isNotBlank() && rawSsid != "<unknown ssid>") {
+                    unknownSsidCount = 0
                     viewModel.updateWifiSsid(rawSsid)
+                } else {
+                    // After 5 consecutive unknown-SSID results (~10 s), trigger the
+                    // fallback so the challenge doesn't hang silently. This covers the
+                    // case where the user granted coarse-only location before API 31
+                    // and then upgraded, or the device simply isn't on Wi-Fi.
+                    unknownSsidCount++
+                    if (unknownSsidCount >= 5) {
+                        viewModel.onWifiChallengeUnavailable("Unable to read the current Wi-Fi network. Make sure location is enabled and you are connected to Wi-Fi.")
+                        return@launch
+                    }
                 }
                 kotlinx.coroutines.delay(2000)
             }
@@ -460,7 +479,11 @@ class AlarmFiringActivity : ComponentActivity() {
                 putExtra(AlarmService.EXTRA_CUSTOM_SNOOZE_MINUTES, customMinutes)
             }
         }
-        startForegroundService(intent)
+        try {
+            startForegroundService(intent)
+        } catch (e: Exception) {
+            android.util.Log.e("AlarmFiringActivity", "startForegroundService(snooze) failed", e)
+        }
         finish()
     }
 
@@ -469,7 +492,11 @@ class AlarmFiringActivity : ComponentActivity() {
             action = AlarmService.ACTION_DISMISS
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
         }
-        startForegroundService(intent)
+        try {
+            startForegroundService(intent)
+        } catch (e: Exception) {
+            android.util.Log.e("AlarmFiringActivity", "startForegroundService(dismiss) failed", e)
+        }
         finish()
     }
 
