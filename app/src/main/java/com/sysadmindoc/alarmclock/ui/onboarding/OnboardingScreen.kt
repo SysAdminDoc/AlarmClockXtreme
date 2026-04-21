@@ -4,6 +4,8 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -202,12 +205,18 @@ fun OnboardingScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     repeat(onboardingPages.size) { index ->
+                        val isActive = index == pagerState.currentPage
+                        val dotWidth by animateDpAsState(
+                            targetValue = if (isActive) 28.dp else 8.dp,
+                            animationSpec = tween(durationMillis = 250),
+                            label = "dotWidth$index"
+                        )
                         Box(
                             modifier = Modifier
-                                .size(if (index == pagerState.currentPage) 28.dp else 8.dp, 8.dp)
+                                .size(dotWidth, 8.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (index == pagerState.currentPage) onboardingPages[pagerState.currentPage].accentColor
+                                    if (isActive) onboardingPages[pagerState.currentPage].accentColor
                                     else onboardingPages[pagerState.currentPage].accentColor.copy(alpha = 0.22f)
                                 )
                         )
