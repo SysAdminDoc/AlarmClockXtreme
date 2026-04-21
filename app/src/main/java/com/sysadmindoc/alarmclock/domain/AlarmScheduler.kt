@@ -100,6 +100,20 @@ class AlarmScheduler @Inject constructor(
                     triggerTime = calculator.calculate(sanitizedAlarm, nextFrom)
                     attempts++
                 }
+                // If all 30 candidates were holidays (corrupt data or an unusually
+                // long public-holiday run), suppress this occurrence rather than
+                // schedule on a holiday. The alarm stays enabled; it will reschedule
+                // correctly once holiday data is refreshed or the user re-saves.
+                if (attempts >= 30) {
+                    val finalDate = Instant.ofEpochMilli(triggerTime)
+                        .atZone(ZoneId.systemDefault()).toLocalDate()
+                    if (holidayRepository.isHoliday(finalDate)) {
+                        cancelScheduledEntries(sanitizedAlarm.id)
+                        repository.updateNextTrigger(sanitizedAlarm.id, 0)
+                        WidgetUpdater.requestUpdate(context)
+                        return
+                    }
+                }
             }
         }
 

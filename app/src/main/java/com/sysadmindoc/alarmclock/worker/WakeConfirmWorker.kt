@@ -48,8 +48,9 @@ class WakeConfirmWorker @AssistedInject constructor(
         if (alarmId == -1L) return Result.success()
 
         val alarm = alarmRepository.getById(alarmId) ?: return Result.success()
-        // If user has since disabled this alarm, no point in nagging.
-        if (!alarm.isEnabled && alarm.repeatDays.isNotEmpty()) return Result.success()
+        // If the alarm was disabled after it fired (user cancelled, or it was
+        // a one-shot that auto-disabled), skip the confirmation prompt.
+        if (!alarm.isEnabled) return Result.success()
 
         val prefs = context.getSharedPreferences("wake_confirm", Context.MODE_PRIVATE)
         // Clean any prior confirmation token before posting the prompt.
