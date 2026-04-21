@@ -5,6 +5,30 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
+/** Large time display used in alarm cards (~40sp). */
+val ClockTimeSmall = TextStyle(
+    fontWeight = FontWeight.Light,
+    fontSize = 40.sp,
+    lineHeight = 44.sp,
+    letterSpacing = (-0.5).sp
+)
+
+/** Large time display used in the alarm edit preview (~64sp). */
+val ClockTimeLarge = TextStyle(
+    fontWeight = FontWeight.Light,
+    fontSize = 64.sp,
+    lineHeight = 68.sp,
+    letterSpacing = (-1).sp
+)
+
+/** Dashboard weather temperature display (~52sp). */
+val ClockTimeDisplay = TextStyle(
+    fontWeight = FontWeight.Light,
+    fontSize = 52.sp,
+    lineHeight = 56.sp,
+    letterSpacing = (-0.5).sp
+)
+
 val AppTypography = Typography(
     displayLarge = TextStyle(
         fontWeight = FontWeight.SemiBold,

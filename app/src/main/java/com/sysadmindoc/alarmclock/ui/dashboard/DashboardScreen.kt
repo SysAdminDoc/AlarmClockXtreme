@@ -76,6 +76,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.BlueLight
+import com.sysadmindoc.alarmclock.ui.theme.ClockTimeDisplay
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
@@ -241,8 +242,7 @@ private fun WeatherSection(
                                     Row(verticalAlignment = Alignment.Top) {
                                         Text(
                                             text = state.temperature,
-                                            fontSize = 52.sp,
-                                            fontWeight = FontWeight.Light,
+                                            style = ClockTimeDisplay,
                                             color = TextPrimary
                                         )
                                         Text(

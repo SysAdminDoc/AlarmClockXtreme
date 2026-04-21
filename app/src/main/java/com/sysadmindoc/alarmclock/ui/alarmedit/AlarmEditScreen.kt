@@ -157,18 +157,7 @@ fun AlarmEditScreen(
                         Icon(Icons.Default.Close, "Cancel", tint = TextPrimary)
                     }
                 },
-                actions = {
-                    TextButton(
-                        onClick = { viewModel.save(onNavigateBack) },
-                        enabled = !state.isSaving
-                    ) {
-                        Text(
-                            if (state.isSaving) "Saving..." else "Save",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                },
+                actions = {},
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = SurfaceDark
                 )
@@ -253,8 +242,7 @@ fun AlarmEditScreen(
                     if (state.is24HourFormat) {
                         Text(
                             text = "${String.format("%02d", state.hour)}:${String.format("%02d", state.minute)}",
-                            fontSize = 64.sp,
-                            fontWeight = FontWeight.Light,
+                            style = ClockTimeLarge,
                             color = TextPrimary
                         )
                     } else {
@@ -263,8 +251,7 @@ fun AlarmEditScreen(
                             val amPm = if (state.hour < 12) "AM" else "PM"
                             Text(
                                 text = "$hour12:${String.format("%02d", state.minute)}",
-                                fontSize = 64.sp,
-                                fontWeight = FontWeight.Light,
+                                style = ClockTimeLarge,
                                 color = TextPrimary
                             )
                             Text(
@@ -328,10 +315,11 @@ fun AlarmEditScreen(
             SettingsSection("Group") {
                 var showGroupMenu by remember { mutableStateOf(false) }
                 val defaultGroups = listOf("", "Work", "School", "Gym", "Medication", "Personal")
+                val isCustomGroup = state.group.isNotBlank() && state.group !in defaultGroups
                 SettingsRow(label = "Alarm group") {
                     Box {
                         SettingsValueButton(
-                            label = state.group.ifBlank { "None" },
+                            label = if (isCustomGroup) state.group else state.group.ifBlank { "None" },
                             onClick = { showGroupMenu = true }
                         )
                         DropdownMenu(
@@ -352,27 +340,36 @@ fun AlarmEditScreen(
                                     }
                                 )
                             }
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Custom…",
+                                        color = if (isCustomGroup) AccentBlue else TextMuted
+                                    )
+                                },
+                                onClick = {
+                                    // Clear to blank so the field focuses cleanly,
+                                    // unless there's already a custom value to edit.
+                                    if (!isCustomGroup) viewModel.updateGroup(" ")
+                                    showGroupMenu = false
+                                }
+                            )
                         }
                     }
                 }
-                // Custom group input
-                if (state.group.isNotBlank() && state.group !in defaultGroups) {
-                    Text(
-                        "Custom: ${state.group}",
-                        color = TextMuted, fontSize = 12.sp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                // Show custom text field only when a non-preset group is set.
+                if (isCustomGroup || (state.group.isNotBlank() && state.group == " ")) {
+                    OutlinedTextField(
+                        value = state.group.trim(),
+                        onValueChange = viewModel::updateGroup,
+                        label = { Text("Custom group name", color = TextMuted) },
+                        colors = appOutlinedTextFieldColors(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        singleLine = true
                     )
                 }
-                OutlinedTextField(
-                    value = state.group,
-                    onValueChange = viewModel::updateGroup,
-                    placeholder = { Text("Custom group name", color = TextMuted) },
-                    colors = appOutlinedTextFieldColors(),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    singleLine = true
-                )
             }
 
             // Sound settings
