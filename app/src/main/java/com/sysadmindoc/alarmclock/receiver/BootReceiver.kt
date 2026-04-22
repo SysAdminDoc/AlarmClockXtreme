@@ -22,8 +22,14 @@ import javax.inject.Inject
  * - Clears the `missed_alarm_state` prefs on BOOT_COMPLETED so a stale
  *   "last missed at" timestamp from before the reboot doesn't trigger
  *   [MissedAlarmUnlockReceiver] on the user's first unlock.
- * - Wraps [AlarmScheduler.rescheduleAll] in `withTimeout(30s)` so a
+ * - Wraps [AlarmScheduler.rescheduleAll] in a `withTimeout` so a
  *   corrupt DB or storage lock can't pin the PendingResult forever.
+ *
+ * v1.5.4: Ceiling tightened from 30s → 8s. `goAsync()` extends the
+ * BroadcastReceiver ANR window but only up to ~10 seconds on most
+ * Android versions — a 30-second timeout could trip ANR before the
+ * timeout fires. 8 seconds leaves headroom while still comfortably
+ * covering realistic schedules.
  */
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
@@ -61,11 +67,11 @@ class BootReceiver : BroadcastReceiver() {
                 val forceRecalculate = action == Intent.ACTION_TIME_CHANGED ||
                     action == Intent.ACTION_TIMEZONE_CHANGED ||
                     action == Intent.ACTION_DATE_CHANGED
-                // v1.5.1: Enforce a reasonable ceiling. rescheduleAll() is
+                // v1.5.4: Enforce a reasonable ceiling. rescheduleAll() is
                 // typically sub-second, but a corrupt DB page has been seen
-                // to hang it. 30 s is well under the BroadcastReceiver ANR
-                // window but long enough for any realistic schedule.
-                withTimeout(30_000L) {
+                // to hang it. 8 s is safely under the ~10 s goAsync ANR
+                // ceiling and long enough for any realistic schedule.
+                withTimeout(8_000L) {
                     alarmScheduler.rescheduleAll(forceRecalculate = forceRecalculate)
                 }
             } catch (e: TimeoutCancellationException) {

@@ -16,8 +16,9 @@ class SquatDetector(
     private val onSquat: (squatCount: Int) -> Unit
 ) : SensorEventListener {
 
-    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    // v1.5.4: Safe cast.
+    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+    private val accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
     private var squatCount = 0
     private var lastY = 0f
@@ -29,13 +30,14 @@ class SquatDetector(
     private var lastSquatTime = 0L
 
     fun start() {
+        val sm = sensorManager ?: return
         accelerometer?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+            sm.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
         }
     }
 
     fun stop() {
-        sensorManager.unregisterListener(this)
+        sensorManager?.unregisterListener(this)
     }
 
     override fun onSensorChanged(event: SensorEvent?) {

@@ -16,8 +16,9 @@ class ShakeDetector(
     private val onShake: (shakeCount: Int) -> Unit
 ) : SensorEventListener {
 
-    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    // v1.5.4: Safe cast — stripped-down AOSP builds may return null.
+    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+    private val accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
     private var shakeCount = 0
     private var lastShakeTime = 0L
@@ -25,13 +26,14 @@ class ShakeDetector(
     private val shakeCooldownMs = 250L
 
     fun start() {
+        val sm = sensorManager ?: return
         accelerometer?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+            sm.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
         }
     }
 
     fun stop() {
-        sensorManager.unregisterListener(this)
+        sensorManager?.unregisterListener(this)
     }
 
     fun reset() {

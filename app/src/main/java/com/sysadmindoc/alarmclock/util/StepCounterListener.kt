@@ -17,9 +17,10 @@ class StepCounterListener(
     private val onStepDelta: (steps: Int) -> Unit
 ) : SensorEventListener {
 
-    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val stepCounter = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
-    private val stepDetector = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
+    // v1.5.4: Safe cast.
+    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+    private val stepCounter = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+    private val stepDetector = sensorManager?.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR)
 
     private var baseline: Float = -1f
     private var detectorCount = 0
@@ -28,16 +29,17 @@ class StepCounterListener(
     fun isAvailable() = stepCounter != null || stepDetector != null
 
     fun start() {
+        val sm = sensorManager ?: return
         if (stepCounter != null) {
-            sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL)
+            sm.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL)
         } else if (stepDetector != null) {
             // Fallback: TYPE_STEP_DETECTOR fires once per step
-            sensorManager.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL)
+            sm.registerListener(this, stepDetector, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
 
     fun stop() {
-        sensorManager.unregisterListener(this)
+        sensorManager?.unregisterListener(this)
         baseline = -1f
         detectorCount = 0
     }
