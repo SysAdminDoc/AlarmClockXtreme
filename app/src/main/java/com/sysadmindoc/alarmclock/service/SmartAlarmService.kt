@@ -56,11 +56,13 @@ class SmartAlarmService : Service(), SensorEventListener {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        // v1.5.4: Safe casts — stripped-down AOSP / managed-profile devices
+        // have been seen to return null for SENSOR_SERVICE / POWER_SERVICE.
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as? SensorManager
         accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AlarmClockXtreme::SmartAlarmWakeLock")
+        val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        wakeLock = pm?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AlarmClockXtreme::SmartAlarmWakeLock")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

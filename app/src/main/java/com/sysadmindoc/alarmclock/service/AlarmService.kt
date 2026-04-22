@@ -142,12 +142,19 @@ class AlarmService : Service() {
         super.onCreate()
         createNotificationChannels(this)
 
-        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "AlarmClockXtreme::AlarmWakeLock"
-        ).apply {
-            acquire(30 * 60 * 1000L) // 30 minutes — covers max auto-silence; released in onDestroy()
+        // v1.5.4: Safe cast + defensive try around acquire(); rare OEM builds
+        // throw SecurityException from newWakeLock() when the process is in a
+        // restricted state.
+        val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager
+        try {
+            wakeLock = pm?.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "AlarmClockXtreme::AlarmWakeLock"
+            )?.apply {
+                acquire(30 * 60 * 1000L) // 30 minutes — covers max auto-silence; released in onDestroy()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Wake lock acquisition failed", e)
         }
     }
 
@@ -164,6 +171,15 @@ class AlarmService : Service() {
                     activeAlarmId = alarmId
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                     alarmFiredAt = System.currentTimeMillis()
+                    // v1.5.4: Android 14+ requires startForeground() within ~5 s of
+                    // startForegroundService() or the app crashes with
+                    // ForegroundServiceDidNotStartInTimeException. Previously the
+                    // call happened inside the IO-dispatched coroutine below, which
+                    // on a busy device (cold start from Doze, heavy IO contention)
+                    // could miss the window. Promote startForeground() out of the
+                    // coroutine using a placeholder; startAlarm() later replaces
+                    // the notification via nm.notify() with the labelled version.
+                    startForegroundWithPlaceholder()
                     serviceScope.launch { startAlarm(alarmId) }
                 }
             }
@@ -204,9 +220,23 @@ class AlarmService : Service() {
             return
         }
 
+        // v1.5.4: startForeground() was already called synchronously in
+        // onStartCommand with a placeholder to satisfy Android 14+ timing.
+        // Update the notification in-place with the fully-labelled version.
         val notification = buildAlarmNotification(alarm)
-        startForeground(NOTIFICATION_ID, notification)
-        isForeground = true
+        try {
+            if (!isForeground) {
+                startForeground(NOTIFICATION_ID, notification)
+                isForeground = true
+            } else {
+                getSystemService(NotificationManager::class.java)
+                    .notify(NOTIFICATION_ID, notification)
+            }
+        } catch (_: Exception) {
+            // Service may already be foregrounded or the system may reject
+            // an update during teardown; neither is fatal — the alarm still
+            // plays and the firing Activity is launched below.
+        }
 
         val firingIntent = Intent(this, AlarmFiringActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -298,6 +328,35 @@ class AlarmService : Service() {
                 ExistingWorkPolicy.REPLACE,
                 guardianRequest
             )
+        }
+    }
+
+    /**
+     * v1.5.4: Synchronous foreground promotion with a minimal notification so
+     * Android 14+'s 5-second startForeground() deadline is always met. The
+     * real labelled notification replaces this via NotificationManager.notify()
+     * once the alarm row has been fetched from Room.
+     */
+    private fun startForegroundWithPlaceholder() {
+        if (isForeground) return
+        try {
+            val placeholder = NotificationCompat.Builder(this, CHANNEL_ALARM)
+                .setSmallIcon(R.drawable.ic_alarm)
+                .setContentTitle("Alarm")
+                .setContentText("Alarm ringing")
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .build()
+            startForeground(NOTIFICATION_ID, placeholder)
+            isForeground = true
+        } catch (e: Exception) {
+            // ForegroundServiceStartNotAllowedException can surface if the app
+            // is background-restricted at fire time. The AlarmManager exact
+            // alarm guarantee makes this very rare; log and continue.
+            Log.w(TAG, "Failed to foreground service with placeholder", e)
         }
     }
 
