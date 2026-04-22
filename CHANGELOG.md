@@ -2,6 +2,49 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.5.4] - 2026-04-22
+
+Reliability-hardening audit pass. No new user features, no schema
+changes — targets real bug classes that became visible under Android
+14+ foreground-service timing rules and rarer OEM device quirks.
+
+### Fixed
+
+- **`AlarmService.onStartCommand` promotes `startForeground()` out of
+  the IO coroutine.** Previously the service did its Room lookup first
+  and called `startForeground()` afterward from `Dispatchers.IO`. On a
+  cold-start from Doze with heavy IO contention this could miss the
+  ~5 second Android 14+ deadline, producing a
+  `ForegroundServiceDidNotStartInTimeException` crash. Now a placeholder
+  "Alarm ringing" notification is posted synchronously; the labelled
+  version replaces it via `NotificationManager.notify()` once the alarm
+  row has been fetched and sanitised.
+
+- **`BootReceiver.rescheduleAll` timeout tightened 30s → 8s.** The
+  v1.5.1 ceiling was set under the mistaken assumption that `goAsync()`
+  extends the BroadcastReceiver ANR window to 30 seconds. In practice
+  it caps at ~10 seconds on most Android versions, so a hung
+  rescheduleAll would ANR before the timeout fired. 8 seconds leaves
+  headroom while still covering realistic schedules.
+
+- **Null-safe `getSystemService(...)` casts across sensor detectors
+  and service lifecycle.** `AlarmService` (POWER_SERVICE),
+  `SmartAlarmService` (SENSOR_SERVICE, POWER_SERVICE),
+  `FlipDetector`, `ShakeDetector`, `SquatDetector`,
+  `StepCounterListener`, and `ProximityCoverDetector` now use `as?`
+  with graceful no-op fallbacks. Stripped-down AOSP and managed-profile
+  devices have been seen to return null for these services; the
+  previous hard casts would throw `ClassCastException` at construction
+  time and crash the alarm pipeline before it could fall back to the
+  default ringtone.
+
+- **`AlarmService.onCreate` wake-lock acquisition guarded.** Rare OEM
+  builds throw `SecurityException` from `PowerManager.newWakeLock()`
+  when the process is in a restricted state; previously this killed
+  the service before it could foreground. Now logged and skipped — the
+  alarm still plays with the implicit wake from
+  `FLAG_ACTIVITY_TURN_SCREEN_ON` on the firing activity.
+
 ## [1.5.3] - 2026-04-19
 
 Premium UX and UI polish pass — no new features, no schema changes.

@@ -26,8 +26,9 @@ class ProximityCoverDetector(
     private val holdMs: Long = 1500L
 ) : SensorEventListener {
 
-    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val proximity: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
+    // v1.5.4: Safe cast.
+    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+    private val proximity: Sensor? = sensorManager?.getDefaultSensor(Sensor.TYPE_PROXIMITY)
 
     // v1.5.1: Precompute a safe threshold at registration time. Some
     // devices report `maximumRange` as 0 or a microscopic value, which
@@ -40,13 +41,14 @@ class ProximityCoverDetector(
     private var triggered = false
 
     fun start() {
+        val sm = sensorManager ?: return
         proximity?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+            sm.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
 
     fun stop() {
-        sensorManager.unregisterListener(this)
+        sensorManager?.unregisterListener(this)
         coveredSinceMs = 0L
         triggered = false
     }

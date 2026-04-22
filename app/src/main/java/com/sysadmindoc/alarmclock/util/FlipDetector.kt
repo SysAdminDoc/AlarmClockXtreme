@@ -21,9 +21,10 @@ class FlipDetector(
     private val onFaceUp: () -> Unit
 ) : SensorEventListener {
 
-    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
-    private val accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-    private val proximity = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
+    // v1.5.4: Safe cast — some AOSP/Wear shells omit SENSOR_SERVICE.
+    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+    private val accelerometer = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+    private val proximity = sensorManager?.getDefaultSensor(Sensor.TYPE_PROXIMITY)
 
     private var isFaceDown = false
     private var proximityNear = false
@@ -32,16 +33,17 @@ class FlipDetector(
     private val debounceMs = 600L
 
     fun start() {
+        val sm = sensorManager ?: return
         accelerometer?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+            sm.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }
         proximity?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+            sm.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }
     }
 
     fun stop() {
-        sensorManager.unregisterListener(this)
+        sensorManager?.unregisterListener(this)
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
