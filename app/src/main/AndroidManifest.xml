@@ -111,6 +111,15 @@
                 <action android:name="android.intent.action.SHOW_ALARMS" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <!-- v1.5.x: Import a single shared alarm without importing a full backup. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="alarm"
+                    android:scheme="acx" />
+            </intent-filter>
         </activity>
 
         <!-- Full-Screen Alarm Firing Activity -->
