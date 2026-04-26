@@ -1692,6 +1692,10 @@ private fun String.toAlarmChallengeSummary(): String = when (this) {
     "SQUAT" -> "Squats"
     "WIFI_CONNECT" -> "Wi-Fi connect"
     "MAZE" -> "Maze puzzle"
+    "ROCK_PAPER_SCISSORS" -> "RPS (best-of-5)"
+    "EMOJI_MEMORY" -> "Emoji memory"
+    "TYPING_SPEED" -> "Typing speed"
+    "WORDLE" -> "Wordle"
     else -> replace('_', ' ')
         .lowercase()
         .replaceFirstChar { it.uppercase() }
@@ -1712,6 +1716,10 @@ private fun String.toAlarmChallengeDescription(): String = when (this) {
     "SQUAT" -> "Complete a quick squat set while holding the phone."
     "WIFI_CONNECT" -> "Connect to a specific Wi-Fi network before the alarm stops."
     "MAZE" -> "Finish a simple maze to prevent sleepy autopilot taps."
+    "ROCK_PAPER_SCISSORS" -> "Win 3 rounds of RPS against the computer to dismiss."
+    "EMOJI_MEMORY" -> "Memorise 8 pairs on a 4x4 grid, then find them all face-down."
+    "TYPING_SPEED" -> "Type a short phrase at 15+ wpm with at most 2 word errors."
+    "WORDLE" -> "Guess a hidden 5-letter word in up to 6 tries."
     else -> "Dismissal requires this challenge before the alarm can stop."
 }
 
@@ -1752,7 +1760,11 @@ private fun alarmChallengeOptions(): List<Pair<String, String>> = listOf(
     "COUNT_SHEEP" to "Count the Sheep",
     "SIMON_SAYS" to "Simon Says",
     "DATE_BACKWARDS" to "Type date backwards",
-    "STROOP" to "Stroop color test"
+    "STROOP" to "Stroop color test",
+    "ROCK_PAPER_SCISSORS" to "Rock Paper Scissors",
+    "EMOJI_MEMORY" to "Emoji Memory",
+    "TYPING_SPEED" to "Typing Speed",
+    "WORDLE" to "Wordle"
 )
 
 private fun String.toChallengeChainList(): List<String> = split(",")

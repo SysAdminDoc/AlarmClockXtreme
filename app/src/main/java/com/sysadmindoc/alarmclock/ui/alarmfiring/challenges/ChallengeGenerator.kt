@@ -21,7 +21,11 @@ enum class ChallengeType {
     COUNT_SHEEP,     // Tap exactly N grazing sheep as they drift across the screen
     SIMON_SAYS,      // v1.5.0: Watch a growing color sequence and repeat it back
     DATE_BACKWARDS,  // v1.5.0: Type today's date in reverse (YYYY-MM-DD -> DD-MM-YYYY reversed)
-    STROOP           // v1.5.0: Tap the ink color of a color-word, not the word itself
+    STROOP,          // v1.5.0: Tap the ink color of a color-word, not the word itself
+    ROCK_PAPER_SCISSORS, // v1.6.0: Best-of-5 RPS against the computer (first to 3 wins)
+    EMOJI_MEMORY,    // v1.6.0: Match 8 emoji pairs on a face-down 4x4 grid
+    TYPING_SPEED,    // v1.6.0: Type a phrase at >= N wpm with <= maxErrors word mistakes
+    WORDLE           // v1.6.0: Guess the 5-letter target word in <= 6 attempts
 }
 
 sealed class Challenge {
@@ -137,6 +141,35 @@ sealed class Challenge {
         val inkColorIndex: Int,      // 0..3 (index into a four-color palette)
         val choices: List<Int>       // Shuffled list of the four palette indices
     ) : Challenge()
+
+    // v1.6.0: Rock-paper-scissors — best-of-5 against the computer.
+    data class RockPaperScissorsChallenge(
+        override val type: ChallengeType = ChallengeType.ROCK_PAPER_SCISSORS,
+        val requiredWins: Int = 3
+    ) : Challenge()
+
+    // v1.6.0: Emoji memory — classic pairs card-matching on a 4x4 grid.
+    // All 16 cards face-up for revealDurationMs, then face-down.
+    data class EmojiMemoryChallenge(
+        override val type: ChallengeType = ChallengeType.EMOJI_MEMORY,
+        val cards: List<Int>,        // 16 entries; each value 0..7 appears exactly twice
+        val revealDurationMs: Long = 3000
+    ) : Challenge()
+
+    // v1.6.0: Typing-speed gate — type the phrase at >= minWpm wpm with <= maxErrors word mistakes.
+    data class TypingSpeedChallenge(
+        override val type: ChallengeType = ChallengeType.TYPING_SPEED,
+        val phrase: String,
+        val minWpm: Int = 15,
+        val maxErrors: Int = 2
+    ) : Challenge()
+
+    // v1.6.0: Wordle — guess the 5-letter target word in <= maxGuesses attempts.
+    data class WordleChallenge(
+        override val type: ChallengeType = ChallengeType.WORDLE,
+        val target: String,
+        val maxGuesses: Int = 6
+    ) : Challenge()
 }
 
 private val TYPING_PHRASES = listOf(
@@ -155,6 +188,27 @@ private val TYPING_PHRASES = listOf(
     "Motivation is what gets you started",
     "You are stronger than your snooze button",
     "Turn off the alarm and turn on your life"
+)
+
+private val TYPING_SPEED_PHRASES = listOf(
+    "Wake up and start the day",
+    "Rise and shine right now",
+    "Good morning time to move",
+    "Get up stand up and go",
+    "Today is a great day to begin",
+    "Eyes open brain on feet on floor",
+    "Morning has arrived time to rise",
+    "Put your feet on the floor now",
+    "A new day is here seize it",
+    "The alarm is off get moving"
+)
+
+internal val WORDLE_WORDS = listOf(
+    "EARLY", "AWAKE", "ALARM", "CLOCK", "LIGHT", "BRAIN", "WATER", "PHONE", "GOALS", "FOCUS",
+    "POWER", "READY", "STAND", "ARISE", "CLEAR", "SHARP", "DRIVE", "ALERT", "THINK", "SMART",
+    "GRACE", "BLOOM", "SWIFT", "BRAVE", "FRESH", "CRISP", "START", "SOLAR", "VIGOR", "VITAL",
+    "SUNNY", "PROUD", "QUICK", "LEMON", "GLEAM", "SPARK", "BOUND", "CREST", "FLAME", "PLUCK",
+    "POISE", "TRUST", "SIREN", "EMBER", "FLINT", "CLOUD", "STORM", "PRIME", "RAISE", "EAGLE"
 )
 
 object ChallengeGenerator {
@@ -208,6 +262,14 @@ object ChallengeGenerator {
                 choices = listOf(0, 1, 2, 3).shuffled()
             )
         }
+        ChallengeType.ROCK_PAPER_SCISSORS -> Challenge.RockPaperScissorsChallenge()
+        ChallengeType.EMOJI_MEMORY -> generateEmojiMemory()
+        ChallengeType.TYPING_SPEED -> Challenge.TypingSpeedChallenge(
+            phrase = TYPING_SPEED_PHRASES.random()
+        )
+        ChallengeType.WORDLE -> Challenge.WordleChallenge(
+            target = WORDLE_WORDS.random()
+        )
     }
 
     private fun generateMathEasy(): Challenge.MathChallenge {
@@ -343,5 +405,10 @@ object ChallengeGenerator {
             if (offset != 0 && choice >= 0) choices.add(choice)
         }
         return choices.shuffled()
+    }
+
+    private fun generateEmojiMemory(): Challenge.EmojiMemoryChallenge {
+        val cards = (List(8) { it } + List(8) { it }).shuffled()
+        return Challenge.EmojiMemoryChallenge(cards = cards)
     }
 }
