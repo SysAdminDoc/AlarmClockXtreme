@@ -80,6 +80,10 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.DateBackwardsChallen
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.SimonSaysChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.StroopChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.WifiChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.RockPaperScissorsChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.EmojiMemoryChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.TypingSpeedChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.WordleChallengeView
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -526,6 +530,47 @@ fun AlarmFiringScreen(
                                 onPick = viewModel::onStroopPick
                             )
                         }
+
+                        challenge is Challenge.RockPaperScissorsChallenge -> {
+                            RockPaperScissorsChallengeView(
+                                challenge = challenge,
+                                playerWins = state.rpsPlayerWins,
+                                computerWins = state.rpsComputerWins,
+                                rounds = state.rpsRounds,
+                                onPick = viewModel::onRpsPick
+                            )
+                        }
+
+                        challenge is Challenge.EmojiMemoryChallenge -> {
+                            EmojiMemoryChallengeView(
+                                challenge = challenge,
+                                phase = state.emojiMemoryPhase,
+                                flippedIndices = state.emojiFlippedIndices,
+                                matchedIndices = state.emojiMatchedIndices,
+                                onCardFlip = viewModel::onEmojiCardFlip
+                            )
+                        }
+
+                        challenge is Challenge.TypingSpeedChallenge -> {
+                            TypingSpeedChallengeView(
+                                challenge = challenge,
+                                currentInput = state.typingSpeedInput,
+                                onInputChanged = viewModel::onTypingSpeedInputChange,
+                                onSubmit = viewModel::submitTypingSpeed,
+                                wrongAttempts = state.wrongAttempts
+                            )
+                        }
+
+                        challenge is Challenge.WordleChallenge -> {
+                            WordleChallengeView(
+                                challenge = challenge,
+                                guesses = state.wordleGuesses,
+                                currentInput = state.wordleCurrentInput,
+                                gameOver = state.wordleGameOver,
+                                onInputChanged = viewModel::updateWordleInput,
+                                onSubmit = viewModel::submitWordleGuess
+                            )
+                        }
                     }
                 }
 
@@ -676,6 +721,10 @@ private fun Challenge?.headline(): String = when (this) {
     is Challenge.SimonSaysChallenge -> "Play back the pattern"
     is Challenge.DateBackwardsChallenge -> "Type the date backwards"
     is Challenge.StroopChallenge -> "Tap the ink color"
+    is Challenge.RockPaperScissorsChallenge -> "Win at Rock Paper Scissors"
+    is Challenge.EmojiMemoryChallenge -> "Match the emoji pairs"
+    is Challenge.TypingSpeedChallenge -> "Type at speed"
+    is Challenge.WordleChallenge -> "Solve the Wordle"
 }
 
 private fun Challenge?.supportingText(): String = when (this) {
@@ -696,6 +745,10 @@ private fun Challenge?.supportingText(): String = when (this) {
     is Challenge.SimonSaysChallenge -> "Watch the four-color sequence, then repeat it in order."
     is Challenge.DateBackwardsChallenge -> "Reading + typing cognitive gate \u2014 hard to do half-asleep."
     is Challenge.StroopChallenge -> "Classic interference test \u2014 pick the ink, ignore the word."
+    is Challenge.RockPaperScissorsChallenge -> "Best-of-5 against the computer \u2014 first to 3 wins."
+    is Challenge.EmojiMemoryChallenge -> "Memorise 8 pairs while they\u2019re face-up, then find them all."
+    is Challenge.TypingSpeedChallenge -> "Groggy fingers slow you down \u2014 prove you can type at speed."
+    is Challenge.WordleChallenge -> "Find the hidden 5-letter word in up to 6 guesses."
 }
 
 private fun Challenge?.statusDescription(): String = when (this) {
@@ -715,6 +768,10 @@ private fun Challenge?.statusDescription(): String = when (this) {
     is Challenge.SimonSaysChallenge -> "Wait for playback, then tap the pads in order."
     is Challenge.DateBackwardsChallenge -> "Type today's date reversed exactly."
     is Challenge.StroopChallenge -> "Tap the color the word is painted in."
+    is Challenge.RockPaperScissorsChallenge -> "Win 3 rounds to clear the alarm."
+    is Challenge.EmojiMemoryChallenge -> "Flip pairs of matching emoji until all are found."
+    is Challenge.TypingSpeedChallenge -> "Type the phrase fast and accurately to proceed."
+    is Challenge.WordleChallenge -> "Enter a 5-letter guess and use the color clues."
     null -> "Swipe or tap dismiss when you're ready."
 }
 
