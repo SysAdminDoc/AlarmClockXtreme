@@ -1,6 +1,6 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed **2026-04-17** alongside **v1.5.0**.
+Living feature backlog, refreshed **2026-04-26** alongside **v1.6.0**.
 
 This is the "what's left" side of [CLAUDE.md](CLAUDE.md). Entries are ranked
 by impact-to-effort and grouped by theme. Effort column: **S** = a session,
@@ -77,13 +77,13 @@ sealed class pattern; most are S-tier and fun to ship.
 | 3.3 | Pushup / plank hold | Alarmy Premium | M |
 | 3.4 | Chess mate-in-1 puzzle | indie | M |
 | 3.5 | Simon-says color sequence ✅ v1.5.0 | I Can't Wake Up | S |
-| 3.6 | Rock-paper-scissors best-of-5 | indie | S |
-| 3.7 | Emoji memorisation grid | I Can't Wake Up | S |
+| 3.6 | Rock-paper-scissors best-of-5 | indie | S | ✅ v1.6.0 |
+| 3.7 | Emoji memorisation grid | I Can't Wake Up | S | ✅ v1.6.0 |
 | 3.8 | Anki / vocab flashcard | — | M |
 | 3.9 | Speed-reading comprehension (RSVP) | — | M |
-| 3.10 | Typing-speed gate (N wpm, <2 errors) | indie | S |
+| 3.10 | Typing-speed gate (N wpm, <2 errors) | indie | S | ✅ v1.6.0 |
 | 3.11 | Type today's date backwards ✅ v1.5.0 | indie | S |
-| 3.12 | Wordle-style 5-letter guess | NYT Games | S |
+| 3.12 | Wordle-style 5-letter guess | NYT Games | S | ✅ v1.6.0 |
 | 3.13 | Stroop color-name test ✅ v1.5.0 | Cognitive research | S |
 | 3.14 | Spot-the-difference | indie | M |
 | 3.15 | QR scavenger with location verify | Alarmy | S |

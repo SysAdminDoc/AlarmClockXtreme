@@ -2,6 +2,19 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.6.0] - 2026-04-26
+
+Added 4 new dismiss challenges: **Rock Paper Scissors** (best-of-5 against CPU), **Emoji Memory** (match 8 pairs on a 4×4 face-down grid), **Typing Speed** (type a phrase at ≥15 wpm with ≤2 word errors), and **Wordle** (guess a 5-letter word in ≤6 tries). Each challenge refines the wake-up gauntlet for diverse cognitive and motor preferences.
+
+### Added
+
+- **Rock Paper Scissors (v1.6.0):** Best-of-5 challenge against the computer. Win 3 rounds to dismiss. Round outcomes immediately displayed; loss resets both scores for another attempt.
+- **Emoji Memory (v1.6.0):** Classic memory-pairs game on a 4×4 grid. Cards face-up for 3 seconds (customizable) to memorize all 8 distinct emoji types, then face-down. Flip two at a time to find matches; wrong pairs flip back after 1 second.
+- **Typing Speed (v1.6.0):** Transcription task with speed and accuracy gates. Phrase appears verbatim; user must type it at ≥15 wpm (customizable) with ≤2 word errors (customizable). Resets input and timer on failure; resets both scores on next submission.
+- **Wordle (v1.6.0):** Guess a hidden 5-letter word from a curated 50-word list. Up to 6 guesses (customizable). Letter states color-coded (green=correct, yellow=present, gray=absent). Shows target word for 2.5 seconds on loss, then generates a fresh word; success proceeds immediately.
+
+- **Challenge UI updates:** All four views follow the existing challenge card, support text, icon panel, and notice patterns. Properly integrate with the challenge chain pipeline, state resets, wrong-attempt tracking, and firing-screen dispatch.
+
 ## [1.5.4] - 2026-04-22
 
 Reliability-hardening audit pass. No new user features, no schema
