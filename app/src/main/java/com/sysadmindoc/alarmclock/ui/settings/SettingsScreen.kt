@@ -78,6 +78,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -1109,6 +1111,11 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
 @Composable
 private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
+    var encryptedPassphrase by remember { mutableStateOf("") }
+    var encryptedPassphraseConfirm by remember { mutableStateOf("") }
+    val encryptedExportEnabled = encryptedPassphrase.isNotBlank() &&
+        encryptedPassphrase == encryptedPassphraseConfirm
+    val encryptedImportEnabled = encryptedPassphrase.isNotBlank()
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -1117,6 +1124,14 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { viewModel.importBackup(it) } }
+
+    val encryptedExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri -> uri?.let { viewModel.exportEncryptedBackup(it, encryptedPassphrase) } }
+
+    val encryptedImportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let { viewModel.importEncryptedBackup(it, encryptedPassphrase) } }
 
     SettingsGroup(
         title = "Backup and restore",
@@ -1144,10 +1159,79 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
         }
 
         Text(
-            text = "Backups include alarms and global settings in a JSON file.",
+            text = "Plain backups include alarms and global settings in a readable JSON file.",
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
+
+        HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
+
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = "Encrypted backup",
+                color = TextPrimary,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Use a passphrase to create an AES-256 encrypted backup. Keep the passphrase somewhere safe; it cannot be recovered by the app.",
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
+            OutlinedTextField(
+                value = encryptedPassphrase,
+                onValueChange = { encryptedPassphrase = it },
+                label = { Text("Passphrase") },
+                placeholder = { Text("Required for encrypted files") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                colors = appOutlinedTextFieldColors(),
+                shape = RoundedCornerShape(14.dp)
+            )
+            OutlinedTextField(
+                value = encryptedPassphraseConfirm,
+                onValueChange = { encryptedPassphraseConfirm = it },
+                label = { Text("Confirm passphrase") },
+                placeholder = { Text("Required before encrypted export") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                colors = appOutlinedTextFieldColors(),
+                shape = RoundedCornerShape(14.dp)
+            )
+            if (encryptedPassphraseConfirm.isNotEmpty() && encryptedPassphraseConfirm != encryptedPassphrase) {
+                Text(
+                    text = "Passphrases do not match. Encrypted import uses only the first field.",
+                    color = AccentRed,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedButton(
+                    onClick = { encryptedExportLauncher.launch("alarmclock_backup_encrypted.json") },
+                    enabled = encryptedExportEnabled,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text("Encrypt export")
+                }
+                OutlinedButton(
+                    onClick = { encryptedImportLauncher.launch(arrayOf("application/json", "*/*")) },
+                    enabled = encryptedImportEnabled,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text("Decrypt import")
+                }
+            }
+        }
     }
 
     backupResult?.let { message ->
