@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.stats
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,24 +18,30 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,6 +67,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppLoadingCard
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
@@ -85,6 +93,17 @@ fun StatsScreen(
     // signature defaulted to false because the nav graph never passed it.
     val is24Hour = state.is24Hour
     var showClearDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedAction by remember { mutableStateOf<String?>(null) }
+    var selectedDay by remember { mutableStateOf<DayOfWeek?>(null) }
+    val historyFilter = StatsHistoryFilter(
+        query = searchQuery,
+        action = selectedAction,
+        day = selectedDay
+    )
+    val filteredEvents = remember(state.recentEvents, historyFilter) {
+        filterAlarmEvents(state.recentEvents, historyFilter)
+    }
 
     val summaryLine = when {
         state.isLoading -> "Collecting history and response patterns."
@@ -298,6 +317,29 @@ fun StatsScreen(
                 }
             }
 
+            if (state.recentEvents.isNotEmpty()) {
+                item {
+                    StatsFilterCard(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        selectedAction = selectedAction,
+                        onActionChange = { selectedAction = it },
+                        selectedDay = selectedDay,
+                        onDayChange = { selectedDay = it },
+                        resultCount = filteredEvents.size,
+                        totalCount = state.recentEvents.size,
+                        onClearFilters = {
+                            searchQuery = ""
+                            selectedAction = null
+                            selectedDay = null
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
             if (state.recentEvents.isEmpty()) {
                 item {
                     AppSurfaceCard(
@@ -312,6 +354,20 @@ fun StatsScreen(
                         )
                     }
                 }
+            } else if (filteredEvents.isEmpty()) {
+                item {
+                    AppSurfaceCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        AppEmptyState(
+                            icon = Icons.Default.Search,
+                            title = "No history matches",
+                            description = "Clear filters or try another alarm label, challenge, action, or day."
+                        )
+                    }
+                }
             } else {
                 item {
                     AppSurfaceCard(
@@ -319,9 +375,9 @@ fun StatsScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                     ) {
-                        state.recentEvents.forEachIndexed { index, event ->
+                        filteredEvents.forEachIndexed { index, event ->
                             EventRow(event = event, is24Hour = is24Hour)
-                            if (index != state.recentEvents.lastIndex) {
+                            if (index != filteredEvents.lastIndex) {
                                 HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
                             }
                         }
@@ -375,6 +431,114 @@ fun StatsScreen(
             containerColor = SurfaceDark,
             shape = RoundedCornerShape(22.dp)
         )
+    }
+}
+
+@Composable
+private fun StatsFilterCard(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    selectedAction: String?,
+    onActionChange: (String?) -> Unit,
+    selectedDay: DayOfWeek?,
+    onDayChange: (DayOfWeek?) -> Unit,
+    resultCount: Int,
+    totalCount: Int,
+    onClearFilters: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isFiltered = query.isNotBlank() || selectedAction != null || selectedDay != null
+
+    AppSurfaceCard(modifier = modifier) {
+        AppSectionTitle(
+            title = "Find patterns",
+            description = if (isFiltered) {
+                "$resultCount of $totalCount recent events match"
+            } else {
+                "Filter by alarm label, challenge, action, or weekday."
+            },
+            action = {
+                if (isFiltered) {
+                    TextButton(onClick = onClearFilters) {
+                        Text("Clear", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+        )
+
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            placeholder = { Text("Search label, challenge, action, or day") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted) },
+            trailingIcon = {
+                if (query.isNotBlank()) {
+                    IconButton(onClick = { onQueryChange("") }) {
+                        Icon(Icons.Default.Clear, contentDescription = "Clear search", tint = TextMuted)
+                    }
+                }
+            },
+            colors = appOutlinedTextFieldColors(),
+            shape = RoundedCornerShape(18.dp),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        FilterChipRow(
+            label = "Outcome",
+            chips = listOf(
+                null to "All",
+                AlarmEvent.ACTION_DISMISSED to "Dismissed",
+                AlarmEvent.ACTION_SNOOZED to "Snoozed",
+                AlarmEvent.ACTION_SKIPPED to "Skipped",
+                AlarmEvent.ACTION_MISSED to "Missed"
+            ),
+            selected = selectedAction,
+            onSelect = onActionChange
+        )
+
+        FilterChipRow(
+            label = "Day",
+            chips = listOf(null to "All days") + DayOfWeek.entries.map { it to it.name.take(3) },
+            selected = selectedDay,
+            onSelect = onDayChange
+        )
+    }
+}
+
+@Composable
+private fun <T> FilterChipRow(
+    label: String,
+    chips: List<Pair<T?, String>>,
+    selected: T?,
+    onSelect: (T?) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = label,
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelLarge
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            chips.forEach { (value, text) ->
+                FilterChip(
+                    selected = selected == value,
+                    onClick = { onSelect(value) },
+                    label = { Text(text) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                        selectedLabelColor = TextPrimary,
+                        containerColor = SurfaceCard,
+                        labelColor = TextSecondary
+                    )
+                )
+            }
+        }
     }
 }
 
