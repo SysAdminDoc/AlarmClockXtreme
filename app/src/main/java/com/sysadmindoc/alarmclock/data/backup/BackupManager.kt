@@ -224,16 +224,64 @@ class BackupManager @Inject constructor(
         }
     }
 
+    suspend fun exportEncryptedToUri(uri: Uri, passphrase: String): Result<Int> {
+        if (passphrase.isBlank()) {
+            return Result.failure(IllegalArgumentException("Backup passphrase is required"))
+        }
+
+        return try {
+            val stream = context.contentResolver.openOutputStream(uri)
+                ?: return Result.failure(java.io.IOException("Unable to open file for writing"))
+            val json = export()
+            val encryptedJson = EncryptedBackupCodec.encrypt(json, passphrase)
+            stream.use { it.write(encryptedJson.toByteArray(Charsets.UTF_8)) }
+            val alarmCount = adapter.fromJson(json)?.alarms?.size ?: 0
+            Result.success(alarmCount)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun importFromUri(uri: Uri): Result<Int> {
         return try {
             val json = context.contentResolver.openInputStream(uri)?.use { stream ->
                 stream.bufferedReader().readText()
             } ?: return Result.failure(Exception("Unable to read file"))
 
+            importFromJson(json)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun importEncryptedFromUri(uri: Uri, passphrase: String): Result<Int> {
+        if (passphrase.isBlank()) {
+            return Result.failure(IllegalArgumentException("Backup passphrase is required"))
+        }
+
+        return try {
+            val encryptedJson = context.contentResolver.openInputStream(uri)?.use { stream ->
+                stream.bufferedReader().readText()
+            } ?: return Result.failure(Exception("Unable to read file"))
+
+            val json = runCatching {
+                EncryptedBackupCodec.decrypt(encryptedJson, passphrase)
+            }.getOrElse {
+                return Result.failure(Exception("Unable to decrypt backup. Check the passphrase."))
+            }
+
+            importFromJson(json)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun importFromJson(json: String): Result<Int> {
+        return try {
             val backup = adapter.fromJson(json)
                 ?: return Result.failure(Exception("Invalid backup format"))
 
-            // Version sanity. We tolerate older backups (1/2 → 3 with defaults
+            // Version sanity. We tolerate older backups (1/2 -> 3 with defaults
             // for missing fields, a deliberate Moshi behavior) but reject
             // anything outside the known range so a random JSON file can't be
             // mistaken for a backup and silently wipe nothing into the app.
@@ -241,7 +289,7 @@ class BackupManager @Inject constructor(
                 return Result.failure(
                     Exception(
                         "Unsupported backup version ${backup.version}. " +
-                            "This app understands versions 1–$MAX_SUPPORTED_BACKUP_VERSION."
+                            "This app understands versions 1-$MAX_SUPPORTED_BACKUP_VERSION."
                     )
                 )
             }
