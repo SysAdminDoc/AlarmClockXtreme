@@ -54,7 +54,22 @@ data class FiringUiState(
     val simonInputIndices: List<Int> = emptyList(),
     val simonErrorFlash: Boolean = false,
     // v1.5.0: Date-backwards input buffer
-    val dateBackwardsInput: String = ""
+    val dateBackwardsInput: String = "",
+    // v1.6.0: RPS challenge
+    val rpsPlayerWins: Int = 0,
+    val rpsComputerWins: Int = 0,
+    val rpsRounds: List<RpsRoundResult> = emptyList(),
+    // v1.6.0: Emoji memory challenge
+    val emojiMemoryPhase: EmojiMemoryPhase = EmojiMemoryPhase.REVEALING,
+    val emojiFlippedIndices: Set<Int> = emptySet(),
+    val emojiMatchedIndices: Set<Int> = emptySet(),
+    // v1.6.0: Typing speed challenge
+    val typingSpeedInput: String = "",
+    val typingSpeedStartTime: Long = 0L,
+    // v1.6.0: Wordle challenge
+    val wordleGuesses: List<String> = emptyList(),
+    val wordleCurrentInput: String = "",
+    val wordleGameOver: Boolean = false
 ) {
     val requiresChallenge: Boolean get() {
         val type = alarm?.challengeType ?: "NONE"
@@ -175,6 +190,10 @@ class AlarmFiringViewModel @Inject constructor(
             if (firstChallenge is Challenge.SimonSaysChallenge) {
                 playSimonSequence(firstChallenge)
             }
+            // Start emoji reveal when emoji memory is the very first challenge.
+            if (firstChallenge is Challenge.EmojiMemoryChallenge) {
+                startEmojiReveal(firstChallenge)
+            }
         }
     }
 
@@ -223,11 +242,26 @@ class AlarmFiringViewModel @Inject constructor(
             simonPlayingIndex = -1,
             simonInputIndices = emptyList(),
             simonErrorFlash = false,
-            dateBackwardsInput = ""
+            dateBackwardsInput = "",
+            rpsPlayerWins = 0,
+            rpsComputerWins = 0,
+            rpsRounds = emptyList(),
+            emojiMemoryPhase = EmojiMemoryPhase.REVEALING,
+            emojiFlippedIndices = emptySet(),
+            emojiMatchedIndices = emptySet(),
+            typingSpeedInput = "",
+            typingSpeedStartTime = 0L,
+            wordleGuesses = emptyList(),
+            wordleCurrentInput = "",
+            wordleGameOver = false
         )
         // Kick off Simon playback whenever the new challenge is Simon-says.
         if (nextChallenge is Challenge.SimonSaysChallenge) {
             playSimonSequence(nextChallenge)
+        }
+        // Kick off emoji reveal when the new challenge is emoji memory.
+        if (nextChallenge is Challenge.EmojiMemoryChallenge) {
+            startEmojiReveal(nextChallenge)
         }
     }
 
@@ -417,6 +451,20 @@ class AlarmFiringViewModel @Inject constructor(
         }
     }
 
+    // v1.6.0: Emoji memory — reveal all cards briefly then flip face-down
+    private var emojiMemoryJob: kotlinx.coroutines.Job? = null
+    private fun startEmojiReveal(challenge: Challenge.EmojiMemoryChallenge) {
+        emojiMemoryJob?.cancel()
+        emojiMemoryJob = viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(emojiMemoryPhase = EmojiMemoryPhase.REVEALING)
+            kotlinx.coroutines.delay(challenge.revealDurationMs)
+            _uiState.value = _uiState.value.copy(
+                emojiMemoryPhase = EmojiMemoryPhase.INPUT,
+                emojiFlippedIndices = emptySet()
+            )
+        }
+    }
+
     fun onSimonPadTap(index: Int) {
         val challenge = _uiState.value.challenge as? Challenge.SimonSaysChallenge ?: return
         if (_uiState.value.simonPlayingIndex >= 0) return // ignore taps during playback
@@ -466,6 +514,140 @@ class AlarmFiringViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 wrongAttempts = _uiState.value.wrongAttempts + 1
             )
+        }
+    }
+
+    // v1.6.0: Rock-paper-scissors
+    fun onRpsPick(choice: RpsChoice) {
+        val challenge = _uiState.value.challenge as? Challenge.RockPaperScissorsChallenge ?: return
+        val computerChoice = RpsChoice.entries.random()
+        val outcome = when {
+            choice == computerChoice -> RpsOutcome.DRAW
+            (choice == RpsChoice.ROCK    && computerChoice == RpsChoice.SCISSORS) ||
+            (choice == RpsChoice.SCISSORS && computerChoice == RpsChoice.PAPER)   ||
+            (choice == RpsChoice.PAPER   && computerChoice == RpsChoice.ROCK)     -> RpsOutcome.WIN
+            else -> RpsOutcome.LOSE
+        }
+        val newRound = RpsRoundResult(choice, computerChoice, outcome)
+        val newPlayerWins   = _uiState.value.rpsPlayerWins   + if (outcome == RpsOutcome.WIN)  1 else 0
+        val newComputerWins = _uiState.value.rpsComputerWins + if (outcome == RpsOutcome.LOSE) 1 else 0
+        _uiState.value = _uiState.value.copy(
+            rpsRounds       = _uiState.value.rpsRounds + newRound,
+            rpsPlayerWins   = newPlayerWins,
+            rpsComputerWins = newComputerWins
+        )
+        when {
+            newPlayerWins >= challenge.requiredWins -> proceedToNextChallenge()
+            newComputerWins >= challenge.requiredWins -> _uiState.value = _uiState.value.copy(
+                rpsPlayerWins   = 0,
+                rpsComputerWins = 0,
+                rpsRounds       = emptyList(),
+                wrongAttempts   = _uiState.value.wrongAttempts + 1
+            )
+        }
+    }
+
+    // v1.6.0: Emoji memory card flip
+    fun onEmojiCardFlip(index: Int) {
+        val challenge = _uiState.value.challenge as? Challenge.EmojiMemoryChallenge ?: return
+        val state = _uiState.value
+        if (state.emojiMemoryPhase != EmojiMemoryPhase.INPUT) return
+        if (index in state.emojiMatchedIndices || index in state.emojiFlippedIndices) return
+        // Only allow flipping if fewer than 2 cards are currently face-up
+        if (state.emojiFlippedIndices.size >= 2) return
+        val newFlipped = state.emojiFlippedIndices + index
+        _uiState.value = state.copy(emojiFlippedIndices = newFlipped)
+        if (newFlipped.size == 2) {
+            val (a, b) = newFlipped.toList()
+            if (challenge.cards[a] == challenge.cards[b]) {
+                val newMatched = state.emojiMatchedIndices + a + b
+                _uiState.value = _uiState.value.copy(
+                    emojiFlippedIndices = emptySet(),
+                    emojiMatchedIndices = newMatched
+                )
+                if (newMatched.size == challenge.cards.size) proceedToNextChallenge()
+            } else {
+                viewModelScope.launch {
+                    kotlinx.coroutines.delay(1000)
+                    _uiState.value = _uiState.value.copy(
+                        emojiFlippedIndices = emptySet(),
+                        wrongAttempts = _uiState.value.wrongAttempts + 1
+                    )
+                }
+            }
+        }
+    }
+
+    // v1.6.0: Typing speed challenge
+    fun onTypingSpeedInputChange(text: String) {
+        val state = _uiState.value
+        val newStart = if (state.typingSpeedStartTime == 0L && text.isNotEmpty()) {
+            System.currentTimeMillis()
+        } else {
+            state.typingSpeedStartTime
+        }
+        _uiState.value = state.copy(typingSpeedInput = text, typingSpeedStartTime = newStart)
+    }
+
+    fun submitTypingSpeed() {
+        val challenge = _uiState.value.challenge as? Challenge.TypingSpeedChallenge ?: return
+        val state = _uiState.value
+        val input = state.typingSpeedInput.trim()
+        val targetWords = challenge.phrase.split(" ").map { it.lowercase().filter { c -> c.isLetter() } }
+        val inputWords  = input.split(" ").map { it.lowercase().filter { c -> c.isLetter() } }
+        val errors = targetWords.zip(inputWords).count { (t, i) -> t != i } +
+                maxOf(0, targetWords.size - inputWords.size)
+        val elapsedMs = maxOf(if (state.typingSpeedStartTime > 0L) System.currentTimeMillis() - state.typingSpeedStartTime else 1L, 1L)
+        val wpm = (inputWords.size.toLong() * 60000L / elapsedMs).toInt()
+        if (wpm >= challenge.minWpm && errors <= challenge.maxErrors) {
+            proceedToNextChallenge()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                typingSpeedInput = "",
+                typingSpeedStartTime = 0L,
+                wrongAttempts = _uiState.value.wrongAttempts + 1
+            )
+        }
+    }
+
+    // v1.6.0: Wordle challenge
+    fun updateWordleInput(text: String) {
+        if (_uiState.value.wordleGameOver) return
+        _uiState.value = _uiState.value.copy(
+            wordleCurrentInput = text.uppercase().filter { it.isLetter() }.take(5)
+        )
+    }
+
+    fun submitWordleGuess() {
+        val challenge = _uiState.value.challenge as? Challenge.WordleChallenge ?: return
+        val state = _uiState.value
+        if (state.wordleGameOver) return
+        val guess = state.wordleCurrentInput
+        if (guess.length != 5) return
+        val newGuesses = state.wordleGuesses + guess
+        val won = guess == challenge.target
+        val outOfGuesses = newGuesses.size >= challenge.maxGuesses && !won
+        _uiState.value = state.copy(
+            wordleGuesses = newGuesses,
+            wordleCurrentInput = "",
+            wordleGameOver = outOfGuesses
+        )
+        if (won) {
+            proceedToNextChallenge()
+        } else if (outOfGuesses) {
+            // Reset with a fresh word after showing the answer briefly
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(2500)
+                val newChallenge = ChallengeGenerator.generate(ChallengeType.WORDLE)
+                        as? Challenge.WordleChallenge ?: return@launch
+                _uiState.value = _uiState.value.copy(
+                    challenge = newChallenge,
+                    wordleGuesses = emptyList(),
+                    wordleCurrentInput = "",
+                    wordleGameOver = false,
+                    wrongAttempts = _uiState.value.wrongAttempts + 1
+                )
+            }
         }
     }
 
