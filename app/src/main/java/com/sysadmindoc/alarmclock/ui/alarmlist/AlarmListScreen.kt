@@ -1,5 +1,8 @@
 package com.sysadmindoc.alarmclock.ui.alarmlist
 
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -38,6 +41,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AssistChip
@@ -77,12 +81,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
 import com.sysadmindoc.alarmclock.ui.alarmlist.components.SwipeableAlarmCard
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
@@ -114,6 +120,7 @@ fun AlarmListScreen(
     onOpenSettings: () -> Unit = {},
     viewModel: AlarmListViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTemplates by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -429,6 +436,7 @@ fun AlarmListScreen(
                                             onDelete = { viewModel.deleteAlarm(alarm) },
                                             onSkipNext = { viewModel.skipNextOccurrence(alarm) },
                                             onDuplicate = { viewModel.duplicateAlarm(alarm) },
+                                            onShare = { shareAlarm(context, alarm, state.is24HourFormat) },
                                             onLongClick = { viewModel.toggleSelection(alarm.id) }
                                         )
                                     }
@@ -623,6 +631,7 @@ private fun AlarmCard(
     onDelete: () -> Unit,
     onSkipNext: () -> Unit,
     onDuplicate: () -> Unit,
+    onShare: () -> Unit,
     onLongClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -690,6 +699,11 @@ private fun AlarmCard(
                                 text = { Text("Duplicate") },
                                 leadingIcon = { Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(18.dp)) },
                                 onClick = { showMenu = false; onDuplicate() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Share") },
+                                leadingIcon = { Icon(Icons.Default.Share, null, modifier = Modifier.size(18.dp)) },
+                                onClick = { showMenu = false; onShare() }
                             )
                             if (alarm.isEnabled && alarm.repeatDays.isNotEmpty()) {
                                 DropdownMenuItem(
@@ -916,6 +930,26 @@ private fun SelectableAlarmCard(
                 tint = if (alarm.isEnabled) MaterialTheme.colorScheme.primary else TextMuted
             )
         }
+    }
+}
+
+private fun shareAlarm(context: Context, alarm: Alarm, is24Hour: Boolean) {
+    val deepLink = AlarmShareCodec.createDeepLink(alarm)
+    val title = alarm.label.ifBlank { "Alarm ${formatAlarmTime(alarm, is24Hour)}" }
+    val shareText = buildString {
+        appendLine("AlarmClockXtreme alarm: $title")
+        appendLine("Time: ${formatAlarmTime(alarm, is24Hour)}")
+        append("Import: $deepLink")
+    }
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "AlarmClockXtreme alarm: $title")
+        putExtra(Intent.EXTRA_TEXT, shareText)
+    }
+    runCatching {
+        context.startActivity(Intent.createChooser(intent, "Share alarm"))
+    }.onFailure {
+        Toast.makeText(context, "No app is available to share this alarm.", Toast.LENGTH_SHORT).show()
     }
 }
 

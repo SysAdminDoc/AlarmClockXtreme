@@ -1,0 +1,63 @@
+package com.sysadmindoc.alarmclock.data.share
+
+import com.sysadmindoc.alarmclock.BuildConfig
+import com.sysadmindoc.alarmclock.data.backup.AlarmBackup
+import com.sysadmindoc.alarmclock.data.backup.toAlarmBackup
+import com.sysadmindoc.alarmclock.data.backup.toAlarmOrNull
+import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.squareup.moshi.JsonClass
+import com.squareup.moshi.Moshi
+import java.util.Base64
+
+@JsonClass(generateAdapter = true)
+data class AlarmSharePayload(
+    val version: Int = 1,
+    val appVersion: String = BuildConfig.VERSION_NAME,
+    val alarm: AlarmBackup
+)
+
+object AlarmShareCodec {
+    const val SCHEME = "acx"
+    const val HOST = "alarm"
+    const val DATA_PARAM = "data"
+    private const val MAX_SUPPORTED_VERSION = 1
+
+    private val payloadAdapter = Moshi.Builder()
+        .build()
+        .adapter(AlarmSharePayload::class.java)
+
+    fun createDeepLink(alarm: Alarm): String {
+        return "$SCHEME://$HOST?$DATA_PARAM=${encodeToken(alarm)}"
+    }
+
+    fun encodeToken(alarm: Alarm): String {
+        val payload = AlarmSharePayload(alarm = alarm.sanitized().toAlarmBackup())
+        val json = payloadAdapter.toJson(payload)
+        return Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString(json.toByteArray(Charsets.UTF_8))
+    }
+
+    fun decodeToken(token: String): Result<Alarm> {
+        return runCatching {
+            val json = String(Base64.getUrlDecoder().decode(token), Charsets.UTF_8)
+            val payload = payloadAdapter.fromJson(json)
+                ?: throw IllegalArgumentException("Invalid shared alarm payload")
+            require(payload.version in 1..MAX_SUPPORTED_VERSION) {
+                "Unsupported shared alarm version ${payload.version}"
+            }
+            payload.alarm.toAlarmOrNull()
+                ?: throw IllegalArgumentException("Shared alarm payload is not usable")
+        }
+    }
+
+    fun prepareImportedAlarm(alarm: Alarm, nowMillis: Long = System.currentTimeMillis()): Alarm {
+        return alarm.copy(
+            id = 0,
+            label = alarm.label.ifBlank { "Shared alarm" },
+            isEnabled = false,
+            createdAt = nowMillis,
+            nextTriggerTime = 0
+        ).sanitized()
+    }
+}
