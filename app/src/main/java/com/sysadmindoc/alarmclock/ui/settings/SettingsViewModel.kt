@@ -216,11 +216,27 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun exportEncryptedBackup(uri: Uri, passphrase: String) {
+        viewModelScope.launch {
+            backupManager.exportEncryptedToUri(uri, passphrase)
+                .onSuccess { count -> setBackupResult("Exported encrypted backup with $count alarms") }
+                .onFailure { setBackupResult("Encrypted export failed: ${it.message}") }
+        }
+    }
+
     fun importBackup(uri: Uri) {
         viewModelScope.launch {
             backupManager.importFromUri(uri)
                 .onSuccess { count -> setBackupResult("Imported $count alarms") }
                 .onFailure { setBackupResult("Import failed: ${it.message}") }
+        }
+    }
+
+    fun importEncryptedBackup(uri: Uri, passphrase: String) {
+        viewModelScope.launch {
+            backupManager.importEncryptedFromUri(uri, passphrase)
+                .onSuccess { count -> setBackupResult("Imported encrypted backup with $count alarms") }
+                .onFailure { setBackupResult("Encrypted import failed: ${it.message}") }
         }
     }
 

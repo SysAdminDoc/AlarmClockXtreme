@@ -130,7 +130,7 @@ cd AlarmClockXtreme
 ### Data & Reliability
 | Feature | Description |
 |---------|-------------|
-| Backup/Restore | JSON export/import of all 47+ alarm fields and 34+ settings (v3 format) |
+| Backup/Restore | JSON export/import of all 47+ alarm fields and 34+ settings, with optional AES-256 passphrase encryption (v5 format) |
 | Boot Reschedule | All alarms re-registered after device reboot |
 | Manufacturer Compat | Onboarding warnings for Xiaomi/Samsung/Huawei battery killers |
 | Crash Logger | Automatic crash log files for debugging |

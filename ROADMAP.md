@@ -207,7 +207,7 @@ Stubbed v1.4.0 research touched on this but didn't ship.
 | # | Item | Source | Effort |
 |---|------|--------|--------|
 | 12.1 | Google Drive / Nextcloud backup (SAF-based) | — | M |
-| 12.2 | AES-256 passphrase encryption over BackupManager output | — | S |
+| 12.2 | AES-256 passphrase encryption over BackupManager output ✅ v1.5.x | — | S |
 | 12.3 | Nextcloud WebDAV sync (self-host crowd) | — | M |
 | 12.4 | End-to-end encrypted paired-phone sync | — | L |
 
@@ -271,6 +271,7 @@ one-item-per-PR for the S-effort work and phased delivery for M/L.*
 - Imported shared alarms are intentionally disabled until reviewed so a received link cannot silently schedule a live alarm.
 - Shared payloads reuse the backup alarm mapper, keeping future alarm-field additions in one portable serialization path.
 - Implemented item 13.7: Stats history now supports text search plus outcome/day filters, with empty-filter feedback and a pure filter helper covered by unit tests.
+- Implemented item 12.2: Settings backup/export now offers optional passphrase encryption using PBKDF2-HMAC-SHA256 + AES-256-GCM, while preserving plain JSON backup compatibility.
 
 ### Features to Borrow
 - **Long-click dismiss + long-press snooze time-picker** (yuriykulikov/AlarmClock) — prevents accidental-dismiss complaints; long-press snooze opens an inline picker rather than cycling presets.
