@@ -36,6 +36,7 @@ cd AlarmClockXtreme
 | Vacation Mode | Date range auto-skip for all repeating alarms |
 | Holiday Auto-Skip | Skip public holidays via Nager.Date API (40+ countries) |
 | Templates | Power Nap, Early Bird, Weekday, Weekend presets |
+| Shareable Alarms | Share a single alarm as an `acx://alarm?data=` link; imports are disabled until reviewed |
 | Early Dismiss | Skip upcoming alarm from the persistent notification |
 | Calendar Auto-Alarm | Auto-create alarm before first calendar event daily |
 

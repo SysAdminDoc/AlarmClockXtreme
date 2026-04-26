@@ -22,11 +22,11 @@ Small gaps created by the v1.4.0 batch. Most shipped in v1.5.0.
 | 0.1 | Alarm-edit UI for `hardwareButtonAction` | S | ✅ v1.5.0 |
 | 0.2 | Alarm-edit UI for `dismissAtRingtoneEnd` | S | ✅ v1.5.0 |
 | 0.3 | Alarm-edit UI for `ringtonePool` | M | ✅ v1.5.0 (multi-line editor, not a file-picker — power-user feature) |
-| 0.4 | Alarm share via deep link (`acx://alarm?data=`) | M | ⏳ Still open |
+| 0.4 | Alarm share via deep link (`acx://alarm?data=`) | M | ✅ v1.5.x (share-sheet export + disabled-by-default deep-link import) |
 | 0.5 | Nap-mode duration chip respects `napDefaultMinutes` | S | ✅ v1.5.0 |
 | 0.6 | Sleep-sound timer / fade sliders in BedtimeScreen | S | ✅ v1.5.0 (fade taper slider; whole-timer lives on Bedtime too) |
-| 0.7 | Unit tests for `MissedAlarmUnlockReceiver` window logic | S | ⏳ Still open |
-| 0.8 | Unit tests for `ProximityCoverDetector` hold threshold | S | ⏳ Still open |
+| 0.7 | Unit tests for `MissedAlarmUnlockReceiver` window logic | S | ✅ v1.5.2 |
+| 0.8 | Unit tests for `ProximityCoverDetector` hold threshold | S | ✅ v1.5.2 |
 | 0.9 | Lint / data-extraction-rules doc comment (fixed in build) | — | ✅ v1.4.0 build |
 
 ---
@@ -218,7 +218,7 @@ Stubbed v1.4.0 research touched on this but didn't ship.
 | 13.1 | Landscape / tablet layouts (every screen) | — | M |
 | 13.2 | Always-On Display-aware night clock | AOD API | S |
 | 13.3 | Dynamic color from specific wallpaper color (not full palette) | — | S |
-| 13.4 | Share button on alarm card overflow (ties with 0.4) | — | S |
+| 13.4 | Share button on alarm card overflow (ties with 0.4) ✅ v1.5.x | — | S |
 | 13.5 | Interactive onboarding walkthrough (beyond current steps) | — | M |
 | 13.6 | In-app changelog dialog on first launch after update ✅ v1.5.0 | — | S |
 | 13.7 | Search / filter in stats by tag, day, or alarm | — | S |
@@ -254,3 +254,64 @@ Stubbed v1.4.0 research touched on this but didn't ship.
 
 *Roadmap owners: add yourself as assignee when picking up an item. Prefer
 one-item-per-PR for the S-effort work and phased delivery for M/L.*
+
+## Open-Source Research (Round 2)
+
+### Related OSS Projects
+- **yuriykulikov/AlarmClock** — https://github.com/yuriykulikov/AlarmClock — AOSP-derived, long-click dismiss UX, adjustable snooze time-picker.
+- **yassineAbou/Clock** — https://github.com/yassineAbou/Clock — Pure Jetpack Compose, single-activity + bottom-nav + WorkManager for timer/stopwatch integration.
+- **ahudson20/whakaara** — https://github.com/ahudson20/whakaara — Compose + Room + Hilt reference architecture; minimal and idiomatic.
+- **akshay2211/JetAlarm** — https://github.com/akshay2211/JetAlarm — MVVM Compose alarm, Apache-2.0.
+- **plusmobileapps/alarm-clock** — https://github.com/plusmobileapps/alarm-clock — Jetpack + Kotlin, small and readable.
+- **hanihashemi/Alarm-Clock-App-Tutorial** — https://github.com/hanihashemi/Alarm-Clock-App-Tutorial — Tutorial repo; handy for the exact AlarmManager + fullscreen-intent wiring that LTS Android versions keep regressing.
+- **AlarmIT** (alarm-clock topic) — https://github.com/topics/alarm-clock — shake + math dismiss reference (older but still cited).
+
+### Applied in this pass
+- Implemented the shareable-alarm workflow from items 0.4 and 13.4: card overflow -> Android share sheet -> `acx://alarm?data=` link -> import through `MainActivity`.
+- Imported shared alarms are intentionally disabled until reviewed so a received link cannot silently schedule a live alarm.
+- Shared payloads reuse the backup alarm mapper, keeping future alarm-field additions in one portable serialization path.
+
+### Features to Borrow
+- **Long-click dismiss + long-press snooze time-picker** (yuriykulikov/AlarmClock) — prevents accidental-dismiss complaints; long-press snooze opens an inline picker rather than cycling presets.
+- **Single-activity + Compose nav for clock/timer/stopwatch/alarm tabs** (yassineAbou/Clock) — consolidates what AlarmClockXtreme currently splits, and exposes a Timer/Stopwatch path without growing the APK.
+- **WorkManager-backed stopwatch/timer persistence** (yassineAbou/Clock) — survives process death on Android 15+ cold-kill aggressive OEMs (Xiaomi/Oppo/Samsung battery managers).
+- **Hilt DI boundaries around AlarmScheduler** (whakaara) — clean swap of `AlarmManager` vs `WorkManager` vs test-fake for CI tests.
+- **Room migration discipline** (whakaara) — canonical single-source-of-truth schema per release and testMigration() blocks to avoid user-loss regressions.
+- **Fullscreen-intent + SCREEN_ON fallback matrix** (hanihashemi tutorial) — explicit table of which Android versions need which flags (POST_NOTIFICATIONS, USE_FULL_SCREEN_INTENT, SCHEDULE_EXACT_ALARM) with runtime feature-detection.
+- **"Nudge" alarms that gradually ramp volume** (not yet in ACX per feature list) — common in commercial alarm apps; use `AudioFocus` + Compose LaunchedEffect timer.
+- **Widget-driven "create alarm" shortcut** — Glance widget that opens ACX to the create screen with preset duration params (borrowing the Compose Glance pattern surfacing in several 2025 alarm forks).
+
+### Patterns & Architectures Worth Studying
+- **Compose bottom-nav single-activity + per-destination ViewModel scoping** (yassineAbou/Clock) — reduces StateFlow leakage between timer/stopwatch/alarm and halves cold start.
+- **Hilt + AlarmScheduler abstraction** (whakaara) — lets the dismiss-challenge engine and alarm scheduler be unit-tested without the Android runtime.
+- **AOSP-derived dismiss UX** (yuriykulikov/AlarmClock) — `DismissAlarmActivity` run on top of lockscreen with `FLAG_SHOW_WHEN_LOCKED` + `FLAG_TURN_SCREEN_ON` + `setTurnScreenOn(true)` is the battle-tested formula.
+- **Per-alarm `setAlarmClock()` with `setInexactRepeating` fallback** (yuriykulikov/AlarmClock) — graceful-degradation path when SCHEDULE_EXACT_ALARM permission is revoked post-install on Android 14+.
+
+## Implementation Deep Dive (Round 3)
+
+### Reference Implementations to Study
+- **yuriykulikov/AlarmClock/app/src/main/java/com/better/alarm/services/AlarmsService.kt** — https://github.com/yuriykulikov/AlarmClock — canonical `startForeground()` called synchronously in `onStartCommand` before any IO; good pattern for comparing against ACX's v1.5.4 fix.
+- **yassineAbou/Clock/app/src/main/java/com/yassineabou/clock/ui/timer/TimerViewModel.kt** — https://github.com/yassineAbou/Clock — WorkManager-backed timer that survives process death on Xiaomi/Oppo/Samsung. Direct blueprint for ACX's Timer tab persistence.
+- **ahudson20/whakaara/app/src/main/java/com/app/whakaara/domain/AlarmScheduler.kt** — https://github.com/ahudson20/whakaara — Hilt-injectable `AlarmScheduler` abstraction with test fake. Replaces ACX's untestable `domain/AlarmScheduler.kt` directly.
+- **FossifyOrg/Clock/app/src/main/kotlin/org/fossify/clock/receivers/AlarmReceiver.kt** — https://github.com/FossifyOrg/Clock/blob/main/app/src/main/kotlin/org/fossify/clock/receivers/AlarmReceiver.kt — lightweight wake lock (10s) + startForegroundService pattern proven across 100k+ users. Template for DST/timezone edge case handling ACX hasn't hit yet.
+- **Applinx-Tech/Flutter-Alarm-Manager-POC/android/app/src/main/java/...AlarmActivity** — https://github.com/Applinx-Tech/Flutter-Alarm-Manager-POC — `showWhenLocked="true"` + `turnScreenOn="true"` full-screen intent wiring + all permission declarations in one manifest. Reference for verifying ACX's `AlarmFiringActivity` manifest flags.
+- **giorgosneokleous93/fullscreenintentexample/app/src/main/AndroidManifest.xml** — https://github.com/giorgosneokleous93/fullscreenintentexample — minimal-complete full-screen intent example; compare `USE_FULL_SCREEN_INTENT` permission declaration + notification channel importance (`IMPORTANCE_HIGH` required).
+- **androidx/media3/libraries/exoplayer/src/main/java/androidx/media3/exoplayer/util/EventLogger.java** — https://github.com/androidx/media — clean MediaPlayer/ExoPlayer listener pattern; ACX's internet-radio `prepareAsync()` listener could move to ExoPlayer for HLS support.
+- **AOSP DeskClock (packages/apps/DeskClock)** — https://android.googlesource.com/platform/packages/apps/DeskClock/ — Google's reference DeskClock app; `AlarmStateManager.kt` is the gold-standard alarm state machine (PENDING → SNOOZED → FIRING → MISSED → DISMISSED) with persisted StateHolder.
+
+### Known Pitfalls from Similar Projects
+- **Android 14 USE_EXACT_ALARM is auto-granted, SCHEDULE_EXACT_ALARM is not** — FossifyOrg/Calendar#217 — alarm-clock-category apps should declare `USE_EXACT_ALARM` (install-time grant) instead of `SCHEDULE_EXACT_ALARM` (runtime). Check ACX manifest. https://github.com/FossifyOrg/Calendar/issues/217
+- **SecurityException when inexact alarm internally falls back to exact** — flutter_local_notifications#2248 — reporter only used `inexactAllowWhileIdle` but `AlarmManager.setImpl` still threw. Always surround `set*` with try-catch-fallback-to-inexact. https://github.com/MaikuB/flutter_local_notifications/issues/2248
+- **Five-second window to call `startForeground()` after `startForegroundService()`** — androidx/media#2412 — ACX already fixed this in v1.5.4 but the spec is Media3-relevant: if audio is started off the main thread, the service timeout fires. https://github.com/androidx/media/issues/2412
+- **Doze mode defers even `setAlarmClock` on Redmi/Samsung by 1-2 min** — Microsoft Q&A — the only fix is to pair with a 10-15s `PARTIAL_WAKE_LOCK` in `onReceive`. ACX already has the wake lock but verify the timing is <15s so ANR watchdog doesn't kill it. https://learn.microsoft.com/en-us/answers/questions/5566005/
+- **`ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` broadcast must be registered to reschedule alarms after permission-grant** — FossifyOrg/Calendar#217 — otherwise alarms set before permission grant remain inexact forever. ACX doesn't currently listen for this.
+- **`BootReceiver.goAsync()` 10s ANR ceiling** — ACX v1.5.4 tightened timeout 30s→8s — but if a user has 50+ alarms, `rescheduleAll` can still exceed 8s. Consider batching via WorkManager.
+- **Android 15 preparatory changes: Foreground service short-type 3-minute cap** — starting Android 15 (API 35), short-type FGS auto-timeouts. ACX uses `mediaPlayback` type (no timeout) — good. Do not migrate to `shortService` type.
+- **`setAlarmClock()` always shows clock icon in status bar** — can't be hidden; users complain. Workaround: offer a user setting "Show alarm icon in status bar" that falls back to `setExactAndAllowWhileIdle()` if disabled (with UX disclaimer about 1-2min drift). https://learn.microsoft.com/en-us/answers/questions/5566005/
+- **`CalendarContract.Instances` RRULE expansion requires `READ_CALENDAR`** — runtime permission, not declared in all manifests. ACX `CalendarAutoAlarmWorker` must handle denial gracefully (ACX v1.3.2 already rewrites this worker — verify permission check).
+- **WorkManager + Hilt requires `Configuration.Provider` on Application AND default initializer removed in manifest** — easy to regress on gradle plugin upgrades. Lock in a CI check. https://github.com/ahudson20/whakaara
+
+### Library Integration Checklist
+- **AndroidX WorkManager (timer persistence + Guardian + Calendar workers)** — `androidx.work:work-runtime-ktx:2.10.0` (ACX already has) — entry: `CoroutineWorker.doWork()` + `Data.Builder().putLong("alarmId", id)`. Gotcha: `setInitialDelay(minimumOf(1m))` because `WorkManager` floors delays under 1 minute to 10 minutes on some OEMs — ACX v1.3.3 fixes this.
+- **AndroidX Glance (widgets)** — `androidx.glance:glance-appwidget:1.1.1` — entry: `class NextAlarmWidget : GlanceAppWidget() { override provideGlance() { ... } }`. Gotcha: Glance state updates require `updateAppWidgetState(context, glanceId)` — just calling `update()` on ViewModel does not refresh the widget.
+- **Philips Hue v2 API (HueSunriseWorker upgrade path)** — no Maven; REST client via OkHttp. Entry: `PUT https://{bridge}/api/{username}/lights/{id}/state {"bri": N, "transitiontime": deciseconds}`. Gotcha: Hue v1 `username` endpoints are deprecated; migrate to Hue v2 `application_key` header + HTTPS certificate pinning (self-signed cert — pin via `OkHttpClient.Builder().hostnameVerifier`). ACX's `HueSunriseWorker` currently uses v1.
