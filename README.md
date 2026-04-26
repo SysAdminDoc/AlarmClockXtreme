@@ -117,7 +117,7 @@ cd AlarmClockXtreme
 | Multiple Timers | Run several countdown timers concurrently (monotonic clock) |
 | Stopwatch | Lap tracking with best/worst marking |
 | Bedtime Tracking | Sleep goal, sleep cycle calculator, bedtime reminders, sleep sounds |
-| Statistics | Dismiss streaks, snooze rate, day-of-week breakdown, response times |
+| Statistics | Dismiss streaks, snooze rate, day-of-week breakdown, response times, searchable alarm history |
 | Night Clock | Always-on bedside display with minimal brightness |
 | Home Widget | Glance-based widget showing next alarm countdown |
 | Persistent Notification | Always-visible next alarm countdown in shade |
