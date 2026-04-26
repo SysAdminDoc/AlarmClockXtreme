@@ -11,8 +11,6 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.time.DayOfWeek
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -153,136 +151,12 @@ class BackupManager @Inject constructor(
         const val MAX_SUPPORTED_BACKUP_VERSION = 5
     }
 
-    private fun AlarmBackup.toAlarmOrNull(): Alarm? {
-        return runCatching {
-            Alarm(
-                hour = hour,
-                minute = minute,
-                label = label,
-                isEnabled = isEnabled,
-                repeatDays = repeatDays.mapNotNull {
-                    runCatching { DayOfWeek.valueOf(it.trim().uppercase(Locale.US)) }.getOrNull()
-                }.toSet(),
-                ringtoneUri = ringtoneUri,
-                vibrationEnabled = vibrationEnabled,
-                vibrationIntensity = vibrationIntensity,
-                volume = volume,
-                overrideSystemVolume = overrideSystemVolume,
-                gradualVolumeSeconds = gradualVolumeSeconds,
-                snoozeDurationMinutes = snoozeDurationMinutes,
-                maxSnoozeCount = maxSnoozeCount,
-                showOnLockScreen = showOnLockScreen,
-                challengeType = challengeType,
-                group = group,
-                flashWake = flashWake,
-                vibrationPattern = vibrationPattern,
-                ttsEnabled = ttsEnabled,
-                walkStepsRequired = walkStepsRequired,
-                wakeConfirmEnabled = wakeConfirmEnabled,
-                wakeConfirmDelayMinutes = wakeConfirmDelayMinutes,
-                smartAlarmEnabled = smartAlarmEnabled,
-                smartAlarmWindowMinutes = smartAlarmWindowMinutes,
-                skipOnHolidays = skipOnHolidays,
-                nfcTagId = nfcTagId,
-                barcodeValue = barcodeValue,
-                spotifyUri = spotifyUri,
-                hueEnabled = hueEnabled,
-                huePreWakeMinutes = huePreWakeMinutes,
-                photoMatchUri = photoMatchUri,
-                challengeChain = challengeChain,
-                progressiveSnooze = progressiveSnooze,
-                backupSoundEnabled = backupSoundEnabled,
-                backupSoundDelaySec = backupSoundDelaySec,
-                sunriseSimulation = sunriseSimulation,
-                sunriseMinutes = sunriseMinutes,
-                specificDate = specificDate,
-                profileName = profileName,
-                earlyDismissMinutes = earlyDismissMinutes,
-                guardianEnabled = guardianEnabled,
-                guardianPhone = guardianPhone,
-                guardianDelaySec = guardianDelaySec,
-                locationDismissEnabled = locationDismissEnabled,
-                locationDismissLat = locationDismissLat,
-                locationDismissLng = locationDismissLng,
-                locationDismissRadius = locationDismissRadius,
-                wifiDismissSsid = wifiDismissSsid,
-                internetRadioUrl = internetRadioUrl,
-                flashlightStrobe = flashlightStrobe,
-                morningRoutine = morningRoutine,
-                hardwareButtonAction = hardwareButtonAction,
-                dismissAtRingtoneEnd = dismissAtRingtoneEnd,
-                ringtonePool = ringtonePool,
-                solarOffsetMinutes = solarOffsetMinutes,
-                solarAnchor = solarAnchor
-            ).sanitized()
-        }.getOrNull()
-    }
-
     suspend fun export(): String {
         val alarms = repository.getAll()
         val settings = preferencesManager.getCurrentSettings()
 
         val backup = BackupData(
-            alarms = alarms.map { alarm ->
-                AlarmBackup(
-                    hour = alarm.hour,
-                    minute = alarm.minute,
-                    label = alarm.label,
-                    isEnabled = alarm.isEnabled,
-                    repeatDays = alarm.repeatDays.map { it.name },
-                    ringtoneUri = alarm.ringtoneUri,
-                    vibrationEnabled = alarm.vibrationEnabled,
-                    vibrationIntensity = alarm.vibrationIntensity,
-                    volume = alarm.volume,
-                    overrideSystemVolume = alarm.overrideSystemVolume,
-                    gradualVolumeSeconds = alarm.gradualVolumeSeconds,
-                    snoozeDurationMinutes = alarm.snoozeDurationMinutes,
-                    maxSnoozeCount = alarm.maxSnoozeCount,
-                    showOnLockScreen = alarm.showOnLockScreen,
-                    challengeType = alarm.challengeType,
-                    group = alarm.group,
-                    flashWake = alarm.flashWake,
-                    vibrationPattern = alarm.vibrationPattern,
-                    ttsEnabled = alarm.ttsEnabled,
-                    walkStepsRequired = alarm.walkStepsRequired,
-                    wakeConfirmEnabled = alarm.wakeConfirmEnabled,
-                    wakeConfirmDelayMinutes = alarm.wakeConfirmDelayMinutes,
-                    smartAlarmEnabled = alarm.smartAlarmEnabled,
-                    smartAlarmWindowMinutes = alarm.smartAlarmWindowMinutes,
-                    skipOnHolidays = alarm.skipOnHolidays,
-                    nfcTagId = alarm.nfcTagId,
-                    barcodeValue = alarm.barcodeValue,
-                    spotifyUri = alarm.spotifyUri,
-                    hueEnabled = alarm.hueEnabled,
-                    huePreWakeMinutes = alarm.huePreWakeMinutes,
-                    photoMatchUri = alarm.photoMatchUri,
-                    challengeChain = alarm.challengeChain,
-                    progressiveSnooze = alarm.progressiveSnooze,
-                    backupSoundEnabled = alarm.backupSoundEnabled,
-                    backupSoundDelaySec = alarm.backupSoundDelaySec,
-                    sunriseSimulation = alarm.sunriseSimulation,
-                    sunriseMinutes = alarm.sunriseMinutes,
-                    specificDate = alarm.specificDate,
-                    profileName = alarm.profileName,
-                    earlyDismissMinutes = alarm.earlyDismissMinutes,
-                    guardianEnabled = alarm.guardianEnabled,
-                    guardianPhone = alarm.guardianPhone,
-                    guardianDelaySec = alarm.guardianDelaySec,
-                    locationDismissEnabled = alarm.locationDismissEnabled,
-                    locationDismissLat = alarm.locationDismissLat,
-                    locationDismissLng = alarm.locationDismissLng,
-                    locationDismissRadius = alarm.locationDismissRadius,
-                    wifiDismissSsid = alarm.wifiDismissSsid,
-                    internetRadioUrl = alarm.internetRadioUrl,
-                    flashlightStrobe = alarm.flashlightStrobe,
-                    morningRoutine = alarm.morningRoutine,
-                    hardwareButtonAction = alarm.hardwareButtonAction,
-                    dismissAtRingtoneEnd = alarm.dismissAtRingtoneEnd,
-                    ringtonePool = alarm.ringtonePool,
-                    solarOffsetMinutes = alarm.solarOffsetMinutes,
-                    solarAnchor = alarm.solarAnchor
-                )
-            },
+            alarms = alarms.map { alarm -> alarm.toAlarmBackup() },
             settings = SettingsBackup(
                 is24HourFormat = settings.is24HourFormat,
                 defaultSnoozeDuration = settings.defaultSnoozeDuration,
