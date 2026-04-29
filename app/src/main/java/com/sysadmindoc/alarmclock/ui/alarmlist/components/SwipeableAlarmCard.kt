@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,10 +40,23 @@ fun SwipeableAlarmCard(
         positionalThreshold = { it * 0.55f }
     )
 
+    // v1.7.5: rememberSwipeToDismissBoxState persists offset via Saver, so a
+    // gesture interrupted mid-swipe (back press, tab navigation, etc.) can
+    // leave the card stuck visually offset on next composition. Snap back
+    // to Settled once on first composition so a partial drag never persists
+    // across navigation.
+    LaunchedEffect(Unit) {
+        if (dismissState.currentValue != SwipeToDismissBoxValue.Settled) {
+            dismissState.snapTo(SwipeToDismissBoxValue.Settled)
+        }
+    }
+
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
             val willDelete = dismissState.targetValue == SwipeToDismissBoxValue.EndToStart
+            val isSwiping = dismissState.currentValue != SwipeToDismissBoxValue.Settled ||
+                dismissState.targetValue != SwipeToDismissBoxValue.Settled
             val color by animateColorAsState(
                 if (willDelete) AccentRed.copy(alpha = 0.86f) else Color.Transparent,
                 label = "swipe_bg"
@@ -60,37 +74,44 @@ fun SwipeableAlarmCard(
                     .padding(end = 24.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                // v1.7.5: Only render the delete affordance when the user is
+                // actively swiping. Otherwise the "Swipe to delete" text and
+                // trash icon bleed through any semi-transparent foreground —
+                // which is exactly how disabled alarm cards (alpha 0.55)
+                // render — and look like a stuck swipe state.
+                if (isSwiping) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = if (willDelete) "Release to delete" else "Swipe to delete",
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        Text(
-                            text = "Undo is available right after removal",
-                            color = Color.White.copy(alpha = 0.82f),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    Surface(
-                        color = Color.White.copy(alpha = 0.14f),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = Color.White,
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .scale(scale)
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = if (willDelete) "Release to delete" else "Swipe to delete",
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                            Text(
+                                text = "Undo is available right after removal",
+                                color = Color.White.copy(alpha = 0.82f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        Surface(
+                            color = Color.White.copy(alpha = 0.14f),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "Delete",
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .padding(12.dp)
+                                    .scale(scale)
+                            )
+                        }
                     }
                 }
             }

@@ -2,6 +2,56 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.7.5] - 2026-04-29
+
+Visual UX uniformity pass. Touring the app on a real device exposed two
+layout regressions where the bottom of a tab read as empty even though
+content existed below. Both stem from the same Compose footgun: nesting
+a `Card`-with-content inside a `Column` and giving it `Modifier.weight(1f)`.
+`Card` (and `AppSurfaceCard`) wraps content height — it doesn't honour
+the weight allocation — so on a tall device the area below the wrapped
+card stays empty. This release replaces those layouts with scrollable
+columns and a manually-positioned FAB so every tab has a consistent,
+fully-occupied vertical rhythm.
+
+### Fixed
+
+- **Timer tab — empty space below the hero on devices with no active
+  timers.** Switched the parent `Column` to `verticalScroll`, dropped
+  the `weight(1f)` on `TimerInputView`, replaced the inner `LazyColumn`
+  for active timers with a forEach `Column`. Adds a 24dp Spacer at the
+  bottom so the input card breathes above the floating bottom nav.
+- **World Clock tab — saved cities not visible despite the "N cities"
+  hero chip.** Replaced the inner `Scaffold` (which competed for system
+  insets with the outer `AppNavigation` `Scaffold`) with a `Box` that
+  hosts the hero + content `Column` and overlays the FAB at
+  `BottomEnd`. `LazyColumn` `contentPadding.bottom` set to 96dp so the
+  last city card never hides behind the FAB. The hero chip "N cities"
+  is now hidden in the empty state for less visual noise.
+- **Today tab — duplicate "Now" cells in the hourly strip.** The
+  `isFirstFutureSlot` predicate ran a 45-minute window check on every
+  cell, so two or three adjacent hours all rendered with the "Now"
+  label. Replaced with a single-flag `firstNowAssigned` toggled after
+  the first matching cell. (already shipped in 1.7.4 hotfix path,
+  consolidated here.)
+- **Alarms tab — "Swipe to delete" text bleeding through disabled
+  alarm cards.** `AlarmCard` uses `SurfaceCard.copy(alpha = 0.55f)`
+  for disabled alarms, so the `SwipeToDismissBox` background (always
+  rendered, just transparent when not swiping) showed through any
+  disabled foreground. Looked like a stuck swipe gesture. Now the
+  delete affordance is gated on `isSwiping = currentValue !=
+  Settled || targetValue != Settled` so it only paints during an
+  active gesture. Also added a `LaunchedEffect(Unit)` that snaps
+  `dismissState` back to `Settled` on first composition — handles
+  the rare case where a saved partial-drag offset is restored across
+  navigation.
+
+### Polish
+
+- **World Clock hero chip set** trimmed in the empty state — no point
+  showing "0 cities" when the empty card already says "No world clocks
+  yet".
+
 ## [1.7.4] - 2026-04-29
 
 Today-tab weather pass. Centered, denser, and more useful for an alarm

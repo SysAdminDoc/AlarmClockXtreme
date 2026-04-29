@@ -389,18 +389,22 @@ class DashboardViewModel @Inject constructor(
         if (hourly == null) return emptyList()
         val times = hourly.time ?: return emptyList()
         val now = LocalDateTime.now()
+        // v1.7.5: only the FIRST cell ever gets the "Now" label. The previous
+        // implementation tagged every cell within 45 minutes of `now`, which
+        // produced "Now / Now / 7 PM / …" when the response straddled the
+        // top of the hour.
+        var firstNowAssigned = false
         return times.mapIndexedNotNull { i, timeStr ->
             val parsed = runCatching { LocalDateTime.parse(timeStr) }.getOrNull()
                 ?: return@mapIndexedNotNull null
-            // Drop slots that are already in the past so the strip always
-            // shows forward-looking data.
             if (parsed.isBefore(now.minusMinutes(30))) return@mapIndexedNotNull null
-            val isFirstFutureSlot = parsed.isBefore(now.plusMinutes(45))
             val temp = hourly.temperature?.getOrNull(i)?.let { "${it.toInt()}" } ?: "--"
             val code = hourly.weatherCode?.getOrNull(i) ?: -1
             val pop = hourly.precipChance?.getOrNull(i) ?: 0
+            val labelIsNow = !firstNowAssigned
+            firstNowAssigned = true
             HourlyForecast(
-                timeLabel = if (isFirstFutureSlot) "Now"
+                timeLabel = if (labelIsNow) "Now"
                     else parsed.format(DateTimeFormatter.ofPattern("h a")),
                 temperature = temp,
                 icon = WeatherCodes.icon(code),
