@@ -32,7 +32,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -67,80 +66,78 @@ fun WorldClockScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var pendingRemoval by remember { mutableStateOf<WorldClockEntry?>(null) }
 
-    Scaffold(
-        containerColor = SurfaceDark,
-        // v1.7.1: Inner Scaffold inherits system insets from the outer
-        // AppNavigation Scaffold (which already paddings NavHost with its
-        // bottom-nav inset). Without zeroing here we double-pad and the
-        // content stops short of the floating bottom nav, leaving a visible
-        // gap. Status bar + bottom nav still get applied at the outer level.
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = viewModel::showAddDialog,
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = TextPrimary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(modifier = Modifier.size(8.dp))
-                Text("Add city")
-            }
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(SurfaceDark)
+    ) {
+        // Single LazyColumn with hero + content as items. Mirrors the
+        // AlarmListScreen pattern so layout regressions like "cities don't
+        // render" can't happen — the LazyColumn owns the full vertical
+        // budget, no nested scrollables fighting for space.
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            AlarmClockHeroHeader(
-                title = "World Clock",
-                subtitle = "Track the cities that matter without doing time-zone math in your head.",
-                overline = "Global time",
-                badge = {
-                    AppStatusChip(
-                        label = "${state.localZone} • ${state.localTime}",
-                        icon = Icons.Default.Schedule
-                    )
-                    AppStatusChip(
-                        label = "${state.clocks.size} cities",
-                        icon = Icons.Default.Public
-                    )
-                }
-            )
+            item {
+                AlarmClockHeroHeader(
+                    title = "World Clock",
+                    subtitle = "Track the cities that matter without doing time-zone math in your head.",
+                    overline = "Global time",
+                    badge = {
+                        AppStatusChip(
+                            label = "${state.localZone} • ${state.localTime}",
+                            icon = Icons.Default.Schedule
+                        )
+                        if (state.clocks.isNotEmpty()) {
+                            AppStatusChip(
+                                label = "${state.clocks.size} cities",
+                                icon = Icons.Default.Public
+                            )
+                        }
+                    }
+                )
+            }
 
             if (state.clocks.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                    AppSurfaceCard(
+                item {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
+                            .padding(horizontal = 16.dp, vertical = 32.dp)
                     ) {
-                        AppEmptyState(
-                            icon = Icons.Default.Public,
-                            title = "No world clocks yet",
-                            description = "Add the cities you check most often and keep them one tap away.",
-                            footer = {
-                                TextButton(onClick = viewModel::showAddDialog) {
-                                    Text("Add a city", color = MaterialTheme.colorScheme.primary)
+                        AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+                            AppEmptyState(
+                                icon = Icons.Default.Public,
+                                title = "No world clocks yet",
+                                description = "Add the cities you check most often and keep them one tap away.",
+                                footer = {
+                                    TextButton(onClick = viewModel::showAddDialog) {
+                                        Text("Add a city", color = MaterialTheme.colorScheme.primary)
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
+                item {
+                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
                         AppSectionTitle(
                             title = "Saved cities",
                             description = "Offsets update live so you can compare times instantly."
                         )
                     }
+                }
 
-                    items(state.clocks, key = { it.zoneId }) { entry ->
+                items(state.clocks, key = { it.zoneId }) { entry ->
+                    Box(
+                        modifier = Modifier.padding(
+                            horizontal = 16.dp,
+                            vertical = 6.dp
+                        )
+                    ) {
                         WorldClockCard(
                             entry = entry,
                             onRemove = { pendingRemoval = entry }
@@ -148,6 +145,19 @@ fun WorldClockScreen(
                     }
                 }
             }
+        }
+
+        ExtendedFloatingActionButton(
+            onClick = viewModel::showAddDialog,
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = TextPrimary,
+            modifier = Modifier
+                .align(androidx.compose.ui.Alignment.BottomEnd)
+                .padding(16.dp)
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null)
+            Spacer(modifier = Modifier.size(8.dp))
+            Text("Add city")
         }
     }
 
