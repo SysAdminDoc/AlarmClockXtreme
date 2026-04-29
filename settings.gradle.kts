@@ -16,6 +16,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // Required by youtubedl-android (play flavor only). The library itself
+        // is referenced as a `playImplementation`, so f-droid builds never
+        // resolve it — but the repo must still be declared here because Gradle
+        // resolves dependencies for all flavors during sync.
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
