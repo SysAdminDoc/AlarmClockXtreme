@@ -72,3 +72,19 @@
 
 # ===== Workers =====
 -keep @androidx.hilt.work.HiltWorker class * { *; }
+
+# ===== NewPipe Extractor / Mozilla Rhino (v1.7.5) =====
+# RhinoScriptEngineFactory references javax.script.* which doesn't exist on
+# Android. NewPipe never actually loads the script-engine factory at runtime
+# on Android, so suppressing the warning is safe.
+-dontwarn javax.script.**
+-dontwarn org.mozilla.javascript.**
+-dontwarn org.mozilla.javascript.tools.**
+-dontwarn org.schabi.newpipe.extractor.**
+# Keep Mozilla Rhino's reflection-loaded classes — NewPipe Extractor uses
+# Rhino to evaluate YouTube's signature-decoding JavaScript.
+-keep class org.mozilla.javascript.** { *; }
+-keep class org.mozilla.classfile.** { *; }
+# NewPipe extractor uses Jsoup; keep its public API.
+-keep class org.jsoup.** { *; }
+-dontwarn org.jsoup.**
