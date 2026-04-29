@@ -2,6 +2,95 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.9.0] - 2026-04-29
+
+The Today tab is alive. The screen background now renders the actual sky
+above your location — interpolated minute-by-minute through a 15-keyframe
+table anchored to real sunrise / sunset — and reacts to current weather:
+storms swap to overcast blue-gray with lightning flashes at night, and
+NWS tornado warnings paint a rotating funnel-cloud silhouette plus a red
+warning banner.
+
+### Added — `TimeOfDaySky` engine
+
+- 15 hand-tuned keyframes spanning t = -0.40 (deep night before dawn)
+  through t = 1.40 (deep night after dusk), with t = 0 at sunrise and
+  t = 1 at sunset. Each keyframe stores a 3-stop gradient (`top`, `mid`,
+  `bot`) corresponding to zenith / mid-band / horizon.
+- `computeT(now, sunrise, sunset)` maps a clock time to its position
+  along the day cycle. With sunrise 06:00 + sunset 20:00 (14h day),
+  midnight resolves to t ≈ -0.43 (deep night), 11 PM to t ≈ 1.07 (dusk).
+- `gradientForT(t)` linearly interpolates RGB between the two keyframes
+  bracketing `t` so every minute reads as its own subtly-different sky.
+- Convenience predicates `isDaytime(t)` / `isDeepNight(t)` for downstream
+  layers (lightning intensity, content contrast).
+
+### Added — Weather overrides
+
+- `WeatherSkyOverrides.STORM_DAY` (gray-blue overcast) and `STORM_NIGHT`
+  (near-black) bypass the time-of-day table when the current Open-Meteo
+  weather code is 95-99 (thunderstorm / hail).
+- `WeatherSkyOverrides.TORNADO_SKY` — the classic dark-olive ceiling /
+  sickly yellow-green horizon — bypasses everything when an active NWS
+  tornado warning is detected.
+
+### Added — `WeatherSkyBackground` composable
+
+Stacks five layers behind the Today tab content:
+
+1. **Base sky gradient** (time-of-day or weather override).
+2. **Long fade to `SurfaceDark`** so cards below the hero return to the
+   app's neutral surface — a vivid sky behind a vivid weather card would
+   sap contrast.
+3. **Lightning flashes** when the current weather code is a thunderstorm.
+   A stochastic 4-9-second loop drives short ramps (60ms up, 220ms decay)
+   to white at ~28% alpha; tornado mode boosts the intensity and adds
+   ~30%-chance double-strike aftershocks.
+4. **Tornado funnel + warning banner** when `tornadoAlertActive` is true.
+   The funnel is a Canvas-drawn silhouette with rotation + drift
+   animations layered over each other; the banner pins below the status
+   bar with a red TORNADO WARNING + cyclone icon.
+5. **Actual content** — Today's Column rendered on a transparent column
+   so the sky shows through.
+
+### Added — NWS alerts integration
+
+- `WeatherAlertsApi` + `WeatherAlertsRepository` against
+  `api.weather.gov/alerts/active`. Free, no key, US-only. Returns empty
+  features outside the US, so it's safe to call unconditionally.
+- Sends a User-Agent identifying the app + repo URL — required by NWS
+  to avoid 403s under their rate-limit policy.
+- Distills the response to `WeatherAlertFlags(tornadoActive, severeStorm,
+  headline)` — the rest of the app only needs the boolean signal.
+- All failures absorbed silently; alerts are bonus context, never the
+  critical path.
+
+### Changed
+
+- **`AlarmClockHeroHeader`** gains a `transparent: Boolean = false`
+  parameter. When true, the hero skips its own gradient + radial overlay
+  so a parent backdrop (the dynamic sky) shows through. Other tabs
+  retain the default header treatment unchanged.
+- **DashboardUiState** gains `sunriseLocal: LocalTime?`, `sunsetLocal:
+  LocalTime?`, `currentWeatherCode: Int?`, `tornadoAlertActive: Boolean`,
+  `severeWeatherHeadline: String?` so the dynamic sky has parsed inputs
+  rather than re-parsing display strings.
+- **DashboardScreen** wraps the entire scrollable content in
+  `WeatherSkyBackground`. The hero hosts an inline `Tornado warning`
+  status chip when an alert is active, so the signal is visible before
+  the user scrolls.
+- **NetworkModule**: new `provideWeatherAlertsApi` against
+  `api.weather.gov` baseUrl.
+
+### Notes
+
+- **US-only tornado coverage** by design — NWS only issues alerts for
+  the United States. International users see the time-of-day sky and
+  the storm/lightning visuals; tornado overlay never triggers.
+- The keyframe colors were specified by user request and are stored in
+  `TimeOfDaySky.KEYFRAMES`. Editing the table (e.g., for a more saturated
+  sunset) changes the visual everywhere.
+
 ## [1.8.1] - 2026-04-29
 
 Premium-polish pass. No new features, no schema changes — every change in
