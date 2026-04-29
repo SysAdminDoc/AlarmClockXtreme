@@ -1,6 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed **2026-04-26** alongside **v1.6.0**.
+Living feature backlog, refreshed **2026-04-29** alongside **v1.6.1**
+(premium-polish design-system pass — see [CHANGELOG.md](CHANGELOG.md)).
 
 This is the "what's left" side of [CLAUDE.md](CLAUDE.md). Entries are ranked
 by impact-to-effort and grouped by theme. Effort column: **S** = a session,
