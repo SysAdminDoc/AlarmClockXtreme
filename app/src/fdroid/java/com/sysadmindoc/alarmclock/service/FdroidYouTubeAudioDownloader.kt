@@ -30,6 +30,13 @@ class FdroidYouTubeAudioDownloader @Inject constructor() : YouTubeAudioDownloade
                 "YouTube search isn't available in the F-Droid build."
             )
         )
+
+    override suspend fun getPreviewStreamUrl(youtubeUrl: String): Result<String> =
+        Result.failure(
+            UnsupportedOperationException(
+                "YouTube preview isn't available in the F-Droid build."
+            )
+        )
 }
 
 @Singleton
