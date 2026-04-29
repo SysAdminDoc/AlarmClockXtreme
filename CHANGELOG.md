@@ -2,6 +2,36 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.6.2] - 2026-04-29
+
+Easier alarm dismissal — both from the lock-screen notification and via
+gestures on the firing screen.
+
+### Changed
+
+- **Tapping the alarm notification now opens the firing screen.** The
+  notification used to set only `setFullScreenIntent`, so if the
+  full-screen launch was suppressed (e.g. user is mid-call) or the
+  notification had collapsed in the shade, tapping the body did
+  nothing — only the action buttons were reachable. Added
+  `setContentIntent(fullScreenPi)` so the notification body now routes
+  to `AlarmFiringActivity`.
+- **Swipe LEFT to dismiss, RIGHT to snooze.** The firing-screen swipe
+  directions are flipped to match the user's mental model: dismiss is
+  the destructive "get this out of my life" action and now lives on the
+  left, mirroring swipe-to-delete conventions across Android. Snooze is
+  the recoverable "buy me a few more minutes" action on the right.
+  Hint copy and the "Alarm controls" status chips updated to match.
+
+### Why
+
+The old swipe direction (right=dismiss / left=snooze) made dismiss feel
+like a forward action. In practice, users reach for "make this stop" as
+a swipe-away gesture — left works better. And the missing
+`setContentIntent` was a real dead-end: a returning notification tap did
+absolutely nothing, which is exactly the wrong behaviour for an
+ongoing-alarm notification.
+
 ## [1.6.1] - 2026-04-29
 
 Premium-polish design-system pass. No new features, no schema changes —
