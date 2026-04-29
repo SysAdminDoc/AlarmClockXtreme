@@ -69,6 +69,12 @@ fun WorldClockScreen(
 
     Scaffold(
         containerColor = SurfaceDark,
+        // v1.7.1: Inner Scaffold inherits system insets from the outer
+        // AppNavigation Scaffold (which already paddings NavHost with its
+        // bottom-nav inset). Without zeroing here we double-pad and the
+        // content stops short of the floating bottom nav, leaving a visible
+        // gap. Status bar + bottom nav still get applied at the outer level.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = viewModel::showAddDialog,

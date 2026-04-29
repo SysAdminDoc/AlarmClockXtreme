@@ -123,6 +123,14 @@ class SettingsViewModel @Inject constructor(
     fun updateSleepSoundFade(seconds: Int) =
         updateSettings { it.copy(sleepSoundFadeSeconds = seconds.coerceIn(5, 600)) }
 
+    // v1.7.1: Bottom-nav visibility toggles
+    fun toggleShowDashboardTab(enabled: Boolean) =
+        updateSettings { it.copy(showDashboardTab = enabled) }
+    fun toggleShowTimerTab(enabled: Boolean) =
+        updateSettings { it.copy(showTimerTab = enabled) }
+    fun toggleShowWorldClockTab(enabled: Boolean) =
+        updateSettings { it.copy(showWorldClockTab = enabled) }
+
     fun toggle24Hour(enabled: Boolean) = updateSettings { it.copy(is24HourFormat = enabled) }
     fun togglePhoneSpeakers(enabled: Boolean) = updateSettings { it.copy(usePhoneSpeakers = enabled) }
     fun toggleLockScreen(enabled: Boolean) = updateSettings { it.copy(showOnLockScreen = enabled) }

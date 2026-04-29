@@ -114,8 +114,11 @@ fun AlarmClockHeroHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(horizontal = 20.dp, vertical = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                // v1.7.1: vertical 18dp → 12dp, gap 14dp → 10dp. The hero
+                // takes ~70dp less now, so the first alarm card lands above
+                // the fold on standard phones.
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             if (actions != null) {
                 Row(
