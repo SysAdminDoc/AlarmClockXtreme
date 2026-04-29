@@ -34,6 +34,15 @@ data class DashboardUiState(
     val showRadar: Boolean = true,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    // v1.9.0: dynamic sky theming. The sunrise/sunset strings above are
+    // already formatted for display; we keep their parsed `LocalTime` form
+    // here for the keyframe interpolator. `currentWeatherCode` drives
+    // storm overrides; `tornadoAlertActive` drives the tornado visual.
+    val sunriseLocal: java.time.LocalTime? = null,
+    val sunsetLocal: java.time.LocalTime? = null,
+    val currentWeatherCode: Int? = null,
+    val tornadoAlertActive: Boolean = false,
+    val severeWeatherHeadline: String? = null,
     // Weather
     val weatherLoading: Boolean = false,
     val temperature: String = "",
@@ -89,6 +98,7 @@ data class HourlyForecast(
 class DashboardViewModel @Inject constructor(
     application: Application,
     private val weatherRepository: WeatherRepository,
+    private val weatherAlertsRepository: com.sysadmindoc.alarmclock.data.repository.WeatherAlertsRepository,
     private val calendarRepository: CalendarRepository,
     private val preferencesManager: PreferencesManager,
     private val alarmScheduler: AlarmScheduler,
@@ -224,15 +234,28 @@ class DashboardViewModel @Inject constructor(
                         windSpeed = current?.windSpeed?.let { "${it.toInt()} $windUnitLabel" } ?: "",
                         weatherDescription = current?.weatherCode?.let { WeatherCodes.describe(it) } ?: "",
                         weatherIcon = current?.weatherCode?.let { WeatherCodes.icon(it) } ?: "unknown",
+                        currentWeatherCode = current?.weatherCode,
                         highTemp = daily?.maxTemp?.firstOrNull()?.let { "${it.toInt()}" } ?: "--",
                         lowTemp = daily?.minTemp?.firstOrNull()?.let { "${it.toInt()}" } ?: "--",
                         precipChance = daily?.precipChance?.firstOrNull()?.let { "${it}%" } ?: "",
                         sunrise = formatTimeOfDay(daily?.sunrise?.firstOrNull()),
                         sunset = formatTimeOfDay(daily?.sunset?.firstOrNull()),
+                        sunriseLocal = parseTimeOfDay(daily?.sunrise?.firstOrNull()),
+                        sunsetLocal = parseTimeOfDay(daily?.sunset?.firstOrNull()),
                         uvIndex = formatUv(current?.uvIndex ?: daily?.uvIndexMax?.firstOrNull()),
                         hourly = buildHourly(hourly),
                         forecast = buildForecast(daily)
                     ) }
+
+                    // Fire-and-forget NWS alerts fetch. Failure is silent —
+                    // alerts are bonus context, never the critical path.
+                    viewModelScope.launch {
+                        val flags = weatherAlertsRepository.fetch(lat, lon)
+                        _uiState.update { it.copy(
+                            tornadoAlertActive = flags.tornadoActive,
+                            severeWeatherHeadline = flags.headline,
+                        ) }
+                    }
                 }
                 .onFailure { e ->
                     _uiState.update { it.copy(
@@ -430,6 +453,16 @@ class DashboardViewModel @Inject constructor(
         if (iso.isNullOrBlank()) return ""
         val parsed = runCatching { LocalDateTime.parse(iso) }.getOrNull() ?: return ""
         return parsed.format(DateTimeFormatter.ofPattern("h:mm a"))
+    }
+
+    /**
+     * Same source ISO as [formatTimeOfDay] but returns the parsed `LocalTime`
+     * for the keyframe sky engine. Decoupled so the formatted display string
+     * and the engine input stay in sync.
+     */
+    private fun parseTimeOfDay(iso: String?): java.time.LocalTime? {
+        if (iso.isNullOrBlank()) return null
+        return runCatching { LocalDateTime.parse(iso).toLocalTime() }.getOrNull()
     }
 
     /**

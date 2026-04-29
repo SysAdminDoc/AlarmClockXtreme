@@ -88,7 +88,13 @@ fun AlarmClockHeroHeader(
     overline: String? = null,
     badge: (@Composable RowScope.() -> Unit)? = null,
     actions: (@Composable RowScope.() -> Unit)? = null,
-    content: (@Composable ColumnScope.() -> Unit)? = null
+    content: (@Composable ColumnScope.() -> Unit)? = null,
+    /**
+     * v1.9.0: when true, the hero renders with no background of its own.
+     * Used by the Today tab so the dynamic time-of-day sky behind it shows
+     * through. Other tabs keep the default blue header gradient.
+     */
+    transparent: Boolean = false,
 ) {
     // A premium hero header is a single confident gradient, not a stack of
     // washes. We keep one vertical fade (deep blue → app surface) plus a
@@ -96,30 +102,36 @@ fun AlarmClockHeroHeader(
     // earlier 4-stop gradient + nested overlay box created banding and
     // muddied the brand on AMOLED.
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        HeaderTop.copy(alpha = 0.55f),
-                        HeaderBottom
-                    )
-                )
-            )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
+        modifier = if (transparent) {
+            modifier.fillMaxWidth()
+        } else {
+            modifier
+                .fillMaxWidth()
                 .background(
-                    Brush.radialGradient(
+                    Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                            Color.Transparent
-                        ),
-                        radius = 720f
+                            HeaderTop.copy(alpha = 0.55f),
+                            HeaderBottom
+                        )
                     )
                 )
-        )
+        }
+    ) {
+        if (!transparent) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                Color.Transparent
+                            ),
+                            radius = 720f
+                        )
+                    )
+            )
+        }
 
         Column(
             modifier = Modifier

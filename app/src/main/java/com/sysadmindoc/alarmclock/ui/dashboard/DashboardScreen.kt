@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material.icons.filled.Umbrella
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.WbCloudy
 import androidx.compose.material.icons.filled.WbSunny
@@ -75,6 +76,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppLoadingCard
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.WeatherSkyBackground
 import com.sysadmindoc.alarmclock.ui.components.WindyRadarCard
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
@@ -100,50 +102,59 @@ fun DashboardScreen(
         viewModel.loadData()
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(SurfaceDark)
-            .verticalScroll(rememberScrollState())
+    // v1.9.0: dynamic time-of-day + weather sky behind the entire Today
+    // tab. The sky reads as the background; cards bring their own surfaces
+    // so content remains legible against any keyframe.
+    WeatherSkyBackground(
+        sunrise = state.sunriseLocal,
+        sunset = state.sunsetLocal,
+        weatherCode = state.currentWeatherCode,
+        tornadoActive = state.tornadoAlertActive,
     ) {
-        DashboardHeader(state)
-
         Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
         ) {
-            if (!state.showWeather && !state.showCalendar) {
-                AppSurfaceCard {
-                    AppEmptyState(
-                        icon = Icons.Default.Schedule,
-                        title = "Your dashboard is intentionally quiet",
-                        description = "Weather and calendar cards are turned off. Re-enable them anytime from Settings."
+            DashboardHeader(state)
+
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (!state.showWeather && !state.showCalendar) {
+                    AppSurfaceCard {
+                        AppEmptyState(
+                            icon = Icons.Default.Schedule,
+                            title = "Today is quiet",
+                            description = "Weather and calendar cards are off. Toggle them on in Settings."
+                        )
+                    }
+                }
+
+                if (state.showWeather) {
+                    WeatherSection(
+                        state = state,
+                        onChangeLocation = viewModel::showLocationPicker
                     )
                 }
-            }
 
-            if (state.showWeather) {
-                WeatherSection(
-                    state = state,
-                    onChangeLocation = viewModel::showLocationPicker
-                )
-            }
+                // v1.8.0: Windy radar embed below the static weather card. Hidden
+                // until we actually have a coordinate to center on (otherwise the
+                // iframe shows the default Windy "world" view, which is jarring
+                // when the rest of the screen is local-conditions data).
+                if (state.showWeather && state.showRadar && state.hasLocation &&
+                    state.latitude != null && state.longitude != null) {
+                    WindyRadarCard(
+                        latitude = state.latitude,
+                        longitude = state.longitude,
+                        locationLabel = state.locationName.ifBlank { "your area" }
+                    )
+                }
 
-            // v1.8.0: Windy radar embed below the static weather card. Hidden
-            // until we actually have a coordinate to center on (otherwise the
-            // iframe shows the default Windy "world" view, which is jarring
-            // when the rest of the screen is local-conditions data).
-            if (state.showWeather && state.showRadar && state.hasLocation &&
-                state.latitude != null && state.longitude != null) {
-                WindyRadarCard(
-                    latitude = state.latitude,
-                    longitude = state.longitude,
-                    locationLabel = state.locationName.ifBlank { "your area" }
-                )
-            }
-
-            if (state.showCalendar) {
-                CalendarSection(state)
+                if (state.showCalendar) {
+                    CalendarSection(state)
+                }
             }
         }
     }
@@ -179,19 +190,34 @@ private fun DashboardHeader(state: DashboardUiState) {
     // v1.8.0: Hero retitled "Weather" since the screen is now a weather hub
     // (centered conditions, hourly, 3-day, sunrise/sunset, UV, Windy radar).
     // Calendar still lives below the fold but is no longer the headline.
+    // v1.9.0: hero is transparent so the dynamic sky behind the screen
+    // shows through. Active tornado warnings surface as a hero chip so the
+    // signal is visible immediately, before the user scrolls.
+    val hasTornadoChip = state.tornadoAlertActive
+    val hasCalendarChip = state.showCalendar && state.calendarPermissionNeeded
     AlarmClockHeroHeader(
+        transparent = true,
         title = "Weather",
         subtitle = "$greeting ${state.todayDate}",
         overline = "Daily overview",
-        badge = if (state.showCalendar && state.calendarPermissionNeeded) {
+        badge = if (hasTornadoChip || hasCalendarChip) {
             {
-                AppStatusChip(
-                    label = "Calendar needs permission",
-                    icon = Icons.Default.CalendarMonth,
-                    color = SnoozeYellow
-                )
+                if (hasTornadoChip) {
+                    AppStatusChip(
+                        label = "Tornado warning",
+                        icon = Icons.Default.Warning,
+                        color = AccentRed,
+                    )
+                }
+                if (hasCalendarChip) {
+                    AppStatusChip(
+                        label = "Calendar needs permission",
+                        icon = Icons.Default.CalendarMonth,
+                        color = SnoozeYellow,
+                    )
+                }
             }
-        } else null
+        } else null,
     )
 }
 

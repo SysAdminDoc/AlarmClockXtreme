@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.8.1-blue)
+![Version](https://img.shields.io/badge/version-1.9.0-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.8.1-play.apk
+adb install AlarmClockXtreme-v1.9.0-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor). The F-Droid flavor strips that downloader for an unencumbered build.
@@ -124,6 +124,9 @@ cd AlarmClockXtreme
 |---------|-------------|
 | Weather Tab | Centered weather hero, 3-day vertical forecast, sunrise/sunset, UV index with EPA bands, hourly strip with rain probability — Open-Meteo, free, no API key |
 | Live Radar | Animated precipitation radar embedded from Windy.com (no key, no SDK) — auto-centers on your weather location |
+| Time-of-Day Sky | The Today tab background follows your real sunrise/sunset through a 15-keyframe gradient — deep night, civil dawn, sunrise, midday peak, golden hour, dusk |
+| Weather-Aware Theme | Storms swap the sky to overcast blue-gray; night storms drop to near-black with subtle lightning flashes; tornado warnings render a rotating funnel cloud silhouette + warning banner |
+| Tornado Alerts (US) | NWS active-alerts integration via api.weather.gov — no key, free, US-only — drives the on-screen warning |
 | News Tab | Public RSS reader (Google News, BBC, NPR, Hacker News presets) — pull-to-refresh, tap to open in browser, no accounts |
 | Calendar Integration | Today's events from device calendar |
 | World Clock | Live time zones with UTC offset, 24h format support, persistent saved cities |
@@ -222,6 +225,7 @@ cd AlarmClockXtreme
 
 No analytics. No ads. No tracking. No accounts. No data leaves your device except:
 - Weather API calls to Open-Meteo (latitude/longitude only)
+- Active-alerts calls to api.weather.gov / NWS (latitude/longitude only, US-only)
 - Holiday API calls to Nager.Date (country code only)
 - Live radar embed from Windy.com on the Weather tab (latitude/longitude only — Windy's privacy policy applies inside the embed)
 - News RSS calls to your configured feed source (Google News / BBC / NPR / etc. — no auth, no fingerprinting)
