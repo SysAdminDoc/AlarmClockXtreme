@@ -397,6 +397,12 @@ class AlarmService : Service() {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setFullScreenIntent(fullScreenPi, true)
+            // Tapping the collapsed notification body should also open the
+            // firing screen — without setContentIntent, only the action
+            // buttons or the auto-launched full-screen intent are reachable,
+            // which is a confusing dead-end if the FSI was suppressed (e.g.
+            // user is mid-call) or already dismissed.
+            .setContentIntent(fullScreenPi)
             .setOngoing(true)
             .setAutoCancel(false)
             .addAction(R.drawable.ic_alarm, "Snooze ${alarm.snoozeDurationMinutes}m", snoozePi)
