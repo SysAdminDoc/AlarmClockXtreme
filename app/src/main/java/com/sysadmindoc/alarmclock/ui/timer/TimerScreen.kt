@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -83,10 +84,16 @@ fun TimerScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // v1.7.5: switched to verticalScroll so the build-a-timer card is
+    // always visible. The previous weight(1f)-on-AppSurfaceCard layout
+    // depended on the Card honoring the weight allocation, but Card wraps
+    // content and ignored it — so on devices with no active timers, only
+    // the hero rendered and the bottom of the screen was empty.
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SurfaceDark)
+            .verticalScroll(androidx.compose.foundation.rememberScrollState())
     ) {
         AlarmClockHeroHeader(
             title = if (state.activeTimers.isEmpty()) "Timer" else "${state.activeTimers.size} timer${if (state.activeTimers.size == 1) "" else "s"} running",
@@ -108,20 +115,21 @@ fun TimerScreen(
         )
 
         if (state.activeTimers.isNotEmpty()) {
-            LazyColumn(
+            // v1.7.5: LazyColumn → forEach because the parent Column is now
+            // verticalScroll-able. Active-timer counts are tiny (typically
+            // <10) so the laziness gain is negligible vs the layout
+            // simplicity gain.
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.5f),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {
-                    AppSectionTitle(
-                        title = "Active timers",
-                        description = "Pause, resume, or dismiss countdowns without losing context."
-                    )
-                }
-                items(state.activeTimers, key = { it.id }) { timer ->
+                AppSectionTitle(
+                    title = "Active timers",
+                    description = "Pause, resume, or dismiss countdowns without losing context."
+                )
+                state.activeTimers.forEach { timer ->
                     ActiveTimerCard(
                         timer = timer,
                         onPause = { viewModel.pause(timer.id) },
@@ -136,8 +144,11 @@ fun TimerScreen(
         TimerInputView(
             state = state,
             viewModel = viewModel,
-            modifier = Modifier.weight(if (state.activeTimers.isEmpty()) 1f else 0.5f)
+            modifier = Modifier.fillMaxWidth()
         )
+
+        // Breathing room above the floating bottom-nav.
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 

@@ -157,29 +157,24 @@ private fun DashboardHeader(state: DashboardUiState) {
         }
     }
 
+    // v1.7.5: Hero used to also show "Current Location" + "Nothing booked"
+    // chips, but the same info is right below in the weather card and the
+    // calendar card respectively. The chips were just doubling-up.
+    // Calendar-permission-needed chip is kept because it's an actionable
+    // warning, not a duplicate.
     AlarmClockHeroHeader(
         title = "My Day",
         subtitle = "$greeting ${state.todayDate}",
         overline = "Daily overview",
-        badge = {
-            if (state.showWeather && state.locationName.isNotBlank()) {
+        badge = if (state.showCalendar && state.calendarPermissionNeeded) {
+            {
                 AppStatusChip(
-                    label = state.locationName,
-                    icon = Icons.Default.LocationOn
-                )
-            }
-            if (state.showCalendar) {
-                AppStatusChip(
-                    label = when {
-                        state.calendarPermissionNeeded -> "Calendar needs permission"
-                        state.calendarEvents.isEmpty() -> "Nothing booked"
-                        else -> "${state.calendarEvents.size} events today"
-                    },
+                    label = "Calendar needs permission",
                     icon = Icons.Default.CalendarMonth,
-                    color = if (state.calendarPermissionNeeded) SnoozeYellow else DismissGreen
+                    color = SnoozeYellow
                 )
             }
-        }
+        } else null
     )
 }
 
@@ -543,38 +538,40 @@ private fun HourlyCell(hour: HourlyForecast) {
 
 @Composable
 private fun CalendarSection(state: DashboardUiState) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AppSectionTitle(
-            title = "Today’s schedule",
-            description = "See upcoming commitments before the day gets moving."
+    // v1.7.5: Title moved INTO the card so the calendar section matches the
+    // "Next few hours" / "Next 3 days" weather sub-cards. Previously the
+    // section title floated outside the card, looking like a stray label.
+    AppSurfaceCard {
+        Text(
+            "Today's schedule",
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
         )
+        when {
+            state.calendarPermissionNeeded -> {
+                AppEmptyState(
+                    icon = Icons.Default.CalendarMonth,
+                    title = "Calendar access helps this page feel alive",
+                    description = "Grant calendar permission to show today’s events and surface your first meeting automatically.",
+                    accent = SnoozeYellow
+                )
+            }
 
-        AppSurfaceCard {
-            when {
-                state.calendarPermissionNeeded -> {
-                    AppEmptyState(
-                        icon = Icons.Default.CalendarMonth,
-                        title = "Calendar access helps this page feel alive",
-                        description = "Grant calendar permission to show today’s events and surface your first meeting automatically.",
-                        accent = SnoozeYellow
-                    )
-                }
+            state.calendarEvents.isEmpty() -> {
+                AppEmptyState(
+                    icon = Icons.Default.EventAvailable,
+                    title = "Nothing booked today",
+                    description = "Enjoy the breathing room. Your events will appear here whenever your schedule fills up.",
+                    accent = DismissGreen
+                )
+            }
 
-                state.calendarEvents.isEmpty() -> {
-                    AppEmptyState(
-                        icon = Icons.Default.EventAvailable,
-                        title = "Nothing booked today",
-                        description = "Enjoy the breathing room. Your events will appear here whenever your schedule fills up.",
-                        accent = DismissGreen
-                    )
-                }
-
-                else -> {
-                    state.calendarEvents.forEachIndexed { index, event ->
-                        EventRow(event)
-                        if (index != state.calendarEvents.lastIndex) {
-                            HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
-                        }
+            else -> {
+                state.calendarEvents.forEachIndexed { index, event ->
+                    EventRow(event)
+                    if (index != state.calendarEvents.lastIndex) {
+                        HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
                     }
                 }
             }
