@@ -104,6 +104,14 @@ data class AppSettings(
     val showDashboardTab: Boolean = true,
     val showTimerTab: Boolean = true,
     val showWorldClockTab: Boolean = true,
+    // v1.8.0: Show News tab (RSS feed reader, Google News default).
+    val showNewsTab: Boolean = true,
+    // v1.8.0: Show the Windy radar embed at the bottom of the Weather tab.
+    val showRadarEmbed: Boolean = true,
+    // v1.8.0: News feed source URL. Defaults to Google News top stories,
+    // but power users can paste any RSS/Atom URL — Rome handles all three
+    // major feed flavors.
+    val newsFeedUrl: String = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
 )
 
 private fun AppSettings.sanitized(): AppSettings {
@@ -232,6 +240,9 @@ class PreferencesManager @Inject constructor(
         val SHOW_DASHBOARD_TAB = booleanPreferencesKey("show_dashboard_tab")
         val SHOW_TIMER_TAB = booleanPreferencesKey("show_timer_tab")
         val SHOW_WORLD_CLOCK_TAB = booleanPreferencesKey("show_world_clock_tab")
+        val SHOW_NEWS_TAB = booleanPreferencesKey("show_news_tab")
+        val SHOW_RADAR_EMBED = booleanPreferencesKey("show_radar_embed")
+        val NEWS_FEED_URL = stringPreferencesKey("news_feed_url")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -318,6 +329,10 @@ class PreferencesManager @Inject constructor(
         showDashboardTab = this[Keys.SHOW_DASHBOARD_TAB] ?: true,
         showTimerTab = this[Keys.SHOW_TIMER_TAB] ?: true,
         showWorldClockTab = this[Keys.SHOW_WORLD_CLOCK_TAB] ?: true,
+        showNewsTab = this[Keys.SHOW_NEWS_TAB] ?: true,
+        showRadarEmbed = this[Keys.SHOW_RADAR_EMBED] ?: true,
+        newsFeedUrl = this[Keys.NEWS_FEED_URL]
+            ?: "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
@@ -372,5 +387,8 @@ class PreferencesManager @Inject constructor(
         this[Keys.SHOW_DASHBOARD_TAB] = s.showDashboardTab
         this[Keys.SHOW_TIMER_TAB] = s.showTimerTab
         this[Keys.SHOW_WORLD_CLOCK_TAB] = s.showWorldClockTab
+        this[Keys.SHOW_NEWS_TAB] = s.showNewsTab
+        this[Keys.SHOW_RADAR_EMBED] = s.showRadarEmbed
+        this[Keys.NEWS_FEED_URL] = s.newsFeedUrl
     }
 }

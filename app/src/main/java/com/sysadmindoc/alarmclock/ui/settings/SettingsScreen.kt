@@ -313,9 +313,9 @@ fun SettingsScreen(
                 description = "Hide tabs you never use. Alarms and Settings always stay available."
             ) {
                 SettingsToggle(
-                    label = "Show Today tab",
+                    label = "Show Weather tab",
                     checked = state.settings.showDashboardTab,
-                    supportingText = "Daily overview with weather and calendar.",
+                    supportingText = "Conditions, hourly, sunrise/sunset, UV, and live radar.",
                     onToggle = viewModel::toggleShowDashboardTab
                 )
                 SettingsToggle(
@@ -329,6 +329,18 @@ fun SettingsScreen(
                     checked = state.settings.showWorldClockTab,
                     supportingText = "Track time zones for cities you care about.",
                     onToggle = viewModel::toggleShowWorldClockTab
+                )
+                SettingsToggle(
+                    label = "Show News tab",
+                    checked = state.settings.showNewsTab,
+                    supportingText = "Public RSS feeds — Google News, BBC, NPR, Hacker News.",
+                    onToggle = viewModel::toggleShowNewsTab
+                )
+                SettingsToggle(
+                    label = "Live radar on Weather tab",
+                    checked = state.settings.showRadarEmbed,
+                    supportingText = "Embed Windy.com's animated precipitation radar below the conditions card.",
+                    onToggle = viewModel::toggleShowRadarEmbed
                 )
             }
 

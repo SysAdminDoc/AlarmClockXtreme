@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.7.5-blue)
+![Version](https://img.shields.io/badge/version-1.8.0-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.7.5-play.apk
+adb install AlarmClockXtreme-v1.8.0-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor). The F-Droid flavor strips that downloader for an unencumbered build.
@@ -122,7 +122,9 @@ cd AlarmClockXtreme
 ### Dashboard & Utilities
 | Feature | Description |
 |---------|-------------|
-| Today Tab | Centered weather hero, 3-day vertical forecast, sunrise/sunset, UV index with EPA bands, hourly strip with rain probability — Open-Meteo, free, no API key |
+| Weather Tab | Centered weather hero, 3-day vertical forecast, sunrise/sunset, UV index with EPA bands, hourly strip with rain probability — Open-Meteo, free, no API key |
+| Live Radar | Animated precipitation radar embedded from Windy.com (no key, no SDK) — auto-centers on your weather location |
+| News Tab | Public RSS reader (Google News, BBC, NPR, Hacker News presets) — pull-to-refresh, tap to open in browser, no accounts |
 | Calendar Integration | Today's events from device calendar |
 | World Clock | Live time zones with UTC offset, 24h format support, persistent saved cities |
 | Multiple Timers | Run several countdown timers concurrently (monotonic clock) |
@@ -133,7 +135,7 @@ cd AlarmClockXtreme
 | Home Widget | Glance-based widget showing next alarm countdown |
 | Persistent Notification | Always-visible next alarm countdown in shade |
 | Quick Settings Tile | Skip the next alarm from the system shade with one tap |
-| Tab Visibility Toggles | Hide Today / Timer / World tabs from the bottom nav (Alarms + Settings always visible) |
+| Tab Visibility Toggles | Hide Weather / Timer / World / News tabs from the bottom nav (Alarms + Settings always visible) |
 | Accent Color | Customizable accent color within dark theme |
 | Material You | Opt-in dynamic color from wallpaper palette (Android 12+) |
 | Wind-Down Checklist | Pre-sleep checklist rendered on the Bedtime tab |
@@ -221,6 +223,8 @@ cd AlarmClockXtreme
 No analytics. No ads. No tracking. No accounts. No data leaves your device except:
 - Weather API calls to Open-Meteo (latitude/longitude only)
 - Holiday API calls to Nager.Date (country code only)
+- Live radar embed from Windy.com on the Weather tab (latitude/longitude only — Windy's privacy policy applies inside the embed)
+- News RSS calls to your configured feed source (Google News / BBC / NPR / etc. — no auth, no fingerprinting)
 - Webhook calls to your own configured URL
 - Internet radio streaming to your configured station
 

@@ -2,6 +2,68 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.8.0] - 2026-04-29
+
+Two new tabs and a live radar embed. The "Today" tab graduates into a full
+**Weather** hub with an animated precipitation radar from Windy, and a brand
+new **News** tab pulls public RSS feeds (Google News, BBC, NPR, Hacker News).
+Both follow the existing no-account/no-API-key rule — Windy via its public
+embed endpoint, news via plain RSS over OkHttp + Android's built-in
+XmlPullParser. No new SDKs.
+
+### Added
+
+- **Live radar on the Weather tab.** New `WindyRadarCard` composable — a
+  fixed-height (360 dp) `WebView` pointed at `embed.windy.com/embed2.html`
+  with `overlay=radar` and `radarRange=-1` for animated playback. The embed
+  endpoint serves no `X-Frame-Options` / CSP, so it loads cleanly in WebView
+  with `javaScriptEnabled` and `domStorageEnabled`. Auto-centers on the
+  user's weather location (lat/lon already plumbed for forecast). A
+  secondary "Open full map in Windy" button hands off to the browser via
+  `LocalUriHandler` for users who want pan/zoom past what the embed allows.
+- **Weather tab.** Renamed bottom-nav label from "Today" → "Weather" and
+  retitled the hero. Calendar still lives below the fold but is no longer
+  the headline. Hero chips reduced to the active context only.
+- **News tab.** New `NewsScreen` + `NewsViewModel` + `NewsRepository`.
+  Six pre-configured feeds (Google News Top/World/Tech, BBC, NPR, Hacker
+  News) selectable via filter chips; the active feed is persisted to
+  DataStore (`newsFeedUrl`). Each headline renders as a tappable card —
+  title, 3-line snippet, source chip, relative-time chip ("58m ago"),
+  open-in-new icon. Pull-to-refresh button in the hero actions slot.
+  External links open in the system browser via `LocalUriHandler`.
+- **`RssParser`** — minimal RSS 2.0 / Atom parser using Android's built-in
+  `XmlPullParser`. Skipped Rome (~600 KB JAXB-heavy), kept the dep
+  footprint at zero. Handles RFC-822 + ISO-8601 dates, falls back to
+  channel title for the source field, defensively skips unknown tags so
+  vendor extensions don't kill parsing.
+- **Settings**: four new toggles — Show News tab, Live radar on Weather
+  tab — plus the renamed "Show Weather tab". Updated supporting text on
+  the existing Weather/Timer/World toggles.
+
+### Fixed
+
+- **`RssParser` container descent.** Initial implementation walked the
+  document with a top-level `else -> skip(parser)` branch, which ate the
+  entire `<channel>` (RSS) or `<feed>` (Atom) subtree along with all
+  items. Container tags now fall through (`Unit`) so the parser keeps
+  walking into them.
+
+### Changed
+
+- **Bottom nav labels** clamped to one line + ellipsis (`maxLines = 1`,
+  `softWrap = false`). With 6 visible tabs on a 1080-px phone, "Weather"
+  and "Settings" were wrapping to two lines and breaking the row's vertical
+  rhythm.
+- **`AppSettings`** gained `showNewsTab`, `showRadarEmbed`, `newsFeedUrl`.
+  All default to safe values so a fresh install or backup-imported config
+  from v1.7.x boots straight into a working Weather + News experience.
+
+### Build
+
+- No new external dependencies. Reuses the existing OkHttp 4.12.0 client
+  (15 s timeouts, shared with weather + holiday + webhook calls). The
+  News data layer is ~250 lines of Kotlin against the platform XML parser.
+
 ## [1.7.5] - 2026-04-29
 
 Visual UX uniformity pass. Touring the app on a real device exposed two

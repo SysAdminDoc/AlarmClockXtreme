@@ -7,6 +7,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,6 +39,7 @@ import com.sysadmindoc.alarmclock.ui.stopwatch.StopwatchScreen
 import com.sysadmindoc.alarmclock.ui.theme.*
 import com.sysadmindoc.alarmclock.ui.timer.TimerScreen
 import com.sysadmindoc.alarmclock.ui.worldclock.WorldClockScreen
+import com.sysadmindoc.alarmclock.ui.news.NewsScreen
 
 sealed class Screen(val route: String) {
     data object Dashboard : Screen("dashboard")
@@ -52,6 +54,8 @@ sealed class Screen(val route: String) {
     data object Stats : Screen("stats")
     data object Onboarding : Screen("onboarding")
     data object WorldClock : Screen("world_clock")
+    // v1.8.0
+    data object News : Screen("news")
 }
 
 data class BottomNavItem(
@@ -63,13 +67,19 @@ data class BottomNavItem(
 /**
  * The full list of bottom-nav destinations. The visible subset is computed by
  * [visibleBottomNavItems] based on the user's preferences — Alarms and
- * Settings are always visible; Today / Timer / World can be hidden.
+ * Settings are always visible; Weather / Timer / World / News can be hidden.
+ *
+ * v1.8.0: renamed Dashboard's label "Today" → "Weather" since the screen is
+ * essentially a weather hub now (centered conditions, hourly, 3-day, sunrise/
+ * sunset, UV, plus the new Windy radar embed). Calendar still lives there
+ * but is below the fold and toggleable. Added News as a sibling tab.
  */
 val bottomNavItems = listOf(
-    BottomNavItem(Screen.Dashboard, "Today", Icons.Default.WbSunny),
+    BottomNavItem(Screen.Dashboard, "Weather", Icons.Default.WbSunny),
     BottomNavItem(Screen.AlarmList, "Alarms", Icons.Default.Alarm),
     BottomNavItem(Screen.Timer, "Timer", Icons.Default.Timer),
     BottomNavItem(Screen.WorldClock, "World", Icons.Default.Language),
+    BottomNavItem(Screen.News, "News", Icons.AutoMirrored.Filled.Article),
     BottomNavItem(Screen.Settings, "Settings", Icons.Default.Settings),
 )
 
@@ -77,11 +87,13 @@ private fun visibleBottomNavItems(
     showDashboard: Boolean,
     showTimer: Boolean,
     showWorld: Boolean,
+    showNews: Boolean,
 ): List<BottomNavItem> = bottomNavItems.filter {
     when (it.screen) {
         Screen.Dashboard -> showDashboard
         Screen.Timer -> showTimer
         Screen.WorldClock -> showWorld
+        Screen.News -> showNews
         else -> true
     }
 }
@@ -114,6 +126,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         showDashboard = settings.showDashboardTab,
         showTimer = settings.showTimerTab,
         showWorld = settings.showWorldClockTab,
+        showNews = settings.showNewsTab,
     )
 
     val showBottomBar = currentDestination?.route?.let { route ->
@@ -158,10 +171,19 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                                     )
                                 },
                                 label = {
+                                    // v1.8.0: 6 tabs in 1080px squeezes longer
+                                    // labels ("Weather"/"Settings"). Clamping
+                                    // to one line + ellipsis keeps the row a
+                                    // tidy single rhythm — "Weather" survives
+                                    // intact on phones ≥ 412dp; narrower
+                                    // devices get "Weath…", which still reads.
                                     Text(
                                         text = item.label,
                                         style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                     )
                                 },
                                 selected = selected,
@@ -256,6 +278,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
 
             composable(Screen.WorldClock.route) {
                 WorldClockScreen()
+            }
+
+            composable(Screen.News.route) {
+                NewsScreen()
             }
 
             composable(Screen.Settings.route) {
