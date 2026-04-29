@@ -2,6 +2,27 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.7.3] - 2026-04-29
+
+### Changed
+
+- **YouTube downloads now show real progress.** The static spinner +
+  "Downloading..." text read as "stuck" in user testing. Replaced
+  with a determinate `LinearProgressIndicator` paired with a rotating
+  status label ("Resolving audio stream…" → "Connecting to YouTube…"
+  → "Downloading audio…" → "Almost there…" → "Saving to your alarms…")
+  and a live percentage. The bar follows an asymptotic curve that
+  reaches ~30% in the first 4 seconds and crawls toward 92% — the
+  jump to 100% on actual completion still feels like a finish.
+
+### Why faux
+
+Real progress is hard to surface here: yt-dlp's `--get-url` resolve
+step has no progress signal, and OkHttp byte-counting only kicks in
+after the stream resolves. Pegging a determinate bar to elapsed time
+keeps the UI honest about *something happening* without making up
+fake byte counts.
+
 ## [1.7.2] - 2026-04-29
 
 Preview YouTube alarm sounds before downloading.
