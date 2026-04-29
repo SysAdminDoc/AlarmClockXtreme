@@ -89,4 +89,27 @@ class AlarmShareCodecTest {
     fun decodeTokenRejectsInvalidPayload() {
         assertTrue(AlarmShareCodec.decodeToken("not a token").isFailure)
     }
+
+    @Test
+    fun decodeTokenRejectsBlankInput() {
+        assertTrue(AlarmShareCodec.decodeToken("").isFailure)
+        assertTrue(AlarmShareCodec.decodeToken("   ").isFailure)
+    }
+
+    @Test
+    fun decodeTokenRejectsOversizedToken() {
+        // Build a synthetic 32 KB base64-shaped token; the size guard should
+        // reject it before Moshi or the Base64 decoder is involved, so a
+        // hostile deep-link can't OOM the process by handing us megabytes.
+        val oversized = buildString {
+            repeat(32 * 1024) { append('A') }
+        }
+        val result = AlarmShareCodec.decodeToken(oversized)
+        assertTrue(result.isFailure)
+        val msg = result.exceptionOrNull()?.message.orEmpty()
+        assertTrue(
+            "Expected oversize message, got: $msg",
+            msg.contains("maximum size", ignoreCase = true)
+        )
+    }
 }

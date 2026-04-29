@@ -33,11 +33,13 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
         val pending = goAsync()
         scope.launch {
             try {
-                // Mirror BootReceiver's 30-second ceiling. DataStore / Room
-                // should respond in well under a second, but a storage stall
-                // or a heavily-loaded device could delay them. Capping here
-                // prevents the BroadcastReceiver ANR timeout from being hit.
-                withTimeout(25_000L) {
+                // v1.6.3: 25 s was a real ANR risk — `goAsync()` extends the
+                // BroadcastReceiver window only to ~10 s on most Android
+                // versions, so a 25 s timeout was guaranteed to ANR before it
+                // ever fired. Match BootReceiver's v1.5.4 ceiling of 8 s, which
+                // safely sits under the goAsync() limit while comfortably
+                // covering any DataStore / Room lookup.
+                withTimeout(8_000L) {
                     val ep = EntryPointAccessors.fromApplication(
                         context.applicationContext,
                         AlarmClockApp.AppEntryPoint::class.java

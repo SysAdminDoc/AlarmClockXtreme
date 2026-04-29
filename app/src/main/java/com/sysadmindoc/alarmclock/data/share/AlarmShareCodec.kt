@@ -22,6 +22,15 @@ object AlarmShareCodec {
     const val DATA_PARAM = "data"
     private const val MAX_SUPPORTED_VERSION = 1
 
+    /**
+     * Hard ceiling on the base64 token we'll attempt to decode. A real
+     * AlarmBackup serialises to ~1-2 KB; even a worst-case alarm with the
+     * maximum challenge chain, ringtone pool, and morning routine sits well
+     * under 8 KB. 16 KB leaves comfortable headroom while ensuring a hostile
+     * deep-link can't OOM the process by handing us a multi-megabyte token.
+     */
+    private const val MAX_TOKEN_LENGTH = 16 * 1024
+
     private val payloadAdapter = Moshi.Builder()
         .build()
         .adapter(AlarmSharePayload::class.java)
@@ -40,6 +49,10 @@ object AlarmShareCodec {
 
     fun decodeToken(token: String): Result<Alarm> {
         return runCatching {
+            require(token.isNotBlank()) { "Empty share token" }
+            require(token.length <= MAX_TOKEN_LENGTH) {
+                "Shared alarm token exceeds maximum size"
+            }
             val json = String(Base64.getUrlDecoder().decode(token), Charsets.UTF_8)
             val payload = payloadAdapter.fromJson(json)
                 ?: throw IllegalArgumentException("Invalid shared alarm payload")
