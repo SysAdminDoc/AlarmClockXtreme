@@ -47,6 +47,15 @@ interface YouTubeAudioDownloader {
         query: String,
         maxDurationSeconds: Int = 240,
     ): Result<List<YouTubeSearchHit>>
+
+    /**
+     * Resolve a directly-playable streaming URL for [youtubeUrl]. Uses the
+     * lowest-bitrate audio track so the preview starts fast (~1-3 s) and
+     * doesn't burn data. The returned URL is signed and time-limited (~6 h);
+     * callers should re-resolve if they cached one and it's stale. Stub on
+     * f-droid.
+     */
+    suspend fun getPreviewStreamUrl(youtubeUrl: String): Result<String>
 }
 
 /**
