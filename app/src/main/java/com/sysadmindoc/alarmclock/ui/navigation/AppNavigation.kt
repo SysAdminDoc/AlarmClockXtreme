@@ -5,11 +5,13 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -86,7 +88,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             if (showBottomBar) {
                 BottomNavContainer {
                     NavigationBar(
-                        containerColor = SurfaceMedium.copy(alpha = 0f),
+                        containerColor = Color.Transparent,
                         contentColor = TextPrimary,
                         tonalElevation = 0.dp
                     ) {
@@ -98,14 +100,15 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                             NavigationBarItem(
                                 icon = {
                                     Icon(
-                                        item.icon,
-                                        contentDescription = item.label
+                                        imageVector = item.icon,
+                                        contentDescription = item.label,
+                                        modifier = Modifier.size(22.dp)
                                     )
                                 },
                                 label = {
                                     Text(
-                                        item.label,
-                                        style = MaterialTheme.typography.labelMedium,
+                                        text = item.label,
+                                        style = MaterialTheme.typography.labelSmall,
                                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
                                     )
                                 },
@@ -121,7 +124,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                                     }
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
                                     selectedIconColor = MaterialTheme.colorScheme.primary,
                                     selectedTextColor = MaterialTheme.colorScheme.primary,
                                     unselectedIconColor = TextMuted,

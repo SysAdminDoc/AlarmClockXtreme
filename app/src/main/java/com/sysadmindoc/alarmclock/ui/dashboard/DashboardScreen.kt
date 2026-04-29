@@ -362,29 +362,13 @@ private fun WeatherMetric(
     accent: Color = TextMuted,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    com.sysadmindoc.alarmclock.ui.components.AppMetricTile(
+        label = label,
+        value = value,
+        icon = icon,
+        accent = accent,
         modifier = modifier
-            .background(
-                color = SurfaceCard.copy(alpha = 0.7f),
-                shape = RoundedCornerShape(18.dp)
-            )
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(icon, null, tint = accent, modifier = Modifier.size(16.dp))
-            Text(label, color = TextMuted, style = MaterialTheme.typography.bodySmall)
-        }
-        Text(
-            text = value.ifBlank { "--" },
-            color = TextPrimary,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Medium
-        )
-    }
+    )
 }
 
 @Composable
@@ -395,8 +379,12 @@ private fun ForecastCard(
     Surface(
         modifier = modifier
             .fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = SurfaceCard.copy(alpha = 0.82f)
+        shape = RoundedCornerShape(18.dp),
+        color = com.sysadmindoc.alarmclock.ui.theme.SurfaceLight,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
+        )
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
@@ -652,7 +640,11 @@ private fun LocationPickerDialog(
                                         .fillMaxWidth()
                                         .clickable { onSelect(result) },
                                     shape = RoundedCornerShape(18.dp),
-                                    color = SurfaceCard.copy(alpha = 0.82f)
+                                    color = com.sysadmindoc.alarmclock.ui.theme.SurfaceLight,
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
+                                    )
                                 ) {
                                     Row(
                                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
