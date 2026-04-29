@@ -1,8 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed **2026-04-29** alongside **v1.6.3**
-(end-to-end engineering audit pass — webhook reliability, scheduling
-fallback, ANR fix, share-token hardening, import resilience; see
+Living feature backlog, refreshed **2026-04-29** alongside **v1.7.0**
+(download alarm sounds from YouTube — ported from Aura; see
 [CHANGELOG.md](CHANGELOG.md)).
 
 This is the "what's left" side of [CLAUDE.md](CLAUDE.md). Entries are ranked

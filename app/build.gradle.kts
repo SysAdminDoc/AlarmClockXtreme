@@ -1,7 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// AlarmClockXtreme v1.6.3
+// AlarmClockXtreme v1.7.0
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 35
-        versionCode = 28
-        versionName = "1.6.3"
+        versionCode = 29
+        versionName = "1.7.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -155,6 +155,12 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
+    // YouTube alarm-sound download (play flavor only — bundles a native Python
+    // interpreter that isn't F-Droid-compatible, so the f-droid flavor uses a
+    // stub implementation that returns "not available in this build"). Ported
+    // from the Aura/FreeVibe app (~/repos/Aura).
+    "playImplementation"("io.github.junkfood02.youtubedl-android:library:0.18.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

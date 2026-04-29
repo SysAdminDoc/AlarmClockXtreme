@@ -2,6 +2,61 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.7.0] - 2026-04-29
+
+Download alarm sounds from YouTube. Ported from the Aura/FreeVibe app.
+
+### Added
+
+- **Download from YouTube button in the alarm-sound picker.** Opens a
+  small dialog that takes a YouTube URL plus an optional name, downloads
+  the best audio track via yt-dlp, and saves it to the device's Alarms
+  folder via MediaStore. The downloaded sound shows up in the picker
+  immediately — no extra wiring, because the picker already enumerates
+  every alarm-tagged file the system knows about.
+
+### Architecture
+
+- New `YouTubeAudioDownloader` interface in `:main` with two flavor
+  implementations:
+  - **play**: real `PlayYouTubeAudioDownloader` backed by yt-dlp
+    (`io.github.junkfood02.youtubedl-android:library:0.18.1`). Resolves
+    `bestaudio` URL via `--get-url`, streams it through OkHttp into
+    `MediaStore.Audio` with `IS_ALARM=1` and
+    `RELATIVE_PATH=DIRECTORY_ALARMS`. Hard-capped at 60 MB to defend
+    against hostile / mis-resolved CDN responses.
+  - **fdroid**: stub that returns "not available in this build". The
+    yt-dlp library bundles a native Python interpreter that isn't
+    F-Droid-compatible, so the entry point is hidden on that flavor.
+- New `YouTubeDownloadInitializer` interface — the play impl unpacks
+  yt-dlp binaries off the main thread in `AlarmClockApp.onCreate`; the
+  f-droid impl no-ops. The UI checks `downloader.isAvailable()` before
+  showing the entry point, so init failure (no network, broken unpack)
+  cleanly hides the feature instead of crashing it.
+
+### Permissions
+
+- Added `WRITE_EXTERNAL_STORAGE` with `maxSdkVersion="28"`. Required only
+  on Android ≤8.x for MediaStore writes; API 29+ uses scoped storage.
+
+### Tests
+
+- `PlayYouTubeAudioDownloaderTest`: URL validation (8 canonical forms
+  pass, 6 hostile forms reject), name sanitiser (whitespace, unsafe
+  chars, length cap, lowercase).
+
+### Notes
+
+- The yt-dlp library bundles `libpython.so` + `libpython.zip.so` +
+  `libqjs.so` natively, so the play APK grows by ~10–15 MB. F-droid
+  stays lean.
+- Source: ported from `~/repos/Aura` (`YouTubeRepository.kt` for the
+  yt-dlp invocation, `SoundApplier.kt` for the MediaStore write
+  pattern). NewPipe Extractor (Aura's search backend) was deliberately
+  NOT ported — alarm-sound discovery is a paste-URL UX, not a search.
+  FFmpeg post-processing (Aura's trim/fade/normalise pipeline) was
+  also skipped; downloaded audio plays as-is.
+
 ## [1.6.3] - 2026-04-29
 
 End-to-end engineering audit pass. No new user-facing features; targets
