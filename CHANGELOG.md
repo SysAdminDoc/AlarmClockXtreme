@@ -2,6 +2,55 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.7.4] - 2026-04-29
+
+Today-tab weather pass. Centered, denser, and more useful for an alarm
+context. Pulls a few well-targeted features from the Aura-stack
+companion weather app (~/repos/ZeusWatch).
+
+### Changed
+
+- **Centered weather card.** Location chip, big icon (64dp), big temp,
+  condition text, and "feels like" line are now vertically stacked and
+  horizontally centered. Edit-location pencil moved to the top-right
+  corner so it doesn't fight the hero composition.
+- **Removed the "Weather / Current conditions and a short forecast for
+  the rest of your day" section title.** The icon + temp + description
+  already self-narrate; the title was eating ~50dp of vertical space.
+- **Vertical 3-day forecast.** Replaced the horizontal LazyRow with a
+  single column. One day per line: day name | weather icon |
+  description | rain chip | H / L. Easier to scan; no truncation.
+
+### Added (ported from ZeusWatch)
+
+- **Sunrise / sunset row.** Most useful weather field in an alarm-clock
+  context — answers "is the sun up by my alarm time?" Lifted from
+  ZeusWatch's GoldenHour card, slimmed to a horizontal pair.
+- **UV index** in the metrics grid, with EPA-style band labels
+  (low / moderate / high / very high / extreme).
+- **Next-few-hours strip.** Horizontal-scrolling 8-cell forecast
+  showing time, icon, temp, and rain% per hour. Lifted from
+  ZeusWatch's HourlyForecastStrip pattern. The first cell is "Now."
+  Cells include rain% only when ≥20%.
+
+### Architecture
+
+- `WeatherApi` now requests `hourly=temperature_2m,weather_code,
+  precipitation_probability` and `daily=…sunrise,sunset,uv_index_max`.
+  `forecast_hours=12` keeps the response small.
+- New `HourlyWeather` model + `HourlyForecast` UI state cell. New
+  `HourlyForecast` data class + `formatTimeOfDay()` /
+  `formatUv()` / `buildHourly()` helpers in `DashboardViewModel`.
+- `ForecastDay` now carries an `icon` field so the vertical row can
+  render a glyph next to the description.
+
+### Notes
+
+- All times honour Open-Meteo's `timezone=auto` so the strip and the
+  sunrise/sunset row read in the location's local time, not the
+  device's.
+- F-droid build is unaffected — Open-Meteo is free and unlicensed.
+
 ## [1.7.3] - 2026-04-29
 
 ### Changed
