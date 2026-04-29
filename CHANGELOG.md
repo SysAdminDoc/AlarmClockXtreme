@@ -2,6 +2,58 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.7.1] - 2026-04-29
+
+User-driven on-device polish pass. Visible response to first real-device
+testing of v1.7.0.
+
+### Added
+
+- **Hide bottom-nav tabs** — Settings → Bottom navigation lets you turn
+  off Today, Timer, and World individually. Alarms and Settings always
+  stay. If you're on a tab you just hid, the app bounces you back to
+  Alarms automatically.
+- **Search YouTube from the download dialog** — paste a URL or search
+  by keyword (NewPipe Extractor; same library Aura uses). Tap a result
+  to download. Filters to clips ≤4 minutes so 90-minute reaction
+  videos don't crowd the list.
+- **Prominent "Download alarm sound from YouTube" card** on the Alarms
+  screen — top-level, not buried inside "create new alarm." Build up a
+  library of tones first, attach them to alarms whenever.
+
+### Fixed
+
+- **Alarms / World screens didn't fill the screen.** Their inner
+  `Scaffold` was double-applying system insets on top of the outer
+  AppNavigation Scaffold, leaving a visible gap above the floating
+  bottom nav. Both now set `contentWindowInsets = WindowInsets(0)`.
+- **Alarms screen wasted vertical space.** Removed the redundant
+  Sort / gear buttons in the top-right (sort is already a tappable
+  chip; the gear duplicated the Settings tab). Dropped the "Saved
+  alarms" section title + description (the hero subtitle already says
+  the same thing). Tightened hero padding 18dp → 12dp and gap
+  14dp → 10dp. Net: ~150dp of vertical real estate reclaimed; both
+  alarms now visible above the fold on a 6-inch phone.
+- **YouTube downloader was disabled at runtime.** First on-device test
+  hit `FileNotFoundException: libpython.zip.so` because AGP 8 packs
+  native libs inside the APK by default, and yt-dlp expects them
+  extracted to disk. Added `packaging.jniLibs.useLegacyPackaging =
+  true` (matching Aura's setup).
+- **Battery-optimisation status didn't refresh on return** from the
+  system settings page. Added a lifecycle observer so
+  `refreshBatteryStatus()` re-runs every time SettingsScreen resumes.
+- **Removed marketing-y "Everything important is visible at a glance"**
+  subtitle from the Alarms hero — now reads "Tap an alarm to edit it,
+  or add a new one below."
+
+### Notes
+
+- F-droid build keeps stub implementations for both download and
+  search; entry points stay hidden on that flavor as before.
+- yt-dlp init failure is silent: the entry point on Alarms / picker
+  just doesn't show up. The init poll re-emits as soon as it
+  succeeds, so users don't need to restart the app to see it.
+
 ## [1.7.0] - 2026-04-29
 
 Download alarm sounds from YouTube. Ported from the Aura/FreeVibe app.

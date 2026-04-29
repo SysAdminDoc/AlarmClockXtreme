@@ -1,7 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// AlarmClockXtreme v1.7.0
+// AlarmClockXtreme v1.7.1
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 35
-        versionCode = 29
-        versionName = "1.7.0"
+        versionCode = 30
+        versionName = "1.7.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -96,6 +96,17 @@ android {
         compose = true
         buildConfig = true
     }
+
+    // v1.7.1: yt-dlp needs `libpython.zip.so` extracted to the lib/ABI dir so
+    // it can read the bundled Python source on first init. AGP 8 defaults to
+    // packing native libs *inside* the APK (faster start, smaller installs)
+    // but yt-dlp expects them on disk. Forcing legacy packaging is what the
+    // Aura app does for the same reason.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {
@@ -161,6 +172,11 @@ dependencies {
     // stub implementation that returns "not available in this build"). Ported
     // from the Aura/FreeVibe app (~/repos/Aura).
     "playImplementation"("io.github.junkfood02.youtubedl-android:library:0.18.1")
+    // NewPipe Extractor — drives the in-dialog YouTube search ("rooster
+    // crowing alarm" → list of short clips you can tap to download). Pinned
+    // to the same v0.24.8 Aura uses; jitpack repo declared in
+    // settings.gradle.kts.
+    "playImplementation"("com.github.teamnewpipe:NewPipeExtractor:v0.24.8")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

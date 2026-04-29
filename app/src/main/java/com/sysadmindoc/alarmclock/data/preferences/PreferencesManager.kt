@@ -99,6 +99,11 @@ data class AppSettings(
     val repeatMissedAlarms: Boolean = true,
     // v1.4.0: Nap mode default duration (minutes) surfaced from the dashboard FAB
     val napDefaultMinutes: Int = 20,
+    // v1.7.1: Bottom-nav visibility — Alarms and Settings always show; the
+    // other three tabs can be hidden by users who don't use them.
+    val showDashboardTab: Boolean = true,
+    val showTimerTab: Boolean = true,
+    val showWorldClockTab: Boolean = true,
 )
 
 private fun AppSettings.sanitized(): AppSettings {
@@ -224,6 +229,9 @@ class PreferencesManager @Inject constructor(
         val SLEEP_SOUND_FADE = intPreferencesKey("sleep_sound_fade_seconds")
         val REPEAT_MISSED_ALARMS = booleanPreferencesKey("repeat_missed_alarms")
         val NAP_DEFAULT_MINUTES = intPreferencesKey("nap_default_minutes")
+        val SHOW_DASHBOARD_TAB = booleanPreferencesKey("show_dashboard_tab")
+        val SHOW_TIMER_TAB = booleanPreferencesKey("show_timer_tab")
+        val SHOW_WORLD_CLOCK_TAB = booleanPreferencesKey("show_world_clock_tab")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -307,6 +315,9 @@ class PreferencesManager @Inject constructor(
         sleepSoundFadeSeconds = this[Keys.SLEEP_SOUND_FADE] ?: 60,
         repeatMissedAlarms = this[Keys.REPEAT_MISSED_ALARMS] ?: true,
         napDefaultMinutes = this[Keys.NAP_DEFAULT_MINUTES] ?: 20,
+        showDashboardTab = this[Keys.SHOW_DASHBOARD_TAB] ?: true,
+        showTimerTab = this[Keys.SHOW_TIMER_TAB] ?: true,
+        showWorldClockTab = this[Keys.SHOW_WORLD_CLOCK_TAB] ?: true,
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
@@ -358,5 +369,8 @@ class PreferencesManager @Inject constructor(
         this[Keys.SLEEP_SOUND_FADE] = s.sleepSoundFadeSeconds
         this[Keys.REPEAT_MISSED_ALARMS] = s.repeatMissedAlarms
         this[Keys.NAP_DEFAULT_MINUTES] = s.napDefaultMinutes
+        this[Keys.SHOW_DASHBOARD_TAB] = s.showDashboardTab
+        this[Keys.SHOW_TIMER_TAB] = s.showTimerTab
+        this[Keys.SHOW_WORLD_CLOCK_TAB] = s.showWorldClockTab
     }
 }
