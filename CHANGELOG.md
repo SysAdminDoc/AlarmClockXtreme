@@ -2,6 +2,100 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.8.1] - 2026-04-29
+
+Premium-polish pass. No new features, no schema changes — every change in
+this release sharpens an interaction or a surface that already worked but
+felt rough on close inspection. Driven by a top-to-bottom design audit
+(visual hierarchy, component consistency, microcopy, motion, empty/loading
+states, accessibility) and verified on a real device.
+
+### Design system
+
+- **`AppIconSize` tokens** (xs=14, sm=18, md=22, lg=32 dp). Replaces the
+  ad-hoc 13/15/18/20/22 dp drift that crept across cards, chips, tiles,
+  and metric tiles.
+- **`AppFilterChip`** primitive that matches `AppStatusChip` geometry —
+  same min height (32 dp), same `AppChipShape`, same accent treatment.
+  Migrated AlarmList's group filter row + News's feed filter row off raw
+  Material `FilterChip` so chip rows hold a single rhythm regardless of
+  chip kind.
+- **`AppSkeletonBlock`** primitive — a shimmering placeholder block used
+  to compose skeleton rows (News list, radar) so first-paint feels
+  purposeful instead of presenting a single spinner.
+
+### Bottom navigation (the most visible change)
+
+- `alwaysShowLabel = false`. With six tabs in 1080 px, every label
+  truncated ("Weath…" / "Setti…") which read as broken layout. The
+  Material 3 idiom for crowded bars is exactly this — the selected tab
+  carries its label inside the indicator pill, the rest sit as confident
+  icons. The pill becomes the focal affordance.
+- "Weather" (7 chars) still got clipped to "Weathe" inside the M3 pill,
+  so the tab label is now **Today** (the screen hero still reads
+  "Weather"). Pragmatic and accurate — the tab is a daily-overview hub.
+
+### Live radar (Weather)
+
+- **Skeleton + fade-in.** The 360 dp WebView slab used to flash dark for
+  1–3 s on cold connections. New `WebViewClient` hooks `onPageStarted` /
+  `onPageFinished` to drive a `loaded` flag; a shimmering skeleton fills
+  the slot and cross-fades out (240 ms) as the WebView fades in (280 ms).
+- "Open in Windy" relocated from a left-aligned `TextButton` under the
+  map to a header-aligned `AppStatusChip` that sits next to the title.
+  No more orphaned link below a centered map.
+- Header retitled "Animated precipitation near $location · Windy" — same
+  info, half the words.
+
+### News tab
+
+- **Pull-to-refresh** via Material 3 `PullToRefreshBox` — the canonical
+  RSS gesture, replacing the icon-only refresh as the primary affordance
+  (the icon stays in the hero actions slot for accessibility).
+- **Skeleton list** (4 placeholder cards) on first load, replacing the
+  single `AppLoadingCard` spinner.
+- **`AppFilterChip`** on the feed picker.
+- Cleaner microcopy: subtitle "Headlines from your selected feed.",
+  section title "Top stories" with no description, error empty-state
+  "Pull down to try again, or pick a different source.", empty-state
+  "No headlines yet."
+- News card title clamped to 3 lines so very long Google News headlines
+  don't blow out the card height.
+- Hero "Updated just now" badge dropped — the relative-time chip with
+  the Schedule icon is enough; "Updated" was redundant.
+
+### Microcopy across the app
+
+Every hero subtitle, section description, and empty-state copy went
+through a "≤12 words and only what's true" pass.
+
+- Alarms hero (no alarms) "Tap + New alarm to schedule your first."
+  (was "Create, group, and refine alarms from one calm control center.")
+- AlarmList "Quick alarms" description "Tap a duration to schedule it
+  now." (was "Need a short reminder or power nap? Start one with a
+  single tap.")
+- AlarmList "Groups" description dropped — title alone is clearer.
+- AlarmList empty-state "Create your first wake-up, or start from a
+  template." (dropped the "polished head start" marketing tail).
+- Today calendar empty-state "Calendar access needed" / "Grant
+  permission to surface today's events here." (was three sentences).
+- Today calendar empty-events "Nothing scheduled today" / "Events from
+  your calendar will appear here." (was "Enjoy the breathing room…").
+
+### Typography rhythm
+
+- In-card section headers ("Next few hours", "Next 3 days", "Today's
+  schedule", "Live radar") promoted from `titleSmall` (15 sp Medium)
+  to `titleMedium` (17 sp SemiBold) so card-level headers hold a
+  distinct tier above the metric-tile values.
+
+### What's new highlights refresh
+
+- `MainActivity.WHATS_NEW_HIGHLIGHTS` had been showing v1.6.0 bullets
+  even after v1.7.x and v1.8.0 shipped. Now reflects the actual v1.8.0
+  user-visible additions (Weather hub + radar, News tab,
+  pull-to-refresh, bottom-nav rework).
+
 ## [1.8.0] - 2026-04-29
 
 Two new tabs and a live radar embed. The "Today" tab graduates into a full

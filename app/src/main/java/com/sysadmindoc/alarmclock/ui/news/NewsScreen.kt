@@ -22,14 +22,13 @@ import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.RssFeed
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -44,8 +43,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.news.NewsItem
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
-import com.sysadmindoc.alarmclock.ui.components.AppLoadingCard
+import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
+import com.sysadmindoc.alarmclock.ui.components.AppIconSize
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppSkeletonBlock
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
@@ -54,141 +55,163 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import java.util.concurrent.TimeUnit
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewsScreen(
     viewModel: NewsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
+    val activeFeedLabel = state.feeds.firstOrNull { it.key == state.activeFeedKey }?.label
+        ?: "Custom feed"
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(SurfaceDark)
     ) {
-        LazyColumn(
+        // v1.8.1: pull-to-refresh — RSS readers expect this gesture and it
+        // replaces the icon-only refresh button as the primary affordance.
+        // The button stays in the hero actions slot for accessibility.
+        PullToRefreshBox(
+            isRefreshing = state.refreshing,
+            onRefresh = viewModel::refresh,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            item {
-                AlarmClockHeroHeader(
-                    title = "News",
-                    subtitle = "Top stories pulled live from public RSS feeds. No accounts, no tracking.",
-                    overline = "Headlines",
-                    badge = {
-                        AppStatusChip(
-                            label = state.feeds.firstOrNull { it.key == state.activeFeedKey }?.label
-                                ?: "Custom feed",
-                            icon = Icons.Default.RssFeed
-                        )
-                        state.lastUpdatedMillis?.let {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                item {
+                    AlarmClockHeroHeader(
+                        title = "News",
+                        subtitle = "Headlines from your selected feed.",
+                        overline = "Headlines",
+                        badge = {
                             AppStatusChip(
-                                label = "Updated ${formatRelativeShort(it)}",
-                                icon = Icons.Default.Schedule
+                                label = activeFeedLabel,
+                                icon = Icons.Default.RssFeed
                             )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = viewModel::refresh) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Refresh feed",
-                                tint = TextPrimary
-                            )
-                        }
-                    }
-                )
-            }
-
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    state.feeds.forEach { feed ->
-                        FilterChip(
-                            selected = feed.key == state.activeFeedKey,
-                            onClick = { viewModel.selectFeed(feed.key) },
-                            label = { Text(feed.label) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                labelColor = TextSecondary,
-                                selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
-                                selectedLabelColor = MaterialTheme.colorScheme.primary,
-                            )
-                        )
-                    }
-                }
-            }
-
-            when {
-                state.loading -> {
-                    item {
-                        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
-                            AppLoadingCard()
-                        }
-                    }
-                }
-
-                state.errorMessage != null -> {
-                    item {
-                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            AppSurfaceCard {
-                                AppEmptyState(
-                                    icon = Icons.Default.RssFeed,
-                                    title = "Couldn't load this feed",
-                                    description = state.errorMessage ?: "",
-                                    footer = {
-                                        AssistChip(
-                                            onClick = viewModel::refresh,
-                                            label = { Text("Try again") },
-                                            colors = AssistChipDefaults.assistChipColors(
-                                                labelColor = MaterialTheme.colorScheme.primary
-                                            )
-                                        )
-                                    }
+                            state.lastUpdatedMillis?.let {
+                                AppStatusChip(
+                                    label = formatRelativeShort(it),
+                                    icon = Icons.Default.Schedule
+                                )
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = viewModel::refresh) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Refresh feed",
+                                    tint = TextPrimary
                                 )
                             }
                         }
-                    }
+                    )
                 }
 
-                state.items.isEmpty() -> {
-                    item {
-                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                            AppSurfaceCard {
-                                AppEmptyState(
-                                    icon = Icons.Default.RssFeed,
-                                    title = "Nothing to show yet",
-                                    description = "Pick a feed from the chips above or pull to refresh."
-                                )
-                            }
-                        }
-                    }
-                }
-
-                else -> {
-                    item {
-                        Box(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 8.dp)) {
-                            AppSectionTitle(
-                                title = "Top stories",
-                                description = "Tap any headline to read in your browser."
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        state.feeds.forEach { feed ->
+                            AppFilterChip(
+                                label = feed.label,
+                                selected = feed.key == state.activeFeedKey,
+                                onClick = { viewModel.selectFeed(feed.key) },
                             )
                         }
                     }
+                }
 
-                    items(state.items, key = { it.id }) { item ->
-                        Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                            NewsCard(
-                                item = item,
-                                onClick = {
-                                    if (item.link.isNotBlank()) uriHandler.openUri(item.link)
+                when {
+                    state.loading -> {
+                        items(count = 4, key = { "skeleton-$it" }) {
+                            Box(
+                                modifier = Modifier.padding(
+                                    horizontal = 16.dp,
+                                    vertical = 6.dp,
+                                )
+                            ) {
+                                NewsCardSkeleton()
+                            }
+                        }
+                    }
+
+                    state.errorMessage != null -> {
+                        item {
+                            Box(
+                                modifier = Modifier.padding(
+                                    horizontal = 16.dp,
+                                    vertical = 8.dp,
+                                )
+                            ) {
+                                AppSurfaceCard {
+                                    AppEmptyState(
+                                        icon = Icons.Default.RssFeed,
+                                        title = "Couldn't load this feed",
+                                        description = "Pull down to try again, or pick a different source.",
+                                    )
                                 }
-                            )
+                            }
+                        }
+                    }
+
+                    state.items.isEmpty() -> {
+                        item {
+                            Box(
+                                modifier = Modifier.padding(
+                                    horizontal = 16.dp,
+                                    vertical = 8.dp,
+                                )
+                            ) {
+                                AppSurfaceCard {
+                                    AppEmptyState(
+                                        icon = Icons.Default.RssFeed,
+                                        title = "No headlines yet",
+                                        description = "Pick a feed from the chips above.",
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    else -> {
+                        item {
+                            Box(
+                                modifier = Modifier.padding(
+                                    start = 16.dp,
+                                    end = 16.dp,
+                                    top = 4.dp,
+                                    bottom = 8.dp,
+                                )
+                            ) {
+                                AppSectionTitle(title = "Top stories")
+                            }
+                        }
+
+                        items(state.items, key = { it.id }) { item ->
+                            Box(
+                                modifier = Modifier.padding(
+                                    horizontal = 16.dp,
+                                    vertical = 6.dp,
+                                )
+                            ) {
+                                NewsCard(
+                                    item = item,
+                                    onClick = {
+                                        if (item.link.isNotBlank()) {
+                                            uriHandler.openUri(item.link)
+                                        }
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -216,7 +239,8 @@ private fun NewsCard(
                 text = item.title,
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 3,
             )
 
             if (cleanedDescription.isNotBlank()) {
@@ -242,17 +266,44 @@ private fun NewsCard(
                 }
                 item.publishedAtMillis?.let {
                     AppStatusChip(
-                        label = formatRelativeLong(it),
+                        label = formatRelativeShort(it),
                         icon = Icons.Default.Schedule
                     )
                 }
-                Spacer(modifier = Modifier.size(0.dp))
-                Box(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.OpenInNew,
                     contentDescription = "Open article",
                     tint = TextMuted,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(AppIconSize.sm)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NewsCardSkeleton() {
+    AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            AppSkeletonBlock(modifier = Modifier.fillMaxWidth(0.78f), height = 18.dp)
+            AppSkeletonBlock(modifier = Modifier.fillMaxWidth())
+            AppSkeletonBlock(modifier = Modifier.fillMaxWidth(0.62f))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AppSkeletonBlock(
+                    modifier = Modifier.fillMaxWidth(0.32f),
+                    height = 22.dp,
+                    cornerRadius = 999.dp,
+                )
+                AppSkeletonBlock(
+                    modifier = Modifier.fillMaxWidth(0.22f),
+                    height = 22.dp,
+                    cornerRadius = 999.dp,
                 )
             }
         }
@@ -275,5 +326,3 @@ private fun formatRelativeShort(epochMs: Long): String {
         else -> "${TimeUnit.SECONDS.toDays(seconds)}d ago"
     }
 }
-
-private fun formatRelativeLong(epochMs: Long): String = formatRelativeShort(epochMs)

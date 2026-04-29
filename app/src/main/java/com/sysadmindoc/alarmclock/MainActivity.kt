@@ -123,11 +123,12 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Easier dismissal: tap the alarm notification body to open the firing screen, swipe left to dismiss, swipe right to snooze.",
-            "Four new wake-up challenges: Rock-Paper-Scissors, Emoji Memory, Typing Speed, and Wordle.",
-            "Refined design system: tabular figures on the clock display so the time never reflows, plus cleaner cards, chips, and bottom-nav.",
-            "More reliable webhooks: dismiss/snooze events now reach Tasker even on slow connections.",
-            "Hardened scheduling: alarms still fire (within the Doze window) if the exact-alarm permission is revoked at the wrong moment."
+            "New Weather hub with a live animated radar from Windy — auto-centered on your location.",
+            "New News tab — public RSS headlines from Google News, BBC, NPR, and Hacker News. No accounts, no tracking.",
+            "Pull down on News to refresh, with skeleton placeholders so first-paint feels instant.",
+            "Bottom navigation reworked for six tabs — selected tab carries its label, others stay clean and iconic.",
+            "Download alarm sounds from YouTube — search or paste a URL, preview before saving.",
+            "Premium-polish pass across cards, chips, empty states, and microcopy."
         )
     }
 }

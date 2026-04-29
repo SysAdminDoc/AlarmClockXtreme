@@ -382,7 +382,7 @@ fun AlarmListScreen(
                                     AppEmptyState(
                                         icon = Icons.Default.AlarmAdd,
                                         title = "No alarms yet",
-                                        description = "Create your first wake-up, or start from a template if you want a polished head start.",
+                                        description = "Create your first wake-up, or start from a template.",
                                         footer = {
                                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                                 Button(
@@ -531,11 +531,11 @@ private fun AlarmHeader(
     onOpenSettings: () -> Unit
 ) {
     AlarmClockHeroHeader(
-        title = if (hasAlarms && remainingTime.isNotBlank()) "Next alarm in $remainingTime" else "Alarm schedule",
+        title = if (hasAlarms && remainingTime.isNotBlank()) "Next alarm in $remainingTime" else "No alarms scheduled",
         subtitle = if (hasAlarms && remainingTime.isNotBlank()) {
-            "Tap an alarm to edit it, or add a new one below."
+            "Tap an alarm to edit, or add a new one below."
         } else {
-            "Create, group, and refine alarms from one calm control center."
+            "Tap + New alarm to schedule your first."
         },
         overline = "Alarms",
         badge = {
@@ -572,34 +572,23 @@ private fun GroupFilterRow(
     onSelectGroup: (String?) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        AppSectionTitle(
-            title = "Groups",
-            description = "Filter recurring alarms by context."
-        )
+        AppSectionTitle(title = "Groups")
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            FilterChip(
+            com.sysadmindoc.alarmclock.ui.components.AppFilterChip(
+                label = "All",
                 selected = selectedGroup == null,
                 onClick = { onSelectGroup(null) },
-                label = { Text("All") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                    containerColor = SurfaceCard
-                )
             )
             groups.forEach { group ->
-                FilterChip(
+                com.sysadmindoc.alarmclock.ui.components.AppFilterChip(
+                    label = group,
                     selected = selectedGroup == group,
                     onClick = { onSelectGroup(if (selectedGroup == group) null else group) },
-                    label = { Text(group) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                        containerColor = SurfaceCard
-                    )
                 )
             }
         }
@@ -614,7 +603,7 @@ private fun QuickAlarmRow(
     AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
         AppSectionTitle(
             title = "Quick alarms",
-            description = "Need a short reminder or power nap? Start one with a single tap."
+            description = "Tap a duration to schedule it now."
         )
         Row(
             modifier = Modifier
