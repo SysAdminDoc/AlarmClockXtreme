@@ -2,15 +2,25 @@
 
 ![Version](https://img.shields.io/badge/version-1.7.5-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
-![Platform](https://img.shields.io/badge/platform-Android%2010+-3DDC84?logo=android&logoColor=white)
+![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)
 
-> A feature-rich, open-source alarm clock for Android with 47 features, 15 dismiss challenges, smart wake intelligence, and a deep dark theme. No ads, no tracking, no accounts.
+> A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 19 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
 
 <img width="772" height="568" alt="image" src="https://github.com/user-attachments/assets/01e2e354-3905-4dd2-bb86-112282ae1346" />
 
-## Quick Start
+## Download
+
+**Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
+
+```
+adb install AlarmClockXtreme-v1.7.5-play.apk
+```
+
+The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor). The F-Droid flavor strips that downloader for an unencumbered build.
+
+## Build From Source
 
 ```bash
 git clone https://github.com/SysAdminDoc/AlarmClockXtreme.git
@@ -91,6 +101,7 @@ cd AlarmClockXtreme
 | Feature | Description |
 |---------|-------------|
 | Ringtone Picker | Browse and preview system ringtones |
+| YouTube Alarm Sounds | Search YouTube or paste a URL, preview before downloading, save the audio straight to your alarm library (Play flavor only) |
 | Random Ringtone Pool | Per-alarm pool of URIs; a random one is picked each fire (anti-habituation) |
 | Dismiss at Ringtone End | Auto-dismiss when the chosen song/tone finishes (Spotify-friendly) |
 | Spotify Integration | Play Spotify tracks/playlists as alarm sound |
@@ -111,9 +122,9 @@ cd AlarmClockXtreme
 ### Dashboard & Utilities
 | Feature | Description |
 |---------|-------------|
-| Weather Dashboard | Current conditions + 3-day forecast via Open-Meteo (free, no API key) |
+| Today Tab | Centered weather hero, 3-day vertical forecast, sunrise/sunset, UV index with EPA bands, hourly strip with rain probability — Open-Meteo, free, no API key |
 | Calendar Integration | Today's events from device calendar |
-| World Clock | Live time zones with UTC offset, 24h format support |
+| World Clock | Live time zones with UTC offset, 24h format support, persistent saved cities |
 | Multiple Timers | Run several countdown timers concurrently (monotonic clock) |
 | Stopwatch | Lap tracking with best/worst marking |
 | Bedtime Tracking | Sleep goal, sleep cycle calculator, bedtime reminders, sleep sounds |
@@ -122,6 +133,7 @@ cd AlarmClockXtreme
 | Home Widget | Glance-based widget showing next alarm countdown |
 | Persistent Notification | Always-visible next alarm countdown in shade |
 | Quick Settings Tile | Skip the next alarm from the system shade with one tap |
+| Tab Visibility Toggles | Hide Today / Timer / World tabs from the bottom nav (Alarms + Settings always visible) |
 | Accent Color | Customizable accent color within dark theme |
 | Material You | Opt-in dynamic color from wallpaper palette (Android 12+) |
 | Wind-Down Checklist | Pre-sleep checklist rendered on the Bedtime tab |
@@ -130,11 +142,13 @@ cd AlarmClockXtreme
 ### Data & Reliability
 | Feature | Description |
 |---------|-------------|
-| Backup/Restore | JSON export/import of all 47+ alarm fields and 34+ settings, with optional AES-256 passphrase encryption (v5 format) |
+| Backup/Restore | JSON export/import of all 50+ alarm fields and 35+ settings, with optional AES-256 passphrase encryption (v5 format) |
+| Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link |
 | Boot Reschedule | All alarms re-registered after device reboot |
 | Manufacturer Compat | Onboarding warnings for Xiaomi/Samsung/Huawei battery killers |
 | Crash Logger | Automatic crash log files for debugging |
 | Auto-Silence | Configurable timeout (0/5/10/15/30 min), records as missed |
+| Webhook Reliability | Application-lived dispatch scope guarantees Tasker events fire even when the alarm service stops mid-flight |
 
 ## Architecture
 
@@ -142,23 +156,24 @@ cd AlarmClockXtreme
 +---------------------------------------------------------+
 |                    UI Layer (Compose)                     |
 |  Screens <- ViewModels <- StateFlow                      |
-|  15 challenge views, 8 alarm edit sections               |
+|  19 challenge views, 8 alarm edit sections               |
 +---------------------------------------------------------+
 |                   Domain Layer                           |
-|  AlarmScheduler | NextAlarmCalculator                    |
-|  Date-specific + holiday + vacation skip logic           |
+|  AlarmScheduler | NextAlarmCalculator | SolarCalculator  |
+|  Date-specific + holiday + vacation + solar-anchor logic |
 +---------------------------------------------------------+
 |                    Data Layer                            |
-|  Room DB v6 | DataStore | Retrofit (Open-Meteo, Nager)  |
-|  47-field Alarm entity | 34-field AppSettings            |
+|  Room DB v8 | DataStore | Retrofit (Open-Meteo, Nager)  |
+|  50+ field Alarm entity | 35+ field AppSettings          |
+|  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |
 +---------------------------------------------------------+
 |                   Android Platform                       |
-|  AlarmManager | 3 ForegroundServices | 5 Workers         |
-|  5 BroadcastReceivers | Glance Widget                   |
+|  AlarmManager | 3 ForegroundServices | 8 Workers         |
+|  6 BroadcastReceivers | Glance Widget | QS Tile          |
 +---------------------------------------------------------+
 ```
 
-**Tech stack:** Kotlin 2.1, Jetpack Compose (Material 3), Room, Hilt, Retrofit + Moshi (codegen), DataStore, Glance widgets, OkHttp, Coroutines/Flow, WorkManager
+**Tech stack:** Kotlin 2.1, Jetpack Compose (Material 3), Room, Hilt, Retrofit + Moshi (codegen), DataStore, Glance widgets, OkHttp, Coroutines/Flow, WorkManager, yt-dlp, NewPipe Extractor (Play flavor)
 
 ## Configuration
 
@@ -199,6 +214,7 @@ cd AlarmClockXtreme
 | `RECORD_AUDIO` | Sonar sleep tracking | Optional |
 | `ACTIVITY_RECOGNITION` | Walk steps + smart alarm | Optional |
 | `SEND_SMS` / `CALL_PHONE` | Guardian Angel emergency contact | Optional |
+| `WRITE_EXTERNAL_STORAGE` (≤ Android 9) | Save downloaded YouTube alarm sounds to MediaStore | Optional (Play flavor only) |
 
 ## Privacy
 
@@ -211,6 +227,9 @@ No analytics. No ads. No tracking. No accounts. No data leaves your device excep
 Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
 
 ## FAQ
+
+**How does the YouTube alarm-sound downloader work?**
+On the Alarms tab tap "Download alarm sound from YouTube." A dialog opens with two modes: search YouTube directly (powered by NewPipe Extractor) or paste a video URL. Each result has a play/stop button to preview the audio before committing. Tap the row to download — yt-dlp resolves the best-audio stream, OkHttp streams it to your alarm library via MediaStore (`IS_ALARM=1`), and the ringtone picker re-enumerates so the new sound is immediately selectable. F-droid builds ship without this feature for licensing reasons.
 
 **Why does the alarm not fire on my Xiaomi/Samsung/Huawei?**
 These manufacturers aggressively kill background apps. The app shows a manufacturer-specific warning during onboarding with steps to whitelist it. Generally: Settings > Battery > App Launch > AlarmClockXtreme > Manual > enable all toggles.
