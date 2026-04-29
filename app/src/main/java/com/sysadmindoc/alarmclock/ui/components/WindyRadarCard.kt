@@ -1,20 +1,26 @@
 package com.sysadmindoc.alarmclock.ui.components
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.graphics.Color as AndroidColor
 import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -22,17 +28,23 @@ import androidx.compose.material.icons.filled.Radar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
@@ -76,8 +88,23 @@ fun WindyRadarCard(
         buildWindyExternalUrl(latitude, longitude, zoom)
     }
 
+    // v1.8.1: track WebView load so we can mask the initial 360 dp dark slab
+    // with a skeleton until the first frame paints. Without this the card
+    // reads as broken for ~1-3s on cold connections.
+    var loaded by remember(embedUrl) { mutableStateOf(false) }
+    val webViewAlpha by animateFloatAsState(
+        targetValue = if (loaded) 1f else 0f,
+        animationSpec = tween(durationMillis = 280),
+        label = "radar-fade-in",
+    )
+    val skeletonAlpha by animateFloatAsState(
+        targetValue = if (loaded) 0f else 1f,
+        animationSpec = tween(durationMillis = 240),
+        label = "radar-skeleton-fade",
+    )
+
     AppSurfaceCard(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -86,20 +113,28 @@ fun WindyRadarCard(
                     imageVector = Icons.Default.Radar,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(AppIconSize.md)
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "Live radar",
                         color = TextPrimary,
-                        style = MaterialTheme.typography.titleSmall
+                        style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
-                        text = "Animated precipitation around $locationLabel — powered by Windy.com",
+                        text = "Animated precipitation near $locationLabel · Windy",
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
+                AppStatusChip(
+                    label = "Open in Windy",
+                    icon = Icons.AutoMirrored.Filled.OpenInNew,
+                    modifier = Modifier.clickable(
+                        role = Role.Button,
+                        onClick = { uriHandler.openUri(externalUrl) },
+                    ),
+                )
             }
 
             Box(
@@ -107,15 +142,19 @@ fun WindyRadarCard(
                     .fillMaxWidth()
                     .height(360.dp)
                     .clip(RoundedCornerShape(16.dp))
+                    .background(SurfaceMedium)
             ) {
                 AndroidView(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .alpha(webViewAlpha),
                     factory = { ctx ->
                         WebView(ctx).apply {
                             layoutParams = ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT
                             )
-                            setBackgroundColor(AndroidColor.parseColor("#0B0F1A"))
+                            setBackgroundColor(AndroidColor.parseColor("#0F1721"))
                             settings.apply {
                                 javaScriptEnabled = true
                                 domStorageEnabled = true
@@ -127,35 +166,69 @@ fun WindyRadarCard(
                                     WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                                 cacheMode = WebSettings.LOAD_DEFAULT
                             }
-                            webViewClient = WebViewClient()
+                            webViewClient = object : WebViewClient() {
+                                override fun onPageStarted(
+                                    view: WebView?, url: String?, favicon: Bitmap?
+                                ) {
+                                    super.onPageStarted(view, url, favicon)
+                                    loaded = false
+                                }
+
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    super.onPageFinished(view, url)
+                                    // Tiny grace period — Windy paints the
+                                    // base map before the radar tiles. The
+                                    // fade animation absorbs this.
+                                    loaded = true
+                                }
+                            }
                             loadUrl(embedUrl)
                         }
                     },
                     update = { webView ->
-                        if (webView.url != embedUrl) webView.loadUrl(embedUrl)
+                        if (webView.url != embedUrl) {
+                            loaded = false
+                            webView.loadUrl(embedUrl)
+                        }
                     },
-                    modifier = Modifier.fillMaxWidth()
                 )
-            }
 
-            Spacer(modifier = Modifier.size(2.dp))
-
-            TextButton(
-                onClick = { uriHandler.openUri(externalUrl) }
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.size(6.dp))
-                Text(
-                    "Open full map in Windy",
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelLarge
-                )
+                if (skeletonAlpha > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(skeletonAlpha),
+                    ) {
+                        RadarSkeleton()
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun RadarSkeleton() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        AppSkeletonBlock(modifier = Modifier.fillMaxWidth(0.34f))
+        AppSkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            cornerRadius = 12.dp,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            AppSkeletonBlock(modifier = Modifier.weight(1f))
+            AppSkeletonBlock(modifier = Modifier.weight(1f))
+            AppSkeletonBlock(modifier = Modifier.weight(0.6f))
         }
     }
 }

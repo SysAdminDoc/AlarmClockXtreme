@@ -69,6 +69,17 @@ val AppCardShape = RoundedCornerShape(20.dp)
 val AppTileShape = RoundedCornerShape(16.dp)
 val AppChipShape = RoundedCornerShape(999.dp)
 
+// ─── Icon size scale ───────────────────────────────────────────────────────
+// One scale, four steps. Replaces the 13 / 15 / 18 / 20 / 22 dp drift that
+// crept across cards, chips, tiles, and metrics. Reach for the smallest
+// step that still reads — Material's 22dp is the navigation default.
+object AppIconSize {
+    val xs: Dp = 14.dp   // chips, dense rows
+    val sm: Dp = 18.dp   // inline labels, secondary actions
+    val md: Dp = 22.dp   // primary actions, nav, card headers
+    val lg: Dp = 32.dp   // hero illustration, empty-state icon
+}
+
 @Composable
 fun AlarmClockHeroHeader(
     title: String,
@@ -470,6 +481,91 @@ fun AppLoadingCard(
                 .background(SurfaceLight)
         )
     }
+}
+
+/**
+ * Filter chip that matches [AppStatusChip] geometry — same minHeight, same
+ * shape, same accent treatment. Replaces raw Material `FilterChip` in
+ * filter-row contexts so chip rows hold a single rhythm regardless of which
+ * chip kind is rendered. Selected chips fill the accent at 16% with a
+ * 32%-alpha border; unselected chips sit on `SurfaceLight` with the subtle
+ * stroke. Tap-target is the full chip, not just the label.
+ */
+@Composable
+fun AppFilterChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    leadingIcon: ImageVector? = null,
+) {
+    val accent = MaterialTheme.colorScheme.primary
+    val containerColor = if (selected) accent.copy(alpha = 0.16f) else SurfaceLight
+    val borderColor = if (selected) accent.copy(alpha = 0.32f) else BorderSubtle
+    val labelColor = if (selected) accent else TextSecondary
+
+    Surface(
+        modifier = modifier,
+        shape = AppChipShape,
+        color = containerColor,
+        border = BorderStroke(1.dp, borderColor),
+        tonalElevation = 0.dp,
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier
+                .defaultMinSize(minHeight = 32.dp)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (leadingIcon != null) {
+                Icon(
+                    imageVector = leadingIcon,
+                    contentDescription = null,
+                    tint = labelColor,
+                    modifier = Modifier.size(AppIconSize.xs),
+                )
+            }
+            Text(
+                text = label,
+                color = labelColor,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+    }
+}
+
+/**
+ * Reusable shimmering placeholder block. Use to compose skeleton rows for
+ * lists (News, alarms-loading, etc.) so first-paint feels purposeful instead
+ * of presenting a single spinner card. Width is a fraction of available
+ * space so callers can vary widths between rows for a more natural rhythm.
+ */
+@Composable
+fun AppSkeletonBlock(
+    modifier: Modifier = Modifier,
+    height: Dp = 14.dp,
+    cornerRadius: Dp = 8.dp,
+) {
+    val transition = rememberInfiniteTransition(label = "skeleton-block")
+    val alpha by transition.animateFloat(
+        initialValue = 0.36f,
+        targetValue = 0.78f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 950, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "skeleton-alpha",
+    )
+    Spacer(
+        modifier = modifier
+            .height(height)
+            .alpha(alpha)
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(SurfaceLight),
+    )
 }
 
 @Composable
