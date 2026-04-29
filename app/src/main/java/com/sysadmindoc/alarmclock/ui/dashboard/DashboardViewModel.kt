@@ -29,6 +29,11 @@ data class DashboardUiState(
     val todayDate: String = "",
     val showWeather: Boolean = true,
     val showCalendar: Boolean = true,
+    // v1.8.0: Windy radar embed toggle (lifted from settings) + lat/lon so
+    // the WebView centers the radar over the user's actual weather location.
+    val showRadar: Boolean = true,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     // Weather
     val weatherLoading: Boolean = false,
     val temperature: String = "",
@@ -110,7 +115,8 @@ class DashboardViewModel @Inject constructor(
             val settings = preferencesManager.getCurrentSettings()
             _uiState.update { it.copy(
                 showWeather = settings.showWeatherOnDashboard,
-                showCalendar = settings.showCalendarOnDashboard
+                showCalendar = settings.showCalendarOnDashboard,
+                showRadar = settings.showRadarEmbed
             ) }
 
             if (settings.showWeatherOnDashboard) {
@@ -208,6 +214,8 @@ class DashboardViewModel @Inject constructor(
                         weatherLoading = false,
                         hasLocation = true,
                         locationName = locName,
+                        latitude = lat,
+                        longitude = lon,
                         tempUnit = tempUnitLabel,
                         windUnit = windUnitLabel,
                         temperature = current?.temperature?.let { "${it.toInt()}" } ?: "--",

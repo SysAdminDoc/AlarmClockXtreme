@@ -130,6 +130,11 @@ class SettingsViewModel @Inject constructor(
         updateSettings { it.copy(showTimerTab = enabled) }
     fun toggleShowWorldClockTab(enabled: Boolean) =
         updateSettings { it.copy(showWorldClockTab = enabled) }
+    // v1.8.0
+    fun toggleShowNewsTab(enabled: Boolean) =
+        updateSettings { it.copy(showNewsTab = enabled) }
+    fun toggleShowRadarEmbed(enabled: Boolean) =
+        updateSettings { it.copy(showRadarEmbed = enabled) }
 
     fun toggle24Hour(enabled: Boolean) = updateSettings { it.copy(is24HourFormat = enabled) }
     fun togglePhoneSpeakers(enabled: Boolean) = updateSettings { it.copy(usePhoneSpeakers = enabled) }

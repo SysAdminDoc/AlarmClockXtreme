@@ -75,6 +75,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppLoadingCard
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.WindyRadarCard
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
@@ -128,6 +129,19 @@ fun DashboardScreen(
                 )
             }
 
+            // v1.8.0: Windy radar embed below the static weather card. Hidden
+            // until we actually have a coordinate to center on (otherwise the
+            // iframe shows the default Windy "world" view, which is jarring
+            // when the rest of the screen is local-conditions data).
+            if (state.showWeather && state.showRadar && state.hasLocation &&
+                state.latitude != null && state.longitude != null) {
+                WindyRadarCard(
+                    latitude = state.latitude,
+                    longitude = state.longitude,
+                    locationLabel = state.locationName.ifBlank { "your area" }
+                )
+            }
+
             if (state.showCalendar) {
                 CalendarSection(state)
             }
@@ -162,8 +176,11 @@ private fun DashboardHeader(state: DashboardUiState) {
     // calendar card respectively. The chips were just doubling-up.
     // Calendar-permission-needed chip is kept because it's an actionable
     // warning, not a duplicate.
+    // v1.8.0: Hero retitled "Weather" since the screen is now a weather hub
+    // (centered conditions, hourly, 3-day, sunrise/sunset, UV, Windy radar).
+    // Calendar still lives below the fold but is no longer the headline.
     AlarmClockHeroHeader(
-        title = "My Day",
+        title = "Weather",
         subtitle = "$greeting ${state.todayDate}",
         overline = "Daily overview",
         badge = if (state.showCalendar && state.calendarPermissionNeeded) {
