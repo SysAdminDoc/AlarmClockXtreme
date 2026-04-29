@@ -345,18 +345,46 @@ class BackupManager @Inject constructor(
                 }
             }
 
+            // v1.6.3: Make import per-alarm-resilient. The previous loop had
+            // no per-alarm try/catch despite the comment in CLAUDE.md
+            // claiming "individual alarm failures don't abort the batch."
+            // A single corrupt alarm row (e.g. an `Uri.parse`-hostile
+            // ringtone URI from a much older backup) would now fail the
+            // entire import after partially saving earlier rows. Wrap each
+            // save+schedule so genuine bad rows are skipped with a log
+            // entry while the rest of the backup still lands.
             var count = 0
             val alarmsToSchedule = mutableListOf<Alarm>()
             for (alarm in importedAlarms) {
-                val savedId = repository.save(alarm.copy(nextTriggerTime = 0))
-                val savedAlarm = alarm.copy(id = savedId, nextTriggerTime = 0)
-                if (savedAlarm.isEnabled) {
-                    alarmsToSchedule += savedAlarm
+                try {
+                    val savedId = repository.save(alarm.copy(nextTriggerTime = 0))
+                    val savedAlarm = alarm.copy(id = savedId, nextTriggerTime = 0)
+                    if (savedAlarm.isEnabled) {
+                        alarmsToSchedule += savedAlarm
+                    }
+                    count++
+                } catch (e: Exception) {
+                    android.util.Log.w(
+                        "BackupManager",
+                        "Skipped one alarm during import: ${alarm.label}",
+                        e
+                    )
                 }
-                count++
             }
 
-            alarmsToSchedule.forEach { scheduler.schedule(it) }
+            alarmsToSchedule.forEach { alarm ->
+                try {
+                    scheduler.schedule(alarm)
+                } catch (e: Exception) {
+                    // The alarm row was saved successfully — only the schedule
+                    // attempt failed. The user can re-enable it from the list.
+                    android.util.Log.w(
+                        "BackupManager",
+                        "Saved but failed to schedule alarm ${alarm.id}",
+                        e
+                    )
+                }
+            }
 
             Result.success(count)
         } catch (e: Exception) {
