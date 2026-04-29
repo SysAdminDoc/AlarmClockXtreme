@@ -313,9 +313,9 @@ fun SettingsScreen(
                 description = "Hide tabs you never use. Alarms and Settings always stay available."
             ) {
                 SettingsToggle(
-                    label = "Show Weather tab",
+                    label = "Show Today tab",
                     checked = state.settings.showDashboardTab,
-                    supportingText = "Conditions, hourly, sunrise/sunset, UV, and live radar.",
+                    supportingText = "Daily overview — conditions, hourly, UV, sunrise/sunset, and live radar.",
                     onToggle = viewModel::toggleShowDashboardTab
                 )
                 SettingsToggle(

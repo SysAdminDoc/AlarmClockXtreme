@@ -392,7 +392,7 @@ private fun WeatherSection(
                         Text(
                             "Next few hours",
                             color = TextPrimary,
-                            style = MaterialTheme.typography.titleSmall,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         LazyRow(
@@ -413,7 +413,7 @@ private fun WeatherSection(
                         Text(
                             "Next 3 days",
                             color = TextPrimary,
-                            style = MaterialTheme.typography.titleSmall,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Column(
@@ -562,15 +562,15 @@ private fun CalendarSection(state: DashboardUiState) {
         Text(
             "Today's schedule",
             color = TextPrimary,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
         )
         when {
             state.calendarPermissionNeeded -> {
                 AppEmptyState(
                     icon = Icons.Default.CalendarMonth,
-                    title = "Calendar access helps this page feel alive",
-                    description = "Grant calendar permission to show today’s events and surface your first meeting automatically.",
+                    title = "Calendar access needed",
+                    description = "Grant permission to surface today's events here.",
                     accent = SnoozeYellow
                 )
             }
@@ -578,8 +578,8 @@ private fun CalendarSection(state: DashboardUiState) {
             state.calendarEvents.isEmpty() -> {
                 AppEmptyState(
                     icon = Icons.Default.EventAvailable,
-                    title = "Nothing booked today",
-                    description = "Enjoy the breathing room. Your events will appear here whenever your schedule fills up.",
+                    title = "Nothing scheduled today",
+                    description = "Events from your calendar will appear here.",
                     accent = DismissGreen
                 )
             }

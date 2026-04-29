@@ -75,7 +75,12 @@ data class BottomNavItem(
  * but is below the fold and toggleable. Added News as a sibling tab.
  */
 val bottomNavItems = listOf(
-    BottomNavItem(Screen.Dashboard, "Weather", Icons.Default.WbSunny),
+    // v1.8.1: short tab labels — at 6 tabs the M3 indicator pill is 60dp
+    // wide and "Weather" got truncated to "Weathe" inside it. The screen
+    // hero still reads "Weather", so we shorten just the *nav label* to
+    // "Today" (which is also accurate — it's a daily-overview hub with
+    // weather + radar + calendar). "Settings" fits at default fontWeight.
+    BottomNavItem(Screen.Dashboard, "Today", Icons.Default.WbSunny),
     BottomNavItem(Screen.AlarmList, "Alarms", Icons.Default.Alarm),
     BottomNavItem(Screen.Timer, "Timer", Icons.Default.Timer),
     BottomNavItem(Screen.WorldClock, "World", Icons.Default.Language),
@@ -171,23 +176,23 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                                     )
                                 },
                                 label = {
-                                    // v1.8.0: 6 tabs in 1080px squeezes longer
-                                    // labels ("Weather"/"Settings"). Clamping
-                                    // to one line + ellipsis keeps the row a
-                                    // tidy single rhythm — "Weather" survives
-                                    // intact on phones ≥ 412dp; narrower
-                                    // devices get "Weath…", which still reads.
+                                    // v1.8.1: with 6 tabs in 1080px, showing
+                                    // every label forced ellipsis ("Weath…"/
+                                    // "Setti…") which read as broken layout.
+                                    // The Material 3 idiom for crowded bars
+                                    // is `alwaysShowLabel = false`: only the
+                                    // selected tab carries its label, others
+                                    // sit as confident icons. We use Material
+                                    // 3's default `labelMedium` (no fontWeight
+                                    // override) so the label has the most
+                                    // breathing room inside the pill.
                                     Text(
                                         text = item.label,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                                         maxLines = 1,
-                                        softWrap = false,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                     )
                                 },
                                 selected = selected,
-                                alwaysShowLabel = true,
+                                alwaysShowLabel = false,
                                 onClick = {
                                     navController.navigate(item.screen.route) {
                                         popUpTo(navController.graph.findStartDestination().id) {
