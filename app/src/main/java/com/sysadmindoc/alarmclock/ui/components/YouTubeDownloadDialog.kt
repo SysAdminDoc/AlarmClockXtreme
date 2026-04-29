@@ -26,6 +26,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -555,19 +556,79 @@ private fun formatDuration(seconds: Long): String {
     return "%d:%02d".format(m, s)
 }
 
+/**
+ * v1.7.3: Faux-progress download hint.
+ *
+ * Real progress is hard to surface here — yt-dlp's `--get-url` resolve step
+ * has no progress signal, and OkHttp byte-counting only kicks in once the
+ * stream resolves. A static spinner read as "stuck" in user testing.
+ *
+ * The faux-progress curve is `1 - e^(-3t) * 0.92` over 30 s — fast off the
+ * line, slows asymptotically toward 92% so completion (which jumps it to
+ * 100% instantly) still feels like a finish, not a fast-forward. The status
+ * label rotates through phases on the same timer so the user sees something
+ * change every few seconds.
+ */
 @Composable
 private fun DownloadingHint() {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        CircularProgressIndicator(
-            strokeWidth = 2.dp,
-            modifier = Modifier.size(16.dp),
-            color = MaterialTheme.colorScheme.primary
+    val phases = remember {
+        listOf(
+            "Resolving audio stream…",
+            "Connecting to YouTube…",
+            "Downloading audio…",
+            "Almost there…",
+            "Saving to your alarms…"
+        )
+    }
+    var progress by remember { mutableStateOf(0f) }
+    var phaseIndex by remember { mutableStateOf(0) }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        val totalMs = 30_000L
+        val ticks = 60
+        repeat(ticks) { i ->
+            kotlinx.coroutines.delay(totalMs / ticks)
+            val t = (i + 1).toFloat() / ticks
+            // Asymptotic curve: leaps to ~30% in the first 4s, then crawls.
+            progress = (1f - kotlin.math.exp(-3f * t)) * 0.92f
+            phaseIndex = (i * phases.size / ticks).coerceIn(0, phases.lastIndex)
+        }
+    }
+
+    val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = progress,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 450),
+        label = "download-progress"
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = phases[phaseIndex],
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "${(animatedProgress * 100).toInt()}%",
+                color = TextMuted,
+                style = MaterialTheme.typography.labelMedium
+            )
+        }
+        LinearProgressIndicator(
+            progress = { animatedProgress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(999.dp)),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = SurfaceLight
         )
         Text(
-            "Downloading. This can take 10–60 seconds.",
+            text = "Sit tight — this can take 10–60 seconds depending on the clip and your connection.",
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
