@@ -2,6 +2,7 @@ package com.sysadmindoc.alarmclock.di
 
 import com.sysadmindoc.alarmclock.data.remote.GeocodingApi
 import com.sysadmindoc.alarmclock.data.remote.HolidayApi
+import com.sysadmindoc.alarmclock.data.remote.WeatherAlertsApi
 import com.sysadmindoc.alarmclock.data.remote.WeatherApi
 import com.squareup.moshi.Moshi
 import dagger.Module
@@ -61,5 +62,18 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(HolidayApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideWeatherAlertsApi(moshi: Moshi, client: OkHttpClient): WeatherAlertsApi {
+        // NWS endpoint — US-only. Returns empty `features` outside the US,
+        // so it's safe to call unconditionally.
+        return Retrofit.Builder()
+            .baseUrl("https://api.weather.gov/")
+            .client(client)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+            .create(WeatherAlertsApi::class.java)
     }
 }
