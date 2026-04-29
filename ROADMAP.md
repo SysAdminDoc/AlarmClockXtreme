@@ -1,7 +1,8 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed **2026-04-29** alongside **v1.7.0**
-(download alarm sounds from YouTube — ported from Aura; see
+Living feature backlog, refreshed **2026-04-29** alongside **v1.7.1**
+(on-device polish pass — tab visibility, YouTube search, prominent
+downloader card, height + spacing fixes, libpython init fix; see
 [CHANGELOG.md](CHANGELOG.md)).
 
 This is the "what's left" side of [CLAUDE.md](CLAUDE.md). Entries are ranked

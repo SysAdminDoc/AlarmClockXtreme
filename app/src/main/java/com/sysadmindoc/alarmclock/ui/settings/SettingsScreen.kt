@@ -115,8 +115,20 @@ fun SettingsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshBatteryStatus()
+    // v1.7.1: Re-check battery-optimisation status whenever the user returns
+    // to this screen — most commonly after they bounced out to the system
+    // "Battery & device care" page and granted the exemption. Without the
+    // resume hook the chip / banner / row would all keep reading "Needs
+    // setup" until the user manually navigated away and back.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshBatteryStatus()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     var showDefaultSnoozeMenu by remember { mutableStateOf(false) }
@@ -294,6 +306,30 @@ fun SettingsScreen(
                         )
                     }
                 }
+            }
+
+            SettingsGroup(
+                title = "Bottom navigation",
+                description = "Hide tabs you never use. Alarms and Settings always stay available."
+            ) {
+                SettingsToggle(
+                    label = "Show Today tab",
+                    checked = state.settings.showDashboardTab,
+                    supportingText = "Daily overview with weather and calendar.",
+                    onToggle = viewModel::toggleShowDashboardTab
+                )
+                SettingsToggle(
+                    label = "Show Timer tab",
+                    checked = state.settings.showTimerTab,
+                    supportingText = "Countdown timers with multiple lanes.",
+                    onToggle = viewModel::toggleShowTimerTab
+                )
+                SettingsToggle(
+                    label = "Show World tab",
+                    checked = state.settings.showWorldClockTab,
+                    supportingText = "Track time zones for cities you care about.",
+                    onToggle = viewModel::toggleShowWorldClockTab
+                )
             }
 
             IntegrationsSection(state, viewModel)

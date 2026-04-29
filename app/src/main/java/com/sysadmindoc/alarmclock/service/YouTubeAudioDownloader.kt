@@ -17,6 +17,14 @@ package com.sysadmindoc.alarmclock.service
  *
  * UI checks [isAvailable] to hide the entry point on f-droid builds.
  */
+/** A single YouTube hit returned by [YouTubeAudioDownloader.searchAlarmSounds]. */
+data class YouTubeSearchHit(
+    val videoUrl: String,
+    val title: String,
+    val uploader: String,
+    val durationSeconds: Long,
+)
+
 interface YouTubeAudioDownloader {
     /** True when the underlying engine is present and initialised. */
     fun isAvailable(): Boolean
@@ -28,6 +36,17 @@ interface YouTubeAudioDownloader {
      * human-readable error message.
      */
     suspend fun downloadAsAlarm(youtubeUrl: String, displayName: String): Result<String>
+
+    /**
+     * Search YouTube (no API key, no quotas) for short clips that make sense
+     * as alarm sounds. Filters to videos under [maxDurationSeconds] so a 90
+     * minute reaction video doesn't show up alongside a 12-second rooster.
+     * Stub on f-droid — returns failure with a clear message.
+     */
+    suspend fun searchAlarmSounds(
+        query: String,
+        maxDurationSeconds: Int = 240,
+    ): Result<List<YouTubeSearchHit>>
 }
 
 /**

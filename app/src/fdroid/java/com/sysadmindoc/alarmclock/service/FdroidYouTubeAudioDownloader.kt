@@ -20,6 +20,16 @@ class FdroidYouTubeAudioDownloader @Inject constructor() : YouTubeAudioDownloade
                 "YouTube downloads aren't available in the F-Droid build. Install the GitHub release if you need this feature."
             )
         )
+
+    override suspend fun searchAlarmSounds(
+        query: String,
+        maxDurationSeconds: Int,
+    ): Result<List<YouTubeSearchHit>> =
+        Result.failure(
+            UnsupportedOperationException(
+                "YouTube search isn't available in the F-Droid build."
+            )
+        )
 }
 
 @Singleton
