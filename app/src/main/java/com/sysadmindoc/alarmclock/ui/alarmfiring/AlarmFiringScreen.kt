@@ -173,8 +173,8 @@ fun AlarmFiringScreen(
         "Single-step dismissal"
     }
     val statusLine = when {
-        state.canDismiss -> "Wake-up steps are complete. Dismiss now, or snooze if you need a short buffer."
-        challenge == null -> "Swipe right or tap dismiss to stop the alarm."
+        state.canDismiss -> "Wake-up steps are complete. Swipe left to dismiss, or right to snooze."
+        challenge == null -> "Swipe left or tap dismiss to stop the alarm."
         else -> challenge.statusDescription()
     }
 
@@ -190,12 +190,16 @@ fun AlarmFiringScreen(
                 )
             )
             .pointerInput(state.canDismiss) {
+                // Swipe LEFT to dismiss/disarm, RIGHT to snooze. Dismiss is
+                // the destructive action — putting it on the left mirrors
+                // common swipe-to-delete conventions and matches the user's
+                // muscle memory for "get this out of the way."
                 detectHorizontalDragGestures(
                     onDragStart = { swipeCumulativeDrag = 0f },
                     onDragEnd = {
-                        if (swipeCumulativeDrag > swipeThreshold && state.canDismiss) {
+                        if (swipeCumulativeDrag < -swipeThreshold && state.canDismiss) {
                             onDismiss()
-                        } else if (swipeCumulativeDrag < -swipeThreshold) {
+                        } else if (swipeCumulativeDrag > swipeThreshold) {
                             onSnooze()
                         }
                         swipeHint = ""
@@ -208,10 +212,11 @@ fun AlarmFiringScreen(
                     onHorizontalDrag = { _, dragAmount ->
                         swipeCumulativeDrag += dragAmount
                         swipeHint = when {
-                            swipeCumulativeDrag > swipeThreshold / 2 && state.canDismiss -> "Release to dismiss"
-                            swipeCumulativeDrag < -swipeThreshold / 2 -> "Release to snooze"
-                            swipeCumulativeDrag > 50 -> "Swipe right to dismiss"
-                            swipeCumulativeDrag < -50 -> "Swipe left to snooze"
+                            swipeCumulativeDrag < -swipeThreshold / 2 && state.canDismiss -> "Release to dismiss"
+                            swipeCumulativeDrag > swipeThreshold / 2 -> "Release to snooze"
+                            swipeCumulativeDrag < -50 && state.canDismiss -> "Swipe left to dismiss"
+                            swipeCumulativeDrag < -50 -> "Finish the wake-up step first"
+                            swipeCumulativeDrag > 50 -> "Swipe right to snooze"
                             else -> ""
                         }
                     }
@@ -580,12 +585,12 @@ fun AlarmFiringScreen(
                     text = if (swipeHint.isBlank()) {
                         if (state.canDismiss) {
                             if (flipToSnoozeEnabled) {
-                                "Swipe left to snooze or right to dismiss. Flip the phone over for a quick snooze."
+                                "Swipe left to dismiss or right to snooze. Flip the phone over for a quick snooze."
                             } else {
-                                "Swipe left to snooze or right to dismiss."
+                                "Swipe left to dismiss or right to snooze."
                             }
                         } else {
-                            "Swipe left to snooze if you need a short reset. Dismiss unlocks once the wake-up task is complete."
+                            "Swipe right to snooze if you need a short reset. Dismiss unlocks once the wake-up task is complete."
                         }
                     } else {
                         swipeHint
@@ -618,14 +623,14 @@ fun AlarmFiringScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AppStatusChip(
-                        label = "Swipe left to snooze",
-                        icon = Icons.Default.Snooze,
-                        color = SnoozeYellow
-                    )
-                    AppStatusChip(
-                        label = if (state.canDismiss) "Swipe right to dismiss" else "Dismiss unlocks after challenge",
+                        label = if (state.canDismiss) "Swipe left to dismiss" else "Dismiss unlocks after challenge",
                         icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
                         color = if (state.canDismiss) DismissGreen else TextMuted
+                    )
+                    AppStatusChip(
+                        label = "Swipe right to snooze",
+                        icon = Icons.Default.Snooze,
+                        color = SnoozeYellow
                     )
                 }
 
