@@ -2,6 +2,66 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.6.3] - 2026-04-29
+
+End-to-end engineering audit pass. No new user-facing features; targets
+real reliability, security, and consistency bugs found across the
+service, scheduler, receiver, and import paths.
+
+### Fixed
+
+- **Webhook firing was racing service tear-down.** Dismiss/snooze events
+  were dispatched on `serviceScope.launch`, then `stopSelf()` was called
+  immediately after — `onDestroy()` cancelled `serviceScope` before the
+  5-second OkHttp call could complete, so Tasker integrations missed the
+  "dismissed" / "snoozed" events on slow connections. Webhook calls now
+  run on an application-lived `SupervisorJob` scope owned by
+  `WebhookService`, so service tear-down can no longer kill them.
+- **Snooze-cap event/webhook mismatch.** When the user hit
+  `maxSnoozeCount`, the alarm event log persisted `ACTION_DISMISSED` but
+  the webhook fired the `"snoozed"` event — same physical action, two
+  different stories. The webhook event name is now derived from the
+  branch that actually executed.
+- **`MissedAlarmUnlockReceiver` ANR risk.** Timeout was 25 seconds on a
+  receiver running under `goAsync()`, which only extends the
+  BroadcastReceiver ANR window to ~10 s on most Android versions —
+  guaranteed ANR before the timeout could fire. Tightened to 8 s,
+  matching the v1.5.4 fix already applied to `BootReceiver`.
+- **`setAlarmClock` not protected from `SecurityException`.**
+  `canScheduleExactAlarms()` was checked upstream, but the permission
+  can be revoked between the check and the call (race), and some OEM
+  builds throw even when the permission appears granted. Wrapped in
+  try/catch with a `setAndAllowWhileIdle()` fallback so alarms still
+  fire (within the 1–2 minute Doze window) instead of disappearing
+  silently.
+- **`AlarmShareCodec.decodeToken` had no payload size guard.** A hostile
+  `acx://alarm?data=…` deep-link with a multi-megabyte token could OOM
+  the app during Base64 decoding. Now hard-caps tokens at 16 KB (real
+  alarm payloads are ~1–2 KB).
+- **`BackupManager.importFromJson` wasn't actually per-alarm-resilient**
+  despite the comment claiming so. A single corrupt alarm row would
+  abort the entire import after partially saving earlier rows. Each
+  save+schedule now lives in its own try/catch, with bad rows logged
+  and skipped while the rest of the backup lands.
+- **Stale "What's new" highlights.** The dialog described v1.5.0
+  features but the app had since shipped v1.6.0/v1.6.1/v1.6.2.
+  Refreshed to the actual changes returning users will see since their
+  last open.
+
+### Tests
+
+- Added `AlarmShareCodecTest`: rejection of empty / blank / oversized
+  share tokens.
+
+### Why
+
+Several "polish pass" releases had elevated the surface; this pass
+elevates the failure paths. The webhook race was a silent
+correctness bug for Tasker users; the missed-alarm timeout was a
+guaranteed-ANR-on-stress bug; the import resilience and the share-token
+size guard were hardening the edges. None of these changes alter normal
+operation — they make the unhappy paths quiet and predictable.
+
 ## [1.6.2] - 2026-04-29
 
 Easier alarm dismissal — both from the lock-screen notification and via

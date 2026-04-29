@@ -1,7 +1,10 @@
 package com.sysadmindoc.alarmclock.service
 
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
@@ -17,6 +20,15 @@ import javax.inject.Singleton
  *
  * On alarm fire, snooze, or dismiss: POST a JSON payload to the user-configured URL.
  * All errors are caught silently — this must never crash or delay alarm operations.
+ *
+ * v1.6.3: The HTTP call runs on an application-lived [SupervisorJob] scope
+ * (instead of being launched inside [AlarmService.serviceScope]). The previous
+ * design was racing `stopSelf()`: the dismiss / snooze handlers called
+ * `serviceScope.launch { webhookService.fire(...) }` and then immediately
+ * called `stopSelf()`, which triggered `onDestroy()` → `serviceScope.cancel()`
+ * — so the 5-second OkHttp call was very often cancelled before the request
+ * left the device. Tasker integrations were missing the "dismissed" event for
+ * users with slow connections.
  */
 @Singleton
 class WebhookService @Inject constructor(
@@ -29,25 +41,34 @@ class WebhookService @Inject constructor(
 
     private val JSON = "application/json".toMediaType()
 
-    /** Fire-and-forget webhook call. Must be called inside a coroutine. */
-    suspend fun fire(event: String, alarmId: Long, label: String, timeFormatted: String) {
-        try {
-            val settings = preferencesManager.getCurrentSettings()
-            if (!settings.webhookEnabled || settings.webhookUrl.isBlank()) return
-            if (!isAllowedUrl(settings.webhookUrl)) return
+    // Application-lived scope. SupervisorJob so a crash in one fire doesn't
+    // cancel the next one; Dispatchers.IO since OkHttp.execute() is blocking.
+    // Never cancelled — the process tear-down releases all child jobs.
+    private val webhookScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-            val body = buildJson(event, alarmId, label, timeFormatted)
-            val request = Request.Builder()
-                .url(settings.webhookUrl)
-                .post(body.toRequestBody(JSON))
-                .header("Content-Type", "application/json")
-                .build()
+    /**
+     * Fire-and-forget webhook call. Caller does NOT need to await — the call
+     * runs on an application-lived scope so the AlarmService can stopSelf()
+     * immediately without cancelling the request.
+     */
+    fun fireAsync(event: String, alarmId: Long, label: String, timeFormatted: String) {
+        webhookScope.launch {
+            try {
+                val settings = preferencesManager.getCurrentSettings()
+                if (!settings.webhookEnabled || settings.webhookUrl.isBlank()) return@launch
+                if (!isAllowedUrl(settings.webhookUrl)) return@launch
 
-            withContext(Dispatchers.IO) {
+                val body = buildJson(event, alarmId, label, timeFormatted)
+                val request = Request.Builder()
+                    .url(settings.webhookUrl)
+                    .post(body.toRequestBody(JSON))
+                    .header("Content-Type", "application/json")
+                    .build()
+
                 client.newCall(request).execute().use { /* consume and close */ }
+            } catch (_: Exception) {
+                // Never propagate — webhook failures must not affect alarm flow
             }
-        } catch (_: Exception) {
-            // Never propagate — webhook failures must not affect alarm flow
         }
     }
 

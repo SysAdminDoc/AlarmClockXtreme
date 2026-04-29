@@ -231,7 +231,45 @@ class AlarmScheduler @Inject constructor(
         val pendingIntent = createPendingIntent(alarmId)
         val showIntent = createShowIntent(alarmId)
         val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showIntent)
-        alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+        // v1.6.3: `canScheduleExactAlarms()` is checked upstream, but the
+        // permission can be revoked between the check and this call (rare but
+        // possible — Settings → "Alarms & reminders" toggle is async). Some
+        // OEMs also throw SecurityException from `setAlarmClock()` even when
+        // the permission appears granted (notably Samsung One UI 6 in
+        // background-restricted state). Fall back to inexact-allow-while-idle
+        // so the alarm still fires within the 1-2 minute Doze window instead
+        // of vanishing silently.
+        try {
+            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+        } catch (e: SecurityException) {
+            android.util.Log.w(
+                "AlarmScheduler",
+                "setAlarmClock denied for alarm $alarmId — falling back to inexact",
+                e
+            )
+            try {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+                )
+            } catch (e2: Exception) {
+                android.util.Log.e(
+                    "AlarmScheduler",
+                    "Inexact fallback also failed for alarm $alarmId",
+                    e2
+                )
+            }
+        } catch (e: Exception) {
+            // Defensive: AlarmManager has been seen to throw RuntimeException on
+            // device-admin policy clamps. Log so users with crash-log access can
+            // diagnose; the WidgetUpdater will still show "no scheduled alarm".
+            android.util.Log.e(
+                "AlarmScheduler",
+                "Unexpected error scheduling alarm $alarmId",
+                e
+            )
+        }
     }
 
     private fun scheduleSupportingWork(alarm: Alarm, triggerTime: Long) {

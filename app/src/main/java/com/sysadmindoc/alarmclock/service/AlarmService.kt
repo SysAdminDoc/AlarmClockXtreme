@@ -252,10 +252,8 @@ class AlarmService : Service() {
             startVibration(alarm)
         }
 
-        // F8: Webhook on alarm fire
-        serviceScope.launch {
-            webhookService.fire("fired", alarm.id, alarm.label, formatAlarmTime(alarm))
-        }
+        // F8: Webhook on alarm fire (fire-and-forget on its own scope; see WebhookService)
+        webhookService.fireAsync("fired", alarm.id, alarm.label, formatAlarmTime(alarm))
 
         // Auto-silence after timeout - records as missed
         val settings = preferencesManager.getCurrentSettings()
@@ -655,6 +653,11 @@ class AlarmService : Service() {
                     .cancelUniqueWork("guardian_${alarm.id}")
             }
             val nextSnoozeCount = currentSnoozeCount + 1
+            // v1.6.3: Track which event was actually persisted so the webhook
+            // emits the matching event name. The previous code recorded
+            // ACTION_DISMISSED when the snooze cap was hit but still fired the
+            // "snoozed" webhook — Tasker integrations got the wrong event.
+            val webhookEvent: String
             if (alarm.maxSnoozeCount > 0 && nextSnoozeCount > alarm.maxSnoozeCount) {
                 // Max snoozes reached - treat as dismiss
                 currentSnoozeCount = alarm.maxSnoozeCount
@@ -664,6 +667,7 @@ class AlarmService : Service() {
                 currentAlarmId = -1
                 activeAlarmId = -1L
                 alarmScheduler.handleAlarmFired(alarmId)
+                webhookEvent = "dismissed"
             } else {
                 currentSnoozeCount = nextSnoozeCount
                 persistSnoozeCount(alarmId, currentSnoozeCount)
@@ -672,11 +676,9 @@ class AlarmService : Service() {
                 } else customMinutes
                 alarmScheduler.scheduleSnooze(alarm, effectiveSnooze)
                 recordEvent(alarm, AlarmEvent.ACTION_SNOOZED)
+                webhookEvent = "snoozed"
             }
-            // F8: Webhook on snooze
-            serviceScope.launch {
-                webhookService.fire("snoozed", alarm.id, alarm.label, formatAlarmTime(alarm))
-            }
+            webhookService.fireAsync(webhookEvent, alarm.id, alarm.label, formatAlarmTime(alarm))
         } else {
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
@@ -704,10 +706,8 @@ class AlarmService : Service() {
             currentAlarmId = -1
             activeAlarmId = -1L
 
-            // F8: Webhook on dismiss
-            serviceScope.launch {
-                webhookService.fire("dismissed", alarm.id, alarm.label, formatAlarmTime(alarm))
-            }
+            // F8: Webhook on dismiss (fire-and-forget on its own scope)
+            webhookService.fireAsync("dismissed", alarm.id, alarm.label, formatAlarmTime(alarm))
 
             // F11: TTS morning announcement
             if (alarm.ttsEnabled) {
