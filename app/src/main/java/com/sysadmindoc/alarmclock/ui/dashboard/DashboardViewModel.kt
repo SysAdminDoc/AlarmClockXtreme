@@ -8,6 +8,7 @@ import com.sysadmindoc.alarmclock.data.remote.CurrentWeather
 import com.sysadmindoc.alarmclock.data.remote.DailyWeather
 import com.sysadmindoc.alarmclock.data.remote.GeocodingApi
 import com.sysadmindoc.alarmclock.data.remote.GeocodingResult
+import com.sysadmindoc.alarmclock.data.remote.HourlyWeather
 import com.sysadmindoc.alarmclock.data.remote.WeatherCodes
 import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
 import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
@@ -18,8 +19,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import javax.inject.Inject
 
 data class DashboardUiState(
@@ -42,6 +45,11 @@ data class DashboardUiState(
     val locationName: String = "",
     val tempUnit: String = "F", // "F" or "C"
     val windUnit: String = "mph", // "mph" or "km/h"
+    // v1.7.4: ZeusWatch-inspired additions
+    val sunrise: String = "",          // "6:24 AM"
+    val sunset: String = "",           // "8:11 PM"
+    val uvIndex: String = "",          // "6 (high)"
+    val hourly: List<HourlyForecast> = emptyList(),
     // Calendar
     val calendarEvents: List<CalendarEvent> = emptyList(),
     val calendarError: String? = null,
@@ -60,7 +68,16 @@ data class ForecastDay(
     val high: String,
     val low: String,
     val description: String,
-    val precipChance: String
+    val precipChance: String,
+    val icon: String = ""
+)
+
+/** A single hourly forecast cell — ported lightly from ZeusWatch's HourlyForecastStrip. */
+data class HourlyForecast(
+    val timeLabel: String,    // "Now", "7 AM", "8 AM"
+    val temperature: String,  // "68"
+    val icon: String,         // WMO icon key
+    val precipChance: String, // "30%" — empty when 0
 )
 
 @HiltViewModel
@@ -185,6 +202,7 @@ class DashboardViewModel @Inject constructor(
                 .onSuccess { response ->
                     val current = response.current
                     val daily = response.daily
+                    val hourly = response.hourly
 
                     _uiState.update { it.copy(
                         weatherLoading = false,
@@ -201,6 +219,10 @@ class DashboardViewModel @Inject constructor(
                         highTemp = daily?.maxTemp?.firstOrNull()?.let { "${it.toInt()}" } ?: "--",
                         lowTemp = daily?.minTemp?.firstOrNull()?.let { "${it.toInt()}" } ?: "--",
                         precipChance = daily?.precipChance?.firstOrNull()?.let { "${it}%" } ?: "",
+                        sunrise = formatTimeOfDay(daily?.sunrise?.firstOrNull()),
+                        sunset = formatTimeOfDay(daily?.sunset?.firstOrNull()),
+                        uvIndex = formatUv(current?.uvIndex ?: daily?.uvIndexMax?.firstOrNull()),
+                        hourly = buildHourly(hourly),
                         forecast = buildForecast(daily)
                     ) }
                 }
@@ -218,6 +240,10 @@ class DashboardViewModel @Inject constructor(
                         highTemp = "",
                         lowTemp = "",
                         precipChance = "",
+                        sunrise = "",
+                        sunset = "",
+                        uvIndex = "",
+                        hourly = emptyList(),
                         forecast = emptyList(),
                         weatherError = "Weather unavailable"
                     ) }
@@ -340,15 +366,76 @@ class DashboardViewModel @Inject constructor(
         // built independently and skipped on parse failure.
         return dates.mapIndexedNotNull { i, dateStr ->
             val date = runCatching { LocalDate.parse(dateStr) }.getOrNull() ?: return@mapIndexedNotNull null
+            val code = daily.weatherCode?.getOrNull(i)
             ForecastDay(
                 date = dateStr,
-                dayName = if (i == 0) "Today" else date.format(DateTimeFormatter.ofPattern("EEE")),
+                dayName = if (i == 0) "Today" else date.format(DateTimeFormatter.ofPattern("EEEE")),
                 high = daily.maxTemp?.getOrNull(i)?.let { "${it.toInt()}" } ?: "--",
                 low = daily.minTemp?.getOrNull(i)?.let { "${it.toInt()}" } ?: "--",
-                description = daily.weatherCode?.getOrNull(i)?.let { WeatherCodes.describe(it) } ?: "",
-                precipChance = daily.precipChance?.getOrNull(i)?.let { "${it}%" } ?: ""
+                description = code?.let { WeatherCodes.describe(it) } ?: "",
+                precipChance = daily.precipChance?.getOrNull(i)?.let { "${it}%" } ?: "",
+                icon = code?.let { WeatherCodes.icon(it) } ?: "unknown"
             )
         }
+    }
+
+    /**
+     * Build the next-12-hours strip — first cell is "Now", subsequent cells
+     * label by hour. Skips past-now entries and tolerates partial / malformed
+     * arrays (the upstream Open-Meteo response sometimes lags by an hour at
+     * timezone boundaries).
+     */
+    private fun buildHourly(hourly: HourlyWeather?): List<HourlyForecast> {
+        if (hourly == null) return emptyList()
+        val times = hourly.time ?: return emptyList()
+        val now = LocalDateTime.now()
+        return times.mapIndexedNotNull { i, timeStr ->
+            val parsed = runCatching { LocalDateTime.parse(timeStr) }.getOrNull()
+                ?: return@mapIndexedNotNull null
+            // Drop slots that are already in the past so the strip always
+            // shows forward-looking data.
+            if (parsed.isBefore(now.minusMinutes(30))) return@mapIndexedNotNull null
+            val isFirstFutureSlot = parsed.isBefore(now.plusMinutes(45))
+            val temp = hourly.temperature?.getOrNull(i)?.let { "${it.toInt()}" } ?: "--"
+            val code = hourly.weatherCode?.getOrNull(i) ?: -1
+            val pop = hourly.precipChance?.getOrNull(i) ?: 0
+            HourlyForecast(
+                timeLabel = if (isFirstFutureSlot) "Now"
+                    else parsed.format(DateTimeFormatter.ofPattern("h a")),
+                temperature = temp,
+                icon = WeatherCodes.icon(code),
+                precipChance = if (pop >= 20) "${pop}%" else "",
+            )
+        }.take(8)
+    }
+
+    /**
+     * Open-Meteo returns sunrise/sunset as ISO local-without-timezone strings
+     * like "2026-04-29T06:24" (we requested timezone=auto so they're in the
+     * user's location TZ already). Format to a friendly "6:24 AM".
+     */
+    private fun formatTimeOfDay(iso: String?): String {
+        if (iso.isNullOrBlank()) return ""
+        val parsed = runCatching { LocalDateTime.parse(iso) }.getOrNull() ?: return ""
+        return parsed.format(DateTimeFormatter.ofPattern("h:mm a"))
+    }
+
+    /**
+     * UV scale labels mirror EPA / WMO conventions — short, scannable.
+     * Anything over 11 is "extreme" but in practice that's vanishingly rare
+     * outside high altitude / equator + summer.
+     */
+    private fun formatUv(uv: Double?): String {
+        if (uv == null) return ""
+        val rounded = uv.roundToInt()
+        val band = when {
+            rounded < 3 -> "low"
+            rounded < 6 -> "moderate"
+            rounded < 8 -> "high"
+            rounded < 11 -> "very high"
+            else -> "extreme"
+        }
+        return "$rounded · $band"
     }
 
     private fun shouldRescheduleSolarAlarms(
