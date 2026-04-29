@@ -25,13 +25,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AlarmAdd
 import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
@@ -111,6 +115,7 @@ import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,6 +131,11 @@ fun AlarmListScreen(
     var searchQuery by remember { mutableStateOf("") }
     var showBulkDeleteConfirmation by remember { mutableStateOf(false) }
 
+    // v1.7.1: Prominent (non-tucked) YouTube download entry. The user can
+    // build up an alarm-sound library without first creating an alarm.
+    var showYouTubeDialog by remember { mutableStateOf(false) }
+    val youTubeAvailable = com.sysadmindoc.alarmclock.ui.components.isYouTubeDownloaderAvailable()
+
     if (showTemplates) {
         TemplatePickerSheet(
             onSelect = { template ->
@@ -137,6 +147,28 @@ fun AlarmListScreen(
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarScope = androidx.compose.runtime.rememberCoroutineScope()
+
+    if (showYouTubeDialog) {
+        com.sysadmindoc.alarmclock.ui.components.YouTubeDownloadDialog(
+            onDismiss = { showYouTubeDialog = false },
+            onDownloaded = { savedTitle ->
+                showYouTubeDialog = false
+                snackbarScope.launch {
+                    snackbarHostState.showSnackbar(
+                        "Saved \"$savedTitle\" — pick it from any alarm's sound list.",
+                        duration = SnackbarDuration.Long
+                    )
+                }
+            },
+            onError = { msg ->
+                showYouTubeDialog = false
+                snackbarScope.launch {
+                    snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long)
+                }
+            }
+        )
+    }
 
     LaunchedEffect(Unit) {
         viewModel.feedbackEvents.collect { message ->
@@ -233,6 +265,11 @@ fun AlarmListScreen(
 
     Scaffold(
         containerColor = SurfaceDark,
+        // v1.7.1: Skip the inner Scaffold's default system insets — the outer
+        // AppNavigation Scaffold already paddings NavHost with the bottom-nav
+        // inset. Without this, both scaffolds compete for the same insets and
+        // the alarm list stops well short of the floating nav.
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         Column(
@@ -256,7 +293,10 @@ fun AlarmListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 120.dp),
+                // v1.7.1: dropped from 120dp → 24dp. The outer AppNavigation
+                // Scaffold already pads NavHost with the bottom-nav inset, so
+                // the prior 120dp was a redundant gap above the floating nav.
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 item {
@@ -273,6 +313,20 @@ fun AlarmListScreen(
                         onCycleSort = viewModel::cycleSortOrder,
                         onOpenSettings = onOpenSettings
                     )
+                }
+
+                // v1.7.1: Top-level YouTube downloader card. Sits ABOVE the
+                // alarm list so users see it as a first-class action, not
+                // something hidden behind "create new alarm." Tapping the
+                // card opens the same dialog as the picker; the saved tone
+                // becomes available in every alarm's sound picker.
+                if (youTubeAvailable) {
+                    item {
+                        YouTubeDownloadCard(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            onClick = { showYouTubeDialog = true }
+                        )
+                    }
                 }
 
                 if (state.groups.any { it.isNotBlank() } || state.alarms.size > 3) {
@@ -378,11 +432,19 @@ fun AlarmListScreen(
 
                     else -> {
                         item {
-                            AppSectionTitle(
-                                title = "Saved alarms",
-                                description = "Tap an alarm to edit it. Long-press to select multiple alarms.",
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                action = {
+                            // v1.7.1: Dropped the "Saved alarms" section title +
+                            // description — the hero subtitle already says
+                            // "Tap an alarm to edit it." Keeping just the
+                            // action row reclaims another ~50dp of vertical
+                            // space so the first alarm card lands above the
+                            // fold on standard phones.
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                     OutlinedButton(
                                         onClick = { showTemplates = true },
                                         colors = ButtonDefaults.outlinedButtonColors(
@@ -402,8 +464,7 @@ fun AlarmListScreen(
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("New alarm")
                                     }
-                                }
-                            )
+                            }
                         }
                         items(filteredAlarms, key = { it.id }) { alarm ->
                             Box(modifier = Modifier
@@ -472,7 +533,7 @@ private fun AlarmHeader(
     AlarmClockHeroHeader(
         title = if (hasAlarms && remainingTime.isNotBlank()) "Next alarm in $remainingTime" else "Alarm schedule",
         subtitle = if (hasAlarms && remainingTime.isNotBlank()) {
-            "Everything important is visible at a glance, so it is easy to trust what rings next."
+            "Tap an alarm to edit it, or add a new one below."
         } else {
             "Create, group, and refine alarms from one calm control center."
         },
@@ -482,9 +543,15 @@ private fun AlarmHeader(
                 label = if (alarmCount == 1) "1 alarm" else "$alarmCount alarms",
                 icon = Icons.Default.Notifications
             )
+            // v1.7.1: The sort chip is now tappable so the standalone "Sort"
+            // button (which used to live in the actions slot at the very top
+            // right of the hero) can go away entirely. The gear icon next to
+            // it duplicated the Settings tab and was likewise removed. This
+            // claws back ~70dp of vertical space at the top of the screen.
             AppStatusChip(
                 label = sortLabel,
-                icon = Icons.AutoMirrored.Filled.Sort
+                icon = Icons.AutoMirrored.Filled.Sort,
+                modifier = Modifier.clickable(role = Role.Button, onClick = onCycleSort)
             )
             if (vacationActive) {
                 AppStatusChip(
@@ -493,17 +560,8 @@ private fun AlarmHeader(
                     color = SnoozeYellow
                 )
             }
-        },
-        actions = {
-            TextButton(onClick = onCycleSort) {
-                Icon(Icons.AutoMirrored.Filled.Sort, null, tint = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Sort", color = MaterialTheme.colorScheme.primary)
-            }
-            IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Default.Settings, contentDescription = "Alarm settings", tint = TextMuted)
-            }
         }
+        // actions slot intentionally left null — see badge comment above.
     )
 }
 
@@ -997,4 +1055,66 @@ private fun nextOccurrenceLabel(alarm: Alarm, is24Hour: Boolean): String {
         .atZone(ZoneId.systemDefault())
         .format(DateTimeFormatter.ofPattern(pattern))
     return "Next occurrence: $formatted"
+}
+
+@Composable
+private fun YouTubeDownloadCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick),
+        shape = com.sysadmindoc.alarmclock.ui.components.AppCardShape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CloudDownload,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "Download alarm sound from YouTube",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Paste a URL — the sound is added to your library, ready to use on any alarm.",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
 }

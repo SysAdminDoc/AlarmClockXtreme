@@ -56,6 +56,37 @@ class PlayYouTubeAudioDownloader @Inject constructor(
 
     override fun isAvailable(): Boolean = initialized.get()
 
+    override suspend fun searchAlarmSounds(
+        query: String,
+        maxDurationSeconds: Int,
+    ): Result<List<YouTubeSearchHit>> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(query.isNotBlank()) { "Type a search like \"rooster crow\" or \"piano bell\"." }
+            val service = org.schabi.newpipe.extractor.NewPipe.getService(
+                org.schabi.newpipe.extractor.ServiceList.YouTube.serviceId
+            )
+            val extractor = service.getSearchExtractor(query)
+            extractor.fetchPage()
+            extractor.initialPage.items
+                .filterIsInstance<org.schabi.newpipe.extractor.stream.StreamInfoItem>()
+                .filter { it.duration in 1..maxDurationSeconds.toLong() }
+                .filter { !it.name.contains('#') }
+                .take(15)
+                .map { item ->
+                    YouTubeSearchHit(
+                        videoUrl = item.url,
+                        title = item.name,
+                        uploader = item.uploaderName ?: "",
+                        durationSeconds = item.duration,
+                    )
+                }
+        }.recoverCatching { e ->
+            if (e is CancellationException) throw e
+            Log.w(TAG, "search failed: $query", e)
+            throw e
+        }
+    }
+
     override suspend fun downloadAsAlarm(
         youtubeUrl: String,
         displayName: String,

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -59,6 +60,11 @@ data class BottomNavItem(
     val icon: ImageVector
 )
 
+/**
+ * The full list of bottom-nav destinations. The visible subset is computed by
+ * [visibleBottomNavItems] based on the user's preferences — Alarms and
+ * Settings are always visible; Today / Timer / World can be hidden.
+ */
 val bottomNavItems = listOf(
     BottomNavItem(Screen.Dashboard, "Today", Icons.Default.WbSunny),
     BottomNavItem(Screen.AlarmList, "Alarms", Icons.Default.Alarm),
@@ -66,6 +72,19 @@ val bottomNavItems = listOf(
     BottomNavItem(Screen.WorldClock, "World", Icons.Default.Language),
     BottomNavItem(Screen.Settings, "Settings", Icons.Default.Settings),
 )
+
+private fun visibleBottomNavItems(
+    showDashboard: Boolean,
+    showTimer: Boolean,
+    showWorld: Boolean,
+): List<BottomNavItem> = bottomNavItems.filter {
+    when (it.screen) {
+        Screen.Dashboard -> showDashboard
+        Screen.Timer -> showTimer
+        Screen.WorldClock -> showWorld
+        else -> true
+    }
+}
 
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
@@ -78,9 +97,42 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val hasCompletedOnboarding = remember { prefs.getBoolean("onboarding_complete", false) }
     val startDest = if (hasCompletedOnboarding) Screen.AlarmList.route else Screen.Onboarding.route
 
+    // v1.7.1: User-controlled tab visibility. We grab the cached snapshot
+    // straight from PreferencesManager via Hilt so the nav bar updates the
+    // moment a toggle flips, without forcing every screen to read from
+    // DataStore directly.
+    val preferencesManager = remember(context) {
+        dagger.hilt.android.EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            AppNavigationEntryPoint::class.java
+        ).preferencesManager()
+    }
+    val settings by preferencesManager.settings.collectAsStateWithLifecycle(
+        initialValue = preferencesManager.getCachedSettings()
+    )
+    val visibleTabs = visibleBottomNavItems(
+        showDashboard = settings.showDashboardTab,
+        showTimer = settings.showTimerTab,
+        showWorld = settings.showWorldClockTab,
+    )
+
     val showBottomBar = currentDestination?.route?.let { route ->
         route in bottomNavItems.map { it.screen.route }
     } ?: false
+
+    // If the user is currently on a tab that's been hidden, bounce them to
+    // Alarms (the always-visible "home" tab). Without this they'd be stuck on
+    // Today, Timer, or World with no way back via the bottom nav.
+    LaunchedEffect(visibleTabs, currentDestination?.route) {
+        val current = currentDestination?.route ?: return@LaunchedEffect
+        val isManagedTab = current in bottomNavItems.map { it.screen.route }
+        if (isManagedTab && visibleTabs.none { it.screen.route == current }) {
+            navController.navigate(Screen.AlarmList.route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = false }
+                launchSingleTop = true
+            }
+        }
+    }
 
     Scaffold(
         containerColor = SurfaceDark,
@@ -92,7 +144,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                         contentColor = TextPrimary,
                         tonalElevation = 0.dp
                     ) {
-                        bottomNavItems.forEach { item ->
+                        visibleTabs.forEach { item ->
                             val selected = currentDestination?.hierarchy?.any {
                                 it.route == item.screen.route
                             } == true
@@ -227,4 +279,11 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             }
         }
     }
+}
+
+/** Hilt entry point so the (non-VM) navigation composable can read settings. */
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+internal interface AppNavigationEntryPoint {
+    fun preferencesManager(): com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 }
