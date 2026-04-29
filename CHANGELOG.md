@@ -2,6 +2,57 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.6.1] - 2026-04-29
+
+Premium-polish design-system pass. No new features, no schema changes —
+targets the design tokens that ripple across every screen so the product
+feels more coherent, intentional, and refined.
+
+### Changed
+
+- **Tabular figures across the clock typography.** `ClockTimeSmall` /
+  `ClockTimeLarge` / `ClockTimeDisplay` now request `tnum` + `lnum` font
+  features so digits no longer reflow when the clock ticks from `11:11`
+  to `12:00`. Letter-spacing tightened to match.
+- **Refined surface ladder.** Reworked `Color.kt` with a deliberate
+  four-step ladder (`SurfaceDark` → `SurfaceMedium` → `SurfaceCard` →
+  `SurfaceLight`), introduced `BorderSubtle` / `BorderStrong` /
+  `OverlayHover` tokens, and slightly cooled the primary blue. Cards
+  and chips now stack predictably under translucent overlays.
+- **Simplified `AppSurfaceCard`.** Dropped the triple-overlay treatment
+  (vertical white wash + radial accent + base color) for a single calm
+  vertical sheen, a single stroke, and a single container color. The
+  result reads as more confident on AMOLED.
+- **Refined `AppStatusChip`.** Color-matched border (was hard-coded
+  primary alpha), tighter padding, SemiBold label so chips feel like
+  deliberate metadata rather than decorative noise.
+- **Refined hero header.** Replaced the four-stop vertical gradient and
+  nested overlay box with a single deep wash plus one off-center primary
+  radial. No more banding on long screens; brand color reads true.
+- **Refined bottom navigation.** Removed the redundant outer-container
+  radial, tightened indicator alpha, dropped icon size to 22.dp and
+  label scale to `labelSmall` for a denser, more premium feel.
+- **`AppMetricTile` shared component.** Replaces the ad-hoc translucent
+  surfaces scattered across Dashboard / Stats / Bedtime so every "small
+  data card" is identical edge-to-edge.
+- **Alarm card chip rows unified.** Two separate horizontal-scroll rows
+  collapsed into one, with the empty-row case skipped entirely so cards
+  don't end with phantom whitespace.
+- **Switch styling refined.** Thumb is now `TextPrimary` over a primary
+  track for a calmer, more deliberate "on" state instead of the prior
+  light-thumb-on-translucent-track look.
+- **Forecast / location-result tiles** now use `SurfaceLight` with a
+  `BorderSubtle` stroke, matching the metric tile vocabulary.
+
+### Why
+
+Multiple polish passes (v1.5.3, v1.2.1+, v1.3.x) had elevated individual
+screens, but the design tokens themselves had drifted: ad-hoc alpha
+values, three-layer overlays per card, and hard-coded chip borders. This
+pass touches the tokens once and lets every screen inherit the
+improvement — the kind of system-level work that makes the product feel
+more thoughtfully crafted without changing what anything does.
+
 ## [1.6.0] - 2026-04-26
 
 Added 4 new dismiss challenges: **Rock Paper Scissors** (best-of-5 against CPU), **Emoji Memory** (match 8 pairs on a 4×4 face-down grid), **Typing Speed** (type a phrase at ≥15 wpm with ≤2 word errors), and **Wordle** (guess a 5-letter word in ≤6 tries). Each challenge refines the wake-up gauntlet for diverse cognitive and motor preferences.

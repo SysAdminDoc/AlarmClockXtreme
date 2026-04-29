@@ -640,13 +640,17 @@ private fun AlarmCard(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = RoundedCornerShape(18.dp),
+        shape = com.sysadmindoc.alarmclock.ui.components.AppCardShape,
         colors = CardDefaults.cardColors(
-            containerColor = if (alarm.isEnabled) SurfaceMedium else SurfaceCard.copy(alpha = 0.7f)
+            containerColor = if (alarm.isEnabled) SurfaceCard else SurfaceCard.copy(alpha = 0.55f)
         ),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            color = if (alarm.isEnabled) TextMuted.copy(alpha = 0.14f) else TextMuted.copy(alpha = 0.08f)
+            color = if (alarm.isEnabled) {
+                com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
+            } else {
+                com.sysadmindoc.alarmclock.ui.theme.BorderSubtle.copy(alpha = 0.5f)
+            }
         )
     ) {
         Column(
@@ -660,7 +664,7 @@ private fun AlarmCard(
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
                         text = formatAlarmTime(alarm, is24Hour),
@@ -675,7 +679,7 @@ private fun AlarmCard(
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Switch(
@@ -733,36 +737,35 @@ private fun AlarmCard(
                 style = MaterialTheme.typography.bodySmall
             )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (suppressedByVacation) {
-                    // v1.5.2: Honest per-alarm badge — previously the list said
-                    // "Next alarm in 3 days" even though vacation mode was
-                    // suppressing the alarm from ever firing.
-                    AppStatusChip(
-                        label = "Paused by vacation",
-                        icon = Icons.Default.BeachAccess,
-                        color = SnoozeYellow
-                    )
-                }
-                AppStatusChip(
-                    label = alarm.repeatLabel,
-                    icon = Icons.Default.CheckCircle,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            if (alarm.group.isNotBlank() || alarm.challengeType != "NONE" || alarm.ringtoneUri == "silent") {
+            // One unified chip row — previously two separate horizontal-scroll
+            // rows, which made cards stack a little taller and produced
+            // mismatched gaps when only one row had content.
+            val showChipRow = suppressedByVacation ||
+                alarm.repeatLabel.isNotBlank() ||
+                alarm.group.isNotBlank() ||
+                alarm.challengeType != "NONE" ||
+                alarm.ringtoneUri == "silent"
+            if (showChipRow) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    if (suppressedByVacation) {
+                        AppStatusChip(
+                            label = "Paused by vacation",
+                            icon = Icons.Default.BeachAccess,
+                            color = SnoozeYellow
+                        )
+                    }
+                    if (alarm.repeatLabel.isNotBlank()) {
+                        AppStatusChip(
+                            label = alarm.repeatLabel,
+                            icon = Icons.Default.CheckCircle,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     if (alarm.group.isNotBlank()) {
                         AppStatusChip(label = alarm.group)
                     }
