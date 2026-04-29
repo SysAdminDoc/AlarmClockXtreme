@@ -116,16 +116,18 @@ class MainActivity : ComponentActivity() {
         private const val KEY_LAST_HANDLED_SHARE_TOKEN = "last_handled_share_token"
 
         /**
-         * v1.5.0: Terse highlights for the "What's new" dialog — a
-         * ~half-dozen bullets maximum, written for users (not devs).
-         * Full release notes live in CHANGELOG.md.
+         * Terse highlights for the "What's new" dialog — a half-dozen
+         * bullets max, written for users (not devs). Full release notes
+         * live in CHANGELOG.md. Refresh on every shipping release so a
+         * returning user sees the actual changes since they last opened
+         * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Three new wake-up challenges: Simon Says, type today's date backwards, and the Stroop color test.",
-            "Alarms can now fire relative to sunrise or sunset with a configurable offset.",
-            "Alarm-edit screen exposes the v1.4.0 settings: hardware-button action, dismiss-at-ringtone-end, and a random ringtone pool.",
-            "Bedtime tab has a seconds-scale slider for how long the sleep-sound fade-out should take.",
-            "Power-nap quick-alarm chips now highlight your default nap length."
+            "Easier dismissal: tap the alarm notification body to open the firing screen, swipe left to dismiss, swipe right to snooze.",
+            "Four new wake-up challenges: Rock-Paper-Scissors, Emoji Memory, Typing Speed, and Wordle.",
+            "Refined design system: tabular figures on the clock display so the time never reflows, plus cleaner cards, chips, and bottom-nav.",
+            "More reliable webhooks: dismiss/snooze events now reach Tasker even on slow connections.",
+            "Hardened scheduling: alarms still fire (within the Doze window) if the exact-alarm permission is revoked at the wrong moment."
         )
     }
 }
