@@ -2,6 +2,43 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.7.2] - 2026-04-29
+
+Preview YouTube alarm sounds before downloading.
+
+### Added
+
+- **Per-result preview button** in the YouTube search dialog. Tap ▶ on
+  any result to stream the lowest-bitrate audio (~1–3 s to start, no
+  full download). Tap ⏹ to stop, tap ▶ on another result to switch.
+  The downloaded clip lands at full quality only when you tap the row
+  body to commit. Mirrors the audition pattern in the Aura/FreeVibe
+  app's YouTube tab.
+
+### Architecture
+
+- New `YouTubeAudioDownloader.getPreviewStreamUrl(youtubeUrl)`
+  returning a Result<String> with a directly playable URL. Play impl
+  uses `yt-dlp -f worstaudio --get-url` (fastest resolution path,
+  smallest buffering). F-droid impl returns the standard
+  "not available" failure.
+- Session-only LRU cache of resolved URLs (64 entries, 3-hour TTL —
+  half of YouTube's typical 6-hour signed-URL window). Prevents
+  re-resolving when the user previews the same clip twice.
+- `MediaPlayer` lifecycle owned by the dialog: switching preview
+  stops the previous one, dialog dismissal releases it,
+  `setOnCompletionListener` clears state when the clip ends, and a
+  `setOnErrorListener` falls through to "couldn't play that preview"
+  without leaking the player.
+- Tap zones split per row: the play/stop button auditions, the row
+  body downloads. Both gestures stay deliberate.
+
+### Notes
+
+- Preview audio plays through the **media** stream (not the alarm
+  stream) so the user can audition without competing with their
+  alarm volume preference.
+
 ## [1.7.1] - 2026-04-29
 
 User-driven on-device polish pass. Visible response to first real-device

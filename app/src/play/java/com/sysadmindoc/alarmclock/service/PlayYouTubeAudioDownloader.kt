@@ -39,6 +39,20 @@ class PlayYouTubeAudioDownloader @Inject constructor(
 
     private val initialized = AtomicBoolean(false)
 
+    /**
+     * Session-only cache for resolved preview URLs. YouTube's signed audio
+     * URLs are valid for ~6 hours; we cache for half that to leave headroom.
+     * Bounded so a session that searches all day doesn't grow unbounded.
+     */
+    private data class CachedStream(val url: String, val cachedAtMs: Long)
+    private val previewCache = java.util.Collections.synchronizedMap(
+        object : LinkedHashMap<String, CachedStream>(32, 0.75f, true) {
+            override fun removeEldestEntry(
+                eldest: MutableMap.MutableEntry<String, CachedStream>?,
+            ): Boolean = size > 64
+        }
+    )
+
     // Independent client — bigger timeouts than the shared NetworkModule
     // OkHttpClient because alarm-tone downloads are larger than holiday-API
     // calls. 30 s connect / 5 min read covers a 30 MB clip on 4G.
@@ -55,6 +69,45 @@ class PlayYouTubeAudioDownloader @Inject constructor(
     }
 
     override fun isAvailable(): Boolean = initialized.get()
+
+    override suspend fun getPreviewStreamUrl(youtubeUrl: String): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(isAvailable()) {
+                "YouTube engine still warming up — try again in a moment."
+            }
+            require(isLikelyYouTubeUrl(youtubeUrl)) {
+                "That doesn't look like a YouTube URL."
+            }
+            // Session cache hit?
+            previewCache[youtubeUrl]?.let { cached ->
+                if (System.currentTimeMillis() - cached.cachedAtMs < PREVIEW_TTL_MS) {
+                    return@runCatching cached.url
+                }
+                previewCache.remove(youtubeUrl)
+            }
+            // worstaudio = fastest to resolve, smallest to buffer; perfect for preview.
+            val request = YoutubeDLRequest(youtubeUrl).apply {
+                addOption("-f", "worstaudio")
+                addOption("--get-url")
+                addOption("--socket-timeout", "20")
+            }
+            val response = YoutubeDL.getInstance().execute(request)
+            val streamUrl = response.out
+                ?.trim()
+                ?.lines()
+                ?.firstOrNull { it.startsWith("http") }
+                ?.takeIf { it.isNotBlank() }
+                ?: throw IllegalStateException(
+                    "Couldn't get a preview stream. The video may be age-restricted, removed, or region-locked."
+                )
+            previewCache[youtubeUrl] = CachedStream(streamUrl, System.currentTimeMillis())
+            streamUrl
+        }.recoverCatching { e ->
+            if (e is CancellationException) throw e
+            Log.w(TAG, "preview-url failed for $youtubeUrl", e)
+            throw e
+        }
+    }
 
     override suspend fun searchAlarmSounds(
         query: String,
@@ -219,6 +272,9 @@ class PlayYouTubeAudioDownloader @Inject constructor(
         // reasonable alarm clip needs. Defends against a hostile or
         // mis-resolved CDN URL writing endlessly.
         private const val MAX_BYTES = 60L * 1024 * 1024
+
+        // Half of YouTube's typical 6-hour signed-URL TTL.
+        private const val PREVIEW_TTL_MS = 3L * 60 * 60 * 1000
 
         private val URL_REGEX = Regex(
             "^https?://(www\\.|m\\.|music\\.)?(youtube\\.com|youtu\\.be|youtube-nocookie\\.com)/.+",
