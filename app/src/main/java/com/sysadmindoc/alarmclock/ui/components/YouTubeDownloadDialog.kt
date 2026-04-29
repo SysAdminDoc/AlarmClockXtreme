@@ -1,29 +1,31 @@
 package com.sysadmindoc.alarmclock.ui.components
 
+import android.media.AudioAttributes
+import android.media.MediaPlayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
@@ -32,6 +34,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -45,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.YouTubeSearchHit
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
-import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
@@ -55,6 +57,7 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 private enum class DownloadMode { Search, PasteUrl }
@@ -62,7 +65,9 @@ private enum class DownloadMode { Search, PasteUrl }
 /**
  * Reusable YouTube → alarm-sound download dialog. Two modes:
  *  - **Search** (default): NewPipe-backed text search ("rooster crowing
- *    alarm" → list of short clips). Tap a result to download.
+ *    alarm" → list of short clips). Each result has a preview button that
+ *    streams the lowest-bitrate audio so the user can audition before
+ *    committing to the download.
  *  - **Paste URL**: classic URL-paste flow.
  *
  * Mirrors the dual-input pattern in the Aura/FreeVibe app's YouTube tab.
@@ -90,10 +95,94 @@ fun YouTubeDownloadDialog(
     var searching by remember { mutableStateOf(false) }
     var inFlight by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf("") }
+
+    // Preview machinery — the URL currently resolving (loading) or playing.
+    // Owns a single MediaPlayer so a second preview tap stops the first.
+    var loadingPreviewUrl by remember { mutableStateOf<String?>(null) }
+    var playingPreviewUrl by remember { mutableStateOf<String?>(null) }
+    val mediaPlayerHolder = remember { mutableStateOf<MediaPlayer?>(null) }
+    var previewJob by remember { mutableStateOf<Job?>(null) }
+
     val scope = rememberCoroutineScope()
 
+    fun stopPreview() {
+        previewJob?.cancel()
+        previewJob = null
+        loadingPreviewUrl = null
+        playingPreviewUrl = null
+        mediaPlayerHolder.value?.let { player ->
+            try { if (player.isPlaying) player.stop() } catch (_: Exception) {}
+            try { player.release() } catch (_: Exception) {}
+        }
+        mediaPlayerHolder.value = null
+    }
+
+    fun togglePreview(hit: YouTubeSearchHit) {
+        if (playingPreviewUrl == hit.videoUrl || loadingPreviewUrl == hit.videoUrl) {
+            stopPreview()
+            return
+        }
+        // Switching previews — kill any in-flight first.
+        stopPreview()
+        loadingPreviewUrl = hit.videoUrl
+        previewJob = scope.launch {
+            val resolved = downloader.getPreviewStreamUrl(hit.videoUrl)
+            resolved.fold(
+                onSuccess = { streamUrl ->
+                    if (loadingPreviewUrl != hit.videoUrl) return@fold // stale (user tapped another)
+                    try {
+                        val player = MediaPlayer().apply {
+                            setAudioAttributes(
+                                AudioAttributes.Builder()
+                                    .setUsage(AudioAttributes.USAGE_MEDIA)
+                                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                    .build()
+                            )
+                            setDataSource(streamUrl)
+                            setOnPreparedListener {
+                                if (loadingPreviewUrl != hit.videoUrl) {
+                                    try { release() } catch (_: Exception) {}
+                                    return@setOnPreparedListener
+                                }
+                                loadingPreviewUrl = null
+                                playingPreviewUrl = hit.videoUrl
+                                start()
+                            }
+                            setOnCompletionListener { stopPreview() }
+                            setOnErrorListener { _, _, _ ->
+                                statusMessage = "Couldn't play that preview. Try another result."
+                                stopPreview()
+                                true
+                            }
+                            prepareAsync()
+                        }
+                        mediaPlayerHolder.value = player
+                    } catch (_: Exception) {
+                        statusMessage = "Couldn't start preview. Try another result."
+                        stopPreview()
+                    }
+                },
+                onFailure = { e ->
+                    if (loadingPreviewUrl == hit.videoUrl) {
+                        statusMessage = e.message ?: "Couldn't get a preview stream."
+                    }
+                    loadingPreviewUrl = null
+                }
+            )
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { stopPreview() }
+    }
+
     AlertDialog(
-        onDismissRequest = { if (!inFlight && !searching) onDismiss() },
+        onDismissRequest = {
+            if (!inFlight && !searching) {
+                stopPreview()
+                onDismiss()
+            }
+        },
         icon = {
             Icon(
                 Icons.Default.CloudDownload,
@@ -113,14 +202,20 @@ fun YouTubeDownloadDialog(
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     SegmentedButton(
                         selected = mode == DownloadMode.Search,
-                        onClick = { mode = DownloadMode.Search },
+                        onClick = {
+                            stopPreview()
+                            mode = DownloadMode.Search
+                        },
                         shape = SegmentedButtonDefaults.itemShape(0, 2),
                         enabled = !inFlight && !searching,
                         label = { Text("Search YouTube") }
                     )
                     SegmentedButton(
                         selected = mode == DownloadMode.PasteUrl,
-                        onClick = { mode = DownloadMode.PasteUrl },
+                        onClick = {
+                            stopPreview()
+                            mode = DownloadMode.PasteUrl
+                        },
                         shape = SegmentedButtonDefaults.itemShape(1, 2),
                         enabled = !inFlight && !searching,
                         label = { Text("Paste URL") }
@@ -135,8 +230,12 @@ fun YouTubeDownloadDialog(
                         results = hits,
                         statusMessage = statusMessage,
                         canSubmit = !inFlight,
+                        loadingPreviewUrl = loadingPreviewUrl,
+                        playingPreviewUrl = playingPreviewUrl,
+                        onTogglePreview = ::togglePreview,
                         onSearch = {
                             if (query.isBlank()) return@SearchBody
+                            stopPreview()
                             searching = true
                             statusMessage = ""
                             hits = emptyList()
@@ -157,6 +256,7 @@ fun YouTubeDownloadDialog(
                             }
                         },
                         onPick = { hit ->
+                            stopPreview()
                             inFlight = true
                             statusMessage = "Downloading \"${hit.title.take(40)}\"…"
                             scope.launch {
@@ -191,6 +291,7 @@ fun YouTubeDownloadDialog(
                     DownloadMode.Search -> false  // Search mode submits via tap-on-result
                 },
                 onClick = {
+                    stopPreview()
                     inFlight = true
                     val labelGuess = name.ifBlank { url.substringAfter("v=").substringBefore('&').take(11) }
                     scope.launch {
@@ -209,7 +310,13 @@ fun YouTubeDownloadDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !inFlight && !searching) {
+            TextButton(
+                onClick = {
+                    stopPreview()
+                    onDismiss()
+                },
+                enabled = !inFlight && !searching
+            ) {
                 Text("Cancel", color = TextSecondary)
             }
         },
@@ -260,12 +367,15 @@ private fun SearchBody(
     results: List<YouTubeSearchHit>,
     statusMessage: String,
     canSubmit: Boolean,
+    loadingPreviewUrl: String?,
+    playingPreviewUrl: String?,
+    onTogglePreview: (YouTubeSearchHit) -> Unit,
     onSearch: () -> Unit,
     onPick: (YouTubeSearchHit) -> Unit,
     inFlight: Boolean,
 ) {
     Text(
-        "Search YouTube for short clips — try \"rooster crow\", \"piano bell\", or \"forest birds\". Tap a result to save it.",
+        "Try \"rooster crow\", \"piano bell\", or \"forest birds\". Tap ▶ to preview, then tap the row to save it as an alarm.",
         color = TextSecondary,
         style = MaterialTheme.typography.bodySmall
     )
@@ -321,8 +431,11 @@ private fun SearchBody(
             items(results, key = { it.videoUrl }) { hit ->
                 SearchResultRow(
                     hit = hit,
+                    isLoadingPreview = loadingPreviewUrl == hit.videoUrl,
+                    isPlayingPreview = playingPreviewUrl == hit.videoUrl,
                     enabled = !inFlight,
-                    onClick = { onPick(hit) }
+                    onTogglePreview = { onTogglePreview(hit) },
+                    onPick = { onPick(hit) }
                 )
             }
         }
@@ -334,49 +447,103 @@ private fun SearchBody(
 @Composable
 private fun SearchResultRow(
     hit: YouTubeSearchHit,
+    isLoadingPreview: Boolean,
+    isPlayingPreview: Boolean,
     enabled: Boolean,
-    onClick: () -> Unit,
+    onTogglePreview: () -> Unit,
+    onPick: () -> Unit,
 ) {
+    val highlight = isPlayingPreview || isLoadingPreview
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(SurfaceLight)
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = hit.title,
-                color = TextPrimary,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            .background(
+                if (highlight) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                else SurfaceLight
             )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Preview button — circular, primary-tinted, with a loading
+            // spinner overlay while the stream URL resolves.
+            Box(
+                modifier = Modifier.size(40.dp),
+                contentAlignment = Alignment.Center
             ) {
-                if (hit.uploader.isNotBlank()) {
-                    Text(
-                        text = hit.uploader,
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
+                IconButton(
+                    onClick = onTogglePreview,
+                    enabled = enabled,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isPlayingPreview) Icons.Default.Stop else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlayingPreview) "Stop preview" else "Preview sound",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
                     )
+                }
+                if (isLoadingPreview) {
+                    CircularProgressIndicator(
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+            }
+
+            // Title + meta — the entire row (minus the preview button) is the
+            // tap target for "save this sound." Splitting tap zones makes
+            // both gestures deliberate: ▶ to listen, body to save.
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable(enabled = enabled, onClick = onPick)
+                    .padding(vertical = 4.dp, horizontal = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = hit.title,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (hit.uploader.isNotBlank()) {
+                        Text(
+                            text = hit.uploader,
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        Text("·", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                    }
                     Text(
-                        text = "·",
+                        text = formatDuration(hit.durationSeconds),
                         color = TextMuted,
                         style = MaterialTheme.typography.bodySmall
                     )
+                    if (isPlayingPreview) {
+                        Text("·", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Previewing",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
-                Text(
-                    text = formatDuration(hit.durationSeconds),
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
             }
         }
     }
