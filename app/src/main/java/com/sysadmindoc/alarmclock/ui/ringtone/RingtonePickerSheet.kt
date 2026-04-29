@@ -26,24 +26,32 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,12 +60,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
+import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
@@ -65,6 +75,11 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.launch
 
 data class RingtoneItem(
     val title: String,
@@ -81,7 +96,10 @@ fun RingtonePickerSheet(
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
-    val ringtones = remember { loadRingtones(context) }
+    // v1.7.0: Ringtones are loaded into state instead of remember-once so the
+    // list refreshes after a YouTube download finishes (the new alarm tone
+    // appears under Alarms/ in MediaStore and we re-enumerate to pick it up).
+    var ringtones by remember { mutableStateOf(loadRingtones(context)) }
     val currentSelection = remember(currentUri, ringtones) {
         ringtones.firstOrNull { ringtone ->
             when {
@@ -96,6 +114,19 @@ fun RingtonePickerSheet(
     var playingUri by remember { mutableStateOf<String?>(null) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var previewError by remember { mutableStateOf("") }
+    var showYouTubeDialog by remember { mutableStateOf(false) }
+    var youTubeStatus by remember { mutableStateOf("") }
+    var lastDownloadedTitle by remember { mutableStateOf<String?>(null) }
+
+    // Hilt-bound downloader. The interface is in :main; the play flavor binds
+    // a yt-dlp-backed impl, the f-droid flavor binds a stub that reports
+    // isAvailable() = false (so the entry point is hidden on that flavor).
+    val downloader = remember(context) {
+        EntryPointAccessors.fromApplication(
+            context.applicationContext,
+            RingtonePickerEntryPoint::class.java
+        ).youTubeAudioDownloader()
+    }
 
     val filteredRingtones = remember(ringtones, searchQuery) {
         if (searchQuery.isBlank()) {
@@ -105,6 +136,34 @@ fun RingtonePickerSheet(
                 ringtoneSearchText(ringtone).contains(searchQuery.trim(), ignoreCase = true)
             }
         }
+    }
+
+    // After a successful download, find the newly-saved ringtone in the
+    // refreshed list and auto-scroll the user to it. Best-effort match by
+    // case-insensitive title contains.
+    LaunchedEffect(lastDownloadedTitle, ringtones) {
+        val target = lastDownloadedTitle ?: return@LaunchedEffect
+        ringtones.firstOrNull { it.title.contains(target, ignoreCase = true) }?.let {
+            // The user can now tap "Use" on that row. We don't auto-select
+            // because they may want to preview it first.
+        }
+    }
+
+    if (showYouTubeDialog) {
+        YouTubeDownloadDialog(
+            downloader = downloader,
+            onDismiss = { showYouTubeDialog = false },
+            onDownloaded = { savedTitle ->
+                showYouTubeDialog = false
+                lastDownloadedTitle = savedTitle
+                youTubeStatus = "Saved \"$savedTitle\" to your alarms."
+                // Refresh the picker list so the new file shows up immediately.
+                ringtones = loadRingtones(context)
+            },
+            onError = { msg ->
+                youTubeStatus = msg
+            }
+        )
     }
 
     DisposableEffect(Unit) {
@@ -172,8 +231,34 @@ fun RingtonePickerSheet(
         ) {
             AppSectionTitle(
                 title = "Alarm Sound",
-                description = "Preview tones before applying them. Default and silent options stay available at the top."
+                description = "Preview tones before applying them. Default and silent options stay available at the top.",
+                action = if (downloader.isAvailable()) {
+                    {
+                        OutlinedButton(
+                            onClick = { showYouTubeDialog = true },
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.CloudDownload,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.size(6.dp))
+                            Text("From YouTube", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                } else null
             )
+
+            if (youTubeStatus.isNotBlank()) {
+                AppStatusChip(
+                    label = youTubeStatus,
+                    icon = Icons.Default.CloudDownload,
+                    color = if (lastDownloadedTitle != null) DismissGreen else SnoozeYellow
+                )
+            }
 
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -454,4 +539,125 @@ private fun loadRingtones(context: Context): List<RingtoneItem> {
     }
 
     return ringtones
+}
+
+/**
+ * v1.7.0: Modal dialog for downloading a YouTube audio track and saving it as
+ * an alarm tone. Uses the Hilt-injected [YouTubeAudioDownloader]; on the
+ * f-droid flavor, this dialog is unreachable because the picker hides its
+ * entry point when `downloader.isAvailable() == false`.
+ */
+@Composable
+private fun YouTubeDownloadDialog(
+    downloader: YouTubeAudioDownloader,
+    onDismiss: () -> Unit,
+    onDownloaded: (String) -> Unit,
+    onError: (String) -> Unit
+) {
+    var url by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+    var inFlight by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    AlertDialog(
+        onDismissRequest = { if (!inFlight) onDismiss() },
+        icon = {
+            Icon(
+                Icons.Default.CloudDownload,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        title = {
+            Text(
+                "Download alarm sound",
+                color = TextPrimary,
+                fontWeight = FontWeight.SemiBold
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "Paste a YouTube URL — the audio is saved into your device's Alarms folder, so it'll appear in this picker right away.",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    placeholder = { Text("https://youtube.com/watch?v=...") },
+                    singleLine = true,
+                    enabled = !inFlight,
+                    colors = appOutlinedTextFieldColors(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    placeholder = { Text("Name this sound (optional)") },
+                    singleLine = true,
+                    enabled = !inFlight,
+                    colors = appOutlinedTextFieldColors(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (inFlight) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            strokeWidth = 2.dp,
+                            modifier = Modifier.size(16.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            "Downloading. This can take 10–60 seconds.",
+                            color = TextMuted,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = !inFlight && url.isNotBlank(),
+                onClick = {
+                    inFlight = true
+                    val labelGuess = name.ifBlank { url.substringAfter("v=").substringBefore('&').take(11) }
+                    scope.launch {
+                        val result = downloader.downloadAsAlarm(url.trim(), labelGuess)
+                        inFlight = false
+                        result.fold(
+                            onSuccess = { savedTitle -> onDownloaded(savedTitle) },
+                            onFailure = { e ->
+                                onError(e.message ?: "Download failed.")
+                            }
+                        )
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Download")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !inFlight) {
+                Text("Cancel", color = TextSecondary)
+            }
+        },
+        containerColor = SurfaceMedium,
+        shape = RoundedCornerShape(22.dp)
+    )
+}
+
+/**
+ * Hilt entry point so the (non-VM-bound) Compose sheet can grab the
+ * flavor-bound downloader without threading it through every caller.
+ */
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+internal interface RingtonePickerEntryPoint {
+    fun youTubeAudioDownloader(): YouTubeAudioDownloader
 }

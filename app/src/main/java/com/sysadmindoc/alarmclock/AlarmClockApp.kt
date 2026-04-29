@@ -8,7 +8,11 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.service.NextAlarmNotifier
+import com.sysadmindoc.alarmclock.service.YouTubeDownloadInitializer
 import com.sysadmindoc.alarmclock.worker.HolidaySyncWorker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -22,6 +26,14 @@ import javax.inject.Inject
 class AlarmClockApp : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
+
+    /**
+     * Flavor-bound: real on play (unpacks yt-dlp binaries), no-op on f-droid.
+     * Run off the main thread so process startup isn't blocked.
+     */
+    @Inject lateinit var youTubeDownloadInitializer: YouTubeDownloadInitializer
+
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
@@ -64,6 +76,19 @@ class AlarmClockApp : Application(), Configuration.Provider {
         // Start persistent next-alarm notification observer
         val entryPoint = EntryPointAccessors.fromApplication(this, AppEntryPoint::class.java)
         entryPoint.nextAlarmNotifier().startObserving()
+
+        // v1.7.0: Unpack yt-dlp binaries off the main thread so the YouTube
+        // download path is ready by the time the user opens the ringtone
+        // picker. No-op on the f-droid flavor.
+        appScope.launch {
+            try {
+                youTubeDownloadInitializer.initialize()
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                // Init failure must NOT crash the app — the downloader checks
+                // isAvailable() before letting the UI start a download.
+            }
+        }
 
         // Seed default alarm on first launch
         val prefs = getSharedPreferences("app_prefs", 0)
