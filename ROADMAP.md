@@ -1,8 +1,9 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed **2026-04-29** alongside **v1.7.3**
-(determinate download-progress bar with rotating phase labels in the
-YouTube download dialog; see [CHANGELOG.md](CHANGELOG.md)).
+Living feature backlog, refreshed **2026-04-29** alongside **v1.7.4**
+(Today-tab weather pass — centered card, vertical 3-day forecast,
+sunrise/sunset/UV/hourly ported from ZeusWatch; see
+[CHANGELOG.md](CHANGELOG.md)).
 
 This is the "what's left" side of [CLAUDE.md](CLAUDE.md). Entries are ranked
 by impact-to-effort and grouped by theme. Effort column: **S** = a session,

@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Thermostat
@@ -61,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -74,6 +76,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
+import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.BlueLight
 import com.sysadmindoc.alarmclock.ui.theme.ClockTimeDisplay
@@ -185,12 +188,10 @@ private fun WeatherSection(
     state: DashboardUiState,
     onChangeLocation: () -> Unit
 ) {
+    // v1.7.4: dropped the "Weather / Current conditions and a short forecast"
+    // section title — the icon + temp + description below already self-narrate
+    // and the title was eating ~50dp of vertical space.
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AppSectionTitle(
-            title = "Weather",
-            description = "Current conditions and a short forecast for the rest of your day."
-        )
-
         when {
             state.weatherLoading -> {
                 AppLoadingCard()
@@ -219,54 +220,68 @@ private fun WeatherSection(
             }
 
             else -> {
+                // v1.7.4: Centered hero — location chip, big icon, big temp,
+                // condition description, all stacked and centered. ZeusWatch's
+                // CurrentConditionsHeader inspired the layout.
                 AppSurfaceCard {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AppStatusChip(
-                                label = state.locationName.ifBlank { "Weather" },
-                                icon = Icons.Default.LocationOn
-                            )
-                            Row(verticalAlignment = Alignment.Top) {
-                                Icon(
-                                    imageVector = weatherIconFor(state.weatherIcon),
-                                    contentDescription = state.weatherDescription,
-                                    tint = weatherColorFor(state.weatherIcon),
-                                    modifier = Modifier.size(44.dp)
-                                )
-                                Spacer(modifier = Modifier.size(14.dp))
-                                Column {
-                                    Row(verticalAlignment = Alignment.Top) {
-                                        Text(
-                                            text = state.temperature,
-                                            style = ClockTimeDisplay,
-                                            color = TextPrimary
-                                        )
-                                        Text(
-                                            text = "\u00B0${state.tempUnit}",
-                                            fontSize = 18.sp,
-                                            color = TextSecondary,
-                                            modifier = Modifier.padding(top = 8.dp)
-                                        )
-                                    }
-                                    Text(
-                                        text = state.weatherDescription,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = TextSecondary
-                                    )
-                                }
-                            }
-                        }
-
-                        IconButton(onClick = onChangeLocation) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        IconButton(
+                            onClick = onChangeLocation,
+                            modifier = Modifier.align(Alignment.TopEnd)
+                        ) {
                             Icon(
                                 Icons.Default.Edit,
                                 contentDescription = "Change weather location",
                                 tint = TextMuted
                             )
+                        }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            AppStatusChip(
+                                label = state.locationName.ifBlank { "Weather" },
+                                icon = Icons.Default.LocationOn
+                            )
+                            Icon(
+                                imageVector = weatherIconFor(state.weatherIcon),
+                                contentDescription = state.weatherDescription,
+                                tint = weatherColorFor(state.weatherIcon),
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Row(
+                                verticalAlignment = Alignment.Top,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = state.temperature,
+                                    style = ClockTimeDisplay,
+                                    color = TextPrimary
+                                )
+                                Text(
+                                    text = "\u00B0${state.tempUnit}",
+                                    fontSize = 22.sp,
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(top = 10.dp, start = 2.dp)
+                                )
+                            }
+                            Text(
+                                text = state.weatherDescription,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = TextSecondary,
+                                textAlign = TextAlign.Center
+                            )
+                            if (state.feelsLike.isNotBlank()) {
+                                Text(
+                                    text = state.feelsLike,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextMuted,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
 
@@ -295,9 +310,9 @@ private fun WeatherSection(
                                 modifier = Modifier.weight(1f)
                             )
                             WeatherMetric(
-                                label = "Feels like",
-                                value = state.feelsLike.removePrefix("Feels like "),
-                                icon = Icons.Default.Thermostat,
+                                label = "Rain",
+                                value = if (state.precipChance.isBlank()) "0%" else state.precipChance,
+                                icon = Icons.Default.Umbrella,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -319,32 +334,84 @@ private fun WeatherSection(
                                 modifier = Modifier.weight(1f)
                             )
                             WeatherMetric(
-                                label = "Rain",
-                                value = if (state.precipChance.isBlank()) "0%" else state.precipChance,
-                                icon = Icons.Default.Umbrella,
+                                label = "UV",
+                                value = state.uvIndex.ifBlank { "—" },
+                                icon = Icons.Default.WbSunny,
+                                accent = SnoozeYellow,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+
+                    // v1.7.4: Sunrise / sunset row — ported from ZeusWatch's
+                    // GoldenHour card but slimmed to a horizontal pair. Most
+                    // useful field in an alarm clock context: "is the sun up
+                    // by my alarm time?"
+                    if (state.sunrise.isNotBlank() || state.sunset.isNotBlank()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            WeatherMetric(
+                                label = "Sunrise",
+                                value = state.sunrise.ifBlank { "—" },
+                                icon = Icons.Default.WbSunny,
+                                accent = SnoozeYellow,
+                                modifier = Modifier.weight(1f)
+                            )
+                            WeatherMetric(
+                                label = "Sunset",
+                                value = state.sunset.ifBlank { "—" },
+                                icon = Icons.Default.NightsStay,
+                                accent = AccentBlue,
                                 modifier = Modifier.weight(1f)
                             )
                         }
                     }
                 }
 
-                if (state.forecast.isNotEmpty()) {
-                    AppSurfaceCard(contentPadding = PaddingValues(16.dp)) {
-                        AppSectionTitle(
-                            title = "Next 3 days",
-                            description = "A quick glance at what is coming up."
+                // v1.7.4: hourly strip — next ~8 hours so users can see what
+                // it'll look like when their morning alarm rings. Kept small
+                // and horizontal-scrolling here (it's a short strip, not the
+                // 24-hour ZeusWatch one). The 3-day below is the bigger
+                // change: vertical now.
+                if (state.hourly.isNotEmpty()) {
+                    AppSurfaceCard(contentPadding = PaddingValues(14.dp)) {
+                        Text(
+                            "Next few hours",
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
                         )
-
                         LazyRow(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             contentPadding = PaddingValues(horizontal = 2.dp)
                         ) {
-                            items(state.forecast.take(3)) { day ->
-                                ForecastCard(
-                                    day = day,
-                                    modifier = Modifier.width(168.dp)
-                                )
+                            items(state.hourly) { hour -> HourlyCell(hour) }
+                        }
+                    }
+                }
+
+                if (state.forecast.isNotEmpty()) {
+                    // v1.7.4: vertical 3-day list, replacing the horizontal
+                    // LazyRow. One day per line is easier to scan and stops
+                    // truncating long descriptions on narrow phones.
+                    AppSurfaceCard(contentPadding = PaddingValues(14.dp)) {
+                        Text(
+                            "Next 3 days",
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            state.forecast.take(3).forEachIndexed { index, day ->
+                                ForecastRow(day)
+                                if (index < state.forecast.take(3).lastIndex) {
+                                    HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
+                                }
                             }
                         }
                     }
@@ -371,63 +438,106 @@ private fun WeatherMetric(
     )
 }
 
+/**
+ * v1.7.4: Vertical 3-day forecast row. Replaces the old horizontal
+ * ForecastCard so users can scan three days at a glance without swiping.
+ * Layout: day name | icon | description | rain chip | H/L
+ */
 @Composable
-private fun ForecastCard(
-    day: ForecastDay,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = com.sysadmindoc.alarmclock.ui.theme.SurfaceLight,
-        border = androidx.compose.foundation.BorderStroke(
-            1.dp,
-            com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
-        )
+private fun ForecastRow(day: ForecastDay) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+        Text(
+            text = day.dayName,
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.width(86.dp)
+        )
+        Icon(
+            imageVector = weatherIconFor(day.icon),
+            contentDescription = day.description,
+            tint = weatherColorFor(day.icon),
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            text = day.description,
+            color = TextSecondary,
+            style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        if (day.precipChance.isNotBlank() && day.precipChance != "0%") {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = day.dayName,
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelLarge
-                    )
-                    Text(
-                        text = day.date,
-                        color = TextMuted,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                if (day.precipChance.isNotBlank()) {
-                    AppStatusChip(
-                        label = "${day.precipChance} rain",
-                        icon = Icons.Default.Umbrella,
-                        color = BlueLight
-                    )
-                }
+                Icon(
+                    Icons.Default.Umbrella,
+                    contentDescription = null,
+                    tint = BlueLight,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = day.precipChance,
+                    color = BlueLight,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
-
-            Text(
-                text = "${day.high}\u00B0 / ${day.low}\u00B0",
-                color = TextPrimary,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = day.description,
-                color = TextSecondary,
-                style = MaterialTheme.typography.bodySmall
-            )
         }
+        Text(
+            text = "${day.high}° / ${day.low}°",
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+/**
+ * v1.7.4: Single hourly cell — time, icon, temp, optional rain%.
+ * Lifted from ZeusWatch's HourlyForecastStrip but slimmer.
+ */
+@Composable
+private fun HourlyCell(hour: HourlyForecast) {
+    Column(
+        modifier = Modifier
+            .background(
+                color = com.sysadmindoc.alarmclock.ui.theme.SurfaceLight,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = hour.timeLabel,
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelMedium
+        )
+        Icon(
+            imageVector = weatherIconFor(hour.icon),
+            contentDescription = null,
+            tint = weatherColorFor(hour.icon),
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            text = "${hour.temperature}°",
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = hour.precipChance.ifBlank { " " },
+            color = if (hour.precipChance.isNotBlank()) BlueLight else TextMuted,
+            style = MaterialTheme.typography.bodySmall
+        )
     }
 }
 
