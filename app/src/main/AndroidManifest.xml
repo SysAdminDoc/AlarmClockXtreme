@@ -35,6 +35,11 @@
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <!-- v1.7.0: Required only on API ≤28 to write downloaded YouTube audio
+         into MediaStore.Audio (Alarms folder). API 29+ uses scoped storage,
+         which doesn't need this permission. -->
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
 
     <!-- NFC for dismiss challenge -->
     <uses-permission android:name="android.permission.NFC" />
