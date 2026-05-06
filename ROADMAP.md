@@ -1,322 +1,404 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed **2026-04-29** alongside **v1.7.4**
-(Today-tab weather pass — centered card, vertical 3-day forecast,
-sunrise/sunset/UV/hourly ported from ZeusWatch; see
-[CHANGELOG.md](CHANGELOG.md)).
+Living feature backlog, refreshed alongside **v1.9.0** (Today-tab dynamic
+sky + NWS tornado alerts; see [CHANGELOG.md](CHANGELOG.md)).
 
-This is the "what's left" side of [CLAUDE.md](CLAUDE.md). Entries are ranked
-by impact-to-effort and grouped by theme. Effort column: **S** = a session,
-**M** = a few days of focused work, **L** = multi-phase initiative.
+This is the "what's left" companion to [CLAUDE.md](CLAUDE.md). Entries are
+ranked by impact-to-effort and grouped by theme.
 
 **Legend**
 - `[ ]` Not started
 - `[~]` Design / research stage
 - `[x]` Implemented (kept briefly for traceability before migrating to CLAUDE.md)
+- Effort: **S** = single session, **M** = a few days of focused work,
+  **L** = multi-phase initiative.
+- Tier: **Now** (next release), **Next** (the one after), **Later**
+  (kept on the list, not actively scheduled), **UC** (under consideration —
+  needs scoping or platform readiness), **Rejected** (explicitly out).
+
+> **Recently shipped** (from prior tiers, kept here briefly): time-of-day
+> sky engine + weather-aware overrides + NWS tornado overlay (1.9.0),
+> design-system polish pass / `AppFilterChip` / skeletons / bottom-nav
+> truncation fix (1.8.1), Weather hub + Windy radar + RSS News tab (1.8.0),
+> YouTube alarm-sound downloader with preview + faux progress (1.7.0–1.7.3),
+> Today-tab weather hero ported from ZeusWatch (1.7.4), R8 Rhino fix +
+> Timer/World layout regression fixes (1.7.5), end-to-end engineering audit
+> (1.6.3), shareable alarm deep links, encrypted backup with PBKDF2 +
+> AES-256-GCM, stats history filters (1.5.x), RPS / Emoji Memory /
+> Typing Speed / Wordle / Simon Says / Stroop / Date Backwards challenges
+> (1.5.0–1.6.0), solar-relative firing, hardwareButtonAction UI,
+> dismissAtRingtoneEnd UI, ringtonePool editor, fade-out taper slider,
+> in-app changelog dialog, MissedAlarmUnlockReceiver + ProximityCoverDetector
+> tests.
 
 ---
 
-## 0. v1.4.0 Follow-ups (mostly closed in v1.5.0)
+## Current snapshot (v1.9.0)
 
-Small gaps created by the v1.4.0 batch. Most shipped in v1.5.0.
-
-| # | Item | Effort | Status |
-|---|------|--------|--------|
-| 0.1 | Alarm-edit UI for `hardwareButtonAction` | S | ✅ v1.5.0 |
-| 0.2 | Alarm-edit UI for `dismissAtRingtoneEnd` | S | ✅ v1.5.0 |
-| 0.3 | Alarm-edit UI for `ringtonePool` | M | ✅ v1.5.0 (multi-line editor, not a file-picker — power-user feature) |
-| 0.4 | Alarm share via deep link (`acx://alarm?data=`) | M | ✅ v1.5.x (share-sheet export + disabled-by-default deep-link import) |
-| 0.5 | Nap-mode duration chip respects `napDefaultMinutes` | S | ✅ v1.5.0 |
-| 0.6 | Sleep-sound timer / fade sliders in BedtimeScreen | S | ✅ v1.5.0 (fade taper slider; whole-timer lives on Bedtime too) |
-| 0.7 | Unit tests for `MissedAlarmUnlockReceiver` window logic | S | ✅ v1.5.2 |
-| 0.8 | Unit tests for `ProximityCoverDetector` hold threshold | S | ✅ v1.5.2 |
-| 0.9 | Lint / data-extraction-rules doc comment (fixed in build) | — | ✅ v1.4.0 build |
+- **Stack:** Kotlin 2.1, Compose / Material 3, Room v8, Hilt, Retrofit +
+  Moshi (codegen), DataStore, Glance widgets, OkHttp, WorkManager, yt-dlp +
+  NewPipe Extractor (Play flavor only).
+- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 37.
+- **Surface area:** 111 Kotlin source files, two flavors (`play`, `fdroid`),
+  19 dismiss challenges, 50+ alarm fields, 35+ AppSettings fields, 6 tabs
+  (Today, Alarms, Bedtime, Timer, World, News) + Settings.
+- **What's missing vs. competitors:** Wear OS / Health Connect / standalone
+  watch story is still zero; no on-device sleep-stage classifier; no AI
+  sleep coach; no Live Updates progress notification; no lockscreen-widget
+  surface (Pixel-led Android 15+); no air-quality / pollen on the weather
+  hub; no Material 3 Expressive components (Android 16+); no
+  `AutomaticZenRule` v2 ownership; no foldable/tablet adaptive layout;
+  no `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` listener.
 
 ---
 
-## 1. Sleep Tracking State-of-the-Art
+## NOW — v1.10 candidates
 
-The feature most likely to push this from "power-user alarm" to "best-in-class
-sleep platform." The existing SonarSleepService, smart-alarm service, and
-accel sensors are all pieces of the machine — we just haven't wired them into
-a coherent tracker yet.
+Highest impact-to-effort with the existing stack. All are scoped to land
+without breaking schema or flavor parity.
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| 1.1 | **Smart-wake window (accel-based)** | Sleep Cycle | M | Fire within a user-defined N-min window when motion suggests light sleep. SmartAlarmService already exists — needs a scoring algorithm + scheduler hook. |
-| 1.2 | **Composite sleep score (0-100)** | Rise / Oura | S | Blend duration × efficiency × regularity × stage balance. Daily engagement hook for stats. |
-| 1.3 | **On-device actigraphy → sleep stages** | Pillow / SleepWatch | L | TensorFlow Lite / on-device Cole-Kripke. Awake / light / deep / REM bucketing. |
-| 1.4 | **Snore recording + timeline** | Sleep as Android | M | Ring buffer in mic service, save >60 dB bursts, playback in stats. Mic permission already present. |
-| 1.5 | **Sleep debt accumulator** | Rise | S | Running 14-day deficit vs. per-user need; surfaces naps more contextually. |
-| 1.6 | **Apnea / cough event flagging** | Sleep as Android Premium | L | Onset-detection on mic buffer. Health flag, not diagnosis — legal copy required. |
-| 1.7 | **Chronotype quiz + ideal bedtime calc** | Rise / MEQ | S | Onboarding step. Writes `bedtimeHour/Minute` from quiz output. |
-| 1.8 | **Pre-sleep tag tiles (caffeine/exercise/alcohol)** | Sleep as Android | M | Extend `AlarmEvent` with tags; show correlation chart in stats. |
-| 1.9 | **Environmental-noise baseline** | Pillow | S | One-off sample before bedtime reminder; warns if bedroom >45 dB. |
-| 1.10 | **Lullaby soundscapes with motion-auto-off** | Calm / Headspace | M | Extend SleepSoundPlayer to stop when accel reports no movement for N min. |
-| 1.11 | **Stats charts (Vico / MPAndroidChart)** | Custom | M | Visualise the sleep score, snooze-rate history, streaks. Today stats are text-only. |
+| N1 | `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` listener — reschedule when user grants exact-alarm post-install | [FossifyOrg/Calendar #217](https://github.com/FossifyOrg/Calendar/issues/217), [Android docs](https://developer.android.com/reference/android/app/AlarmManager#ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED) | S | Alarms set before grant remain inexact forever today. One receiver + WorkManager batch reschedule closes the regression. |
+| N2 | `BootReceiver.goAsync()` + WorkManager batch reschedule for users with 50+ alarms | [whakaara/AlarmScheduler](https://github.com/ahudson20/whakaara) | S | v1.5.4 tightened to 8 s — still risk of ANR on heavy users. WorkManager has no ceiling. |
+| N3 | Air-quality + pollen on the Weather tab via Open-Meteo `air-quality` endpoint (US AQI bands, tree/grass/weed pollen rows) | [Open-Meteo Air Quality](https://open-meteo.com/en/docs/air-quality-api) | S | Same Retrofit + Moshi pipeline as the existing weather call. No key, free. Round-trip from "Today" tab to Weather tab. |
+| N4 | Long-press snooze time-picker on the firing screen | [yuriykulikov/AlarmClock](https://github.com/yuriykulikov/AlarmClock) | S | Cycling through 1/3/5/15/30 presets is fine for a tap; long-press should open an inline minute picker. |
+| N5 | Long-press dismiss confirmation gesture toggle | [yuriykulikov/AlarmClock](https://github.com/yuriykulikov/AlarmClock) | S | "Hold 1.5 s to dismiss" mode for users who keep accidentally swiping. Per-alarm flag. |
+| N6 | Volume / haptic-only "Don't wake partner" alarm profile (`AudioAttributes.USAGE_ALARM` muted + `VibrationEffect.Composition`) | Sleep as Android couples mode, [Apple Bedtime](https://support.apple.com/guide/iphone/wake-up-with-an-alarm-iph59f3ddd0f/ios) | S | Sets the foundation for partner profiles (later) without touching schema. |
+| N7 | `AutomaticZenRule` v2 ownership — bedtime DND as a `ConditionProviderService` | [Android 14 ConditionProvider docs](https://developer.android.com/reference/android/service/notification/ConditionProviderService) | M | Right now we depend on Google Clock or system DND — owning the rule lets bedtime/wake transitions toggle DND deterministically per alarm. |
+| N8 | Calendar-aware first-meeting shift (alarm shifts earlier when first meeting moves) | Internal | S | Reuses the `CalendarAutoAlarmWorker` that already reads `CalendarContract.Instances`. |
+| N9 | Wake-streak flame badge on the Stats tab | [Streaks](https://streaksapp.com/) / Duolingo | S | Stats already records dismiss outcomes — only the surface is missing. |
+| N10 | Live changelog dialog gains a "what's next" link to this file | Internal | S | Closes the loop between releases and roadmap. |
+| N11 | Material 3 Expressive opt-in once stable on Compose BOM (Android 16) — bolder accent surfaces, expressive shape tokens | [Material 3 Expressive](https://m3.material.io/blog/material-3-expressive) | S | Expressive components are additive — wire behind a flag, ship when the BOM lands. |
+| N12 | `Notification.ProgressStyle` "Live Updates" for the persistent next-alarm notification on Android 16+ | [Android 16 Live Updates](https://developer.android.com/about/versions/16/features#progress-centric-notifications) | S | Today's persistent notification is a static line — turning it into a progress bar that ticks down to fire-time is a free upgrade on supported OSes. |
 
-## 2. Wear OS & Companion Devices
-
-A gap identified in v1.4.0 research — zero wearable story today.
+## NEXT — v1.11 candidates
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| 2.1 | **Wear OS tile + complication (next alarm)** | Google Clock | M | Dismiss / snooze from wrist. Re-uses Quick-Settings tile pattern. |
-| 2.2 | **Health Connect read/write (Sleep Sessions, HR)** | Android 14+ | M | One API replaces per-vendor Fitbit/Samsung/Garmin SDKs. Requires Play declaration + privacy policy update. |
-| 2.3 | **Wearable-only vibration alarm** | Sleep as Android | M | Silent phone, watch-only buzz. "Don't wake partner" path. |
-| 2.4 | **Bed-exit auto-dismiss via watch** | Withings / Garmin | M | Watch motion >60 s → dismiss. Elegant "prove you're up." |
-| 2.5 | **HRV-aware smart wake** | Sleep as Android | L | Watch HRV dip is better than phone accel for light-sleep detection. |
-| 2.6 | **Standalone Pixel Watch / Galaxy Watch app** | Samsung Health | L | Alarm works without phone. Biggest effort bump. |
+| X1 | Wear OS tile (next-alarm + dismiss + snooze) | [Wear OS Tiles API](https://developer.android.com/training/wearables/tiles), Pixel Watch 3 | M | Zero wearable story today. Tiles are glanceable, no full app required. Reuses the QS-tile dismiss pattern. |
+| X2 | Wear OS "Next Alarm" complication | [Complications API](https://developer.android.com/training/wearables/complications) | S | Pairs with X1; Pixel Watch users routinely add it to faces. |
+| X3 | Health Connect Sleep Sessions (read + write) | [Health Connect Sleep](https://developer.android.com/health-and-fitness/guides/health-connect/data-and-data-types/sleep), [androidx.health.connect:connect-client](https://developer.android.com/jetpack/androidx/releases/health-connect) | M | One API replaces per-vendor SDKs. Required Play Console declaration + privacy policy update. |
+| X4 | On-device actigraphy → Awake / Light / Deep buckets (Cole-Kripke) | [Cole-Kripke 1992](https://pubmed.ncbi.nlm.nih.gov/1455130/), [Pillow](https://www.pillow.app/) | L | Existing `SmartAlarmService` already collects accel; bucketize, persist, render. Ships independently of TFLite — TFLite REM stage is L+. |
+| X5 | Smart-wake window (accel-based light-sleep firing) | [Sleep Cycle SDK](https://sleepcycle.com/sleep-talk/smart-alarm-now-available-in-the-sleep-cycle-sdk) | M | Pairs with X4. Fires within user-defined N-min window when motion suggests light sleep. |
+| X6 | Composite sleep score (0-100 = duration × efficiency × regularity × stage balance) | [Rise](https://www.risescience.com/), Oura | S | Daily engagement hook. Cheap once X4 lands; can ship a duration-only v1 sooner. |
+| X7 | Sleep debt accumulator (rolling 14-day deficit vs. per-user need) | Rise | S | Surfaces naps and bedtime reminders more contextually. |
+| X8 | Stats charts — sleep score / snooze rate / streaks (Vico) | [Vico](https://github.com/patrykandpatrick/vico) | M | Stats tab is text-only today; charts move it from "log" to "feedback loop." |
+| X9 | Voice-phrase dismiss challenge (offline `SpeechRecognizer`) | [Alarmy](https://alar.my/en/blog/alarmy-wake-up-mission), [I Can't Wake Up](https://play.google.com/store/apps/details?id=com.bartat.android.icwu) | M | Roadmap item from prior pass; Alarmy paywalls it, ACX can ship free. |
+| X10 | Handwriting / drawing dismiss challenge (ML Kit Digital Ink) | [ML Kit Digital Ink](https://developers.google.com/ml-kit/vision/digital-ink-recognition), Alarmy | M | Pairs cleanly with the existing `Challenge` sealed-class; no new permission. |
+| X11 | Pushup / plank-hold challenge (accelerometer signature, no camera) | Alarmy Premium | M | Reuses squat detector heuristics. |
+| X12 | Spot-the-difference / chess-mate-in-1 / RSVP speed reading | indie / NYT Games / research | M | Three more challenges to hit a 22+ roster — Alarmy parity. |
+| X13 | Lockscreen-widget surface (next-alarm chip) on Android 15 Pixels | [Android 15 lockscreen widgets](https://developer.android.com/about/versions/15/features) | S | Glance widget is already published — adding the lockscreen receiver intent + size class is a thin wrapper. |
+| X14 | Tablet / foldable adaptive layouts (`WindowSizeClass`, dual-pane Alarms / Edit) | [Compose adaptive layouts](https://developer.android.com/develop/ui/compose/layouts/adaptive) | M | Single-pane Compose UI today; foldables and 8" tablets hit medium / expanded width classes. |
+| X15 | LE Audio hearing-aid routing (`AudioAttributes.USAGE_ALARM` + `MediaRouter2.RouteCategory.LE_AUDIO`) | [Android 13 LE Audio](https://source.android.com/docs/core/connect/bluetooth/le_audio) | M | Underserved accessibility surface; LE Audio hearing-aids ignore most alarm streams. |
+| X16 | Public-transit-aware alarm (shift earlier on weather + commute time) | Google Maps Distance Matrix or open routing | L | Listed Later previously — promote when the weather / calendar plumbing is healthy enough to chain a routing call. Falls back gracefully without API key. |
 
-## 3. Novel Dismiss Challenges
+## LATER — kept on the list
 
-Extend the current 16-challenge roster. These fit the existing Challenge
-sealed class pattern; most are S-tier and fun to ship.
+Sleep platform deepening, novel challenges, and platform-level features
+that need either OEM cooperation or platform-API stability. Not actively
+scheduled; revisited every two minor releases.
 
-| # | Item | Source | Effort |
-|---|------|--------|--------|
-| 3.1 | Handwriting / drawing (ML Kit digital ink) | Alarmy | M |
-| 3.2 | Voice-phrase repeat (SpeechRecognizer offline) | Alarmy / I Can't Wake Up | M |
-| 3.3 | Pushup / plank hold | Alarmy Premium | M |
-| 3.4 | Chess mate-in-1 puzzle | indie | M |
-| 3.5 | Simon-says color sequence ✅ v1.5.0 | I Can't Wake Up | S |
-| 3.6 | Rock-paper-scissors best-of-5 | indie | S | ✅ v1.6.0 |
-| 3.7 | Emoji memorisation grid | I Can't Wake Up | S | ✅ v1.6.0 |
-| 3.8 | Anki / vocab flashcard | — | M |
-| 3.9 | Speed-reading comprehension (RSVP) | — | M |
-| 3.10 | Typing-speed gate (N wpm, <2 errors) | indie | S | ✅ v1.6.0 |
-| 3.11 | Type today's date backwards ✅ v1.5.0 | indie | S |
-| 3.12 | Wordle-style 5-letter guess | NYT Games | S | ✅ v1.6.0 |
-| 3.13 | Stroop color-name test ✅ v1.5.0 | Cognitive research | S |
-| 3.14 | Spot-the-difference | indie | M |
-| 3.15 | QR scavenger with location verify | Alarmy | S |
-
-## 4. Accessibility
-
-Currently table-stakes compliance. Worth a dedicated pass.
+### Sleep tracking deepening
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| 4.1 | Screen-flash + camera-flash patterns for deaf users | Apple "Flash for Alerts" | S |
-| 4.2 | Haptic-only alarm profile via VibrationEffect.Composition | Apple Taptic | S |
-| 4.3 | TalkBack audit — large double-tap buttons on firing | Android a11y | S |
-| 4.4 | Pure-black / mono-color high-contrast theme (WCAG AAA) | — | S |
-| 4.5 | Voice-only dismiss (offline SpeechRecognizer) | Voice Access | S |
-| 4.6 | Per-user long-press thresholds on challenge buttons | Android a11y | S |
-| 4.7 | LE Audio hearing-aid routing for alarm stream | Android 13 LE Audio | M |
+| L-S1 | TFLite REM-stage classifier (extends X4) | [Pillow](https://www.pillow.app/) / SleepWatch | L |
+| L-S2 | Snore recording + timeline (mic ring buffer, save >60 dB bursts) | Sleep as Android | M |
+| L-S3 | Pre-sleep tag tiles (caffeine / exercise / alcohol / stress) + correlation chart | Sleep as Android | M |
+| L-S4 | Lullaby soundscapes with motion-auto-off | Calm / Headspace / Sleep as Android lullaby pack | M |
+| L-S5 | Environmental-noise baseline before bedtime reminder | Pillow | S |
+| L-S6 | Apnea event flagging (mic onset detection — explicit "screening, not diagnosis" disclaimer) | [Springer 2025: smartwatch IMU OSA detection](https://link.springer.com/article/10.1007/s11325-025-03255-w), [Samsung × Stanford 2025](https://www.samsungmobilepress.com/articles/samsung-announces-collaboration-with-stanford-medicine-to-advance-sleep-apnea-detection-and-beyond) | L |
+| L-S7 | Chronotype quiz (Munich MEQ) → ideal bedtime / wake calc | [Roenneberg MEQ](https://www.thewep.org/documentations/mctq) | S |
+| L-S8 | "AI sleep coach" — small on-device LLM summarizing trends and surfacing one suggestion per day. **Strict privacy: model + inference local only.** | Sleep as Android beta, Rise | L |
 
-## 5. Workplace / Shift Worker
-
-Underserved niche. "Alarm clock for shift workers" is a searchable category
-with very few open-source options.
+### Wear OS / wearable depth (beyond X1-X3)
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| 5.1 | Rotating shift patterns (DDNNO / 4-on-4-off / Panama) | Shyft | M |
-| 5.2 | Jet-lag re-entrainment schedule | Timeshifter | L |
-| 5.3 | **Commute-aware alarm** (shift earlier on traffic) | Google Maps Distance Matrix | L |
-| 5.4 | On-call rotation mode (override DND-silent) | PagerDuty | M |
-| 5.5 | AutomaticZenRule v2 (bedtime DND owner) | Android 14 | S |
-| 5.6 | Focus-mode handoff at bedtime / dismiss | Android 14 Focus | S |
-| 5.7 | Meeting-shift awareness (first-meeting moved → alarm moved) | Calendar | S |
+| L-W1 | Wearable-only vibration alarm (silent phone) | Sleep as Android | M |
+| L-W2 | Bed-exit auto-dismiss via watch motion >60 s | [Withings](https://www.withings.com/) / [Garmin Connect](https://connect.garmin.com/) | M |
+| L-W3 | HRV-aware smart wake (watch HRV dip > phone accel for light-sleep detection) | [Sleep as Android wear-data](https://docs.sleep.urbandroid.org/sleep/wearable_devices.html) | L |
+| L-W4 | Standalone Wear OS app (alarm fires without phone) | Pixel Watch 3 native alarm | L |
 
-## 6. Relationships / Household
+### Workplace / shift worker
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| 6.1 | Partner profiles (two users, separate alarms/ringtones) | Sleep as Android couples | M |
-| 6.2 | "Don't wake partner" vibration-only mode | Apple Bedtime | M |
-| 6.3 | Paired-phone LAN sync (partner-dismiss → you snooze) | — | M |
-| 6.4 | Kid-friendly green-light mode | OK to Wake / Hatch | M |
-| 6.5 | Pet-feeding reminder chain on dismiss | — | S |
-| 6.6 | Remote parental alarm set (Family Link) | Google Family Link | L |
+| L-W5 | Rotating shift patterns (DDNNO / 4-on-4-off / Panama) | [Shyft](https://www.myshyft.com/) | M |
+| L-W6 | Jet-lag re-entrainment schedule (gradual shift over N days) | [Timeshifter](https://www.timeshifter.com/), Roenneberg | L |
+| L-W7 | On-call rotation mode (override DND silent) | [PagerDuty](https://www.pagerduty.com/) | M |
 
-## 7. Habit / Routine Integration
-
-Builds on morning-routine / motivational-quotes features.
+### Household / relationships
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| 7.1 | Wake-streak flame badge | Streaks / Duolingo | S |
-| 7.2 | Gratitude / journal prompt on dismiss | Day One / Stoic | S |
-| 7.3 | Water-intake quick-log tiles | WaterMinder | S |
-| 7.4 | Mood selfie + emoji tag | Daylio | S |
-| 7.5 | Obsidian / Notion / Markdown daily-note append | — | M |
-| 7.6 | Health Connect weight / BP quick-entry | Android 14+ | S |
-| 7.7 | Tasker / Macrodroid / Home Assistant recipe library | Existing webhook | S |
-| 7.8 | Badge set: "5am club", "no-snooze week", "DDNNO survivor" | Habitica | S |
-| 7.9 | Local-LAN leaderboard (household) | — | S |
-| 7.10 | Share-card screenshot generator | Strava | S |
+| L-H1 | Partner profiles (two users, separate alarms / ringtones) | Sleep as Android couples | M |
+| L-H2 | Paired-phone LAN sync (partner-dismiss → you snooze) | — | M |
+| L-H3 | Kid-friendly green-light mode | [OK to Wake](https://www.amazon.com/dp/B003O15A1G) / [Hatch](https://www.hatch.co/) | M |
+| L-H4 | Pet-feeding reminder chain on dismiss | — | S |
+| L-H5 | Remote parental alarm set | [Google Family Link](https://families.google.com/familylink/) | L |
 
-## 8. Audio Deep Features
+### Habit / routine integration
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| 8.1 | Binaural / isochronic tone generator (0.5-4 Hz delta) | Brain.fm / myNoise | M |
-| 8.2 | Mathematical noise synth (brown/pink/violet) | myNoise | S |
-| 8.3 | ASMR trigger pack | — | S (content only) |
-| 8.4 | Voice-memo ringtone (in-app 30 s recorder) | iOS | S |
-| 8.5 | YouTube URL as alarm (NewPipeExtractor) | indie | M (legal grey) |
-| 8.6 | Podcast "latest episode" (Podcast Index / AntennaPod URI) | AntennaPod | M |
-| 8.7 | Per-alarm Bluetooth sink (BluetoothA2dp) | — | M |
-| 8.8 | UPnP / DLNA multi-room cast escalation | Cling | L |
-| 8.9 | Chromecast / Nest Hub alarm target | Cast SDK | M |
-| 8.10 | Spatial-audio sunrise panning (Dolby Atmos) | — | M (novelty) |
+| L-R1 | Gratitude / journal prompt on dismiss | [Day One](https://dayoneapp.com/) / [Stoic](https://www.getstoic.com/) | S |
+| L-R2 | Water-intake quick-log tiles | [WaterMinder](https://waterminder.com/) | S |
+| L-R3 | Mood selfie + emoji tag | [Daylio](https://daylio.net/) | S |
+| L-R4 | Obsidian / Notion / Markdown daily-note append | — | M |
+| L-R5 | Health Connect weight / BP quick-entry | [Health Connect](https://developer.android.com/health-and-fitness/guides/health-connect) | S |
+| L-R6 | Tasker / MacroDroid / Home Assistant recipe library | [Home Assistant Tasker](https://github.com/markadamcik/Home-Assistant-Tasker) | S |
+| L-R7 | Badge set: "5 AM club", "no-snooze week", "DDNNO survivor" | [Habitica](https://habitica.com/) | S |
+| L-R8 | Share-card screenshot generator | [Strava](https://www.strava.com/) | S |
 
-## 9. Advanced Scheduling
+### Audio depth
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| 9.1 | Islamic prayer-time Fajr alarm | Aladhan API | M |
-| 9.2 | Lunar / Hebrew / Hindu calendar repeat | — | M |
-| 9.3 | Sunrise/sunset-relative firing ✅ v1.5.0 | Custom math | S |
-| 9.4 | Astronomical events (meteor shower peak, ISS flyover) | Heavens-Above | M |
-| 9.5 | Birthday auto-alarm from Contacts | Contacts provider | S |
-| 9.6 | Menstrual-cycle aware (softer alarm in luteal phase) | Health Connect Menstruation | M |
-| 9.7 | Weather-conditional firing (fire earlier on snow > 2 cm) | OpenWeatherMap / Open-Meteo | M |
+| L-A1 | Binaural / isochronic delta (0.5-4 Hz) tone generator | [Brain.fm](https://brain.fm/), myNoise | M |
+| L-A2 | Mathematical-noise synth (brown / pink / violet) | [myNoise](https://mynoise.net/) | S |
+| L-A3 | Voice-memo ringtone (in-app 30 s recorder) | iOS native | S |
+| L-A4 | Podcast latest-episode (Podcast Index / AntennaPod URI) | [AntennaPod](https://github.com/AntennaPod/AntennaPod) | M |
+| L-A5 | Per-alarm Bluetooth sink (specific A2DP device) | — | M |
+| L-A6 | Chromecast / Nest Hub alarm target | [Cast SDK](https://developers.google.com/cast/docs/android_sender) | M |
+| L-A7 | UPnP / DLNA multi-room cast escalation | [Cling](https://github.com/4thline/cling) | L |
 
-## 10. Power / Reliability
-
-| # | Item | Source | Effort |
-|---|------|--------|--------|
-| 10.1 | Power-off alarm (Qualcomm / Samsung / Xiaomi HAL) | OEM | L (OEM privileges) |
-| 10.2 | Boot-locked (direct-boot) full-screen alarm | Android 14+ | S (audit) |
-| 10.3 | Emergency-escalation call tree (SMS → call → partner) | Twilio / native | M |
-| 10.4 | Location-based escalation (still at home → siren) | FusedLocation | M |
-| 10.5 | Car-mode suppression (Android Auto DrivingStateManager) | Android Auto | S |
-| 10.6 | Companion-watch autonomous fire if phone battery dies | — | M |
-| 10.7 | Charging-only alarm variant | — | S |
-
-## 11. Emerging Android Platform (14 → 16)
-
-Wiring to keep the app "modern" against each platform bump.
-
-| # | Item | Android | Effort |
-|---|------|---------|--------|
-| 11.1 | Live Updates / progress-style alarm notification | 15 | S |
-| 11.2 | Predictive Back / OnBackInvokedCallback polish | 14 | S |
-| 11.3 | Lockscreen widgets (next-alarm chip) | 17 preview | S (blocked on API) |
-| 11.4 | Device Controls API publish ("Turn off alarm") | 11+ | S |
-| 11.5 | AutomaticZenRule v2 (ConditionProviderService) | 14 | M |
-| 11.6 | Monochrome adaptive icon ✅ (already shipped in v1.3.x) | 13+ | S |
-| 11.7 | Per-app language picker (LocaleManager) | 13 | S |
-| 11.8 | Credential Manager + passkey-gated cloud backup | 14 | M |
-| 11.9 | Ultra-HDR sunrise rendering | 14 | S |
-
-## 12. Cloud / Sync
-
-Stubbed v1.4.0 research touched on this but didn't ship.
+### Advanced scheduling
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| 12.1 | Google Drive / Nextcloud backup (SAF-based) | — | M |
-| 12.2 | AES-256 passphrase encryption over BackupManager output ✅ v1.5.x | — | S |
-| 12.3 | Nextcloud WebDAV sync (self-host crowd) | — | M |
-| 12.4 | End-to-end encrypted paired-phone sync | — | L |
+| L-D1 | Islamic prayer-time Fajr alarm | [Aladhan API](https://aladhan.com/prayer-times-api) | M |
+| L-D2 | Lunar / Hebrew / Hindu calendar repeat | — | M |
+| L-D3 | Astronomical events (meteor-shower peak, ISS flyover) | [Heavens-Above](https://www.heavens-above.com/) | M |
+| L-D4 | Birthday auto-alarm from Contacts | Contacts provider | S |
+| L-D5 | Menstrual-cycle aware (softer alarm in luteal phase) | [Health Connect Menstruation](https://developer.android.com/reference/androidx/health/connect/client/records/MenstruationFlowRecord) | M |
+| L-D6 | Weather-conditional firing (fire earlier on snow > 2 cm) | Open-Meteo | M |
 
-## 13. UX Polish
+### Power / reliability
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| 13.1 | Landscape / tablet layouts (every screen) | — | M |
-| 13.2 | Always-On Display-aware night clock | AOD API | S |
-| 13.3 | Dynamic color from specific wallpaper color (not full palette) | — | S |
-| 13.4 | Share button on alarm card overflow (ties with 0.4) ✅ v1.5.x | — | S |
-| 13.5 | Interactive onboarding walkthrough (beyond current steps) | — | M |
-| 13.6 | In-app changelog dialog on first launch after update ✅ v1.5.0 | — | S |
-| 13.7 | Search / filter in stats by tag, day, or alarm ✅ v1.5.x | — | S |
+| L-P1 | Power-off alarm (Qualcomm / Samsung / Xiaomi HAL) | OEM | L (privileged partner programs — likely never indie-achievable) |
+| L-P2 | Direct-boot full-screen alarm audit | Android 14+ | S |
+| L-P3 | Emergency-escalation call tree (SMS → call → partner → siren) | Twilio / native | M |
+| L-P4 | Location-based escalation (still at home → siren) | FusedLocation | M |
+| L-P5 | Car-mode suppression (Android Auto `DrivingStateManager`) | [Android Auto](https://developer.android.com/training/cars) | S |
+| L-P6 | Companion-watch autonomous fire if phone battery dies | — | M |
+| L-P7 | Charging-only alarm variant | — | S |
+
+### Cloud / sync
+
+| # | Item | Source | Effort |
+|---|------|--------|--------|
+| L-C1 | Google Drive / Nextcloud / WebDAV backup (SAF-based, opt-in, encryption already exists) | [SAF](https://developer.android.com/guide/topics/providers/document-provider) | M |
+| L-C2 | End-to-end encrypted paired-phone sync | — | L |
+
+### UX polish
+
+| # | Item | Source | Effort |
+|---|------|--------|--------|
+| L-U1 | Always-On Display-aware Night Clock (uses AOD API rather than full-bright service) | AOD API | S |
+| L-U2 | Dynamic color from a specific wallpaper accent rather than the full palette | — | S |
+| L-U3 | Interactive onboarding walkthrough (per-feature highlights) | — | M |
+| L-U4 | Predictive Back / `OnBackInvokedCallback` polish across screens | [Android 14 predictive back](https://developer.android.com/guide/navigation/custom-back/predictive-back-gesture) | S |
+| L-U5 | Per-app language picker (`LocaleManager`) | Android 13 | S |
+| L-U6 | Ultra-HDR sunrise rendering on Android 14+ | [HDR rendering](https://developer.android.com/about/versions/14/features#ultra-hdr) | S |
+| L-U7 | Credential Manager + passkey-gated cloud backup | [Credential Manager](https://developer.android.com/training/sign-in/passkeys) | M |
+
+### Accessibility
+
+| # | Item | Source | Effort |
+|---|------|--------|--------|
+| L-X1 | Screen-flash + camera-flash patterns for deaf users | [Apple Flash for Alerts](https://support.apple.com/guide/iphone/turn-on-and-customize-led-flash-iph6f30aa5fc/ios) | S |
+| L-X2 | Haptic-only alarm profile via `VibrationEffect.Composition` | Apple Taptic | S |
+| L-X3 | TalkBack audit — large double-tap buttons on firing screen | Android a11y | S |
+| L-X4 | Pure-black / mono-color WCAG AAA high-contrast theme | — | S |
+| L-X5 | Voice-only dismiss (offline `SpeechRecognizer`) | Voice Access | S |
+| L-X6 | Per-user long-press thresholds on challenge buttons | Android a11y | S |
 
 ---
 
-## Research Notes
+## UNDER CONSIDERATION
 
-**Sources consulted** for v1.4.0 + this roadmap (abbreviated):
+Items that need scoping or platform readiness before they earn a tier.
 
-- Open source: [fennifith/Alarmio](https://github.com/fennifith/Alarmio), [FossifyOrg/Clock](https://github.com/FossifyOrg/Clock), [BlackyHawky/Clock](https://github.com/BlackyHawky/Clock), [LineageOS DeskClock](https://github.com/LineageOS/android_packages_apps_DeskClock), [sweakpl/qralarm-android](https://github.com/sweakpl/qralarm-android), [kunal-mahatha/Early-Bird-App](https://github.com/kunal-mahatha/Early-Bird-App)
-- Commercial reference: Alarmy, Sleep as Android, Sleep Cycle, Pillow, Rise, Turbo Alarm, Google Clock, I Can't Wake Up
-- Platform docs: Android 12-15 release notes, Health Connect SDK, ML Kit Digital Ink, Wear OS Tiles API, CredentialManager, AutomaticZenRule v2, Cast SDK, Google Maps Distance Matrix
+| Item | Blocker / scoping question |
+|------|---------------------------|
+| Material 3 Expressive full migration (vs. opt-in surfaces in N11) | Wait for Compose BOM stable on Android 16; migration cost vs. visual return is unknown. |
+| Live-Updates / `ProgressStyle` bedtime countdown | Same as N12 — needs Android 16 install base measurement before becoming a default rather than a flag. |
+| TensorFlow Lite REM-stage classifier | Model footprint vs. APK-size budget; users on F-Droid expect <40 MB. Need a downloadable-model strategy that doesn't break offline-first. |
+| Tasker / MacroDroid plugin (true plugin, not just webhook) | Adds API surface to maintain; webhook covers most users. |
+| Wear OS standalone app (L-W4) | Build-time, signing, separate Play track; revisit after X1-X3 prove demand. |
+| Cloud LLM sleep-coach | Out of bounds — privacy stance forbids. Local LLM (L-S8) only. |
 
-**Deliberately not pursued** (for now):
+## REJECTED — explicit and indefinite
 
-- YouTube alarm source — licensing grey zone; would block Play Store acceptance.
-- Full Firebase analytics — the privacy stance ("no tracking, no accounts, no data leaves") is a differentiator we keep.
-- Ad-supported free tier — same reasoning; the app is and will remain ad-free.
-- Social feed / public streak sharing — privacy trade-off not worth it.
-- Sleep-coaching subscription model — we remain open-source / donation-based.
-
-**Legal / compliance flags** to budget before touching:
-
-- Health Connect (2.2) requires a published privacy policy update and a
-  Play Console declaration.
-- Apnea flagging (1.6) must carry "not a medical device" disclaimers.
-- Power-off alarm (10.1) needs per-OEM privileged partner programs; may
-  never be achievable for an indie app.
-- Partner-phone sync (6.3 / 12.4) needs an explicit threat model doc.
+| Item | Reason |
+|------|--------|
+| Firebase / GA4 / any analytics SDK | Differentiator: "no tracking, no accounts, no data leaves your device." |
+| Ad-supported free tier | Same. The app is and will remain ad-free. |
+| Public streak / social feed sharing | Privacy trade-off not worth it. Local share-card (L-R8) is the substitute. |
+| Sleep-coaching subscription | We remain open-source / donation-based. |
+| YouTube alarm-source as a generic feature in F-Droid flavor | Licensing grey zone — `play` flavor only. F-Droid build keeps the strip-out for unencumbered distribution. |
+| Cloud LLM for sleep insights | Same privacy stance; only on-device models considered (and only if they fit the APK budget). |
+| Power-off alarm without OEM cooperation | Requires privileged partner programs unavailable to indie apps. (L-P1 stays Later as the formal "you'd need OEM" entry — reaffirmed Rejected for any non-OEM workaround.) |
 
 ---
 
-*Roadmap owners: add yourself as assignee when picking up an item. Prefer
-one-item-per-PR for the S-effort work and phased delivery for M/L.*
+## Cross-cutting tracks (audited every release)
 
-## Open-Source Research (Round 2)
+### Platform compatibility
 
-### Related OSS Projects
-- **yuriykulikov/AlarmClock** — https://github.com/yuriykulikov/AlarmClock — AOSP-derived, long-click dismiss UX, adjustable snooze time-picker.
-- **yassineAbou/Clock** — https://github.com/yassineAbou/Clock — Pure Jetpack Compose, single-activity + bottom-nav + WorkManager for timer/stopwatch integration.
-- **ahudson20/whakaara** — https://github.com/ahudson20/whakaara — Compose + Room + Hilt reference architecture; minimal and idiomatic.
-- **akshay2211/JetAlarm** — https://github.com/akshay2211/JetAlarm — MVVM Compose alarm, Apache-2.0.
-- **plusmobileapps/alarm-clock** — https://github.com/plusmobileapps/alarm-clock — Jetpack + Kotlin, small and readable.
-- **hanihashemi/Alarm-Clock-App-Tutorial** — https://github.com/hanihashemi/Alarm-Clock-App-Tutorial — Tutorial repo; handy for the exact AlarmManager + fullscreen-intent wiring that LTS Android versions keep regressing.
-- **AlarmIT** (alarm-clock topic) — https://github.com/topics/alarm-clock — shake + math dismiss reference (older but still cited).
+- **`USE_EXACT_ALARM` (install-time grant) instead of `SCHEDULE_EXACT_ALARM` (runtime).** ACX is alarm-clock-category — verify manifest each release. ([FossifyOrg/Calendar #217](https://github.com/FossifyOrg/Calendar/issues/217))
+- **Try-catch every `AlarmManager.set*` call.** `setInexactAllowWhileIdle` can still throw if the device's exact-alarm fallback path engages. ([flutter_local_notifications #2248](https://github.com/MaikuB/flutter_local_notifications/issues/2248))
+- **Android 15 short-type FGS auto-timeout (3 min cap).** Stay on `mediaPlayback` type, do NOT migrate to `shortService`. ([Android 15 behavior changes](https://developer.android.com/about/versions/15/behavior-changes-15))
+- **Doze defers even `setAlarmClock()` 1-2 min on Redmi/Samsung.** Pair with a 10-15 s `PARTIAL_WAKE_LOCK` in `onReceive`; keep within ANR ceiling.
+- **`setAlarmClock()` always shows status-bar icon.** Already mitigated with a settings toggle that falls back to `setExactAndAllowWhileIdle` (with disclaimer); keep the toggle in the UI.
+- **`READ_CALENDAR` runtime denial.** `CalendarAutoAlarmWorker` must early-return on denial. Verify each release.
+- **`Configuration.Provider` + manifest initializer removal.** WorkManager + Hilt regression vector; CI check exists, keep it.
 
-### Applied in this pass
-- Implemented the shareable-alarm workflow from items 0.4 and 13.4: card overflow -> Android share sheet -> `acx://alarm?data=` link -> import through `MainActivity`.
-- Imported shared alarms are intentionally disabled until reviewed so a received link cannot silently schedule a live alarm.
-- Shared payloads reuse the backup alarm mapper, keeping future alarm-field additions in one portable serialization path.
-- Implemented item 13.7: Stats history now supports text search plus outcome/day filters, with empty-filter feedback and a pure filter helper covered by unit tests.
-- Implemented item 12.2: Settings backup/export now offers optional passphrase encryption using PBKDF2-HMAC-SHA256 + AES-256-GCM, while preserving plain JSON backup compatibility.
+### Security / privacy
 
-### Features to Borrow
-- **Long-click dismiss + long-press snooze time-picker** (yuriykulikov/AlarmClock) — prevents accidental-dismiss complaints; long-press snooze opens an inline picker rather than cycling presets.
-- **Single-activity + Compose nav for clock/timer/stopwatch/alarm tabs** (yassineAbou/Clock) — consolidates what AlarmClockXtreme currently splits, and exposes a Timer/Stopwatch path without growing the APK.
-- **WorkManager-backed stopwatch/timer persistence** (yassineAbou/Clock) — survives process death on Android 15+ cold-kill aggressive OEMs (Xiaomi/Oppo/Samsung battery managers).
-- **Hilt DI boundaries around AlarmScheduler** (whakaara) — clean swap of `AlarmManager` vs `WorkManager` vs test-fake for CI tests.
-- **Room migration discipline** (whakaara) — canonical single-source-of-truth schema per release and testMigration() blocks to avoid user-loss regressions.
-- **Fullscreen-intent + SCREEN_ON fallback matrix** (hanihashemi tutorial) — explicit table of which Android versions need which flags (POST_NOTIFICATIONS, USE_FULL_SCREEN_INTENT, SCHEDULE_EXACT_ALARM) with runtime feature-detection.
-- **"Nudge" alarms that gradually ramp volume** (not yet in ACX per feature list) — common in commercial alarm apps; use `AudioFocus` + Compose LaunchedEffect timer.
-- **Widget-driven "create alarm" shortcut** — Glance widget that opens ACX to the create screen with preset duration params (borrowing the Compose Glance pattern surfacing in several 2025 alarm forks).
+- AES-256-GCM + PBKDF2-HMAC-SHA256 (200k iters) for backup encryption — shipped 1.5.x. Audit iteration count yearly against [OWASP Password Storage cheat sheet](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+- Shareable-alarm import is **disabled by default** until reviewed — keep that. Never silently schedule a received link's alarm.
+- Hue v1 username endpoints are deprecated — migrate `HueSunriseWorker` to v2 `application_key` + HTTPS pinning. Tracked under L-A.
+- Webhook URL is user-supplied and never auto-validated — document this as part of the threat model rather than retrofitting validation that won't catch a determined misuse.
 
-### Patterns & Architectures Worth Studying
-- **Compose bottom-nav single-activity + per-destination ViewModel scoping** (yassineAbou/Clock) — reduces StateFlow leakage between timer/stopwatch/alarm and halves cold start.
-- **Hilt + AlarmScheduler abstraction** (whakaara) — lets the dismiss-challenge engine and alarm scheduler be unit-tested without the Android runtime.
-- **AOSP-derived dismiss UX** (yuriykulikov/AlarmClock) — `DismissAlarmActivity` run on top of lockscreen with `FLAG_SHOW_WHEN_LOCKED` + `FLAG_TURN_SCREEN_ON` + `setTurnScreenOn(true)` is the battle-tested formula.
-- **Per-alarm `setAlarmClock()` with `setInexactRepeating` fallback** (yuriykulikov/AlarmClock) — graceful-degradation path when SCHEDULE_EXACT_ALARM permission is revoked post-install on Android 14+.
+### Observability
 
-## Implementation Deep Dive (Round 3)
+- Crash logger writes to local files only; we don't ship a remote sink and won't (privacy). Ensure rotation cap remains in place so a runaway loop can't fill storage.
+- Add a "share crash log" button on the About screen (does not auto-upload — copies to clipboard or invokes share sheet). **S, not yet tiered.**
 
-### Reference Implementations to Study
-- **yuriykulikov/AlarmClock/app/src/main/java/com/better/alarm/services/AlarmsService.kt** — https://github.com/yuriykulikov/AlarmClock — canonical `startForeground()` called synchronously in `onStartCommand` before any IO; good pattern for comparing against ACX's v1.5.4 fix.
-- **yassineAbou/Clock/app/src/main/java/com/yassineabou/clock/ui/timer/TimerViewModel.kt** — https://github.com/yassineAbou/Clock — WorkManager-backed timer that survives process death on Xiaomi/Oppo/Samsung. Direct blueprint for ACX's Timer tab persistence.
-- **ahudson20/whakaara/app/src/main/java/com/app/whakaara/domain/AlarmScheduler.kt** — https://github.com/ahudson20/whakaara — Hilt-injectable `AlarmScheduler` abstraction with test fake. Replaces ACX's untestable `domain/AlarmScheduler.kt` directly.
-- **FossifyOrg/Clock/app/src/main/kotlin/org/fossify/clock/receivers/AlarmReceiver.kt** — https://github.com/FossifyOrg/Clock/blob/main/app/src/main/kotlin/org/fossify/clock/receivers/AlarmReceiver.kt — lightweight wake lock (10s) + startForegroundService pattern proven across 100k+ users. Template for DST/timezone edge case handling ACX hasn't hit yet.
-- **Applinx-Tech/Flutter-Alarm-Manager-POC/android/app/src/main/java/...AlarmActivity** — https://github.com/Applinx-Tech/Flutter-Alarm-Manager-POC — `showWhenLocked="true"` + `turnScreenOn="true"` full-screen intent wiring + all permission declarations in one manifest. Reference for verifying ACX's `AlarmFiringActivity` manifest flags.
-- **giorgosneokleous93/fullscreenintentexample/app/src/main/AndroidManifest.xml** — https://github.com/giorgosneokleous93/fullscreenintentexample — minimal-complete full-screen intent example; compare `USE_FULL_SCREEN_INTENT` permission declaration + notification channel importance (`IMPORTANCE_HIGH` required).
-- **androidx/media3/libraries/exoplayer/src/main/java/androidx/media3/exoplayer/util/EventLogger.java** — https://github.com/androidx/media — clean MediaPlayer/ExoPlayer listener pattern; ACX's internet-radio `prepareAsync()` listener could move to ExoPlayer for HLS support.
-- **AOSP DeskClock (packages/apps/DeskClock)** — https://android.googlesource.com/platform/packages/apps/DeskClock/ — Google's reference DeskClock app; `AlarmStateManager.kt` is the gold-standard alarm state machine (PENDING → SNOOZED → FIRING → MISSED → DISMISSED) with persisted StateHolder.
+### Distribution / packaging
 
-### Known Pitfalls from Similar Projects
-- **Android 14 USE_EXACT_ALARM is auto-granted, SCHEDULE_EXACT_ALARM is not** — FossifyOrg/Calendar#217 — alarm-clock-category apps should declare `USE_EXACT_ALARM` (install-time grant) instead of `SCHEDULE_EXACT_ALARM` (runtime). Check ACX manifest. https://github.com/FossifyOrg/Calendar/issues/217
-- **SecurityException when inexact alarm internally falls back to exact** — flutter_local_notifications#2248 — reporter only used `inexactAllowWhileIdle` but `AlarmManager.setImpl` still threw. Always surround `set*` with try-catch-fallback-to-inexact. https://github.com/MaikuB/flutter_local_notifications/issues/2248
-- **Five-second window to call `startForeground()` after `startForegroundService()`** — androidx/media#2412 — ACX already fixed this in v1.5.4 but the spec is Media3-relevant: if audio is started off the main thread, the service timeout fires. https://github.com/androidx/media/issues/2412
-- **Doze mode defers even `setAlarmClock` on Redmi/Samsung by 1-2 min** — Microsoft Q&A — the only fix is to pair with a 10-15s `PARTIAL_WAKE_LOCK` in `onReceive`. ACX already has the wake lock but verify the timing is <15s so ANR watchdog doesn't kill it. https://learn.microsoft.com/en-us/answers/questions/5566005/
-- **`ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` broadcast must be registered to reschedule alarms after permission-grant** — FossifyOrg/Calendar#217 — otherwise alarms set before permission grant remain inexact forever. ACX doesn't currently listen for this.
-- **`BootReceiver.goAsync()` 10s ANR ceiling** — ACX v1.5.4 tightened timeout 30s→8s — but if a user has 50+ alarms, `rescheduleAll` can still exceed 8s. Consider batching via WorkManager.
-- **Android 15 preparatory changes: Foreground service short-type 3-minute cap** — starting Android 15 (API 35), short-type FGS auto-timeouts. ACX uses `mediaPlayback` type (no timeout) — good. Do not migrate to `shortService` type.
-- **`setAlarmClock()` always shows clock icon in status bar** — can't be hidden; users complain. Workaround: offer a user setting "Show alarm icon in status bar" that falls back to `setExactAndAllowWhileIdle()` if disabled (with UX disclaimer about 1-2min drift). https://learn.microsoft.com/en-us/answers/questions/5566005/
-- **`CalendarContract.Instances` RRULE expansion requires `READ_CALENDAR`** — runtime permission, not declared in all manifests. ACX `CalendarAutoAlarmWorker` must handle denial gracefully (ACX v1.3.2 already rewrites this worker — verify permission check).
-- **WorkManager + Hilt requires `Configuration.Provider` on Application AND default initializer removed in manifest** — easy to regress on gradle plugin upgrades. Lock in a CI check. https://github.com/ahudson20/whakaara
+- Two flavors today: `play` (with YT downloader), `fdroid` (without). Maintain parity on every other surface. CI workflow `release.yml` builds both via `gh release upload --clobber`.
+- F-Droid lint passes — anti-feature flag for the YT downloader is documented in `metadata/`. Re-verify on each release.
+- AAB for Play Store, signed APK for GitHub Releases; never ship unsigned artifacts.
 
-### Library Integration Checklist
-- **AndroidX WorkManager (timer persistence + Guardian + Calendar workers)** — `androidx.work:work-runtime-ktx:2.10.0` (ACX already has) — entry: `CoroutineWorker.doWork()` + `Data.Builder().putLong("alarmId", id)`. Gotcha: `setInitialDelay(minimumOf(1m))` because `WorkManager` floors delays under 1 minute to 10 minutes on some OEMs — ACX v1.3.3 fixes this.
-- **AndroidX Glance (widgets)** — `androidx.glance:glance-appwidget:1.1.1` — entry: `class NextAlarmWidget : GlanceAppWidget() { override provideGlance() { ... } }`. Gotcha: Glance state updates require `updateAppWidgetState(context, glanceId)` — just calling `update()` on ViewModel does not refresh the widget.
-- **Philips Hue v2 API (HueSunriseWorker upgrade path)** — no Maven; REST client via OkHttp. Entry: `PUT https://{bridge}/api/{username}/lights/{id}/state {"bri": N, "transitiontime": deciseconds}`. Gotcha: Hue v1 `username` endpoints are deprecated; migrate to Hue v2 `application_key` header + HTTPS certificate pinning (self-signed cert — pin via `OkHttpClient.Builder().hostnameVerifier`). ACX's `HueSunriseWorker` currently uses v1.
+### i18n / l10n
+
+- English-only today. Per-app language picker (L-U5) lands first; THEN community translation. No machine-translation-only strings — better to remain English than ship broken translations.
+
+### Testing
+
+- Unit tests cover `MissedAlarmUnlockReceiver` window logic, `ProximityCoverDetector` hold threshold, and the share-link filter helper. Each new dismiss challenge must come with a unit-tested "valid input" + "invalid input" suite.
+- Room migration tests: every schema bump requires a `testMigration()` block (whakaara discipline).
+- Add an instrumented smoke test that fires an alarm via test broadcast and asserts the firing activity launches with `FLAG_SHOW_WHEN_LOCKED`. **S, not yet tiered.**
+
+### Documentation
+
+- README, CHANGELOG, ROADMAP, CLAUDE.md, and the version badge must all match on every release. README + ROADMAP feature list parity is checked on each release pass.
+
+### Plugin ecosystem
+
+- Webhooks (Tasker / MacroDroid / Home Assistant) cover the integration surface we want to expose. A "real" plugin SDK is rejected (UC) until webhook gaps are documented.
+- Recipe library (L-R6) — bundle 5-10 ready-made Tasker / Home Assistant flows in `docs/integrations/`.
+
+---
+
+## Research sources (round 4 — refreshed for v1.9.0)
+
+### Direct OSS competitors
+
+- **fennifith/Alarmio** — https://github.com/fennifith/Alarmio
+- **FossifyOrg/Clock** — https://github.com/FossifyOrg/Clock — Simple-Tools fork, v1.6.0 (2025) added custom font support, gradual volume, persistent notification.
+- **BlackyHawky/Clock** — https://github.com/BlackyHawky/Clock — privacy-first, no INTERNET permission. v2.29 (2026): missed-alarm logic, swipe-to-delete fixes, persistent notification, alarm-to-specific-date, flip/shake gestures, power-off alarm on Snapdragon.
+- **LineageOS DeskClock** — https://github.com/LineageOS/android_packages_apps_DeskClock
+- **AOSP DeskClock (`AlarmStateManager`)** — https://android.googlesource.com/platform/packages/apps/DeskClock/ — gold-standard alarm state machine.
+- **yuriykulikov/AlarmClock** — https://github.com/yuriykulikov/AlarmClock — long-press dismiss UX, AOSP-derived `DismissAlarmActivity` formula.
+- **yassineAbou/Clock** — https://github.com/yassineAbou/Clock — pure Compose, single-activity, WorkManager-backed timer/stopwatch persistence.
+- **ahudson20/whakaara** — https://github.com/ahudson20/whakaara — Hilt + AlarmScheduler abstraction, Room migration discipline.
+- **akshay2211/JetAlarm** — https://github.com/akshay2211/JetAlarm
+- **plusmobileapps/alarm-clock** — https://github.com/plusmobileapps/alarm-clock
+- **vicolo-dev/chrono** — https://github.com/vicolo-dev/chrono — Flutter, but worth UX study.
+- **sweakpl/qralarm-android** — https://github.com/sweakpl/qralarm-android
+- **kunal-mahatha/Early-Bird-App** — https://github.com/kunal-mahatha/Early-Bird-App
+- **WrichikBasu/ShakeAlarmClock** — https://github.com/WrichikBasu/ShakeAlarmClock
+- **meenbeese/Chronos** — https://github.com/meenbeese/Chronos — Kotlin, ~108★ in 2025.
+- **meticha/triggerx** — https://github.com/meticha/triggerx — alarm-execution library, ~101★.
+- **giorgosneokleous93/fullscreenintentexample** — https://github.com/giorgosneokleous93/fullscreenintentexample
+- **Applinx-Tech/Flutter-Alarm-Manager-POC** — https://github.com/Applinx-Tech/Flutter-Alarm-Manager-POC
+
+### Commercial reference
+
+- **Alarmy** — https://alar.my/en/blog/alarmy-wake-up-mission — 2025 Multiple Mission feature (combine up to 3 challenges) is parity for our Mission Chain. Photo, Math, Shake, Barcode/QR, Memory, Typing, Steps (premium), Squats (premium).
+- **Sleep as Android** — https://sleep.urbandroid.org/documentation/release-notes/ — 2025 added Google Home API integration (BETA), AI Sleep Assistant (BETA), HRV gain cards, dashboard redesign, wake-up check automation events. 2025 Lullabies addon (Magic / Strings / Fantasy / Megalith).
+- **Sleep Cycle** — https://sleepcycle.com/sleep-talk/smart-alarm-now-available-in-the-sleep-cycle-sdk — 2026 SDK release. Algorithm: phone mic + accelerometer detects sleep stages and fires alarm in lightest phase within wake window.
+- **Rise** — https://www.risescience.com/ — sleep-debt accumulator + composite score reference.
+- **Pillow** — https://www.pillow.app/
+- **Turbo Alarm** — https://play.google.com/store/apps/details?id=com.turbo.alarm — Spotify-as-alarm reference. 2025: Wear OS support, talking alarm with weather, sunrise simulation, mini-game dismiss, "Anti-Sleepyhead Security" (require leaving the house), cloud-sync, Tasker / Macrodroid / Sleepbot integration.
+- **Google Clock** — https://play.google.com/store/apps/details?id=com.google.android.deskclock
+- **I Can't Wake Up** — Simon-says, voice-phrase reference.
+- **Timeshifter** — https://www.timeshifter.com/ — jet-lag re-entrainment reference for L-W6.
+
+### Awesome lists / FOSS catalogs
+
+- GitHub topics: https://github.com/topics/alarm-clock?l=kotlin and https://github.com/topics/sleep-tracker
+- F-Droid Clocks & Alarms: https://f-droid.org/en/categories/clock/
+- IATkachenko/HA-SleepAsAndroid (Home Assistant integration) — https://github.com/IATkachenko/HA-SleepAsAndroid
+
+### Platform docs / standards / specs
+
+- Android 14 behavior changes — https://developer.android.com/about/versions/14/behavior-changes-14
+- Android 15 behavior changes — https://developer.android.com/about/versions/15/behavior-changes-15
+- Android 15 features — https://developer.android.com/about/versions/15/features
+- Android 16 features — https://developer.android.com/about/versions/16/features
+- Android 16 Live Updates / `ProgressStyle` — https://developer.android.com/about/versions/16/features#progress-centric-notifications
+- Material 3 Expressive — https://m3.material.io/blog/material-3-expressive
+- Wear OS Tiles API — https://developer.android.com/training/wearables/tiles
+- Wear OS Complications API — https://developer.android.com/training/wearables/complications
+- Health Connect Sleep — https://developer.android.com/health-and-fitness/guides/health-connect/data-and-data-types/sleep
+- Health Connect Menstruation — https://developer.android.com/reference/androidx/health/connect/client/records/MenstruationFlowRecord
+- ML Kit Digital Ink — https://developers.google.com/ml-kit/vision/digital-ink-recognition
+- Glance widgets — https://developer.android.com/jetpack/androidx/releases/glance
+- Compose adaptive layouts — https://developer.android.com/develop/ui/compose/layouts/adaptive
+- LE Audio (Android 13+) — https://source.android.com/docs/core/connect/bluetooth/le_audio
+- AutomaticZenRule v2 — https://developer.android.com/reference/android/app/AutomaticZenRule
+- Predictive back — https://developer.android.com/guide/navigation/custom-back/predictive-back-gesture
+- LocaleManager — https://developer.android.com/about/versions/13/features/app-languages
+- Credential Manager — https://developer.android.com/training/sign-in/passkeys
+- `AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` — https://developer.android.com/reference/android/app/AlarmManager#ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED
+- Open-Meteo Weather — https://open-meteo.com/
+- Open-Meteo Air Quality + pollen — https://open-meteo.com/en/docs/air-quality-api
+- NWS Active Alerts — https://www.weather.gov/documentation/services-web-api
+- Nager.Date holidays — https://date.nager.at/
+- Aladhan prayer times — https://aladhan.com/prayer-times-api
+
+### Academic / industry / engineering
+
+- Cole-Kripke 1992 — https://pubmed.ncbi.nlm.nih.gov/1455130/
+- Roenneberg MEQ — https://www.thewep.org/documentations/mctq
+- Springer 2025 (smartwatch IMU OSA) — https://link.springer.com/article/10.1007/s11325-025-03255-w
+- Samsung × Stanford OSA collab 2025 — https://www.samsungmobilepress.com/articles/samsung-announces-collaboration-with-stanford-medicine-to-advance-sleep-apnea-detection-and-beyond
+- AASM smartwatch sleep features comparison — https://aasm.org/comparing-sleep-features-of-popular-smartwatches/
+- Sleep Cycle SDK announcement — https://sleepcycle.com/sleep-talk/smart-alarm-now-available-in-the-sleep-cycle-sdk
+
+### Community signal
+
+- r/Android complaints (recurring): missed alarms on Xiaomi/Samsung/Oppo battery-management; subscription fatigue (Alarmy / Sleep as Android Premium); Google Clock missing skip-one-occurrence + mission challenges.
+- Maker complaints (Hacker News / accessibleandroid.com): mini-game dismiss is poorly TalkBacked across the field; Turbo Alarm called out specifically. Accessibility-first dismiss alternatives (haptic, voice) are differentiators.
+
+### Library changelogs to mine each release
+
+- `androidx.work:work-runtime-ktx` — https://developer.android.com/jetpack/androidx/releases/work
+- `androidx.glance:glance-appwidget` — https://developer.android.com/jetpack/androidx/releases/glance
+- `androidx.compose.material3` — https://developer.android.com/jetpack/androidx/releases/compose-material3
+- `androidx.health.connect:connect-client` — https://developer.android.com/jetpack/androidx/releases/health-connect
+- yt-dlp — https://github.com/yt-dlp/yt-dlp/releases
+- NewPipeExtractor — https://github.com/TeamNewPipe/NewPipeExtractor/releases
+- OkHttp / Retrofit / Moshi / Hilt / Room — keep current via dependency-bot or quarterly audit.
+
+### Legal / compliance flags to budget before touching
+
+- Health Connect (X3) — published privacy-policy update + Play Console declaration.
+- Apnea event flagging (L-S6) — explicit "screening, not a medical device" disclaimer; consider keeping it `play`-flavor only for legal hygiene.
+- Power-off alarm (L-P1) — per-OEM privileged partner programs; may never be achievable for an indie app.
+- Partner-phone / paired-phone sync (L-H2 / L-C2) — explicit threat model doc before code.
+- LLM sleep-coach (L-S8) — bundled model size budget; F-Droid users expect <40 MB APK.
+
+---
+
+*Roadmap owners: add yourself as assignee when picking up an item.
+Prefer one-item-per-PR for the S-effort work and phased delivery for
+M / L. Update this file on every release alongside CHANGELOG.md.*
