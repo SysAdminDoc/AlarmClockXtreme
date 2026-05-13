@@ -10,13 +10,18 @@ import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.MainActivity
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -32,7 +37,8 @@ import javax.inject.Singleton
 class NextAlarmNotifier @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: AlarmRepository,
-    private val calculator: NextAlarmCalculator
+    private val calculator: NextAlarmCalculator,
+    private val preferencesManager: PreferencesManager
 ) {
     companion object {
         const val CHANNEL_PERSISTENT = "persistent_alarm_channel"
@@ -68,17 +74,49 @@ class NextAlarmNotifier @Inject constructor(
     fun startObserving() {
         observeJob?.cancel()
         observeJob = scope.launch {
-            repository.observeNextAlarm().collectLatest { alarm ->
-                if (alarm != null && alarm.nextTriggerTime > System.currentTimeMillis()) {
-                    showNotification(alarm)
+            repository.observeNextAlarm()
+                .combine(
+                    preferencesManager.settings
+                        .map { it.is24HourFormat }
+                        .distinctUntilChanged()
+                ) { alarm, is24HourFormat ->
+                    alarm to is24HourFormat
+                }
+                .collectLatest { (alarm, is24HourFormat) ->
+                    if (alarm != null && alarm.nextTriggerTime > System.currentTimeMillis()) {
+                        refreshNotificationUntilInvalid(alarm, is24HourFormat)
+                    } else {
+                        dismiss()
+                    }
+                }
+        }
+    }
+
+    private suspend fun refreshNotificationUntilInvalid(initialAlarm: Alarm, is24HourFormat: Boolean) {
+        var alarm = initialAlarm
+        while (true) {
+            val now = System.currentTimeMillis()
+            if (!alarm.isEnabled || alarm.nextTriggerTime <= now) {
+                val nextAlarm = repository.getNextAlarm()
+                if (nextAlarm != null && nextAlarm.nextTriggerTime > now) {
+                    alarm = nextAlarm
+                    continue
                 } else {
                     dismiss()
+                    return
                 }
+            }
+
+            showNotification(alarm, is24HourFormat)
+            delay(NextAlarmNotificationTiming.millisUntilNextRefresh(now, alarm.nextTriggerTime))
+            alarm = repository.getById(alarm.id) ?: repository.getNextAlarm() ?: run {
+                dismiss()
+                return
             }
         }
     }
 
-    private fun showNotification(alarm: Alarm) {
+    private fun showNotification(alarm: Alarm, is24HourFormat: Boolean) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -100,7 +138,8 @@ class NextAlarmNotifier @Inject constructor(
         // Format time
         val triggerInstant = Instant.ofEpochMilli(alarm.nextTriggerTime)
         val localDateTime = triggerInstant.atZone(ZoneId.systemDefault()).toLocalDateTime()
-        val timeStr = localDateTime.format(DateTimeFormatter.ofPattern("EEE h:mm a"))
+        val timePattern = if (is24HourFormat) "EEE HH:mm" else "EEE h:mm a"
+        val timeStr = localDateTime.format(DateTimeFormatter.ofPattern(timePattern))
         val remaining = calculator.formatRemaining(alarm.nextTriggerTime)
 
         val title = if (alarm.label.isNotBlank()) alarm.label else "Alarm"
@@ -112,6 +151,7 @@ class NextAlarmNotifier @Inject constructor(
             .setOngoing(true)
             .setAutoCancel(false)
             .setSilent(true)
+            .setOnlyAlertOnce(true)
             .setShowWhen(false)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_STATUS)

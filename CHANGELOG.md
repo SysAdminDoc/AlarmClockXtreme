@@ -2,6 +2,25 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.9.4] - 2026-05-13
+
+Persistent next-alarm notification accuracy fix. No schema changes.
+
+### Fixed — next-alarm notification
+
+- The persistent status-bar notification now refreshes on the minute boundary
+  where its "remaining" copy changes, instead of only refreshing when the alarm
+  row changes in Room.
+- The notification now dismisses at fire time if the database has not yet
+  emitted the next schedule, preventing stale "next alarm" copy from lingering.
+- The notification title now respects the app's 12/24-hour time setting.
+
+### Internal
+
+- Added focused unit coverage for the notification refresh cadence.
+- Bumped to `versionName = "1.9.4"`, `versionCode = 41`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.9.3] - 2026-05-13
 
 Exact-alarm permission recovery release. No schema changes.
