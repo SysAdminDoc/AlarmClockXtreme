@@ -162,8 +162,20 @@ fun WindyRadarCard(
                                 loadWithOverviewMode = true
                                 builtInZoomControls = false
                                 displayZoomControls = false
+                                // v1.9.1: harden mixed-content policy. The Windy
+                                // embed is HTTPS-only; ALWAYS_ALLOW would let a
+                                // hostile redirect downgrade tiles to HTTP. The
+                                // COMPATIBILITY mode still permits images/fonts
+                                // over HTTP if Windy ever needed them, while
+                                // blocking active mixed content (scripts).
                                 mixedContentMode =
-                                    WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                    WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+                                // Defence-in-depth: explicitly disable the file
+                                // and JS-bridge surfaces — we only ever load a
+                                // remote HTTPS URL, no app-injected JS, no local
+                                // file:// content.
+                                allowFileAccess = false
+                                allowContentAccess = false
                                 cacheMode = WebSettings.LOAD_DEFAULT
                             }
                             webViewClient = object : WebViewClient() {
@@ -189,6 +201,20 @@ fun WindyRadarCard(
                         if (webView.url != embedUrl) {
                             loaded = false
                             webView.loadUrl(embedUrl)
+                        }
+                    },
+                    // v1.9.1: AndroidView leaks the underlying WebView when the
+                    // composition exits unless we explicitly tear it down. Without
+                    // this, navigating away from Today and back again accumulates
+                    // WebView instances, each holding a JS engine + GL context
+                    // (~5–15 MB on real devices).
+                    onRelease = { webView ->
+                        runCatching {
+                            webView.stopLoading()
+                            webView.loadUrl("about:blank")
+                            webView.removeAllViews()
+                            (webView.parent as? ViewGroup)?.removeView(webView)
+                            webView.destroy()
                         }
                     },
                 )
