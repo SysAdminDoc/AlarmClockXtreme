@@ -2,6 +2,27 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.9.3] - 2026-05-13
+
+Exact-alarm permission recovery release. No schema changes.
+
+### Fixed — scheduling reliability
+
+- Added a receiver for
+  `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` so alarms saved while
+  "Alarms & reminders" access was denied are re-armed as soon as the user grants
+  the permission.
+- Moved the recovery work into a unique expedited WorkManager job, backed by
+  the existing Hilt worker setup, so heavy alarm lists are rescheduled outside
+  the broadcast receiver timeout window.
+- Forced recalculation during permission recovery to repair alarms whose
+  `nextTriggerTime` had been cleared while exact scheduling was unavailable.
+
+### Internal
+
+- Bumped to `versionName = "1.9.3"`, `versionCode = 40`. README badge,
+  install command, roadmap snapshot, and CLAUDE.md current-version line synced.
+
 ## [1.9.2] - 2026-05-13
 
 Premium-polish pass across the Compose UI. No schema changes.
