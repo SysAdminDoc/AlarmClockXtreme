@@ -2,7 +2,9 @@ package com.sysadmindoc.alarmclock.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.Manifest
 import android.content.Intent
+import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BarChart
@@ -41,6 +44,7 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Warning
@@ -137,6 +141,11 @@ fun SettingsScreen(
     var showAutoSilenceMenu by remember { mutableStateOf(false) }
     var showTemperatureMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.refreshBatteryStatus()
+    }
 
     Column(
         modifier = Modifier
@@ -165,7 +174,17 @@ fun SettingsScreen(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            PermissionRequestCard()
+            WakeReadinessSection(
+                state = state,
+                onRequestNotifications = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                },
+                onRequestExactAlarms = viewModel::requestExactAlarmAccess,
+                onRequestBatteryExemption = viewModel::requestBatteryExemption
+            )
+            PermissionRequestCard(includeNotifications = false)
             SettingsOverviewRow(state)
 
             if (state.needsBatteryGuidance || !state.isIgnoringBatteryOptimizations) {
@@ -408,6 +427,9 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsOverviewRow(state: SettingsUiState) {
+    val reliabilityReady = state.isIgnoringBatteryOptimizations &&
+        state.hasNotificationPermission &&
+        state.canScheduleExactAlarms
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppSectionTitle(
             title = "At a glance",
@@ -421,10 +443,10 @@ private fun SettingsOverviewRow(state: SettingsUiState) {
         ) {
             SettingsOverviewTile(
                 title = "Reliability",
-                value = if (state.isIgnoringBatteryOptimizations) "Protected" else "Needs review",
-                supporting = if (state.isIgnoringBatteryOptimizations) "Battery rules look good" else "Battery settings can still block alarms",
-                icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
-                accent = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow,
+                value = if (reliabilityReady) "Ready" else "Needs review",
+                supporting = wakeReadinessSummary(state),
+                icon = if (reliabilityReady) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
+                accent = if (reliabilityReady) DismissGreen else SnoozeYellow,
                 modifier = Modifier.width(190.dp)
             )
             SettingsOverviewTile(
@@ -488,6 +510,135 @@ private fun SettingsOverviewTile(
             color = TextSecondary,
             style = MaterialTheme.typography.bodySmall
         )
+    }
+}
+
+@Composable
+private fun WakeReadinessSection(
+    state: SettingsUiState,
+    onRequestNotifications: () -> Unit,
+    onRequestExactAlarms: () -> Unit,
+    onRequestBatteryExemption: () -> Unit
+) {
+    val readyCount = listOf(
+        state.canScheduleExactAlarms,
+        state.hasNotificationPermission,
+        state.isIgnoringBatteryOptimizations
+    ).count { it }
+    val allReady = readyCount == 3
+
+    AppSurfaceCard(highlighted = !allReady) {
+        AppSectionTitle(
+            title = "Wake readiness",
+            description = "The system switches that matter most for precise alarms and visible alerts.",
+            action = {
+                AppStatusChip(
+                    label = "$readyCount of 3 ready",
+                    icon = if (allReady) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    color = if (allReady) DismissGreen else SnoozeYellow
+                )
+            }
+        )
+
+        WakeReadinessRow(
+            icon = Icons.Default.Alarm,
+            title = "Exact alarm access",
+            description = "Keeps wake times precise through Doze and standby.",
+            ready = state.canScheduleExactAlarms,
+            actionLabel = "Open alarm access",
+            onAction = onRequestExactAlarms
+        )
+        WakeReadinessRow(
+            icon = Icons.Default.NotificationsActive,
+            title = "Alarm notifications",
+            description = "Shows next-alarm, ringing, missed, and wake-check alerts.",
+            ready = state.hasNotificationPermission,
+            actionLabel = "Allow notifications",
+            onAction = onRequestNotifications
+        )
+        WakeReadinessRow(
+            icon = Icons.Default.BatteryAlert,
+            title = "Battery protection",
+            description = "Reduces the chance of OEM battery rules delaying alarm work.",
+            ready = state.isIgnoringBatteryOptimizations,
+            actionLabel = "Open battery settings",
+            onAction = onRequestBatteryExemption
+        )
+    }
+}
+
+@Composable
+private fun WakeReadinessRow(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    ready: Boolean,
+    actionLabel: String,
+    onAction: () -> Unit
+) {
+    val accent = if (ready) DismissGreen else SnoozeYellow
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = if (ready) SurfaceCard.copy(alpha = 0.34f) else accent.copy(alpha = 0.08f),
+        border = BorderStroke(
+            1.dp,
+            if (ready) TextMuted.copy(alpha = 0.12f) else accent.copy(alpha = 0.24f)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = accent.copy(alpha = 0.14f)
+                ) {
+                    Box(
+                        modifier = Modifier.size(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(title, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+                    Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                }
+                AppStatusChip(
+                    label = if (ready) "Ready" else "Review",
+                    icon = if (ready) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    color = accent
+                )
+            }
+
+            if (!ready) {
+                OutlinedButton(
+                    onClick = onAction,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f))
+                ) {
+                    Text(actionLabel)
+                }
+            }
+        }
     }
 }
 
@@ -1414,6 +1565,19 @@ private fun dashboardSummary(state: SettingsUiState): String = when {
     state.settings.showWeatherOnDashboard -> "Weather only"
     state.settings.showCalendarOnDashboard -> "Calendar only"
     else -> "Minimal"
+}
+
+private fun wakeReadinessSummary(state: SettingsUiState): String {
+    val missing = buildList {
+        if (!state.canScheduleExactAlarms) add("exact alarms")
+        if (!state.hasNotificationPermission) add("notifications")
+        if (!state.isIgnoringBatteryOptimizations) add("battery")
+    }
+    return if (missing.isEmpty()) {
+        "Exact alarms, alerts, and battery are ready"
+    } else {
+        "Review ${missing.joinToString(", ")}"
+    }
 }
 
 @Composable

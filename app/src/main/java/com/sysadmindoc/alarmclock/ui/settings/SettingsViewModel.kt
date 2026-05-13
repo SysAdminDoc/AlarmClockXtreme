@@ -1,8 +1,15 @@
 package com.sysadmindoc.alarmclock.ui.settings
 
 import android.app.Application
+import android.Manifest
+import android.app.AlarmManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.BuildConfig
@@ -36,7 +43,10 @@ data class SettingsUiState(
     val isWebhookTesting: Boolean = false,
     // Hue test result
     val hueTestResult: String? = null,
-    val isHueTesting: Boolean = false
+    val isHueTesting: Boolean = false,
+    // Wake readiness
+    val hasNotificationPermission: Boolean = true,
+    val canScheduleExactAlarms: Boolean = true
 )
 
 @HiltViewModel
@@ -56,13 +66,15 @@ class SettingsViewModel @Inject constructor(
     )
     private val _webhookTestState = MutableStateFlow(IntegrationTestState())
     private val _hueTestState = MutableStateFlow(IntegrationTestState())
+    private val _wakeReadinessState = MutableStateFlow(WakeReadinessState.from(application))
 
     val uiState: StateFlow<SettingsUiState> = combine(
         preferencesManager.settings,
         _batteryState,
         _webhookTestState,
-        _hueTestState
-    ) { settings, battery, webhookState, hueState ->
+        _hueTestState,
+        _wakeReadinessState
+    ) { settings, battery, webhookState, hueState, wakeReadiness ->
         val guidance = ManufacturerCompat.getGuidance()
         SettingsUiState(
             settings = settings,
@@ -77,7 +89,9 @@ class SettingsViewModel @Inject constructor(
             webhookTestResult = webhookState.message,
             isWebhookTesting = webhookState.isRunning,
             hueTestResult = hueState.message,
-            isHueTesting = hueState.isRunning
+            isHueTesting = hueState.isRunning,
+            hasNotificationPermission = wakeReadiness.hasNotificationPermission,
+            canScheduleExactAlarms = wakeReadiness.canScheduleExactAlarms
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState())
 
@@ -86,12 +100,33 @@ class SettingsViewModel @Inject constructor(
         ManufacturerCompat.requestBatteryOptimizationExemption(context)
     }
 
+    fun requestExactAlarmAccess() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        val context = getApplication<Application>()
+        try {
+            context.startActivity(
+                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+        } catch (_: Exception) {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+        }
+    }
+
     fun refreshBatteryStatus() {
         val context = getApplication<Application>()
         _batteryState.value = BatteryState(
             isIgnoring = ManufacturerCompat.isIgnoringBatteryOptimizations(context),
             needsGuidance = ManufacturerCompat.needsBatteryGuidance()
         )
+        _wakeReadinessState.value = WakeReadinessState.from(context)
     }
 
     // v1.2.0 personalization — these settings exist in PreferencesManager but
@@ -318,4 +353,31 @@ class SettingsViewModel @Inject constructor(
         val message: String? = null,
         val isRunning: Boolean = false
     )
+
+    private data class WakeReadinessState(
+        val hasNotificationPermission: Boolean,
+        val canScheduleExactAlarms: Boolean
+    ) {
+        companion object {
+            fun from(context: Context): WakeReadinessState {
+                val notificationsReady = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) == PackageManager.PERMISSION_GRANTED
+                } else {
+                    true
+                }
+                val exactAlarmsReady = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    context.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true
+                } else {
+                    true
+                }
+                return WakeReadinessState(
+                    hasNotificationPermission = notificationsReady,
+                    canScheduleExactAlarms = exactAlarmsReady
+                )
+            }
+        }
+    }
 }

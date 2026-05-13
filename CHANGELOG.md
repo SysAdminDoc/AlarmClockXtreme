@@ -2,6 +2,28 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.9.5] - 2026-05-13
+
+Premium settings trust pass. No schema changes.
+
+### Changed — wake reliability UX
+
+- Added a dedicated **Wake readiness** section at the top of Settings so exact
+  alarm access, alarm notifications, and battery protection are visible in one
+  calm checklist instead of being scattered across unrelated controls.
+- Added direct recovery actions for missing readiness items: notification
+  permission, exact-alarm access, and battery optimization settings.
+- Updated the Settings overview reliability tile to reflect all wake-critical
+  system states, not only battery optimization.
+- Split Settings permissions into wake-critical readiness and optional context
+  permissions, reducing duplicate notification prompts while keeping calendar
+  and weather setup discoverable.
+
+### Internal
+
+- Bumped to `versionName = "1.9.5"`, `versionCode = 42`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.9.4] - 2026-05-13
 
 Persistent next-alarm notification accuracy fix. No schema changes.

@@ -66,12 +66,20 @@ fun rememberPermissionState(): PermissionState {
  */
 @Composable
 fun PermissionRequestCard(
+    modifier: Modifier = Modifier,
+    includeNotifications: Boolean = true,
     onPermissionsGranted: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     var permState by remember(context) { mutableStateOf(checkPermissions(context)) }
-    val totalCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) 3 else 2
+    val totalCount = buildList {
+        if (includeNotifications && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            add("notifications")
+        }
+        add("calendar")
+        add("location")
+    }.size
 
     DisposableEffect(lifecycleOwner, context) {
         val observer = LifecycleEventObserver { _, event ->
@@ -86,9 +94,12 @@ fun PermissionRequestCard(
     }
 
     // Build the list of permissions to request
-    val permissionsToRequest = remember(permState) {
+    val permissionsToRequest = remember(permState, includeNotifications) {
         buildList {
-            if (!permState.hasNotifications && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (includeNotifications &&
+                !permState.hasNotifications &&
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+            ) {
                 add(Manifest.permission.POST_NOTIFICATIONS)
             }
             if (!permState.hasCalendar) {
@@ -104,30 +115,34 @@ fun PermissionRequestCard(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { _ ->
         permState = checkPermissions(context)
-        if (permState.hasNotifications && permState.hasCalendar && permState.hasLocation) {
+        val notificationsReady = !includeNotifications || permState.hasNotifications
+        if (notificationsReady && permState.hasCalendar && permState.hasLocation) {
             onPermissionsGranted()
         }
     }
 
     // Don't show if all granted
-    if (permState.hasNotifications && permState.hasCalendar && permState.hasLocation) return
+    val notificationsReady = !includeNotifications || permState.hasNotifications
+    if (notificationsReady && permState.hasCalendar && permState.hasLocation) return
 
     val missingCount = listOf(
-        permState.hasNotifications,
+        notificationsReady,
         permState.hasCalendar,
         permState.hasLocation
     ).count { !it }
     val grantedCount = totalCount - missingCount
 
     AppSurfaceCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = modifier.fillMaxWidth(),
         highlighted = true
     ) {
         AppSectionTitle(
-            title = "Recommended permissions",
-            description = "A few optional permissions unlock weather, calendar, and clearer alarm alerts.",
+            title = if (includeNotifications) "Recommended permissions" else "Context permissions",
+            description = if (includeNotifications) {
+                "A few optional permissions unlock weather, calendar, and clearer alarm alerts."
+            } else {
+                "Optional context that makes the Today tab and morning briefing more useful."
+            },
             action = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppStatusChip(
@@ -144,7 +159,7 @@ fun PermissionRequestCard(
             }
         )
 
-        if (!permState.hasNotifications) {
+        if (includeNotifications && !permState.hasNotifications) {
             PermissionItem(
                 icon = Icons.Default.NotificationsActive,
                 title = "Notifications",
