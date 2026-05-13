@@ -2,6 +2,7 @@ package com.sysadmindoc.alarmclock.data.preferences
 
 import android.content.Context
 import android.graphics.Color
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
@@ -247,8 +248,20 @@ class PreferencesManager @Inject constructor(
 
     val settings: Flow<AppSettings> = context.dataStore.data
         .catch { e ->
-            if (e is IOException) emit(emptyPreferences())
-            else throw e
+            if (e is IOException) {
+                // v1.9.1: DataStore reports IOException on both transient I/O
+                // failures and on a corrupted preferences file (which it
+                // recovers from by emitting empty preferences). Either way the
+                // user sees their settings reset to defaults, including
+                // sensitive ones like webhookUrl/hueApiKey/newsFeedUrl. Log so
+                // we have a breadcrumb instead of a silent factory-reset.
+                Log.w(
+                    "PreferencesManager",
+                    "DataStore read failed; emitting defaults this collection",
+                    e
+                )
+                emit(emptyPreferences())
+            } else throw e
         }
         .map { it.toSettings().sanitized() }
         .onEach { cachedSettings = it }
