@@ -35,6 +35,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 
 /**
@@ -123,10 +124,14 @@ class AlarmService : Service() {
     private var currentSnoozeCount: Int = 0
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var wakeLock: PowerManager.WakeLock? = null
-    // Written and read from serviceScope (Dispatchers.IO, potentially multiple threads);
-    // @Volatile ensures cross-thread visibility for the isForeground check/write pattern.
-    @Volatile
-    private var isForeground = false
+    // v1.9.1: AtomicBoolean (was @Volatile Boolean). Multiple coroutines on
+    // serviceScope's IO dispatcher can race the foreground stop path — e.g.
+    // the auto-silence job firing at the same moment the user taps Dismiss.
+    // The previous check-then-act on a volatile Boolean was non-atomic, so
+    // both paths could pass the `if (isForeground)` guard and call
+    // stopForeground() twice; some OEMs (Samsung One UI 6) treat the second
+    // call as fatal. compareAndSet makes the transition single-fire.
+    private val isForeground = AtomicBoolean(false)
     // v1.5.1: Guard against re-entering startAudio() from the internet-radio
     // error path — if both the radio and the default fallback fail, we could
     // otherwise leak orphaned MediaPlayer instances.
@@ -225,9 +230,8 @@ class AlarmService : Service() {
         // Update the notification in-place with the fully-labelled version.
         val notification = buildAlarmNotification(alarm)
         try {
-            if (!isForeground) {
+            if (isForeground.compareAndSet(false, true)) {
                 startForeground(NOTIFICATION_ID, notification)
-                isForeground = true
             } else {
                 getSystemService(NotificationManager::class.java)
                     .notify(NOTIFICATION_ID, notification)
@@ -282,9 +286,8 @@ class AlarmService : Service() {
                 activeAlarmId = -1L
                 alarmScheduler.handleAlarmFired(alarmId)
                 stopAlarmPlayback()
-                if (isForeground) {
+                if (isForeground.compareAndSet(true, false)) {
                     stopForeground(STOP_FOREGROUND_REMOVE)
-                    isForeground = false
                 }
                 stopSelf()
             }
@@ -336,7 +339,10 @@ class AlarmService : Service() {
      * once the alarm row has been fetched from Room.
      */
     private fun startForegroundWithPlaceholder() {
-        if (isForeground) return
+        // compareAndSet ensures only one caller wins the foreground transition;
+        // a concurrent ACTION_START_ALARM (rare but possible if the AlarmReceiver
+        // re-fires while we're still tearing down) won't double-start.
+        if (!isForeground.compareAndSet(false, true)) return
         try {
             val placeholder = NotificationCompat.Builder(this, CHANNEL_ALARM)
                 .setSmallIcon(R.drawable.ic_alarm)
@@ -349,8 +355,10 @@ class AlarmService : Service() {
                 .setAutoCancel(false)
                 .build()
             startForeground(NOTIFICATION_ID, placeholder)
-            isForeground = true
         } catch (e: Exception) {
+            // Roll back the flag on failure so a subsequent retry can try again
+            // (instead of pretending we already foregrounded).
+            isForeground.set(false)
             // ForegroundServiceStartNotAllowedException can surface if the app
             // is background-restricted at fire time. The AlarmManager exact
             // alarm guarantee makes this very rare; log and continue.
@@ -685,9 +693,8 @@ class AlarmService : Service() {
             currentAlarmId = -1
             activeAlarmId = -1L
         }
-        if (isForeground) {
+        if (isForeground.compareAndSet(true, false)) {
             stopForeground(STOP_FOREGROUND_REMOVE)
-            isForeground = false
         }
         stopSelf()
     }
@@ -731,9 +738,8 @@ class AlarmService : Service() {
             activeAlarmId = -1L
         }
         alarmScheduler.handleAlarmFired(alarmId)
-        if (isForeground) {
+        if (isForeground.compareAndSet(true, false)) {
             stopForeground(STOP_FOREGROUND_REMOVE)
-            isForeground = false
         }
         stopSelf()
     }
