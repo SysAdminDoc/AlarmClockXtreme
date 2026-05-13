@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.9.2** (premium UI polish
-on top of Today-tab dynamic sky + NWS tornado alerts; see [CHANGELOG.md](CHANGELOG.md)).
+Living feature backlog, refreshed alongside **v1.9.3** (exact-alarm grant
+recovery on top of premium UI polish; see [CHANGELOG.md](CHANGELOG.md)).
 
 This is the "what's left" companion to [CLAUDE.md](CLAUDE.md). Entries are
 ranked by impact-to-effort and grouped by theme.
@@ -16,8 +16,9 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (from prior tiers, kept here briefly): v1.9.2 premium
-> UI polish (sharper shape tokens, unified chip rows, alarm-list feedback,
+> **Recently shipped** (from prior tiers, kept here briefly): v1.9.3 exact-alarm
+> permission listener + WorkManager recovery, v1.9.2 premium UI polish
+> (sharper shape tokens, unified chip rows, alarm-list feedback,
 > settings progress states), time-of-day
 > sky engine + weather-aware overrides + NWS tornado overlay (1.9.0),
 > design-system polish pass / `AppFilterChip` / skeletons / bottom-nav
@@ -35,13 +36,13 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.9.2)
+## Current snapshot (v1.9.3)
 
 - **Stack:** Kotlin 2.1, Compose / Material 3, Room v8, Hilt, Retrofit +
   Moshi (codegen), DataStore, Glance widgets, OkHttp, WorkManager, yt-dlp +
   NewPipe Extractor (Play flavor only).
-- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 39.
-- **Surface area:** 111 Kotlin source files, two flavors (`play`, `fdroid`),
+- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 40.
+- **Surface area:** 113 Kotlin source files, two flavors (`play`, `fdroid`),
   19 dismiss challenges, 50+ alarm fields, 35+ AppSettings fields, 6 tabs
   (Today, Alarms, Bedtime, Timer, World, News) + Settings.
 - **What's missing vs. competitors:** Wear OS / Health Connect / standalone
@@ -49,8 +50,7 @@ ranked by impact-to-effort and grouped by theme.
   sleep coach; no Live Updates progress notification; no lockscreen-widget
   surface (Pixel-led Android 15+); no air-quality / pollen on the weather
   hub; no Material 3 Expressive components (Android 16+); no
-  `AutomaticZenRule` v2 ownership; no foldable/tablet adaptive layout;
-  no `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` listener.
+  `AutomaticZenRule` v2 ownership; no foldable/tablet adaptive layout.
 
 ---
 
@@ -61,18 +61,17 @@ without breaking schema or flavor parity.
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| N1 | `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` listener — reschedule when user grants exact-alarm post-install | [FossifyOrg/Calendar #217](https://github.com/FossifyOrg/Calendar/issues/217), [Android docs](https://developer.android.com/reference/android/app/AlarmManager#ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED) | S | Alarms set before grant remain inexact forever today. One receiver + WorkManager batch reschedule closes the regression. |
-| N2 | `BootReceiver.goAsync()` + WorkManager batch reschedule for users with 50+ alarms | [whakaara/AlarmScheduler](https://github.com/ahudson20/whakaara) | S | v1.5.4 tightened to 8 s — still risk of ANR on heavy users. WorkManager has no ceiling. |
-| N3 | Air-quality + pollen on the Weather tab via Open-Meteo `air-quality` endpoint (US AQI bands, tree/grass/weed pollen rows) | [Open-Meteo Air Quality](https://open-meteo.com/en/docs/air-quality-api) | S | Same Retrofit + Moshi pipeline as the existing weather call. No key, free. Round-trip from "Today" tab to Weather tab. |
-| N4 | Long-press snooze time-picker on the firing screen | [yuriykulikov/AlarmClock](https://github.com/yuriykulikov/AlarmClock) | S | Cycling through 1/3/5/15/30 presets is fine for a tap; long-press should open an inline minute picker. |
-| N5 | Long-press dismiss confirmation gesture toggle | [yuriykulikov/AlarmClock](https://github.com/yuriykulikov/AlarmClock) | S | "Hold 1.5 s to dismiss" mode for users who keep accidentally swiping. Per-alarm flag. |
-| N6 | Volume / haptic-only "Don't wake partner" alarm profile (`AudioAttributes.USAGE_ALARM` muted + `VibrationEffect.Composition`) | Sleep as Android couples mode, [Apple Bedtime](https://support.apple.com/guide/iphone/wake-up-with-an-alarm-iph59f3ddd0f/ios) | S | Sets the foundation for partner profiles (later) without touching schema. |
-| N7 | `AutomaticZenRule` v2 ownership — bedtime DND as a `ConditionProviderService` | [Android 14 ConditionProvider docs](https://developer.android.com/reference/android/service/notification/ConditionProviderService) | M | Right now we depend on Google Clock or system DND — owning the rule lets bedtime/wake transitions toggle DND deterministically per alarm. |
-| N8 | Calendar-aware first-meeting shift (alarm shifts earlier when first meeting moves) | Internal | S | Reuses the `CalendarAutoAlarmWorker` that already reads `CalendarContract.Instances`. |
-| N9 | Wake-streak flame badge on the Stats tab | [Streaks](https://streaksapp.com/) / Duolingo | S | Stats already records dismiss outcomes — only the surface is missing. |
-| N10 | Live changelog dialog gains a "what's next" link to this file | Internal | S | Closes the loop between releases and roadmap. |
-| N11 | Material 3 Expressive opt-in once stable on Compose BOM (Android 16) — bolder accent surfaces, expressive shape tokens | [Material 3 Expressive](https://m3.material.io/blog/material-3-expressive) | S | Expressive components are additive — wire behind a flag, ship when the BOM lands. |
-| N12 | `Notification.ProgressStyle` "Live Updates" for the persistent next-alarm notification on Android 16+ | [Android 16 Live Updates](https://developer.android.com/about/versions/16/features#progress-centric-notifications) | S | Today's persistent notification is a static line — turning it into a progress bar that ticks down to fire-time is a free upgrade on supported OSes. |
+| N1 | `BootReceiver.goAsync()` + WorkManager batch reschedule for users with 50+ alarms | [whakaara/AlarmScheduler](https://github.com/ahudson20/whakaara) | S | v1.5.4 tightened to 8 s — still risk of ANR on heavy users. WorkManager has no ceiling. |
+| N2 | Air-quality + pollen on the Weather tab via Open-Meteo `air-quality` endpoint (US AQI bands, tree/grass/weed pollen rows) | [Open-Meteo Air Quality](https://open-meteo.com/en/docs/air-quality-api) | S | Same Retrofit + Moshi pipeline as the existing weather call. No key, free. Round-trip from "Today" tab to Weather tab. |
+| N3 | Long-press snooze time-picker on the firing screen | [yuriykulikov/AlarmClock](https://github.com/yuriykulikov/AlarmClock) | S | Cycling through 1/3/5/15/30 presets is fine for a tap; long-press should open an inline minute picker. |
+| N4 | Long-press dismiss confirmation gesture toggle | [yuriykulikov/AlarmClock](https://github.com/yuriykulikov/AlarmClock) | S | "Hold 1.5 s to dismiss" mode for users who keep accidentally swiping. Per-alarm flag. |
+| N5 | Volume / haptic-only "Don't wake partner" alarm profile (`AudioAttributes.USAGE_ALARM` muted + `VibrationEffect.Composition`) | Sleep as Android couples mode, [Apple Bedtime](https://support.apple.com/guide/iphone/wake-up-with-an-alarm-iph59f3ddd0f/ios) | S | Sets the foundation for partner profiles (later) without touching schema. |
+| N6 | `AutomaticZenRule` v2 ownership — bedtime DND as a `ConditionProviderService` | [Android 14 ConditionProvider docs](https://developer.android.com/reference/android/service/notification/ConditionProviderService) | M | Right now we depend on Google Clock or system DND — owning the rule lets bedtime/wake transitions toggle DND deterministically per alarm. |
+| N7 | Calendar-aware first-meeting shift (alarm shifts earlier when first meeting moves) | Internal | S | Reuses the `CalendarAutoAlarmWorker` that already reads `CalendarContract.Instances`. |
+| N8 | Wake-streak flame badge on the Stats tab | [Streaks](https://streaksapp.com/) / Duolingo | S | Stats already records dismiss outcomes — only the surface is missing. |
+| N9 | Live changelog dialog gains a "what's next" link to this file | Internal | S | Closes the loop between releases and roadmap. |
+| N10 | Material 3 Expressive opt-in once stable on Compose BOM (Android 16) — bolder accent surfaces, expressive shape tokens | [Material 3 Expressive](https://m3.material.io/blog/material-3-expressive) | S | Expressive components are additive — wire behind a flag, ship when the BOM lands. |
+| N11 | `Notification.ProgressStyle` "Live Updates" for the persistent next-alarm notification on Android 16+ | [Android 16 Live Updates](https://developer.android.com/about/versions/16/features#progress-centric-notifications) | S | Today's persistent notification is a static line — turning it into a progress bar that ticks down to fire-time is a free upgrade on supported OSes. |
 
 ## NEXT — v1.11 candidates
 
