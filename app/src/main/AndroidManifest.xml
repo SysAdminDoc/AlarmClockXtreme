@@ -157,6 +157,15 @@
             </intent-filter>
         </receiver>
 
+        <!-- Exact alarm permission recovery - reschedule after user grants access -->
+        <receiver
+            android:name=".receiver.ExactAlarmPermissionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Snooze Receiver -->
         <receiver
             android:name=".receiver.SnoozeReceiver"
