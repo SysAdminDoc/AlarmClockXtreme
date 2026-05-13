@@ -149,6 +149,7 @@ fun WorldClockScreen(
 
         ExtendedFloatingActionButton(
             onClick = viewModel::showAddDialog,
+            shape = RoundedCornerShape(12.dp),
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = TextPrimary,
             modifier = Modifier
@@ -188,7 +189,7 @@ fun WorldClockScreen(
                         pendingRemoval = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Remove city")
                 }
@@ -212,7 +213,7 @@ fun WorldClockScreen(
                 )
             },
             containerColor = SurfaceDark,
-            shape = RoundedCornerShape(22.dp)
+            shape = RoundedCornerShape(12.dp)
         )
     }
 }
@@ -264,7 +265,7 @@ private fun WorldClockCard(
                     style = MaterialTheme.typography.headlineSmall
                 )
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(10.dp),
                     color = SurfaceCard.copy(alpha = 0.72f),
                     border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
                 ) {
@@ -314,7 +315,7 @@ private fun AddTimeZoneDialog(
                     placeholder = { Text("Search city or region") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -329,7 +330,7 @@ private fun AddTimeZoneDialog(
 
                 if (showPrompt || showNoResults) {
                     Surface(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = SurfaceCard.copy(alpha = 0.78f),
                         border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.14f))
                     ) {
@@ -378,7 +379,7 @@ private fun AddTimeZoneDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable(role = Role.Button) { onSelect(entry.zoneId) },
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(12.dp),
                             color = SurfaceCard.copy(alpha = 0.82f),
                             border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
                         ) {
@@ -428,7 +429,7 @@ private fun AddTimeZoneDialog(
             }
         },
         containerColor = SurfaceDark,
-        shape = RoundedCornerShape(22.dp)
+        shape = RoundedCornerShape(12.dp)
     )
 }
 

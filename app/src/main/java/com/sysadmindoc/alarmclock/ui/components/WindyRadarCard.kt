@@ -141,7 +141,7 @@ fun WindyRadarCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(360.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(SurfaceMedium)
             ) {
                 AndroidView(

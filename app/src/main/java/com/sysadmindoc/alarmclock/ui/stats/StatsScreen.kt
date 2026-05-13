@@ -35,8 +35,6 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,6 +61,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
+import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppLoadingCard
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -307,6 +306,7 @@ fun StatsScreen(
                     if (state.recentEvents.isNotEmpty()) {
                         OutlinedButton(
                             onClick = { showClearDialog = true },
+                            shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
                         ) {
                             Icon(Icons.Default.DeleteSweep, null, modifier = Modifier.size(18.dp))
@@ -404,7 +404,7 @@ fun StatsScreen(
                         showClearDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("Clear history")
                 }
@@ -429,7 +429,7 @@ fun StatsScreen(
                 )
             },
             containerColor = SurfaceDark,
-            shape = RoundedCornerShape(22.dp)
+            shape = RoundedCornerShape(12.dp)
         )
     }
 }
@@ -479,7 +479,7 @@ private fun StatsFilterCard(
                 }
             },
             colors = appOutlinedTextFieldColors(),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(12.dp),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -526,16 +526,10 @@ private fun <T> FilterChipRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             chips.forEach { (value, text) ->
-                FilterChip(
+                AppFilterChip(
+                    label = text,
                     selected = selected == value,
                     onClick = { onSelect(value) },
-                    label = { Text(text) },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                        selectedLabelColor = TextPrimary,
-                        containerColor = SurfaceCard,
-                        labelColor = TextSecondary
-                    )
                 )
             }
         }
@@ -566,7 +560,7 @@ private fun BreakdownRow(label: String, count: Int, color: Color) {
         Box(
             modifier = Modifier
                 .size(10.dp)
-                .background(color, RoundedCornerShape(999.dp))
+                .background(color, RoundedCornerShape(8.dp))
         )
         Spacer(modifier = Modifier.width(10.dp))
         Text(label, color = TextPrimary, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -639,7 +633,7 @@ private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             color = actionColor.copy(alpha = 0.14f)
         ) {
             Box(

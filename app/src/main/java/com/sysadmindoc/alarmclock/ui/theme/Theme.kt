@@ -20,9 +20,9 @@ val LocalAccentColor = compositionLocalOf { AccentBlue }
 private val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
     small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(14.dp),
-    large = RoundedCornerShape(18.dp),
-    extraLarge = RoundedCornerShape(22.dp)
+    medium = RoundedCornerShape(10.dp),
+    large = RoundedCornerShape(12.dp),
+    extraLarge = RoundedCornerShape(12.dp)
 )
 
 private val DarkColorScheme = darkColorScheme(

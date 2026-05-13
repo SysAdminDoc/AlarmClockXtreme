@@ -94,7 +94,7 @@ fun MathChallengeView(
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (wrongFlash) AccentRed.copy(alpha = 0.14f) else SurfaceCard
             )
@@ -134,7 +134,7 @@ fun MathChallengeView(
                                 .weight(1f)
                                 .height(68.dp)
                                 .semantics { contentDescription = "Answer: $choice" },
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(10.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = SurfaceCard.copy(alpha = 0.82f),
                                 contentColor = TextPrimary
@@ -256,7 +256,7 @@ fun SequenceChallengeView(
                                 .weight(1f)
                                 .height(78.dp)
                                 .clickable(enabled = !isTapped) { onTapNumber(index) },
-                            shape = RoundedCornerShape(14.dp),
+                            shape = RoundedCornerShape(10.dp),
                             colors = CardDefaults.cardColors(
                                 containerColor = if (isTapped) DismissGreen.copy(alpha = 0.22f) else SurfaceCard
                             )
@@ -333,7 +333,7 @@ fun MemoryPatternChallengeView(
                         Box(
                             modifier = Modifier
                                 .size(80.dp)
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(
                                     when {
                                         isLit && phase == MemoryPhase.SHOWING -> AccentBlue.copy(alpha = 0.72f)
@@ -436,7 +436,7 @@ fun TypingChallengeView(
             colors = CardDefaults.cardColors(
                 containerColor = if (wrongFlash) AccentRed.copy(alpha = 0.15f) else SurfaceCard
             ),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(12.dp)
         ) {
             Text(
                 text = challenge.phrase,
@@ -473,7 +473,7 @@ fun TypingChallengeView(
                 .fillMaxWidth()
                 .height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(10.dp)
         ) {
             Text("Check phrase", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
@@ -522,7 +522,7 @@ fun WalkChallengeView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Continue without step count")
             }
@@ -618,14 +618,14 @@ fun BarcodeScanChallengeView(
                     modifier = Modifier
                         .width(84.dp)
                         .height(4.dp)
-                        .clip(RoundedCornerShape(999.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .background(AccentBlue.copy(alpha = 0.18f))
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(lineProgress.coerceIn(0.18f, 1f))
                             .height(4.dp)
-                            .clip(RoundedCornerShape(999.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(AccentBlue)
                     )
                 }
@@ -652,7 +652,7 @@ fun BarcodeScanChallengeView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Continue without saved code")
             }
@@ -679,7 +679,7 @@ fun BarcodeScanChallengeView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Submit code")
             }
@@ -733,7 +733,7 @@ fun PhotoMatchChallengeView(
                 .fillMaxWidth()
                 .height(52.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(10.dp)
         ) {
             Icon(imageVector = Icons.Default.CameraAlt, contentDescription = "Open camera", modifier = Modifier.size(20.dp))
             Text(
@@ -935,7 +935,7 @@ fun WifiChallengeView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Continue without Wi-Fi check")
             }
@@ -967,7 +967,7 @@ private fun ChallengeNotice(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
         border = BorderStroke(1.dp, accent.copy(alpha = 0.22f)),
         colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.12f))
     ) {
@@ -1000,7 +1000,7 @@ private fun ChallengeIconPanel(
     content: @Composable BoxScope.() -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, accent.copy(alpha = 0.26f)),
         colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.12f))
     ) {
@@ -1136,7 +1136,7 @@ fun CountSheepChallengeView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(260.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -1157,7 +1157,7 @@ fun CountSheepChallengeView(
                             y = (c.row * 40).dp + 8.dp
                         )
                         .size(rowHeight)
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .clickable { if (c.isSheep) onSheepTap() else onGoatTap() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -1222,7 +1222,7 @@ fun SimonSaysChallengeView(
                         Box(
                             modifier = Modifier
                                 .size(96.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(colors[idx].copy(alpha = alpha))
                                 .clickable(enabled = playingIndex < 0) { onPadTap(idx) }
                                 .semantics { contentDescription = "${names[idx]} pad" },
@@ -1289,7 +1289,7 @@ fun DateBackwardsChallengeView(
             onClick = onSubmit,
             enabled = input.length == challenge.expectedInput.length,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp)
+            shape = RoundedCornerShape(10.dp)
         ) {
             Text("Check date")
         }
@@ -1321,7 +1321,7 @@ fun StroopChallengeView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(120.dp)
-                .clip(RoundedCornerShape(18.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(SurfaceCard),
             contentAlignment = Alignment.Center
         ) {
@@ -1338,7 +1338,7 @@ fun StroopChallengeView(
                 Box(
                     modifier = Modifier
                         .size(width = 72.dp, height = 56.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(palette[idx])
                         .clickable { onPick(idx) }
                         .semantics { contentDescription = "${names[idx]} choice" }
@@ -1418,7 +1418,7 @@ fun RockPaperScissorsChallengeView(
                 OutlinedButton(
                     onClick = { onPick(choice) },
                     modifier = Modifier.weight(1f).height(72.dp),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.outlinedButtonColors(containerColor = SurfaceCard)
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1581,7 +1581,7 @@ fun TypingSpeedChallengeView(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(SurfaceCard)
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             contentAlignment = Alignment.Center
@@ -1619,6 +1619,7 @@ fun TypingSpeedChallengeView(
             onClick = onSubmit,
             modifier = Modifier.fillMaxWidth(),
             enabled = currentInput.isNotBlank(),
+            shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
         ) {
             Text("Submit", color = TextPrimary, fontWeight = FontWeight.Bold)
@@ -1721,6 +1722,7 @@ fun WordleChallengeView(
                 onClick = onSubmit,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = currentInput.length == 5,
+                shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
             ) {
                 Text("Guess", color = TextPrimary, fontWeight = FontWeight.Bold)
