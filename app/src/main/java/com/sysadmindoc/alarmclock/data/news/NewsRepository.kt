@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.data.news
 
+import com.sysadmindoc.alarmclock.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -33,7 +34,7 @@ class NewsRepository @Inject constructor(
                 // a plain UA flips them back to RSS. We don't impersonate a
                 // browser — that would invite content-shape changes we can't
                 // parse — just identify the app honestly.
-                .header("User-Agent", "AlarmClockXtreme/1.8.0 (Android)")
+                .header("User-Agent", "AlarmClockXtreme/${BuildConfig.VERSION_NAME} (Android)")
                 .header("Accept", "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8")
                 .build()
 

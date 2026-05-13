@@ -2,6 +2,73 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.9.1] - 2026-05-13
+
+End-to-end engineering audit pass on top of v1.9.0. No new features, no
+schema changes — six real bugs across the alarm-firing service, the
+"Skip next" notification action, the Windy radar embed, the news fetch
+identity, and the preferences-store error path.
+
+### Fixed — alarm firing service
+
+- **`AlarmService.isForeground` race fixed** by switching `@Volatile var`
+  to an `AtomicBoolean` and gating every `startForeground` /
+  `stopForeground` call through `compareAndSet`. The auto-silence job
+  and the user's dismiss tap can both reach the foreground-stop path on
+  serviceScope's IO dispatcher within microseconds of each other; the
+  previous check-then-act was non-atomic, so both could pass `if
+  (isForeground)` and call `stopForeground()` twice. Some OEMs (Samsung
+  One UI 6) treat the second call as fatal. Touched: `service/AlarmService.kt`.
+
+### Fixed — receivers
+
+- **`SkipNextReceiver` now wraps its `goAsync()` work in
+  `withTimeout(8_000L)`**, matching the pattern established for
+  `BootReceiver` (v1.5.4) and `MissedAlarmUnlockReceiver` (v1.6.3).
+  Previously a corrupt DB or storage lock could have pinned the
+  `PendingResult` past the ~10 s ANR ceiling. Now logs a
+  `TimeoutCancellationException` on overrun and finishes the
+  `PendingResult` either way. Touched: `receiver/SkipNextReceiver.kt`.
+
+### Fixed — Windy radar WebView
+
+- **Mixed-content downgrade attack hardened**: `mixedContentMode` was
+  `MIXED_CONTENT_ALWAYS_ALLOW`, which would let a hostile redirect
+  downgrade Windy tile loads to plain HTTP. Switched to
+  `MIXED_CONTENT_COMPATIBILITY_MODE` — passive resources still load if
+  Windy ever needed them, but active mixed content (scripts) is blocked.
+- **WebView memory leak fixed** with an `onRelease` block on the
+  `AndroidView` that calls `stopLoading()` → `loadUrl("about:blank")` →
+  `removeAllViews()` → `destroy()`. Without this, every navigation away
+  from and back to the Today tab leaked an entire WebView (~5–15 MB
+  including JS engine + GL context) for the lifetime of the process.
+- **Defence-in-depth on the WebView surface**: explicitly set
+  `allowFileAccess = false` and `allowContentAccess = false` so the
+  embed cannot reach `file://` URIs even in a future regression.
+  Touched: `ui/components/WindyRadarCard.kt`.
+
+### Fixed — News tab
+
+- **`NewsRepository` User-Agent now uses `BuildConfig.VERSION_NAME`**
+  instead of a hardcoded `"1.8.0"` string. Some publishers (NPR's RSS
+  bridge in particular) tier-throttle by UA; sending a stale UA from
+  every release after 1.8 misrepresents the client. Touched:
+  `data/news/NewsRepository.kt`.
+
+### Fixed — preferences store
+
+- **DataStore corruption recovery now logs**: `PreferencesManager`
+  silently emitted `emptyPreferences()` on any `IOException`, which on a
+  corrupted preferences file effectively factory-resets the user's
+  webhook URL, Hue API key, news feed URL, and every other setting with
+  no breadcrumb. Now logs a warning so a recurrence is diagnosable.
+  Touched: `data/preferences/PreferencesManager.kt`.
+
+### Internal
+
+- Bumped to `versionName = "1.9.1"`, `versionCode = 38`. README badge,
+  install command, and CLAUDE.md current-version line synced.
+
 ## [1.9.0] - 2026-04-29
 
 The Today tab is alive. The screen background now renders the actual sky
