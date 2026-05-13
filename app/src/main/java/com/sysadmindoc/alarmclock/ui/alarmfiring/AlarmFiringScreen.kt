@@ -645,7 +645,7 @@ fun AlarmFiringScreen(
                         disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
                         disabledContentColor = TextMuted
                     ),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = if (state.canDismiss) "Dismiss alarm" else "Finish wake-up challenge",
@@ -659,7 +659,7 @@ fun AlarmFiringScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
                         width = 1.5.dp
                     ),
@@ -792,7 +792,7 @@ private fun QuickSnoozeButton(
         onClick = onClick,
         modifier = Modifier
             .height(44.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (isDefault) SnoozeYellow.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
             contentColor = if (isDefault) SnoozeYellow else TextSecondary

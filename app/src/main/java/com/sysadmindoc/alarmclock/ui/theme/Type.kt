@@ -15,7 +15,7 @@ val ClockTimeSmall = TextStyle(
     fontWeight = FontWeight.Light,
     fontSize = 40.sp,
     lineHeight = 44.sp,
-    letterSpacing = (-0.6).sp,
+    letterSpacing = 0.sp,
     fontFeatureSettings = TabularNumerals
 )
 
@@ -24,7 +24,7 @@ val ClockTimeLarge = TextStyle(
     fontWeight = FontWeight.Light,
     fontSize = 64.sp,
     lineHeight = 68.sp,
-    letterSpacing = (-1.2).sp,
+    letterSpacing = 0.sp,
     fontFeatureSettings = TabularNumerals
 )
 
@@ -33,7 +33,7 @@ val ClockTimeDisplay = TextStyle(
     fontWeight = FontWeight.Light,
     fontSize = 52.sp,
     lineHeight = 56.sp,
-    letterSpacing = (-0.8).sp,
+    letterSpacing = 0.sp,
     fontFeatureSettings = TabularNumerals
 )
 
@@ -42,31 +42,31 @@ val AppTypography = Typography(
         fontWeight = FontWeight.SemiBold,
         fontSize = 56.sp,
         lineHeight = 60.sp,
-        letterSpacing = (-0.6).sp
+        letterSpacing = 0.sp
     ),
     headlineLarge = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 32.sp,
         lineHeight = 38.sp,
-        letterSpacing = (-0.3).sp
+        letterSpacing = 0.sp
     ),
     headlineMedium = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 28.sp,
         lineHeight = 34.sp,
-        letterSpacing = (-0.2).sp
+        letterSpacing = 0.sp
     ),
     headlineSmall = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 30.sp,
-        letterSpacing = (-0.1).sp
+        letterSpacing = 0.sp
     ),
     titleLarge = TextStyle(
         fontWeight = FontWeight.SemiBold,
         fontSize = 22.sp,
         lineHeight = 28.sp,
-        letterSpacing = (-0.1).sp
+        letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
         fontWeight = FontWeight.SemiBold,

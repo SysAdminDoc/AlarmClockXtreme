@@ -182,7 +182,7 @@ fun AlarmEditScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-                        shape = RoundedCornerShape(18.dp)
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         if (state.isSaving) {
                             CircularProgressIndicator(
@@ -537,7 +537,7 @@ fun AlarmEditScreen(
             }
 
             // Dismiss Challenge
-            SettingsSection("Dismiss Challenge") {
+            SettingsSection("Dismiss challenge") {
                 val challengeOptions = alarmChallengeOptions()
                 var expanded by remember { mutableStateOf(false) }
 
@@ -628,6 +628,7 @@ fun AlarmEditScreen(
                     SettingsRow(label = "Reference photo") {
                         OutlinedButton(
                             onClick = captureReferencePhoto,
+                            shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
                         ) {
                             Icon(
@@ -657,7 +658,7 @@ fun AlarmEditScreen(
             }
 
             // Wake effects
-            SettingsSection("Wake Effects") {
+            SettingsSection("Wake effects") {
                 SettingsRow(
                     label = "Flash wake (brighten screen)",
                     trailing = {
@@ -675,7 +676,7 @@ fun AlarmEditScreen(
             }
 
             // Morning Announcement (TTS)
-            SettingsSection("Morning Announcement") {
+            SettingsSection("Morning announcement") {
                 SettingsRow(
                     label = "Speak time, date & weather",
                     trailing = {
@@ -693,7 +694,7 @@ fun AlarmEditScreen(
             }
 
             // Wake Confirmation
-            SettingsSection("Wake Confirmation") {
+            SettingsSection("Wake confirmation") {
                 SettingsRow(
                     label = "Confirm you're awake",
                     trailing = {
@@ -733,7 +734,7 @@ fun AlarmEditScreen(
             }
 
             // Smart Alarm
-            SettingsSection("Smart Alarm") {
+            SettingsSection("Smart alarm") {
                 SettingsRow(
                     label = "Wake during light sleep",
                     trailing = {
@@ -791,7 +792,7 @@ fun AlarmEditScreen(
             }
 
             // Spotify Ringtone
-            SettingsSection("Spotify Ringtone") {
+            SettingsSection("Spotify ringtone") {
                 OutlinedTextField(
                     value = state.spotifyUri,
                     onValueChange = viewModel::updateSpotifyUri,
@@ -808,7 +809,7 @@ fun AlarmEditScreen(
             }
 
             // Philips Hue Sunrise
-            SettingsSection("Philips Hue Sunrise") {
+            SettingsSection("Philips Hue sunrise") {
                 SettingsRow(
                     label = "Sunrise light simulation",
                     trailing = {
@@ -848,7 +849,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Mission Chaining
-            SettingsSection("Mission Chaining") {
+            SettingsSection("Mission chaining") {
                 val chainItems = state.challengeChain.toChallengeChainList()
                 SettingsRow(
                     label = "Challenge chain",
@@ -891,7 +892,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Anti-Snooze Features
-            SettingsSection("Anti-Snooze") {
+            SettingsSection("Anti-snooze") {
                 SettingsRow(
                     label = "Progressive snooze (shorter each time)",
                     trailing = {
@@ -954,7 +955,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Sunrise Simulation
-            SettingsSection("Sunrise Simulation") {
+            SettingsSection("Sunrise simulation") {
                 SettingsRow(
                     label = "Screen sunrise (color transition)",
                     trailing = {
@@ -991,7 +992,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Sound Source
-            SettingsSection("Internet Radio") {
+            SettingsSection("Internet radio") {
                 OutlinedTextField(
                     value = state.internetRadioUrl,
                     onValueChange = viewModel::updateInternetRadioUrl,
@@ -1053,7 +1054,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Morning Routine
-            SettingsSection("Morning Routine") {
+            SettingsSection("Morning routine") {
                 OutlinedTextField(
                     value = state.morningRoutine,
                     onValueChange = viewModel::updateMorningRoutine,
@@ -1226,7 +1227,7 @@ fun AlarmEditScreen(
                     }
                 }
                 SettingsHint(
-                    "When the offset is non-zero the clock time above is ignored and the alarm fires relative to solar noon/dusk at your last known location.",
+                    "When the offset is non-zero, the alarm fires relative to the selected sunrise or sunset event at your last known location.",
                     tone = HintTone.Neutral
                 )
             }
@@ -1281,7 +1282,7 @@ fun AlarmEditScreen(
                 )
             },
             containerColor = SurfaceMedium,
-            shape = RoundedCornerShape(22.dp)
+            shape = RoundedCornerShape(12.dp)
         )
     }
 }
@@ -1318,7 +1319,7 @@ private fun DaySelector(
                         role = Role.Checkbox,
                         onClick = { onToggleDay(day) }
                     ),
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = if (isSelected) {
                     MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
                 } else {
@@ -1373,7 +1374,7 @@ private fun SettingsRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         color = SurfaceCard.copy(alpha = 0.34f),
         border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
     ) {
@@ -1456,12 +1457,12 @@ private fun SettingsHint(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(accentColor.copy(alpha = 0.10f))
             .border(
                 width = 1.dp,
                 color = accentColor.copy(alpha = 0.14f),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(12.dp)
             )
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
@@ -1635,6 +1636,7 @@ private fun ChallengeChainPickerSheet(
                     }
                     Button(
                         onClick = { onApply(draftChain) },
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
                     ) {
                         Text(if (draftChain.isEmpty()) "Disable chain" else "Use chain")
@@ -1787,20 +1789,20 @@ private fun alarmEditSectionDescription(title: String): String = when (title) {
     "Sound" -> "Shape the tone, volume, and ramp-up behavior of the alarm."
     "Vibration" -> "Control how physical feedback supports the ring pattern."
     "Snooze" -> "Decide how much room this alarm gives you to delay getting up."
-    "Dismiss Challenge" -> "Add a wake-up task so dismissing the alarm takes real intent."
-    "Wake Effects" -> "Layer in extra visual or physical cues to make waking up harder to ignore."
-    "Morning Announcement" -> "Let the alarm speak useful context once you are up."
-    "Wake Confirmation" -> "Require a second check-in if this alarm needs extra accountability."
-    "Smart Alarm" -> "Allow the alarm to ring inside a window when the timing is more natural."
+    "Dismiss challenge" -> "Add a wake-up task so dismissing the alarm takes real intent."
+    "Wake effects" -> "Layer in extra visual or physical cues to make waking up harder to ignore."
+    "Morning announcement" -> "Let the alarm speak useful context once you are up."
+    "Wake confirmation" -> "Require a second check-in if this alarm needs extra accountability."
+    "Smart alarm" -> "Allow the alarm to ring inside a window when the timing is more natural."
     "Holidays" -> "Prevent routine alarms from firing when the day should stay flexible."
-    "Spotify Ringtone" -> "Use music services when you want a less generic wake-up sound."
-    "Philips Hue Sunrise" -> "Coordinate bedside lighting with the alarm for a gentler rise."
-    "Mission Chaining" -> "Stack multiple wake-up steps when one challenge is not enough."
-    "Anti-Snooze" -> "Add guardrails that make repeated delay harder."
-    "Sunrise Simulation" -> "Blend the screen into a brighter pre-wake color transition."
-    "Internet Radio" -> "Wake up to a live stream instead of a local ringtone."
+    "Spotify ringtone" -> "Use music services when you want a less generic wake-up sound."
+    "Philips Hue sunrise" -> "Coordinate bedside lighting with the alarm for a gentler rise."
+    "Mission chaining" -> "Stack multiple wake-up steps when one challenge is not enough."
+    "Anti-snooze" -> "Add guardrails that make repeated delay harder."
+    "Sunrise simulation" -> "Blend the screen into a brighter pre-wake color transition."
+    "Internet radio" -> "Wake up to a live stream instead of a local ringtone."
     "Guardian Angel" -> "Escalate if missing this alarm has consequences beyond oversleeping."
-    "Morning Routine" -> "Capture the first few things you want to do once the alarm is done."
+    "Morning routine" -> "Capture the first few things you want to do once the alarm is done."
     "Advanced" -> "Fine-tune fallback behavior and edge-case wake-up protections."
     else -> "Review and fine-tune how this alarm behaves."
 }

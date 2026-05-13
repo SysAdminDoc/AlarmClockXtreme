@@ -2,6 +2,46 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.9.2] - 2026-05-13
+
+Premium-polish pass across the Compose UI. No schema changes.
+
+### Changed — visual system
+
+- Normalized app shape tokens to a sharper 8-12dp family across cards,
+  dialogs, chips, inputs, bottom navigation, challenge panels, and
+  secondary surfaces.
+- Removed stadium chip/progress backdrops and replaced remaining raw
+  Material chip rows with the app's shared `AppFilterChip` primitive.
+- Removed negative typography tracking from the clock and headline type
+  scale while preserving tabular numerals for stable time displays.
+- Reworked circular decorative backdrops into squared premium swatches
+  and icon containers where they were not true status dots or icon-only
+  controls.
+
+### Changed — UX polish
+
+- Alarm list now distinguishes "all alarms paused" from a truly empty
+  schedule and shows schedule feedback when alarms are enabled or paused.
+- Settings integration tests now show active progress, lock the test
+  buttons while work is running, and color pending state as in-progress
+  instead of failure.
+- Backup and restore actions now lock while import/export work is running
+  and show a clear in-progress state before the result card appears.
+- Alarm-edit section labels and solar-relative copy were tightened for
+  consistent sentence case and clearer scheduling meaning.
+- Final onboarding now keeps the privacy/permissions step readable on
+  constrained phones, with shorter permission labels and no clipped copy.
+- Bottom navigation selected state now uses color instead of a pill-shaped
+  indicator, keeping the tab bar aligned with the sharper app shape system.
+
+### Internal
+
+- Bumped to `versionName = "1.9.2"`, `versionCode = 39`. README badge,
+  install command, and CLAUDE.md current-version line synced.
+- Replaced the YouTube downloader availability probe with an explicit
+  `remember`/`LaunchedEffect` state loop so Compose lint passes cleanly.
+
 ## [1.9.1] - 2026-05-13
 
 End-to-end engineering audit pass on top of v1.9.0. No new features, no

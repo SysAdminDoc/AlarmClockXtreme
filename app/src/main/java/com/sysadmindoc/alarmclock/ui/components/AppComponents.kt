@@ -27,7 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -65,9 +64,9 @@ import com.sysadmindoc.alarmclock.ui.theme.ToggleOff
 import com.sysadmindoc.alarmclock.ui.theme.ToggleTrackOff
 
 // ─── Shared shape tokens ───────────────────────────────────────────────────
-val AppCardShape = RoundedCornerShape(20.dp)
-val AppTileShape = RoundedCornerShape(16.dp)
-val AppChipShape = RoundedCornerShape(999.dp)
+val AppCardShape = RoundedCornerShape(12.dp)
+val AppTileShape = RoundedCornerShape(10.dp)
+val AppChipShape = RoundedCornerShape(8.dp)
 
 // ─── Icon size scale ───────────────────────────────────────────────────────
 // One scale, four steps. Replaces the 13 / 15 / 18 / 20 / 22 dp drift that
@@ -393,7 +392,7 @@ fun AppEmptyState(
         Box(
             modifier = Modifier
                 .size(76.dp)
-                .clip(CircleShape)
+                .clip(RoundedCornerShape(12.dp))
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
@@ -630,7 +629,7 @@ fun BottomNavContainer(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(12.dp),
         color = SurfaceMedium,
         border = BorderStroke(1.dp, BorderSubtle),
         shadowElevation = 12.dp

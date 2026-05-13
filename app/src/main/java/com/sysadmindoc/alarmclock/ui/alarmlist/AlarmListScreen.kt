@@ -48,8 +48,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -60,8 +58,6 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -96,6 +92,7 @@ import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
 import com.sysadmindoc.alarmclock.ui.alarmlist.components.SwipeableAlarmCard
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
+import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -224,7 +221,7 @@ fun AlarmListScreen(
                         viewModel.deleteSelected()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         if (state.selectedIds.size == 1) "Delete alarm" else "Delete ${state.selectedIds.size} alarms"
@@ -259,7 +256,7 @@ fun AlarmListScreen(
                 )
             },
             containerColor = SurfaceMedium,
-            shape = RoundedCornerShape(22.dp)
+            shape = RoundedCornerShape(12.dp)
         )
     }
 
@@ -358,7 +355,7 @@ fun AlarmListScreen(
                                             }
                                         },
                                         colors = appOutlinedTextFieldColors(),
-                                        shape = RoundedCornerShape(18.dp),
+                                        shape = RoundedCornerShape(12.dp),
                                         singleLine = true,
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -387,12 +384,14 @@ fun AlarmListScreen(
                                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                                 Button(
                                                     onClick = onAddAlarm,
+                                                    shape = RoundedCornerShape(12.dp),
                                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                                 ) {
                                                     Text("Create alarm")
                                                 }
                                                 OutlinedButton(
                                                     onClick = { showTemplates = true },
+                                                    shape = RoundedCornerShape(12.dp),
                                                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                                                 ) {
                                                     Text("Browse templates")
@@ -447,6 +446,7 @@ fun AlarmListScreen(
                             ) {
                                     OutlinedButton(
                                         onClick = { showTemplates = true },
+                                        shape = RoundedCornerShape(12.dp),
                                         colors = ButtonDefaults.outlinedButtonColors(
                                             contentColor = MaterialTheme.colorScheme.primary
                                         )
@@ -458,7 +458,7 @@ fun AlarmListScreen(
                                     Button(
                                         onClick = onAddAlarm,
                                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                        shape = RoundedCornerShape(16.dp)
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
@@ -531,18 +531,33 @@ private fun AlarmHeader(
     onOpenSettings: () -> Unit
 ) {
     AlarmClockHeroHeader(
-        title = if (hasAlarms && remainingTime.isNotBlank()) "Next alarm in $remainingTime" else "No alarms scheduled",
-        subtitle = if (hasAlarms && remainingTime.isNotBlank()) {
-            "Tap an alarm to edit, or add a new one below."
-        } else {
-            "Tap + New alarm to schedule your first."
+        title = when {
+            hasAlarms && remainingTime.isNotBlank() -> "Next alarm in $remainingTime"
+            alarmCount > 0 -> "All alarms paused"
+            else -> "No alarms scheduled"
+        },
+        subtitle = when {
+            hasAlarms && remainingTime.isNotBlank() -> "Tap an alarm to edit, or add a new one below."
+            alarmCount > 0 -> "Enable a saved alarm when you want it back in rotation."
+            else -> "Tap + New alarm to schedule your first."
         },
         overline = "Alarms",
         badge = {
             AppStatusChip(
-                label = if (alarmCount == 1) "1 alarm" else "$alarmCount alarms",
-                icon = Icons.Default.Notifications
+                label = when (alarmCount) {
+                    0 -> "Ready to schedule"
+                    1 -> "1 alarm"
+                    else -> "$alarmCount alarms"
+                },
+                icon = if (alarmCount == 0) Icons.Default.AlarmAdd else Icons.Default.Notifications
             )
+            if (!hasAlarms && alarmCount > 0) {
+                AppStatusChip(
+                    label = "Paused",
+                    icon = Icons.Default.NotificationsOff,
+                    color = TextMuted
+                )
+            }
             // v1.7.1: The sort chip is now tappable so the standalone "Sort"
             // button (which used to live in the actions slot at the very top
             // right of the hero) can go away entirely. The gear icon next to
@@ -579,13 +594,13 @@ private fun GroupFilterRow(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            com.sysadmindoc.alarmclock.ui.components.AppFilterChip(
+            AppFilterChip(
                 label = "All",
                 selected = selectedGroup == null,
                 onClick = { onSelectGroup(null) },
             )
             groups.forEach { group ->
-                com.sysadmindoc.alarmclock.ui.components.AppFilterChip(
+                AppFilterChip(
                     label = group,
                     selected = selectedGroup == group,
                     onClick = { onSelectGroup(if (selectedGroup == group) null else group) },
@@ -612,11 +627,10 @@ private fun QuickAlarmRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             listOf(10 to "10 min", 30 to "30 min", 60 to "1 hour", 120 to "2 hours").forEach { (minutes, label) ->
-                AssistChip(
+                AppFilterChip(
+                    label = label,
+                    selected = false,
                     onClick = { onQuickAlarm(minutes) },
-                    label = { Text(label, color = TextPrimary) },
-                    colors = AssistChipDefaults.assistChipColors(containerColor = SurfaceCard),
-                    border = null
                 )
             }
         }
@@ -645,22 +659,10 @@ private fun QuickAlarmRow(
                 .sorted()
             napOptions.forEach { minutes ->
                 val isDefault = minutes == napDefaultMinutes
-                AssistChip(
+                AppFilterChip(
+                    label = if (isDefault) "$minutes min nap - default" else "$minutes min nap",
+                    selected = isDefault,
                     onClick = { onQuickAlarm(minutes) },
-                    label = {
-                        Text(
-                            text = if (isDefault) "$minutes min nap \u2022 default" else "$minutes min nap",
-                            color = TextPrimary
-                        )
-                    },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = if (isDefault) {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
-                        } else {
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        }
-                    ),
-                    border = null
                 )
             }
         }
@@ -890,6 +892,7 @@ private fun SelectionActionBar(
                 OutlinedButton(
                     onClick = onEnableSelected,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = DismissGreen)
                 ) {
                     Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -899,6 +902,7 @@ private fun SelectionActionBar(
                 OutlinedButton(
                     onClick = onDisableSelected,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary)
                 ) {
                     Icon(Icons.Default.NotificationsOff, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -908,6 +912,7 @@ private fun SelectionActionBar(
                 Button(
                     onClick = onDeleteSelected,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -932,10 +937,10 @@ private fun SelectableAlarmCard(
             .fillMaxWidth()
             .combinedClickable(onClick = onToggleSelect)
             .then(
-                if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(18.dp))
+                if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
                 else Modifier
             ),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
@@ -1072,7 +1077,7 @@ private fun YouTubeDownloadCard(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
                 contentAlignment = Alignment.Center
             ) {

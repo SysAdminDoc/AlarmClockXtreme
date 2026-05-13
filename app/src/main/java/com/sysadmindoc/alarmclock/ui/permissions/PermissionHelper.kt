@@ -173,7 +173,7 @@ fun PermissionRequestCard(
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
@@ -203,7 +203,7 @@ private fun PermissionItem(icon: ImageVector, title: String, description: String
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(18.dp),
+            shape = RoundedCornerShape(12.dp),
             color = SurfaceCard.copy(alpha = 0.78f)
         ) {
             Row(
@@ -211,7 +211,7 @@ private fun PermissionItem(icon: ImageVector, title: String, description: String
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
                 ) {
                     Box(
