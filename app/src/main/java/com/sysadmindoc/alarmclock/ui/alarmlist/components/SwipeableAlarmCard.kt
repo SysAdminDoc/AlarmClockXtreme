@@ -69,7 +69,7 @@ fun SwipeableAlarmCard(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(color)
                     .padding(end = 24.dp),
                 contentAlignment = Alignment.CenterEnd
@@ -101,7 +101,7 @@ fun SwipeableAlarmCard(
                         }
                         Surface(
                             color = Color.White.copy(alpha = 0.14f),
-                            shape = RoundedCornerShape(14.dp)
+                            shape = RoundedCornerShape(10.dp)
                         ) {
                             Icon(
                                 Icons.Default.Delete,

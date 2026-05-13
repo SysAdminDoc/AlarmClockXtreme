@@ -33,8 +33,10 @@ data class SettingsUiState(
     val appVersion: String = "",
     // Webhook test result
     val webhookTestResult: String? = null,
+    val isWebhookTesting: Boolean = false,
     // Hue test result
-    val hueTestResult: String? = null
+    val hueTestResult: String? = null,
+    val isHueTesting: Boolean = false
 )
 
 @HiltViewModel
@@ -52,15 +54,15 @@ class SettingsViewModel @Inject constructor(
             needsGuidance = ManufacturerCompat.needsBatteryGuidance()
         )
     )
-    private val _webhookTestResult = MutableStateFlow<String?>(null)
-    private val _hueTestResult = MutableStateFlow<String?>(null)
+    private val _webhookTestState = MutableStateFlow(IntegrationTestState())
+    private val _hueTestState = MutableStateFlow(IntegrationTestState())
 
     val uiState: StateFlow<SettingsUiState> = combine(
         preferencesManager.settings,
         _batteryState,
-        _webhookTestResult,
-        _hueTestResult
-    ) { settings, battery, webhookResult, hueResult ->
+        _webhookTestState,
+        _hueTestState
+    ) { settings, battery, webhookState, hueState ->
         val guidance = ManufacturerCompat.getGuidance()
         SettingsUiState(
             settings = settings,
@@ -72,8 +74,10 @@ class SettingsViewModel @Inject constructor(
             androidVersion = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
             deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
             appVersion = BuildConfig.VERSION_NAME,
-            webhookTestResult = webhookResult,
-            hueTestResult = hueResult
+            webhookTestResult = webhookState.message,
+            isWebhookTesting = webhookState.isRunning,
+            hueTestResult = hueState.message,
+            isHueTesting = hueState.isRunning
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState())
 
@@ -154,11 +158,18 @@ class SettingsViewModel @Inject constructor(
     fun updateWebhookUrl(url: String) = updateSettings { it.copy(webhookUrl = url) }
     fun testWebhook() {
         viewModelScope.launch(Dispatchers.IO) {
+            _webhookTestState.value = IntegrationTestState(
+                message = "Checking webhook endpoint...",
+                isRunning = true
+            )
             val url = preferencesManager.getCurrentSettings().webhookUrl
             val ok = if (url.isBlank()) false else webhookService.test(url)
-            _webhookTestResult.value = if (ok) "Webhook OK" else "Webhook failed — check URL"
+            val result = if (ok) "Webhook OK" else "Webhook failed — check URL"
+            _webhookTestState.value = IntegrationTestState(message = result, isRunning = false)
             kotlinx.coroutines.delay(4000)
-            _webhookTestResult.value = null
+            if (_webhookTestState.value.message == result) {
+                _webhookTestState.value = IntegrationTestState()
+            }
         }
     }
     // F13: Holidays
@@ -173,6 +184,10 @@ class SettingsViewModel @Inject constructor(
     fun updateHueLightIds(ids: String) = updateSettings { it.copy(hueLightIds = ids.trim()) }
     fun testHue() {
         viewModelScope.launch(Dispatchers.IO) {
+            _hueTestState.value = IntegrationTestState(
+                message = "Checking Hue bridge...",
+                isRunning = true
+            )
             val settings = preferencesManager.getCurrentSettings()
             val ok = try {
                 val url = "http://${settings.hueBridgeIp}/api/${settings.hueApiKey}/lights"
@@ -181,9 +196,12 @@ class SettingsViewModel @Inject constructor(
                 val response = client.newCall(okhttp3.Request.Builder().url(url).build()).execute()
                 response.isSuccessful.also { response.close() }
             } catch (_: Exception) { false }
-            _hueTestResult.value = if (ok) "Hue bridge reachable" else "Hue bridge not found — check IP and key"
+            val result = if (ok) "Hue bridge reachable" else "Hue bridge not found — check IP and key"
+            _hueTestState.value = IntegrationTestState(message = result, isRunning = false)
             kotlinx.coroutines.delay(4000)
-            _hueTestResult.value = null
+            if (_hueTestState.value.message == result) {
+                _hueTestState.value = IntegrationTestState()
+            }
         }
     }
 
@@ -220,36 +238,66 @@ class SettingsViewModel @Inject constructor(
     // Backup/restore
     private val _backupResult = MutableStateFlow<String?>(null)
     val backupResult: StateFlow<String?> = _backupResult.asStateFlow()
+    private val _backupBusy = MutableStateFlow(false)
+    val backupBusy: StateFlow<Boolean> = _backupBusy.asStateFlow()
 
     fun exportBackup(uri: Uri) {
         viewModelScope.launch {
-            backupManager.exportToUri(uri)
-                .onSuccess { count -> setBackupResult("Exported $count alarms") }
-                .onFailure { setBackupResult("Export failed: ${it.message}") }
+            _backupBusy.value = true
+            try {
+                backupManager.exportToUri(uri)
+                    .onSuccess { count -> setBackupResult("Exported $count alarms") }
+                    .onFailure { setBackupResult("Export failed: ${it.message}") }
+            } catch (e: Exception) {
+                setBackupResult("Export failed: ${e.message ?: "unexpected error"}")
+            } finally {
+                _backupBusy.value = false
+            }
         }
     }
 
     fun exportEncryptedBackup(uri: Uri, passphrase: String) {
         viewModelScope.launch {
-            backupManager.exportEncryptedToUri(uri, passphrase)
-                .onSuccess { count -> setBackupResult("Exported encrypted backup with $count alarms") }
-                .onFailure { setBackupResult("Encrypted export failed: ${it.message}") }
+            _backupBusy.value = true
+            try {
+                backupManager.exportEncryptedToUri(uri, passphrase)
+                    .onSuccess { count -> setBackupResult("Exported encrypted backup with $count alarms") }
+                    .onFailure { setBackupResult("Encrypted export failed: ${it.message}") }
+            } catch (e: Exception) {
+                setBackupResult("Encrypted export failed: ${e.message ?: "unexpected error"}")
+            } finally {
+                _backupBusy.value = false
+            }
         }
     }
 
     fun importBackup(uri: Uri) {
         viewModelScope.launch {
-            backupManager.importFromUri(uri)
-                .onSuccess { count -> setBackupResult("Imported $count alarms") }
-                .onFailure { setBackupResult("Import failed: ${it.message}") }
+            _backupBusy.value = true
+            try {
+                backupManager.importFromUri(uri)
+                    .onSuccess { count -> setBackupResult("Imported $count alarms") }
+                    .onFailure { setBackupResult("Import failed: ${it.message}") }
+            } catch (e: Exception) {
+                setBackupResult("Import failed: ${e.message ?: "unexpected error"}")
+            } finally {
+                _backupBusy.value = false
+            }
         }
     }
 
     fun importEncryptedBackup(uri: Uri, passphrase: String) {
         viewModelScope.launch {
-            backupManager.importEncryptedFromUri(uri, passphrase)
-                .onSuccess { count -> setBackupResult("Imported encrypted backup with $count alarms") }
-                .onFailure { setBackupResult("Encrypted import failed: ${it.message}") }
+            _backupBusy.value = true
+            try {
+                backupManager.importEncryptedFromUri(uri, passphrase)
+                    .onSuccess { count -> setBackupResult("Imported encrypted backup with $count alarms") }
+                    .onFailure { setBackupResult("Encrypted import failed: ${it.message}") }
+            } catch (e: Exception) {
+                setBackupResult("Encrypted import failed: ${e.message ?: "unexpected error"}")
+            } finally {
+                _backupBusy.value = false
+            }
         }
     }
 
@@ -266,4 +314,8 @@ class SettingsViewModel @Inject constructor(
     fun clearBackupResult() { _backupResult.value = null }
 
     private data class BatteryState(val isIgnoring: Boolean, val needsGuidance: Boolean)
+    private data class IntegrationTestState(
+        val message: String? = null,
+        val isRunning: Boolean = false
+    )
 }

@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -305,7 +306,7 @@ fun YouTubeDownloadDialog(
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text(if (mode == DownloadMode.PasteUrl) "Download" else "Pick a result")
             }
@@ -322,7 +323,7 @@ fun YouTubeDownloadDialog(
             }
         },
         containerColor = SurfaceMedium,
-        shape = RoundedCornerShape(22.dp)
+        shape = RoundedCornerShape(12.dp)
     )
 }
 
@@ -458,7 +459,7 @@ private fun SearchResultRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(
                 if (highlight) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                 else SurfaceLight
@@ -623,7 +624,7 @@ private fun DownloadingHint() {
             progress = { animatedProgress },
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(999.dp)),
+                .clip(RoundedCornerShape(8.dp)),
             color = MaterialTheme.colorScheme.primary,
             trackColor = SurfaceLight
         )
@@ -650,20 +651,17 @@ fun isYouTubeDownloaderAvailable(): Boolean {
             YouTubeDialogEntryPoint::class.java
         ).youTubeAudioDownloader()
     }
-    val state = androidx.compose.runtime.produceState(
-        initialValue = downloader.isAvailable(),
-        key1 = downloader
-    ) {
+    var available by remember(downloader) { mutableStateOf(downloader.isAvailable()) }
+    LaunchedEffect(downloader) {
         // Poll until ready or until we leave composition. yt-dlp init takes
         // a few seconds on cold start; once true it never flips back, so we
         // can stop polling.
-        while (!value) {
-            value = downloader.isAvailable()
-            if (value) break
+        while (!available) {
             kotlinx.coroutines.delay(400)
+            available = downloader.isAvailable()
         }
     }
-    return state.value
+    return available
 }
 
 @EntryPoint

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -266,7 +265,7 @@ private fun ControlsRow(state: StopwatchUiState, viewModel: StopwatchViewModel) 
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 6.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(
@@ -339,7 +338,7 @@ private fun LapRow(lap: Lap) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         color = when {
             lap.isBest -> DismissGreen.copy(alpha = 0.1f)
             lap.isWorst -> AccentRed.copy(alpha = 0.09f)
@@ -421,7 +420,7 @@ private fun StopwatchPrimaryButton(
     Button(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
@@ -441,7 +440,7 @@ private fun StopwatchSecondaryButton(
     OutlinedButton(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp))

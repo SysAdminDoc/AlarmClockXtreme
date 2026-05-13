@@ -255,7 +255,7 @@ private fun TornadoOverlay(modifier: Modifier = Modifier) {
             contentAlignment = Alignment.Center,
         ) {
             Surface(
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(10.dp),
                 color = Color(0xFFB7271A),
             ) {
                 androidx.compose.foundation.layout.Row(

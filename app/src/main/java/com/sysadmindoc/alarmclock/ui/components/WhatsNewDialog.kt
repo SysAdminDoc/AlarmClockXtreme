@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -51,7 +50,7 @@ fun WhatsNewDialog(
             Button(
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Continue")
             }
@@ -90,7 +89,7 @@ fun WhatsNewDialog(
             ) {
                 highlights.forEachIndexed { index, line ->
                     Surface(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = SurfaceCard.copy(alpha = 0.82f),
                         border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.14f))
                     ) {
@@ -106,7 +105,7 @@ fun WhatsNewDialog(
                                     .size(28.dp)
                                     .background(
                                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-                                        shape = CircleShape
+                                        shape = RoundedCornerShape(8.dp)
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -129,6 +128,6 @@ fun WhatsNewDialog(
             }
         },
         containerColor = SurfaceMedium,
-        shape = RoundedCornerShape(22.dp)
+        shape = RoundedCornerShape(12.dp)
     )
 }

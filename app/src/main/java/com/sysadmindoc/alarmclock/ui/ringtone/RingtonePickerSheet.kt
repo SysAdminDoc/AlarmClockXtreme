@@ -228,6 +228,7 @@ fun RingtonePickerSheet(
                     {
                         OutlinedButton(
                             onClick = { showYouTubeDialog = true },
+                            shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(
                                 contentColor = MaterialTheme.colorScheme.primary
                             )
@@ -395,7 +396,7 @@ private fun RingtoneRow(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(accent.copy(alpha = 0.14f)),
                 contentAlignment = Alignment.Center
             ) {

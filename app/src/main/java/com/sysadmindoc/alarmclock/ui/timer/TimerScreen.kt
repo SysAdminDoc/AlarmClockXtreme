@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
@@ -36,8 +35,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.TimerOff
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -66,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
+import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -209,6 +207,7 @@ private fun ActiveTimerCard(
             if (isFinished) {
                 Button(
                     onClick = onDismiss,
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
                     Text("Dismiss")
@@ -346,11 +345,10 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             defaultPresets.forEach { preset ->
-                AssistChip(
+                AppFilterChip(
+                    label = preset.label,
+                    selected = false,
                     onClick = { viewModel.selectPreset(preset) },
-                    label = { Text(preset.label, color = TextPrimary) },
-                    colors = AssistChipDefaults.assistChipColors(containerColor = SurfaceCard),
-                    border = null
                 )
             }
         }
@@ -367,7 +365,7 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .size(76.dp),
-            shape = CircleShape,
+            shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
@@ -427,7 +425,7 @@ private fun NumPad(
                                     else -> onDigit(key)
                                 }
                             },
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = if (key < 0) SurfaceCard.copy(alpha = 0.88f) else SurfaceMedium,
                         border = BorderStroke(
                             1.dp,
@@ -439,7 +437,7 @@ private fun NumPad(
                                 .fillMaxSize()
                                 .background(
                                     color = if (key < 0) accent.copy(alpha = 0.08f) else androidx.compose.ui.graphics.Color.Transparent,
-                                    shape = RoundedCornerShape(16.dp)
+                                    shape = RoundedCornerShape(12.dp)
                                 ),
                             contentAlignment = Alignment.Center
                         ) {

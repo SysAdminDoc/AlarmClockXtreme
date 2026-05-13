@@ -136,7 +136,7 @@ fun NightClockScreen(onExit: () -> Unit) {
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Surface(
-                shape = RoundedCornerShape(999.dp),
+                shape = RoundedCornerShape(8.dp),
                 color = SnoozeYellow.copy(alpha = 0.09f)
             ) {
                 Text(
@@ -172,7 +172,7 @@ fun NightClockScreen(onExit: () -> Unit) {
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = Color.White.copy(alpha = 0.04f)
                 ) {
                     Text(
@@ -203,7 +203,7 @@ fun NightClockScreen(onExit: () -> Unit) {
                         )
                 )
                 Surface(
-                    shape = RoundedCornerShape(999.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = Color.White.copy(alpha = 0.04f)
                 ) {
                     Text(
