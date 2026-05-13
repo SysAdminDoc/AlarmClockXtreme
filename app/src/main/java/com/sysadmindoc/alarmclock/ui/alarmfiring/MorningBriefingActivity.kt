@@ -274,7 +274,7 @@ fun MorningBriefingScreen(
                 onClick = onClose,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
                     text = "Close briefing",
@@ -301,7 +301,7 @@ private fun BriefingRow(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         color = tint.copy(alpha = 0.1f)
     ) {
         Row(
@@ -331,7 +331,7 @@ private fun RoutineRow(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         color = DismissGreen.copy(alpha = 0.08f)
     ) {
         Row(

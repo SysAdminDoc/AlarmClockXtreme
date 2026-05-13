@@ -203,7 +203,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                                     }
                                 },
                                 colors = NavigationBarItemDefaults.colors(
-                                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                                    indicatorColor = Color.Transparent,
                                     selectedIconColor = MaterialTheme.colorScheme.primary,
                                     selectedTextColor = MaterialTheme.colorScheme.primary,
                                     unselectedIconColor = TextMuted,

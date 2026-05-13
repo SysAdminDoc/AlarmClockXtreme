@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.9.0** (Today-tab dynamic
-sky + NWS tornado alerts; see [CHANGELOG.md](CHANGELOG.md)).
+Living feature backlog, refreshed alongside **v1.9.2** (premium UI polish
+on top of Today-tab dynamic sky + NWS tornado alerts; see [CHANGELOG.md](CHANGELOG.md)).
 
 This is the "what's left" companion to [CLAUDE.md](CLAUDE.md). Entries are
 ranked by impact-to-effort and grouped by theme.
@@ -16,7 +16,9 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (from prior tiers, kept here briefly): time-of-day
+> **Recently shipped** (from prior tiers, kept here briefly): v1.9.2 premium
+> UI polish (sharper shape tokens, unified chip rows, alarm-list feedback,
+> settings progress states), time-of-day
 > sky engine + weather-aware overrides + NWS tornado overlay (1.9.0),
 > design-system polish pass / `AppFilterChip` / skeletons / bottom-nav
 > truncation fix (1.8.1), Weather hub + Windy radar + RSS News tab (1.8.0),
@@ -33,12 +35,12 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.9.0)
+## Current snapshot (v1.9.2)
 
 - **Stack:** Kotlin 2.1, Compose / Material 3, Room v8, Hilt, Retrofit +
   Moshi (codegen), DataStore, Glance widgets, OkHttp, WorkManager, yt-dlp +
   NewPipe Extractor (Play flavor only).
-- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 37.
+- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 39.
 - **Surface area:** 111 Kotlin source files, two flavors (`play`, `fdroid`),
   19 dismiss challenges, 50+ alarm fields, 35+ AppSettings fields, 6 tabs
   (Today, Alarms, Bedtime, Timer, World, News) + Settings.

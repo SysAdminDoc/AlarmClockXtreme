@@ -242,9 +242,11 @@ class AlarmListViewModel @Inject constructor(
                 val nextTrigger = calculator.calculate(alarm)
                 repository.setEnabled(alarm.id, enabled = true, nextTrigger = nextTrigger)
                 scheduler.schedule(alarm.copy(isEnabled = true, nextTriggerTime = nextTrigger))
+                emitFeedback("Alarm enabled for ${formatFeedbackTime(nextTrigger)}")
             } else {
                 repository.setEnabled(alarm.id, enabled = false, nextTrigger = 0)
                 scheduler.cancel(alarm.id)
+                emitFeedback("Alarm paused")
             }
         }
     }

@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
@@ -460,7 +461,7 @@ private fun SettingsOverviewTile(
         highlighted = accent == DismissGreen || accent == SnoozeYellow
     ) {
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             color = accent.copy(alpha = 0.14f)
         ) {
             Box(
@@ -661,7 +662,7 @@ private fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Settin
             Button(
                 onClick = viewModel::requestBatteryExemption,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Text("Open battery settings")
             }
@@ -724,7 +725,7 @@ private fun SettingsToggle(
                 role = Role.Switch,
                 onValueChange = onToggle
             ),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
         color = if (checked) {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
         } else {
@@ -776,7 +777,7 @@ private fun SettingsActionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(role = Role.Button, onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
         color = SurfaceCard.copy(alpha = 0.28f),
         border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.14f))
     ) {
@@ -823,7 +824,7 @@ private fun SettingsActionRow(
 @Composable
 private fun SettingsInfo(label: String, description: String) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
         color = SurfaceCard.copy(alpha = 0.24f),
         border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
     ) {
@@ -885,6 +886,7 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
             Text(
                 text = state.webhookTestResult ?: "Use a secure HTTPS endpoint for best reliability.",
                 color = when {
+                    state.isWebhookTesting -> MaterialTheme.colorScheme.primary
                     state.webhookTestResult?.contains("OK") == true -> DismissGreen
                     state.webhookTestResult != null -> AccentRed
                     else -> TextMuted
@@ -895,12 +897,23 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
             Spacer(modifier = Modifier.size(12.dp))
             OutlinedButton(
                 onClick = viewModel::testWebhook,
-                enabled = state.settings.webhookEnabled && state.settings.webhookUrl.isNotBlank(),
+                enabled = state.settings.webhookEnabled &&
+                    state.settings.webhookUrl.isNotBlank() &&
+                    !state.isWebhookTesting,
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.Link, null, modifier = Modifier.size(18.dp))
+                if (state.isWebhookTesting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Icon(Icons.Default.Link, null, modifier = Modifier.size(18.dp))
+                }
                 Spacer(modifier = Modifier.size(6.dp))
-                Text("Test")
+                Text(if (state.isWebhookTesting) "Testing" else "Test")
             }
         }
     }
@@ -985,6 +998,7 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
             Text(
                 text = state.hueTestResult ?: "Run a quick bridge check once the IP and API key are in place.",
                 color = when {
+                    state.isHueTesting -> MaterialTheme.colorScheme.primary
                     state.hueTestResult?.contains("reachable") == true -> DismissGreen
                     state.hueTestResult != null -> AccentRed
                     else -> TextMuted
@@ -995,12 +1009,23 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
             Spacer(modifier = Modifier.size(12.dp))
             OutlinedButton(
                 onClick = viewModel::testHue,
-                enabled = state.settings.hueBridgeIp.isNotBlank() && state.settings.hueApiKey.isNotBlank(),
+                enabled = state.settings.hueBridgeIp.isNotBlank() &&
+                    state.settings.hueApiKey.isNotBlank() &&
+                    !state.isHueTesting,
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
-                Icon(Icons.Default.Cloud, null, modifier = Modifier.size(18.dp))
+                if (state.isHueTesting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Icon(Icons.Default.Cloud, null, modifier = Modifier.size(18.dp))
+                }
                 Spacer(modifier = Modifier.size(6.dp))
-                Text("Test")
+                Text(if (state.isHueTesting) "Testing" else "Test")
             }
         }
     }
@@ -1128,7 +1153,7 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .clip(RoundedCornerShape(8.dp))
                         .background(color)
                         .clickable { onPick(hex) }
                         .then(
@@ -1136,7 +1161,7 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
                                 Modifier.border(
                                     width = 3.dp,
                                     color = TextPrimary,
-                                    shape = androidx.compose.foundation.shape.CircleShape
+                                    shape = RoundedCornerShape(8.dp)
                                 )
                             } else Modifier
                         ),
@@ -1159,6 +1184,7 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
 @Composable
 private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
+    val backupBusy by viewModel.backupBusy.collectAsStateWithLifecycle()
     var encryptedPassphrase by remember { mutableStateOf("") }
     var encryptedPassphraseConfirm by remember { mutableStateOf("") }
     val encryptedExportEnabled = encryptedPassphrase.isNotBlank() &&
@@ -1188,7 +1214,9 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(
                 onClick = { exportLauncher.launch("alarmclock_backup.json") },
+                enabled = !backupBusy,
                 modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
@@ -1197,7 +1225,9 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
             }
             OutlinedButton(
                 onClick = { importLauncher.launch(arrayOf("application/json")) },
+                enabled = !backupBusy,
                 modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
@@ -1236,7 +1266,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 colors = appOutlinedTextFieldColors(),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(10.dp)
             )
             OutlinedTextField(
                 value = encryptedPassphraseConfirm,
@@ -1248,7 +1278,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 colors = appOutlinedTextFieldColors(),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(10.dp)
             )
             if (encryptedPassphraseConfirm.isNotEmpty() && encryptedPassphraseConfirm != encryptedPassphrase) {
                 Text(
@@ -1260,8 +1290,9 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
                     onClick = { encryptedExportLauncher.launch("alarmclock_backup_encrypted.json") },
-                    enabled = encryptedExportEnabled,
+                    enabled = encryptedExportEnabled && !backupBusy,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
@@ -1270,13 +1301,42 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 }
                 OutlinedButton(
                     onClick = { encryptedImportLauncher.launch(arrayOf("application/json", "*/*")) },
-                    enabled = encryptedImportEnabled,
+                    enabled = encryptedImportEnabled && !backupBusy,
                     modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.size(6.dp))
                     Text("Decrypt import")
+                }
+            }
+        }
+    }
+
+    if (backupBusy) {
+        AppSurfaceCard(highlighted = true) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "Backup operation in progress",
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    Text(
+                        text = "Backup buttons stay locked until the result appears.",
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
         }
@@ -1334,7 +1394,7 @@ private fun UtilityShortcutCard(
                     .size(46.dp)
                     .background(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                        shape = RoundedCornerShape(14.dp)
+                        shape = RoundedCornerShape(10.dp)
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -1403,7 +1463,7 @@ private fun BufferedSettingsTextField(
                 onCommit(draft)
             }
         },
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
@@ -1422,9 +1482,9 @@ private fun DateField(
         modifier = modifier
             .background(
                 color = SurfaceCard.copy(alpha = 0.8f),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(10.dp)
             )
-            .border(1.dp, TextMuted.copy(alpha = 0.16f), RoundedCornerShape(14.dp))
+            .border(1.dp, TextMuted.copy(alpha = 0.16f), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {

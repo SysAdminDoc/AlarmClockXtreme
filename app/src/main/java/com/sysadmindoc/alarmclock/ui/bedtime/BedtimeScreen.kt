@@ -43,7 +43,6 @@ import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -77,6 +76,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
+import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -411,10 +411,10 @@ fun BedtimeScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     listOf(15, 30, 45, 60).forEach { minutes ->
-                        FilterChip(
+                        AppFilterChip(
+                            label = "$minutes min",
                             selected = state.reminderMinutesBefore == minutes,
                             onClick = { viewModel.updateReminderMinutes(minutes) },
-                            label = { Text("$minutes min") }
                         )
                     }
                 }
@@ -510,7 +510,7 @@ fun BedtimeScreen(
                 )
             },
             containerColor = SurfaceDark,
-            shape = RoundedCornerShape(22.dp)
+            shape = RoundedCornerShape(12.dp)
         )
     }
 }
@@ -555,7 +555,7 @@ private fun SleepSoundsSection(
                             if (isActive) viewModel.stopSound()
                             else if (resId != 0) viewModel.playSound(resId)
                         },
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (isActive) {
                             MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
@@ -605,12 +605,10 @@ private fun SleepSoundsSection(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             listOf(0, 15, 30, 45, 60).forEach { minutes ->
-                FilterChip(
+                AppFilterChip(
+                    label = if (minutes == 0) "Never" else "$minutes min",
                     selected = state.sleepSoundFadeMinutes == minutes,
                     onClick = { viewModel.setSleepSoundFade(minutes) },
-                    label = {
-                        Text(if (minutes == 0) "Never" else "$minutes min")
-                    }
                 )
             }
         }
@@ -628,22 +626,18 @@ private fun SleepSoundsSection(
         ) {
             val tapers = listOf(15, 30, 60, 120, 300, 600)
             tapers.forEach { seconds ->
-                FilterChip(
+                AppFilterChip(
+                    label = when {
+                        seconds < 60 -> "${seconds}s"
+                        seconds % 60 == 0 -> "${seconds / 60} min"
+                        else -> "${seconds}s"
+                    },
                     selected = state.sleepSoundFadeSeconds == seconds,
                     onClick = {
                         // The VM setter only exists for the underlying DataStore
                         // path; adjust our local UI state and persist directly.
                         viewModel.setSleepSoundFadeSeconds(seconds)
                     },
-                    label = {
-                        Text(
-                            when {
-                                seconds < 60 -> "${seconds}s"
-                                seconds % 60 == 0 -> "${seconds / 60} min"
-                                else -> "${seconds}s"
-                            }
-                        )
-                    }
                 )
             }
         }
@@ -673,7 +667,7 @@ private fun BedtimeMetricCard(
         modifier = modifier.then(
             if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier
         ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = SurfaceCard)
     ) {
         Column(
@@ -718,7 +712,7 @@ private fun SleepCycleOptionRow(index: Int, option: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(12.dp),
         color = SurfaceCard.copy(alpha = if (index == 0) 0.82f else 0.7f)
     ) {
         Row(
@@ -840,7 +834,7 @@ private fun WindDownChecklistSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(role = Role.Checkbox) { onToggle(index) },
-                shape = RoundedCornerShape(18.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = if (done) DismissGreen.copy(alpha = 0.09f) else SurfaceCard.copy(alpha = 0.72f)
             ) {
                 Row(
@@ -890,7 +884,7 @@ private fun BedtimeAdjusterButton(
     Surface(
         modifier = modifier
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(12.dp),
         color = if (enabled) SurfaceCard.copy(alpha = 0.78f) else SurfaceCard.copy(alpha = 0.42f)
     ) {
         Column(

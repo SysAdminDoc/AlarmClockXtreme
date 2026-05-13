@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
@@ -105,7 +104,7 @@ private val onboardingPages = listOf(
     OnboardingPage(
         icon = Icons.Default.Shield,
         title = "Private by default",
-        description = "No ads, no tracking, and no account required. The app only asks for permissions that unlock features you choose to use.",
+        description = "No ads. No tracking. No account.",
         accentColor = AccentRed,
         highlights = listOf(
             "Permissions are optional and can be changed later",
@@ -207,14 +206,14 @@ fun OnboardingScreen(
                     repeat(onboardingPages.size) { index ->
                         val isActive = index == pagerState.currentPage
                         val dotWidth by animateDpAsState(
-                            targetValue = if (isActive) 28.dp else 8.dp,
+                            targetValue = if (isActive) 20.dp else 8.dp,
                             animationSpec = tween(durationMillis = 250),
                             label = "dotWidth$index"
                         )
                         Box(
                             modifier = Modifier
                                 .size(dotWidth, 8.dp)
-                                .clip(CircleShape)
+                                .clip(RoundedCornerShape(if (isActive) 0.dp else 4.dp))
                                 .background(
                                     if (isActive) onboardingPages[pagerState.currentPage].accentColor
                                     else onboardingPages[pagerState.currentPage].accentColor.copy(alpha = 0.22f)
@@ -232,7 +231,8 @@ fun OnboardingScreen(
                 if (isLastPage) {
                     AppSurfaceCard(
                         modifier = Modifier.fillMaxWidth(),
-                        highlighted = true
+                        highlighted = true,
+                        contentPadding = PaddingValues(14.dp)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -250,11 +250,12 @@ fun OnboardingScreen(
                         }
 
                         Row(
+                            modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            PermissionChip(Icons.Default.NotificationsActive, "Notifications")
+                            PermissionChip(Icons.Default.NotificationsActive, "Alerts")
                             PermissionChip(Icons.Default.CalendarMonth, "Calendar")
-                            PermissionChip(Icons.Default.LocationOn, "Location")
+                            PermissionChip(Icons.Default.LocationOn, "Weather")
                         }
                         Text(
                             text = "Recommended for weather, calendar, and dependable alerts. Optional, and easy to change later.",
@@ -290,7 +291,7 @@ fun OnboardingScreen(
                         .fillMaxWidth()
                         .height(58.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = onboardingPages[pagerState.currentPage].accentColor),
-                    shape = RoundedCornerShape(16.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = if (isLastPage) "Enable recommended permissions" else "Continue",
@@ -325,6 +326,7 @@ private fun OnboardingPageContent(
     page: OnboardingPage,
     isLastPage: Boolean
 ) {
+    val compact = isLastPage
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -334,12 +336,13 @@ private fun OnboardingPageContent(
     ) {
         AppSurfaceCard(
             modifier = Modifier.fillMaxWidth(),
-            highlighted = true
+            highlighted = true,
+            contentPadding = PaddingValues(if (compact) 14.dp else 18.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(112.dp)
-                    .clip(CircleShape)
+                    .size(if (compact) 76.dp else 112.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
@@ -354,7 +357,7 @@ private fun OnboardingPageContent(
                     imageVector = page.icon,
                     contentDescription = page.title,
                     tint = page.accentColor,
-                    modifier = Modifier.size(52.dp)
+                    modifier = Modifier.size(if (compact) 38.dp else 52.dp)
                 )
             }
 
@@ -364,42 +367,32 @@ private fun OnboardingPageContent(
             ) {
                 Text(
                     text = page.title,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
                     color = TextPrimary,
                     textAlign = TextAlign.Center
                 )
                 Text(
                     text = page.description,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
                     color = TextSecondary,
                     textAlign = TextAlign.Center
                 )
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                page.highlights.forEach { highlight ->
-                    FeatureRow(
-                        text = highlight,
-                        accent = page.accentColor
-                    )
+            if (!compact) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    page.highlights.forEach { highlight ->
+                        FeatureRow(
+                            text = highlight,
+                            accent = page.accentColor
+                        )
+                    }
                 }
             }
 
-            if (isLastPage) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    AppStatusChip(
-                        label = "Open source and privacy-first",
-                        icon = Icons.Default.Security,
-                        color = page.accentColor
-                    )
-                }
-            }
         }
     }
 }
@@ -415,7 +408,7 @@ private fun FeatureRow(text: String, accent: Color) {
             modifier = Modifier
                 .padding(top = 6.dp)
                 .size(8.dp)
-                .clip(CircleShape)
+                .clip(RoundedCornerShape(2.dp))
                 .background(accent)
         )
         Text(
