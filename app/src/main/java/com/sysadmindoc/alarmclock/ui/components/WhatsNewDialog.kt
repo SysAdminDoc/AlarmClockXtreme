@@ -42,6 +42,7 @@ import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 fun WhatsNewDialog(
     version: String,
     highlights: List<String>,
+    onOpenRoadmap: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -76,8 +77,13 @@ fun WhatsNewDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Review later", color = TextMuted)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                TextButton(onClick = onOpenRoadmap) {
+                    Text("What's next", color = MaterialTheme.colorScheme.primary)
+                }
+                TextButton(onClick = onDismiss) {
+                    Text("Review later", color = TextMuted)
+                }
             }
         },
         text = {

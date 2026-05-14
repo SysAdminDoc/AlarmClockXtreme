@@ -2,6 +2,28 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.8] - 2026-05-14
+
+Changelog roadmap handoff. No schema changes.
+
+### Added — release follow-through
+
+- Added a **What's next** action to the in-app What's New dialog that opens
+  the project roadmap on GitHub.
+- Mark the current release dialog as seen when users open the roadmap, avoiding
+  repeat prompts after they choose to continue reading.
+
+### Changed — current release copy
+
+- Refreshed the live dialog highlights to cover the current v1.10 work:
+  wake-streak badge, first-meeting calendar shifts, Bedtime DND, haptic-only
+  alarms, hold-to-dismiss, and exact snooze picking.
+
+### Internal
+
+- Bumped to `versionName = "1.10.8"`, `versionCode = 51`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.10.7] - 2026-05-14
 
 Wake-streak badge. No schema changes.
