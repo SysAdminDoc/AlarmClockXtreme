@@ -1254,6 +1254,13 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
         )
 
         SettingsToggle(
+            label = "Expressive surfaces",
+            checked = state.settings.expressiveModeEnabled,
+            supportingText = "Adds bolder shape rhythm and clearer accent semantics across shared app surfaces.",
+            onToggle = viewModel::toggleExpressiveMode
+        )
+
+        SettingsToggle(
             label = "Cover-to-snooze",
             checked = state.settings.coverToSnoozeEnabled,
             supportingText = "Hold a hand over the proximity sensor for ~1.5 s during an alarm to snooze.",

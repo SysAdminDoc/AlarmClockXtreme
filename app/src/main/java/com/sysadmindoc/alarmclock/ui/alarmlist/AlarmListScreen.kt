@@ -102,6 +102,7 @@ import com.sysadmindoc.alarmclock.ui.templates.TemplatePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.ClockTimeSmall
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
+import com.sysadmindoc.alarmclock.ui.theme.LocalAppShapeTokens
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
@@ -684,12 +685,13 @@ private fun AlarmCard(
     onLongClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val shapeTokens = LocalAppShapeTokens.current
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = onLongClick),
-        shape = com.sysadmindoc.alarmclock.ui.components.AppCardShape,
+        shape = shapeTokens.card,
         colors = CardDefaults.cardColors(
             containerColor = if (alarm.isEnabled) SurfaceCard else SurfaceCard.copy(alpha = 0.55f)
         ),
@@ -1056,11 +1058,12 @@ private fun YouTubeDownloadCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val shapeTokens = LocalAppShapeTokens.current
     Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick),
-        shape = com.sysadmindoc.alarmclock.ui.components.AppCardShape,
+        shape = shapeTokens.card,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
         ),
