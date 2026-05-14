@@ -26,3 +26,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "AlarmClockXtreme"
 include(":app")
+include(":wear")

@@ -4,6 +4,8 @@ import com.sysadmindoc.alarmclock.service.PlayYouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.PlayYouTubeDownloadInitializer
 import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.YouTubeDownloadInitializer
+import com.sysadmindoc.alarmclock.wear.PlayWearNextAlarmBridge
+import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -28,4 +30,8 @@ abstract class PlayFlavorBindings {
     @Binds
     @Singleton
     abstract fun bindInitializer(impl: PlayYouTubeDownloadInitializer): YouTubeDownloadInitializer
+
+    @Binds
+    @Singleton
+    abstract fun bindWearNextAlarmBridge(impl: PlayWearNextAlarmBridge): WearNextAlarmBridge
 }
