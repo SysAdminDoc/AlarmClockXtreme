@@ -10,6 +10,7 @@ import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.service.NextAlarmNotifier
 import com.sysadmindoc.alarmclock.service.YouTubeDownloadInitializer
+import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
 import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
 import com.sysadmindoc.alarmclock.worker.HolidaySyncWorker
 import kotlinx.coroutines.CoroutineScope
@@ -35,6 +36,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
      */
     @Inject lateinit var youTubeDownloadInitializer: YouTubeDownloadInitializer
     @Inject lateinit var preferencesManager: PreferencesManager
+    @Inject lateinit var wearNextAlarmBridge: WearNextAlarmBridge
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -83,6 +85,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
         // Start persistent next-alarm notification observer
         val entryPoint = EntryPointAccessors.fromApplication(this, AppEntryPoint::class.java)
         entryPoint.nextAlarmNotifier().startObserving()
+        wearNextAlarmBridge.start()
 
         // v1.7.0: Unpack yt-dlp binaries off the main thread so the YouTube
         // download path is ready by the time the user opens the ringtone

@@ -27,6 +27,7 @@ import com.sysadmindoc.alarmclock.receiver.DismissReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeReceiver
 import com.sysadmindoc.alarmclock.ui.alarmfiring.AlarmFiringActivity
 import com.sysadmindoc.alarmclock.ui.alarmfiring.MorningBriefingActivity
+import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
@@ -53,6 +54,7 @@ class AlarmService : Service() {
     @Inject lateinit var eventRepository: AlarmEventRepository
     @Inject lateinit var preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
     @Inject lateinit var webhookService: WebhookService
+    @Inject lateinit var wearNextAlarmBridge: WearNextAlarmBridge
 
     companion object {
         const val ACTION_START_ALARM = "com.sysadmindoc.alarmclock.START_ALARM"
@@ -235,6 +237,7 @@ class AlarmService : Service() {
         // onStartCommand with a placeholder to satisfy Android 14+ timing.
         // Update the notification in-place with the fully-labelled version.
         val notification = buildAlarmNotification(alarm)
+        wearNextAlarmBridge.publishAlarmFiring(alarm)
         try {
             if (isForeground.compareAndSet(false, true)) {
                 startForeground(NOTIFICATION_ID, notification)
@@ -745,6 +748,7 @@ class AlarmService : Service() {
                 webhookEvent = "snoozed"
             }
             webhookService.fireAsync(webhookEvent, alarm.id, alarm.label, formatAlarmTime(alarm))
+            wearNextAlarmBridge.publishAlarmIdle(alarm.id)
         } else {
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
@@ -796,6 +800,7 @@ class AlarmService : Service() {
             activeAlarmId = -1L
         }
         alarmScheduler.handleAlarmFired(alarmId)
+        wearNextAlarmBridge.publishAlarmIdle(alarmId)
         if (isForeground.compareAndSet(true, false)) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         }

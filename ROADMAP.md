@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.10.10** (Android 16
-next-alarm Live Update; see [CHANGELOG.md](CHANGELOG.md)).
+Living feature backlog, refreshed alongside **v1.11.0** (Wear OS next-alarm
+tile; see [CHANGELOG.md](CHANGELOG.md)).
 
 This is the "what's left" companion to [CLAUDE.md](CLAUDE.md). Entries are
 ranked by impact-to-effort and grouped by theme.
@@ -16,7 +16,8 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (from prior tiers, kept here briefly): v1.10.10
+> **Recently shipped** (from prior tiers, kept here briefly): v1.11.0
+> Wear OS next-alarm tile with skip / snooze / dismiss actions, v1.10.10
 > Android 16 next-alarm Live Update, v1.10.9
 > Material 3 Expressive opt-in, v1.10.8
 > What's New dialog roadmap handoff, v1.10.7 wake-streak flame badge on
@@ -49,17 +50,19 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.10.10)
+## Current snapshot (v1.11.0)
 
-- **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 / Material 3, Room v9, Hilt, Retrofit +
-  Moshi (codegen), DataStore, Glance widgets, OkHttp, WorkManager, yt-dlp +
-  NewPipe Extractor (Play flavor only).
-- **Targets:** minSdk 26, targetSdk 35, compileSdk 36, versionCode 53.
-- **Surface area:** 118 Kotlin source files, two flavors (`play`, `fdroid`),
-  19 dismiss challenges, 50+ alarm fields, 35+ AppSettings fields, 6 tabs
-  (Today, Alarms, Bedtime, Timer, World, News) + Settings.
-- **What's missing vs. competitors:** Wear OS / Health Connect / standalone
-  watch story is still zero; no on-device sleep-stage classifier; no AI
+- **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
+  Material 3, Room v9, Hilt, Retrofit + Moshi (codegen), DataStore, Glance
+  widgets, OkHttp, WorkManager, Wear Tiles, Wear Data Layer, yt-dlp + NewPipe
+  Extractor (Play flavor only).
+- **Targets:** minSdk 26, targetSdk 35, compileSdk 36, versionCode 54.
+- **Surface area:** 145 Kotlin source files across the phone app and Wear
+  module, two phone flavors (`play`, `fdroid`), 19 dismiss challenges, 50+
+  alarm fields, 35+ AppSettings fields, 6 tabs (Today, Alarms, Bedtime, Timer,
+  World, News) + Settings.
+- **What's missing vs. competitors:** Health Connect / standalone watch story
+  is still zero; no on-device sleep-stage classifier; no AI
   sleep coach; no lockscreen-widget surface (Pixel-led Android 15+); no
   foldable/tablet adaptive layout.
 
@@ -89,7 +92,7 @@ in their shipped notes.
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| X1 | Wear OS tile (next-alarm + dismiss + snooze) | [Wear OS Tiles API](https://developer.android.com/training/wearables/tiles), Pixel Watch 3 | M | Zero wearable story today. Tiles are glanceable, no full app required. Reuses the QS-tile dismiss pattern. |
+| X1 | [x] Wear OS tile (next-alarm + dismiss + snooze) | [Wear OS Tiles API](https://developer.android.com/training/wearables/tiles), Pixel Watch 3 | M | Shipped in v1.11.0: added a Wear OS tile module, Play-flavor Data Layer bridge, next-alarm state sync, scheduled skip control, and live snooze/dismiss controls guarded to the currently firing alarm. |
 | X2 | Wear OS "Next Alarm" complication | [Complications API](https://developer.android.com/training/wearables/complications) | S | Pairs with X1; Pixel Watch users routinely add it to faces. |
 | X3 | Health Connect Sleep Sessions (read + write) | [Health Connect Sleep](https://developer.android.com/health-and-fitness/guides/health-connect/data-and-data-types/sleep), [androidx.health.connect:connect-client](https://developer.android.com/jetpack/androidx/releases/health-connect) | M | One API replaces per-vendor SDKs. Required Play Console declaration + privacy policy update. |
 | X4 | On-device actigraphy → Awake / Light / Deep buckets (Cole-Kripke) | [Cole-Kripke 1992](https://pubmed.ncbi.nlm.nih.gov/1455130/), [Pillow](https://www.pillow.app/) | L | Existing `SmartAlarmService` already collects accel; bucketize, persist, render. Ships independently of TFLite — TFLite REM stage is L+. |
