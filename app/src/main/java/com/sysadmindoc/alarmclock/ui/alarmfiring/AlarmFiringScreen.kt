@@ -11,11 +11,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -67,6 +71,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -173,6 +181,7 @@ fun AlarmFiringScreen(
     var swipeCumulativeDrag by remember { mutableFloatStateOf(0f) }
     val swipeThreshold = 200f
     val defaultSnoozeMinutes = state.alarm?.snoozeDurationMinutes ?: 10
+    val holdToDismissEnabled = state.alarm?.holdToDismissEnabled == true
     var customSnoozeMinutes by remember(defaultSnoozeMinutes) {
         mutableIntStateOf(defaultSnoozeMinutes.coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES))
     }
@@ -188,7 +197,10 @@ fun AlarmFiringScreen(
         "Single-step dismissal"
     }
     val statusLine = when {
+        state.canDismiss && holdToDismissEnabled ->
+            "Wake-up steps are complete. Hold Dismiss for 1.5 seconds, or right-swipe to snooze."
         state.canDismiss -> "Wake-up steps are complete. Swipe left to dismiss, or right to snooze."
+        challenge == null && holdToDismissEnabled -> "Hold Dismiss for 1.5 seconds to stop the alarm."
         challenge == null -> "Swipe left or tap dismiss to stop the alarm."
         else -> challenge.statusDescription()
     }
@@ -204,7 +216,7 @@ fun AlarmFiringScreen(
                     )
                 )
             )
-            .pointerInput(state.canDismiss) {
+            .pointerInput(state.canDismiss, holdToDismissEnabled) {
                 // Swipe LEFT to dismiss/disarm, RIGHT to snooze. Dismiss is
                 // the destructive action — putting it on the left mirrors
                 // common swipe-to-delete conventions and matches the user's
@@ -213,11 +225,18 @@ fun AlarmFiringScreen(
                     onDragStart = { swipeCumulativeDrag = 0f },
                     onDragEnd = {
                         if (swipeCumulativeDrag < -swipeThreshold && state.canDismiss) {
-                            onDismiss()
+                            if (holdToDismissEnabled) {
+                                swipeHint = "Hold the Dismiss button for 1.5 seconds."
+                            } else {
+                                onDismiss()
+                                swipeHint = ""
+                            }
                         } else if (swipeCumulativeDrag > swipeThreshold) {
                             onSnooze()
+                            swipeHint = ""
+                        } else {
+                            swipeHint = ""
                         }
-                        swipeHint = ""
                         swipeCumulativeDrag = 0f
                     },
                     onDragCancel = {
@@ -227,8 +246,12 @@ fun AlarmFiringScreen(
                     onHorizontalDrag = { _, dragAmount ->
                         swipeCumulativeDrag += dragAmount
                         swipeHint = when {
+                            swipeCumulativeDrag < -swipeThreshold / 2 && state.canDismiss && holdToDismissEnabled ->
+                                "Hold Dismiss for 1.5 seconds"
                             swipeCumulativeDrag < -swipeThreshold / 2 && state.canDismiss -> "Release to dismiss"
                             swipeCumulativeDrag > swipeThreshold / 2 -> "Release to snooze"
+                            swipeCumulativeDrag < -50 && state.canDismiss && holdToDismissEnabled ->
+                                "Swipe-left is protected. Use Hold Dismiss."
                             swipeCumulativeDrag < -50 && state.canDismiss -> "Swipe left to dismiss"
                             swipeCumulativeDrag < -50 -> "Finish the wake-up step first"
                             swipeCumulativeDrag > 50 -> "Swipe right to snooze"
@@ -283,7 +306,11 @@ fun AlarmFiringScreen(
                         )
                     }
                     AppStatusChip(
-                        label = if (state.canDismiss) "Dismiss ready" else "Dismiss locked",
+                        label = when {
+                            state.canDismiss && holdToDismissEnabled -> "Hold required"
+                            state.canDismiss -> "Dismiss ready"
+                            else -> "Dismiss locked"
+                        },
                         icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
                         color = if (state.canDismiss) DismissGreen else SnoozeYellow
                     )
@@ -355,6 +382,13 @@ fun AlarmFiringScreen(
                             color = TextMuted
                         )
                     }
+                    if (holdToDismissEnabled) {
+                        AppStatusChip(
+                            label = "Hold dismiss 1.5s",
+                            icon = Icons.Default.AlarmOff,
+                            color = DismissGreen
+                        )
+                    }
                 }
 
                 if (showQuotes) {
@@ -407,7 +441,11 @@ fun AlarmFiringScreen(
                                     style = MaterialTheme.typography.headlineSmall
                                 )
                                 Text(
-                                    text = "You’ve cleared every required step. Dismiss now or snooze if you need a short buffer.",
+                                    text = if (holdToDismissEnabled) {
+                                        "You’ve cleared every required step. Hold the Dismiss button to finish, or snooze if you need a short buffer."
+                                    } else {
+                                        "You’ve cleared every required step. Dismiss now or snooze if you need a short buffer."
+                                    },
                                     color = TextSecondary,
                                     style = MaterialTheme.typography.bodyMedium,
                                     textAlign = TextAlign.Center
@@ -599,7 +637,11 @@ fun AlarmFiringScreen(
                 Text(
                     text = if (swipeHint.isBlank()) {
                         if (state.canDismiss) {
-                            if (flipToSnoozeEnabled) {
+                            if (holdToDismissEnabled && flipToSnoozeEnabled) {
+                                "Hold Dismiss for 1.5 seconds or swipe right to snooze. Flip the phone over for a quick snooze."
+                            } else if (holdToDismissEnabled) {
+                                "Hold Dismiss for 1.5 seconds or swipe right to snooze."
+                            } else if (flipToSnoozeEnabled) {
                                 "Swipe left to dismiss or right to snooze. Flip the phone over for a quick snooze."
                             } else {
                                 "Swipe left to dismiss or right to snooze."
@@ -625,7 +667,11 @@ fun AlarmFiringScreen(
                 AppSectionTitle(
                     title = "Alarm controls",
                     description = if (state.canDismiss) {
-                        "Choose the cleanest exit for this alarm now that the wake-up work is done."
+                        if (holdToDismissEnabled) {
+                            "Hold to confirm dismissal. Snooze remains a quick action."
+                        } else {
+                            "Choose the cleanest exit for this alarm now that the wake-up work is done."
+                        }
                     } else {
                         "Snooze is always available. Dismiss unlocks as soon as the current wake-up step is complete."
                     }
@@ -638,7 +684,11 @@ fun AlarmFiringScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AppStatusChip(
-                        label = if (state.canDismiss) "Swipe left to dismiss" else "Dismiss unlocks after challenge",
+                        label = when {
+                            state.canDismiss && holdToDismissEnabled -> "Hold Dismiss to finish"
+                            state.canDismiss -> "Swipe left to dismiss"
+                            else -> "Dismiss unlocks after challenge"
+                        },
                         icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
                         color = if (state.canDismiss) DismissGreen else TextMuted
                     )
@@ -649,24 +699,31 @@ fun AlarmFiringScreen(
                     )
                 }
 
-                Button(
-                    onClick = onDismiss,
-                    enabled = state.canDismiss,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = DismissGreen,
-                        disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                        disabledContentColor = TextMuted
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = if (state.canDismiss) "Dismiss alarm" else "Finish wake-up challenge",
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 16.sp
+                if (holdToDismissEnabled) {
+                    HoldToDismissButton(
+                        enabled = state.canDismiss,
+                        onDismiss = onDismiss
                     )
+                } else {
+                    Button(
+                        onClick = onDismiss,
+                        enabled = state.canDismiss,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = DismissGreen,
+                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                            disabledContentColor = TextMuted
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = if (state.canDismiss) "Dismiss alarm" else "Finish wake-up challenge",
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 16.sp
+                        )
+                    }
                 }
 
                 LongPressSnoozeButton(
@@ -802,6 +859,112 @@ private fun Challenge?.statusDescription(): String = when (this) {
 private val EaseInOutCubic = CubicBezierEasing(0.65f, 0f, 0.35f, 1f)
 private const val MIN_CUSTOM_SNOOZE_MINUTES = 1
 private const val MAX_CUSTOM_SNOOZE_MINUTES = 120
+private const val HOLD_TO_DISMISS_MS = 1_500L
+private const val HOLD_PROGRESS_FRAME_MS = 16L
+
+@Composable
+private fun HoldToDismissButton(
+    enabled: Boolean,
+    onDismiss: () -> Unit
+) {
+    var isHolding by remember(enabled) { mutableStateOf(false) }
+    var holdProgress by remember(enabled) { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(enabled, isHolding) {
+        if (!enabled) {
+            holdProgress = 0f
+            return@LaunchedEffect
+        }
+        if (!isHolding) {
+            holdProgress = 0f
+            return@LaunchedEffect
+        }
+
+        var elapsedMs = 0L
+        while (isHolding && elapsedMs < HOLD_TO_DISMISS_MS) {
+            delay(HOLD_PROGRESS_FRAME_MS)
+            elapsedMs += HOLD_PROGRESS_FRAME_MS
+            holdProgress = (elapsedMs.toFloat() / HOLD_TO_DISMISS_MS).coerceIn(0f, 1f)
+        }
+        if (isHolding) {
+            holdProgress = 1f
+            isHolding = false
+            onDismiss()
+        }
+    }
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .semantics {
+                role = Role.Button
+                contentDescription = if (enabled) {
+                    "Hold Dismiss for 1.5 seconds"
+                } else {
+                    "Finish the wake-up challenge before dismissing"
+                }
+                stateDescription = if (enabled) "Dismiss ready" else "Dismiss locked"
+            }
+            .pointerInput(enabled) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    if (enabled) {
+                        isHolding = true
+                        waitForUpOrCancellation()
+                        isHolding = false
+                    }
+                }
+            },
+        shape = RoundedCornerShape(12.dp),
+        color = if (enabled) {
+            DismissGreen.copy(alpha = 0.10f)
+        } else {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        },
+        border = BorderStroke(
+            width = 1.5.dp,
+            color = if (enabled) DismissGreen.copy(alpha = 0.82f) else TextMuted.copy(alpha = 0.24f)
+        )
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (holdProgress > 0f) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(holdProgress)
+                        .background(DismissGreen.copy(alpha = 0.24f))
+                )
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 18.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AlarmOff,
+                    contentDescription = null,
+                    tint = if (enabled) DismissGreen else TextMuted,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = when {
+                        !enabled -> "Finish wake-up challenge"
+                        isHolding -> "Keep holding"
+                        else -> "Hold 1.5s to dismiss"
+                    },
+                    color = if (enabled) DismissGreen else TextMuted,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

@@ -1145,6 +1145,20 @@ fun AlarmEditScreen(
                     tone = HintTone.Neutral
                 )
 
+                // v1.10.3: Deliberate dismiss confirmation for users who
+                // accidentally swipe ready alarms while half-awake.
+                SettingsRow(label = "Hold to dismiss") {
+                    Switch(
+                        checked = state.holdToDismissEnabled,
+                        onCheckedChange = viewModel::updateHoldToDismiss,
+                        colors = appSwitchColors()
+                    )
+                }
+                SettingsHint(
+                    "When enabled, the firing screen requires holding Dismiss for 1.5 seconds. Swipe-left dismissal is replaced with a visible hold prompt.",
+                    tone = HintTone.Neutral
+                )
+
                 // v1.4.0: Dismiss-at-ringtone-end. Great for single-song wake-ups.
                 SettingsRow(label = "Dismiss when song finishes") {
                     Switch(

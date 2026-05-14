@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 
-@Database(entities = [Alarm::class, AlarmEvent::class], version = 8, exportSchema = true)
+@Database(entities = [Alarm::class, AlarmEvent::class], version = 9, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
@@ -131,6 +131,13 @@ abstract class AlarmDatabase : RoomDatabase() {
                 // v1.5.0: Sunrise/sunset-relative firing (minutes offset, anchor)
                 db.execSQL("ALTER TABLE alarms ADD COLUMN solarOffsetMinutes INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE alarms ADD COLUMN solarAnchor TEXT NOT NULL DEFAULT 'SUNRISE'")
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // v1.10.3: Per-alarm deliberate hold confirmation for dismiss.
+                db.execSQL("ALTER TABLE alarms ADD COLUMN holdToDismissEnabled INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

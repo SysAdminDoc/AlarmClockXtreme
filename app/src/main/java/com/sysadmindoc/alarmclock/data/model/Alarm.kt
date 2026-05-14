@@ -97,6 +97,9 @@ data class Alarm(
     // v1.4.0: Auto-dismiss when the chosen ringtone / track finishes naturally
     // (skips the default infinite loop). Ignored for internet radio.
     val dismissAtRingtoneEnd: Boolean = false,
+    // v1.10.3: Require a deliberate hold gesture before the firing screen can
+    // dismiss. This protects users who accidentally swipe a ready alarm away.
+    val holdToDismissEnabled: Boolean = false,
     // v1.4.0: Random pick from comma-separated ringtone URIs.
     // When set, supersedes [ringtoneUri] on each fire.
     val ringtonePool: String = "",

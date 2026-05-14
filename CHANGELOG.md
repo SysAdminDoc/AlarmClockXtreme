@@ -2,6 +2,28 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.3] - 2026-05-14
+
+Hold-to-dismiss alarm safety. DB v9, backup format v6.
+
+### Added — alarm firing controls
+
+- Added a per-alarm **Hold to dismiss** toggle for users who accidentally
+  swipe a ready alarm away while half-awake.
+- Added a visible firing-screen hold-progress dismiss control that requires a
+  1.5-second press after wake-up steps are complete.
+- Protected swipe-left dismissal when hold-to-dismiss is enabled, turning the
+  swipe into a clear hold prompt instead of a direct destructive action.
+- Kept snooze quick and discoverable, including right-swipe snooze and the
+  exact-minute snooze picker from v1.10.2.
+
+### Internal
+
+- Added Room `MIGRATION_8_9` with `holdToDismissEnabled` and preserved the
+  field in backup/export/import mapping.
+- Bumped to `versionName = "1.10.3"`, `versionCode = 46`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.10.2] - 2026-05-14
 
 Firing-screen snooze picker. No schema changes.
