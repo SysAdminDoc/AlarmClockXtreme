@@ -2,6 +2,34 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.4] - 2026-05-14
+
+Haptic-only alarm profile. No schema changes.
+
+### Added — quiet alarm profiles
+
+- Added a **Don't wake partner** preset in the alarm editor that applies a
+  haptic-only profile using existing per-alarm fields.
+- Allowed override-volume alarms to be set to `0%`, showing a clear `Muted`
+  value instead of forcing a minimum audible volume.
+- Added an active haptic-only status chip so users can see when the quiet
+  profile is applied.
+
+### Changed — firing behavior
+
+- Treat `overrideSystemVolume + volume = 0` as a hard mute in `AlarmService`,
+  skipping ringtone, Spotify, internet radio, fallback audio, and backup-sound
+  escalation.
+- Added repeating `VibrationEffect.Composition` haptics on API 30+ devices that
+  support primitives, with the existing waveform vibration path as fallback.
+- Route vibration through `AudioAttributes.USAGE_ALARM` so the tactile wake
+  profile behaves like an alarm channel without waking the room through audio.
+
+### Internal
+
+- Bumped to `versionName = "1.10.4"`, `versionCode = 47`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.10.3] - 2026-05-14
 
 Hold-to-dismiss alarm safety. DB v9, backup format v6.
