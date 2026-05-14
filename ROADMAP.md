@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.9.5** (Settings wake-readiness
-trust polish on top of next-alarm notification refresh accuracy; see [CHANGELOG.md](CHANGELOG.md)).
+Living feature backlog, refreshed alongside **v1.10.0** (boot reschedule
+hardening for heavy alarm libraries; see [CHANGELOG.md](CHANGELOG.md)).
 
 This is the "what's left" companion to [CLAUDE.md](CLAUDE.md). Entries are
 ranked by impact-to-effort and grouped by theme.
@@ -16,7 +16,8 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (from prior tiers, kept here briefly): v1.9.5
+> **Recently shipped** (from prior tiers, kept here briefly): v1.10.0
+> BootReceiver handoff to batched WorkManager reschedule, v1.9.5
 > Settings wake-readiness checklist + permission IA cleanup, v1.9.4
 > next-alarm notification minute-boundary refresh, v1.9.3 exact-alarm
 > permission listener + WorkManager recovery, v1.9.2 premium UI polish
@@ -38,12 +39,12 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.9.5)
+## Current snapshot (v1.10.0)
 
 - **Stack:** Kotlin 2.1, Compose / Material 3, Room v8, Hilt, Retrofit +
   Moshi (codegen), DataStore, Glance widgets, OkHttp, WorkManager, yt-dlp +
   NewPipe Extractor (Play flavor only).
-- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 42.
+- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 43.
 - **Surface area:** 114 Kotlin source files, two flavors (`play`, `fdroid`),
   19 dismiss challenges, 50+ alarm fields, 35+ AppSettings fields, 6 tabs
   (Today, Alarms, Bedtime, Timer, World, News) + Settings.
@@ -63,7 +64,7 @@ without breaking schema or flavor parity.
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| N1 | `BootReceiver.goAsync()` + WorkManager batch reschedule for users with 50+ alarms | [whakaara/AlarmScheduler](https://github.com/ahudson20/whakaara) | S | v1.5.4 tightened to 8 s — still risk of ANR on heavy users. WorkManager has no ceiling. |
+| N1 | [x] `BootReceiver.goAsync()` + WorkManager batch reschedule for users with 50+ alarms | [whakaara/AlarmScheduler](https://github.com/ahudson20/whakaara) | S | Shipped in v1.10.0: receiver now only clears stale state and enqueues `BootRescheduleWorker`; the worker batches enabled alarms and emits one final widget refresh. |
 | N2 | Air-quality + pollen on the Weather tab via Open-Meteo `air-quality` endpoint (US AQI bands, tree/grass/weed pollen rows) | [Open-Meteo Air Quality](https://open-meteo.com/en/docs/air-quality-api) | S | Same Retrofit + Moshi pipeline as the existing weather call. No key, free. Round-trip from "Today" tab to Weather tab. |
 | N3 | Long-press snooze time-picker on the firing screen | [yuriykulikov/AlarmClock](https://github.com/yuriykulikov/AlarmClock) | S | Cycling through 1/3/5/15/30 presets is fine for a tap; long-press should open an inline minute picker. |
 | N4 | Long-press dismiss confirmation gesture toggle | [yuriykulikov/AlarmClock](https://github.com/yuriykulikov/AlarmClock) | S | "Hold 1.5 s to dismiss" mode for users who keep accidentally swiping. Per-alarm flag. |
