@@ -58,6 +58,8 @@ data class AppSettings(
     val sleepGoalHours: Int = 8,
     val sleepGoalMinutes: Int = 0,
     val bedtimeReminderMinutes: Int = 30,
+    // v1.10.5: Own an app-created alarms-only DND rule for the sleep window.
+    val bedtimeDndEnabled: Boolean = false,
     // F2: Flip-to-snooze (global toggle)
     val flipToSnoozeEnabled: Boolean = false,
     // F11: Webhook integrations
@@ -214,6 +216,7 @@ class PreferencesManager @Inject constructor(
         val SLEEP_GOAL_HOURS = intPreferencesKey("sleep_goal_hours")
         val SLEEP_GOAL_MINUTES = intPreferencesKey("sleep_goal_minutes")
         val BEDTIME_REMINDER_MINUTES = intPreferencesKey("bedtime_reminder_minutes")
+        val BEDTIME_DND_ENABLED = booleanPreferencesKey("bedtime_dnd_enabled")
         val FLIP_TO_SNOOZE = booleanPreferencesKey("flip_to_snooze")
         val WEBHOOK_ENABLED = booleanPreferencesKey("webhook_enabled")
         val WEBHOOK_URL = stringPreferencesKey("webhook_url")
@@ -315,6 +318,7 @@ class PreferencesManager @Inject constructor(
         sleepGoalHours = this[Keys.SLEEP_GOAL_HOURS] ?: 8,
         sleepGoalMinutes = this[Keys.SLEEP_GOAL_MINUTES] ?: 0,
         bedtimeReminderMinutes = this[Keys.BEDTIME_REMINDER_MINUTES] ?: 30,
+        bedtimeDndEnabled = this[Keys.BEDTIME_DND_ENABLED] ?: false,
         flipToSnoozeEnabled = this[Keys.FLIP_TO_SNOOZE] ?: false,
         webhookEnabled = this[Keys.WEBHOOK_ENABLED] ?: false,
         webhookUrl = this[Keys.WEBHOOK_URL] ?: "",
@@ -373,6 +377,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.SLEEP_GOAL_HOURS] = s.sleepGoalHours
         this[Keys.SLEEP_GOAL_MINUTES] = s.sleepGoalMinutes
         this[Keys.BEDTIME_REMINDER_MINUTES] = s.bedtimeReminderMinutes
+        this[Keys.BEDTIME_DND_ENABLED] = s.bedtimeDndEnabled
         this[Keys.FLIP_TO_SNOOZE] = s.flipToSnoozeEnabled
         this[Keys.WEBHOOK_ENABLED] = s.webhookEnabled
         this[Keys.WEBHOOK_URL] = s.webhookUrl

@@ -2,6 +2,8 @@
 
 package com.sysadmindoc.alarmclock.ui.bedtime
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -55,6 +57,7 @@ import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,13 +70,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
@@ -101,6 +108,20 @@ fun BedtimeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTimePicker by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshBedtimeDndStatus()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     val summaryLine = when {
         state.wakeTimeFormatted.isNotBlank() -> {
@@ -208,6 +229,109 @@ fun BedtimeScreen(
                     Switch(
                         checked = state.isEnabled,
                         onCheckedChange = viewModel::toggleEnabled,
+                        colors = appSwitchColors()
+                    )
+                }
+            }
+        }
+
+        item {
+            AppSurfaceCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                highlighted = state.bedtimeDndEnabled && state.bedtimeDndAccessGranted
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.NightsStay,
+                            contentDescription = "Bedtime DND",
+                            tint = when {
+                                !state.bedtimeDndAccessGranted -> SnoozeYellow
+                                state.bedtimeDndActive -> DismissGreen
+                                state.bedtimeDndEnabled -> MaterialTheme.colorScheme.primary
+                                else -> TextMuted
+                            },
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "Bedtime DND",
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = when {
+                                    !state.bedtimeDndAccessGranted ->
+                                        "Grant DND access so AlarmClockXtreme can own an alarms-only sleep rule."
+                                    state.bedtimeDndActive ->
+                                        "Alarms-only mode is active for your sleep window."
+                                    state.bedtimeDndEnabled ->
+                                        "Silences interruptions from bedtime until your next alarm."
+                                    else ->
+                                        "Create an app-owned alarms-only rule for your sleep window."
+                                },
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                AppStatusChip(
+                                    label = state.bedtimeDndStatus,
+                                    icon = if (state.bedtimeDndActive) Icons.Default.CheckCircle else Icons.Default.Schedule,
+                                    color = when {
+                                        !state.bedtimeDndAccessGranted -> SnoozeYellow
+                                        state.bedtimeDndActive -> DismissGreen
+                                        state.bedtimeDndEnabled -> MaterialTheme.colorScheme.primary
+                                        else -> TextMuted
+                                    }
+                                )
+                                AppStatusChip(
+                                    label = "Alarms only",
+                                    icon = Icons.Default.AlarmOff,
+                                    color = TextMuted
+                                )
+                            }
+                            state.bedtimeDndError?.let { error ->
+                                Text(
+                                    text = "DND sync needs attention: $error",
+                                    color = SnoozeYellow,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            if (!state.bedtimeDndAccessGranted) {
+                                TextButton(
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        )
+                                    }
+                                ) {
+                                    Text("Grant DND access", color = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    }
+                    Switch(
+                        checked = state.bedtimeDndEnabled,
+                        onCheckedChange = { enabled ->
+                            viewModel.toggleBedtimeDnd(enabled)
+                            if (enabled && !state.bedtimeDndAccessGranted) {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            }
+                        },
                         colors = appSwitchColors()
                     )
                 }

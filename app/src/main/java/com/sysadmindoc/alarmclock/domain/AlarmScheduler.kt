@@ -13,6 +13,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
 import com.sysadmindoc.alarmclock.receiver.AlarmReceiver
+import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
 import com.sysadmindoc.alarmclock.service.SmartAlarmService
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
 import com.sysadmindoc.alarmclock.worker.HueSunriseWorker
@@ -122,6 +123,7 @@ class AlarmScheduler @Inject constructor(
         scheduleAlarmClock(sanitizedAlarm.id, triggerTime)
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
         requestWidgetUpdateIfNeeded(requestWidgetUpdate)
+        syncBedtimeDndRule()
     }
 
     /**
@@ -165,6 +167,7 @@ class AlarmScheduler @Inject constructor(
         scheduleAlarmClock(sanitizedAlarm.id, triggerTime)
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
         requestWidgetUpdateIfNeeded(requestWidgetUpdate)
+        syncBedtimeDndRule()
     }
 
     /**
@@ -207,6 +210,7 @@ class AlarmScheduler @Inject constructor(
             yield()
         }
         WidgetUpdater.requestUpdate(context)
+        syncBedtimeDndRule()
         return enabledAlarms.size
     }
 
@@ -251,10 +255,26 @@ class AlarmScheduler @Inject constructor(
         if (alarm.repeatDays.isEmpty()) {
             // One-shot alarm: disable after firing
             repository.setEnabled(alarmId, enabled = false, nextTrigger = 0)
+            syncBedtimeDndRule()
         } else {
             // Repeating alarm: schedule next occurrence
             schedule(alarm)
         }
+    }
+
+    /**
+     * Keeps the app-owned bedtime DND condition aligned with whichever enabled
+     * alarm currently wakes the user next. No-ops unless the user enabled the
+     * Bedtime DND preference and granted notification policy access.
+     */
+    suspend fun syncBedtimeDndRule() {
+        val settings = preferencesManager.getCurrentSettings()
+        if (!settings.bedtimeDndEnabled &&
+            !BedtimeZenRuleManager.isPolicyAccessGranted(context)) {
+            return
+        }
+        val nextAlarmTrigger = repository.getNextAlarm()?.nextTriggerTime
+        BedtimeZenRuleManager.syncRule(context, settings, nextAlarmTrigger)
     }
 
     private fun canScheduleExactAlarms(): Boolean {
