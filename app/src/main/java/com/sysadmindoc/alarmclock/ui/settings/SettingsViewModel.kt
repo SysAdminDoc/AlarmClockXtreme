@@ -152,6 +152,8 @@ class SettingsViewModel @Inject constructor(
     // v1.4.0 personalization + wake-up settings
     fun toggleDynamicColor(enabled: Boolean) =
         updateSettings { it.copy(dynamicColorEnabled = enabled) }
+    fun toggleExpressiveMode(enabled: Boolean) =
+        updateSettings { it.copy(expressiveModeEnabled = enabled) }
     fun toggleCoverToSnooze(enabled: Boolean) =
         updateSettings { it.copy(coverToSnoozeEnabled = enabled) }
     fun toggleRepeatMissed(enabled: Boolean) =

@@ -90,6 +90,8 @@ data class AppSettings(
     val showMotivationalQuotes: Boolean = true,
     // v1.4.0: Use Android 12+ Material You dynamic color palette (overrides accent)
     val dynamicColorEnabled: Boolean = false,
+    // v1.10.9: Opt-in bolder shape rhythm and expressive accent semantics.
+    val expressiveModeEnabled: Boolean = false,
     // v1.4.0: Proximity-sensor "cover phone to snooze" (global toggle, pairs with flip-to-snooze)
     val coverToSnoozeEnabled: Boolean = false,
     // v1.4.0: Pre-sleep bedtime checklist (newline-separated items; shown on Bedtime tab)
@@ -235,6 +237,7 @@ class PreferencesManager @Inject constructor(
         val NIGHT_CLOCK = booleanPreferencesKey("night_clock")
         val SHOW_MOTIVATIONAL_QUOTES = booleanPreferencesKey("show_motivational_quotes")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
+        val EXPRESSIVE_MODE = booleanPreferencesKey("expressive_mode")
         val COVER_TO_SNOOZE = booleanPreferencesKey("cover_to_snooze")
         val BEDTIME_CHECKLIST = stringPreferencesKey("bedtime_checklist")
         val SLEEP_SOUND_TIMER = intPreferencesKey("sleep_sound_timer_minutes")
@@ -337,6 +340,7 @@ class PreferencesManager @Inject constructor(
         nightClockEnabled = this[Keys.NIGHT_CLOCK] ?: false,
         showMotivationalQuotes = this[Keys.SHOW_MOTIVATIONAL_QUOTES] ?: true,
         dynamicColorEnabled = this[Keys.DYNAMIC_COLOR] ?: false,
+        expressiveModeEnabled = this[Keys.EXPRESSIVE_MODE] ?: false,
         coverToSnoozeEnabled = this[Keys.COVER_TO_SNOOZE] ?: false,
         bedtimeChecklist = this[Keys.BEDTIME_CHECKLIST] ?: "",
         sleepSoundTimerMinutes = this[Keys.SLEEP_SOUND_TIMER] ?: 0,
@@ -396,6 +400,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.NIGHT_CLOCK] = s.nightClockEnabled
         this[Keys.SHOW_MOTIVATIONAL_QUOTES] = s.showMotivationalQuotes
         this[Keys.DYNAMIC_COLOR] = s.dynamicColorEnabled
+        this[Keys.EXPRESSIVE_MODE] = s.expressiveModeEnabled
         this[Keys.COVER_TO_SNOOZE] = s.coverToSnoozeEnabled
         this[Keys.BEDTIME_CHECKLIST] = s.bedtimeChecklist
         this[Keys.SLEEP_SOUND_TIMER] = s.sleepSoundTimerMinutes
