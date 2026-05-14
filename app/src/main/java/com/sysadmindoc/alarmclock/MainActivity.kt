@@ -52,7 +52,8 @@ class MainActivity : ComponentActivity() {
             )
             AlarmClockXtremeTheme(
                 accentColorHex = settings.value.accentColor,
-                dynamicColor = settings.value.dynamicColorEnabled
+                dynamicColor = settings.value.dynamicColorEnabled,
+                expressiveMode = settings.value.expressiveModeEnabled
             ) {
                 AppNavigation()
 

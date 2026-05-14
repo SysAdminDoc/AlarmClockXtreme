@@ -8,6 +8,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -16,6 +17,33 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
 val LocalAccentColor = compositionLocalOf { AccentBlue }
+val LocalExpressiveMode = compositionLocalOf { false }
+
+data class AppShapeTokens(
+    val card: Shape,
+    val tile: Shape,
+    val chip: Shape,
+    val iconContainer: Shape,
+    val bottomNav: Shape
+)
+
+private val StandardShapeTokens = AppShapeTokens(
+    card = RoundedCornerShape(12.dp),
+    tile = RoundedCornerShape(10.dp),
+    chip = RoundedCornerShape(8.dp),
+    iconContainer = RoundedCornerShape(12.dp),
+    bottomNav = RoundedCornerShape(12.dp)
+)
+
+private val ExpressiveShapeTokens = AppShapeTokens(
+    card = RoundedCornerShape(16.dp),
+    tile = RoundedCornerShape(14.dp),
+    chip = RoundedCornerShape(10.dp),
+    iconContainer = RoundedCornerShape(16.dp),
+    bottomNav = RoundedCornerShape(18.dp)
+)
+
+val LocalAppShapeTokens = compositionLocalOf { StandardShapeTokens }
 
 private val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
@@ -23,6 +51,14 @@ private val AppShapes = Shapes(
     medium = RoundedCornerShape(10.dp),
     large = RoundedCornerShape(12.dp),
     extraLarge = RoundedCornerShape(12.dp)
+)
+
+private val ExpressiveMaterialShapes = Shapes(
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(14.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(18.dp)
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -53,6 +89,7 @@ private val DarkColorScheme = darkColorScheme(
 fun AlarmClockXtremeTheme(
     accentColorHex: String? = null,
     dynamicColor: Boolean = false,
+    expressiveMode: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
@@ -61,7 +98,7 @@ fun AlarmClockXtremeTheme(
     } else AccentBlue
 
     val supportsDynamic = dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val colorScheme = if (supportsDynamic) {
+    val baseColorScheme = if (supportsDynamic) {
         // Material You: derive the palette from the user's wallpaper. Keep the
         // app's deep-dark surfaces so the identity of the dark theme isn't lost.
         dynamicDarkColorScheme(context).copy(
@@ -76,7 +113,18 @@ fun AlarmClockXtremeTheme(
             surfaceTint = parsedAccent
         )
     }
-    val accent = if (supportsDynamic) colorScheme.primary else parsedAccent
+    val accent = if (supportsDynamic) baseColorScheme.primary else parsedAccent
+    val colorScheme = if (expressiveMode) {
+        baseColorScheme.copy(
+            secondary = SnoozeYellow,
+            tertiary = DismissGreen,
+            surfaceTint = accent
+        )
+    } else {
+        baseColorScheme
+    }
+    val materialShapes = if (expressiveMode) ExpressiveMaterialShapes else AppShapes
+    val appShapeTokens = if (expressiveMode) ExpressiveShapeTokens else StandardShapeTokens
 
     val view = LocalView.current
     if (!view.isInEditMode) {
@@ -106,11 +154,15 @@ fun AlarmClockXtremeTheme(
         }
     }
 
-    CompositionLocalProvider(LocalAccentColor provides accent) {
+    CompositionLocalProvider(
+        LocalAccentColor provides accent,
+        LocalExpressiveMode provides expressiveMode,
+        LocalAppShapeTokens provides appShapeTokens
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = AppTypography,
-            shapes = AppShapes,
+            shapes = materialShapes,
             content = content
         )
     }

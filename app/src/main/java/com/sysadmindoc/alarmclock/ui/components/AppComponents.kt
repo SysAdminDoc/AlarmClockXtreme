@@ -53,6 +53,7 @@ import com.sysadmindoc.alarmclock.ui.theme.BorderStrong
 import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
 import com.sysadmindoc.alarmclock.ui.theme.HeaderBottom
 import com.sysadmindoc.alarmclock.ui.theme.HeaderTop
+import com.sysadmindoc.alarmclock.ui.theme.LocalAppShapeTokens
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
@@ -198,6 +199,7 @@ fun AppSurfaceCard(
     contentPadding: PaddingValues = PaddingValues(18.dp),
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val shapeTokens = LocalAppShapeTokens.current
     // One container, one stroke, one soft sheen. The previous version stacked
     // a vertical white wash AND a radial accent on top of the base color,
     // which made cards feel busy and inconsistent on dark surfaces.
@@ -216,7 +218,7 @@ fun AppSurfaceCard(
         modifier = modifier.animateContentSize(
             animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
         ),
-        shape = AppCardShape,
+        shape = shapeTokens.card,
         border = BorderStroke(1.dp, borderColor),
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (highlighted) 3.dp else 0.dp
@@ -259,9 +261,10 @@ fun AppMetricTile(
     icon: ImageVector? = null,
     accent: Color = TextMuted
 ) {
+    val shapeTokens = LocalAppShapeTokens.current
     Column(
         modifier = modifier
-            .background(SurfaceLight, AppTileShape)
+            .background(SurfaceLight, shapeTokens.tile)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
@@ -339,12 +342,13 @@ fun AppStatusChip(
     icon: ImageVector? = null,
     color: Color = MaterialTheme.colorScheme.primary
 ) {
+    val shapeTokens = LocalAppShapeTokens.current
     // Slightly tighter, slightly more confident: subtler fill, color-matched
     // border (was hard-coded primary alpha), and SemiBold label so chips read
     // as deliberate metadata rather than free-floating UI clutter.
     Surface(
         modifier = modifier,
-        shape = AppChipShape,
+        shape = shapeTokens.chip,
         color = color.copy(alpha = 0.10f),
         border = BorderStroke(1.dp, color.copy(alpha = 0.22f)),
         tonalElevation = 0.dp
@@ -382,6 +386,7 @@ fun AppEmptyState(
     accent: Color = MaterialTheme.colorScheme.primary,
     footer: (@Composable ColumnScope.() -> Unit)? = null
 ) {
+    val shapeTokens = LocalAppShapeTokens.current
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -392,7 +397,7 @@ fun AppEmptyState(
         Box(
             modifier = Modifier
                 .size(76.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(shapeTokens.iconContainer)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
@@ -443,6 +448,7 @@ fun AppLoadingCard(
     modifier: Modifier = Modifier,
     height: Dp = 148.dp
 ) {
+    val shapeTokens = LocalAppShapeTokens.current
     val transition = rememberInfiniteTransition(label = "loading-card")
     val alpha by transition.animateFloat(
         initialValue = 0.42f,
@@ -464,7 +470,7 @@ fun AppLoadingCard(
                 .fillMaxWidth(0.32f)
                 .height(16.dp)
                 .alpha(alpha)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(shapeTokens.chip)
                 .background(SurfaceLight)
         )
         Spacer(
@@ -472,7 +478,7 @@ fun AppLoadingCard(
                 .fillMaxWidth(0.7f)
                 .height(40.dp)
                 .alpha(alpha)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(shapeTokens.tile)
                 .background(SurfaceLight)
         )
         Spacer(
@@ -480,7 +486,7 @@ fun AppLoadingCard(
                 .fillMaxWidth()
                 .height(11.dp)
                 .alpha(alpha)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(shapeTokens.chip)
                 .background(SurfaceLight)
         )
         Spacer(
@@ -488,7 +494,7 @@ fun AppLoadingCard(
                 .fillMaxWidth(0.78f)
                 .height(11.dp)
                 .alpha(alpha)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(shapeTokens.chip)
                 .background(SurfaceLight)
         )
     }
@@ -510,6 +516,7 @@ fun AppFilterChip(
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
 ) {
+    val shapeTokens = LocalAppShapeTokens.current
     val accent = MaterialTheme.colorScheme.primary
     val containerColor = if (selected) accent.copy(alpha = 0.16f) else SurfaceLight
     val borderColor = if (selected) accent.copy(alpha = 0.32f) else BorderSubtle
@@ -517,7 +524,7 @@ fun AppFilterChip(
 
     Surface(
         modifier = modifier,
-        shape = AppChipShape,
+        shape = shapeTokens.chip,
         color = containerColor,
         border = BorderStroke(1.dp, borderColor),
         tonalElevation = 0.dp,
@@ -624,12 +631,13 @@ fun BottomNavContainer(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
+    val shapeTokens = LocalAppShapeTokens.current
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = shapeTokens.bottomNav,
         color = SurfaceMedium,
         border = BorderStroke(1.dp, BorderSubtle),
         shadowElevation = 12.dp

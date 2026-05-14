@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.10.8** (changelog roadmap
-handoff; see [CHANGELOG.md](CHANGELOG.md)).
+Living feature backlog, refreshed alongside **v1.10.9** (Material 3
+Expressive opt-in; see [CHANGELOG.md](CHANGELOG.md)).
 
 This is the "what's left" companion to [CLAUDE.md](CLAUDE.md). Entries are
 ranked by impact-to-effort and grouped by theme.
@@ -16,7 +16,8 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (from prior tiers, kept here briefly): v1.10.8
+> **Recently shipped** (from prior tiers, kept here briefly): v1.10.9
+> Material 3 Expressive opt-in, v1.10.8
 > What's New dialog roadmap handoff, v1.10.7 wake-streak flame badge on
 > Stats, v1.10.6 first-meeting Calendar
 > auto-alarm refreshes and Settings controls, v1.10.5
@@ -47,20 +48,19 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.10.8)
+## Current snapshot (v1.10.9)
 
-- **Stack:** Kotlin 2.1, Compose / Material 3, Room v9, Hilt, Retrofit +
+- **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 / Material 3, Room v9, Hilt, Retrofit +
   Moshi (codegen), DataStore, Glance widgets, OkHttp, WorkManager, yt-dlp +
   NewPipe Extractor (Play flavor only).
-- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 51.
+- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 52.
 - **Surface area:** 118 Kotlin source files, two flavors (`play`, `fdroid`),
   19 dismiss challenges, 50+ alarm fields, 35+ AppSettings fields, 6 tabs
   (Today, Alarms, Bedtime, Timer, World, News) + Settings.
 - **What's missing vs. competitors:** Wear OS / Health Connect / standalone
   watch story is still zero; no on-device sleep-stage classifier; no AI
   sleep coach; no Live Updates progress notification; no lockscreen-widget
-  surface (Pixel-led Android 15+); no Material 3 Expressive components (Android 16+); no
-  no foldable/tablet adaptive layout.
+  surface (Pixel-led Android 15+); no foldable/tablet adaptive layout.
 
 ---
 
@@ -81,7 +81,7 @@ in their shipped notes.
 | N7 | [x] Calendar-aware first-meeting shift (alarm shifts earlier when first meeting moves) | Internal | S | Shipped in v1.10.6: Calendar auto-alarm now refreshes every 15 minutes while enabled, one-shot refreshes on app start / Settings changes, ignores all-day events, and exposes first-meeting + lead-time controls in Settings. |
 | N8 | [x] Wake-streak flame badge on the Stats tab | [Streaks](https://streaksapp.com/) / Duolingo | S | Shipped in v1.10.7: Stats now has a dedicated wake-streak flame badge with current/best streak, next-goal progress, and corrected streak math that stays alive through yesterday until today's alarm can fire. |
 | N9 | [x] Live changelog dialog gains a "what's next" link to this file | Internal | S | Shipped in v1.10.8: What's New now includes a What's next action that opens `ROADMAP.md` on GitHub, marks the dialog seen, and refreshes the release highlights to the current v1.10 work. |
-| N10 | Material 3 Expressive opt-in once stable on Compose BOM (Android 16) — bolder accent surfaces, expressive shape tokens | [Material 3 Expressive](https://m3.material.io/blog/material-3-expressive) | S | Expressive components are additive — wire behind a flag, ship when the BOM lands. |
+| N10 | [x] Material 3 Expressive opt-in once stable on Compose BOM (Android 16) — bolder accent surfaces, expressive shape tokens | [Material 3 Expressive](https://m3.material.io/blog/material-3-expressive) | S | Shipped in v1.10.9: updated to Compose BOM 2026.05.00 plus AGP 8.11.1 / Gradle 8.13, added an Expressive surfaces Settings toggle, and routed shared cards, chips, tiles, skeletons, bottom navigation, and alarm-list cards through opt-in expressive shape tokens. |
 | N11 | `Notification.ProgressStyle` "Live Updates" for the persistent next-alarm notification on Android 16+ | [Android 16 Live Updates](https://developer.android.com/about/versions/16/features#progress-centric-notifications) | S | Today's persistent notification is a static line — turning it into a progress bar that ticks down to fire-time is a free upgrade on supported OSes. |
 
 ## NEXT — v1.11 candidates
