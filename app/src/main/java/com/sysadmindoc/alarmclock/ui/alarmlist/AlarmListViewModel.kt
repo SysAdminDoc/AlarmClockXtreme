@@ -177,6 +177,7 @@ class AlarmListViewModel @Inject constructor(
                 scheduler.cancel(id)
                 repository.getById(id)?.let { repository.delete(it) }
             }
+            scheduler.syncBedtimeDndRule()
             clearSelection()
             if (ids.isNotEmpty()) {
                 emitFeedback(
@@ -222,6 +223,7 @@ class AlarmListViewModel @Inject constructor(
                 repository.setEnabled(id, enabled = false, nextTrigger = 0)
                 scheduler.cancel(id)
             }
+            scheduler.syncBedtimeDndRule()
             clearSelection()
             if (ids.isNotEmpty()) {
                 emitFeedback(
@@ -246,6 +248,7 @@ class AlarmListViewModel @Inject constructor(
             } else {
                 repository.setEnabled(alarm.id, enabled = false, nextTrigger = 0)
                 scheduler.cancel(alarm.id)
+                scheduler.syncBedtimeDndRule()
                 emitFeedback("Alarm paused")
             }
         }
@@ -255,6 +258,7 @@ class AlarmListViewModel @Inject constructor(
         viewModelScope.launch {
             scheduler.cancel(alarm.id)
             repository.delete(alarm)
+            scheduler.syncBedtimeDndRule()
             _undoAlarm.value = alarm
         }
     }
