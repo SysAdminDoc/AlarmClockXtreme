@@ -2,6 +2,32 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.9] - 2026-05-14
+
+Material 3 Expressive opt-in. No schema changes.
+
+### Added — expressive personalization
+
+- Added an **Expressive surfaces** toggle in Settings so users can opt into a
+  bolder Material 3 shape rhythm without changing the default app look.
+- Added theme-level expressive shape tokens for shared cards, chips, tiles,
+  loading skeletons, empty-state icon containers, bottom navigation, and the
+  main alarm-list cards.
+
+### Changed — platform polish
+
+- Updated the Compose BOM to `2026.05.00`, aligning the app with the stable
+  Material 3 1.4.0 release that includes Material 3 Expressive APIs.
+- Updated the Android Gradle Plugin to `8.11.1` and the Gradle wrapper to
+  `8.13` so the newer Compose lint artifacts run on a compatible lint stack.
+- Preserved the expressive setting through DataStore and JSON/encrypted
+  backups so visual preferences survive restore flows.
+
+### Internal
+
+- Bumped to `versionName = "1.10.9"`, `versionCode = 52`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.10.8] - 2026-05-14
 
 Changelog roadmap handoff. No schema changes.

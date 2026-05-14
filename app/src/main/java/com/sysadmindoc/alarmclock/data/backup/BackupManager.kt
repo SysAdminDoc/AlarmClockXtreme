@@ -130,6 +130,7 @@ data class SettingsBackup(
     val showMotivationalQuotes: Boolean = true,
     // v1.4.0 settings
     val dynamicColorEnabled: Boolean = false,
+    val expressiveModeEnabled: Boolean = false,
     val coverToSnoozeEnabled: Boolean = false,
     val bedtimeChecklist: String = "",
     val sleepSoundTimerMinutes: Int = 0,
@@ -197,6 +198,7 @@ class BackupManager @Inject constructor(
                 nightClockEnabled = settings.nightClockEnabled,
                 showMotivationalQuotes = settings.showMotivationalQuotes,
                 dynamicColorEnabled = settings.dynamicColorEnabled,
+                expressiveModeEnabled = settings.expressiveModeEnabled,
                 coverToSnoozeEnabled = settings.coverToSnoozeEnabled,
                 bedtimeChecklist = settings.bedtimeChecklist,
                 sleepSoundTimerMinutes = settings.sleepSoundTimerMinutes,
@@ -340,6 +342,7 @@ class BackupManager @Inject constructor(
                         nightClockEnabled = s.nightClockEnabled,
                         showMotivationalQuotes = s.showMotivationalQuotes,
                         dynamicColorEnabled = s.dynamicColorEnabled,
+                        expressiveModeEnabled = s.expressiveModeEnabled,
                         coverToSnoozeEnabled = s.coverToSnoozeEnabled,
                         bedtimeChecklist = s.bedtimeChecklist,
                         sleepSoundTimerMinutes = s.sleepSoundTimerMinutes,
