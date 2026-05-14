@@ -2,6 +2,27 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.0] - 2026-05-14
+
+Boot reschedule hardening. No schema changes.
+
+### Fixed — boot reliability
+
+- Moved boot, package-replaced, and clock-change alarm rescheduling out of
+  `BootReceiver` and into a unique expedited WorkManager job so large alarm
+  libraries are not constrained by the broadcast receiver ANR window.
+- Added batched alarm rescheduling with one final widget refresh, avoiding a
+  widget update after every individual AlarmManager registration for users with
+  dozens of enabled alarms.
+- Preserved force-recalculation semantics for time, timezone, and date changes
+  while keeping boot/package-replaced paths on the existing future trigger when
+  it is still valid.
+
+### Internal
+
+- Bumped to `versionName = "1.10.0"`, `versionCode = 43`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.9.5] - 2026-05-13
 
 Premium settings trust pass. No schema changes.

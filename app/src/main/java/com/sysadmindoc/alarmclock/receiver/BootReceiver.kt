@@ -3,15 +3,12 @@ package com.sysadmindoc.alarmclock.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.sysadmindoc.alarmclock.domain.AlarmScheduler
-import dagger.hilt.android.AndroidEntryPoint
+import android.util.Log
+import com.sysadmindoc.alarmclock.worker.BootRescheduleWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeout
-import javax.inject.Inject
 
 /**
  * Reschedules all enabled alarms after device boot, app update, or a clock
@@ -30,12 +27,13 @@ import javax.inject.Inject
  * Android versions — a 30-second timeout could trip ANR before the
  * timeout fires. 8 seconds leaves headroom while still comfortably
  * covering realistic schedules.
+ *
+ * v1.10.0: Receiver work is now limited to quick state cleanup and enqueueing
+ * [BootRescheduleWorker]. The actual alarm batch runs in WorkManager, outside
+ * the receiver ANR window, so users with large alarm libraries are not racing
+ * an 8-second broadcast timeout at boot.
  */
-@AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
-
-    @Inject
-    lateinit var alarmScheduler: AlarmScheduler
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
@@ -46,38 +44,33 @@ class BootReceiver : BroadcastReceiver() {
             action != Intent.ACTION_DATE_CHANGED) return
 
         val appContext = context.applicationContext
-
-        // v1.5.1: A reboot invalidates the "user will unlock any second now"
-        // semantics of repeat-missed-alarm. Clear the state so the receiver
-        // doesn't fire a stale miss after the user pressed the power button
-        // deliberately.
-        if (action == Intent.ACTION_BOOT_COMPLETED ||
-            action == Intent.ACTION_MY_PACKAGE_REPLACED) {
-            try {
-                appContext.getSharedPreferences("missed_alarm_state", Context.MODE_PRIVATE)
-                    .edit().clear().apply()
-            } catch (_: Exception) {
-                // Prefs backup failure isn't fatal — swallow and continue.
-            }
-        }
-
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
+                // v1.5.1: A reboot invalidates the "user will unlock any second now"
+                // semantics of repeat-missed-alarm. Clear the state so the receiver
+                // doesn't fire a stale miss after the user pressed the power button
+                // deliberately.
+                if (action == Intent.ACTION_BOOT_COMPLETED ||
+                    action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+                    try {
+                        appContext.getSharedPreferences("missed_alarm_state", Context.MODE_PRIVATE)
+                            .edit().clear().apply()
+                    } catch (_: Exception) {
+                        // Prefs backup failure isn't fatal — continue to reschedule.
+                    }
+                }
+
                 val forceRecalculate = action == Intent.ACTION_TIME_CHANGED ||
                     action == Intent.ACTION_TIMEZONE_CHANGED ||
                     action == Intent.ACTION_DATE_CHANGED
-                // v1.5.4: Enforce a reasonable ceiling. rescheduleAll() is
-                // typically sub-second, but a corrupt DB page has been seen
-                // to hang it. 8 s is safely under the ~10 s goAsync ANR
-                // ceiling and long enough for any realistic schedule.
-                withTimeout(8_000L) {
-                    alarmScheduler.rescheduleAll(forceRecalculate = forceRecalculate)
-                }
-            } catch (e: TimeoutCancellationException) {
-                android.util.Log.e("BootReceiver", "Timed out rescheduling alarms", e)
+                BootRescheduleWorker.enqueue(
+                    context = appContext,
+                    sourceAction = action,
+                    forceRecalculate = forceRecalculate
+                )
             } catch (e: Exception) {
-                android.util.Log.e("BootReceiver", "Failed to reschedule alarms", e)
+                Log.e("BootReceiver", "Failed to enqueue alarm reschedule", e)
             } finally {
                 pendingResult.finish()
             }
