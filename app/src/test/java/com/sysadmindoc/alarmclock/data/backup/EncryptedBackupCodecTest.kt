@@ -9,7 +9,7 @@ class EncryptedBackupCodecTest {
 
     @Test
     fun encryptedBackupRoundTripRestoresPlainJson() {
-        val plainJson = """{"version":5,"alarms":[{"label":"Gym"}],"settings":null}"""
+        val plainJson = """{"version":6,"alarms":[{"label":"Gym"}],"settings":null}"""
 
         val encrypted = EncryptedBackupCodec.encrypt(plainJson, "correct horse battery staple")
         val decrypted = EncryptedBackupCodec.decrypt(encrypted, "correct horse battery staple")
@@ -22,7 +22,7 @@ class EncryptedBackupCodecTest {
 
     @Test
     fun wrongPassphraseCannotDecryptBackup() {
-        val encrypted = EncryptedBackupCodec.encrypt("""{"version":5}""", "right passphrase")
+        val encrypted = EncryptedBackupCodec.encrypt("""{"version":6}""", "right passphrase")
 
         val result = runCatching {
             EncryptedBackupCodec.decrypt(encrypted, "wrong passphrase")
@@ -35,7 +35,7 @@ class EncryptedBackupCodecTest {
     fun missingPassphraseIsRejectedBeforeEncryption() {
         assertTrue(
             runCatching {
-                EncryptedBackupCodec.encrypt("""{"version":5}""", "   ")
+                EncryptedBackupCodec.encrypt("""{"version":6}""", "   ")
             }.isFailure
         )
     }
