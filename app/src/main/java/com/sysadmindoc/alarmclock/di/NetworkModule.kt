@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.di
 
+import com.sysadmindoc.alarmclock.data.remote.AirQualityApi
 import com.sysadmindoc.alarmclock.data.remote.GeocodingApi
 import com.sysadmindoc.alarmclock.data.remote.HolidayApi
 import com.sysadmindoc.alarmclock.data.remote.WeatherAlertsApi
@@ -40,6 +41,17 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(WeatherApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAirQualityApi(moshi: Moshi, client: OkHttpClient): AirQualityApi {
+        return Retrofit.Builder()
+            .baseUrl("https://air-quality-api.open-meteo.com/")
+            .client(client)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+            .create(AirQualityApi::class.java)
     }
 
     @Provides
