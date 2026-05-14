@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -60,6 +61,11 @@ class MainActivity : ComponentActivity() {
                     WhatsNewDialog(
                         version = BuildConfig.VERSION_NAME,
                         highlights = WHATS_NEW_HIGHLIGHTS,
+                        onOpenRoadmap = {
+                            dialogVisible = false
+                            WhatsNewTracker.markShown(this@MainActivity, BuildConfig.VERSION_CODE)
+                            openRoadmap()
+                        },
                         onDismiss = {
                             dialogVisible = false
                             WhatsNewTracker.markShown(this@MainActivity, BuildConfig.VERSION_CODE)
@@ -68,6 +74,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun openRoadmap() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(ROADMAP_URL))
+        runCatching { startActivity(intent) }
+            .onFailure {
+                Toast.makeText(
+                    this,
+                    "Unable to open the roadmap link.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -114,6 +132,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val KEY_LAST_HANDLED_SHARE_TOKEN = "last_handled_share_token"
+        private const val ROADMAP_URL = "https://github.com/SysAdminDoc/AlarmClockXtreme/blob/main/ROADMAP.md"
 
         /**
          * Terse highlights for the "What's new" dialog — a half-dozen
@@ -123,12 +142,12 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "New Weather hub with a live animated radar from Windy — auto-centered on your location.",
-            "New News tab — public RSS headlines from Google News, BBC, NPR, and Hacker News. No accounts, no tracking.",
-            "Pull down on News to refresh, with skeleton placeholders so first-paint feels instant.",
-            "Bottom navigation reworked for six tabs — selected tab carries its label, others stay clean and iconic.",
-            "Download alarm sounds from YouTube — search or paste a URL, preview before saving.",
-            "Premium-polish pass across cards, chips, empty states, and microcopy."
+            "Stats now has a wake-streak flame badge with best streak and next-goal progress.",
+            "Calendar auto-alarm now shifts when tomorrow's first timed meeting moves.",
+            "Bedtime can own an alarms-only Do Not Disturb rule for your sleep window.",
+            "New Don't wake partner preset mutes alarm audio while keeping haptic wake cues.",
+            "Optional Hold to dismiss adds a 1.5-second confirmation before final dismissal.",
+            "Long-press Snooze on the firing screen to pick an exact snooze length."
         )
     }
 }
