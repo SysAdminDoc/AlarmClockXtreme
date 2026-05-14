@@ -17,10 +17,64 @@ data class AlarmStats(
     val averageDismissTimeSec: Int = 0,
     val snoozeRate: Int = 0,             // Percentage of alarms that got snoozed
     val currentStreak: Int = 0,          // Consecutive days with dismissed alarm
+    val bestStreak: Int = 0,
+    val streakIncludesToday: Boolean = false,
+    val nextStreakGoal: Int = 3,
     val alarmsThisWeek: Int = 0,
     val dayOfWeekCounts: Map<DayOfWeek, Int> = emptyMap(),
     val dayOfWeekAvgResponseSec: Map<DayOfWeek, Int> = emptyMap()
 )
+
+data class WakeStreakSummary(
+    val currentDays: Int = 0,
+    val bestDays: Int = 0,
+    val includesToday: Boolean = false,
+    val nextGoal: Int = 3
+)
+
+internal object WakeStreakCalculator {
+    private val formatter = DateTimeFormatter.ISO_LOCAL_DATE
+    private val goals = listOf(3, 7, 14, 30, 60, 100)
+
+    fun calculate(dateStrings: List<String>, today: LocalDate = LocalDate.now()): WakeStreakSummary {
+        val dates = dateStrings
+            .mapNotNull { runCatching { LocalDate.parse(it, formatter) }.getOrNull() }
+            .distinct()
+            .sortedDescending()
+        if (dates.isEmpty()) return WakeStreakSummary()
+
+        val includesToday = today in dates
+        var expected = if (includesToday) today else today.minusDays(1)
+        var current = 0
+
+        for (date in dates) {
+            if (date.isAfter(expected)) continue
+            if (date == expected) {
+                current++
+                expected = expected.minusDays(1)
+            } else if (date.isBefore(expected)) {
+                break
+            }
+        }
+
+        var best = 0
+        var run = 0
+        var previous: LocalDate? = null
+        dates.sorted().forEach { date ->
+            run = if (previous == null || date == previous?.plusDays(1)) run + 1 else 1
+            best = maxOf(best, run)
+            previous = date
+        }
+
+        val nextGoal = goals.firstOrNull { it > current } ?: (((current / 50) + 1) * 50)
+        return WakeStreakSummary(
+            currentDays = current,
+            bestDays = best,
+            includesToday = includesToday,
+            nextGoal = nextGoal
+        )
+    }
+}
 
 @Singleton
 class AlarmEventRepository @Inject constructor(
@@ -51,9 +105,10 @@ class AlarmEventRepository @Inject constructor(
             .filter { it.dayOfWeek in 1..7 }
             .associate { DayOfWeek.of(it.dayOfWeek) to (it.avgMs / 1000).toInt() }
 
-        // Streak calculation
+        // Streak calculation. A streak remains alive through yesterday so the
+        // badge does not reset before today's alarm has had a chance to fire.
         val dates = dao.dismissDates()
-        val streak = calculateStreak(dates)
+        val streak = WakeStreakCalculator.calculate(dates)
 
         return AlarmStats(
             totalDismissed = dismissed,
@@ -62,7 +117,10 @@ class AlarmEventRepository @Inject constructor(
             totalMissed = missed,
             averageDismissTimeSec = (avgDismissMs / 1000).toInt(),
             snoozeRate = if (total > 0) (withSnooze * 100 / total).coerceIn(0, 100) else 0,
-            currentStreak = streak,
+            currentStreak = streak.currentDays,
+            bestStreak = streak.bestDays,
+            streakIncludesToday = streak.includesToday,
+            nextStreakGoal = streak.nextGoal,
             alarmsThisWeek = thisWeek,
             dayOfWeekCounts = dowCounts,
             dayOfWeekAvgResponseSec = dowAvg
@@ -70,24 +128,4 @@ class AlarmEventRepository @Inject constructor(
     }
 
     suspend fun clearHistory() = dao.deleteAll()
-
-    private fun calculateStreak(dateStrings: List<String>): Int {
-        if (dateStrings.isEmpty()) return 0
-        val formatter = DateTimeFormatter.ISO_LOCAL_DATE
-        var streak = 0
-        var expected = LocalDate.now()
-
-        for (dateStr in dateStrings) {
-            try {
-                val date = LocalDate.parse(dateStr, formatter)
-                if (date == expected) {
-                    streak++
-                    expected = expected.minusDays(1)
-                } else if (date.isBefore(expected)) {
-                    break
-                }
-            } catch (_: Exception) { break }
-        }
-        return streak
-    }
 }
