@@ -75,12 +75,14 @@ data class AlarmBackup(
     val ringtonePool: String = "",
     // v1.5.0 fields
     val solarOffsetMinutes: Int = 0,
-    val solarAnchor: String = "SUNRISE"
+    val solarAnchor: String = "SUNRISE",
+    // v1.10.3 fields
+    val holdToDismissEnabled: Boolean = false
 )
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 5,
+    val version: Int = 6,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -148,7 +150,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 5
+        const val MAX_SUPPORTED_BACKUP_VERSION = 6
     }
 
     suspend fun export(): String {

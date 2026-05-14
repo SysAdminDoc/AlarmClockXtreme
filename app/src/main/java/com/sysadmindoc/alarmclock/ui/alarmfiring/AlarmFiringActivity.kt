@@ -463,7 +463,14 @@ class AlarmFiringActivity : ComponentActivity() {
             KeyEvent.KEYCODE_CAMERA -> {
                 when (action) {
                     "SNOOZE" -> snooze()
-                    "DISMISS" -> if (viewModel.uiState.value.canDismiss) dismiss() else snooze()
+                    "DISMISS" -> {
+                        val state = viewModel.uiState.value
+                        if (state.canDismiss && state.alarm?.holdToDismissEnabled != true) {
+                            dismiss()
+                        } else {
+                            snooze()
+                        }
+                    }
                 }
                 true
             }
