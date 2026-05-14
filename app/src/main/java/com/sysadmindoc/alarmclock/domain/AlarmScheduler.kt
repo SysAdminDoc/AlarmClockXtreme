@@ -17,6 +17,7 @@ import com.sysadmindoc.alarmclock.service.SmartAlarmService
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
 import com.sysadmindoc.alarmclock.worker.HueSunriseWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.yield
 import java.time.Instant
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
@@ -42,7 +43,7 @@ class AlarmScheduler @Inject constructor(
      * Checks vacation mode and holiday skip before scheduling.
      * Also starts SmartAlarmService window and enqueues HueSunriseWorker if enabled.
      */
-    suspend fun schedule(alarm: Alarm) {
+    suspend fun schedule(alarm: Alarm, requestWidgetUpdate: Boolean = true) {
         val sanitizedAlarm = alarm.sanitized()
         if (!sanitizedAlarm.isEnabled) {
             cancel(sanitizedAlarm.id)
@@ -52,7 +53,7 @@ class AlarmScheduler @Inject constructor(
         if (!canScheduleExactAlarms()) {
             cancelScheduledEntries(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
-            WidgetUpdater.requestUpdate(context)
+            requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return
         }
 
@@ -60,7 +61,7 @@ class AlarmScheduler @Inject constructor(
         if (triggerTime <= System.currentTimeMillis()) {
             cancelScheduledEntries(sanitizedAlarm.id)
             repository.setEnabled(sanitizedAlarm.id, enabled = false, nextTrigger = 0)
-            WidgetUpdater.requestUpdate(context)
+            requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return
         }
         val settings = preferencesManager.getCurrentSettings()
@@ -84,7 +85,7 @@ class AlarmScheduler @Inject constructor(
                 if (holidayRepository.isHoliday(triggerDate)) {
                     cancelScheduledEntries(sanitizedAlarm.id)
                     repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
-                    WidgetUpdater.requestUpdate(context)
+                    requestWidgetUpdateIfNeeded(requestWidgetUpdate)
                     return
                 }
             } else {
@@ -110,7 +111,7 @@ class AlarmScheduler @Inject constructor(
                     if (holidayRepository.isHoliday(finalDate)) {
                         cancelScheduledEntries(sanitizedAlarm.id)
                         repository.updateNextTrigger(sanitizedAlarm.id, 0)
-                        WidgetUpdater.requestUpdate(context)
+                        requestWidgetUpdateIfNeeded(requestWidgetUpdate)
                         return
                     }
                 }
@@ -120,7 +121,7 @@ class AlarmScheduler @Inject constructor(
         repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
         scheduleAlarmClock(sanitizedAlarm.id, triggerTime)
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
-        WidgetUpdater.requestUpdate(context)
+        requestWidgetUpdateIfNeeded(requestWidgetUpdate)
     }
 
     /**
@@ -147,19 +148,23 @@ class AlarmScheduler @Inject constructor(
      * Register a precomputed trigger time without recalculating it.
      * Useful for snooze, skip-next, quick alarms, and restored exact alarms.
      */
-    suspend fun scheduleAt(alarm: Alarm, triggerTime: Long) {
+    suspend fun scheduleAt(
+        alarm: Alarm,
+        triggerTime: Long,
+        requestWidgetUpdate: Boolean = true
+    ) {
         val sanitizedAlarm = alarm.sanitized()
         if (!canScheduleExactAlarms()) {
             cancelScheduledEntries(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
-            WidgetUpdater.requestUpdate(context)
+            requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return
         }
 
         repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
         scheduleAlarmClock(sanitizedAlarm.id, triggerTime)
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
-        WidgetUpdater.requestUpdate(context)
+        requestWidgetUpdateIfNeeded(requestWidgetUpdate)
     }
 
     /**
@@ -168,27 +173,56 @@ class AlarmScheduler @Inject constructor(
      * to avoid undoing user actions.
      */
     suspend fun rescheduleAll(forceRecalculate: Boolean = false) {
+        rescheduleAllInBatches(forceRecalculate = forceRecalculate)
+    }
+
+    /**
+     * Reschedule enabled alarms in batches so WorkManager recovery paths can
+     * handle large alarm libraries without receiver ANRs or redundant widget
+     * refreshes after every single AlarmManager registration.
+     *
+     * @return number of enabled alarms processed.
+     */
+    suspend fun rescheduleAllInBatches(
+        forceRecalculate: Boolean = false,
+        batchSize: Int = 25
+    ): Int {
         val now = System.currentTimeMillis()
-        repository.getEnabled().forEach { alarm ->
-            if (!forceRecalculate && alarm.nextTriggerTime > now) {
-                // Existing future trigger is still valid - just re-register with AlarmManager
-                scheduleExistingTrigger(alarm, alarm.nextTriggerTime)
-            } else {
-                // Needs recalculation (past or unset trigger time)
-                schedule(alarm)
+        val enabledAlarms = repository.getEnabled()
+        val safeBatchSize = batchSize.coerceAtLeast(1)
+        enabledAlarms.chunked(safeBatchSize).forEach { batch ->
+            batch.forEach { alarm ->
+                if (!forceRecalculate && alarm.nextTriggerTime > now) {
+                    // Existing future trigger is still valid - just re-register with AlarmManager
+                    scheduleExistingTrigger(
+                        alarm = alarm,
+                        triggerTime = alarm.nextTriggerTime,
+                        requestWidgetUpdate = false
+                    )
+                } else {
+                    // Needs recalculation (past or unset trigger time)
+                    schedule(alarm, requestWidgetUpdate = false)
+                }
             }
+            yield()
         }
+        WidgetUpdater.requestUpdate(context)
+        return enabledAlarms.size
     }
 
     /**
      * Internal helper to schedule with AlarmManager at a specific time without recalculating.
      */
-    private suspend fun scheduleExistingTrigger(alarm: Alarm, triggerTime: Long) {
+    private suspend fun scheduleExistingTrigger(
+        alarm: Alarm,
+        triggerTime: Long,
+        requestWidgetUpdate: Boolean = true
+    ) {
         val sanitizedAlarm = alarm.sanitized()
         if (!canScheduleExactAlarms()) {
             cancelScheduledEntries(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
-            WidgetUpdater.requestUpdate(context)
+            requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return
         }
 
@@ -200,7 +234,11 @@ class AlarmScheduler @Inject constructor(
             calculateFrom = calculator::calculate
         )
 
-        scheduleAt(sanitizedAlarm, vacationAdjustment.triggerTime)
+        scheduleAt(
+            alarm = sanitizedAlarm,
+            triggerTime = vacationAdjustment.triggerTime,
+            requestWidgetUpdate = requestWidgetUpdate
+        )
     }
 
     /**
@@ -224,6 +262,12 @@ class AlarmScheduler @Inject constructor(
             alarmManager.canScheduleExactAlarms()
         } else {
             true
+        }
+    }
+
+    private fun requestWidgetUpdateIfNeeded(requestWidgetUpdate: Boolean) {
+        if (requestWidgetUpdate) {
+            WidgetUpdater.requestUpdate(context)
         }
     }
 
