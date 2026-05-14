@@ -1,7 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// AlarmClockXtreme v1.10.10
+// AlarmClockXtreme v1.11.0
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 35
-        versionCode = 53
-        versionName = "1.10.10"
+        versionCode = 54
+        versionName = "1.11.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -71,9 +71,11 @@ android {
     productFlavors {
         create("play") {
             dimension = "distribution"
+            manifestPlaceholders["wearActionBridgeEnabled"] = "true"
         }
         create("fdroid") {
             dimension = "distribution"
+            manifestPlaceholders["wearActionBridgeEnabled"] = "false"
         }
     }
 
@@ -177,6 +179,9 @@ dependencies {
     // to the same v0.24.8 Aura uses; jitpack repo declared in
     // settings.gradle.kts.
     "playImplementation"("com.github.teamnewpipe:NewPipeExtractor:v0.24.8")
+    // Wear OS Data Layer bridge (play flavor only). F-Droid keeps the wearable
+    // bridge as a no-op because Play Services is proprietary.
+    "playImplementation"("com.google.android.gms:play-services-wearable:20.0.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

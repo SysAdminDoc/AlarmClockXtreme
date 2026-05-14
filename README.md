@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.10.10-blue)
+![Version](https://img.shields.io/badge/version-1.11.0-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,10 +15,10 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.10.10-play.apk
+adb install AlarmClockXtreme-v1.11.0-play.apk
 ```
 
-The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor). The F-Droid flavor strips that downloader for an unencumbered build.
+The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor) and the Wear OS Data Layer bridge. The F-Droid flavor strips those proprietary pieces for an unencumbered build.
 
 ## Build From Source
 
@@ -27,6 +27,8 @@ git clone https://github.com/SysAdminDoc/AlarmClockXtreme.git
 cd AlarmClockXtreme
 ./gradlew assemblePlayDebug
 # Install: adb install app/build/outputs/apk/play/debug/app-play-debug.apk
+./gradlew :wear:assembleDebug
+# Wear tile: install wear/build/outputs/apk/debug/wear-debug.apk on a paired Wear OS watch
 ```
 
 **Requirements:** Android Studio Narwhal+ or the included Gradle wrapper, JDK 17, Android SDK 36
@@ -49,6 +51,7 @@ cd AlarmClockXtreme
 | Shareable Alarms | Share a single alarm as an `acx://alarm?data=` link; imports are disabled until reviewed |
 | Early Dismiss | Skip upcoming alarm from the persistent notification |
 | Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
+| Wear OS Tile | Shows the next alarm on the watch, with skip controls before fire and snooze/dismiss controls while ringing |
 
 ### Dismiss Challenges (19 Types)
 | Challenge | Description |

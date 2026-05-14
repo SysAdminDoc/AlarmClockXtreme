@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AlarmClockXtreme</string>
+    <string name="wear_tile_label">Next alarm</string>
+    <string name="wear_tile_description">Shows the next AlarmClockXtreme alarm and offers watch-side skip, snooze, and dismiss controls.</string>
+</resources>
