@@ -60,6 +60,7 @@ class AlarmTest {
         assertEquals(100, alarm.volume)
         assertEquals(10, alarm.snoozeDurationMinutes)
         assertEquals("NONE", alarm.challengeType)
+        assertFalse(alarm.holdToDismissEnabled)
     }
 
     @Test

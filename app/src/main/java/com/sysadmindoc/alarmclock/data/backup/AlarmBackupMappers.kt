@@ -61,7 +61,8 @@ fun Alarm.toAlarmBackup(): AlarmBackup {
         dismissAtRingtoneEnd = dismissAtRingtoneEnd,
         ringtonePool = ringtonePool,
         solarOffsetMinutes = solarOffsetMinutes,
-        solarAnchor = solarAnchor
+        solarAnchor = solarAnchor,
+        holdToDismissEnabled = holdToDismissEnabled
     )
 }
 
@@ -125,7 +126,8 @@ fun AlarmBackup.toAlarmOrNull(): Alarm? {
             dismissAtRingtoneEnd = dismissAtRingtoneEnd,
             ringtonePool = ringtonePool,
             solarOffsetMinutes = solarOffsetMinutes,
-            solarAnchor = solarAnchor
+            solarAnchor = solarAnchor,
+            holdToDismissEnabled = holdToDismissEnabled
         ).sanitized()
     }.getOrNull()
 }

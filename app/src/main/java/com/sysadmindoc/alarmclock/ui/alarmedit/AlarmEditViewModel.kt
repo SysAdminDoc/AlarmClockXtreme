@@ -89,6 +89,8 @@ data class AlarmEditUiState(
     val hardwareButtonAction: String = "NONE",
     // v1.4.0: Auto-dismiss when the chosen ringtone finishes naturally
     val dismissAtRingtoneEnd: Boolean = false,
+    // v1.10.3: Require a deliberate hold before dismiss on the firing screen
+    val holdToDismissEnabled: Boolean = false,
     // v1.4.0: Random ringtone pool (comma-separated URIs)
     val ringtonePool: String = "",
     // v1.5.0: Sunrise/sunset-relative firing (minutes offset; 0 = use fixed time)
@@ -176,6 +178,7 @@ class AlarmEditViewModel @Inject constructor(
                         morningRoutine = alarm.morningRoutine,
                         hardwareButtonAction = alarm.hardwareButtonAction,
                         dismissAtRingtoneEnd = alarm.dismissAtRingtoneEnd,
+                        holdToDismissEnabled = alarm.holdToDismissEnabled,
                         ringtonePool = alarm.ringtonePool,
                         solarOffsetMinutes = alarm.solarOffsetMinutes,
                         solarAnchor = alarm.solarAnchor
@@ -335,6 +338,9 @@ class AlarmEditViewModel @Inject constructor(
     fun updateDismissAtRingtoneEnd(enabled: Boolean) {
         _uiState.value = _uiState.value.copy(dismissAtRingtoneEnd = enabled)
     }
+    fun updateHoldToDismiss(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(holdToDismissEnabled = enabled)
+    }
     fun updateRingtonePool(pool: String) {
         // Normalise: trim each URI, drop blanks, dedupe while preserving order.
         val cleaned = pool.split(",")
@@ -435,6 +441,7 @@ class AlarmEditViewModel @Inject constructor(
                 morningRoutine = s.morningRoutine,
                 hardwareButtonAction = s.hardwareButtonAction,
                 dismissAtRingtoneEnd = s.dismissAtRingtoneEnd,
+                holdToDismissEnabled = s.holdToDismissEnabled,
                 ringtonePool = s.ringtonePool,
                 solarOffsetMinutes = s.solarOffsetMinutes,
                 solarAnchor = s.solarAnchor

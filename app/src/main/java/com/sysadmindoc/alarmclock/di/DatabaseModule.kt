@@ -32,6 +32,7 @@ object DatabaseModule {
                 AlarmDatabase.MIGRATION_5_6,
                 AlarmDatabase.MIGRATION_6_7,
                 AlarmDatabase.MIGRATION_7_8,
+                AlarmDatabase.MIGRATION_8_9,
             )
             .build()
     }
