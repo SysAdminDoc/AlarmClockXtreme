@@ -36,4 +36,25 @@ class NextAlarmNotificationTimingTest {
 
         assertEquals(0L, NextAlarmNotificationTiming.millisUntilNextRefresh(now, trigger))
     }
+
+    @Test
+    fun liveUpdateStartsOnlyInsideTwoHourWindow() {
+        val now = 1_000_000L
+
+        assertEquals(false, NextAlarmNotificationTiming.shouldUseLiveUpdate(now, now + 3 * 60 * 60_000L))
+        assertEquals(true, NextAlarmNotificationTiming.shouldUseLiveUpdate(now, now + 2 * 60 * 60_000L))
+        assertEquals(false, NextAlarmNotificationTiming.shouldUseLiveUpdate(now, now))
+    }
+
+    @Test
+    fun liveUpdateProgressCountsTowardFireTime() {
+        val now = 1_000_000L
+        val twoHours = now + 2 * 60 * 60_000L
+        val oneHour = now + 60 * 60_000L
+        val nowTrigger = now
+
+        assertEquals(0, NextAlarmNotificationTiming.liveUpdateProgress(now, twoHours))
+        assertEquals(500, NextAlarmNotificationTiming.liveUpdateProgress(now, oneHour))
+        assertEquals(NextAlarmNotificationTiming.LIVE_UPDATE_PROGRESS_MAX, NextAlarmNotificationTiming.liveUpdateProgress(now, nowTrigger))
+    }
 }

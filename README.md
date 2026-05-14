@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.10.9-blue)
+![Version](https://img.shields.io/badge/version-1.10.10-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.10.9-play.apk
+adb install AlarmClockXtreme-v1.10.10-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor). The F-Droid flavor strips that downloader for an unencumbered build.
@@ -29,7 +29,7 @@ cd AlarmClockXtreme
 # Install: adb install app/build/outputs/apk/play/debug/app-play-debug.apk
 ```
 
-**Requirements:** Android Studio Narwhal+ or the included Gradle wrapper, JDK 17, Android SDK 35
+**Requirements:** Android Studio Narwhal+ or the included Gradle wrapper, JDK 17, Android SDK 36
 
 ## Features
 
@@ -139,7 +139,7 @@ cd AlarmClockXtreme
 | Statistics | Wake-streak flame badge, snooze rate, day-of-week breakdown, response times, searchable alarm history |
 | Night Clock | Always-on bedside display with minimal brightness |
 | Home Widget | Glance-based widget showing next alarm countdown |
-| Persistent Notification | Always-visible next alarm countdown in shade |
+| Persistent Notification | Always-visible next alarm countdown in shade, with Android 16 Live Update progress during the final two hours |
 | Quick Settings Tile | Skip the next alarm from the system shade with one tap |
 | Tab Visibility Toggles | Hide Weather / Timer / World / News tabs from the bottom nav (Alarms + Settings always visible) |
 | Accent Color | Customizable accent color within dark theme |
