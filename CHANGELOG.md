@@ -2,6 +2,30 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.7] - 2026-05-14
+
+Wake-streak badge. No schema changes.
+
+### Added — Stats motivation
+
+- Added a dedicated **Wake streak** flame badge card on the Stats tab with the
+  active streak, best streak, and next milestone progress.
+- Updated Stats hero and mini-card labels so streak state reads as a wake habit
+  signal instead of a raw counter.
+
+### Changed — streak correctness
+
+- Kept an active streak alive through yesterday when today's alarm has not
+  fired yet, so the badge no longer drops to zero before the user has a chance
+  to wake up.
+- Added unit coverage for current streaks, best streaks, duplicate dates, and
+  malformed stored date rows.
+
+### Internal
+
+- Bumped to `versionName = "1.10.7"`, `versionCode = 50`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.10.6] - 2026-05-14
 
 First-meeting calendar alarms. No schema changes.
