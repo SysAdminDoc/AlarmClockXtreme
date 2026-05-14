@@ -61,6 +61,7 @@ class AlarmService : Service() {
         const val EXTRA_CUSTOM_SNOOZE_MINUTES = "custom_snooze_minutes"
         private const val MIN_CUSTOM_SNOOZE_MINUTES = 1
         private const val MAX_CUSTOM_SNOOZE_MINUTES = 120
+        private const val HAPTIC_ONLY_COMPOSITION_INTERVAL_MS = 1_450L
 
         const val CHANNEL_ALARM = "alarm_channel"
         const val CHANNEL_UPCOMING = "upcoming_alarm_channel"
@@ -118,6 +119,7 @@ class AlarmService : Service() {
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
     private var volumeJob: Job? = null
+    private var hapticOnlyJob: Job? = null
     private var currentAlarmId: Long = -1
     private var alarmFiredAt: Long = 0
     private var autoSilenceJob: Job? = null
@@ -298,7 +300,7 @@ class AlarmService : Service() {
         }
 
         // v1.2.0: Backup sound escalation
-        if (alarm.backupSoundEnabled) {
+        if (alarm.backupSoundEnabled && !alarm.usesMutedAlarmAudio()) {
             backupSoundJob = serviceScope.launch {
                 delay(alarm.backupSoundDelaySec * 1000L)
                 // Escalate: set volume to max and switch to system alarm tone
@@ -422,7 +424,7 @@ class AlarmService : Service() {
 
     private fun startAudio(alarm: Alarm) {
         // Silent mode - skip audio entirely
-        if (alarm.ringtoneUri == "silent") return
+        if (alarm.ringtoneUri == "silent" || alarm.usesMutedAlarmAudio()) return
 
         // v1.5.1: Re-entry guard — the internet-radio error path re-calls
         // startAudio on serviceScope; without this, a transient failure
@@ -627,6 +629,10 @@ class AlarmService : Service() {
         // Devices without a vibrator (some tablets, Wear shells, emulators) — skip silently.
         if (vibrator == null || vibrator?.hasVibrator() != true) return
 
+        if (alarm.usesHapticOnlyProfile() && startHapticOnlyCompositionLoop()) {
+            return
+        }
+
         val (pattern, amplitudes) = when (alarm.vibrationPattern) {
             "gentle" -> longArrayOf(0, 200, 1200, 200, 1200) to intArrayOf(0, 60, 0, 60, 0)
             "heartbeat" -> longArrayOf(0, 150, 100, 150, 800) to intArrayOf(0, 200, 0, 255, 0)
@@ -635,18 +641,66 @@ class AlarmService : Service() {
             "sos" -> longArrayOf(0, 150, 100, 150, 100, 150, 300, 400, 100, 400, 100, 400, 300, 150, 100, 150, 100, 150, 600) to
                 intArrayOf(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0)
             else -> { // "default"
-                when (alarm.vibrationIntensity) {
-                    1 -> longArrayOf(0, 200, 1000, 200, 1000) to intArrayOf(0, 80, 0, 80, 0)
-                    else -> longArrayOf(0, 500, 500, 500, 500) to intArrayOf(0, 255, 0, 255, 0)
+                if (alarm.usesHapticOnlyProfile()) {
+                    longArrayOf(0, 90, 140, 140, 720, 180, 1300) to
+                        intArrayOf(0, 95, 0, 140, 0, 185, 0)
+                } else {
+                    when (alarm.vibrationIntensity) {
+                        1 -> longArrayOf(0, 200, 1000, 200, 1000) to intArrayOf(0, 80, 0, 80, 0)
+                        else -> longArrayOf(0, 500, 500, 500, 500) to intArrayOf(0, 255, 0, 255, 0)
+                    }
                 }
             }
         }
 
+        val vibrationAttributes = alarmVibrationAttributes()
         if (vibrator?.hasAmplitudeControl() == true) {
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, amplitudes, 0))
+            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, amplitudes, 0), vibrationAttributes)
         } else {
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0), vibrationAttributes)
         }
+    }
+
+    private fun startHapticOnlyCompositionLoop(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+        val activeVibrator = vibrator ?: return false
+        if (!activeVibrator.areAllPrimitivesSupported(
+                VibrationEffect.Composition.PRIMITIVE_TICK,
+                VibrationEffect.Composition.PRIMITIVE_CLICK
+            )
+        ) {
+            return false
+        }
+
+        val vibrationAttributes = alarmVibrationAttributes()
+        hapticOnlyJob?.cancel()
+        hapticOnlyJob = serviceScope.launch {
+            while (isActive) {
+                val effect = VibrationEffect.startComposition()
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 0.35f)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, 0.55f, 180)
+                    .addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, 0.78f, 620)
+                    .compose()
+                activeVibrator.vibrate(effect, vibrationAttributes)
+                delay(HAPTIC_ONLY_COMPOSITION_INTERVAL_MS)
+            }
+        }
+        return true
+    }
+
+    private fun alarmVibrationAttributes(): AudioAttributes {
+        return AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
+    }
+
+    private fun Alarm.usesMutedAlarmAudio(): Boolean {
+        return overrideSystemVolume && volume <= 0
+    }
+
+    private fun Alarm.usesHapticOnlyProfile(): Boolean {
+        return usesMutedAlarmAudio() && vibrationEnabled
     }
 
     private suspend fun snoozeAlarm(alarmId: Long, customMinutes: Int? = null) {
@@ -958,6 +1012,8 @@ class AlarmService : Service() {
     private fun stopAlarmPlayback() {
         volumeJob?.cancel()
         volumeJob = null
+        hapticOnlyJob?.cancel()
+        hapticOnlyJob = null
         flashlightJob?.cancel()
         flashlightJob = null
         try {

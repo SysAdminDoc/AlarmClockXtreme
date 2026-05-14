@@ -220,7 +220,7 @@ class AlarmEditViewModel @Inject constructor(
     }
 
     fun updateVolume(volume: Int) {
-        _uiState.value = _uiState.value.copy(volume = volume)
+        _uiState.value = _uiState.value.copy(volume = volume.coerceIn(0, 100))
     }
 
     fun updateGradualVolume(seconds: Int) {
@@ -229,6 +229,19 @@ class AlarmEditViewModel @Inject constructor(
 
     fun updateOverrideVolume(override: Boolean) {
         _uiState.value = _uiState.value.copy(overrideSystemVolume = override)
+    }
+
+    fun applyDontWakePartnerProfile() {
+        _uiState.value = _uiState.value.copy(
+            ringtoneUri = "",
+            overrideSystemVolume = true,
+            volume = 0,
+            gradualVolumeSeconds = 0,
+            vibrationEnabled = true,
+            vibrationIntensity = 1,
+            vibrationPattern = "default",
+            backupSoundEnabled = false
+        )
     }
 
     fun updateSnoozeDuration(minutes: Int) {

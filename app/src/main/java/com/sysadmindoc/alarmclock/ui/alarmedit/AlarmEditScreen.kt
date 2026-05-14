@@ -374,6 +374,37 @@ fun AlarmEditScreen(
 
             // Sound settings
             SettingsSection("Sound") {
+                val hapticOnlyActive = state.overrideSystemVolume && state.volume == 0 && state.vibrationEnabled
+
+                SettingsRow(label = "Don't wake partner") {
+                    OutlinedButton(
+                        onClick = viewModel::applyDontWakePartnerProfile,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, AccentBlue.copy(alpha = 0.42f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VolumeOff,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Apply")
+                    }
+                }
+                SettingsHint(
+                    "Sets this alarm to haptic-only: alarm audio is muted, fade-in is off, and a gentle repeating vibration stays active.",
+                    tone = HintTone.Neutral
+                )
+                if (hapticOnlyActive) {
+                    AppStatusChip(
+                        label = "Haptic-only profile active",
+                        icon = Icons.Default.VolumeOff,
+                        color = AccentBlue,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                }
+
                 SettingsRow(
                     label = "Alarm sound",
                     trailing = {
@@ -401,12 +432,15 @@ fun AlarmEditScreen(
 
                 if (state.overrideSystemVolume) {
                     SettingsRow(label = "Volume") {
-                        Text("${state.volume}%", color = AccentBlue)
+                        Text(
+                            if (state.volume == 0) "Muted" else "${state.volume}%",
+                            color = AccentBlue
+                        )
                     }
                     Slider(
                         value = state.volume.toFloat(),
                         onValueChange = { viewModel.updateVolume(it.toInt()) },
-                        valueRange = 10f..100f,
+                        valueRange = 0f..100f,
                         modifier = Modifier.padding(horizontal = 16.dp),
                         colors = SliderDefaults.colors(
                             thumbColor = AccentBlue,
