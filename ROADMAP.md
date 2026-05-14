@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.10.3** (hold-to-dismiss
-alarm safety; see [CHANGELOG.md](CHANGELOG.md)).
+Living feature backlog, refreshed alongside **v1.10.4** (haptic-only alarm
+profile; see [CHANGELOG.md](CHANGELOG.md)).
 
 This is the "what's left" companion to [CLAUDE.md](CLAUDE.md). Entries are
 ranked by impact-to-effort and grouped by theme.
@@ -16,7 +16,8 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (from prior tiers, kept here briefly): v1.10.3
+> **Recently shipped** (from prior tiers, kept here briefly): v1.10.4
+> haptic-only "Don't wake partner" profile, v1.10.3
 > per-alarm hold-to-dismiss confirmation, v1.10.2
 > long-press firing-screen snooze picker, v1.10.1 Weather tab Open-Meteo
 > air-quality + pollen context, v1.10.0
@@ -42,12 +43,12 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.10.3)
+## Current snapshot (v1.10.4)
 
 - **Stack:** Kotlin 2.1, Compose / Material 3, Room v9, Hilt, Retrofit +
   Moshi (codegen), DataStore, Glance widgets, OkHttp, WorkManager, yt-dlp +
   NewPipe Extractor (Play flavor only).
-- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 46.
+- **Targets:** minSdk 26, targetSdk 35, compileSdk 35, versionCode 47.
 - **Surface area:** 116 Kotlin source files, two flavors (`play`, `fdroid`),
   19 dismiss challenges, 50+ alarm fields, 35+ AppSettings fields, 6 tabs
   (Today, Alarms, Bedtime, Timer, World, News) + Settings.
@@ -71,7 +72,7 @@ in their shipped notes.
 | N2 | [x] Air-quality + pollen on the Weather tab via Open-Meteo `air-quality` endpoint (US AQI bands, tree/grass/weed pollen rows) | [Open-Meteo Air Quality](https://open-meteo.com/en/docs/air-quality-api) | S | Shipped in v1.10.1: dedicated air-quality Retrofit service, resilient AQI/pollutant/pollen summary mapping, Weather tab companion card, and non-blocking fetch behavior so forecast still loads if AQI fails. |
 | N3 | [x] Long-press snooze time-picker on the firing screen | [yuriykulikov/AlarmClock](https://github.com/yuriykulikov/AlarmClock) | S | Shipped in v1.10.2: primary Snooze remains a one-tap default action, long-press opens an inline exact-minute picker, visible preset/exact controls keep the flow discoverable, and custom snooze requests are bounded to 1-120 minutes. |
 | N4 | [x] Long-press dismiss confirmation gesture toggle | [yuriykulikov/AlarmClock](https://github.com/yuriykulikov/AlarmClock) | S | Shipped in v1.10.3: per-alarm Hold to dismiss toggle, visible 1.5-second hold-progress control on the firing screen, protected swipe-left dismissal, Room v9 field, and backup format v6 preservation. |
-| N5 | Volume / haptic-only "Don't wake partner" alarm profile (`AudioAttributes.USAGE_ALARM` muted + `VibrationEffect.Composition`) | Sleep as Android couples mode, [Apple Bedtime](https://support.apple.com/guide/iphone/wake-up-with-an-alarm-iph59f3ddd0f/ios) | S | Sets the foundation for partner profiles (later) without touching schema. |
+| N5 | [x] Volume / haptic-only "Don't wake partner" alarm profile (`AudioAttributes.USAGE_ALARM` muted + `VibrationEffect.Composition`) | Sleep as Android couples mode, [Apple Bedtime](https://support.apple.com/guide/iphone/wake-up-with-an-alarm-iph59f3ddd0f/ios) | S | Shipped in v1.10.4: editor preset applies haptic-only via existing fields, override volume can be muted to 0%, AlarmService treats muted override alarms as hard audio-off, and API 30+ devices use repeating vibration composition with waveform fallback. |
 | N6 | `AutomaticZenRule` v2 ownership — bedtime DND as a `ConditionProviderService` | [Android 14 ConditionProvider docs](https://developer.android.com/reference/android/service/notification/ConditionProviderService) | M | Right now we depend on Google Clock or system DND — owning the rule lets bedtime/wake transitions toggle DND deterministically per alarm. |
 | N7 | Calendar-aware first-meeting shift (alarm shifts earlier when first meeting moves) | Internal | S | Reuses the `CalendarAutoAlarmWorker` that already reads `CalendarContract.Instances`. |
 | N8 | Wake-streak flame badge on the Stats tab | [Streaks](https://streaksapp.com/) / Duolingo | S | Stats already records dismiss outcomes — only the surface is missing. |
