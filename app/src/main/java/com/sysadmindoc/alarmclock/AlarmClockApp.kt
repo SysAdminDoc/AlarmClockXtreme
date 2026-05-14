@@ -6,9 +6,11 @@ import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.service.NextAlarmNotifier
 import com.sysadmindoc.alarmclock.service.YouTubeDownloadInitializer
+import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
 import com.sysadmindoc.alarmclock.worker.HolidaySyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +34,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
      * Run off the main thread so process startup isn't blocked.
      */
     @Inject lateinit var youTubeDownloadInitializer: YouTubeDownloadInitializer
+    @Inject lateinit var preferencesManager: PreferencesManager
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -65,13 +68,17 @@ class AlarmClockApp : Application(), Configuration.Provider {
             holidaySync
         )
 
-        // v1.2.0: Schedule daily calendar auto-alarm check
-        val calendarSync = PeriodicWorkRequestBuilder<com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker>(1, TimeUnit.DAYS).build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-            "calendar_auto_alarm",
-            ExistingPeriodicWorkPolicy.KEEP,
-            calendarSync
-        )
+        // v1.10.6: Keep the first-meeting auto-alarm responsive without
+        // running periodic calendar reads when the feature is disabled.
+        appScope.launch {
+            val settings = preferencesManager.getCurrentSettings()
+            if (settings.calendarAutoAlarmEnabled) {
+                CalendarAutoAlarmWorker.schedulePeriodic(this@AlarmClockApp)
+            } else {
+                CalendarAutoAlarmWorker.cancelPeriodic(this@AlarmClockApp)
+            }
+            CalendarAutoAlarmWorker.enqueueRefresh(this@AlarmClockApp, "app_start")
+        }
 
         // Start persistent next-alarm notification observer
         val entryPoint = EntryPointAccessors.fromApplication(this, AppEntryPoint::class.java)

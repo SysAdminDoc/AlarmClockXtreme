@@ -140,6 +140,7 @@ fun SettingsScreen(
     var showGradualVolumeMenu by remember { mutableStateOf(false) }
     var showAutoSilenceMenu by remember { mutableStateOf(false) }
     var showTemperatureMenu by remember { mutableStateOf(false) }
+    var showCalendarLeadMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -304,6 +305,36 @@ fun SettingsScreen(
                     supportingText = "Display today’s events and meeting times.",
                     onToggle = viewModel::toggleShowCalendar
                 )
+                SettingsToggle(
+                    label = "First-meeting auto-alarm",
+                    checked = state.settings.calendarAutoAlarmEnabled,
+                    supportingText = if (state.settings.calendarAutoAlarmEnabled) {
+                        "Keeps one Calendar alarm shifted to tomorrow's first timed event."
+                    } else {
+                        "Create one reusable alarm before tomorrow's first timed event."
+                    },
+                    onToggle = viewModel::toggleCalendarAutoAlarm
+                )
+                SettingsActionRow(
+                    label = "Meeting lead time",
+                    value = "${state.settings.calendarAutoAlarmMinutesBefore} min",
+                    supportingText = "How early the Calendar alarm fires before the first meeting.",
+                    onClick = { showCalendarLeadMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showCalendarLeadMenu,
+                    onDismissRequest = { showCalendarLeadMenu = false }
+                ) {
+                    listOf(15, 30, 45, 60, 90, 120).forEach { minutes ->
+                        DropdownMenuItem(
+                            text = { Text("$minutes minutes") },
+                            onClick = {
+                                viewModel.updateCalendarAutoAlarmMinutes(minutes)
+                                showCalendarLeadMenu = false
+                            }
+                        )
+                    }
+                }
                 SettingsActionRow(
                     label = "Temperature unit",
                     value = if (state.settings.temperatureUnit == "celsius") "Celsius (\u00B0C)" else "Fahrenheit (\u00B0F)",
@@ -452,7 +483,7 @@ private fun SettingsOverviewRow(state: SettingsUiState) {
             SettingsOverviewTile(
                 title = "Dashboard",
                 value = dashboardSummary(state),
-                supporting = "Weather and calendar visibility",
+                supporting = "Visibility and calendar automation",
                 icon = Icons.Default.Cloud,
                 accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.width(190.dp)
@@ -1560,11 +1591,14 @@ private fun UtilityShortcutCard(
     }
 }
 
-private fun dashboardSummary(state: SettingsUiState): String = when {
-    state.settings.showWeatherOnDashboard && state.settings.showCalendarOnDashboard -> "Weather + calendar"
-    state.settings.showWeatherOnDashboard -> "Weather only"
-    state.settings.showCalendarOnDashboard -> "Calendar only"
-    else -> "Minimal"
+private fun dashboardSummary(state: SettingsUiState): String {
+    val base = when {
+        state.settings.showWeatherOnDashboard && state.settings.showCalendarOnDashboard -> "Weather + calendar"
+        state.settings.showWeatherOnDashboard -> "Weather only"
+        state.settings.showCalendarOnDashboard -> "Calendar only"
+        else -> "Minimal"
+    }
+    return if (state.settings.calendarAutoAlarmEnabled) "$base + auto-alarm" else base
 }
 
 private fun wakeReadinessSummary(state: SettingsUiState): String {
