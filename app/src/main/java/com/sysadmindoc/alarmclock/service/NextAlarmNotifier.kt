@@ -6,6 +6,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.drawable.Icon
+import android.os.Build
+import android.os.Bundle
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.MainActivity
 import com.sysadmindoc.alarmclock.R
@@ -43,6 +47,8 @@ class NextAlarmNotifier @Inject constructor(
     companion object {
         const val CHANNEL_PERSISTENT = "persistent_alarm_channel"
         const val NOTIFICATION_ID_PERSISTENT = 2004
+        private const val ANDROID_16_API = 36
+        private const val EXTRA_REQUEST_PROMOTED_ONGOING = "android.requestPromotedOngoing"
     }
 
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
@@ -144,7 +150,41 @@ class NextAlarmNotifier @Inject constructor(
 
         val title = if (alarm.label.isNotBlank()) alarm.label else "Alarm"
 
-        val notification = NotificationCompat.Builder(context, CHANNEL_PERSISTENT)
+        val now = System.currentTimeMillis()
+        val notification = if (
+            Build.VERSION.SDK_INT >= ANDROID_16_API &&
+            NextAlarmNotificationTiming.shouldUseLiveUpdate(now, alarm.nextTriggerTime)
+        ) {
+            buildLiveUpdateNotification(
+                alarm = alarm,
+                title = title,
+                timeStr = timeStr,
+                remaining = remaining,
+                pendingIntent = pendingIntent,
+                skipPi = skipPi,
+                now = now
+            )
+        } else {
+            buildCompatNotification(
+                title = title,
+                timeStr = timeStr,
+                remaining = remaining,
+                pendingIntent = pendingIntent,
+                skipPi = skipPi
+            )
+        }
+
+        notificationManager.notify(NOTIFICATION_ID_PERSISTENT, notification)
+    }
+
+    private fun buildCompatNotification(
+        title: String,
+        timeStr: String,
+        remaining: String,
+        pendingIntent: PendingIntent,
+        skipPi: PendingIntent
+    ): Notification {
+        return NotificationCompat.Builder(context, CHANNEL_PERSISTENT)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle("Next: $timeStr")
             .setContentText("$title - $remaining remaining")
@@ -159,8 +199,67 @@ class NextAlarmNotifier @Inject constructor(
             .setContentIntent(pendingIntent)
             .addAction(R.drawable.ic_alarm, "Skip this alarm", skipPi)
             .build()
+    }
 
-        notificationManager.notify(NOTIFICATION_ID_PERSISTENT, notification)
+    @RequiresApi(ANDROID_16_API)
+    private fun buildLiveUpdateNotification(
+        alarm: Alarm,
+        title: String,
+        timeStr: String,
+        remaining: String,
+        pendingIntent: PendingIntent,
+        skipPi: PendingIntent,
+        now: Long
+    ): Notification {
+        val progressStyle = Notification.ProgressStyle()
+            .setStyledByProgress(true)
+            .setProgress(NextAlarmNotificationTiming.liveUpdateProgress(now, alarm.nextTriggerTime))
+            .setProgressSegments(
+                listOf(
+                    Notification.ProgressStyle.Segment(
+                        NextAlarmNotificationTiming.LIVE_UPDATE_PROGRESS_MAX
+                    )
+                )
+            )
+            .setProgressTrackerIcon(Icon.createWithResource(context, R.drawable.ic_alarm))
+
+        val notification = Notification.Builder(context, CHANNEL_PERSISTENT)
+            .setSmallIcon(R.drawable.ic_alarm)
+            .setContentTitle("Next: $timeStr")
+            .setContentText("$title - $remaining remaining")
+            .setSubText("Alarm countdown")
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setOnlyAlertOnce(true)
+            .setShowWhen(true)
+            .setWhen(alarm.nextTriggerTime)
+            .setUsesChronometer(true)
+            .setChronometerCountDown(true)
+            .setCategory(Notification.CATEGORY_STATUS)
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
+            .setContentIntent(pendingIntent)
+            .setStyle(progressStyle)
+            .addAction(
+                Notification.Action.Builder(
+                    Icon.createWithResource(context, R.drawable.ic_alarm),
+                    "Skip this alarm",
+                    skipPi
+                ).build()
+            )
+
+        requestPromotedOngoing(notification)
+        return notification.build()
+    }
+
+    private fun requestPromotedOngoing(builder: Notification.Builder) {
+        builder.addExtras(Bundle().apply {
+            putBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, true)
+        })
+        runCatching {
+            Notification.Builder::class.java
+                .getMethod("setRequestPromotedOngoing", Boolean::class.javaPrimitiveType)
+                .invoke(builder, true)
+        }
     }
 
     fun dismiss() {
