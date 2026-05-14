@@ -18,6 +18,7 @@
     <!-- Notifications & Lock Screen -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
     <!-- Foreground Service -->
@@ -99,7 +100,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.AlarmClockXtreme"
-        tools:targetApi="35">
+        tools:targetApi="36">
 
         <!-- Main Activity -->
         <activity

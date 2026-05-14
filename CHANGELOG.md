@@ -2,6 +2,34 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.10] - 2026-05-14
+
+Android 16 next-alarm Live Update. No schema changes.
+
+### Added — notification countdown polish
+
+- Added an Android 16 `Notification.ProgressStyle` path for the persistent
+  next-alarm notification when the next alarm is inside the final two-hour
+  window.
+- The live notification now uses the alarm fire time as the `when` countdown
+  and chronometer source, so status-bar chips can show time remaining without
+  relying only on app-side minute-boundary reposts.
+- Requests promoted ongoing treatment through the documented compatibility
+  extra and declares `POST_PROMOTED_NOTIFICATIONS`; older devices and far-future
+  alarms keep the existing quiet persistent notification.
+
+### Changed — platform target
+
+- Raised `compileSdk` to 36 so the Android 16 ProgressStyle APIs are available
+  while leaving `targetSdk` at 35.
+- Added unit coverage for the two-hour Live Update eligibility window and
+  countdown progress calculation.
+
+### Internal
+
+- Bumped to `versionName = "1.10.10"`, `versionCode = 53`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.10.9] - 2026-05-14
 
 Material 3 Expressive opt-in. No schema changes.
