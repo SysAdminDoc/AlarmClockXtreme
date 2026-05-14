@@ -471,6 +471,7 @@ class AlarmEditViewModel @Inject constructor(
                     // Edit flow may have just disabled the alarm — make sure any
                     // previously-armed AlarmManager / worker entry is torn down.
                     if (s.isEditing) scheduler.cancel(alarmId)
+                    scheduler.syncBedtimeDndRule()
                 }
                 onComplete()
             } catch (_: Exception) {

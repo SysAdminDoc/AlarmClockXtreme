@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
 import com.sysadmindoc.alarmclock.service.SleepSoundPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -42,7 +43,13 @@ data class BedtimeUiState(
     val sleepSoundFadeSeconds: Int = 60,  // v1.4.0: length of the final taper
     // v1.4.0: Pre-sleep checklist (newline-separated wind-down items)
     val bedtimeChecklist: List<String> = emptyList(),
-    val bedtimeChecklistDone: Set<Int> = emptySet()
+    val bedtimeChecklistDone: Set<Int> = emptySet(),
+    // v1.10.5: App-owned alarms-only DND rule for the sleep window.
+    val bedtimeDndEnabled: Boolean = false,
+    val bedtimeDndAccessGranted: Boolean = false,
+    val bedtimeDndActive: Boolean = false,
+    val bedtimeDndStatus: String = "Off",
+    val bedtimeDndError: String? = null
 )
 
 @HiltViewModel
@@ -81,14 +88,14 @@ class BedtimeViewModel @Inject constructor(
                 is24HourFormat = settings.is24HourFormat,
                 sleepSoundFadeMinutes = if (settings.sleepSoundTimerMinutes > 0) settings.sleepSoundTimerMinutes else 30,
                 sleepSoundFadeSeconds = settings.sleepSoundFadeSeconds.coerceIn(5, 600),
-                bedtimeChecklist = checklistItems
+                bedtimeChecklist = checklistItems,
+                bedtimeDndEnabled = settings.bedtimeDndEnabled
             )
             refreshAlarmInfo()
         }
     }
 
     private suspend fun refreshAlarmInfo() {
-        val current = _uiState.value
         val nextAlarm = repository.getNextAlarm()
 
         if (nextAlarm != null && nextAlarm.nextTriggerTime > System.currentTimeMillis()) {
@@ -97,34 +104,39 @@ class BedtimeViewModel @Inject constructor(
             val wakeFormatted = formatTime(
                 hour = wakeTime.hour,
                 minute = wakeTime.minute,
-                is24h = current.is24HourFormat
+                is24h = _uiState.value.is24HourFormat
             )
 
-            val sleepMinutes = current.sleepGoalHours * 60 + current.sleepGoalMinutes
+            val sleepMinutes = _uiState.value.sleepGoalHours * 60 + _uiState.value.sleepGoalMinutes
             val suggestedBedtime = wakeTime.minusMinutes(sleepMinutes.toLong())
             val suggestedFormatted = formatTime(
                 hour = suggestedBedtime.hour,
                 minute = suggestedBedtime.minute,
-                is24h = current.is24HourFormat
+                is24h = _uiState.value.is24HourFormat
             )
 
             // F9: Compute sleep cycle options (90-min cycles, 15 min to fall asleep)
-            val cycles = computeSleepCycles(wakeTime, current.is24HourFormat)
+            val cycles = computeSleepCycles(wakeTime, _uiState.value.is24HourFormat)
 
-            _uiState.value = current.copy(
-                nextAlarmTime = "Next alarm: $wakeFormatted",
-                wakeTimeFormatted = wakeFormatted,
-                suggestedBedtime = suggestedFormatted,
-                sleepCycleOptions = cycles
-            )
+            _uiState.update {
+                it.copy(
+                    nextAlarmTime = "Next alarm: $wakeFormatted",
+                    wakeTimeFormatted = wakeFormatted,
+                    suggestedBedtime = suggestedFormatted,
+                    sleepCycleOptions = cycles
+                )
+            }
         } else {
-            _uiState.value = current.copy(
-                nextAlarmTime = "No alarm set",
-                wakeTimeFormatted = "",
-                suggestedBedtime = "",
-                sleepCycleOptions = emptyList()
-            )
+            _uiState.update {
+                it.copy(
+                    nextAlarmTime = "No alarm set",
+                    wakeTimeFormatted = "",
+                    suggestedBedtime = "",
+                    sleepCycleOptions = emptyList()
+                )
+            }
         }
+        syncBedtimeDndRule(nextAlarm?.nextTriggerTime)
     }
 
     /**
@@ -181,6 +193,7 @@ class BedtimeViewModel @Inject constructor(
             } else {
                 cancelBedtimeReminder()
             }
+            syncBedtimeDndRule()
         }
     }
 
@@ -193,7 +206,8 @@ class BedtimeViewModel @Inject constructor(
                 bedtimeMinute = s.bedtimeMinute,
                 sleepGoalHours = s.sleepGoalHours,
                 sleepGoalMinutes = s.sleepGoalMinutes,
-                bedtimeReminderMinutes = s.reminderMinutesBefore
+                bedtimeReminderMinutes = s.reminderMinutesBefore,
+                bedtimeDndEnabled = s.bedtimeDndEnabled
             )
         }
         // Mirror the enabled flag into a synchronous SharedPreferences key so
@@ -276,6 +290,23 @@ class BedtimeViewModel @Inject constructor(
         }
     }
 
+    fun toggleBedtimeDnd(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(
+            bedtimeDndEnabled = enabled,
+            bedtimeDndError = null
+        )
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(bedtimeDndEnabled = enabled) }
+            syncBedtimeDndRule()
+        }
+    }
+
+    fun refreshBedtimeDndStatus() {
+        viewModelScope.launch {
+            syncBedtimeDndRule()
+        }
+    }
+
     // v1.4.0: Toggle an individual pre-sleep checklist entry.
     fun toggleChecklistItem(index: Int) {
         val current = _uiState.value.bedtimeChecklistDone
@@ -299,6 +330,21 @@ class BedtimeViewModel @Inject constructor(
             val h = if (hour % 12 == 0) 12 else hour % 12
             val amPm = if (hour < 12) "AM" else "PM"
             "$h:${String.format("%02d", minute)} $amPm"
+        }
+    }
+
+    private suspend fun syncBedtimeDndRule(nextAlarmTriggerMillis: Long? = null) {
+        val settings = preferencesManager.getCurrentSettings()
+        val trigger = nextAlarmTriggerMillis ?: repository.getNextAlarm()?.nextTriggerTime
+        val status = BedtimeZenRuleManager.syncRule(context, settings, trigger)
+        _uiState.update {
+            it.copy(
+                bedtimeDndEnabled = status.enabled,
+                bedtimeDndAccessGranted = status.accessGranted,
+                bedtimeDndActive = status.active,
+                bedtimeDndStatus = status.summary,
+                bedtimeDndError = status.error
+            )
         }
     }
 }

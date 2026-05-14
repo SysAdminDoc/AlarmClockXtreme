@@ -2,6 +2,36 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.5] - 2026-05-14
+
+Bedtime DND ownership. No schema changes.
+
+### Added — sleep-window DND
+
+- Added an app-owned **Bedtime DND** rule backed by a real
+  `ConditionProviderService`, so the app can manage an alarms-only sleep
+  window instead of relying on Google Clock or a manually configured system
+  rule.
+- Added Bedtime-tab controls that clearly show whether DND policy access is
+  granted, whether the rule is active, and when it will next start or end.
+- Added a direct **Grant DND access** action that opens Android notification
+  policy access settings when the user has not approved the app yet.
+
+### Changed — alarm-aware sleep protection
+
+- The DND condition now runs from the configured bedtime until the next alarm's
+  local wake time, falling back to the sleep-goal duration when no alarm is set.
+- Alarm scheduling, disabling, deletion, boot reschedule, and alarm-fire
+  handling now re-sync the Bedtime DND rule so the wake boundary follows the
+  current next alarm.
+- Backup/export/import now preserves the Bedtime DND opt-in while leaving the
+  system rule id device-local.
+
+### Internal
+
+- Bumped to `versionName = "1.10.5"`, `versionCode = 48`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.10.4] - 2026-05-14
 
 Haptic-only alarm profile. No schema changes.
