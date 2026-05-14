@@ -1,0 +1,2 @@
+-keep class com.sysadmindoc.alarmclock.wear.NextAlarmTileService { *; }
+-keep class com.sysadmindoc.alarmclock.wear.WearAlarmDataListenerService { *; }

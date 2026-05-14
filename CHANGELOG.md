@@ -2,6 +2,33 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.11.0] - 2026-05-14
+
+Wear OS next-alarm tile. No schema changes.
+
+### Added — wearable control surface
+
+- Added a dedicated Wear OS companion module with a next-alarm Tile provider,
+  static preview resource, and matching package/signature setup for Data Layer
+  security.
+- Added a Play-flavor phone-to-watch Data Layer bridge that publishes the next
+  alarm, trigger time, label, and live firing state to the watch.
+- Added watch-side skip, snooze, and dismiss message actions. Snooze and dismiss
+  are only forwarded when the matching alarm is actively firing, so the tile
+  cannot accidentally run post-dismiss flows for a future alarm.
+
+### Changed — flavor and build structure
+
+- Added the Play Services Wearable dependency only to the Play flavor and Wear
+  module; the F-Droid app flavor binds a no-op wearable bridge.
+- AlarmService now publishes firing and idle transitions to the wearable bridge
+  so the tile changes from scheduled skip controls to live alarm controls.
+
+### Internal
+
+- Bumped to `versionName = "1.11.0"`, `versionCode = 54`. README badge,
+  install command, roadmap snapshot, and Wear module version synced.
+
 ## [1.10.10] - 2026-05-14
 
 Android 16 next-alarm Live Update. No schema changes.

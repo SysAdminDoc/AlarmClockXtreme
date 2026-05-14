@@ -228,6 +228,22 @@
                 android:value="1" />
         </service>
 
+        <!-- v1.11.0: Wear OS tile action bridge. Play flavor handles incoming
+             Data Layer messages; F-Droid ships a same-name no-op service so
+             Play Services stays out of the F-Droid dependency graph. -->
+        <service
+            android:name=".wear.WearAlarmActionListenerService"
+            android:enabled="${wearActionBridgeEnabled}"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/alarmclockxtreme/action"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
+
         <!-- F3: Morning Briefing overlay (shown on lock screen after dismissal) -->
         <activity
             android:name=".ui.alarmfiring.MorningBriefingActivity"
