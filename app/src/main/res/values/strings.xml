@@ -7,6 +7,8 @@
     <string name="upcoming_notification_channel">Upcoming Alarms</string>
     <string name="missed_notification_channel">Missed Alarms</string>
     <string name="bedtime_notification_channel">Bedtime Reminder</string>
+    <string name="bedtime_dnd_rule_name">AlarmClockXtreme Bedtime DND</string>
+    <string name="bedtime_dnd_rule_type">Bedtime DND</string>
     <string name="persistent_notification_channel">Next Alarm</string>
 
     <!-- Widget -->

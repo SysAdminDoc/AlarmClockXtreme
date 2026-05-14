@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.10.4-blue)
+![Version](https://img.shields.io/badge/version-1.10.5-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.10.4-play.apk
+adb install AlarmClockXtreme-v1.10.5-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor). The F-Droid flavor strips that downloader for an unencumbered build.
@@ -96,6 +96,7 @@ cd AlarmClockXtreme
 | Motivational Quotes | Random inspirational quotes on alarm firing screen |
 | Swipe Gestures | Swipe right to dismiss, left to snooze |
 | Custom Snooze | Pick 1/3/5/15/30 minute snooze from firing screen |
+| Hold to Dismiss | Optional 1.5-second hold gesture before final dismissal |
 
 ### Sound & Vibration
 | Feature | Description |
@@ -109,6 +110,7 @@ cd AlarmClockXtreme
 | Gradual Volume | Configurable fade-in (15s to 5 min) |
 | Custom Vibration | 5 patterns: Default, Gentle, Heartbeat, Escalating, SOS |
 | Silent Mode | Fire alarm with notification only, no sound |
+| Haptic-Only Profile | One-tap "Don't wake partner" preset mutes alarm audio and keeps tactile wake cues |
 
 ### Smart Features
 | Feature | Description |
@@ -133,6 +135,7 @@ cd AlarmClockXtreme
 | Multiple Timers | Run several countdown timers concurrently (monotonic clock) |
 | Stopwatch | Lap tracking with best/worst marking |
 | Bedtime Tracking | Sleep goal, sleep cycle calculator, bedtime reminders, sleep sounds |
+| Bedtime DND | App-owned alarms-only Do Not Disturb rule for the sleep window, with clear access/status feedback |
 | Statistics | Dismiss streaks, snooze rate, day-of-week breakdown, response times, searchable alarm history |
 | Night Clock | Always-on bedside display with minimal brightness |
 | Home Widget | Glance-based widget showing next alarm countdown |
@@ -147,7 +150,7 @@ cd AlarmClockXtreme
 ### Data & Reliability
 | Feature | Description |
 |---------|-------------|
-| Backup/Restore | JSON export/import of all 50+ alarm fields and 35+ settings, with optional AES-256 passphrase encryption (v5 format) |
+| Backup/Restore | JSON export/import of all 50+ alarm fields and 35+ settings, with optional AES-256 passphrase encryption (v6 format) |
 | Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link |
 | Boot Reschedule | All alarms re-registered after device reboot |
 | Manufacturer Compat | Onboarding warnings for Xiaomi/Samsung/Huawei battery killers |
@@ -204,6 +207,7 @@ cd AlarmClockXtreme
 |------------|---------|----------|
 | `USE_EXACT_ALARM` | Fire alarms at exact time | Yes |
 | `POST_NOTIFICATIONS` | Show alarm alerts | Yes |
+| `ACCESS_NOTIFICATION_POLICY` | Optional bedtime DND rule access | Optional |
 | `FOREGROUND_SERVICE` | Reliable alarm playback | Yes |
 | `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Alarm audio | Yes |
 | `FOREGROUND_SERVICE_DATA_SYNC` | Smart alarm monitoring | Yes |

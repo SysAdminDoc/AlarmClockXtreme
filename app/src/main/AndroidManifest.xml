@@ -208,6 +208,25 @@
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
+        <!-- v1.10.5: App-owned bedtime DND rule. The system binds this
+             provider to evaluate the condition URI created by the Bedtime tab. -->
+        <service
+            android:name=".service.BedtimeZenRuleService"
+            android:exported="true"
+            android:icon="@drawable/ic_alarm"
+            android:label="@string/bedtime_dnd_rule_name"
+            android:permission="android.permission.BIND_CONDITION_PROVIDER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.ConditionProviderService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.zen.automatic.ruleType"
+                android:value="@string/bedtime_dnd_rule_type" />
+            <meta-data
+                android:name="android.service.zen.automatic.ruleInstanceLimit"
+                android:value="1" />
+        </service>
+
         <!-- F3: Morning Briefing overlay (shown on lock screen after dismissal) -->
         <activity
             android:name=".ui.alarmfiring.MorningBriefingActivity"
