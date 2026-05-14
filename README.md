@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.10.6-blue)
+![Version](https://img.shields.io/badge/version-1.10.7-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.10.6-play.apk
+adb install AlarmClockXtreme-v1.10.7-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor). The F-Droid flavor strips that downloader for an unencumbered build.
@@ -136,7 +136,7 @@ cd AlarmClockXtreme
 | Stopwatch | Lap tracking with best/worst marking |
 | Bedtime Tracking | Sleep goal, sleep cycle calculator, bedtime reminders, sleep sounds |
 | Bedtime DND | App-owned alarms-only Do Not Disturb rule for the sleep window, with clear access/status feedback |
-| Statistics | Dismiss streaks, snooze rate, day-of-week breakdown, response times, searchable alarm history |
+| Statistics | Wake-streak flame badge, snooze rate, day-of-week breakdown, response times, searchable alarm history |
 | Night Clock | Always-on bedside display with minimal brightness |
 | Home Widget | Glance-based widget showing next alarm countdown |
 | Persistent Notification | Always-visible next alarm countdown in shade |

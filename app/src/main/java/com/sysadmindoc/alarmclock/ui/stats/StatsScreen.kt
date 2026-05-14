@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
+import com.sysadmindoc.alarmclock.data.repository.AlarmStats
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
@@ -123,9 +124,9 @@ fun StatsScreen(
                 overline = "Alarm history",
                 badge = {
                     AppStatusChip(
-                        label = "${stats.currentStreak} day streak",
+                        label = wakeStreakBadgeLabel(stats),
                         icon = Icons.Default.LocalFireDepartment,
-                        color = DismissGreen
+                        color = if (stats.currentStreak > 0) SnoozeYellow else TextMuted
                     )
                     AppStatusChip(
                         label = "${stats.alarmsThisWeek} this week",
@@ -166,8 +167,8 @@ fun StatsScreen(
                     item {
                         StatMiniCard(
                             label = "Streak",
-                            value = "${stats.currentStreak}d",
-                            color = DismissGreen,
+                            value = compactDays(stats.currentStreak),
+                            color = if (stats.currentStreak > 0) SnoozeYellow else TextMuted,
                             icon = Icons.Default.LocalFireDepartment,
                             modifier = Modifier.width(138.dp)
                         )
@@ -191,6 +192,15 @@ fun StatsScreen(
                         )
                     }
                 }
+            }
+
+            item {
+                WakeStreakBadge(
+                    stats = stats,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
             }
 
             item {
@@ -552,6 +562,105 @@ private fun StatMiniCard(
 }
 
 @Composable
+private fun WakeStreakBadge(stats: AlarmStats, modifier: Modifier = Modifier) {
+    val current = stats.currentStreak
+    val best = maxOf(stats.bestStreak, current)
+    val goal = stats.nextStreakGoal.coerceAtLeast(3)
+    val progress = (current.toFloat() / goal).coerceIn(0f, 1f)
+
+    AppSurfaceCard(modifier = modifier, highlighted = current > 0) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = SnoozeYellow.copy(alpha = if (current > 0) 0.18f else 0.08f)
+            ) {
+                Box(
+                    modifier = Modifier.size(64.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LocalFireDepartment,
+                        contentDescription = "Wake streak",
+                        tint = if (current > 0) SnoozeYellow else TextMuted,
+                        modifier = Modifier.size(34.dp)
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = if (current > 0) "${dayCountLabel(current)} wake streak" else "Wake streak",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = wakeStreakStatus(stats),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AppStatusChip(
+                        label = "Best ${dayCountLabel(best)}",
+                        icon = Icons.Default.CheckCircle,
+                        color = DismissGreen
+                    )
+                    AppStatusChip(
+                        label = "Next $goal",
+                        icon = Icons.Default.LocalFireDepartment,
+                        color = SnoozeYellow
+                    )
+                }
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Next streak badge",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.labelLarge
+                )
+                Text(
+                    text = "$current / $goal days",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .background(SurfaceCard.copy(alpha = 0.58f), RoundedCornerShape(8.dp))
+            ) {
+                if (progress > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .height(8.dp)
+                            .background(SnoozeYellow, RoundedCornerShape(8.dp))
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun BreakdownRow(label: String, count: Int, color: Color) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -672,3 +781,25 @@ private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
         }
     }
 }
+
+private fun wakeStreakBadgeLabel(stats: AlarmStats): String {
+    return if (stats.currentStreak > 0) {
+        "${dayCountLabel(stats.currentStreak)} streak"
+    } else {
+        "Start streak"
+    }
+}
+
+private fun wakeStreakStatus(stats: AlarmStats): String {
+    return when {
+        stats.currentStreak == 0 -> "Dismiss one alarm to start building a visible morning streak."
+        stats.streakIncludesToday -> "Today's wake is already counted. Keep the chain going tomorrow."
+        else -> "Still alive from yesterday. Dismiss today's alarm to protect it."
+    }
+}
+
+private fun dayCountLabel(days: Int): String {
+    return if (days == 1) "1 day" else "$days days"
+}
+
+private fun compactDays(days: Int): String = "${days}d"
