@@ -2,6 +2,32 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.6] - 2026-05-14
+
+First-meeting calendar alarms. No schema changes.
+
+### Changed — calendar auto-alarm
+
+- Moved the Calendar auto-alarm from a slow daily pass to a settings-aware
+  15-minute WorkManager refresh, with immediate one-shot refreshes on app start
+  and Settings changes.
+- Re-target the single reusable Calendar alarm when tomorrow's first timed
+  event moves, so wake time follows schedule edits without duplicating alarms.
+- Ignore all-day calendar entries so birthday, PTO, and holiday banners do not
+  create a midnight wake alarm.
+
+### Added — Settings clarity
+
+- Surfaced the previously hidden **First-meeting auto-alarm** toggle in
+  Settings alongside calendar visibility controls.
+- Added a lead-time picker for 15-120 minutes, making the automation adjustable
+  without editing DataStore-backed defaults manually.
+
+### Internal
+
+- Bumped to `versionName = "1.10.6"`, `versionCode = 49`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.10.5] - 2026-05-14
 
 Bedtime DND ownership. No schema changes.
