@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 35
-        versionCode = 44
-        versionName = "1.10.1"
+        versionCode = 45
+        versionName = "1.10.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

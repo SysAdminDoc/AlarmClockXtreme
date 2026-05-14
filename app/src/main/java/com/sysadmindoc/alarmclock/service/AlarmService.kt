@@ -59,6 +59,8 @@ class AlarmService : Service() {
         const val ACTION_SNOOZE = "com.sysadmindoc.alarmclock.SNOOZE"
         const val ACTION_DISMISS = "com.sysadmindoc.alarmclock.DISMISS"
         const val EXTRA_CUSTOM_SNOOZE_MINUTES = "custom_snooze_minutes"
+        private const val MIN_CUSTOM_SNOOZE_MINUTES = 1
+        private const val MAX_CUSTOM_SNOOZE_MINUTES = 120
 
         const val CHANNEL_ALARM = "alarm_channel"
         const val CHANNEL_UPCOMING = "upcoming_alarm_channel"
@@ -191,6 +193,8 @@ class AlarmService : Service() {
             ACTION_SNOOZE -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
                 val customMinutes = intent.getIntExtra(EXTRA_CUSTOM_SNOOZE_MINUTES, -1)
+                    .takeIf { it > 0 }
+                    ?.coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES)
                 // v1.5.1: If the service was killed+restarted between fire and
                 // snooze, currentSnoozeCount is 0 (fresh instance). Re-read the
                 // persisted count so the progressive-snooze ladder doesn't reset.
@@ -198,7 +202,7 @@ class AlarmService : Service() {
                     currentAlarmId = alarmId
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                 }
-                serviceScope.launch { snoozeAlarm(alarmId, if (customMinutes > 0) customMinutes else null) }
+                serviceScope.launch { snoozeAlarm(alarmId, customMinutes) }
             }
             ACTION_DISMISS -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
