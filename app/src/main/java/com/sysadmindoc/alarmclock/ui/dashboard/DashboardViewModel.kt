@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.data.remote.AirQualityResponse
+import com.sysadmindoc.alarmclock.data.remote.CurrentAirQuality
 import com.sysadmindoc.alarmclock.data.remote.CurrentWeather
 import com.sysadmindoc.alarmclock.data.remote.DailyWeather
 import com.sysadmindoc.alarmclock.data.remote.GeocodingApi
@@ -21,6 +23,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import javax.inject.Inject
@@ -64,6 +67,8 @@ data class DashboardUiState(
     val sunset: String = "",           // "8:11 PM"
     val uvIndex: String = "",          // "6 (high)"
     val hourly: List<HourlyForecast> = emptyList(),
+    // v1.10.1: Open-Meteo air-quality companion card for AQI, pollutants, and pollen.
+    val airQuality: AirQualitySummary? = null,
     // Calendar
     val calendarEvents: List<CalendarEvent> = emptyList(),
     val calendarError: String? = null,
@@ -93,6 +98,47 @@ data class HourlyForecast(
     val icon: String,         // WMO icon key
     val precipChance: String, // "30%" — empty when 0
 )
+
+data class AirQualitySummary(
+    val aqi: String,
+    val band: String,
+    val detail: String,
+    val level: AirQualityLevel,
+    val pollutantMetrics: List<AirQualityMetric>,
+    val pollenRows: List<PollenMetric>,
+    val hasPollenData: Boolean
+)
+
+data class AirQualityMetric(
+    val label: String,
+    val value: String
+)
+
+data class PollenMetric(
+    val label: String,
+    val value: String,
+    val band: String,
+    val level: PollenLevel
+)
+
+enum class AirQualityLevel {
+    GOOD,
+    MODERATE,
+    SENSITIVE,
+    UNHEALTHY,
+    VERY_UNHEALTHY,
+    HAZARDOUS,
+    UNKNOWN
+}
+
+enum class PollenLevel {
+    NONE,
+    LOW,
+    MODERATE,
+    HIGH,
+    VERY_HIGH,
+    UNAVAILABLE
+}
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
@@ -135,7 +181,8 @@ class DashboardViewModel @Inject constructor(
                 _uiState.update { it.copy(
                     weatherLoading = false,
                     weatherError = null,
-                    forecast = emptyList()
+                    forecast = emptyList(),
+                    airQuality = null
                 ) }
             }
 
@@ -191,6 +238,7 @@ class DashboardViewModel @Inject constructor(
                         lowTemp = "",
                         precipChance = "",
                         forecast = emptyList(),
+                        airQuality = null,
                         weatherError = "Tap the location icon to set your city"
                     ) }
                     return@launch
@@ -244,6 +292,7 @@ class DashboardViewModel @Inject constructor(
                         sunsetLocal = parseTimeOfDay(daily?.sunset?.firstOrNull()),
                         uvIndex = formatUv(current?.uvIndex ?: daily?.uvIndexMax?.firstOrNull()),
                         hourly = buildHourly(hourly),
+                        airQuality = null,
                         forecast = buildForecast(daily)
                     ) }
 
@@ -255,6 +304,19 @@ class DashboardViewModel @Inject constructor(
                             tornadoAlertActive = flags.tornadoActive,
                             severeWeatherHeadline = flags.headline,
                         ) }
+                    }
+
+                    // Air quality is helpful dashboard context, but weather
+                    // should not wait on a second network call. If it fails or
+                    // the provider has no pollen for the area, the Weather tab
+                    // stays calm and keeps the core forecast visible.
+                    viewModelScope.launch {
+                        val airQuality = weatherRepository.getAirQuality(lat, lon)
+                            .getOrNull()
+                            ?.let(::buildAirQualitySummary)
+                        if (_uiState.value.latitude == lat && _uiState.value.longitude == lon) {
+                            _uiState.update { it.copy(airQuality = airQuality) }
+                        }
                     }
                 }
                 .onFailure { e ->
@@ -276,6 +338,7 @@ class DashboardViewModel @Inject constructor(
                         uvIndex = "",
                         hourly = emptyList(),
                         forecast = emptyList(),
+                        airQuality = null,
                         weatherError = "Weather unavailable"
                     ) }
                 }
@@ -481,6 +544,116 @@ class DashboardViewModel @Inject constructor(
             else -> "extreme"
         }
         return "$rounded · $band"
+    }
+
+    private fun buildAirQualitySummary(response: AirQualityResponse): AirQualitySummary? {
+        val current = response.current ?: return null
+        val units = response.currentUnits
+        val pollutantMetrics = listOfNotNull(
+            current.pm25?.let { AirQualityMetric("PM2.5", formatAirMeasure(it, units?.pm25)) },
+            current.pm10?.let { AirQualityMetric("PM10", formatAirMeasure(it, units?.pm10)) },
+            current.ozone?.let { AirQualityMetric("Ozone", formatAirMeasure(it, units?.ozone)) }
+        )
+        val pollenRows = buildPollenRows(current, response)
+        if (current.usAqi == null && pollutantMetrics.isEmpty() && pollenRows.none { it.level != PollenLevel.UNAVAILABLE }) {
+            return null
+        }
+
+        val aqiDescription = describeUsAqi(current.usAqi)
+        return AirQualitySummary(
+            aqi = current.usAqi?.toString() ?: "—",
+            band = aqiDescription.first,
+            detail = aqiDescription.second,
+            level = aqiLevel(current.usAqi),
+            pollutantMetrics = pollutantMetrics,
+            pollenRows = pollenRows,
+            hasPollenData = pollenRows.any { it.level != PollenLevel.UNAVAILABLE }
+        )
+    }
+
+    private fun buildPollenRows(current: CurrentAirQuality, response: AirQualityResponse): List<PollenMetric> {
+        val tree = maxNullable(current.alderPollen, current.birchPollen, current.olivePollen)
+        val grass = current.grassPollen
+        val weed = maxNullable(current.mugwortPollen, current.ragweedPollen)
+        val unit = response.currentUnits?.grassPollen
+            ?: response.currentUnits?.birchPollen
+            ?: "grains/m³"
+        return listOf(
+            pollenMetric("Tree", tree, unit),
+            pollenMetric("Grass", grass, unit),
+            pollenMetric("Weed", weed, unit)
+        )
+    }
+
+    private fun pollenMetric(label: String, value: Double?, unit: String): PollenMetric {
+        if (value == null) {
+            return PollenMetric(
+                label = label,
+                value = "Not reported",
+                band = "Unavailable",
+                level = PollenLevel.UNAVAILABLE
+            )
+        }
+        val level = pollenLevel(value)
+        return PollenMetric(
+            label = label,
+            value = "${formatAirNumber(value)} $unit",
+            band = pollenBand(level),
+            level = level
+        )
+    }
+
+    private fun formatAirMeasure(value: Double, unit: String?): String {
+        return "${formatAirNumber(value)} ${unit ?: "µg/m³"}"
+    }
+
+    private fun formatAirNumber(value: Double): String {
+        return if (value >= 100 || value % 1.0 == 0.0) {
+            value.roundToInt().toString()
+        } else {
+            String.format(Locale.US, "%.1f", value)
+        }
+    }
+
+    private fun describeUsAqi(aqi: Int?): Pair<String, String> = when {
+        aqi == null -> "AQI unavailable" to "Pollutant details are shown when the provider reports them."
+        aqi <= 50 -> "Good" to "Air quality is comfortable for most people."
+        aqi <= 100 -> "Moderate" to "Acceptable air quality; sensitive people may notice it."
+        aqi <= 150 -> "Sensitive groups" to "People sensitive to air pollution should consider lighter outdoor activity."
+        aqi <= 200 -> "Unhealthy" to "Limit strenuous outdoor activity until conditions improve."
+        aqi <= 300 -> "Very unhealthy" to "Avoid outdoor exertion and keep alerts in mind."
+        else -> "Hazardous" to "Stay indoors where possible and follow local health guidance."
+    }
+
+    private fun aqiLevel(aqi: Int?): AirQualityLevel = when {
+        aqi == null -> AirQualityLevel.UNKNOWN
+        aqi <= 50 -> AirQualityLevel.GOOD
+        aqi <= 100 -> AirQualityLevel.MODERATE
+        aqi <= 150 -> AirQualityLevel.SENSITIVE
+        aqi <= 200 -> AirQualityLevel.UNHEALTHY
+        aqi <= 300 -> AirQualityLevel.VERY_UNHEALTHY
+        else -> AirQualityLevel.HAZARDOUS
+    }
+
+    private fun pollenLevel(value: Double): PollenLevel = when {
+        value <= 0.0 -> PollenLevel.NONE
+        value < 10.0 -> PollenLevel.LOW
+        value < 50.0 -> PollenLevel.MODERATE
+        value < 100.0 -> PollenLevel.HIGH
+        else -> PollenLevel.VERY_HIGH
+    }
+
+    private fun pollenBand(level: PollenLevel): String = when (level) {
+        PollenLevel.NONE -> "None"
+        PollenLevel.LOW -> "Low"
+        PollenLevel.MODERATE -> "Moderate"
+        PollenLevel.HIGH -> "High"
+        PollenLevel.VERY_HIGH -> "Very high"
+        PollenLevel.UNAVAILABLE -> "Unavailable"
+    }
+
+    private fun maxNullable(vararg values: Double?): Double? {
+        return values.filterNotNull().maxOrNull()
     }
 
     private fun shouldRescheduleSolarAlarms(

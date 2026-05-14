@@ -2,6 +2,26 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.1] - 2026-05-14
+
+Weather air-quality context. No schema changes.
+
+### Added — Weather tab air quality
+
+- Added Open-Meteo Air Quality API integration for current U.S. AQI,
+  particulate, ozone, and pollen variables.
+- Added a Weather tab air-quality companion card with AQI banding, pollutant
+  metrics, tree/grass/weed pollen rows, provider attribution, and graceful
+  handling when pollen is not reported for the current location.
+- Kept the core weather forecast independent from the second air-quality call,
+  so an AQI provider outage does not block current conditions, hourly weather,
+  radar, or the 3-day forecast.
+
+### Internal
+
+- Bumped to `versionName = "1.10.1"`, `versionCode = 44`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.10.0] - 2026-05-14
 
 Boot reschedule hardening. No schema changes.

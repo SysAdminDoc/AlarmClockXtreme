@@ -409,6 +409,10 @@ private fun WeatherSection(
                     }
                 }
 
+                state.airQuality?.let { airQuality ->
+                    AirQualityCard(airQuality)
+                }
+
                 // v1.7.4: hourly strip — next ~8 hours so users can see what
                 // it'll look like when their morning alarm rings. Kept small
                 // and horizontal-scrolling here (it's a short strip, not the
@@ -475,6 +479,176 @@ private fun WeatherMetric(
         accent = accent,
         modifier = modifier
     )
+}
+
+@Composable
+private fun AirQualityCard(summary: AirQualitySummary) {
+    val accent = airQualityColorFor(summary.level)
+    AppSurfaceCard(contentPadding = PaddingValues(14.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = accent.copy(alpha = 0.14f)
+            ) {
+                Box(
+                    modifier = Modifier.size(42.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Air,
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    "Air quality",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    summary.detail,
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    summary.aqi,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    summary.band,
+                    color = accent,
+                    style = MaterialTheme.typography.labelMedium,
+                    textAlign = TextAlign.End
+                )
+            }
+        }
+
+        if (summary.pollutantMetrics.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                summary.pollutantMetrics.take(3).forEach { metric ->
+                    WeatherMetric(
+                        label = metric.label,
+                        value = metric.value,
+                        icon = Icons.Default.WaterDrop,
+                        accent = TextMuted,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
+
+        Text(
+            "Pollen",
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold
+        )
+
+        summary.pollenRows.forEachIndexed { index, row ->
+            PollenRow(row)
+            if (index < summary.pollenRows.lastIndex) {
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.10f))
+            }
+        }
+
+        if (!summary.hasPollenData) {
+            Text(
+                "Pollen is not reported by Open-Meteo for this location yet.",
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        Text(
+            "Source: Open-Meteo + CAMS",
+            color = TextMuted,
+            style = MaterialTheme.typography.labelSmall
+        )
+    }
+}
+
+@Composable
+private fun PollenRow(row: PollenMetric) {
+    val accent = pollenColorFor(row.level)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(9.dp)
+                .background(accent, RoundedCornerShape(4.dp))
+        )
+        Text(
+            text = row.label,
+            color = TextPrimary,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f)
+        )
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = row.value,
+                color = TextPrimary,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.End
+            )
+            Text(
+                text = row.band,
+                color = accent,
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.End
+            )
+        }
+    }
+}
+
+private fun airQualityColorFor(level: AirQualityLevel): Color = when (level) {
+    AirQualityLevel.GOOD -> DismissGreen
+    AirQualityLevel.MODERATE -> SnoozeYellow
+    AirQualityLevel.SENSITIVE -> SnoozeYellow
+    AirQualityLevel.UNHEALTHY -> AccentRed
+    AirQualityLevel.VERY_UNHEALTHY -> AccentRed
+    AirQualityLevel.HAZARDOUS -> AccentRed
+    AirQualityLevel.UNKNOWN -> TextMuted
+}
+
+private fun pollenColorFor(level: PollenLevel): Color = when (level) {
+    PollenLevel.NONE -> TextMuted
+    PollenLevel.LOW -> DismissGreen
+    PollenLevel.MODERATE -> SnoozeYellow
+    PollenLevel.HIGH -> AccentRed
+    PollenLevel.VERY_HIGH -> AccentRed
+    PollenLevel.UNAVAILABLE -> TextMuted
 }
 
 /**
