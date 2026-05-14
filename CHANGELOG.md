@@ -2,6 +2,24 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.10.2] - 2026-05-14
+
+Firing-screen snooze picker. No schema changes.
+
+### Added — alarm firing controls
+
+- Added long-press handling on the primary Snooze action to open an inline
+  exact-minute picker without changing the alarm's saved default snooze length.
+- Added visible preset/exact snooze controls on the firing screen so custom
+  minutes are discoverable without relying only on a hidden gesture.
+- Added service-side bounds for custom snooze requests, clamping one-off
+  snoozes to 1-120 minutes.
+
+### Internal
+
+- Bumped to `versionName = "1.10.2"`, `versionCode = 45`. README badge,
+  install command, and roadmap snapshot synced.
+
 ## [1.10.1] - 2026-05-14
 
 Weather air-quality context. No schema changes.

@@ -7,7 +7,10 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -28,8 +31,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AlarmOff
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material.icons.filled.Timer
@@ -38,14 +43,19 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -56,6 +66,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -98,6 +109,7 @@ import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 @Composable
 fun AlarmFiringScreen(
@@ -161,6 +173,9 @@ fun AlarmFiringScreen(
     var swipeCumulativeDrag by remember { mutableFloatStateOf(0f) }
     val swipeThreshold = 200f
     val defaultSnoozeMinutes = state.alarm?.snoozeDurationMinutes ?: 10
+    var customSnoozeMinutes by remember(defaultSnoozeMinutes) {
+        mutableIntStateOf(defaultSnoozeMinutes.coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES))
+    }
 
     val timePattern = if (is24Hour) "HH:mm" else "h:mm"
     val timeText = currentTime.format(DateTimeFormatter.ofPattern(timePattern))
@@ -654,37 +669,30 @@ fun AlarmFiringScreen(
                     )
                 }
 
-                OutlinedButton(
+                LongPressSnoozeButton(
+                    minutes = defaultSnoozeMinutes,
                     onClick = onSnooze,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
-                        width = 1.5.dp
-                    ),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = SnoozeYellow
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Snooze,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Snooze for $defaultSnoozeMinutes min",
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                    onLongClick = {
+                        customSnoozeMinutes = defaultSnoozeMinutes
+                            .coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES)
+                        showSnoozeOptions = true
+                    }
+                )
+
+                Text(
+                    text = "Long-press Snooze for exact minutes. Your saved default stays unchanged.",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 TextButton(
                     onClick = { showSnoozeOptions = !showSnoozeOptions },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     Text(
-                        text = if (showSnoozeOptions) "Hide quick snooze options" else "Choose a different snooze length",
+                        text = if (showSnoozeOptions) "Hide snooze choices" else "Choose preset or exact minutes",
                         color = TextSecondary
                     )
                 }
@@ -702,6 +710,17 @@ fun AlarmFiringScreen(
                             )
                         }
                     }
+
+                    SnoozeMinutePicker(
+                        minutes = customSnoozeMinutes,
+                        onMinutesChange = { minutes ->
+                            customSnoozeMinutes = minutes.coerceIn(
+                                MIN_CUSTOM_SNOOZE_MINUTES,
+                                MAX_CUSTOM_SNOOZE_MINUTES
+                            )
+                        },
+                        onSnooze = { onSnoozeCustom(customSnoozeMinutes) }
+                    )
                 }
             }
         }
@@ -781,6 +800,150 @@ private fun Challenge?.statusDescription(): String = when (this) {
 }
 
 private val EaseInOutCubic = CubicBezierEasing(0.65f, 0f, 0.35f, 1f)
+private const val MIN_CUSTOM_SNOOZE_MINUTES = 1
+private const val MAX_CUSTOM_SNOOZE_MINUTES = 120
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun LongPressSnoozeButton(
+    minutes: Int,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .combinedClickable(
+                role = Role.Button,
+                onClickLabel = "Snooze for $minutes minutes",
+                onClick = onClick,
+                onLongClickLabel = "Choose exact snooze length",
+                onLongClick = onLongClick
+            ),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+        border = BorderStroke(1.5.dp, SnoozeYellow.copy(alpha = 0.78f))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Snooze,
+                contentDescription = null,
+                tint = SnoozeYellow,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = "Snooze for $minutes min",
+                color = SnoozeYellow,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun SnoozeMinutePicker(
+    minutes: Int,
+    onMinutesChange: (Int) -> Unit,
+    onSnooze: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Exact snooze",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Applies once to this alarm.",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Text(
+                text = "$minutes min",
+                color = SnoozeYellow,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Slider(
+            value = minutes.toFloat(),
+            onValueChange = { onMinutesChange(it.roundToInt()) },
+            valueRange = MIN_CUSTOM_SNOOZE_MINUTES.toFloat()..MAX_CUSTOM_SNOOZE_MINUTES.toFloat(),
+            steps = MAX_CUSTOM_SNOOZE_MINUTES - MIN_CUSTOM_SNOOZE_MINUTES - 1,
+            colors = SliderDefaults.colors(
+                thumbColor = SnoozeYellow,
+                activeTrackColor = SnoozeYellow,
+                inactiveTrackColor = TextMuted.copy(alpha = 0.30f)
+            )
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { onMinutesChange(minutes - 1) },
+                enabled = minutes > MIN_CUSTOM_SNOOZE_MINUTES
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Remove,
+                    contentDescription = "Decrease snooze minutes",
+                    tint = if (minutes > MIN_CUSTOM_SNOOZE_MINUTES) TextSecondary else TextMuted
+                )
+            }
+            OutlinedButton(
+                onClick = onSnooze,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.2.dp, SnoozeYellow.copy(alpha = 0.74f)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = SnoozeYellow
+                )
+            ) {
+                Text(
+                    text = "Snooze $minutes min",
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            IconButton(
+                onClick = { onMinutesChange(minutes + 1) },
+                enabled = minutes < MAX_CUSTOM_SNOOZE_MINUTES
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Increase snooze minutes",
+                    tint = if (minutes < MAX_CUSTOM_SNOOZE_MINUTES) TextSecondary else TextMuted
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun QuickSnoozeButton(
