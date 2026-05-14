@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.10.5-blue)
+![Version](https://img.shields.io/badge/version-1.10.6-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.10.5-play.apk
+adb install AlarmClockXtreme-v1.10.6-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor). The F-Droid flavor strips that downloader for an unencumbered build.
@@ -48,7 +48,7 @@ cd AlarmClockXtreme
 | Templates | Power Nap, Early Bird, Weekday, Weekend presets |
 | Shareable Alarms | Share a single alarm as an `acx://alarm?data=` link; imports are disabled until reviewed |
 | Early Dismiss | Skip upcoming alarm from the persistent notification |
-| Calendar Auto-Alarm | Auto-create alarm before first calendar event daily |
+| Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
 
 ### Dismiss Challenges (19 Types)
 | Challenge | Description |

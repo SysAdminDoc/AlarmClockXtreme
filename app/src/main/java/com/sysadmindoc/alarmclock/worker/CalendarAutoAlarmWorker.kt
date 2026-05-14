@@ -7,7 +7,13 @@ import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkerParameters
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
@@ -17,12 +23,16 @@ import dagger.assisted.AssistedInject
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.concurrent.TimeUnit
 
 /**
  * v1.2.0: Calendar auto-alarm worker.
- * Each daily run looks at tomorrow's first calendar event (expanded from
+ * Each run looks at tomorrow's first timed calendar event (expanded from
  * `CalendarContract.Instances` so RRULE-based recurring events count) and
- * keeps a single auto-alarm pointed at it.
+ * keeps a single auto-alarm pointed at it. v1.10.6 moved the cadence to a
+ * settings-aware 15-minute periodic refresh plus one-shot refreshes from app
+ * start / Settings changes, so moved meetings are picked up without waiting
+ * for the next daily pass.
  *
  * Hardening over the original implementation:
  *  - **Single reusable auto-alarm row** identified by [AUTO_PROFILE]. The
@@ -32,6 +42,8 @@ import java.time.ZoneId
  *    `Events`, so a weekly stand-up scheduled with RRULE actually shows up.
  *  - Uses `specificDate` so the alarm only fires on tomorrow's date — the
  *    next worker run will re-target it.
+ *  - Ignores all-day events, because "first meeting" should not become a
+ *    midnight alarm for a birthday or PTO banner.
  *  - If tomorrow has no events, the auto-alarm is disabled (cancelled), not
  *    deleted — preserving the row so user-edits to time/sound persist.
  *  - Per-event cap in code instead of relying on `LIMIT` inside the cursor
@@ -51,6 +63,38 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
          *  worker owns. Users browsing alarm lists can also see the badge. */
         private const val AUTO_PROFILE = "calendar_auto"
         private const val GROUP = "Calendar"
+        private const val INPUT_REFRESH_SOURCE = "refresh_source"
+        private const val PERIODIC_INTERVAL_MINUTES = 15L
+
+        const val WORK_NAME = "calendar_auto_alarm"
+        private const val REFRESH_WORK_NAME = "calendar_auto_alarm_refresh"
+
+        fun schedulePeriodic(context: Context) {
+            val request = PeriodicWorkRequestBuilder<CalendarAutoAlarmWorker>(
+                PERIODIC_INTERVAL_MINUTES,
+                TimeUnit.MINUTES
+            ).build()
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                WORK_NAME,
+                ExistingPeriodicWorkPolicy.UPDATE,
+                request
+            )
+        }
+
+        fun cancelPeriodic(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+        }
+
+        fun enqueueRefresh(context: Context, source: String) {
+            val request = OneTimeWorkRequestBuilder<CalendarAutoAlarmWorker>()
+                .setInputData(workDataOf(INPUT_REFRESH_SOURCE to source.take(40)))
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                REFRESH_WORK_NAME,
+                ExistingWorkPolicy.REPLACE,
+                request
+            )
+        }
     }
 
     override suspend fun doWork(): Result {
@@ -131,7 +175,8 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
     private fun queryFirstEventBetween(startMs: Long, endMs: Long): CalEvent? {
         val projection = arrayOf(
             CalendarContract.Instances.BEGIN,
-            CalendarContract.Instances.TITLE
+            CalendarContract.Instances.TITLE,
+            CalendarContract.Instances.ALL_DAY
         )
         val selection = "${CalendarContract.Instances.BEGIN} >= ? AND ${CalendarContract.Instances.BEGIN} < ?"
         val selectionArgs = arrayOf(startMs.toString(), endMs.toString())
@@ -145,10 +190,14 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
             .build()
 
         context.contentResolver.query(uri, projection, selection, selectionArgs, sortOrder)?.use { cursor ->
-            if (cursor.moveToFirst()) {
+            val beginIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.BEGIN)
+            val titleIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.TITLE)
+            val allDayIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.ALL_DAY)
+            while (cursor.moveToNext()) {
+                if (cursor.getInt(allDayIndex) == 1) continue
                 return CalEvent(
-                    startMs = cursor.getLong(0),
-                    title = cursor.getString(1) ?: "Calendar Event"
+                    startMs = cursor.getLong(beginIndex),
+                    title = cursor.getString(titleIndex)?.takeIf { it.isNotBlank() } ?: "Calendar Event"
                 )
             }
         }

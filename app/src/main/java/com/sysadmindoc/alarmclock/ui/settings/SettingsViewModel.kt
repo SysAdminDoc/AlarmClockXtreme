@@ -19,6 +19,7 @@ import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.WebhookService
 import com.sysadmindoc.alarmclock.util.ManufacturerCompat
+import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -182,6 +183,12 @@ class SettingsViewModel @Inject constructor(
     fun updateDefaultGradualVolume(seconds: Int) = updateSettings { it.copy(defaultGradualVolume = seconds) }
     fun toggleShowWeather(enabled: Boolean) = updateSettings { it.copy(showWeatherOnDashboard = enabled) }
     fun toggleShowCalendar(enabled: Boolean) = updateSettings { it.copy(showCalendarOnDashboard = enabled) }
+    fun toggleCalendarAutoAlarm(enabled: Boolean) = updateCalendarAutoAlarmSettings {
+        it.copy(calendarAutoAlarmEnabled = enabled)
+    }
+    fun updateCalendarAutoAlarmMinutes(minutes: Int) = updateCalendarAutoAlarmSettings {
+        it.copy(calendarAutoAlarmMinutesBefore = minutes.coerceIn(0, 720))
+    }
     fun updateAutoSilence(minutes: Int) = updateSettings { it.copy(autoSilenceMinutes = minutes) }
     fun toggleTemperatureUnit() = updateSettings {
         it.copy(temperatureUnit = if (it.temperatureUnit == "fahrenheit") "celsius" else "fahrenheit")
@@ -267,6 +274,20 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.update(transform)
             alarmScheduler.rescheduleAll(forceRecalculate = true)
+        }
+    }
+
+    private fun updateCalendarAutoAlarmSettings(transform: (AppSettings) -> AppSettings) {
+        viewModelScope.launch {
+            preferencesManager.update(transform)
+            val context = getApplication<Application>()
+            val settings = preferencesManager.getCachedSettings()
+            if (settings.calendarAutoAlarmEnabled) {
+                CalendarAutoAlarmWorker.schedulePeriodic(context)
+            } else {
+                CalendarAutoAlarmWorker.cancelPeriodic(context)
+            }
+            CalendarAutoAlarmWorker.enqueueRefresh(context, "settings")
         }
     }
 
