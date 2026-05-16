@@ -77,12 +77,14 @@ data class AlarmBackup(
     val solarOffsetMinutes: Int = 0,
     val solarAnchor: String = "SUNRISE",
     // v1.10.3 fields
-    val holdToDismissEnabled: Boolean = false
+    val holdToDismissEnabled: Boolean = false,
+    // v1.12.0 fields (roadmap N7): per-alarm pre-vibration delay (seconds).
+    val vibrationDelaySeconds: Int = 0
 )
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 6,
+    val version: Int = 7,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -157,7 +159,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 6
+        const val MAX_SUPPORTED_BACKUP_VERSION = 7
     }
 
     suspend fun export(): String {
