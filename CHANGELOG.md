@@ -2,6 +2,28 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.12.3] - 2026-05-16
+
+CI version-line consistency lint (roadmap N10). No app behavior change.
+
+### Added — `.github/workflows/version-lint.yml`
+
+- New workflow `Version line consistency` runs on every push to `main`
+  and on every pull request. Asserts that the version string in all
+  six release-touching files agrees with `app/build.gradle.kts`:
+  `wear/build.gradle.kts`, the README badge, the README `adb install …`
+  snippet, the CHANGELOG top `## [x.y.z]` header, and the ROADMAP
+  `## Current snapshot (vX.Y.Z)` header.
+- Failure messages identify each drifted file by name and remind the
+  contributor of the cross-cutting docs track in ROADMAP.md.
+- Pure regex/grep — no Java/Gradle bootstrap needed, so the job runs
+  in seconds and never costs build minutes.
+
+### Internal
+
+- Bumped to `versionName = "1.12.3"`, `versionCode = 64`. README badge,
+  install command, and Wear module version synced (and now CI-enforced).
+
 ## [1.12.2] - 2026-05-16
 
 RingtonePool chip-based editor (roadmap N9). No schema changes; storage
