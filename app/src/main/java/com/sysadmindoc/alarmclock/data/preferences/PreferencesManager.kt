@@ -124,6 +124,14 @@ data class AppSettings(
     // is in the past, the value is treated as expired and alarms resume on the
     // next reschedule pass.
     val pauseUntilMillis: Long = 0,
+    // v1.13.1 (roadmap N12 + N13): user opt-in for Health Connect sleep
+    // session reads. Defaults false because Health Connect requires its
+    // own per-data-type permission grant (handled in a future release;
+    // the first-pass UI surfaces the toggle + a status row but does not
+    // yet pull data — see HealthConnectGateway). The Play Console health
+    // permissions policy refresh required to actually ship the data path
+    // is tracked alongside (roadmap N13).
+    val healthConnectEnabled: Boolean = false,
 )
 
 private fun AppSettings.sanitized(): AppSettings {
@@ -269,6 +277,7 @@ class PreferencesManager @Inject constructor(
         val SHOW_RADAR_EMBED = booleanPreferencesKey("show_radar_embed")
         val NEWS_FEED_URL = stringPreferencesKey("news_feed_url")
         val PAUSE_UNTIL = longPreferencesKey("pause_until_millis")
+        val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -374,6 +383,7 @@ class PreferencesManager @Inject constructor(
         newsFeedUrl = this[Keys.NEWS_FEED_URL]
             ?: "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
         pauseUntilMillis = this[Keys.PAUSE_UNTIL] ?: 0L,
+        healthConnectEnabled = this[Keys.HEALTH_CONNECT_ENABLED] ?: false,
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
@@ -434,5 +444,6 @@ class PreferencesManager @Inject constructor(
         this[Keys.SHOW_RADAR_EMBED] = s.showRadarEmbed
         this[Keys.NEWS_FEED_URL] = s.newsFeedUrl
         this[Keys.PAUSE_UNTIL] = s.pauseUntilMillis
+        this[Keys.HEALTH_CONNECT_ENABLED] = s.healthConnectEnabled
     }
 }
