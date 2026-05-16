@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.12.2** (RingtonePool
-chip-based editor; see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
+Living feature backlog, refreshed alongside **v1.12.3** (CI version-line
+consistency lint; see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
 external scan against current OSS / commercial alarm-clock ecosystem,
 Android 16 / 17 platform direction, and Play Console policy changes.
 
@@ -18,8 +18,9 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): **v1.12.2 RingtonePool
-> chip-based editor (N9)**; **v1.12.1 missed-timer notification (N8)**; **v1.12.0 per-alarm vibration start-delay (N7) —
+> **Recently shipped** (rolled up from prior tiers): **v1.12.3 CI version-line
+> consistency lint (N10)**; **v1.12.2 RingtonePool chip-based editor (N9)**;
+> **v1.12.1 missed-timer notification (N8)**; **v1.12.0 per-alarm vibration start-delay (N7) —
 > DB v10**; **v1.11.6 "Pause alarms" single-tap suspend (N6)**; **v1.11.5 Philips Hue API v2 migration (N5)**; **v1.11.4
 > Play wake-lock policy audit (N4)**; **v1.11.3 App Standby bucket awareness
 > (N3)**; **v1.11.2 telephony-aware alarm muting (N2)**; **v1.11.1 challenge
@@ -36,7 +37,7 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.12.2)
+## Current snapshot (v1.12.3)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
   Material 3 (1.4.x), Room v10, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
@@ -44,7 +45,7 @@ ranked by impact-to-effort and grouped by theme.
   1.6.0 / protolayout 1.4.0, Wear Data Layer, yt-dlp (`youtubedl-android`
   0.18.1) + NewPipe Extractor 0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 63`, `versionName 1.12.2`.
+  `versionCode 64`, `versionName 1.12.3`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -77,7 +78,7 @@ in their notes. **Order is the recommended landing order.**
 | N7 | [x] Per-alarm vibration start-delay — **shipped v1.12.0.** New `Alarm.vibrationDelaySeconds: Int = 0` (clamped 0..600). DB v9→v10 with `MIGRATION_9_10`; backup format v6→v7 with default-0 back-compat read. Alarm-edit Vibration section shows the new "Start vibration after" picker. AlarmService schedules a cancellable delay job that re-checks `currentAlarmId` before vibrating. | [BlackyHawky Clock 2.25](https://github.com/BlackyHawky/Clock/releases) | S | Pairs with `gradualVolumeSeconds` for a "gentle wake" preset. |
 | N8 | [x] Missed-timer notification — **shipped v1.12.1.** New `CHANNEL_TIMER` (`IMPORTANCE_HIGH`, channel sound/vibration off) registered in `AlarmService.createNotificationChannels()`. TimerViewModel posts a notification per finished timer (id 7000+timer.id) when the countdown transitions to `FINISHED`; tap opens MainActivity. `stop()` and `dismissFinished()` cancel it. Notifications intentionally survive `onCleared()` so the user-closed-the-app case is covered. | [BlackyHawky Clock 2.29](https://github.com/BlackyHawky/Clock/releases) | S | Symmetry with missed-alarm path; reuses already-granted POST_NOTIFICATIONS. |
 | N9 | [x] RingtonePool chip-based editor — **shipped v1.12.2.** Replaced the textarea with a horizontally scrollable chip row in the Advanced section. Each pool URI renders as an `AppFilterChip` (tap to remove); an "Add" chip opens an `AlertDialog` for pasting a new URI with duplicate-protection. New `ringtoneShortName(uri)` helper trims content://media/external/audio/media/12345 → "audio/12345" without a per-render ContentResolver lookup. Storage format unchanged. | local: [AlarmEditScreen.kt:1247](app/src/main/java/com/sysadmindoc/alarmclock/ui/alarmedit/AlarmEditScreen.kt) | S | UX polish, no schema change. |
-| N10 | [ ] CI version-line consistency lint — assert README badge, CHANGELOG top entry, ROADMAP "Current snapshot", `app/build.gradle.kts.versionName`, and `:wear` versionName all match exactly. | local: [release.yml](.github/workflows/release.yml) lacks this check; manual cross-check is in CLAUDE.md but routinely drifts | S | One-line `grep` in CI prevents the post-release "README still says v1.10.10" mismatch we've already corrected twice. |
+| N10 | [x] CI version-line consistency lint — **shipped v1.12.3.** New `.github/workflows/version-lint.yml` runs on every push/PR. Asserts six touchpoints agree with `app/build.gradle.kts`: the `:wear` module's `versionName`, the README badge, the README `adb install` snippet, the CHANGELOG top `## [x.y.z]` header, and the ROADMAP `## Current snapshot (vX.Y.Z)` header. Pure regex/grep — no JDK/Gradle bootstrap. | local: [.github/workflows/version-lint.yml](.github/workflows/version-lint.yml) | S | Prevents the recurring "README still says vX.Y.Z" post-release mismatch. |
 | N11 | [ ] Adaptive `NavigationSuiteScaffold` — swap bottom nav → nav rail on `MEDIUM`/`EXPANDED` `WindowWidthSizeClass` (8" tablets, foldables unfolded, Chromebook). | [Android Developers — adaptive navigation](https://developer.android.com/develop/ui/compose/layouts/adaptive/build-adaptive-navigation); [SAP integration case study](https://android-developers.googleblog.com/2024/09/jetpack-compose-apis-for-building-adaptive-layouts-material-guidance-now-stable.html); existing X14 | M | Single biggest UX win for the rapidly-growing fold install base. `androidx.compose.material3.adaptive:adaptive-navigation` is stable. Defers the dual-pane Alarms/Edit (X14 follow-on) to v1.13. |
 | N12 | [ ] Health Connect Sleep Sessions — **read-only first pass** (write deferred to v1.13). Pulls overnight sessions to seed Bedtime tab + Stats; user data never leaves device. | [androidx.health.connect:connect-client docs](https://developer.android.com/health-and-fitness/health-connect); [Track sleep sessions](https://developer.android.com/health-and-fitness/health-connect/features/sleep-sessions) | M | Required pre-work: Play Console health-permissions declaration + privacy-policy refresh (see N13). API surface is stable at `1.1.0-alpha12`; pin behind Play flavor only at first, then move main once Google removes alpha gating. |
 | N13 | [ ] Play Store data-safety + health-permission declaration refresh — required by [April 2026 policy](https://support.google.com/googleplay/android-developer/answer/16926792?hl=en) before N12 ships. Update `PRIVACY_POLICY.html` Health-Connect paragraph. | [Play Console policy April 15 2026](https://support.google.com/googleplay/android-developer/answer/16926792?hl=en) | S | Hard prerequisite for N12. Document the read-only justification ("local-only sleep analysis; not transmitted off device"). |
