@@ -2,6 +2,38 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.13.0] - 2026-05-16
+
+Adaptive primary navigation: NavigationBar on phones, NavigationRail on
+8" tablets / foldables / Chromebook (roadmap N11). No schema changes;
+phone UX is byte-for-byte identical.
+
+### Added — wider-window navigation rail
+
+- `AppNavigation` now reads the current `WindowWidthSizeClass`
+  ([Compose stable adaptive APIs](https://android-developers.googleblog.com/2024/09/jetpack-compose-apis-for-building-adaptive-layouts-material-guidance-now-stable.html))
+  and renders a `NavigationRail` on the leading edge whenever width is
+  `MEDIUM` or `EXPANDED`. The persistent bottom `NavigationBar` only
+  renders on `COMPACT` widths.
+- `MEDIUM` (~600–839 dp) covers small tablets and most foldables in
+  partial-fold posture; `EXPANDED` (~840 dp+) covers 8"+ tablets,
+  unfolded foldables, Chromebooks, and Samsung DeX.
+- The rail re-uses the visible-tabs filter (Today / Timer / World /
+  News can still be hidden by the user) and the same navigation
+  callback (single-top, restore-state, pop-to-home behaviour). Tab
+  colours and accent treatment match the bar exactly.
+
+### Internal
+
+- New dep `androidx.compose.material3:material3-window-size-class`
+  (BOM-managed; no version pin). Adds a single small JAR — the
+  underlying WindowSizeClass calculation is stateless math.
+- Extracted the per-route `NavHost` definition into a private
+  `AppNavHost(...)` composable so the rail branch and bar branch
+  share the same navigation graph. ~100 LoC deduplicated.
+- Bumped to `versionName = "1.13.0"`, `versionCode = 65`. CI version-
+  line lint (N10) enforces consistency across all six touchpoints.
+
 ## [1.12.3] - 2026-05-16
 
 CI version-line consistency lint (roadmap N10). No app behavior change.
