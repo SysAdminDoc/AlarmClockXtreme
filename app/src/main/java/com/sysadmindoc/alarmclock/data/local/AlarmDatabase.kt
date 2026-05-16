@@ -8,7 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 
-@Database(entities = [Alarm::class, AlarmEvent::class], version = 9, exportSchema = true)
+@Database(entities = [Alarm::class, AlarmEvent::class], version = 10, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
@@ -138,6 +138,15 @@ abstract class AlarmDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 // v1.10.3: Per-alarm deliberate hold confirmation for dismiss.
                 db.execSQL("ALTER TABLE alarms ADD COLUMN holdToDismissEnabled INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // v1.12.0 (roadmap N7): Per-alarm vibration start-delay so
+                // users can pair a long gradualVolumeSeconds fade-in with
+                // late-arriving haptics for a "gentle wake" preset.
+                db.execSQL("ALTER TABLE alarms ADD COLUMN vibrationDelaySeconds INTEGER NOT NULL DEFAULT 0")
             }
         }
     }
