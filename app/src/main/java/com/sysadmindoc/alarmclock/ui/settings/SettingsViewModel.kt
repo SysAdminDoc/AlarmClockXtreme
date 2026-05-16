@@ -315,6 +315,41 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * v1.11.6 (roadmap N6): "Pause alarms for N days" — distinct from
+     * vacation. `days` of 0 (or negative) clears the pause and resumes
+     * normal scheduling. Otherwise the pause expires at midnight `days`
+     * days from now (so "Pause for 1 day" means "skip tonight's and
+     * tomorrow morning's alarms; resume the morning after"). Reschedule
+     * is always called so the cancellation propagates immediately.
+     */
+    fun pauseAlarmsForDays(days: Int) {
+        viewModelScope.launch {
+            val expiry = if (days <= 0) 0L else {
+                val nowMs = System.currentTimeMillis()
+                val endOfDay = java.time.ZonedDateTime.now()
+                    .plusDays(days.toLong())
+                    .toLocalDate()
+                    .atTime(java.time.LocalTime.MAX)
+                    .atZone(java.time.ZoneId.systemDefault())
+                    .toInstant()
+                    .toEpochMilli()
+                // Defensive: never go backwards.
+                maxOf(endOfDay, nowMs + 60_000L)
+            }
+            preferencesManager.update { it.copy(pauseUntilMillis = expiry) }
+            alarmScheduler.rescheduleAll(forceRecalculate = true)
+        }
+    }
+
+    /** v1.11.6: Clear an active pause and re-arm alarms. */
+    fun resumeAlarms() {
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(pauseUntilMillis = 0L) }
+            alarmScheduler.rescheduleAll(forceRecalculate = true)
+        }
+    }
+
     private fun updateSettings(transform: (AppSettings) -> AppSettings) {
         viewModelScope.launch {
             preferencesManager.update(transform)

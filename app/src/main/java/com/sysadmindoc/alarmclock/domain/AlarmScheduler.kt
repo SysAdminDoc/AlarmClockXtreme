@@ -10,6 +10,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.preferences.isPaused
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
 import com.sysadmindoc.alarmclock.receiver.AlarmReceiver
@@ -58,6 +59,19 @@ class AlarmScheduler @Inject constructor(
             return
         }
 
+        // v1.11.6 (roadmap N6): hard-suspend all alarms when the user has
+        // tapped "Pause alarms for N days". Clears any prior PendingIntent
+        // and zeroes nextTrigger so the next-alarm UI surfaces the paused
+        // state. The pause expires naturally; the next reschedule pass
+        // after the timestamp will re-arm the alarm.
+        val currentSettings = preferencesManager.getCurrentSettings()
+        if (currentSettings.isPaused()) {
+            cancelScheduledEntries(sanitizedAlarm.id)
+            repository.updateNextTrigger(sanitizedAlarm.id, 0)
+            requestWidgetUpdateIfNeeded(requestWidgetUpdate)
+            return
+        }
+
         var triggerTime = calculator.calculate(sanitizedAlarm)
         if (triggerTime <= System.currentTimeMillis()) {
             cancelScheduledEntries(sanitizedAlarm.id)
@@ -65,7 +79,7 @@ class AlarmScheduler @Inject constructor(
             requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return
         }
-        val settings = preferencesManager.getCurrentSettings()
+        val settings = currentSettings  // already fetched for the pause-state check above
 
         // Vacation mode skips repeating-alarm occurrences inside the configured
         // window, then schedules the first occurrence after the window ends.
@@ -157,6 +171,14 @@ class AlarmScheduler @Inject constructor(
     ) {
         val sanitizedAlarm = alarm.sanitized()
         if (!canScheduleExactAlarms()) {
+            cancelScheduledEntries(sanitizedAlarm.id)
+            repository.updateNextTrigger(sanitizedAlarm.id, 0)
+            requestWidgetUpdateIfNeeded(requestWidgetUpdate)
+            return
+        }
+        // v1.11.6 (roadmap N6): respect "Pause alarms" for snooze + quick-add
+        // paths too — snoozing inside a pause window shouldn't sneak past it.
+        if (preferencesManager.getCurrentSettings().isPaused()) {
             cancelScheduledEntries(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
             requestWidgetUpdateIfNeeded(requestWidgetUpdate)

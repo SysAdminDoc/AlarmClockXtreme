@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.11.5** (Philips Hue API
-v2 migration; see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
+Living feature backlog, refreshed alongside **v1.11.6** ("Pause alarms"
+single-tap suspend; see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
 external scan against current OSS / commercial alarm-clock ecosystem,
 Android 16 / 17 platform direction, and Play Console policy changes.
 
@@ -18,11 +18,11 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): **v1.11.5 Philips Hue
-> API v2 migration (N5)**; **v1.11.4 Play wake-lock policy audit (N4)**;
-> **v1.11.3 App Standby bucket awareness (N3)**; **v1.11.2 telephony-aware
-> alarm muting (N2)**; **v1.11.1 challenge sanitization regression fix
-> (N1)**; v1.11.0 Wear OS
+> **Recently shipped** (rolled up from prior tiers): **v1.11.6 "Pause alarms"
+> single-tap suspend (N6)**; **v1.11.5 Philips Hue API v2 migration (N5)**;
+> **v1.11.4 Play wake-lock policy audit (N4)**; **v1.11.3 App Standby bucket
+> awareness (N3)**; **v1.11.2 telephony-aware alarm muting (N2)**; **v1.11.1
+> challenge sanitization regression fix (N1)**; v1.11.0 Wear OS
 > next-alarm tile with skip / snooze / dismiss actions; v1.10.10 Android 16
 > next-alarm Live Update (`Notification.ProgressStyle`); v1.10.9 Material 3
 > Expressive opt-in (Compose BOM 2026.05.00); v1.10.8 What's New roadmap
@@ -35,7 +35,7 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.11.5)
+## Current snapshot (v1.11.6)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
   Material 3 (1.4.x), Room v9, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
@@ -43,7 +43,7 @@ ranked by impact-to-effort and grouped by theme.
   1.6.0 / protolayout 1.4.0, Wear Data Layer, yt-dlp (`youtubedl-android`
   0.18.1) + NewPipe Extractor 0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 59`, `versionName 1.11.5`.
+  `versionCode 60`, `versionName 1.11.6`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -72,7 +72,7 @@ in their notes. **Order is the recommended landing order.**
 | N3 | [x] App-Standby bucket awareness banner in Settings → Reliability — **shipped v1.11.3.** Added a 4th Wake-readiness row that reads `UsageStatsManager.getAppStandbyBucket()` on API 28+ and shows a plain-English description of the throttling state. `FREQUENT`/`RARE`/`RESTRICTED` get a warning with an action that opens battery settings. The "X of N ready" pill and the Reliability tile's supporting line both recompute. | [App Standby Buckets docs](https://developer.android.com/topic/performance/appstandby) | S | No new permission — self-query works without `PACKAGE_USAGE_STATS`. Pre-API-28 hides the row. |
 | N4 | [x] Play Store wake-lock budget compliance audit — **shipped v1.11.4.** Both wake-lock acquisition sites annotated. AlarmService (30 min, `mediaPlayback` + USAGE_ALARM) is exempt. SmartAlarmService (90 min, `dataSync` + accelerometer) is non-exempt and stays under the 2 h / 24 h cap for typical use; documented mitigation if multiple smart-wake alarms cumulate beyond. Wake-Lock Budget table added to CLAUDE.md. | [Play wake-lock policy March 2026](https://9to5google.com/2026/03/05/google-starts-calling-out-android-apps-that-drain-your-battery-before-you-download-them/) | S | Audit-only; no behavior change. |
 | N5 | [x] Migrate `HueSunriseWorker` to Hue API v2 + HTTPS — **shipped v1.11.5.** Probe-on-first-run (`GET https://{ip}/clip/v2/resource/light/{rid}` with `hue-application-key` header) with verdict cached per bridge IP in SharedPrefs. v2 PUTs use CLIP v2 endpoint shape + body (`{"on":{"on":true},"dimming":{"brightness":0..100},"color_temperature":{"mirek":153..500}}`); v1 0–254 brightness scale converted to v2 percent. v1 HTTP fallback retained for ~6 months. Settings → Hue test now reports active API version. | [Philips Hue API v2](https://developers.meethue.com/new-hue-api/) | M | Bridge cert is self-signed with non-matching CN (bridge ID, not IP) — v2 client uses allow-all hostname verifier + trust-any-cert TrustManager. Threat model: LAN-only, same risk profile as v1 HTTP today. Future hardening: bundle Signify root CA + pin bridge ID. |
-| N6 | [ ] "Pause alarms for N days" single-tap action distinct from vacation window — e.g., "Pause for 7 days / 14 days / until ___". Stores an `AppSettings.pauseUntilMillis` and short-circuits scheduling. | [BlackyHawky Clock 2.30 nightly](https://github.com/BlackyHawky/Clock/releases) | S | Vacation requires a start + end date and is heavyweight; this is "I'm sick this week." No DB migration — DataStore-only. |
+| N6 | [x] "Pause alarms for N days" single-tap action — **shipped v1.11.6.** New Settings → Pause alarms card with 1/3/7/14-day chips and Resume-now. `AppSettings.pauseUntilMillis` + `isPaused()` extension. `AlarmScheduler.schedule()` and `scheduleAt()` short-circuit while paused (cancel PendingIntent, zero `nextTriggerTime`). Backup format round-trips the field; stale values lazy-expire. | [BlackyHawky Clock 2.30 nightly](https://github.com/BlackyHawky/Clock/releases) | S | Distinct from vacation: applies to one-shots too; no date range required. |
 | N7 | [ ] Per-alarm vibration start-delay (vibrate after N seconds of audio, not immediately). Adds `Alarm.vibrationDelaySeconds: Int = 0`. | [BlackyHawky Clock 2.25](https://github.com/BlackyHawky/Clock/releases) | S | Accessibility + UX. Pairs with `gradualVolumeSeconds` for a "gentle wake" preset. DB v10 + backup v7 schema bump. |
 | N8 | [ ] Missed-timer notification (today expired timers stop quietly; symmetry with the missed-alarm path). | [BlackyHawky Clock 2.29](https://github.com/BlackyHawky/Clock/releases) | S | TimerViewModel emits `Finished` state; just wire a `NotificationManagerCompat` post + dismiss-on-tap. |
 | N9 | [ ] RingtonePool chip-based editor — replace the comma-separated-URI textarea with `AppFilterChip` rows + an "Add ringtone" button. | local: [AlarmEditScreen.kt:1217](app/src/main/java/com/sysadmindoc/alarmclock/ui/alarmedit/AlarmEditScreen.kt) | S | Polish — no schema change, just rewrites the existing `ringtonePool` string. |
