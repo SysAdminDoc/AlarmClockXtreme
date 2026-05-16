@@ -2,6 +2,50 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.11.5] - 2026-05-16
+
+Philips Hue API v2 migration (roadmap N5). v1 fallback retained for
+~6 months while users update bridge firmware past 1.40. No schema or
+permission changes.
+
+### Added — Hue CLIP v2
+
+- `HueSunriseWorker` now probes the bridge for v2 support
+  (`GET https://{ip}/clip/v2/resource/light/{rid}` with the
+  `hue-application-key` header) on first run and remembers the verdict
+  in a `hue_api_capability` SharedPrefs entry keyed on the bridge IP.
+  Subsequent runs skip the probe.
+- v2 PUTs use the CLIP v2 endpoint
+  (`PUT https://{ip}/clip/v2/resource/light/{rid}`), the
+  `hue-application-key` header (replacing the v1 username-in-path), and
+  the v2 body shape (`{"on":{"on":true},"dimming":{"brightness":0..100},"color_temperature":{"mirek":153..500}}`).
+  v1's 0–254 brightness scale is converted to v2's 0–100 percent.
+- Settings → Integrations → Hue test now probes v2 first and reports
+  the active API version ("Hue bridge reachable (API v2)" or
+  "(API v1 — bridge firmware is below 1.40)"). The pre-existing v1
+  message ("Hue bridge not found — check IP and key") is unchanged
+  for unreachable bridges.
+
+### Security notes
+
+- The bridge presents a self-signed cert whose subject CN is the
+  bridge ID (a MAC-derived hash), so strict hostname verification
+  would reject every connection. The v2 OkHttpClient pairs an
+  allow-all `HostnameVerifier` with a permissive `TrustManager`.
+  Threat model: traffic stays on the user's LAN; an attacker already
+  on that LAN can intercept brightness commands, a trivial
+  information disclosure with no escalation path. The risk is the
+  same as v1's plain-HTTP path today. A future hardening pass can
+  bundle the Signify root CA and pin the bridge ID (left as a
+  follow-up — does not block N5).
+
+### Internal
+
+- v1 (deprecated) code path is preserved verbatim and remains the
+  default for bridges that fail the v2 probe.
+- Bumped to `versionName = "1.11.5"`, `versionCode = 59`. README badge,
+  install command, and Wear module version synced.
+
 ## [1.11.4] - 2026-05-16
 
 Wake-lock budget compliance audit (roadmap N4). No schema or behavior
