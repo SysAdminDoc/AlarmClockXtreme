@@ -173,6 +173,17 @@ class AlarmService : Service() {
         // v1.5.4: Safe cast + defensive try around acquire(); rare OEM builds
         // throw SecurityException from newWakeLock() when the process is in a
         // restricted state.
+        //
+        // v1.11.4 (roadmap N4) Play wake-lock policy audit:
+        //   This wake lock is held by AlarmService — a `mediaPlayback`
+        //   foreground service playing AudioAttributes.USAGE_ALARM content.
+        //   Both the FGS type and the alarm-audio activity are documented
+        //   exempt categories under the Play Store March-2026 wake-lock
+        //   technical-quality treatment, so the 30-minute ceiling does not
+        //   count against the 2 h / 24 h non-exempt budget. The wake lock
+        //   is released in onDestroy() as soon as the alarm is dismissed,
+        //   snoozed, or auto-silenced — in practice the held time is the
+        //   few seconds between alarm-fire and user-dismiss.
         val pm = getSystemService(Context.POWER_SERVICE) as? PowerManager
         try {
             wakeLock = pm?.newWakeLock(

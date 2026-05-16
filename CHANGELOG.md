@@ -2,6 +2,36 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.11.4] - 2026-05-16
+
+Wake-lock budget compliance audit (roadmap N4). No schema or behavior
+changes; documentation + source comments only.
+
+### Documentation — Play wake-lock policy March 2026
+
+- Inline source comments at both `PowerManager.newWakeLock(...)` /
+  `acquire(...)` sites (`AlarmService`, `SmartAlarmService`) now document
+  whether the wake lock is exempt under the [Play Store March-2026
+  wake-lock quality treatment](https://9to5google.com/2026/03/05/google-starts-calling-out-android-apps-that-drain-your-battery-before-you-download-them/).
+- `AlarmService`'s 30-minute `PARTIAL_WAKE_LOCK` is **exempt** — it
+  wraps a `mediaPlayback` foreground service playing
+  `AudioAttributes.USAGE_ALARM` content; both the FGS type and the
+  alarm-audio activity are documented exempt categories.
+- `SmartAlarmService`'s 90-minute `PARTIAL_WAKE_LOCK` is **non-exempt**
+  (`dataSync` FGS, accelerometer-only). Worst-case for a single
+  smart-wake alarm = 90 min/day, under the 2 h non-exempt cap; users
+  with multiple smart-wake alarms per day could cumulatively exceed —
+  if field data shows that pattern, lower the per-window cap or track
+  cumulative held time and break monitoring early.
+- `SonarSleepService` holds no wake lock; it stays alive via the
+  `microphone` FGS.
+- Audit results recorded in CLAUDE.md as a "Wake-Lock Budget" table.
+
+### Internal
+
+- Bumped to `versionName = "1.11.4"`, `versionCode = 58`. README badge,
+  install command, and Wear module version synced.
+
 ## [1.11.3] - 2026-05-16
 
 App Standby bucket surfacing in Settings → Reliability (roadmap N3). No
