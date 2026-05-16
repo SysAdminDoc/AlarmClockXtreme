@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.ui.settings
 import android.app.Application
 import android.Manifest
 import android.app.AlarmManager
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -47,8 +48,22 @@ data class SettingsUiState(
     val isHueTesting: Boolean = false,
     // Wake readiness
     val hasNotificationPermission: Boolean = true,
-    val canScheduleExactAlarms: Boolean = true
+    val canScheduleExactAlarms: Boolean = true,
+    // v1.11.3 (roadmap N3): App Standby bucket awareness. UsageStatsManager
+    // returns one of STANDBY_BUCKET_ACTIVE / WORKING_SET / FREQUENT / RARE /
+    // RESTRICTED on API 28+. ACTIVE and WORKING_SET are the alarm-friendly
+    // states; FREQUENT and worse mean Android is throttling our background
+    // work, which can delay or drop the alarm-schedule path. UNKNOWN (-1)
+    // means the API isn't available on this device or returned no data —
+    // we surface a generic "Standby bucket unknown" in that case.
+    val appStandbyBucket: Int = AppStandbyBucket.UNKNOWN
 )
+
+object AppStandbyBucket {
+    const val UNKNOWN: Int = -1
+    /** True when the bucket actively throttles alarm scheduling. */
+    fun isDegraded(bucket: Int): Boolean = bucket >= 30  // FREQUENT == 30
+}
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
@@ -92,7 +107,8 @@ class SettingsViewModel @Inject constructor(
             hueTestResult = hueState.message,
             isHueTesting = hueState.isRunning,
             hasNotificationPermission = wakeReadiness.hasNotificationPermission,
-            canScheduleExactAlarms = wakeReadiness.canScheduleExactAlarms
+            canScheduleExactAlarms = wakeReadiness.canScheduleExactAlarms,
+            appStandbyBucket = wakeReadiness.appStandbyBucket
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState())
 
@@ -379,7 +395,8 @@ class SettingsViewModel @Inject constructor(
 
     private data class WakeReadinessState(
         val hasNotificationPermission: Boolean,
-        val canScheduleExactAlarms: Boolean
+        val canScheduleExactAlarms: Boolean,
+        val appStandbyBucket: Int
     ) {
         companion object {
             fun from(context: Context): WakeReadinessState {
@@ -396,9 +413,22 @@ class SettingsViewModel @Inject constructor(
                 } else {
                     true
                 }
+                // UsageStatsManager.getAppStandbyBucket() is API 28+. We never
+                // require PACKAGE_USAGE_STATS for the self-query — the system
+                // returns the calling app's own bucket without it.
+                val bucket = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    runCatching {
+                        (context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager)
+                            ?.appStandbyBucket
+                            ?: AppStandbyBucket.UNKNOWN
+                    }.getOrDefault(AppStandbyBucket.UNKNOWN)
+                } else {
+                    AppStandbyBucket.UNKNOWN
+                }
                 return WakeReadinessState(
                     hasNotificationPermission = notificationsReady,
-                    canScheduleExactAlarms = exactAlarmsReady
+                    canScheduleExactAlarms = exactAlarmsReady,
+                    appStandbyBucket = bucket
                 )
             }
         }

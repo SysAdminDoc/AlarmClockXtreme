@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.11.2** (telephony-aware
-alarm muting; see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
+Living feature backlog, refreshed alongside **v1.11.3** (App Standby bucket
+awareness; see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
 external scan against current OSS / commercial alarm-clock ecosystem,
 Android 16 / 17 platform direction, and Play Console policy changes.
 
@@ -18,9 +18,9 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): **v1.11.2 telephony-aware
-> alarm muting (N2)**; **v1.11.1 challenge sanitization regression fix (N1)**;
-> v1.11.0 Wear OS
+> **Recently shipped** (rolled up from prior tiers): **v1.11.3 App Standby
+> bucket awareness (N3)**; **v1.11.2 telephony-aware alarm muting (N2)**;
+> **v1.11.1 challenge sanitization regression fix (N1)**; v1.11.0 Wear OS
 > next-alarm tile with skip / snooze / dismiss actions; v1.10.10 Android 16
 > next-alarm Live Update (`Notification.ProgressStyle`); v1.10.9 Material 3
 > Expressive opt-in (Compose BOM 2026.05.00); v1.10.8 What's New roadmap
@@ -33,7 +33,7 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.11.2)
+## Current snapshot (v1.11.3)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
   Material 3 (1.4.x), Room v9, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
@@ -41,7 +41,7 @@ ranked by impact-to-effort and grouped by theme.
   1.6.0 / protolayout 1.4.0, Wear Data Layer, yt-dlp (`youtubedl-android`
   0.18.1) + NewPipe Extractor 0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 56`, `versionName 1.11.2`.
+  `versionCode 57`, `versionName 1.11.3`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -67,7 +67,7 @@ in their notes. **Order is the recommended landing order.**
 |---|------|--------|--------|-----------|
 | N1 | [x] Fix v1.6.0 challenge sanitization regression — **shipped v1.11.1.** Added `ROCK_PAPER_SCISSORS`, `EMOJI_MEMORY`, `TYPING_SPEED`, `WORDLE` to `Alarm.VALID_CHALLENGE_TYPES`; added `AlarmTest.every ChallengeType survives sanitized round-trip` property test that iterates `ChallengeType.entries` and fails fast if the whitelist drifts; README dismiss-challenges table updated to 22 types. | local: [app/src/main/java/com/sysadmindoc/alarmclock/data/model/Alarm.kt:114](app/src/main/java/com/sysadmindoc/alarmclock/data/model/Alarm.kt) vs. [challenges/ChallengeGenerator.kt:5](app/src/main/java/com/sysadmindoc/alarmclock/ui/alarmfiring/challenges/ChallengeGenerator.kt) | S | Latent data-loss bug; affected the 4 v1.6.0 challenges on every backup/share/DataStore round-trip. |
 | N2 | [x] Telephony-aware alarm muting — **shipped v1.11.2.** `AlarmService` registers `TelephonyCallback.CallStateListener` (API 31+) / legacy `PhoneStateListener` (pre-31) on `startAudio()` and unregisters in `stopAlarmPlayback()` / `onDestroy()`. On `OFFHOOK` / `RINGING` the MediaPlayer is muted via `setVolume(0f, 0f)`; restored on `IDLE`. All three creation paths + gradual-volume coroutine + backup-sound escalation honour the flag. Vibration / Guardian / flashlight intentionally continue. | [Android telephony state reference](https://developer.android.com/reference/android/telephony/TelephonyManager#EXTRA_STATE_RINGING) | S | Zero new permissions — only the optional incoming-number argument requires `READ_PHONE_STATE`, which is never read. |
-| N3 | [ ] App-Standby bucket awareness banner in Settings → Reliability — surface `UsageStatsManager.getAppStandbyBucket()` value with action link to battery-exemption screen when `>= STANDBY_BUCKET_FREQUENT`. | [App Standby Buckets docs](https://developer.android.com/topic/performance/appstandby); [dontkillmyapp.com strategies](https://dontkillmyapp.com/) | S | Pairs with existing exact-alarm + battery-killer warnings. No new permission — `PACKAGE_USAGE_STATS` not required for self-query. |
+| N3 | [x] App-Standby bucket awareness banner in Settings → Reliability — **shipped v1.11.3.** Added a 4th Wake-readiness row that reads `UsageStatsManager.getAppStandbyBucket()` on API 28+ and shows a plain-English description of the throttling state. `FREQUENT`/`RARE`/`RESTRICTED` get a warning with an action that opens battery settings. The "X of N ready" pill and the Reliability tile's supporting line both recompute. | [App Standby Buckets docs](https://developer.android.com/topic/performance/appstandby) | S | No new permission — self-query works without `PACKAGE_USAGE_STATS`. Pre-API-28 hides the row. |
 | N4 | [ ] Play Store wake-lock budget compliance audit — verify ACX stays under the 2-hour cumulative non-exempt wake-lock cap in a 24 h window. AlarmService already holds wake locks for `mediaPlayback` (exempted); audit other paths. | [Play wake-lock policy March 2026](https://9to5google.com/2026/03/05/google-starts-calling-out-android-apps-that-drain-your-battery-before-you-download-them/) | S | Defensive compliance pass. Document exempt vs. non-exempt acquisitions in CLAUDE.md. |
 | N5 | [ ] Migrate `HueSunriseWorker` from Hue v1 username path to Hue API v2 `application_key` + HTTPS pinning. Keep v1 fallback for ~6 months. | [Philips Hue API v2](https://developers.meethue.com/new-hue-api/) — v1 username flow deprecated; existing roadmap cross-cutting note | M | Security + future-proofing. Audit the new endpoint surface for the gradient-fade payload; tests on the URL whitelist already exist. |
 | N6 | [ ] "Pause alarms for N days" single-tap action distinct from vacation window — e.g., "Pause for 7 days / 14 days / until ___". Stores an `AppSettings.pauseUntilMillis` and short-circuits scheduling. | [BlackyHawky Clock 2.30 nightly](https://github.com/BlackyHawky/Clock/releases) | S | Vacation requires a start + end date and is heavyweight; this is "I'm sick this week." No DB migration — DataStore-only. |
