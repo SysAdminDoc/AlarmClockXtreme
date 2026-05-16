@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.11.0-blue)
+![Version](https://img.shields.io/badge/version-1.11.1-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.11.0-play.apk
+adb install AlarmClockXtreme-v1.11.1-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor) and the Wear OS Data Layer bridge. The F-Droid flavor strips those proprietary pieces for an unencumbered build.
@@ -53,7 +53,7 @@ cd AlarmClockXtreme
 | Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
 | Wear OS Tile | Shows the next alarm on the watch, with skip controls before fire and snooze/dismiss controls while ringing |
 
-### Dismiss Challenges (19 Types)
+### Dismiss Challenges (22 Types)
 | Challenge | Description |
 |-----------|-------------|
 | Math (Easy/Medium/Hard) | Solve arithmetic problems with explicit operator precedence |
@@ -72,6 +72,10 @@ cd AlarmClockXtreme
 | Simon Says | Watch a 4-pad color sequence and play it back in order |
 | Type Date Backwards | Type today's ISO date reversed character-by-character |
 | Stroop Test | Tap the INK color of a color-word, not the word itself |
+| Rock / Paper / Scissors | Best-of-5 RPS against the computer (first to 3 wins) |
+| Emoji Memory | Match 8 emoji pairs on a face-down 4x4 grid |
+| Typing Speed | Type a phrase at >= N wpm with limited word mistakes |
+| Wordle | Guess the 5-letter target word in <= 6 attempts |
 | Mission Chaining | Stack 2-5 challenges in sequence (e.g., Math + Shake + Typing) |
 | Adaptive Difficulty | Auto-escalates math difficulty based on snooze history |
 

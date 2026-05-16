@@ -111,6 +111,12 @@ data class Alarm(
     val solarAnchor: String = "SUNRISE"
 ) {
     companion object {
+        // Must stay in lockstep with ChallengeType (see ChallengeGenerator.kt).
+        // Adding a new ChallengeType without listing it here causes sanitized()
+        // to silently rewrite it back to "NONE" on every backup/share/DataStore
+        // round-trip — that bug shipped between v1.6.0 (when RPS / EmojiMemory
+        // / TypingSpeed / Wordle landed) and v1.12 (when this guard was fixed).
+        // A ChallengeType round-trip property test guards against regression.
         private val VALID_CHALLENGE_TYPES = setOf(
             "NONE",
             "MATH_EASY",
@@ -130,7 +136,11 @@ data class Alarm(
             "COUNT_SHEEP",
             "SIMON_SAYS",
             "DATE_BACKWARDS",
-            "STROOP"
+            "STROOP",
+            "ROCK_PAPER_SCISSORS",
+            "EMOJI_MEMORY",
+            "TYPING_SPEED",
+            "WORDLE"
         )
         private val VALID_VIBRATION_PATTERNS = setOf(
             "default",
