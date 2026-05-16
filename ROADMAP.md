@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.11.0** (Wear OS next-alarm
-tile; see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
+Living feature backlog, refreshed alongside **v1.11.1** (challenge-sanitization
+regression fix; see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
 external scan against current OSS / commercial alarm-clock ecosystem,
 Android 16 / 17 platform direction, and Play Console policy changes.
 
@@ -18,7 +18,8 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): v1.11.0 Wear OS
+> **Recently shipped** (rolled up from prior tiers): **v1.11.1 challenge
+> sanitization regression fix (N1)**; v1.11.0 Wear OS
 > next-alarm tile with skip / snooze / dismiss actions; v1.10.10 Android 16
 > next-alarm Live Update (`Notification.ProgressStyle`); v1.10.9 Material 3
 > Expressive opt-in (Compose BOM 2026.05.00); v1.10.8 What's New roadmap
@@ -31,7 +32,7 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.11.0)
+## Current snapshot (v1.11.1)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
   Material 3 (1.4.x), Room v9, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
@@ -39,11 +40,12 @@ ranked by impact-to-effort and grouped by theme.
   1.6.0 / protolayout 1.4.0, Wear Data Layer, yt-dlp (`youtubedl-android`
   0.18.1) + NewPipe Extractor 0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 54`, `versionName 1.11.0`.
+  `versionCode 55`, `versionName 1.11.1`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
-  flavors (`play`, `fdroid`), **22 challenge enum values** (19 user-facing per
-  README — see N1 below), 50+ alarm fields, 35+ AppSettings fields, 6 phone
-  tabs (Today, Alarms, Bedtime, Timer, World, News) + Settings.
+  flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
+  whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
+  AppSettings fields, 6 phone tabs (Today, Alarms, Bedtime, Timer, World,
+  News) + Settings.
 - **What's missing vs. competitors:** Health Connect / standalone-watch story
   is still zero; no on-device sleep-stage classifier; no AI sleep coach; no
   lockscreen-widget surface (Pixel-led Android 15+); no foldable/tablet
@@ -62,7 +64,7 @@ in their notes. **Order is the recommended landing order.**
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| N1 | [ ] Fix v1.6.0 challenge sanitization regression — `ROCK_PAPER_SCISSORS`, `EMOJI_MEMORY`, `TYPING_SPEED`, `WORDLE` are present in `ChallengeType` enum but missing from `Alarm.VALID_CHALLENGE_TYPES`, so `sanitized()` silently rewrites them back to `NONE` when an alarm round-trips through backup / share / DataStore read paths. | local: [app/src/main/java/com/sysadmindoc/alarmclock/data/model/Alarm.kt:114](app/src/main/java/com/sysadmindoc/alarmclock/data/model/Alarm.kt) vs. [challenges/ChallengeGenerator.kt:5](app/src/main/java/com/sysadmindoc/alarmclock/ui/alarmfiring/challenges/ChallengeGenerator.kt) | S | Latent data-loss bug. Add the 4 missing strings to `VALID_CHALLENGE_TYPES`, add a `sanitized()` round-trip unit test per challenge (extends [ChallengeGeneratorTest.kt](app/src/test/java/com/sysadmindoc/alarmclock/domain/ChallengeGeneratorTest.kt)), bump the README's "Dismiss Challenges (19 Types)" count to the actual 22 once the fix lands. No DB change. |
+| N1 | [x] Fix v1.6.0 challenge sanitization regression — **shipped v1.11.1.** Added `ROCK_PAPER_SCISSORS`, `EMOJI_MEMORY`, `TYPING_SPEED`, `WORDLE` to `Alarm.VALID_CHALLENGE_TYPES`; added `AlarmTest.every ChallengeType survives sanitized round-trip` property test that iterates `ChallengeType.entries` and fails fast if the whitelist drifts; README dismiss-challenges table updated to 22 types. | local: [app/src/main/java/com/sysadmindoc/alarmclock/data/model/Alarm.kt:114](app/src/main/java/com/sysadmindoc/alarmclock/data/model/Alarm.kt) vs. [challenges/ChallengeGenerator.kt:5](app/src/main/java/com/sysadmindoc/alarmclock/ui/alarmfiring/challenges/ChallengeGenerator.kt) | S | Latent data-loss bug; affected the 4 v1.6.0 challenges on every backup/share/DataStore round-trip. |
 | N2 | [ ] Telephony-aware alarm muting — pause audio (keep vibration optional, keep notification) when `TelephonyCallback.CallStateListener` reports `OFFHOOK` or `RINGING` during firing. | [Android telephony state reference](https://developer.android.com/reference/android/telephony/TelephonyManager#EXTRA_STATE_RINGING); recurring r/Android complaint — alarm fires over an incoming call | S | Zero new permissions on Android 12+ (`TelephonyCallback.CallStateListener` is grant-free). Defensive: pre-API-31 uses the deprecated `PhoneStateListener` behind an SDK guard. Add unit test on the pure callback function. |
 | N3 | [ ] App-Standby bucket awareness banner in Settings → Reliability — surface `UsageStatsManager.getAppStandbyBucket()` value with action link to battery-exemption screen when `>= STANDBY_BUCKET_FREQUENT`. | [App Standby Buckets docs](https://developer.android.com/topic/performance/appstandby); [dontkillmyapp.com strategies](https://dontkillmyapp.com/) | S | Pairs with existing exact-alarm + battery-killer warnings. No new permission — `PACKAGE_USAGE_STATS` not required for self-query. |
 | N4 | [ ] Play Store wake-lock budget compliance audit — verify ACX stays under the 2-hour cumulative non-exempt wake-lock cap in a 24 h window. AlarmService already holds wake locks for `mediaPlayback` (exempted); audit other paths. | [Play wake-lock policy March 2026](https://9to5google.com/2026/03/05/google-starts-calling-out-android-apps-that-drain-your-battery-before-you-download-them/) | S | Defensive compliance pass. Document exempt vs. non-exempt acquisitions in CLAUDE.md. |

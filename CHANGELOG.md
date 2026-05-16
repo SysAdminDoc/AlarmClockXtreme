@@ -2,6 +2,42 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.11.1] - 2026-05-16
+
+Fixes the v1.6.0 challenge sanitization regression (roadmap N1). No schema
+changes.
+
+### Fixed — dismiss-challenge persistence
+
+- Added `ROCK_PAPER_SCISSORS`, `EMOJI_MEMORY`, `TYPING_SPEED`, and `WORDLE`
+  to `Alarm.VALID_CHALLENGE_TYPES`. These four challenges shipped in v1.6.0
+  but were missing from the sanitization whitelist, so `Alarm.sanitized()`
+  silently rewrote them to `NONE` on every backup export/import, share-link
+  round-trip, and DataStore read. Affected alarms now persist correctly.
+- The same fix also unblocks these four challenges from appearing inside
+  Mission Chain configurations — chains containing them were being stripped.
+
+### Added — regression guard
+
+- Property test `AlarmTest.every ChallengeType survives sanitized round-trip`
+  iterates `ChallengeType.entries` and asserts each value round-trips through
+  `Alarm.sanitized()`. A companion test exercises the challenge-chain path.
+  If a future `ChallengeType` is added without updating
+  `VALID_CHALLENGE_TYPES`, the test fails with a directive pointing at the
+  whitelist.
+
+### Documentation
+
+- README's "Dismiss Challenges" table now lists 22 user-facing challenges
+  (was 18 visible + 4 hidden) and the section header reads "(22 Types)".
+- CLAUDE.md's challenge-types crib now lists all 22 + `NONE` and documents
+  the whitelist invariant.
+
+### Internal
+
+- Bumped to `versionName = "1.11.1"`, `versionCode = 55`. README badge,
+  install command, and Wear module version synced.
+
 ## [1.11.0] - 2026-05-14
 
 Wear OS next-alarm tile. No schema changes.
