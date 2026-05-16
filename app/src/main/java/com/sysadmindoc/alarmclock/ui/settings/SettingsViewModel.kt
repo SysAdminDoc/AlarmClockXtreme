@@ -342,6 +342,18 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * v1.13.1 (roadmap N12): toggle the Health Connect opt-in. The
+     * concrete sleep-session read path is deferred to a follow-up
+     * release that bundles the `androidx.health.connect:connect-client`
+     * SDK and the matching Play Console health-permissions declaration
+     * (see N13). For now the toggle stores intent so the future
+     * release can light up immediately for opted-in users.
+     */
+    fun updateHealthConnectEnabled(enabled: Boolean) {
+        updateSettings { it.copy(healthConnectEnabled = enabled) }
+    }
+
     /** v1.11.6: Clear an active pause and re-arm alarms. */
     fun resumeAlarms() {
         viewModelScope.launch {

@@ -400,6 +400,7 @@ fun SettingsScreen(
             IntegrationsSection(state, viewModel)
             HolidaysSection(state, viewModel)
             PhilipsHueSection(state, viewModel)
+            HealthConnectSection(state, viewModel)
             PersonalizationSection(state, viewModel)
             BackupRestoreSection(viewModel)
 
@@ -1315,6 +1316,42 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
                 Text(if (state.isHueTesting) "Testing" else "Test")
             }
         }
+    }
+}
+
+/**
+ * v1.13.1 (roadmap N12 + N13): Health Connect opt-in scaffold. The first
+ * pass surfaces the toggle so opted-in users light up immediately when
+ * the follow-up release ships the `androidx.health.connect:connect-client`
+ * SDK integration. F-Droid builds also see the row, but the toggle text
+ * is honest about the flavor not yet shipping Health Connect.
+ *
+ * The Play Console health-permissions declaration (N13) is gated on the
+ * actual data-read path landing; for now `PRIVACY_POLICY.html` carries
+ * the narrative.
+ */
+@Composable
+private fun HealthConnectSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+    val isPlayFlavor = com.sysadmindoc.alarmclock.BuildConfig.FLAVOR == "play"
+    AppSurfaceCard {
+        AppSectionTitle(
+            title = "Health Connect",
+            description = if (isPlayFlavor) {
+                "Read overnight sleep sessions from Health Connect to enrich the Bedtime tab and Stats. The connection prompt opens the system Health Connect screen."
+            } else {
+                "The F-Droid flavor does not ship Health Connect support. Install the Play flavor to opt in."
+            }
+        )
+        SettingsToggle(
+            label = "Allow reading sleep sessions",
+            checked = state.settings.healthConnectEnabled,
+            supportingText = if (isPlayFlavor) {
+                "Toggle on to grant Health Connect access (data integration ships in a follow-up release; toggle survives backup/restore so opted-in users light up immediately when it does)."
+            } else {
+                "Disabled on F-Droid. Toggle has no effect on this build."
+            },
+            onToggle = viewModel::updateHealthConnectEnabled
+        )
     }
 }
 
