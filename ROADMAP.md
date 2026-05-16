@@ -1,7 +1,8 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.11.6** ("Pause alarms"
-single-tap suspend; see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
+Living feature backlog, refreshed alongside **v1.12.0** (per-alarm vibration
+start-delay, DB v10 + backup v7; see [CHANGELOG.md](CHANGELOG.md)). Last
+audit: **2026-05-16** —
 external scan against current OSS / commercial alarm-clock ecosystem,
 Android 16 / 17 platform direction, and Play Console policy changes.
 
@@ -18,11 +19,12 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): **v1.11.6 "Pause alarms"
-> single-tap suspend (N6)**; **v1.11.5 Philips Hue API v2 migration (N5)**;
-> **v1.11.4 Play wake-lock policy audit (N4)**; **v1.11.3 App Standby bucket
-> awareness (N3)**; **v1.11.2 telephony-aware alarm muting (N2)**; **v1.11.1
-> challenge sanitization regression fix (N1)**; v1.11.0 Wear OS
+> **Recently shipped** (rolled up from prior tiers): **v1.12.0 per-alarm
+> vibration start-delay (N7) — DB v10**; **v1.11.6 "Pause alarms" single-tap
+> suspend (N6)**; **v1.11.5 Philips Hue API v2 migration (N5)**; **v1.11.4
+> Play wake-lock policy audit (N4)**; **v1.11.3 App Standby bucket awareness
+> (N3)**; **v1.11.2 telephony-aware alarm muting (N2)**; **v1.11.1 challenge
+> sanitization regression fix (N1)**; v1.11.0 Wear OS
 > next-alarm tile with skip / snooze / dismiss actions; v1.10.10 Android 16
 > next-alarm Live Update (`Notification.ProgressStyle`); v1.10.9 Material 3
 > Expressive opt-in (Compose BOM 2026.05.00); v1.10.8 What's New roadmap
@@ -35,15 +37,15 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.11.6)
+## Current snapshot (v1.12.0)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
-  Material 3 (1.4.x), Room v9, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
+  Material 3 (1.4.x), Room v10, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
   DataStore 1.1.1, Glance 1.1.1, OkHttp 4.12.0, WorkManager 2.9.1, Wear Tiles
   1.6.0 / protolayout 1.4.0, Wear Data Layer, yt-dlp (`youtubedl-android`
   0.18.1) + NewPipe Extractor 0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 60`, `versionName 1.11.6`.
+  `versionCode 61`, `versionName 1.12.0`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -73,7 +75,7 @@ in their notes. **Order is the recommended landing order.**
 | N4 | [x] Play Store wake-lock budget compliance audit — **shipped v1.11.4.** Both wake-lock acquisition sites annotated. AlarmService (30 min, `mediaPlayback` + USAGE_ALARM) is exempt. SmartAlarmService (90 min, `dataSync` + accelerometer) is non-exempt and stays under the 2 h / 24 h cap for typical use; documented mitigation if multiple smart-wake alarms cumulate beyond. Wake-Lock Budget table added to CLAUDE.md. | [Play wake-lock policy March 2026](https://9to5google.com/2026/03/05/google-starts-calling-out-android-apps-that-drain-your-battery-before-you-download-them/) | S | Audit-only; no behavior change. |
 | N5 | [x] Migrate `HueSunriseWorker` to Hue API v2 + HTTPS — **shipped v1.11.5.** Probe-on-first-run (`GET https://{ip}/clip/v2/resource/light/{rid}` with `hue-application-key` header) with verdict cached per bridge IP in SharedPrefs. v2 PUTs use CLIP v2 endpoint shape + body (`{"on":{"on":true},"dimming":{"brightness":0..100},"color_temperature":{"mirek":153..500}}`); v1 0–254 brightness scale converted to v2 percent. v1 HTTP fallback retained for ~6 months. Settings → Hue test now reports active API version. | [Philips Hue API v2](https://developers.meethue.com/new-hue-api/) | M | Bridge cert is self-signed with non-matching CN (bridge ID, not IP) — v2 client uses allow-all hostname verifier + trust-any-cert TrustManager. Threat model: LAN-only, same risk profile as v1 HTTP today. Future hardening: bundle Signify root CA + pin bridge ID. |
 | N6 | [x] "Pause alarms for N days" single-tap action — **shipped v1.11.6.** New Settings → Pause alarms card with 1/3/7/14-day chips and Resume-now. `AppSettings.pauseUntilMillis` + `isPaused()` extension. `AlarmScheduler.schedule()` and `scheduleAt()` short-circuit while paused (cancel PendingIntent, zero `nextTriggerTime`). Backup format round-trips the field; stale values lazy-expire. | [BlackyHawky Clock 2.30 nightly](https://github.com/BlackyHawky/Clock/releases) | S | Distinct from vacation: applies to one-shots too; no date range required. |
-| N7 | [ ] Per-alarm vibration start-delay (vibrate after N seconds of audio, not immediately). Adds `Alarm.vibrationDelaySeconds: Int = 0`. | [BlackyHawky Clock 2.25](https://github.com/BlackyHawky/Clock/releases) | S | Accessibility + UX. Pairs with `gradualVolumeSeconds` for a "gentle wake" preset. DB v10 + backup v7 schema bump. |
+| N7 | [x] Per-alarm vibration start-delay — **shipped v1.12.0.** New `Alarm.vibrationDelaySeconds: Int = 0` (clamped 0..600). DB v9→v10 with `MIGRATION_9_10`; backup format v6→v7 with default-0 back-compat read. Alarm-edit Vibration section shows the new "Start vibration after" picker. AlarmService schedules a cancellable delay job that re-checks `currentAlarmId` before vibrating. | [BlackyHawky Clock 2.25](https://github.com/BlackyHawky/Clock/releases) | S | Pairs with `gradualVolumeSeconds` for a "gentle wake" preset. |
 | N8 | [ ] Missed-timer notification (today expired timers stop quietly; symmetry with the missed-alarm path). | [BlackyHawky Clock 2.29](https://github.com/BlackyHawky/Clock/releases) | S | TimerViewModel emits `Finished` state; just wire a `NotificationManagerCompat` post + dismiss-on-tap. |
 | N9 | [ ] RingtonePool chip-based editor — replace the comma-separated-URI textarea with `AppFilterChip` rows + an "Add ringtone" button. | local: [AlarmEditScreen.kt:1217](app/src/main/java/com/sysadmindoc/alarmclock/ui/alarmedit/AlarmEditScreen.kt) | S | Polish — no schema change, just rewrites the existing `ringtonePool` string. |
 | N10 | [ ] CI version-line consistency lint — assert README badge, CHANGELOG top entry, ROADMAP "Current snapshot", `app/build.gradle.kts.versionName`, and `:wear` versionName all match exactly. | local: [release.yml](.github/workflows/release.yml) lacks this check; manual cross-check is in CLAUDE.md but routinely drifts | S | One-line `grep` in CI prevents the post-release "README still says v1.10.10" mismatch we've already corrected twice. |

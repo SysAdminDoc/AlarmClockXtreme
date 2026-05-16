@@ -290,7 +290,23 @@ class AlarmService : Service() {
         startAudio(alarm)
 
         if (alarm.vibrationEnabled) {
-            startVibration(alarm)
+            // v1.12.0 (roadmap N7): optional pre-vibration delay. Defers haptic
+            // onset for `vibrationDelaySeconds` so it can pair with a long
+            // gradualVolumeSeconds fade-in ("audio first, vibration when the
+            // fade is well underway"). The delay job is cancellable via
+            // volumeJob's parent scope — snooze / dismiss / auto-silence all
+            // cancel serviceScope, so a queued vibration never fires after the
+            // alarm is gone.
+            if (alarm.vibrationDelaySeconds > 0) {
+                serviceScope.launch {
+                    kotlinx.coroutines.delay(alarm.vibrationDelaySeconds * 1000L)
+                    // Re-check the live alarm id — service-restart races could
+                    // otherwise vibrate for an alarm the user already dismissed.
+                    if (currentAlarmId == alarmId) startVibration(alarm)
+                }
+            } else {
+                startVibration(alarm)
+            }
         }
 
         // F8: Webhook on alarm fire (fire-and-forget on its own scope; see WebhookService)

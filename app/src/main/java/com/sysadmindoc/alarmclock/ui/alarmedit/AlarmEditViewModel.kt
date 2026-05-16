@@ -96,7 +96,10 @@ data class AlarmEditUiState(
     // v1.5.0: Sunrise/sunset-relative firing (minutes offset; 0 = use fixed time)
     val solarOffsetMinutes: Int = 0,
     // v1.5.0: Solar-offset anchor: "SUNRISE" or "SUNSET"
-    val solarAnchor: String = "SUNRISE"
+    val solarAnchor: String = "SUNRISE",
+    // v1.12.0 (roadmap N7): pre-vibration delay in seconds (pairs with
+    // gradualVolumeSeconds for a "gentle wake" preset).
+    val vibrationDelaySeconds: Int = 0
 )
 
 @HiltViewModel
@@ -181,7 +184,8 @@ class AlarmEditViewModel @Inject constructor(
                         holdToDismissEnabled = alarm.holdToDismissEnabled,
                         ringtonePool = alarm.ringtonePool,
                         solarOffsetMinutes = alarm.solarOffsetMinutes,
-                        solarAnchor = alarm.solarAnchor
+                        solarAnchor = alarm.solarAnchor,
+                        vibrationDelaySeconds = alarm.vibrationDelaySeconds
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(notFound = true, is24HourFormat = is24h)
@@ -225,6 +229,11 @@ class AlarmEditViewModel @Inject constructor(
 
     fun updateGradualVolume(seconds: Int) {
         _uiState.value = _uiState.value.copy(gradualVolumeSeconds = seconds)
+    }
+
+    /** v1.12.0 (roadmap N7): set per-alarm vibration start-delay (seconds). */
+    fun updateVibrationDelay(seconds: Int) {
+        _uiState.value = _uiState.value.copy(vibrationDelaySeconds = seconds.coerceIn(0, 600))
     }
 
     fun updateOverrideVolume(override: Boolean) {
@@ -457,7 +466,8 @@ class AlarmEditViewModel @Inject constructor(
                 holdToDismissEnabled = s.holdToDismissEnabled,
                 ringtonePool = s.ringtonePool,
                 solarOffsetMinutes = s.solarOffsetMinutes,
-                solarAnchor = s.solarAnchor
+                solarAnchor = s.solarAnchor,
+                vibrationDelaySeconds = s.vibrationDelaySeconds
             )
 
             try {

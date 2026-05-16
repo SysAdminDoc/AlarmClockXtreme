@@ -535,6 +535,44 @@ fun AlarmEditScreen(
                             }
                         }
                     }
+
+                    // v1.12.0 (roadmap N7): vibration start-delay
+                    var showVibDelayMenu by remember { mutableStateOf(false) }
+                    SettingsRow(label = "Start vibration after") {
+                        Box {
+                            SettingsValueButton(
+                                label = when (state.vibrationDelaySeconds) {
+                                    0 -> "Immediately"
+                                    in 1..59 -> "${state.vibrationDelaySeconds}s"
+                                    else -> "${state.vibrationDelaySeconds / 60}m ${state.vibrationDelaySeconds % 60}s"
+                                },
+                                onClick = { showVibDelayMenu = true }
+                            )
+                            DropdownMenu(
+                                expanded = showVibDelayMenu,
+                                onDismissRequest = { showVibDelayMenu = false }
+                            ) {
+                                listOf(0, 10, 30, 60, 120, 300, 600).forEach { secs ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                when (secs) {
+                                                    0 -> "Immediately (default)"
+                                                    in 1..59 -> "$secs seconds"
+                                                    else -> "${secs / 60} minutes"
+                                                },
+                                                color = if (secs == state.vibrationDelaySeconds) AccentBlue else TextPrimary
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.updateVibrationDelay(secs)
+                                            showVibDelayMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
