@@ -2,6 +2,45 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.12.0] - 2026-05-16
+
+Per-alarm vibration start-delay (roadmap N7). **DB v10, backup format v7.**
+Schema change is forward-compatible — new field defaults to 0, preserving
+prior behaviour.
+
+### Added — gentle-wake building block
+
+- `Alarm.vibrationDelaySeconds: Int = 0` defers haptic onset for the
+  configured number of seconds after the alarm fires. Pairs with
+  `gradualVolumeSeconds` to build an "audio first, vibration after the
+  fade" preset without writing a new alarm profile abstraction.
+- Alarm-edit → Vibration section gains a "Start vibration after" picker
+  (Immediately / 10s / 30s / 1m / 2m / 5m / 10m). Hidden when
+  vibration is disabled.
+- `AlarmService` schedules the vibration via a cancellable
+  `serviceScope.launch { delay() … startVibration() }`. The launched
+  job re-checks `currentAlarmId` before vibrating so a service-restart
+  race can't fire haptics for an alarm the user has already dismissed
+  or snoozed.
+
+### Changed — schema
+
+- Room database bumped to **v10**. New column
+  `vibrationDelaySeconds INTEGER NOT NULL DEFAULT 0` on the `alarms`
+  table; new `MIGRATION_9_10` registered in `DatabaseModule`.
+- Backup format bumped to **v7**. `AlarmBackup.vibrationDelaySeconds`
+  added with default 0 (back-compat read); `BackupData.version`
+  default and `MAX_SUPPORTED_BACKUP_VERSION` both moved from 6 → 7.
+  v6 backups continue to import correctly — missing field defaults to 0.
+
+### Internal
+
+- `Alarm.sanitized()` coerces `vibrationDelaySeconds` into 0..600
+  (10 min cap matches `gradualVolumeSeconds`'s 0..300, leaving room
+  to stretch the haptic offset slightly past audio peak).
+- Bumped to `versionName = "1.12.0"`, `versionCode = 61`. README badge,
+  install command, and Wear module version synced.
+
 ## [1.11.6] - 2026-05-16
 
 "Pause alarms" single-tap suspend (roadmap N6). DataStore-only — no DB

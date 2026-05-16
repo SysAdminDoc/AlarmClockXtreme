@@ -1,7 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// AlarmClockXtreme v1.11.6
+// AlarmClockXtreme v1.12.0
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 35
-        versionCode = 60
-        versionName = "1.11.6"
+        versionCode = 61
+        versionName = "1.12.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
