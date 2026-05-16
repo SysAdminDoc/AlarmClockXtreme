@@ -1,15 +1,21 @@
 package com.sysadmindoc.alarmclock.ui.navigation
 
+import androidx.activity.ComponentActivity
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -103,11 +109,24 @@ private fun visibleBottomNavItems(
     }
 }
 
+@OptIn(androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
     val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+
+    // v1.13.0 (roadmap N11): Adaptive primary navigation. Compose's stable
+    // WindowSizeClass API ([android-developers.googleblog.com/...](https://android-developers.googleblog.com/2024/09/jetpack-compose-apis-for-building-adaptive-layouts-material-guidance-now-stable.html))
+    // lets us swap the persistent bottom NavigationBar for a NavigationRail
+    // on `MEDIUM` and `EXPANDED` widths — i.e., 8" tablets, foldables in
+    // book/tabletop posture, Chromebooks, and Samsung DeX. On COMPACT
+    // (every standard phone in portrait) we keep the existing bottom bar
+    // verbatim so phone users see zero change.
+    val windowWidth = (context as? ComponentActivity)?.let { activity ->
+        calculateWindowSizeClass(activity).widthSizeClass
+    } ?: WindowWidthSizeClass.Compact
+    val useNavigationRail = windowWidth != WindowWidthSizeClass.Compact
 
     // First-launch check
     val prefs = remember { context.getSharedPreferences("app_prefs", 0) }
@@ -152,10 +171,23 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
     }
 
+    val onTabClick: (Screen) -> Unit = { screen ->
+        navController.navigate(screen.route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     Scaffold(
         containerColor = SurfaceDark,
         bottomBar = {
-            if (showBottomBar) {
+            // v1.13.0 (roadmap N11): the bottom bar only renders on COMPACT.
+            // Wider windows get a NavigationRail instead — see the Row branch
+            // in the content slot below.
+            if (showBottomBar && !useNavigationRail) {
                 BottomNavContainer {
                     NavigationBar(
                         containerColor = Color.Transparent,
@@ -193,15 +225,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                                 },
                                 selected = selected,
                                 alwaysShowLabel = false,
-                                onClick = {
-                                    navController.navigate(item.screen.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                },
+                                onClick = { onTabClick(item.screen) },
                                 colors = NavigationBarItemDefaults.colors(
                                     indicatorColor = Color.Transparent,
                                     selectedIconColor = MaterialTheme.colorScheme.primary,
@@ -216,98 +240,169 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
             }
         }
     ) { padding ->
-        NavHost(
+        // v1.13.0 (roadmap N11): On MEDIUM/EXPANDED width classes, place a
+        // NavigationRail on the leading edge and let the NavHost fill the
+        // rest of the row. The bottom bar is hidden in that case (see slot
+        // above). Compact widths skip the rail entirely and the original
+        // NavHost-only layout is preserved.
+        if (useNavigationRail && showBottomBar) {
+            Row(modifier = Modifier.padding(padding).fillMaxSize()) {
+                NavigationRail(
+                    containerColor = SurfaceDark,
+                    contentColor = TextPrimary
+                ) {
+                    visibleTabs.forEach { item ->
+                        val selected = currentDestination?.hierarchy?.any {
+                            it.route == item.screen.route
+                        } == true
+                        NavigationRailItem(
+                            icon = {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.label,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            },
+                            label = { Text(text = item.label, maxLines = 1) },
+                            selected = selected,
+                            alwaysShowLabel = true,
+                            onClick = { onTabClick(item.screen) },
+                            colors = NavigationRailItemDefaults.colors(
+                                indicatorColor = Color.Transparent,
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = TextMuted,
+                                unselectedTextColor = TextMuted
+                            )
+                        )
+                    }
+                }
+                Box(modifier = Modifier.fillMaxSize()) {
+                    AppNavHost(
+                        navController = navController,
+                        startDest = startDest,
+                        prefs = prefs
+                    )
+                }
+            }
+            return@Scaffold
+        }
+
+        AppNavHost(
             navController = navController,
-            startDestination = startDest,
-            modifier = Modifier.padding(padding),
-            enterTransition = {
-                slideInHorizontally(initialOffsetX = { it / 4 }) + fadeIn()
-            },
-            exitTransition = {
-                slideOutHorizontally(targetOffsetX = { -it / 6 }) + fadeOut(targetAlpha = 0.72f)
-            },
-            popEnterTransition = {
-                slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn()
-            },
-            popExitTransition = {
-                slideOutHorizontally(targetOffsetX = { it / 4 }) + fadeOut(targetAlpha = 0.72f)
-            }
+            startDest = startDest,
+            prefs = prefs,
+            modifier = Modifier.padding(padding)
+        )
+    }
+}
+
+/**
+ * v1.13.0 (roadmap N11): extracted from the inline NavHost so the rail
+ * branch (MEDIUM/EXPANDED) and the bar branch (COMPACT) can both render
+ * the same navigation graph without duplicating ~100 LoC.
+ *
+ * `prefs` is plumbed through because onboarding completion is persisted
+ * via SharedPreferences here (not a ViewModel).
+ */
+@Composable
+private fun AppNavHost(
+    navController: NavHostController,
+    startDest: String,
+    prefs: android.content.SharedPreferences,
+    modifier: Modifier = Modifier
+) {
+    NavHost(
+        navController = navController,
+        startDestination = startDest,
+        modifier = modifier,
+        enterTransition = {
+            slideInHorizontally(initialOffsetX = { it / 4 }) + fadeIn()
+        },
+        exitTransition = {
+            slideOutHorizontally(targetOffsetX = { -it / 6 }) + fadeOut(targetAlpha = 0.72f)
+        },
+        popEnterTransition = {
+            slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn()
+        },
+        popExitTransition = {
+            slideOutHorizontally(targetOffsetX = { it / 4 }) + fadeOut(targetAlpha = 0.72f)
+        }
+    ) {
+        composable(Screen.Onboarding.route) {
+            OnboardingScreen(
+                onComplete = {
+                    prefs.edit().putBoolean("onboarding_complete", true).apply()
+                    navController.navigate(Screen.AlarmList.route) {
+                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(Screen.Dashboard.route) {
+            DashboardScreen()
+        }
+
+        composable(Screen.AlarmList.route) {
+            AlarmListScreen(
+                onAddAlarm = { navController.navigate(Screen.AlarmEdit.createRoute(-1)) },
+                onEditAlarm = { id -> navController.navigate(Screen.AlarmEdit.createRoute(id)) },
+                onOpenSettings = { navController.navigate(Screen.Settings.route) }
+            )
+        }
+
+        composable(
+            route = Screen.AlarmEdit.route,
+            arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
         ) {
-            composable(Screen.Onboarding.route) {
-                OnboardingScreen(
-                    onComplete = {
-                        prefs.edit().putBoolean("onboarding_complete", true).apply()
-                        navController.navigate(Screen.AlarmList.route) {
-                            popUpTo(Screen.Onboarding.route) { inclusive = true }
-                        }
-                    }
-                )
-            }
+            AlarmEditScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
 
-            composable(Screen.Dashboard.route) {
-                DashboardScreen()
-            }
+        composable(Screen.Timer.route) {
+            TimerScreen()
+        }
 
-            composable(Screen.AlarmList.route) {
-                AlarmListScreen(
-                    onAddAlarm = { navController.navigate(Screen.AlarmEdit.createRoute(-1)) },
-                    onEditAlarm = { id -> navController.navigate(Screen.AlarmEdit.createRoute(id)) },
-                    onOpenSettings = { navController.navigate(Screen.Settings.route) }
-                )
-            }
+        composable(Screen.Bedtime.route) {
+            BedtimeScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
 
-            composable(
-                route = Screen.AlarmEdit.route,
-                arguments = listOf(navArgument("alarmId") { type = NavType.LongType })
-            ) {
-                AlarmEditScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
+        composable(Screen.Stopwatch.route) {
+            StopwatchScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
 
-            composable(Screen.Timer.route) {
-                TimerScreen()
-            }
+        composable(Screen.WorldClock.route) {
+            WorldClockScreen()
+        }
 
-            composable(Screen.Bedtime.route) {
-                BedtimeScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
+        composable(Screen.News.route) {
+            NewsScreen()
+        }
 
-            composable(Screen.Stopwatch.route) {
-                StopwatchScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onNavigateToStats = {
+                    navController.navigate(Screen.Stats.route)
+                },
+                onNavigateToStopwatch = {
+                    navController.navigate(Screen.Stopwatch.route)
+                },
+                onNavigateToBedtime = {
+                    navController.navigate(Screen.Bedtime.route)
+                }
+            )
+        }
 
-            composable(Screen.WorldClock.route) {
-                WorldClockScreen()
-            }
-
-            composable(Screen.News.route) {
-                NewsScreen()
-            }
-
-            composable(Screen.Settings.route) {
-                SettingsScreen(
-                    onNavigateToStats = {
-                        navController.navigate(Screen.Stats.route)
-                    },
-                    onNavigateToStopwatch = {
-                        navController.navigate(Screen.Stopwatch.route)
-                    },
-                    onNavigateToBedtime = {
-                        navController.navigate(Screen.Bedtime.route)
-                    }
-                )
-            }
-
-            composable(Screen.Stats.route) {
-                StatsScreen(
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
+        composable(Screen.Stats.route) {
+            StatsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }
