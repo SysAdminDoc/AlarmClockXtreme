@@ -2,6 +2,31 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.12.2] - 2026-05-16
+
+RingtonePool chip-based editor (roadmap N9). No schema changes; storage
+format unchanged.
+
+### Changed — alarm-edit ringtone pool UX
+
+- Replaced the newline-separated `OutlinedTextField` with a horizontally
+  scrollable chip row in the Advanced section. Each pool URI renders as
+  an `AppFilterChip`; tapping a chip removes that entry. An "Add" chip
+  opens a lightweight `AlertDialog` for pasting a new `content://` or
+  `file://` URI, with duplicate-protection inline.
+- New `ringtoneShortName(uri)` helper picks the trailing path segment
+  (e.g. `audio/12345`, `sun.mp3`) for chip labels and truncates to 28
+  chars with an ellipsis. We avoid a per-render `ContentResolver`
+  lookup to keep alarm-edit scrolling cheap.
+- On-disk format stays the comma-separated string already consumed by
+  `Alarm.sanitized()` and `AlarmService.startAudio()`, so no migration
+  or backup compatibility work needed.
+
+### Internal
+
+- Bumped to `versionName = "1.12.2"`, `versionCode = 63`. README badge,
+  install command, and Wear module version synced.
+
 ## [1.12.1] - 2026-05-16
 
 Missed-timer notification (roadmap N8). No schema changes; no new

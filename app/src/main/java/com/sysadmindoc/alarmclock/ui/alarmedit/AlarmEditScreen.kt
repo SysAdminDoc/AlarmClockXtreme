@@ -1244,24 +1244,92 @@ fun AlarmEditScreen(
                     tone = HintTone.Neutral
                 )
 
-                // v1.4.0: Ringtone pool (anti-habituation). Newline-separated for
-                // manual paste of content:// URIs or file:// paths — power-user
-                // feature, intentionally not a file-picker (the existing picker
-                // only handles one URI at a time).
-                OutlinedTextField(
-                    value = state.ringtonePool.replace(",", "\n"),
-                    onValueChange = { viewModel.updateRingtonePool(it.replace("\n", ",")) },
-                    label = { Text("Ringtone pool (one URI per line)", color = TextMuted) },
-                    placeholder = { Text("Paste content:// or file:// URIs; a random one plays per fire", color = TextMuted) },
-                    colors = appOutlinedTextFieldColors(),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    minLines = 2,
-                    maxLines = 6
-                )
+                // v1.4.0: Ringtone pool (anti-habituation).
+                // v1.12.2 (roadmap N9): chip-based editor replaces the
+                // newline-separated textarea. Each pool entry renders as a
+                // removable chip; an Add button surfaces a small URI input
+                // dialog (kept lightweight so the power-user paste flow still
+                // works without a full file-picker round-trip). Stored format
+                // on disk is unchanged (comma-separated string) so the
+                // sanitiser + Service consumer keep working with no churn.
+                val ringtonePoolEntries = remember(state.ringtonePool) {
+                    state.ringtonePool.split(",")
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+                }
+                var showAddRingtoneDialog by remember { mutableStateOf(false) }
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    Text(
+                        text = "Ringtone pool",
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.labelMedium
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        ringtonePoolEntries.forEach { uri ->
+                            AppFilterChip(
+                                label = ringtoneShortName(uri),
+                                selected = true,
+                                onClick = {
+                                    val next = ringtonePoolEntries.filterNot { it == uri }.joinToString(",")
+                                    viewModel.updateRingtonePool(next)
+                                }
+                            )
+                        }
+                        AppFilterChip(
+                            label = "Add",
+                            selected = false,
+                            onClick = { showAddRingtoneDialog = true }
+                        )
+                    }
+                }
                 SettingsHint(
-                    "When the pool is non-empty, a random entry is picked each fire and overrides the single Ringtone setting above. Leave empty to disable.",
+                    "When the pool is non-empty, a random entry is picked each fire and overrides the single Ringtone setting above. Tap a chip to remove it.",
                     tone = HintTone.Neutral
                 )
+                if (showAddRingtoneDialog) {
+                    var newUri by remember { mutableStateOf("") }
+                    AlertDialog(
+                        onDismissRequest = { showAddRingtoneDialog = false },
+                        title = { Text("Add ringtone to pool") },
+                        text = {
+                            Column {
+                                Text(
+                                    "Paste a content:// URI or file:// path. The current single Ringtone setting is overridden whenever the pool is non-empty.",
+                                    color = TextSecondary,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                OutlinedTextField(
+                                    value = newUri,
+                                    onValueChange = { newUri = it },
+                                    placeholder = { Text("content://… or file://…", color = TextMuted) },
+                                    singleLine = true,
+                                    colors = appOutlinedTextFieldColors(),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    val trimmed = newUri.trim()
+                                    if (trimmed.isNotEmpty() && trimmed !in ringtonePoolEntries) {
+                                        val next = (ringtonePoolEntries + trimmed).joinToString(",")
+                                        viewModel.updateRingtonePool(next)
+                                    }
+                                    showAddRingtoneDialog = false
+                                }
+                            ) { Text("Add") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showAddRingtoneDialog = false }) { Text("Cancel") }
+                        }
+                    )
+                }
 
                 // v1.5.0: Sunrise/sunset-relative firing. Overrides the clock time
                 // when offset is non-zero; uses last-known location for the solar
@@ -1891,4 +1959,24 @@ private fun alarmEditSectionDescription(title: String): String = when (title) {
     "Morning routine" -> "Capture the first few things you want to do once the alarm is done."
     "Advanced" -> "Fine-tune fallback behavior and edge-case wake-up protections."
     else -> "Review and fine-tune how this alarm behaves."
+}
+
+/**
+ * v1.12.2 (roadmap N9): pick a short, human-friendly label for a ringtone
+ * pool entry. We can't resolve content:// URIs to track titles without
+ * touching ContentResolver per-render, so we trim aggressively at the
+ * structural boundary instead:
+ *   - "content://media/external/audio/media/12345" → "audio/12345"
+ *   - "file:///storage/emulated/0/Music/sun.mp3" → "sun.mp3"
+ * Anything pathologically long gets truncated with an ellipsis.
+ */
+private fun ringtoneShortName(uri: String): String {
+    val trimmed = uri.trim()
+    if (trimmed.isEmpty()) return "(empty)"
+    val fileName = trimmed
+        .substringAfterLast('/')
+        .substringAfterLast('\\')
+        .ifBlank { trimmed }
+    val safe = fileName.take(28)
+    return if (fileName.length > 28) "$safe…" else safe
 }
