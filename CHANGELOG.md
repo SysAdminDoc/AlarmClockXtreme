@@ -2,6 +2,35 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.12.1] - 2026-05-16
+
+Missed-timer notification (roadmap N8). No schema changes; no new
+permissions (`POST_NOTIFICATIONS` was already required).
+
+### Added — timer-finished surface
+
+- New `timer_finished_channel` (`CHANNEL_TIMER`) registered alongside
+  the alarm channels. `IMPORTANCE_HIGH` so it heads-up the way the
+  missed-alarm channel does; channel-level sound and vibration are
+  disabled because the timer's own MediaPlayer + vibrator handle the
+  foreground experience — this channel is the "user closed the app"
+  surface.
+- `TimerViewModel` posts a notification when a countdown transitions
+  to `FINISHED`. Tapping the notification opens MainActivity at the
+  Timer tab; `stop()` and `dismissFinished()` cancel the notification
+  alongside the audio.
+- One notification per finished timer (id = `TIMER_NOTIFICATION_BASE_ID +
+  timer.id`, base 7000) so simultaneous expiries each get their own
+  row instead of overwriting each other.
+- Notifications intentionally survive `onCleared()` — that's the whole
+  point of the feature — and the channel registration runs from
+  `AlarmService.createNotificationChannels()` on every process start.
+
+### Internal
+
+- Bumped to `versionName = "1.12.1"`, `versionCode = 62`. README badge,
+  install command, and Wear module version synced.
+
 ## [1.12.0] - 2026-05-16
 
 Per-alarm vibration start-delay (roadmap N7). **DB v10, backup format v7.**
