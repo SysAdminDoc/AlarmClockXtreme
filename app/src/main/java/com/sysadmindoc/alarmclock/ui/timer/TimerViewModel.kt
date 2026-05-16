@@ -1,13 +1,20 @@
 package com.sysadmindoc.alarmclock.ui.timer
 
 import android.app.Application
+import android.app.PendingIntent
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.*
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sysadmindoc.alarmclock.MainActivity
+import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.service.AlarmService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -90,6 +97,10 @@ class TimerViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "TimerViewModel"
+        // v1.12.1 (roadmap N8): one notification per finished timer, keyed
+        // by timer id offset to avoid colliding with alarm IDs (1001/1003)
+        // or any future range from AlarmService.
+        private const val TIMER_NOTIFICATION_BASE_ID = 7_000
     }
 
     private val _uiState = MutableStateFlow(TimerUiState())
@@ -176,6 +187,7 @@ class TimerViewModel @Inject constructor(
         countdownJobs[id]?.cancel()
         countdownJobs.remove(id)
         stopAudioForTimer(id)
+        cancelTimerFinishedNotification(id)
         _uiState.value = _uiState.value.copy(
             activeTimers = _uiState.value.activeTimers.filter { it.id != id }
         )
@@ -184,6 +196,7 @@ class TimerViewModel @Inject constructor(
     fun dismissFinished(timerId: Int? = null) {
         val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.FINISHED }?.id ?: return
         stopAudioForTimer(id)
+        cancelTimerFinishedNotification(id)
         _uiState.value = _uiState.value.copy(
             activeTimers = _uiState.value.activeTimers.filter { it.id != id }
         )
@@ -223,6 +236,9 @@ class TimerViewModel @Inject constructor(
                     if (remaining <= 0) {
                         updateTimer(id) { it.copy(state = TimerState.FINISHED) }
                         playFinishSound()
+                        // v1.12.1 (roadmap N8): surface the finished timer
+                        // even when the app is in the background.
+                        postTimerFinishedNotification(id)
                         break
                     }
                     delay(50)
@@ -307,6 +323,62 @@ class TimerViewModel @Inject constructor(
     override fun onCleared() {
         countdownJobs.values.forEach { it.cancel() }
         stopAudio()
+        // v1.12.1 (roadmap N8): the notifications themselves intentionally
+        // survive process death — they are the "missed timer" surface for
+        // the user who closed the app — so we do NOT cancel them here.
         super.onCleared()
+    }
+
+    /**
+     * v1.12.1 (roadmap N8): post a heads-up notification for a finished
+     * timer. The intent re-opens the timer screen so a tap restores
+     * focus to the running list. Caller must hold an active timer with
+     * id [id]; we look up its label once and bail silently if it's gone.
+     *
+     * Notification permission (POST_NOTIFICATIONS) is declared in the
+     * manifest and granted as part of the alarm-readiness flow — the
+     * runtime check is done by `NotificationManagerCompat.from()` and
+     * `notify()` silently no-ops if the user denied it.
+     */
+    private fun postTimerFinishedNotification(id: Int) {
+        val context = getApplication<Application>()
+        val timer = _uiState.value.activeTimers.find { it.id == id } ?: return
+        val label = timer.label.ifBlank { "Timer" }
+        try {
+            val openIntent = Intent(context, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+            val openPi = PendingIntent.getActivity(
+                context,
+                TIMER_NOTIFICATION_BASE_ID + id,
+                openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val notification = NotificationCompat.Builder(context, AlarmService.CHANNEL_TIMER)
+                .setSmallIcon(R.drawable.ic_alarm)
+                .setContentTitle("Timer finished")
+                .setContentText(label)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setAutoCancel(true)
+                .setOngoing(false)
+                .setContentIntent(openPi)
+                .build()
+            NotificationManagerCompat.from(context)
+                .notify(TIMER_NOTIFICATION_BASE_ID + id, notification)
+        } catch (_: SecurityException) {
+            // Notification permission not granted — silently skip; foreground
+            // audio + vibration still play.
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to post timer-finished notification", e)
+        }
+    }
+
+    private fun cancelTimerFinishedNotification(id: Int) {
+        try {
+            NotificationManagerCompat.from(getApplication())
+                .cancel(TIMER_NOTIFICATION_BASE_ID + id)
+        } catch (_: Exception) { /* notification already cancelled */ }
     }
 }
