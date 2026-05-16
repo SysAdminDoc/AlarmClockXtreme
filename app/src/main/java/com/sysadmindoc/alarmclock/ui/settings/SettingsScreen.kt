@@ -192,6 +192,8 @@ fun SettingsScreen(
                 BatteryOptimizationSection(state, viewModel)
             }
 
+            PauseAlarmsSection(state, viewModel)
+
             VacationModeSection(state, viewModel)
 
             SettingsGroup(
@@ -712,6 +714,65 @@ private fun WakeReadinessRow(
                 ) {
                     Text(actionLabel)
                 }
+            }
+        }
+    }
+}
+
+/**
+ * v1.11.6 (roadmap N6): "Pause alarms for N days" card. Distinct from
+ * vacation: this is a single-tap hard-suspend for an unplanned interruption
+ * (sickness, weekend visit, etc.) and applies to one-shots too. Each chip
+ * resets the pause to "N days from now"; "Resume now" clears it.
+ */
+@Composable
+private fun PauseAlarmsSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+    val pauseUntil = state.settings.pauseUntilMillis
+    val now = System.currentTimeMillis()
+    val isPaused = pauseUntil > now
+    val resumeAtLabel = if (isPaused) {
+        java.time.Instant.ofEpochMilli(pauseUntil)
+            .atZone(java.time.ZoneId.systemDefault())
+            .toLocalDate()
+            .format(java.time.format.DateTimeFormatter.ofPattern("EEE MMM d"))
+    } else null
+
+    AppSurfaceCard(highlighted = isPaused) {
+        AppSectionTitle(
+            title = "Pause alarms",
+            description = if (isPaused) {
+                "All alarms suspended until end of $resumeAtLabel."
+            } else {
+                "One-tap suspend for an unplanned interruption — works for one-shot alarms too."
+            },
+            action = {
+                AppStatusChip(
+                    label = if (isPaused) "Paused" else "Off",
+                    icon = Icons.Default.BeachAccess,
+                    color = if (isPaused) SnoozeYellow else TextMuted
+                )
+            }
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf(1, 3, 7, 14).forEach { days ->
+                AppFilterChip(
+                    label = if (days == 1) "Tonight" else "$days days",
+                    selected = false,
+                    onClick = { viewModel.pauseAlarmsForDays(days) }
+                )
+            }
+            if (isPaused) {
+                AppFilterChip(
+                    label = "Resume now",
+                    selected = true,
+                    onClick = { viewModel.resumeAlarms() }
+                )
             }
         }
     }
