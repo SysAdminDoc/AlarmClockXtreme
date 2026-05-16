@@ -2,6 +2,49 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.11.2] - 2026-05-16
+
+Telephony-aware alarm muting (roadmap N2). No schema changes; no new
+permissions.
+
+### Added — call-state observer
+
+- `AlarmService` registers a `TelephonyCallback.CallStateListener` on
+  Android 12+ (or the deprecated `PhoneStateListener` on pre-31) for the
+  duration of alarm playback. When the system reports `CALL_STATE_OFFHOOK`
+  or `CALL_STATE_RINGING` the alarm's MediaPlayer is muted to volume 0;
+  on `CALL_STATE_IDLE` it is restored. The listener registers on
+  `startAudio()` and unregisters in `stopAlarmPlayback()` /
+  `onDestroy()`, so we never observe call state when no alarm is firing.
+- Mute is implemented with `MediaPlayer.setVolume(0f, 0f)` (per-player
+  attenuation) rather than touching `STREAM_ALARM` — that keeps the
+  gradual-volume coroutine, the backup-sound escalation, and the user's
+  alarm volume preference intact for after the call ends.
+- Vibration, the firing activity, the persistent notification, the
+  flashlight strobe, and Guardian Angel scheduling are intentionally
+  left running during a call. Tactile and visual wake cues don't
+  interrupt the user's call.
+
+### Changed — playback paths honour call state
+
+- Default ringtone path, internet-radio path, and fallback-default path
+  all check `callMutedAudio` after `prepare()` / `start()` so an alarm
+  fired while a call is already in progress starts silent.
+- The gradual-volume fade-in coroutine skips its `setVolume` step while
+  a call is active; the configured fade resumes after `IDLE`.
+- The backup-sound escalation still raises the system `STREAM_ALARM`
+  volume to max (post-call audio will be loud) but no longer fights
+  the call-state mute by force-setting the player to 1f.
+
+### Internal
+
+- Bumped to `versionName = "1.11.2"`, `versionCode = 56`. README badge,
+  install command, and Wear module version synced.
+- No new permissions: `TelephonyCallback.CallStateListener` and the
+  legacy `PhoneStateListener.onCallStateChanged` only need
+  `READ_PHONE_STATE` to read the incoming phone number, which ACX never
+  reads.
+
 ## [1.11.1] - 2026-05-16
 
 Fixes the v1.6.0 challenge sanitization regression (roadmap N1). No schema
