@@ -14,6 +14,9 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.*
 import android.speech.tts.TextToSpeech
+import android.telephony.PhoneStateListener
+import android.telephony.TelephonyCallback
+import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.*
@@ -146,6 +149,20 @@ class AlarmService : Service() {
     private val runtimeStatePrefs by lazy {
         getSharedPreferences("alarm_runtime_state", MODE_PRIVATE)
     }
+
+    // v1.11.2 (roadmap N2): Telephony-aware muting. When a call is OFFHOOK or
+    // RINGING during alarm playback the MediaPlayer is muted (vibration and
+    // the firing screen are intentionally kept so the user still has wake
+    // cues that don't interrupt the call audio). On IDLE the player is
+    // restored to full volume. We register on first startAudio() and
+    // unregister in stopAlarmPlayback()/onDestroy() so the listener only
+    // exists while the alarm is actually ringing — registering globally
+    // would mean every passive call state change touched the player ref.
+    @Volatile
+    private var callMutedAudio: Boolean = false
+    private var telephonyCallback: TelephonyCallback? = null
+    @Suppress("DEPRECATION")
+    private var legacyPhoneStateListener: PhoneStateListener? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -306,11 +323,15 @@ class AlarmService : Service() {
         if (alarm.backupSoundEnabled && !alarm.usesMutedAlarmAudio()) {
             backupSoundJob = serviceScope.launch {
                 delay(alarm.backupSoundDelaySec * 1000L)
-                // Escalate: set volume to max and switch to system alarm tone
+                // Escalate: set volume to max and switch to system alarm tone.
+                // v1.11.2: the call observer still has priority — if we're
+                // muted because of a call, escalate the *system* stream so the
+                // post-call audio is loud, but don't unmute the MediaPlayer
+                // mid-call.
                 val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
                 val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
                 audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
-                mediaPlayer?.setVolume(1f, 1f)
+                if (!callMutedAudio) mediaPlayer?.setVolume(1f, 1f)
             }
         }
 
@@ -429,6 +450,12 @@ class AlarmService : Service() {
         // Silent mode - skip audio entirely
         if (alarm.ringtoneUri == "silent" || alarm.usesMutedAlarmAudio()) return
 
+        // v1.11.2 (roadmap N2): Watch for in-progress / incoming calls so the
+        // alarm audio can step out of the way without tearing down the rest
+        // of the alarm. No-op on silent / haptic-only paths (we returned
+        // above) and on tablets without telephony.
+        registerCallObserver()
+
         // v1.5.1: Re-entry guard — the internet-radio error path re-calls
         // startAudio on serviceScope; without this, a transient failure
         // during the default-fallback path could recurse and leak
@@ -509,6 +536,8 @@ class AlarmService : Service() {
                             val targetVol = (maxVol * alarm.volume / 100f).toInt().coerceIn(1, maxVol)
                             audioManager.setStreamVolume(AudioManager.STREAM_ALARM, targetVol, 0)
                         }
+                        // v1.11.2: if a call landed during prepareAsync, honour it.
+                        if (callMutedAudio) try { mp.setVolume(0f, 0f) } catch (_: Exception) {}
                     }
                     // Without an OnErrorListener, a stream failure (DNS, 404, codec
                     // mismatch) results in a silent alarm — fall back to the device
@@ -579,7 +608,10 @@ class AlarmService : Service() {
                 // For a fade-in we start at 0 so the first sample isn't the loud
                 // attack of the ringtone; otherwise start at full so the user
                 // hears the alarm immediately at the configured level.
-                if (fadeInMs > 0) setVolume(0f, 0f) else setVolume(1f, 1f)
+                // v1.11.2: callMutedAudio overrides both — a ringing call at
+                // alarm fire-time keeps audio at 0 until the call ends.
+                if (callMutedAudio) setVolume(0f, 0f)
+                else if (fadeInMs > 0) setVolume(0f, 0f) else setVolume(1f, 1f)
                 start()
             }
 
@@ -589,6 +621,9 @@ class AlarmService : Service() {
                     val stepDelay = fadeInMs / steps
                     for (i in 1..steps) {
                         delay(stepDelay)
+                        // v1.11.2: the call observer takes priority; don't ramp
+                        // volume during a call (it'll be restored on IDLE).
+                        if (callMutedAudio) continue
                         val volume = i.toFloat() / steps
                         mediaPlayer?.setVolume(volume, volume)
                     }
@@ -612,7 +647,8 @@ class AlarmService : Service() {
                         setDataSource(applicationContext, fallbackUri)
                         isLooping = true
                         prepare()
-                        setVolume(1f, 1f)
+                        // v1.11.2: honour an active call right out of the gate.
+                        if (callMutedAudio) setVolume(0f, 0f) else setVolume(1f, 1f)
                         start()
                     }
                 }
@@ -1034,6 +1070,95 @@ class AlarmService : Service() {
         mediaPlayer = null
         vibrator?.cancel()
         vibrator = null
+        unregisterCallObserver()
+        callMutedAudio = false
+    }
+
+    /**
+     * v1.11.2 (roadmap N2): Register the platform-appropriate call-state
+     * observer so a ringing or in-progress phone call mutes the alarm audio
+     * without tearing down the rest of the alarm session.
+     *
+     * Permission note: `TelephonyCallback.CallStateListener` (API 31+) and
+     * `PhoneStateListener.onCallStateChanged` (pre-31) both report the bare
+     * state value with no permission needed. Only the optional incoming
+     * number argument requires `READ_PHONE_STATE`, which we never read.
+     *
+     * Failure modes (no TelephonyManager on tablets without telephony,
+     * `SecurityException` from stripped OEM builds, work-profile constraints)
+     * are swallowed — the listener is best-effort and the alarm still rings.
+     */
+    private fun registerCallObserver() {
+        val telephony = getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager ?: return
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (telephonyCallback != null) return
+                val callback = object : TelephonyCallback(), TelephonyCallback.CallStateListener {
+                    override fun onCallStateChanged(state: Int) {
+                        applyCallStateMute(state)
+                    }
+                }
+                telephonyCallback = callback
+                telephony.registerTelephonyCallback(mainExecutor, callback)
+            } else {
+                @Suppress("DEPRECATION")
+                if (legacyPhoneStateListener != null) return
+                @Suppress("DEPRECATION")
+                val listener = object : PhoneStateListener() {
+                    @Deprecated("Pre-API-31 fallback")
+                    override fun onCallStateChanged(state: Int, phoneNumber: String?) {
+                        applyCallStateMute(state)
+                    }
+                }
+                @Suppress("DEPRECATION")
+                legacyPhoneStateListener = listener
+                @Suppress("DEPRECATION")
+                telephony.listen(listener, PhoneStateListener.LISTEN_CALL_STATE)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Call-state observer registration failed; alarm will not auto-mute on calls", e)
+            telephonyCallback = null
+            legacyPhoneStateListener = null
+        }
+    }
+
+    private fun unregisterCallObserver() {
+        val telephony = getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            telephonyCallback?.let { cb ->
+                try { telephony?.unregisterTelephonyCallback(cb) } catch (_: Exception) {}
+            }
+            telephonyCallback = null
+        } else {
+            @Suppress("DEPRECATION")
+            legacyPhoneStateListener?.let { listener ->
+                try {
+                    @Suppress("DEPRECATION")
+                    telephony?.listen(listener, PhoneStateListener.LISTEN_NONE)
+                } catch (_: Exception) {}
+            }
+            @Suppress("DEPRECATION")
+            legacyPhoneStateListener = null
+        }
+    }
+
+    /**
+     * Volume side-effect for a call-state change. Uses `MediaPlayer.setVolume`
+     * (per-player attenuation, 0..1) rather than touching the system
+     * STREAM_ALARM volume so we don't fight the gradual-volume coroutine or
+     * surprise the user post-call. Vibration is intentionally left alone —
+     * tactile wake cues don't interrupt the call audio.
+     */
+    private fun applyCallStateMute(state: Int) {
+        val onCall = state == TelephonyManager.CALL_STATE_OFFHOOK ||
+            state == TelephonyManager.CALL_STATE_RINGING
+        if (onCall && !callMutedAudio) {
+            callMutedAudio = true
+            try { mediaPlayer?.setVolume(0f, 0f) } catch (_: Exception) {}
+        } else if (!onCall && callMutedAudio) {
+            callMutedAudio = false
+            try { mediaPlayer?.setVolume(1f, 1f) } catch (_: Exception) {}
+        }
     }
 
     override fun onDestroy() {
