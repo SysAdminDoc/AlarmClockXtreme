@@ -249,14 +249,47 @@ class SettingsViewModel @Inject constructor(
                 isRunning = true
             )
             val settings = preferencesManager.getCurrentSettings()
-            val ok = try {
+            // v1.11.5 (roadmap N5): try Hue API v2 first (HTTPS + header auth).
+            // The HueSunriseWorker caches the verdict — surfacing it here gives
+            // the user instant feedback on whether their bridge is on a recent
+            // firmware (≥1.40) supporting v2.
+            val v2Ok = runCatching {
+                val trustAll = arrayOf<javax.net.ssl.TrustManager>(object : javax.net.ssl.X509TrustManager {
+                    override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
+                    override fun checkServerTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
+                    override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = emptyArray()
+                })
+                val ssl = javax.net.ssl.SSLContext.getInstance("TLS").apply {
+                    init(null, trustAll, java.security.SecureRandom())
+                }
+                val client = okhttp3.OkHttpClient.Builder()
+                    .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                    .sslSocketFactory(ssl.socketFactory, trustAll[0] as javax.net.ssl.X509TrustManager)
+                    .hostnameVerifier { _, _ -> true }
+                    .build()
+                val url = "https://${settings.hueBridgeIp}/clip/v2/resource/light"
+                val request = okhttp3.Request.Builder()
+                    .url(url)
+                    .header("hue-application-key", settings.hueApiKey)
+                    .get()
+                    .build()
+                client.newCall(request).execute().use { it.isSuccessful }
+            }.getOrDefault(false)
+            // Fall back to v1 HTTP probe if v2 fails — same call pattern as
+            // before, so the existing test surface stays identical for users
+            // on pre-1.40 firmware.
+            val v1Ok = if (v2Ok) false else runCatching {
                 val url = "http://${settings.hueBridgeIp}/api/${settings.hueApiKey}/lights"
                 val client = okhttp3.OkHttpClient.Builder()
                     .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS).build()
                 val response = client.newCall(okhttp3.Request.Builder().url(url).build()).execute()
                 response.isSuccessful.also { response.close() }
-            } catch (_: Exception) { false }
-            val result = if (ok) "Hue bridge reachable" else "Hue bridge not found — check IP and key"
+            }.getOrDefault(false)
+            val result = when {
+                v2Ok -> "Hue bridge reachable (API v2)"
+                v1Ok -> "Hue bridge reachable (API v1 — bridge firmware is below 1.40)"
+                else -> "Hue bridge not found — check IP and key"
+            }
             _hueTestState.value = IntegrationTestState(message = result, isRunning = false)
             kotlinx.coroutines.delay(4000)
             if (_hueTestState.value.message == result) {
