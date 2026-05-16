@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.13.0** (adaptive primary
-navigation — NavigationBar on phones, NavigationRail on tablets/foldables;
+Living feature backlog, refreshed alongside **v1.13.1** (Health Connect
+opt-in scaffold + privacy-policy update — completing the v1.12 cycle;
 see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
 external scan against current OSS / commercial alarm-clock ecosystem,
 Android 16 / 17 platform direction, and Play Console policy changes.
@@ -19,10 +19,11 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): **v1.13.0 adaptive
-> NavigationRail on MEDIUM/EXPANDED widths (N11)**; **v1.12.3 CI version-line
-> consistency lint (N10)**; **v1.12.2 RingtonePool chip-based editor (N9)**;
-> **v1.12.1 missed-timer notification (N8)**; **v1.12.0 per-alarm vibration start-delay (N7) —
+> **Recently shipped** (rolled up from prior tiers): **v1.13.1 Health Connect
+> opt-in scaffold + privacy-policy update (N12 + N13 scaffold)**; **v1.13.0
+> adaptive NavigationRail on MEDIUM/EXPANDED widths (N11)**; **v1.12.3 CI
+> version-line consistency lint (N10)**; **v1.12.2 RingtonePool chip-based
+> editor (N9)**; **v1.12.1 missed-timer notification (N8)**; **v1.12.0 per-alarm vibration start-delay (N7) —
 > DB v10**; **v1.11.6 "Pause alarms" single-tap suspend (N6)**; **v1.11.5 Philips Hue API v2 migration (N5)**; **v1.11.4
 > Play wake-lock policy audit (N4)**; **v1.11.3 App Standby bucket awareness
 > (N3)**; **v1.11.2 telephony-aware alarm muting (N2)**; **v1.11.1 challenge
@@ -39,7 +40,7 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## Current snapshot (v1.13.0)
+## Current snapshot (v1.13.1)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
   Material 3 (1.4.x), Room v10, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
@@ -47,7 +48,7 @@ ranked by impact-to-effort and grouped by theme.
   1.6.0 / protolayout 1.4.0, Wear Data Layer, yt-dlp (`youtubedl-android`
   0.18.1) + NewPipe Extractor 0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 65`, `versionName 1.13.0`.
+  `versionCode 66`, `versionName 1.13.1`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -82,8 +83,8 @@ in their notes. **Order is the recommended landing order.**
 | N9 | [x] RingtonePool chip-based editor — **shipped v1.12.2.** Replaced the textarea with a horizontally scrollable chip row in the Advanced section. Each pool URI renders as an `AppFilterChip` (tap to remove); an "Add" chip opens an `AlertDialog` for pasting a new URI with duplicate-protection. New `ringtoneShortName(uri)` helper trims content://media/external/audio/media/12345 → "audio/12345" without a per-render ContentResolver lookup. Storage format unchanged. | local: [AlarmEditScreen.kt:1247](app/src/main/java/com/sysadmindoc/alarmclock/ui/alarmedit/AlarmEditScreen.kt) | S | UX polish, no schema change. |
 | N10 | [x] CI version-line consistency lint — **shipped v1.12.3.** New `.github/workflows/version-lint.yml` runs on every push/PR. Asserts six touchpoints agree with `app/build.gradle.kts`: the `:wear` module's `versionName`, the README badge, the README `adb install` snippet, the CHANGELOG top `## [x.y.z]` header, and the ROADMAP `## Current snapshot (vX.Y.Z)` header. Pure regex/grep — no JDK/Gradle bootstrap. | local: [.github/workflows/version-lint.yml](.github/workflows/version-lint.yml) | S | Prevents the recurring "README still says vX.Y.Z" post-release mismatch. |
 | N11 | [x] Adaptive primary navigation — **shipped v1.13.0.** Used the lower-level `material3-window-size-class` API rather than `NavigationSuiteScaffold` so the existing custom `BottomNavContainer` treatment + accent colors carry through unchanged on phones. AppNavigation branches on width class: COMPACT keeps the bottom NavigationBar verbatim, MEDIUM/EXPANDED render a `NavigationRail` on the leading edge inside a Row. Extracted the per-route NavHost into a private `AppNavHost` to dedupe. | [Android Developers — adaptive navigation](https://developer.android.com/develop/ui/compose/layouts/adaptive/build-adaptive-navigation) | M | Phone UX is byte-for-byte identical. Defers dual-pane Alarms/Edit (X14 follow-on) to a later release. |
-| N12 | [ ] Health Connect Sleep Sessions — **read-only first pass** (write deferred to v1.13). Pulls overnight sessions to seed Bedtime tab + Stats; user data never leaves device. | [androidx.health.connect:connect-client docs](https://developer.android.com/health-and-fitness/health-connect); [Track sleep sessions](https://developer.android.com/health-and-fitness/health-connect/features/sleep-sessions) | M | Required pre-work: Play Console health-permissions declaration + privacy-policy refresh (see N13). API surface is stable at `1.1.0-alpha12`; pin behind Play flavor only at first, then move main once Google removes alpha gating. |
-| N13 | [ ] Play Store data-safety + health-permission declaration refresh — required by [April 2026 policy](https://support.google.com/googleplay/android-developer/answer/16926792?hl=en) before N12 ships. Update `PRIVACY_POLICY.html` Health-Connect paragraph. | [Play Console policy April 15 2026](https://support.google.com/googleplay/android-developer/answer/16926792?hl=en) | S | Hard prerequisite for N12. Document the read-only justification ("local-only sleep analysis; not transmitted off device"). |
+| N12 | [~] Health Connect Sleep Sessions — **scaffold shipped v1.13.1.** DataStore opt-in toggle (`healthConnectEnabled`), Settings → Health Connect card with flavor-aware copy, backup round-trip. Actual `androidx.health.connect:connect-client` SDK integration + Bedtime/Stats data surfacing deferred to a follow-up release pending Play Console health-permissions review. | [androidx.health.connect:connect-client docs](https://developer.android.com/health-and-fitness/health-connect); [Track sleep sessions](https://developer.android.com/health-and-fitness/health-connect/features/sleep-sessions) | M | Toggle survives backup so opted-in users light up immediately when the data path lands. |
+| N13 | [x] Play Store data-safety + health-permission declaration refresh — **shipped v1.13.1.** `PRIVACY_POLICY.html` gains a "Health Connect (Play flavor, opt-in)" section spelling out the data type read (`SleepSessionRecord` only), retention (none), revocation flow, F-Droid behaviour (no SDK shipped), and the Google Play Health Apps policy use-case statement. | [Play Console policy April 15 2026](https://support.google.com/googleplay/android-developer/answer/16926792?hl=en) | S | Documentation prerequisite for the follow-up release that wires the SDK. |
 
 ## NEXT — v1.13 candidates
 

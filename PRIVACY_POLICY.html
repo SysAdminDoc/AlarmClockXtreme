@@ -63,6 +63,16 @@
     <h2>Third-Party Services</h2>
     <p>The app does not integrate with any third-party analytics, advertising, or tracking services. The only external service used is the Open-Meteo weather API, which is free, open-source, and does not require authentication.</p>
 
+    <h2>Health Connect (Play flavor, opt-in)</h2>
+    <p>The Play-flavor build includes an opt-in toggle to read sleep session data from Android's Health Connect (Settings &rarr; Health Connect &rarr; "Allow reading sleep sessions"). When you enable the toggle and grant the Health Connect permission prompt:</p>
+    <ul>
+        <li>The app reads <strong>SleepSessionRecord</strong> entries (start time, end time, optional sleep stage breakdown) for the past 7 days to surface "Last night you slept X hours" context on the Bedtime tab and to drive future Stats charts.</li>
+        <li>All Health Connect data stays on your device. It is not uploaded, transmitted, shared with the developer, or persisted outside Health Connect's own encrypted store and the app's local DataStore preferences. There is no analytics SDK that could exfiltrate it.</li>
+        <li>You can revoke access at any time via Health Connect (Settings &rarr; Apps &rarr; Health Connect &rarr; Manage permissions) or by toggling the in-app switch off. Revoking immediately stops further reads; previously displayed values clear on next launch.</li>
+        <li>The F-Droid flavor does not include the Health Connect SDK at all. The toggle is visible but has no effect on F-Droid builds.</li>
+        <li>Per the Google Play Health Apps policy (April 2026), AlarmClockXtreme uses Health Connect sleep data only for the "wellness / sleep tracking" use case stated above. It is never used to determine employment or insurance eligibility, and it is never shared.</li>
+    </ul>
+
     <h2>Children's Privacy</h2>
     <p>This app does not knowingly collect any information from children under 13. The app does not collect information from anyone.</p>
 

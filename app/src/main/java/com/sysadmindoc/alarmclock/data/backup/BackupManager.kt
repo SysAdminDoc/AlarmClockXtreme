@@ -143,7 +143,11 @@ data class SettingsBackup(
     // backup so a restore of "I'm pausing for 3 days" survives device
     // swaps; stale restored values are harmless because the scheduler
     // checks `> now` per fire.
-    val pauseUntilMillis: Long = 0
+    val pauseUntilMillis: Long = 0,
+    // v1.13.1 (roadmap N12): Health Connect opt-in survives backup so a
+    // user who restores onto a new Play-flavor device doesn't have to
+    // re-tap the toggle. F-Droid restore ignores it.
+    val healthConnectEnabled: Boolean = false
 )
 
 @Singleton
@@ -212,7 +216,8 @@ class BackupManager @Inject constructor(
                 sleepSoundFadeSeconds = settings.sleepSoundFadeSeconds,
                 repeatMissedAlarms = settings.repeatMissedAlarms,
                 napDefaultMinutes = settings.napDefaultMinutes,
-                pauseUntilMillis = settings.pauseUntilMillis
+                pauseUntilMillis = settings.pauseUntilMillis,
+                healthConnectEnabled = settings.healthConnectEnabled
             )
         )
 
@@ -357,7 +362,8 @@ class BackupManager @Inject constructor(
                         sleepSoundFadeSeconds = s.sleepSoundFadeSeconds,
                         repeatMissedAlarms = s.repeatMissedAlarms,
                         napDefaultMinutes = s.napDefaultMinutes,
-                        pauseUntilMillis = s.pauseUntilMillis
+                        pauseUntilMillis = s.pauseUntilMillis,
+                        healthConnectEnabled = s.healthConnectEnabled
                     )
                 }
             }
