@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.data
 
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.ChallengeType
 import com.sysadmindoc.alarmclock.ui.timer.TimerUiState
 import org.junit.Assert.*
 import org.junit.Test
@@ -134,5 +135,39 @@ class AlarmTest {
     fun `timer ui canStart ignores all-zero input`() {
         assertFalse(TimerUiState(inputDigits = "000000").canStart)
         assertTrue(TimerUiState(inputDigits = "15").canStart)
+    }
+
+    @Test
+    fun `every ChallengeType survives sanitized round-trip`() {
+        // Regression guard for the v1.6.0 bug where ROCK_PAPER_SCISSORS,
+        // EMOJI_MEMORY, TYPING_SPEED, and WORDLE were defined in the enum
+        // but missing from VALID_CHALLENGE_TYPES, causing sanitized() to
+        // silently rewrite them to "NONE" on every backup / share / DataStore
+        // round-trip. If a future ChallengeType is added but the whitelist
+        // isn't updated, this test fails fast.
+        ChallengeType.entries.forEach { type ->
+            val alarm = Alarm(challengeType = type.name).sanitized()
+            assertEquals(
+                "ChallengeType.${type.name} must survive Alarm.sanitized() round-trip — " +
+                    "add ${type.name} to Alarm.VALID_CHALLENGE_TYPES",
+                type.name,
+                alarm.challengeType
+            )
+        }
+    }
+
+    @Test
+    fun `every ChallengeType is preserved when used in a challenge chain`() {
+        // Companion check: the chain sanitizer also reads VALID_CHALLENGE_TYPES,
+        // so it must accept every non-NONE type.
+        val nonNoneTypes = ChallengeType.entries.filter { it != ChallengeType.NONE }
+        val chainInput = nonNoneTypes.joinToString(",") { it.name }
+        val sanitized = Alarm(challengeChain = chainInput).sanitized()
+        nonNoneTypes.forEach { type ->
+            assertTrue(
+                "Challenge chain dropped ${type.name} — sanitizer whitelist is stale",
+                sanitized.challengeChain.contains(type.name)
+            )
+        }
     }
 }
