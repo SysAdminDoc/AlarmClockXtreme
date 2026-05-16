@@ -2,6 +2,42 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.11.6] - 2026-05-16
+
+"Pause alarms" single-tap suspend (roadmap N6). DataStore-only — no DB
+schema change. No new permissions.
+
+### Added — Settings → Pause alarms
+
+- New section above Vacation mode lets the user suspend **all** alarms
+  (including one-shots — vacation only touched repeating alarms) with a
+  single tap. Quick chips for 1 day / 3 days / 7 days / 14 days; the
+  active card shows the resume date and a "Resume now" chip to clear
+  early. The expiry timestamp lands at end-of-day on the chosen day so
+  the next morning's alarm is included in the pause window.
+- `AppSettings.pauseUntilMillis` (default 0) controls the state. The
+  helper `AppSettings.isPaused(now)` returns true while
+  `pauseUntilMillis > now`; stale values lazy-expire (no scheduled
+  wake-up needed to clear them).
+- `AlarmScheduler.schedule()` and `AlarmScheduler.scheduleAt()` short-
+  circuit when paused: cancel any prior PendingIntent and zero the
+  alarm's `nextTriggerTime` so widgets, the persistent next-alarm
+  notification, and the Wear tile all reflect the suspended state.
+  Once the pause expires, the next reschedule pass re-arms everything.
+- Snooze + quick-alarm paths honour the pause too, so an alarm fired
+  before the pause was set can't sneak past it via the snooze button.
+
+### Changed — backup format
+
+- `SettingsBackup` schema gains `pauseUntilMillis` (default 0,
+  backward-compatible read). Round-trips through both the plain JSON
+  and the AES-256 encrypted backup paths.
+
+### Internal
+
+- Bumped to `versionName = "1.11.6"`, `versionCode = 60`. README badge,
+  install command, and Wear module version synced.
+
 ## [1.11.5] - 2026-05-16
 
 Philips Hue API v2 migration (roadmap N5). v1 fallback retained for

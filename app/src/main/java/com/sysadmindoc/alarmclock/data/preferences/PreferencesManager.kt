@@ -117,6 +117,13 @@ data class AppSettings(
     // but power users can paste any RSS/Atom URL — Rome handles all three
     // major feed flavors.
     val newsFeedUrl: String = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+    // v1.11.6 (roadmap N6): "Pause all alarms" single-tap suspend. Distinct
+    // from vacation mode — vacation requires a start+end date and only
+    // touches repeating alarms; this hard-suspends every alarm (one-shots
+    // included) until [pauseUntilMillis]. 0 = not paused. Once `pauseUntilMillis`
+    // is in the past, the value is treated as expired and alarms resume on the
+    // next reschedule pass.
+    val pauseUntilMillis: Long = 0,
 )
 
 private fun AppSettings.sanitized(): AppSettings {
@@ -146,6 +153,7 @@ private fun AppSettings.sanitized(): AppSettings {
         .joinToString("\n")
     val normalizedLocationName = locationName.trim().take(120)
 
+    val normalizedPauseUntil = pauseUntilMillis.coerceAtLeast(0)
     return copy(
         defaultSnoozeDuration = defaultSnoozeDuration.coerceIn(1, 180),
         defaultGradualVolume = defaultGradualVolume.coerceIn(0, 300),
@@ -177,9 +185,19 @@ private fun AppSettings.sanitized(): AppSettings {
         bedtimeChecklist = normalizedBedtimeChecklist,
         sleepSoundTimerMinutes = sleepSoundTimerMinutes.coerceIn(0, 240),
         sleepSoundFadeSeconds = sleepSoundFadeSeconds.coerceIn(5, 600),
-        napDefaultMinutes = napDefaultMinutes.coerceIn(1, 180)
+        napDefaultMinutes = napDefaultMinutes.coerceIn(1, 180),
+        pauseUntilMillis = normalizedPauseUntil
     )
 }
+
+/**
+ * v1.11.6 (roadmap N6): true if the user has currently paused all alarms via
+ * the "Pause for N days" Settings action. Stale pauses (the timestamp is in
+ * the past) are treated as expired so resume happens lazily on the next
+ * schedule pass without needing a scheduled wake-up to clear the flag.
+ */
+fun AppSettings.isPaused(now: Long = System.currentTimeMillis()): Boolean =
+    pauseUntilMillis > now
 
 @Singleton
 class PreferencesManager @Inject constructor(
@@ -250,6 +268,7 @@ class PreferencesManager @Inject constructor(
         val SHOW_NEWS_TAB = booleanPreferencesKey("show_news_tab")
         val SHOW_RADAR_EMBED = booleanPreferencesKey("show_radar_embed")
         val NEWS_FEED_URL = stringPreferencesKey("news_feed_url")
+        val PAUSE_UNTIL = longPreferencesKey("pause_until_millis")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -354,6 +373,7 @@ class PreferencesManager @Inject constructor(
         showRadarEmbed = this[Keys.SHOW_RADAR_EMBED] ?: true,
         newsFeedUrl = this[Keys.NEWS_FEED_URL]
             ?: "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+        pauseUntilMillis = this[Keys.PAUSE_UNTIL] ?: 0L,
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
@@ -413,5 +433,6 @@ class PreferencesManager @Inject constructor(
         this[Keys.SHOW_NEWS_TAB] = s.showNewsTab
         this[Keys.SHOW_RADAR_EMBED] = s.showRadarEmbed
         this[Keys.NEWS_FEED_URL] = s.newsFeedUrl
+        this[Keys.PAUSE_UNTIL] = s.pauseUntilMillis
     }
 }
