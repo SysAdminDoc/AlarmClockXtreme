@@ -1,0 +1,83 @@
+name: Version line consistency
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  version-lint:
+    name: README / CHANGELOG / ROADMAP / build.gradle versions must match
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version strings from source-of-truth files
+        id: extract
+        # v1.12.3 (roadmap N10): Catch the post-release drift class where the
+        # app/build.gradle.kts versionName advances but the README badge, the
+        # adb install command, the CHANGELOG top entry, the ROADMAP "Current
+        # snapshot" line, or the :wear module's versionName lags behind. The
+        # check is structural (string equality across pinned anchors), not
+        # semver-aware — bumping all of them together is the intended
+        # workflow per the docs cross-cutting track.
+        run: |
+          set -euo pipefail
+
+          APP_VERSION=$(grep -E 'versionName = "[^"]+"' app/build.gradle.kts \
+            | head -1 | sed -E 's/.*versionName = "([^"]+)".*/\1/')
+          WEAR_VERSION=$(grep -E 'versionName = "[^"]+"' wear/build.gradle.kts \
+            | head -1 | sed -E 's/.*versionName = "([^"]+)".*/\1/')
+          README_BADGE=$(grep -E 'shields\.io/badge/version-[0-9.]+-' README.md \
+            | head -1 | sed -E 's/.*badge\/version-([0-9.]+)-.*/\1/')
+          README_INSTALL=$(grep -E 'AlarmClockXtreme-v[0-9.]+-play\.apk' README.md \
+            | head -1 | sed -E 's/.*AlarmClockXtreme-v([0-9.]+)-play\.apk.*/\1/')
+          CHANGELOG_TOP=$(grep -E '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md \
+            | head -1 | sed -E 's/.*\[([0-9.]+)\].*/\1/')
+          ROADMAP_SNAPSHOT=$(grep -E '^## Current snapshot \(v[0-9.]+\)' ROADMAP.md \
+            | head -1 | sed -E 's/.*\(v([0-9.]+)\).*/\1/')
+
+          echo "app=$APP_VERSION"            | tee -a "$GITHUB_OUTPUT"
+          echo "wear=$WEAR_VERSION"          | tee -a "$GITHUB_OUTPUT"
+          echo "readme_badge=$README_BADGE"  | tee -a "$GITHUB_OUTPUT"
+          echo "readme_install=$README_INSTALL" | tee -a "$GITHUB_OUTPUT"
+          echo "changelog=$CHANGELOG_TOP"    | tee -a "$GITHUB_OUTPUT"
+          echo "roadmap=$ROADMAP_SNAPSHOT"   | tee -a "$GITHUB_OUTPUT"
+
+      - name: Assert all version strings agree
+        run: |
+          set -euo pipefail
+          declare -A versions=(
+            [app/build.gradle.kts]="${{ steps.extract.outputs.app }}"
+            [wear/build.gradle.kts]="${{ steps.extract.outputs.wear }}"
+            [README.md_badge]="${{ steps.extract.outputs.readme_badge }}"
+            [README.md_install]="${{ steps.extract.outputs.readme_install }}"
+            [CHANGELOG.md_top_entry]="${{ steps.extract.outputs.changelog }}"
+            [ROADMAP.md_current_snapshot]="${{ steps.extract.outputs.roadmap }}"
+          )
+
+          fail=0
+          target="${versions[app/build.gradle.kts]}"
+          for source in "${!versions[@]}"; do
+            actual="${versions[$source]}"
+            if [ -z "$actual" ]; then
+              echo "::error file=$source::Could not extract a version string from $source"
+              fail=1
+            elif [ "$actual" != "$target" ]; then
+              echo "::error file=$source::$source reports v$actual but app/build.gradle.kts is v$target"
+              fail=1
+            else
+              echo "ok: $source = v$actual"
+            fi
+          done
+
+          if [ $fail -ne 0 ]; then
+            echo
+            echo "Bump versionName + versionCode in BOTH app/build.gradle.kts AND wear/build.gradle.kts,"
+            echo "and update the README badge, README adb-install snippet, the CHANGELOG top entry"
+            echo "(## [x.y.z] - YYYY-MM-DD), and the ROADMAP 'Current snapshot (vX.Y.Z)' header to"
+            echo "match. See the 'docs' cross-cutting track in ROADMAP.md for the canonical list."
+            exit 1
+          fi
