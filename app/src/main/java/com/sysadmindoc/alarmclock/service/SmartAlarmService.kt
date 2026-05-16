@@ -85,6 +85,22 @@ class SmartAlarmService : Service(), SensorEventListener {
             .build()
         startForeground(NOTIF_ID_SMART, notification)
 
+        // v1.11.4 (roadmap N4) Play wake-lock policy audit:
+        //   SmartAlarmService is the one PARTIAL_WAKE_LOCK acquisition in the
+        //   app that is NOT exempt under the March-2026 Play policy — it
+        //   wraps a `dataSync` foreground service (not media playback) and
+        //   the accelerometer monitoring isn't an exempted activity. The
+        //   90-minute hard cap on a single window means a worst-case
+        //   power-user with one smart-wake alarm holds 90 min / 24 h —
+        //   under the 2 h / 24 h non-exempt budget. Users who layer
+        //   multiple smart-wake alarms on the same calendar day (e.g., a
+        //   morning alarm with smartAlarmWindowMinutes = 90 plus an
+        //   afternoon nap with the same window) could theoretically exceed
+        //   the cap; the service is single-instance and stopSelf()s after
+        //   firing or canceling, so cumulative time is bounded by the sum
+        //   of fires per day. If that pattern emerges in field data, lower
+        //   the per-window cap or cumulate-time-track here and break
+        //   monitoring early.
         wakeLock?.acquire(90 * 60 * 1000L)  // Max 90 min
         accelerometer?.let {
             sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
