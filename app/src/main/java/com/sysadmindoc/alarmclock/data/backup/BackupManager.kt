@@ -136,7 +136,12 @@ data class SettingsBackup(
     val sleepSoundTimerMinutes: Int = 0,
     val sleepSoundFadeSeconds: Int = 60,
     val repeatMissedAlarms: Boolean = true,
-    val napDefaultMinutes: Int = 20
+    val napDefaultMinutes: Int = 20,
+    // v1.11.6 (roadmap N6): pause-alarms timestamp. Round-trips through
+    // backup so a restore of "I'm pausing for 3 days" survives device
+    // swaps; stale restored values are harmless because the scheduler
+    // checks `> now` per fire.
+    val pauseUntilMillis: Long = 0
 )
 
 @Singleton
@@ -204,7 +209,8 @@ class BackupManager @Inject constructor(
                 sleepSoundTimerMinutes = settings.sleepSoundTimerMinutes,
                 sleepSoundFadeSeconds = settings.sleepSoundFadeSeconds,
                 repeatMissedAlarms = settings.repeatMissedAlarms,
-                napDefaultMinutes = settings.napDefaultMinutes
+                napDefaultMinutes = settings.napDefaultMinutes,
+                pauseUntilMillis = settings.pauseUntilMillis
             )
         )
 
@@ -348,7 +354,8 @@ class BackupManager @Inject constructor(
                         sleepSoundTimerMinutes = s.sleepSoundTimerMinutes,
                         sleepSoundFadeSeconds = s.sleepSoundFadeSeconds,
                         repeatMissedAlarms = s.repeatMissedAlarms,
-                        napDefaultMinutes = s.napDefaultMinutes
+                        napDefaultMinutes = s.napDefaultMinutes,
+                        pauseUntilMillis = s.pauseUntilMillis
                     )
                 }
             }
