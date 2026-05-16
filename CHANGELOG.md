@@ -2,6 +2,37 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.11.3] - 2026-05-16
+
+App Standby bucket surfacing in Settings → Reliability (roadmap N3). No
+schema changes; no new permissions.
+
+### Added — App Standby bucket row
+
+- Settings → Reliability → Wake readiness gains a 4th row that reads the
+  app's current `UsageStatsManager.getAppStandbyBucket()` value (API 28+)
+  and renders the bucket along with a plain-English description of how
+  Android is throttling the app. `ACTIVE` and `WORKING_SET` show as
+  ready; `FREQUENT`, `RARE`, and `RESTRICTED` show as warnings with an
+  action that opens battery settings (the system path that re-promotes
+  the app back to `WORKING_SET`).
+- The row is hidden entirely on pre-API-28 devices (`AppStandbyBucket.UNKNOWN`)
+  and the "X of N ready" pill recomputes accordingly so the count never
+  shows "3 of 3" when the system also has a 4th degraded bucket signal.
+- The top-level Reliability tile's supporting line ("Review …") now
+  includes "standby bucket" when the bucket is degraded, so the user
+  sees the throttling state without expanding the section.
+
+### Internal
+
+- No new permission required for the self-query: the system returns the
+  calling app's own bucket without `PACKAGE_USAGE_STATS`. Failure paths
+  (no `USAGE_STATS_SERVICE` on stripped AOSP, `SecurityException` from
+  managed profiles) are swallowed via `runCatching` — the row simply
+  hides.
+- Bumped to `versionName = "1.11.3"`, `versionCode = 57`. README badge,
+  install command, and Wear module version synced.
+
 ## [1.11.2] - 2026-05-16
 
 Telephony-aware alarm muting (roadmap N2). No schema changes; no new

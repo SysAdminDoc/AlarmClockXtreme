@@ -458,9 +458,15 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsOverviewRow(state: SettingsUiState) {
+    // v1.11.3 (roadmap N3): standby bucket also counts when known and degraded
+    // — otherwise an UNKNOWN value (pre-API-28) or a healthy bucket doesn't
+    // drag the tile state.
+    val standbyOk = state.appStandbyBucket == AppStandbyBucket.UNKNOWN ||
+        !AppStandbyBucket.isDegraded(state.appStandbyBucket)
     val reliabilityReady = state.isIgnoringBatteryOptimizations &&
         state.hasNotificationPermission &&
-        state.canScheduleExactAlarms
+        state.canScheduleExactAlarms &&
+        standbyOk
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppSectionTitle(
             title = "At a glance",
@@ -551,12 +557,26 @@ private fun WakeReadinessSection(
     onRequestExactAlarms: () -> Unit,
     onRequestBatteryExemption: () -> Unit
 ) {
-    val readyCount = listOf(
-        state.canScheduleExactAlarms,
-        state.hasNotificationPermission,
-        state.isIgnoringBatteryOptimizations
-    ).count { it }
-    val allReady = readyCount == 3
+    // v1.11.3 (roadmap N3): Standby bucket is only surfaced when the API is
+    // available (API 28+) AND the bucket is actually concerning. ACTIVE /
+    // WORKING_SET get a quiet "Active" status; FREQUENT or worse show a
+    // warning row with an action that opens the battery-exemption screen,
+    // which is the right place to ask for the exemption that promotes us
+    // back to WORKING_SET.
+    val standbyKnown = state.appStandbyBucket != AppStandbyBucket.UNKNOWN
+    val standbyDegraded = standbyKnown && AppStandbyBucket.isDegraded(state.appStandbyBucket)
+    val standbyReady = standbyKnown && !standbyDegraded
+    val standbyRowVisible = standbyKnown  // only show the row when we have a real value
+
+    val checks = buildList {
+        add(state.canScheduleExactAlarms)
+        add(state.hasNotificationPermission)
+        add(state.isIgnoringBatteryOptimizations)
+        if (standbyRowVisible) add(standbyReady)
+    }
+    val readyCount = checks.count { it }
+    val total = checks.size
+    val allReady = readyCount == total
 
     AppSurfaceCard(highlighted = !allReady) {
         AppSectionTitle(
@@ -564,7 +584,7 @@ private fun WakeReadinessSection(
             description = "The system switches that matter most for precise alarms and visible alerts.",
             action = {
                 AppStatusChip(
-                    label = "$readyCount of 3 ready",
+                    label = "$readyCount of $total ready",
                     icon = if (allReady) Icons.Default.CheckCircle else Icons.Default.Warning,
                     color = if (allReady) DismissGreen else SnoozeYellow
                 )
@@ -595,7 +615,31 @@ private fun WakeReadinessSection(
             actionLabel = "Open battery settings",
             onAction = onRequestBatteryExemption
         )
+        if (standbyRowVisible) {
+            WakeReadinessRow(
+                icon = Icons.Default.BatteryAlert,
+                title = "App Standby bucket",
+                description = standbyBucketDescription(state.appStandbyBucket),
+                ready = standbyReady,
+                actionLabel = "Open battery settings",
+                onAction = onRequestBatteryExemption
+            )
+        }
     }
+}
+
+/**
+ * v1.11.3: Map the raw bucket value to a sentence we can show in the row.
+ * Values from `UsageStatsManager.STANDBY_BUCKET_*` constants (API 28+).
+ */
+private fun standbyBucketDescription(bucket: Int): String = when (bucket) {
+    in Int.MIN_VALUE..0 -> "Standby bucket unknown on this device."
+    10 -> "Active — alarms scheduled without throttling."
+    20 -> "Working set — light throttling only; alarms fire on time."
+    30 -> "Frequent — Android is throttling background work; alarms may be delayed."
+    40 -> "Rare — strong throttling; alarms may fire late or be skipped."
+    45 -> "Restricted — Android caps you to one alarm per day. Open battery settings and exempt the app."
+    else -> "Standby bucket $bucket — open battery settings to promote the app to Working set."
 }
 
 @Composable
@@ -1613,9 +1657,16 @@ private fun wakeReadinessSummary(state: SettingsUiState): String {
         if (!state.canScheduleExactAlarms) add("exact alarms")
         if (!state.hasNotificationPermission) add("notifications")
         if (!state.isIgnoringBatteryOptimizations) add("battery")
+        // v1.11.3 (roadmap N3): include standby-bucket throttling in the
+        // top-tile summary so the user sees it without expanding the section.
+        if (state.appStandbyBucket != AppStandbyBucket.UNKNOWN &&
+            AppStandbyBucket.isDegraded(state.appStandbyBucket)
+        ) {
+            add("standby bucket")
+        }
     }
     return if (missing.isEmpty()) {
-        "Exact alarms, alerts, and battery are ready"
+        "Exact alarms, alerts, battery, and standby are ready"
     } else {
         "Review ${missing.joinToString(", ")}"
     }
