@@ -71,6 +71,10 @@ class AlarmService : Service() {
         const val CHANNEL_ALARM = "alarm_channel"
         const val CHANNEL_UPCOMING = "upcoming_alarm_channel"
         const val CHANNEL_MISSED = "missed_alarm_channel"
+        // v1.12.1 (roadmap N8): dedicated channel for "your timer finished"
+        // posts so the user can disable just timer pings without losing the
+        // missed-alarm reliability path.
+        const val CHANNEL_TIMER = "timer_finished_channel"
         const val NOTIFICATION_ID = 1001
         const val MISSED_NOTIFICATION_ID = 1003
         const val DEFAULT_AUTO_SILENCE_MINUTES = 10L
@@ -117,6 +121,23 @@ class AlarmService : Service() {
             ).apply {
                 description = "Notifications for alarms that were auto-silenced"
             }
+
+            // v1.12.1 (roadmap N8): timer-finished channel. IMPORTANCE_HIGH
+            // so it heads-up and bypasses standard "minimised" treatment,
+            // mirroring the missed-alarm class. Vibration is disabled at the
+            // channel — the timer's own MediaPlayer + vibrator handle the
+            // foreground experience; this notification is the
+            // user-isn't-looking-at-the-app surface.
+            val timerChannel = NotificationChannel(
+                CHANNEL_TIMER,
+                "Timer Finished",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notifies when one of your countdown timers reaches zero."
+                setSound(null, null)
+                enableVibration(false)
+            }
+            nm.createNotificationChannel(timerChannel)
             nm.createNotificationChannel(missedChannel)
         }
     }
