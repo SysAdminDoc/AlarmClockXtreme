@@ -41,3 +41,33 @@ Date: 2026-05-17
   warning that `ROADMAP.md` will be converted to CRLF the next time Git touches
   it.
 - `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain` passed after the import repair. Gradle still reports existing deprecation warnings for `PhoneStateListener`, `Vibrator.vibrate(...)`, `Icons.Filled.VolumeOff`, `rememberSwipeToDismissBoxState(confirmValueChange)`, `CrashLogger` package info, and Moshi KAPT codegen.
+
+## Autonomous Roadmap Pass: R1 / R3 / R6 Partial
+
+Date: 2026-05-17
+
+### Files Modified
+
+- `PRIVACY_POLICY.html` - replaced the older Open-Meteo-only policy with
+  current data-flow disclosures for weather, air quality, geocoding, NWS,
+  Nager.Date, Windy, RSS/news, user webhooks, internet radio, Hue LAN, Play-only
+  YouTube resolution/downloads, local crash logs, backups, and the current
+  Health Connect scaffold.
+- `README.md` - corrected 22 challenge count, Room DB v10, backup format v7,
+  network/privacy disclosures, F-Droid spelling, and Google Play Services
+  wording.
+- `app/src/main/java/com/sysadmindoc/alarmclock/ui/settings/SettingsScreen.kt`
+  - changed Health Connect settings copy to say v1.13.1 stores only a local
+  preference and does not request permission or read sleep data yet.
+- `metadata/com.sysadmindoc.alarmclock.yml` and `metadata/en-US/fdroid.yml` -
+  refreshed current version/code and optional network anti-feature language.
+- `PROJECT_CONTEXT.md` and `ROADMAP.md` - marked R1/R3 complete, kept R6 partial
+  because ignored local `CLAUDE.md` still has stale tool notes, and moved release
+  automation to the next active priority.
+
+### Verification
+
+- `git diff --check` passed with only existing line-ending normalization
+  warnings.
+- `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
+  passed after the Health Connect copy change.
