@@ -2,6 +2,27 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.13.3] - 2026-05-17
+
+Backup-export trust pass (roadmap X2).
+
+### Added
+
+- Settings now warns before plain or encrypted backup export when the current
+  backup would include configured webhook URLs, Philips Hue bridge details/API
+  keys, custom news feed URLs, internet-radio stream URLs, device-local
+  ringtone/photo URIs, Wi-Fi/location/contact details, or NFC/barcode challenge
+  values.
+- `BackupManager.assessExportWarning(...)` provides a unit-tested risk scan for
+  backup export disclosures.
+
+### Changed
+
+- Backup format bumped to **v8**. `SettingsBackup.newsFeedUrl` now round-trips
+  the selected News feed URL with a default value for older backups.
+- Bumped to `versionName = "1.13.3"`, `versionCode = 68`. README badge,
+  install command, roadmap snapshot, Wear module, and F-Droid metadata synced.
+
 ## [1.13.2] - 2026-05-17
 
 Trust, release, dependency, and Health Connect integration pass (roadmap

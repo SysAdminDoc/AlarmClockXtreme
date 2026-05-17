@@ -11,12 +11,11 @@ known drift, and the active research plan. Tool-specific instructions remain in
 
 - Repo: `C:\Users\--\repos\AlarmClockXtreme`
 - Remote: `https://github.com/SysAdminDoc/AlarmClockXtreme.git`
-- Branch at research time: `main`, clean, 13 commits ahead of `origin/main`
-- Head at research time: `3e9214c feat: Health Connect opt-in scaffold + privacy doc (N12+N13) - v1.13.1`
-- App version: `versionName = "1.13.2"`, `versionCode = 67`
+- Branch at latest update: `main`, tracking `origin/main`
+- App version: `versionName = "1.13.3"`, `versionCode = 68`
 - Android targets: `compileSdk = 36`, `targetSdk = 35`, `minSdk = 26`
 - Database: Room `AlarmDatabase` version 10 with `exportSchema = true`
-- Backup format: v7 as documented in `CLAUDE.md` and `CHANGELOG.md`
+- Backup format: v8
 - Modules: `:app` phone app plus `:wear` Wear OS companion/tile module
 - Flavors: `play` includes YouTube downloader and Wear Data Layer; `fdroid`
   excludes Play-specific/proprietary-adjacent dependencies
@@ -59,7 +58,7 @@ Preserve these principles:
   common contract for local sleep summaries; Play binds the real Health Connect
   `READ_SLEEP` implementation and F-Droid binds a no-op repository.
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/backup/BackupManager.kt`
-  backup/restore contract and backup format v7.
+  backup/restore contract, backup format v8, and pre-export warning risk scan.
 - `app/src/main/java/com/sysadmindoc/alarmclock/ui/settings/SettingsScreen.kt`
   high-leverage trust surface: reliability, permissions, Health Connect, Hue,
   backup, and integration controls.
@@ -112,7 +111,12 @@ aapt2 dump badging <release-apk>
   `AGENTS.md` and `CLAUDE.md` are ignored local tool files. Do not force-add
   them or treat them as durable project truth. Prefer this tracked file,
   `ROADMAP.md`, `README.md`, and `CHANGELOG.md` when local tool notes conflict.
-- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.2`.
+- Backup/export trust was improved on 2026-05-17: backup format v8 round-trips
+  the selected news feed URL, and Settings now warns before exporting readable
+  or encrypted backups that include configured webhook URLs, Hue details,
+  custom feed URLs, stream URLs, local media/photo URIs, Wi-Fi/location/contact
+  details, or NFC/barcode challenge values.
+- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.3`.
 
 ## Active Roadmap
 
@@ -122,9 +126,8 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Add backup-export warnings when configured secrets or private integration
-   URLs are present.
-2. Add Wear OS next-alarm complication data source.
+1. Add Wear OS next-alarm complication data source.
+2. Prototype Direct Boot minimum alarm support.
 
 ## Research Artifacts
 
