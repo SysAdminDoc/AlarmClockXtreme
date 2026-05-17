@@ -210,6 +210,54 @@ Date: 2026-05-17
 - `aapt2 dump permissions` confirmed `android.permission.health.READ_SLEEP`
   remains Play-only.
 
+## Autonomous Roadmap Pass: X5 Local Support Export
+
+Date: 2026-05-17
+
+### Files Modified
+
+- `SupportExportManager.kt` - added a user-triggered FileProvider-backed ZIP
+  export from `cacheDir/support_exports`, containing diagnostics, redacted
+  alarm metadata, and newest local crash logs.
+- `SupportDiagnosticsFormatter.kt` - added pure formatting for
+  `diagnostics.txt` and `alarms_redacted.csv`, intentionally omitting labels,
+  custom media URIs, integration URLs/secrets, contact/location/Wi-Fi values,
+  challenge references, and Health Connect records.
+- `CrashLogger.kt` - exposed newest-first crash log files for support packaging
+  while keeping existing log text APIs.
+- `AndroidManifest.xml` and `res/xml/file_paths.xml` - registered the
+  non-exported `FileProvider` used to share generated support ZIPs.
+- `SettingsViewModel.kt` and `SettingsScreen.kt` - added the Settings "Export
+  support bundle" action, busy/result state, share sheet launch, and failure
+  feedback.
+- `SupportDiagnosticsFormatterTest.kt` - added redaction coverage for private
+  alarm labels, raw URIs, integration values, contact, Wi-Fi, and NFC data.
+- `CHANGELOG.md`, `README.md`, `ROADMAP.md`, `PROJECT_CONTEXT.md`,
+  F-Droid metadata, and research notes - bumped/synced version lines to
+  `1.13.6` / code `71` and marked roadmap X5 complete.
+
+### Verification
+
+- `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
+  passed after the support export implementation.
+- `git diff --exit-code -- app/schemas` passed; no Room schema drift.
+- `git diff --check` passed with only line-ending normalization warnings.
+- Version consistency check passed for app, Wear, README, CHANGELOG, ROADMAP,
+  and PROJECT_CONTEXT: all report `1.13.6` / code `71`.
+- `python scripts\osv_gradle_audit.py --configuration playReleaseRuntimeClasspath`
+  passed: 207 Maven dependencies resolved; no OSV vulnerabilities reported.
+- `.\gradlew.bat :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease --console=plain`
+  passed with a temporary local signing key removed after verification.
+- `apksigner verify --verbose` and `aapt2 dump badging` passed for Play,
+  F-Droid, and Wear release APKs: all report `versionCode=71` and
+  `versionName=1.13.6`; all verify with APK Signature Scheme v2.
+- `aapt2 dump xmltree --file AndroidManifest.xml` confirmed the release
+  manifest includes the non-exported
+  `com.sysadmindoc.alarmclock.fileprovider` provider and preserves the Direct
+  Boot receivers/services.
+- `aapt2 dump permissions` confirmed `android.permission.health.READ_SLEEP`
+  remains Play-only.
+
 ## Autonomous Roadmap Pass: X2 Backup Export Warning
 
 Date: 2026-05-17
