@@ -106,9 +106,10 @@ aapt2 dump badging <release-apk>
   `commons-io 2.20.0`, `rhino 1.8.1`, plus Play-only `org.tukaani:xz:1.10`;
   `scripts/osv_gradle_audit.py` and Android CI now query OSV against the
   resolved Play release runtime classpath.
-- Instruction drift: repo `CLAUDE.md` correctly says DB v10 at the top but still
-  has older path notes saying Room DB v6 and 19 challenge types. `CLAUDE.md` is
-  ignored by `.gitignore`, so do not treat it as the only durable source.
+- Instruction drift decision was resolved on 2026-05-17: repo-local
+  `AGENTS.md` and `CLAUDE.md` are ignored local tool files. Do not force-add
+  them or treat them as durable project truth. Prefer this tracked file,
+  `ROADMAP.md`, `README.md`, and `CHANGELOG.md` when local tool notes conflict.
 - Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.1`.
 
 ## Active Roadmap
@@ -119,9 +120,10 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Resolve the remaining R6 doc-drift decision for ignored local `CLAUDE.md`.
-2. Complete Health Connect sleep-session SDK path behind the Play flavor after
+1. Complete Health Connect sleep-session SDK path behind the Play flavor after
    Play Console health-permission review is ready.
+2. Add backup-export warnings when configured secrets or private integration
+   URLs are present.
 
 ## Research Artifacts
 
