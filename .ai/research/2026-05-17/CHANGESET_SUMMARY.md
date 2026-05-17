@@ -145,6 +145,57 @@ Date: 2026-05-17
 - `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
   passed.
 
+## Autonomous Roadmap Pass: X2 Backup Export Warning
+
+Date: 2026-05-17
+
+### Files Modified
+
+- `app/src/main/java/com/sysadmindoc/alarmclock/data/backup/BackupManager.kt` -
+  added `BackupExportWarning`, `assessExportWarning(...)`,
+  `inspectExportWarning()`, backup format v8, and `SettingsBackup.newsFeedUrl`
+  round-trip support.
+- `app/src/main/java/com/sysadmindoc/alarmclock/data/preferences/PreferencesManager.kt`
+  - extracted the default news feed URL constant so DataStore defaults and
+  backup warning classification stay aligned.
+- `app/src/main/java/com/sysadmindoc/alarmclock/ui/settings/SettingsViewModel.kt`
+  - exposed the backup export warning scan to Settings.
+- `app/src/main/java/com/sysadmindoc/alarmclock/ui/settings/SettingsScreen.kt`
+  - added confirmation dialogs before plain/encrypted export when configured
+  webhook URLs, Hue details/API keys, custom feed URLs, stream URLs,
+  device-local media/photo URIs, Wi-Fi/location/contact details, or NFC/barcode
+  challenge values would be included.
+- `app/src/test/java/com/sysadmindoc/alarmclock/data/backup/BackupExportWarningTest.kt`
+  - added pure unit coverage for clean, settings-risk, and alarm-risk export
+  warning classifications.
+- `app/build.gradle.kts`, `wear/build.gradle.kts`, `CHANGELOG.md`, README,
+  ROADMAP, `PROJECT_CONTEXT.md`, and F-Droid metadata - bumped/synced version
+  lines to `1.13.3` / code `68` and marked X2 complete.
+
+### Verification
+
+- `.\gradlew.bat :app:testPlayDebugUnitTest --tests "com.sysadmindoc.alarmclock.data.backup.BackupExportWarningTest" --console=plain`
+  passed.
+- `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
+  passed.
+- Version consistency check passed for app, Wear, README badge, README install
+  command, changelog top entry, and roadmap current snapshot: all report
+  `1.13.3`.
+- Workflow YAML/shell syntax check passed for all 17 GitHub Actions shell
+  `run:` blocks.
+- `git diff --exit-code -- app/schemas` passed.
+- `python scripts\osv_gradle_audit.py --configuration playReleaseRuntimeClasspath`
+  passed: 207 Maven dependencies resolved; no OSV vulnerabilities reported.
+- `git diff --check` passed with only existing line-ending normalization
+  warnings.
+- `.\gradlew.bat :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease --console=plain`
+  passed with a temporary local signing key. The ignored local
+  `keystore.properties` was restored afterward.
+- `aapt2 dump permissions`, `aapt2 dump badging`, and
+  `apksigner verify --verbose` passed for Play, F-Droid, and Wear release APKs:
+  all report `versionCode=68` and `versionName=1.13.3`; only the Play APK
+  declares `android.permission.health.READ_SLEEP`.
+
 ## Autonomous Roadmap Pass: R6 Documentation Drift Policy
 
 Date: 2026-05-17

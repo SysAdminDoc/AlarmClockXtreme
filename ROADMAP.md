@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed through the **v1.13.2** trust-gate work and
-Health Connect READ_SLEEP integration; see [CHANGELOG.md](CHANGELOG.md).
+Living feature backlog, refreshed through the **v1.13.3** backup-export trust
+work and Health Connect READ_SLEEP integration; see [CHANGELOG.md](CHANGELOG.md).
 Deep research refresh: **2026-05-17**. Durable research artifacts live in
 [.ai/research/2026-05-17](.ai/research/2026-05-17), and consolidated project
 memory lives in [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md).
@@ -19,8 +19,9 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): **v1.13.2 Health Connect
-> READ_SLEEP integration + trust/release gates (R1-R6 + X1)**; **v1.13.1 Health Connect
+> **Recently shipped** (rolled up from prior tiers): **v1.13.3 backup-export
+> warning + backup format v8 (X2)**; **v1.13.2 Health Connect READ_SLEEP
+> integration + trust/release gates (R1-R6 + X1)**; **v1.13.1 Health Connect
 > opt-in scaffold + privacy-policy update (N12 + N13 scaffold)**; **v1.13.0
 > adaptive NavigationRail on MEDIUM/EXPANDED widths (N11)**; **v1.12.3 CI
 > version-line consistency lint (N10)**; **v1.12.2 RingtonePool chip-based
@@ -66,7 +67,12 @@ links.
   is Play-only, `READ_SLEEP` is declared only in `app/src/play`, Settings
   requests only sleep read access, and Bedtime/Stats render local-only recent
   sleep-session summaries. F-Droid binds a no-op repository.
-- Latest local tag is `v1.9.5`; current app version is `v1.13.2`.
+- Backup export now warns before exporting configured webhook URLs, Hue bridge
+  details/API keys, custom news feed URLs, internet-radio stream URLs,
+  device-local media/photo URIs, Wi-Fi/location/contact details, and NFC/barcode
+  challenge values. Backup format v8 also round-trips the selected news feed
+  URL.
+- Latest local tag is `v1.9.5`; current app version is `v1.13.3`.
 
 ### NOW - v1.13.2 Trust, Release, And Data-Safety Gate
 
@@ -84,7 +90,7 @@ links.
 | # | Item | Evidence | Effort | Rationale |
 |---|------|----------|--------|-----------|
 | X1 | [x] Complete Health Connect sleep-session SDK integration behind the Play flavor — **code-side shipped v1.13.2 X1 pass.** Play adds `androidx.health.connect:connect-client:1.1.0`, declares only `android.permission.health.READ_SLEEP`, requests access from Settings, reads recent `SleepSessionRecord` windows, and surfaces local-only summaries in Bedtime and Statistics. F-Droid binds a no-op repository with no SDK or permission. The new Health Connect Guava transitive is constrained to `33.6.0-android` so the Play runtime OSV audit stays clean. Play Console health-permission approval remains a release gate before Play distribution. | local: `HealthConnectSleepRepository.kt`, `PlayHealthConnectSleepRepository.kt`, `FdroidHealthConnectSleepRepository.kt`, `SettingsScreen.kt`, `BedtimeScreen.kt`, `StatsScreen.kt`, `PRIVACY_POLICY.html`; [Track sleep sessions](https://developer.android.com/health-and-fitness/guides/health-connect/develop/sleep-sessions), [Develop sleep experiences](https://developer.android.com/health-and-fitness/health-connect/experiences/sleep) | M | Best next user-value feature after policy/docs are accurate. |
-| X2 | [ ] Backup-export warning when configured secrets or private integration URLs are present. | local: `BackupManager.kt`, `SettingsScreen.kt` | S | Trust-critical and small. Warn before exporting webhooks, Hue keys, feeds, or local paths. |
+| X2 | [x] Backup-export warning when configured secrets or private integration URLs are present — **shipped v1.13.3.** Added `BackupManager.assessExportWarning(...)`, unit coverage, Settings confirmation dialogs before plain/encrypted exports, custom news-feed URL round-trip in backup format v8, and docs/changelog version sync. | local: `BackupManager.kt`, `SettingsScreen.kt`, `BackupExportWarningTest.kt` | S | Trust-critical and small. Warn before exporting webhooks, Hue keys, feeds, or local paths. |
 | X3 | [ ] Wear OS next-alarm complication data source. | [Wear complications](https://developer.android.com/training/wearables/exposing-data-complications), [Wear Tiles](https://developer.android.com/training/wearables/tiles) | M | Builds on the existing Wear tile and fills a common glanceable-surface expectation. |
 | X4 | [ ] Direct Boot minimum alarm support design and prototype. Keep only the minimum schedule/ringtone/defaults in device-encrypted storage. | [Direct Boot docs](https://developer.android.com/privacy-and-security/direct-boot) | L | High reliability value, but requires careful storage separation and recovery UX. |
 | X5 | [ ] Local crash/support export. Add a Settings action to package local crash logs and version/device alarm diagnostics without telemetry. | local: `CrashLogger.kt`, Settings reliability cards | S | Improves support while preserving no-tracking posture. |
@@ -103,7 +109,7 @@ links.
 
 ---
 
-## Current snapshot (v1.13.2)
+## Current snapshot (v1.13.3)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
   Material 3 (1.4.x), Room v10, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
@@ -112,14 +118,14 @@ links.
   (Play flavor), yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 67`, `versionName 1.13.2`.
+  `versionCode 68`, `versionName 1.13.3`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
   AppSettings fields, 6 phone tabs (Today, Alarms, Bedtime, Timer, World,
   News) + Settings.
-- **What's missing vs. competitors:** Health Connect / standalone-watch story
-  is still zero; no on-device sleep-stage classifier; no AI sleep coach; no
+- **What's missing vs. competitors:** standalone-watch story is still thin; no
+  on-device sleep-stage classifier; no AI sleep coach; no
   lockscreen-widget surface (Pixel-led Android 15+); no foldable/tablet
   adaptive layout; no Direct-Boot alarm; no ExoPlayer audio path; no
   on-device snore detection. The good news: the alarm-clock core
@@ -171,7 +177,7 @@ in their notes. **Order is the recommended landing order.**
 | X12 | [ ] LE Audio hearing-aid routing (`AudioAttributes.USAGE_ALARM` + `MediaRouter2`). Android 17 adds [system-level granular hearing-aid routing](https://www.androidpolice.com/android-15-hearing-aid-support-le-audio/) — verify ACX honors it. | [Android Bluetooth LE Audio overview](https://developer.android.com/develop/connectivity/bluetooth/ble-audio/overview); [Hearing aid audio support via Bluetooth LE](https://source.android.com/docs/core/connect/bluetooth/asha) | M | Underserved accessibility surface; LE Audio hearing aids ignore most alarm streams today. |
 | X13 | [ ] Public-transit-aware alarm (shift earlier when commute time grows or weather degrades). | open routing — Google Maps Distance Matrix or [OpenRouteService](https://openrouteservice.org/) | L | Listed Later previously — promote now that the weather/calendar plumbing can chain a routing call. Falls back gracefully without a key. |
 | X14 | [ ] Per-alarm background image with Android-12+ blur — drop-in to `AlarmFiringActivity`. Behind a per-alarm toggle, default off. | [BlackyHawky Clock 2.28](https://github.com/BlackyHawky/Clock/releases) | M | UX-only; no permissions; opt-in. |
-| X15 | [ ] Manual drag-to-reorder of alarms list (currently sorted by time / next-fire). Persists order via `Alarm.sortOrder: Int`. | [BlackyHawky Clock 2.29](https://github.com/BlackyHawky/Clock/releases) | M | DB v11 + backup v8 schema bump. Use Reorderable-Compose patterns. |
+| X15 | [ ] Manual drag-to-reorder of alarms list (currently sorted by time / next-fire). Persists order via `Alarm.sortOrder: Int`. | [BlackyHawky Clock 2.29](https://github.com/BlackyHawky/Clock/releases) | M | DB v11 + backup v9 schema bump. Use Reorderable-Compose patterns. |
 | X16 | [ ] Migrate alarm audio playback from `MediaPlayer` to ExoPlayer / Media3. Improves LE Audio routing, gapless internet-radio, error handling. | [BlackyHawky Clock 2.22](https://github.com/BlackyHawky/Clock/releases) — proven precedent in the FOSS space | M | Carries regression risk — gate behind a build flag for one release. Pairs with X12 (LE Audio). |
 | X17 | [ ] Material 3 Expressive — flip the v1.10.9 opt-in toggle (`AppSettings.expressiveModeEnabled`) to default once Compose BOM 2026.06+ ships the stable M3 1.4.x APIs without opt-in annotations. Keep a "Classic" fallback toggle for one release. | [Material 3 Expressive docs](https://m3.material.io/blog/material-3-expressive); [Compose BOM 2026.05.00](https://developer.android.com/jetpack/androidx/releases/compose-material3) | S | Promotion of previously-Under-Consideration "full M3 Expressive migration" entry. |
 | X18 | [ ] Bedtime countdown `Notification.ProgressStyle` Live Update (mirrors v1.10.10 next-alarm Live Update during the final hour before bedtime reminder fires). | [Android 16 ProgressStyle](https://developer.android.com/about/versions/16/features/progress-centric-notifications) | S | Reuses next-alarm Live Update plumbing. Was UC; promote with Android 16 install base ~21% of devices per [Wikipedia Android 16 share, March 2026](https://en.wikipedia.org/wiki/Android_16). |
@@ -381,7 +387,7 @@ Items that need scoping or platform readiness before they earn a tier.
 - Shareable-alarm import is **disabled by default** until reviewed — keep that. Never silently schedule a received link's alarm.
 - Hue v1 username endpoints are deprecated — **migrate `HueSunriseWorker` to v2 `application_key` + HTTPS pinning. Tracked as N5 above.** ([Philips Hue API v2](https://developers.meethue.com/new-hue-api/))
 - Webhook URL is user-supplied and never auto-validated — document this as part of the threat model rather than retrofitting validation that won't catch a determined misuse.
-- Backup-export warning when `webhookUrl` / `hueApiKey` is non-empty — surface a "your backup contains secrets" confirmation before export. **NEW audit item — S, not yet tiered.**
+- Backup-export warning when `webhookUrl` / `hueApiKey` is non-empty — **shipped v1.13.3 as X2.** The final implementation also covers custom feed URLs, stream URLs, local URIs, Wi-Fi/location/contact values, and NFC/barcode challenge values.
 
 ### Observability
 

@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.BuildConfig
+import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.backup.BackupManager
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
@@ -441,6 +442,9 @@ class SettingsViewModel @Inject constructor(
     val backupResult: StateFlow<String?> = _backupResult.asStateFlow()
     private val _backupBusy = MutableStateFlow(false)
     val backupBusy: StateFlow<Boolean> = _backupBusy.asStateFlow()
+
+    suspend fun inspectBackupExportWarning(): BackupExportWarning =
+        backupManager.inspectExportWarning()
 
     fun exportBackup(uri: Uri) {
         viewModelScope.launch {
