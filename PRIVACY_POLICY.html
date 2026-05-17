@@ -48,6 +48,7 @@
         <li><strong>NFC</strong> &mdash; Optional. Used for the NFC dismiss challenge.</li>
         <li><strong>Camera</strong> &mdash; Optional. Used for barcode/QR and photo-match dismiss challenges.</li>
         <li><strong>Microphone</strong> &mdash; Optional. Used for experimental sonar sleep tracking when enabled.</li>
+        <li><strong>Health Connect sleep permission (android.permission.health.READ_SLEEP)</strong> &mdash; Optional and Play flavor only. Used only after you opt in and grant Health Connect access so Bedtime and Statistics can read recent sleep-session summaries.</li>
         <li><strong>Activity Recognition</strong> &mdash; Optional. Used for step and smart-alarm features.</li>
         <li><strong>SMS and Phone</strong> &mdash; Optional. Used only for the Guardian Angel emergency contact feature.</li>
         <li><strong>Audio and Storage</strong> &mdash; Optional. Used to browse audio files, control alarm audio behavior, and save downloaded alarm sounds to device media storage on supported Android versions.</li>
@@ -76,6 +77,7 @@
         <li>Alarms, settings, and alarm history are stored in a local SQLite database</li>
         <li>Preferences are stored in Android DataStore / app-private local storage</li>
         <li>Crash logs are written to app-private local files and are not uploaded automatically</li>
+        <li>Health Connect sleep sessions are read on demand for local Bedtime and Statistics summaries only. Sleep-session records are not copied into the app database or uploaded to the developer.</li>
         <li>Downloaded alarm sounds are stored in device media storage when you choose to save them</li>
         <li>Backup/restore exports data to a JSON file at a location you choose. Plain JSON backups may include alarms, labels, schedules, settings, integration URLs, Hue bridge details, webhook URLs, and other configuration values. Encrypted backups use your passphrase.</li>
         <li>Shareable alarm links are created only when you choose to share an alarm.</li>
@@ -85,13 +87,14 @@
     <p>The app does not integrate with third-party analytics, advertising, or tracking services. Optional features may contact the third-party services listed above. Those services receive the request data needed for the feature and are governed by their own policies.</p>
 
     <h2>Health Connect (Play flavor, opt-in)</h2>
-    <p>Current v1.13.1 builds include a Health Connect preference scaffold only. They do not include the Health Connect SDK, do not request Health Connect permissions, and do not read or write Health Connect data yet.</p>
-    <p>A future Play-flavor release may request the Health Connect sleep-session permission after the integration ships. If that happens:</p>
+    <p>The Play flavor can optionally connect to Android Health Connect after you turn on the Health Connect setting and grant sleep access. The app requests only <strong>android.permission.health.READ_SLEEP</strong>. It does not request write access, background health-data access, exercise routes, medical records, or other Health Connect data types.</p>
     <ul>
-        <li>The app will request only the sleep data permission needed for the stated bedtime and statistics feature.</li>
-        <li>Health Connect data will stay on your device and will not be uploaded or shared with the developer.</li>
-        <li>You will be able to revoke access through Android Health Connect settings.</li>
-        <li>The F-Droid flavor is expected to remain without the Health Connect SDK unless documented otherwise.</li>
+        <li>Purpose: show recent sleep-session duration and stage summaries in Bedtime and Statistics.</li>
+        <li>Data read: recent Health Connect sleep sessions and sleep stages only.</li>
+        <li>Storage: summaries are used in memory for the current app UI. The app stores your Health Connect opt-in preference, but it does not copy sleep-session records into Room, DataStore, backups, crash logs, or a developer service.</li>
+        <li>Sharing: Health Connect data is not uploaded, sold, used for advertising, used for employment or insurance decisions, or shared with the developer.</li>
+        <li>Revocation: you can turn the app setting off or revoke access in Android Health Connect settings at any time.</li>
+        <li>F-Droid: the F-Droid flavor does not include the Health Connect SDK or request Health Connect permissions.</li>
     </ul>
 
     <h2>Children's Privacy</h2>

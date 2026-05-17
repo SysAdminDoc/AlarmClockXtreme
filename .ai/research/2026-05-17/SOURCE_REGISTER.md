@@ -39,6 +39,10 @@ run. Claims in `ROADMAP.md` and sibling research notes should map back here.
 | L28 | OSV batch query run from PowerShell | Vulnerability IDs for downloader transitive dependencies. |
 | L29 | `scripts/osv_gradle_audit.py` | Repo-local OSV audit implementation for resolved Gradle Maven dependencies. |
 | L30 | `.github/workflows/android-ci.yml` | CI unit/build/schema/migration/dependency-audit gates. |
+| L31 | `app/src/main/java/com/sysadmindoc/alarmclock/data/health/HealthConnectSleepRepository.kt` | Shared Health Connect summary contract. |
+| L32 | `app/src/play/java/com/sysadmindoc/alarmclock/data/health/PlayHealthConnectSleepRepository.kt` | Play-only Health Connect READ_SLEEP implementation. |
+| L33 | `app/src/fdroid/java/com/sysadmindoc/alarmclock/data/health/FdroidHealthConnectSleepRepository.kt` | F-Droid no-op Health Connect implementation. |
+| L34 | `app/src/play/AndroidManifest.xml` | Play-only Health Connect READ_SLEEP manifest declaration. |
 
 ## Shared Memory And Instruction Sources
 

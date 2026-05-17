@@ -1,7 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// AlarmClockXtreme v1.13.1
+// AlarmClockXtreme v1.13.2
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 35
-        versionCode = 66
-        versionName = "1.13.1"
+        versionCode = 67
+        versionName = "1.13.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -187,6 +187,9 @@ dependencies {
     // Wear OS Data Layer bridge (play flavor only). F-Droid keeps the wearable
     // bridge as a no-op because Play Services is proprietary.
     "playImplementation"("com.google.android.gms:play-services-wearable:20.0.1")
+    // Health Connect sleep-session reads (play flavor only). F-Droid keeps
+    // this out of its dependency graph and binds a no-op repository.
+    "playImplementation"("androidx.health.connect:connect-client:1.1.0")
     // Commons Compress 1.28.0 references XZ stream classes during release
     // shrinking; keep the support library Play-only with the downloader graph.
     "playImplementation"("org.tukaani:xz:1.10")
@@ -216,6 +219,9 @@ dependencies {
         }
         "playImplementation"("org.mozilla:rhino-engine:1.8.1") {
             because("Keep Rhino engine aligned with constrained Rhino runtime")
+        }
+        "playImplementation"("com.google.guava:guava:33.6.0-android") {
+            because("OSV reports advisories against the Health Connect transitive 31.1-android")
         }
     }
 

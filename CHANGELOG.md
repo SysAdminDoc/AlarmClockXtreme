@@ -2,6 +2,48 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.13.2] - 2026-05-17
+
+Trust, release, dependency, and Health Connect integration pass (roadmap
+R1-R6 + X1).
+
+### Added
+
+- Play-flavor Health Connect sleep-session integration. The app declares and
+  requests only `android.permission.health.READ_SLEEP`, reads recent
+  `SleepSessionRecord` windows in foreground UI, and shows local-only
+  duration/stage summaries in Bedtime and Statistics.
+- Flavor-safe `HealthConnectSleepRepository` abstraction with a real Play
+  implementation and F-Droid no-op implementation. The F-Droid flavor ships no
+  Health Connect SDK and no Health Connect permission.
+- Android CI dependency-audit job backed by `scripts/osv_gradle_audit.py`,
+  which resolves Gradle runtime classpaths and queries OSV.
+- Room migration/schema CI gate and instrumentation tests for exported-schema
+  parity, v4-to-current migration, v9-to-v10 defaults, and migration
+  contiguity.
+
+### Changed
+
+- Privacy policy, README, F-Droid metadata, Settings copy, and roadmap context
+  now describe the actual optional data surfaces, including the Play-only
+  Health Connect `READ_SLEEP` path and local-only sleep summaries.
+- Release workflow now builds signed Play, F-Droid, and Wear release APKs on
+  tags, verifies signatures and badging, generates `SHA256SUMS.txt`, and
+  uploads release artifacts.
+- Play-only downloader/runtime dependencies are constrained away from OSV-known
+  vulnerable transitives: Jackson 2.18.6, Commons Compress 1.28.0, Commons IO
+  2.20.0, Rhino 1.8.1, Guava 33.6.0-android, and XZ 1.10 support for release
+  shrinking.
+- Tracked `PROJECT_CONTEXT.md` is the canonical project context when ignored
+  local `AGENTS.md` / `CLAUDE.md` notes conflict with source evidence.
+
+### Internal
+
+- Bumped to `versionName = "1.13.2"`, `versionCode = 67`. README badge,
+  install command, roadmap snapshot, Wear module, and F-Droid metadata synced.
+- Play Console Health Connect health-permissions declaration/approval remains
+  an external release gate before distributing this Play build through Play.
+
 ## [1.13.1] - 2026-05-16
 
 Health Connect opt-in scaffold + Play health-permissions narrative

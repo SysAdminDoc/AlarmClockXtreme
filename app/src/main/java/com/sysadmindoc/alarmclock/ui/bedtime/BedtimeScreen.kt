@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Sailing
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Waves
 import androidx.compose.material.icons.filled.WbSunny
@@ -81,6 +82,8 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
@@ -460,6 +463,17 @@ fun BedtimeScreen(
             }
         }
 
+        if (state.healthConnectEnabled) {
+            item {
+                HealthConnectSleepSection(
+                    summary = state.healthConnectSleepSummary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+        }
+
         item {
             AppSurfaceCard(
                 modifier = Modifier
@@ -652,6 +666,88 @@ private val SLEEP_SOUNDS = listOf(
     SleepSound("Ocean", Icons.Default.Sailing, "sleep_ocean"),
     SleepSound("Fan", Icons.Default.Air, "sleep_fan"),
 )
+
+@Composable
+private fun HealthConnectSleepSection(
+    summary: HealthConnectSleepSummary,
+    modifier: Modifier = Modifier
+) {
+    AppSurfaceCard(
+        modifier = modifier,
+        highlighted = summary.permissionGranted && summary.hasRecentSession
+    ) {
+        AppSectionTitle(
+            title = "Health Connect sleep",
+            description = when {
+                summary.availability == HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED ->
+                    "Update Health Connect before recent sleep sessions can appear here."
+                summary.availability == HealthConnectAvailability.UNAVAILABLE ->
+                    "Health Connect is not available on this device."
+                !summary.permissionGranted ->
+                    "Grant READ_SLEEP in Settings to fold recent sessions into bedtime planning."
+                summary.hasRecentSession ->
+                    "Recent sessions stay local and help compare your target with actual sleep."
+                else ->
+                    "READ_SLEEP is granted, but no recent sleep sessions were found in the last 14 days."
+            }
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            AppStatusChip(
+                label = if (summary.permissionGranted) "READ_SLEEP granted" else "Permission needed",
+                icon = if (summary.permissionGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                color = if (summary.permissionGranted) DismissGreen else SnoozeYellow
+            )
+            AppStatusChip(
+                label = "${summary.sessionsRead} sessions",
+                icon = Icons.Default.Bedtime,
+                color = if (summary.sessionsRead > 0) MaterialTheme.colorScheme.primary else TextMuted
+            )
+        }
+        if (summary.hasRecentSession) {
+            Text(
+                text = "Last session: ${formatSleepMinutes(summary.lastSessionDurationMinutes)}",
+                color = TextPrimary,
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                SleepStageChip("Light", summary.lightStageMinutes)
+                SleepStageChip("Deep", summary.deepStageMinutes)
+                SleepStageChip("REM", summary.remStageMinutes)
+                SleepStageChip("Awake", summary.awakeStageMinutes)
+            }
+        }
+        summary.errorMessage?.let { error ->
+            Text(
+                text = "Health Connect needs attention: $error",
+                color = SnoozeYellow,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun SleepStageChip(label: String, minutes: Long) {
+    AppStatusChip(
+        label = "$label ${formatSleepMinutes(minutes)}",
+        icon = Icons.Default.NightsStay,
+        color = if (minutes > 0) MaterialTheme.colorScheme.primary else TextMuted
+    )
+}
+
+private fun formatSleepMinutes(minutes: Long?): String {
+    val value = minutes ?: return "0m"
+    val hours = value / 60
+    val mins = value % 60
+    return when {
+        hours > 0 && mins > 0 -> "${hours}h ${mins}m"
+        hours > 0 -> "${hours}h"
+        else -> "${mins}m"
+    }
+}
 
 @Composable
 private fun SleepSoundsSection(
