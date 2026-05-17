@@ -144,6 +144,31 @@ Date: 2026-05-17
   passed, proving the Room migration instrumentation test source compiles.
 - `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
   passed.
+
+## Autonomous Roadmap Pass: R6 Documentation Drift Policy
+
+Date: 2026-05-17
+
+### Files Modified
+
+- `CHANGELOG.md` - corrected the v1.13.1 Health Connect release notes to match
+  the current no-SDK/no-permission/no-read scaffold and the 2026-05-17 privacy
+  reconciliation.
+- `PROJECT_CONTEXT.md` - recorded the decision that ignored local `AGENTS.md`
+  and `CLAUDE.md` remain local scratchpads; tracked context files are
+  authoritative when those ignored files conflict.
+- `ROADMAP.md` - marked R6 complete and documented the ignored-tool-file
+  decision.
+- `.ai/research/2026-05-17/MEMORY_CONSOLIDATION.md` - moved the CLAUDE/AGENTS,
+  release workflow, privacy, and downloader conflicts into resolved status.
+
+### Verification
+
+- Evidence checks: `git ls-files` confirmed `AGENTS.md` and `CLAUDE.md` are not
+  tracked; `git check-ignore -v` showed `AGENTS.md` is ignored by the user's
+  global Git ignore and `CLAUDE.md` by repo `.gitignore`.
+- No code changed in this pass; verification was limited to documentation
+  consistency and `git diff --check`.
 - `git diff --exit-code -- app/schemas` passed after the Gradle build.
 - `adb devices` reported no attached device, so
   `connectedFdroidDebugAndroidTest` was not runnable locally; the new GitHub
