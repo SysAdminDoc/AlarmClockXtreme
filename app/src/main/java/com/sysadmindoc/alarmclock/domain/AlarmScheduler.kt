@@ -13,6 +13,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.isPaused
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
+import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
 import com.sysadmindoc.alarmclock.receiver.AlarmReceiver
 import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
 import com.sysadmindoc.alarmclock.service.SmartAlarmService
@@ -135,6 +136,7 @@ class AlarmScheduler @Inject constructor(
 
         repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
         scheduleAlarmClock(sanitizedAlarm.id, triggerTime)
+        DirectBootAlarmCache.saveIfEarlier(context, sanitizedAlarm, triggerTime)
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
         requestWidgetUpdateIfNeeded(requestWidgetUpdate)
         syncBedtimeDndRule()
@@ -187,6 +189,7 @@ class AlarmScheduler @Inject constructor(
 
         repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
         scheduleAlarmClock(sanitizedAlarm.id, triggerTime)
+        DirectBootAlarmCache.saveIfEarlier(context, sanitizedAlarm, triggerTime)
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
         requestWidgetUpdateIfNeeded(requestWidgetUpdate)
         syncBedtimeDndRule()
@@ -215,8 +218,14 @@ class AlarmScheduler @Inject constructor(
         val now = System.currentTimeMillis()
         val enabledAlarms = repository.getEnabled()
         val safeBatchSize = batchSize.coerceAtLeast(1)
+        DirectBootAlarmCache.clear(context)
         enabledAlarms.chunked(safeBatchSize).forEach { batch ->
             batch.forEach { alarm ->
+                if (DirectBootAlarmCache.consumeFiredOneShotMarker(context, alarm, now)) {
+                    repository.setEnabled(alarm.id, enabled = false, nextTrigger = 0)
+                    cancelScheduledEntries(alarm.id)
+                    return@forEach
+                }
                 if (!forceRecalculate && alarm.nextTriggerTime > now) {
                     // Existing future trigger is still valid - just re-register with AlarmManager
                     scheduleExistingTrigger(
@@ -314,6 +323,7 @@ class AlarmScheduler @Inject constructor(
     }
 
     private fun scheduleAlarmClock(alarmId: Long, triggerTime: Long) {
+        DirectBootAlarmCache.cancelScheduledFallback(context, alarmId)
         val pendingIntent = createPendingIntent(alarmId)
         val showIntent = createShowIntent(alarmId)
         val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showIntent)
@@ -434,6 +444,7 @@ class AlarmScheduler @Inject constructor(
         val pendingIntent = createPendingIntent(alarmId)
         alarmManager.cancel(pendingIntent)
         pendingIntent.cancel()
+        DirectBootAlarmCache.removeIfMatches(context, alarmId)
 
         cancelSmartAlarmStart(alarmId)
 
