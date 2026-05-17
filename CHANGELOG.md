@@ -15,25 +15,17 @@ declaration is approved.
   reads/writes and round-trips through the JSON + AES-256 backup paths
   alongside every other setting.
 - New Settings → Health Connect card (sits between Philips Hue and
-  Personalization). Honest flavor-aware copy: Play-flavor users see the
-  full "read overnight sleep sessions" pitch; F-Droid users see "this
-  flavor does not ship Health Connect support — install the Play flavor
-  to opt in."
+  Personalization). Current copy is intentionally conservative: v1.13.1
+  stores only a local opt-in preference and does not request Health Connect
+  permission or read sleep data yet.
 
 ### Documentation — PRIVACY_POLICY.html
 
-- New "Health Connect (Play flavor, opt-in)" section spells out what
-  data type is read (`SleepSessionRecord` only), retention (none —
-  reads are point-in-time, never persisted outside Health Connect's
-  own encrypted store + the in-app DataStore), revocation flow (toggle
-  off or revoke in Health Connect settings), F-Droid behaviour (no SDK
-  shipped, toggle is a no-op), and the Google Play Health Apps policy
-  use-case statement ("wellness / sleep tracking only — never for
-  employment or insurance eligibility, never shared").
-- This satisfies the prerequisite documentation for the Play Console
-  health-permissions declaration (roadmap N13) so the follow-up release
-  that wires the actual `androidx.health.connect:connect-client` SDK
-  can ship behind a Play store policy review.
+- The privacy-policy reconciliation on 2026-05-17 clarifies that the
+  v1.13.1 scaffold does not ship the Health Connect SDK, request health
+  permissions, or read `SleepSessionRecord` data. It also documents the
+  intended future Play-flavor use case so the follow-up release can go
+  through Play health-permissions review before data access ships.
 
 ### Internal
 
