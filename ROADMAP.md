@@ -1,7 +1,8 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed through the **v1.13.3** backup-export trust
-work and Health Connect READ_SLEEP integration; see [CHANGELOG.md](CHANGELOG.md).
+Living feature backlog, refreshed through the **v1.13.4** Wear complication
+work, backup-export trust work, and Health Connect READ_SLEEP integration; see
+[CHANGELOG.md](CHANGELOG.md).
 Deep research refresh: **2026-05-17**. Durable research artifacts live in
 [.ai/research/2026-05-17](.ai/research/2026-05-17), and consolidated project
 memory lives in [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md).
@@ -19,7 +20,8 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): **v1.13.3 backup-export
+> **Recently shipped** (rolled up from prior tiers): **v1.13.4 Wear next-alarm
+> complication (X3)**; **v1.13.3 backup-export
 > warning + backup format v8 (X2)**; **v1.13.2 Health Connect READ_SLEEP
 > integration + trust/release gates (R1-R6 + X1)**; **v1.13.1 Health Connect
 > opt-in scaffold + privacy-policy update (N12 + N13 scaffold)**; **v1.13.0
@@ -72,7 +74,10 @@ links.
   device-local media/photo URIs, Wi-Fi/location/contact details, and NFC/barcode
   challenge values. Backup format v8 also round-trips the selected news feed
   URL.
-- Latest local tag is `v1.9.5`; current app version is `v1.13.3`.
+- Wear next-alarm surfaces now include both the existing Tile and a modern
+  AndroidX complication data source that serves `SHORT_TEXT` and `LONG_TEXT`
+  from the same cached phone snapshot.
+- Latest local tag is `v1.9.5`; current app version is `v1.13.4`.
 
 ### NOW - v1.13.2 Trust, Release, And Data-Safety Gate
 
@@ -91,7 +96,7 @@ links.
 |---|------|----------|--------|-----------|
 | X1 | [x] Complete Health Connect sleep-session SDK integration behind the Play flavor — **code-side shipped v1.13.2 X1 pass.** Play adds `androidx.health.connect:connect-client:1.1.0`, declares only `android.permission.health.READ_SLEEP`, requests access from Settings, reads recent `SleepSessionRecord` windows, and surfaces local-only summaries in Bedtime and Statistics. F-Droid binds a no-op repository with no SDK or permission. The new Health Connect Guava transitive is constrained to `33.6.0-android` so the Play runtime OSV audit stays clean. Play Console health-permission approval remains a release gate before Play distribution. | local: `HealthConnectSleepRepository.kt`, `PlayHealthConnectSleepRepository.kt`, `FdroidHealthConnectSleepRepository.kt`, `SettingsScreen.kt`, `BedtimeScreen.kt`, `StatsScreen.kt`, `PRIVACY_POLICY.html`; [Track sleep sessions](https://developer.android.com/health-and-fitness/guides/health-connect/develop/sleep-sessions), [Develop sleep experiences](https://developer.android.com/health-and-fitness/health-connect/experiences/sleep) | M | Best next user-value feature after policy/docs are accurate. |
 | X2 | [x] Backup-export warning when configured secrets or private integration URLs are present — **shipped v1.13.3.** Added `BackupManager.assessExportWarning(...)`, unit coverage, Settings confirmation dialogs before plain/encrypted exports, custom news-feed URL round-trip in backup format v8, and docs/changelog version sync. | local: `BackupManager.kt`, `SettingsScreen.kt`, `BackupExportWarningTest.kt` | S | Trust-critical and small. Warn before exporting webhooks, Hue keys, feeds, or local paths. |
-| X3 | [ ] Wear OS next-alarm complication data source. | [Wear complications](https://developer.android.com/training/wearables/exposing-data-complications), [Wear Tiles](https://developer.android.com/training/wearables/tiles) | M | Builds on the existing Wear tile and fills a common glanceable-surface expectation. |
+| X3 | [x] Wear OS next-alarm complication data source — **shipped v1.13.4.** Added `NextAlarmComplicationDataSourceService`, AndroidX Wear Watchface complication data-source dependency `1.3.0`, manifest metadata for `SHORT_TEXT,LONG_TEXT`, preview data, and Data Layer-triggered `ComplicationDataSourceUpdateRequester.requestUpdateAll()` alongside tile refreshes. | [Wear complications](https://developer.android.com/training/wearables/exposing-data-complications), [Wear Tiles](https://developer.android.com/training/wearables/tiles), [Wear Watchface 1.3.0 release notes](https://developer.android.com/jetpack/androidx/releases/wear-watchface) | M | Builds on the existing Wear tile and fills a common glanceable-surface expectation. |
 | X4 | [ ] Direct Boot minimum alarm support design and prototype. Keep only the minimum schedule/ringtone/defaults in device-encrypted storage. | [Direct Boot docs](https://developer.android.com/privacy-and-security/direct-boot) | L | High reliability value, but requires careful storage separation and recovery UX. |
 | X5 | [ ] Local crash/support export. Add a Settings action to package local crash logs and version/device alarm diagnostics without telemetry. | local: `CrashLogger.kt`, Settings reliability cards | S | Improves support while preserving no-tracking posture. |
 | X6 | [ ] Sleep/wake analytics charts after Health Connect lands. Correlate sleep duration, snooze count, dismiss time, wake-streak, and challenge retries locally. | Health Connect docs; local Room/DataStore history | M | Competes with commercial insight surfaces without cloud upload. |
@@ -109,23 +114,24 @@ links.
 
 ---
 
-## Current snapshot (v1.13.3)
+## Current snapshot (v1.13.4)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
   Material 3 (1.4.x), Room v10, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
   DataStore 1.1.1, Glance 1.1.1, OkHttp 4.12.0, WorkManager 2.9.1, Wear Tiles
-  1.6.0 / protolayout 1.4.0, Wear Data Layer, Health Connect client 1.1.0
-  (Play flavor), yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
+  1.6.0 / protolayout 1.4.0, Wear Data Layer, Wear Watchface complications
+  data-source 1.3.0, Health Connect client 1.1.0 (Play flavor), yt-dlp
+  (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 68`, `versionName 1.13.3`.
+  `versionCode 69`, `versionName 1.13.4`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
   AppSettings fields, 6 phone tabs (Today, Alarms, Bedtime, Timer, World,
   News) + Settings.
-- **What's missing vs. competitors:** standalone-watch story is still thin; no
-  on-device sleep-stage classifier; no AI sleep coach; no
+- **What's missing vs. competitors:** standalone-watch story is still thin
+  beyond the tile/complication pair; no on-device sleep-stage classifier; no AI sleep coach; no
   lockscreen-widget surface (Pixel-led Android 15+); no foldable/tablet
   adaptive layout; no Direct-Boot alarm; no ExoPlayer audio path; no
   on-device snore detection. The good news: the alarm-clock core
@@ -163,7 +169,7 @@ in their notes. **Order is the recommended landing order.**
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| X1 | [ ] Wear OS "Next Alarm" complication (`androidx.wear.watchface.complications`) — pairs with the shipped Tile. | [Complications API](https://developer.android.com/training/wearables/complications); Pixel Watch users routinely add it | S | Same Data Layer payload as the tile; just adds a complication data source. |
+| X1 | [x] Wear OS "Next Alarm" complication (`androidx.wear.watchface.complications`) — **shipped v1.13.4 as top-queue X3.** | [Complications API](https://developer.android.com/training/wearables/complications); Pixel Watch users routinely add it | S | Same Data Layer payload as the tile; just adds a complication data source. |
 | X2 | [ ] On-device actigraphy → Awake / Light / Deep buckets (Cole-Kripke 1992). Existing `SmartAlarmService` already collects accel — bucketize, persist, render. | [Cole-Kripke 1992 (PubMed)](https://pubmed.ncbi.nlm.nih.gov/1455130/); [Pillow app](https://www.pillow.app/); [Smart Alarm using tinyML on GitHub](https://github.com/cargilgar/Smart-Alarm-using-tinyML) | L | Ships independently of TFLite REM-stage classifier (that stays Later). Pure-Kotlin algorithm; no model file. |
 | X3 | [ ] Smart-wake window (accel-based light-sleep firing within user-defined N-min window). | [Sleep Cycle SDK 2026](https://sleepcycle.com/sleep-talk/smart-alarm-now-available-in-the-sleep-cycle-sdk); existing `Alarm.smartAlarmEnabled` field | M | Builds on X2. UI scaffolding already exists. |
 | X4 | [ ] Composite sleep score (0–100 = duration × efficiency × regularity × stage balance). Ship a duration-only v1 sooner. | [Rise app](https://www.risescience.com/); Oura | S | Daily engagement hook. |

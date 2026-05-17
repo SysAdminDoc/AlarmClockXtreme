@@ -196,6 +196,59 @@ Date: 2026-05-17
   all report `versionCode=68` and `versionName=1.13.3`; only the Play APK
   declares `android.permission.health.READ_SLEEP`.
 
+## Autonomous Roadmap Pass: X3 Wear Next-Alarm Complication
+
+Date: 2026-05-17
+
+### Files Modified
+
+- `wear/build.gradle.kts` - added
+  `androidx.wear.watchface:watchface-complications-data-source-ktx:1.3.0` and
+  bumped Wear to version `1.13.4` / code `69`.
+- `wear/src/main/java/com/sysadmindoc/alarmclock/wear/NextAlarmComplicationDataSourceService.kt`
+  - added a `SuspendingComplicationDataSourceService` that serves `SHORT_TEXT`
+  and `LONG_TEXT` next-alarm complications from the existing cached Wear alarm
+  snapshot and provides watch-face picker preview data.
+- `wear/src/main/java/com/sysadmindoc/alarmclock/wear/WearAlarmDataListenerService.kt`
+  - requests both tile and complication updates when the phone publishes a new
+  Data Layer next-alarm snapshot.
+- `wear/src/main/AndroidManifest.xml` and `wear/src/main/res/values/strings.xml`
+  - registered the complication provider with supported types, update period,
+  direct-boot awareness, system bind permission, label, and description.
+- `app/build.gradle.kts`, `CHANGELOG.md`, README, ROADMAP,
+  `PROJECT_CONTEXT.md`, F-Droid metadata, and research notes - bumped/synced
+  version lines to `1.13.4` / code `69` and marked X3 complete.
+
+### Verification
+
+- `.\gradlew.bat :wear:compileDebugKotlin --console=plain` passed after adding
+  the complication API dependency and provider implementation.
+- `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
+  passed.
+- `python scripts\osv_gradle_audit.py --configuration playReleaseRuntimeClasspath`
+  passed: 207 Maven dependencies resolved; no OSV vulnerabilities reported.
+- `python scripts\osv_gradle_audit.py --project :wear --configuration releaseRuntimeClasspath`
+  passed: 70 Maven dependencies resolved; no OSV vulnerabilities reported.
+- `.\gradlew.bat :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease --console=plain`
+  passed with a temporary local signing key. The ignored local
+  `keystore.properties` was restored afterward.
+- `aapt2 dump permissions`, `aapt2 dump badging`, and
+  `apksigner verify --verbose` passed for Play, F-Droid, and Wear release APKs:
+  all report `versionCode=69` and `versionName=1.13.4`; only the Play APK
+  declares `android.permission.health.READ_SLEEP`.
+- `aapt2 dump xmltree --file AndroidManifest.xml wear-release.apk` confirmed
+  `NextAlarmComplicationDataSourceService`,
+  `BIND_COMPLICATION_PROVIDER`, `SUPPORTED_TYPES`, and
+  `UPDATE_PERIOD_SECONDS` are present in the Wear release manifest.
+- Version consistency check passed for app, Wear, README badge, README install
+  command, changelog top entry, and roadmap current snapshot: all report
+  `1.13.4`.
+- Workflow YAML/shell syntax check passed for all 17 GitHub Actions shell
+  `run:` blocks.
+- `git diff --exit-code -- app/schemas` passed.
+- `git diff --check` passed with only existing line-ending normalization
+  warnings.
+
 ## Autonomous Roadmap Pass: R6 Documentation Drift Policy
 
 Date: 2026-05-17
