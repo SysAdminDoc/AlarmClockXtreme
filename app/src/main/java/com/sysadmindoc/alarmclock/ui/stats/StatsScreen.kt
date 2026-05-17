@@ -58,6 +58,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
@@ -201,6 +203,17 @@ fun StatsScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
+            }
+
+            if (state.healthConnectEnabled) {
+                item {
+                    HealthConnectStatsCard(
+                        summary = state.healthConnectSleepSummary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
             }
 
             item {
@@ -661,6 +674,69 @@ private fun WakeStreakBadge(stats: AlarmStats, modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun HealthConnectStatsCard(
+    summary: HealthConnectSleepSummary,
+    modifier: Modifier = Modifier
+) {
+    AppSurfaceCard(modifier = modifier, highlighted = summary.permissionGranted && summary.hasRecentSession) {
+        AppSectionTitle(
+            title = "Sleep context",
+            description = when {
+                summary.availability == HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED ->
+                    "Update Health Connect before sleep sessions can be included."
+                summary.availability == HealthConnectAvailability.UNAVAILABLE ->
+                    "Health Connect is not available on this device."
+                !summary.permissionGranted ->
+                    "Grant READ_SLEEP in Settings to compare wake behavior with recent sleep."
+                summary.hasRecentSession ->
+                    "Recent Health Connect sessions stay local and are shown beside alarm history."
+                else ->
+                    "READ_SLEEP is granted, but no recent sleep sessions were found."
+            }
+        )
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AppStatusChip(
+                label = if (summary.permissionGranted) "READ_SLEEP granted" else "Permission needed",
+                icon = if (summary.permissionGranted) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
+                color = if (summary.permissionGranted) DismissGreen else SnoozeYellow
+            )
+            AppStatusChip(
+                label = "${summary.sessionsRead} sessions",
+                icon = Icons.Default.BarChart,
+                color = if (summary.sessionsRead > 0) MaterialTheme.colorScheme.primary else TextMuted
+            )
+            if (summary.hasRecentSession) {
+                AppStatusChip(
+                    label = "Last ${formatSleepMinutes(summary.lastSessionDurationMinutes)}",
+                    icon = Icons.Default.CalendarMonth,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                AppStatusChip(
+                    label = "Deep ${formatSleepMinutes(summary.deepStageMinutes)}",
+                    icon = Icons.Default.CheckCircle,
+                    color = DismissGreen
+                )
+                AppStatusChip(
+                    label = "REM ${formatSleepMinutes(summary.remStageMinutes)}",
+                    icon = Icons.Default.CheckCircle,
+                    color = SnoozeYellow
+                )
+            }
+        }
+        summary.errorMessage?.let { error ->
+            Text(
+                text = "Health Connect needs attention: $error",
+                color = SnoozeYellow,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
 private fun BreakdownRow(label: String, count: Int, color: Color) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -803,3 +879,14 @@ private fun dayCountLabel(days: Int): String {
 }
 
 private fun compactDays(days: Int): String = "${days}d"
+
+private fun formatSleepMinutes(minutes: Long?): String {
+    val value = minutes ?: return "0m"
+    val hours = value / 60
+    val mins = value % 60
+    return when {
+        hours > 0 && mins > 0 -> "${hours}h ${mins}m"
+        hours > 0 -> "${hours}h"
+        else -> "${mins}m"
+    }
+}
