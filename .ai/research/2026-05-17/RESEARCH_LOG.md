@@ -102,6 +102,17 @@ OSV batch result for selected Play-flavor transitives:
 - `okhttp@4.12.0`: no advisories returned.
 - `jsoup@1.21.1`: no advisories returned.
 
+R5 implementation pass:
+
+- Added `scripts/osv_gradle_audit.py`, which resolves a Gradle configuration
+  and queries OSV batch API for every Maven coordinate in the resolved output.
+- Re-ran the script against `playDebugRuntimeClasspath` and
+  `playReleaseRuntimeClasspath` after applying Play-only dependency constraints.
+- Both constrained graphs returned "OSV: no vulnerabilities reported for
+  resolved dependencies."
+- Re-ran the Play release build because Android release shrinking is the path
+  most likely to expose optional transitive-class breakage.
+
 ## Saturation Notes
 
 Source saturation was tested across four classes:
@@ -124,4 +135,3 @@ Thin areas:
   hardware.
 - No Play Console or F-Droid submission portal state was available; metadata
   findings are based on repo files.
-
