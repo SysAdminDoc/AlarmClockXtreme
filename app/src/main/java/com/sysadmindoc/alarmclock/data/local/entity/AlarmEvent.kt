@@ -19,6 +19,7 @@ data class AlarmEvent(
     val actionAt: Long = 0,           // When the user took action
     val challengeType: String = "NONE",
     val challengeSolveTimeMs: Long = 0, // How long to solve the challenge
+    val challengeRetryCount: Int = 0, // Wrong challenge attempts before dismiss
     val snoozeCount: Int = 0,         // How many times snoozed before dismiss
     val dayOfWeek: Int = 0            // 1=Monday..7=Sunday for day-of-week stats
 ) {

@@ -115,7 +115,9 @@ third-party requests and documents these app surfaces:
   Settings. The bundle stays local until shared by the user and redacts alarm
   labels, raw URIs, integration secrets, contact/location/Wi-Fi values,
   challenge reference values, and Health Connect records.
-- Health Connect sleep sessions once the SDK path lands.
+- Health Connect sleep sessions. v1.13.7 keeps recent session windows in
+  foreground UI memory for Statistics correlation only; they are not copied to
+  Room, DataStore, backups, or support exports.
 
 X1 update: the Play flavor now ships Health Connect SDK access for
 `android.permission.health.READ_SLEEP` only. `PRIVACY_POLICY.html` and README
@@ -123,6 +125,11 @@ were refreshed to state that sleep-session summaries stay local, are not copied
 into Room/DataStore/backups, and are not uploaded. Play Console
 health-permission declaration/approval remains an external release gate before
 Play Store distribution.
+
+X6 update: Statistics now correlates Health Connect sleep duration with local
+Room alarm events. The only new persisted field is
+`alarm_events.challengeRetryCount`; Health Connect records themselves remain
+outside Room and user-triggered exports.
 
 Dependency note: adding `androidx.health.connect:connect-client:1.1.0` pulled
 `com.google.guava:guava:31.1-android`, which OSV reported as vulnerable. The

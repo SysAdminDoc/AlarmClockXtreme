@@ -21,6 +21,8 @@ data class FiringUiState(
     val memoryPhase: MemoryPhase = MemoryPhase.SHOWING,
     val memoryTappedIndices: Set<Int> = emptySet(),
     val wrongAttempts: Int = 0,
+    val totalWrongAttempts: Int = 0,
+    val challengeStartedAtMillis: Long = 0L,
     // F3: Typing challenge
     val typingInput: String = "",
     // F4: Walk-steps challenge
@@ -181,6 +183,7 @@ class AlarmFiringViewModel @Inject constructor(
                 alarm = alarm,
                 challenge = firstChallenge,
                 challengeSolved = adaptedChain.isEmpty(),
+                challengeStartedAtMillis = if (firstChallenge != null) System.currentTimeMillis() else 0L,
                 totalChallenges = maxOf(adaptedChain.size, 1),
                 currentChallengeIndex = 0,
                 motivationalQuote = quote,
@@ -271,7 +274,8 @@ class AlarmFiringViewModel @Inject constructor(
             proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
-                wrongAttempts = _uiState.value.wrongAttempts + 1
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
     }
@@ -303,7 +307,8 @@ class AlarmFiringViewModel @Inject constructor(
             // Wrong - reset
             _uiState.value = _uiState.value.copy(
                 sequenceTappedIndices = emptySet(),
-                wrongAttempts = _uiState.value.wrongAttempts + 1
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
     }
@@ -319,7 +324,8 @@ class AlarmFiringViewModel @Inject constructor(
             proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
-                wrongAttempts = _uiState.value.wrongAttempts + 1
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
     }
@@ -358,7 +364,11 @@ class AlarmFiringViewModel @Inject constructor(
         if (tagId.equals(challenge.registeredTagId, ignoreCase = true)) {
             proceedToNextChallenge()
         } else {
-            _uiState.value = _uiState.value.copy(nfcScanStatus = "Wrong tag — try the registered tag")
+            _uiState.value = _uiState.value.copy(
+                nfcScanStatus = "Wrong tag - try the registered tag",
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
+            )
         }
     }
 
@@ -372,7 +382,11 @@ class AlarmFiringViewModel @Inject constructor(
         if (value == challenge.registeredValue) {
             proceedToNextChallenge()
         } else {
-            _uiState.value = _uiState.value.copy(barcodeScanStatus = "Wrong code — scan the registered barcode")
+            _uiState.value = _uiState.value.copy(
+                barcodeScanStatus = "Wrong code - scan the registered barcode",
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
+            )
         }
     }
 
@@ -479,7 +493,8 @@ class AlarmFiringViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 simonInputIndices = emptyList(),
                 simonErrorFlash = true,
-                wrongAttempts = _uiState.value.wrongAttempts + 1
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
             // Flash briefly then replay the sequence from the start.
             viewModelScope.launch {
@@ -500,7 +515,8 @@ class AlarmFiringViewModel @Inject constructor(
             proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
-                wrongAttempts = _uiState.value.wrongAttempts + 1
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
     }
@@ -512,7 +528,8 @@ class AlarmFiringViewModel @Inject constructor(
             proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
-                wrongAttempts = _uiState.value.wrongAttempts + 1
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
     }
@@ -542,7 +559,8 @@ class AlarmFiringViewModel @Inject constructor(
                 rpsPlayerWins   = 0,
                 rpsComputerWins = 0,
                 rpsRounds       = emptyList(),
-                wrongAttempts   = _uiState.value.wrongAttempts + 1
+                wrongAttempts   = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
     }
@@ -571,7 +589,8 @@ class AlarmFiringViewModel @Inject constructor(
                     kotlinx.coroutines.delay(1000)
                     _uiState.value = _uiState.value.copy(
                         emojiFlippedIndices = emptySet(),
-                        wrongAttempts = _uiState.value.wrongAttempts + 1
+                        wrongAttempts = _uiState.value.wrongAttempts + 1,
+                        totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
                     )
                 }
             }
@@ -605,7 +624,8 @@ class AlarmFiringViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 typingSpeedInput = "",
                 typingSpeedStartTime = 0L,
-                wrongAttempts = _uiState.value.wrongAttempts + 1
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
     }
@@ -645,7 +665,8 @@ class AlarmFiringViewModel @Inject constructor(
                     wordleGuesses = emptyList(),
                     wordleCurrentInput = "",
                     wordleGameOver = false,
-                    wrongAttempts = _uiState.value.wrongAttempts + 1
+                    wrongAttempts = _uiState.value.wrongAttempts + 1,
+                    totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
                 )
             }
         }
@@ -666,7 +687,8 @@ class AlarmFiringViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             sheepTapped = maxOf(0, _uiState.value.sheepTapped - 1),
             sheepWrongTaps = _uiState.value.sheepWrongTaps + 1,
-            wrongAttempts = _uiState.value.wrongAttempts + 1
+            wrongAttempts = _uiState.value.wrongAttempts + 1,
+            totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
         )
     }
 
@@ -678,7 +700,8 @@ class AlarmFiringViewModel @Inject constructor(
         } else {
             _uiState.value = _uiState.value.copy(
                 photoMatchStatus = "Not a match — try again (${(similarityScore * 100).toInt()}% similar)",
-                wrongAttempts = _uiState.value.wrongAttempts + 1
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
     }
@@ -712,7 +735,8 @@ class AlarmFiringViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 memoryPhase = MemoryPhase.WRONG,
                 memoryTappedIndices = emptySet(),
-                wrongAttempts = _uiState.value.wrongAttempts + 1
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
             // After a delay the screen should transition back to SHOWING
             viewModelScope.launch {

@@ -1,8 +1,9 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed through the **v1.13.6** local support export,
-Direct Boot minimum alarm prototype, Wear complication work, backup-export trust
-work, and Health Connect READ_SLEEP integration; see
+Living feature backlog, refreshed through the **v1.13.7** sleep/wake analytics
+charts, local support export, Direct Boot minimum alarm prototype, Wear
+complication work, backup-export trust work, and Health Connect READ_SLEEP
+integration; see
 [CHANGELOG.md](CHANGELOG.md).
 Deep research refresh: **2026-05-17**. Durable research artifacts live in
 [.ai/research/2026-05-17](.ai/research/2026-05-17), and consolidated project
@@ -21,7 +22,8 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): **v1.13.6 local
+> **Recently shipped** (rolled up from prior tiers): **v1.13.7 sleep/wake
+> analytics charts + DB v11 retry tracking (X6)**; **v1.13.6 local
 > crash/support export (X5)**; **v1.13.5 Direct Boot
 > minimum-alarm prototype (X4)**; **v1.13.4 Wear next-alarm
 > complication (X3)**; **v1.13.3 backup-export
@@ -61,7 +63,7 @@ links.
 - `PRIVACY_POLICY.html`, README privacy text, Settings Health Connect copy, and
   F-Droid metadata were reconciled in the v1.13.2 docs pass. X1 then updated
   the policy for the actual Play-only Health Connect `READ_SLEEP` path.
-- Room is v10 with `exportSchema = true`; the v1.13.2 schema-gate pass added
+- Room is v11 with `exportSchema = true`; the v1.13.2 schema-gate pass added
   migration instrumentation tests and CI schema-drift checks.
 - The Play flavor downloader dependency tree was constrained in the v1.13.2
   dependency-hardening pass: Jackson 2.18.6, Commons Compress 1.28.0, Commons
@@ -72,6 +74,10 @@ links.
   is Play-only, `READ_SLEEP` is declared only in `app/src/play`, Settings
   requests only sleep read access, and Bedtime/Stats render local-only recent
   sleep-session summaries. F-Droid binds a no-op repository.
+- Statistics now renders local sleep/wake charts: recent Health Connect sleep
+  session windows are kept in memory for foreground UI correlation with local
+  Room alarm events, while `alarm_events.challengeRetryCount` persists
+  wrong-attempt counts through DB v11.
 - Backup export now warns before exporting configured webhook URLs, Hue bridge
   details/API keys, custom news feed URLs, internet-radio stream URLs,
   device-local media/photo URIs, Wi-Fi/location/contact details, and NFC/barcode
@@ -80,7 +86,7 @@ links.
 - Wear next-alarm surfaces now include both the existing Tile and a modern
   AndroidX complication data source that serves `SHORT_TEXT` and `LONG_TEXT`
   from the same cached phone snapshot.
-- Latest local tag is `v1.9.5`; current app version is `v1.13.6`.
+- Latest local tag is `v1.9.5`; current app version is `v1.13.7`.
 
 ### NOW - v1.13.2 Trust, Release, And Data-Safety Gate
 
@@ -102,7 +108,7 @@ links.
 | X3 | [x] Wear OS next-alarm complication data source — **shipped v1.13.4.** Added `NextAlarmComplicationDataSourceService`, AndroidX Wear Watchface complication data-source dependency `1.3.0`, manifest metadata for `SHORT_TEXT,LONG_TEXT`, preview data, and Data Layer-triggered `ComplicationDataSourceUpdateRequester.requestUpdateAll()` alongside tile refreshes. | [Wear complications](https://developer.android.com/training/wearables/exposing-data-complications), [Wear Tiles](https://developer.android.com/training/wearables/tiles), [Wear Watchface 1.3.0 release notes](https://developer.android.com/jetpack/androidx/releases/wear-watchface) | M | Builds on the existing Wear tile and fills a common glanceable-surface expectation. |
 | X4 | [x] Direct Boot minimum alarm support design and prototype — **shipped v1.13.5.** Added a device-encrypted next-alarm snapshot containing only id, trigger time, display time, default-sound flag, and vibration flag; `LOCKED_BOOT_COMPLETED` schedules a Direct-Boot-aware fallback receiver/service that avoids Room/DataStore/WorkManager before unlock. | [Direct Boot docs](https://developer.android.com/privacy-and-security/direct-boot); local: `docs/DIRECT_BOOT_MINIMUM_ALARM.md`, `DirectBootAlarmCache.kt`, `DirectBootAlarmService.kt` | L | High reliability value, with storage separation documented; full custom ringtone/challenge UX intentionally remains post-unlock. |
 | X5 | [x] Local crash/support export — **shipped v1.13.6.** Settings can package a local FileProvider-backed ZIP with crash logs, app/device/wake-readiness diagnostics, aggregate alarm-history stats, and redacted alarm metadata; no telemetry upload and no labels, custom URIs, integration secrets, contact/location/Wi-Fi values, challenge references, or Health Connect records. | local: `CrashLogger.kt`, `SupportExportManager.kt`, Settings utilities | S | Improves support while preserving no-tracking posture. |
-| X6 | [ ] Sleep/wake analytics charts after Health Connect lands. Correlate sleep duration, snooze count, dismiss time, wake-streak, and challenge retries locally. | Health Connect docs; local Room/DataStore history | M | Competes with commercial insight surfaces without cloud upload. |
+| X6 | [x] Sleep/wake analytics charts after Health Connect lands — **shipped v1.13.7.** Statistics now correlates recent Health Connect sleep duration with local Room alarm events: dismiss response, snoozes, and persisted challenge retry counts. Health Connect session windows remain foreground-only and are not copied to Room/DataStore/backups/support exports. | local: `SleepWakeAnalytics.kt`, `StatsScreen.kt`, `AlarmEvent.kt`, `AlarmDatabase.kt`; Health Connect docs; local Room history | M | Competes with commercial insight surfaces without cloud upload. |
 
 ### Research Packet
 
@@ -117,10 +123,10 @@ links.
 
 ---
 
-## Current snapshot (v1.13.6)
+## Current snapshot (v1.13.7)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
-  Material 3 (1.4.x), Room v10, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
+  Material 3 (1.4.x), Room v11, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
   DataStore 1.1.1, Glance 1.1.1, OkHttp 4.12.0, WorkManager 2.9.1, Wear Tiles
   1.6.0 / protolayout 1.4.0, Wear Data Layer, Wear Watchface complications
   data-source 1.3.0, Health Connect client 1.1.0 (Play flavor), Direct Boot
@@ -128,7 +134,7 @@ links.
   (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 71`, `versionName 1.13.6`.
+  `versionCode 72`, `versionName 1.13.7`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -137,7 +143,7 @@ links.
 - **What's missing vs. competitors:** standalone-watch story is still thin
   beyond the tile/complication pair; no on-device sleep-stage classifier; no AI sleep coach; no
   lockscreen-widget surface (Pixel-led Android 15+); no foldable/tablet
-  adaptive layout; no Direct-Boot alarm; no ExoPlayer audio path; no
+  adaptive layout; no full Direct-Boot custom-ringtone/challenge alarm; no ExoPlayer audio path; no
   on-device snore detection. The good news: the alarm-clock core
   (scheduling, reliability, challenges, weather, bedtime DND, encrypted
   backup) is best-in-class for FOSS Android.
@@ -178,7 +184,7 @@ in their notes. **Order is the recommended landing order.**
 | X3 | [ ] Smart-wake window (accel-based light-sleep firing within user-defined N-min window). | [Sleep Cycle SDK 2026](https://sleepcycle.com/sleep-talk/smart-alarm-now-available-in-the-sleep-cycle-sdk); existing `Alarm.smartAlarmEnabled` field | M | Builds on X2. UI scaffolding already exists. |
 | X4 | [ ] Composite sleep score (0–100 = duration × efficiency × regularity × stage balance). Ship a duration-only v1 sooner. | [Rise app](https://www.risescience.com/); Oura | S | Daily engagement hook. |
 | X5 | [ ] Sleep-debt accumulator (rolling 14-day deficit vs. per-user need). | [Rise app](https://www.risescience.com/) | S | Surfaces naps + bedtime reminders more contextually. |
-| X6 | [ ] Stats charts via Vico (`com.patrykandpatrick.vico` 2.x) — sleep score, snooze rate, streak, response-time histograms. | [Vico chart library](https://github.com/patrykandpatrick/vico) — last release 2026-05-04 | M | Stats tab is text-only today; charts move it from "log" to "feedback loop." |
+| X6 | [x] Stats charts — **shipped v1.13.7 in the top queue.** Used in-house Compose bar charts for sleep duration, dismiss response, snooze counts, and challenge retry counts instead of adding Vico. | local: `SleepWakeAnalytics.kt`, `StatsScreen.kt`; [Vico chart library](https://github.com/patrykandpatrick/vico) | M | Stats moved from "log" to local feedback loop without adding another rendering dependency. |
 | X7 | [ ] Voice-phrase dismiss challenge (offline `SpeechRecognizer`). | [Alarmy wake-up missions](https://alar.my/en/blog/alarmy-wake-up-mission); [I Can't Wake Up](https://play.google.com/store/apps/details?id=com.bartat.android.icwu) | M | Alarmy paywalls this; ACX can ship it free. Existing `RECORD_AUDIO` permission already requested for Sonar — make conditional. |
 | X8 | [ ] Handwriting / drawing dismiss challenge (ML Kit Digital Ink). | [ML Kit Digital Ink Recognition](https://developers.google.com/ml-kit/vision/digital-ink-recognition); [googlesamples/mlkit](https://github.com/googlesamples/mlkit/tree/master/android/digitalink) | M | Pairs cleanly with the existing `Challenge` sealed-class; ML Kit on-device only. |
 | X9 | [ ] Push-up / plank-hold accelerometer challenge (no camera). | [Alarmy premium missions](https://alar.my/en) | M | Reuses `SquatDetector` heuristics. |

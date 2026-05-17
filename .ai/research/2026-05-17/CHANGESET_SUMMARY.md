@@ -258,6 +258,58 @@ Date: 2026-05-17
 - `aapt2 dump permissions` confirmed `android.permission.health.READ_SLEEP`
   remains Play-only.
 
+## Autonomous Roadmap Pass: X6 Sleep/Wake Analytics Charts
+
+Date: 2026-05-17
+
+### Files Modified
+
+- `HealthConnectSleepRepository.kt` and
+  `PlayHealthConnectSleepRepository.kt` - extended the foreground summary model
+  with recent sleep-session windows for Statistics-only correlation.
+- `SleepWakeAnalytics.kt` - added a pure local analytics model that pairs sleep
+  ending dates with Room alarm events for sleep duration, dismiss response,
+  snoozes, challenge solve time, and challenge retries.
+- `AlarmEvent.kt`, `AlarmDatabase.kt`, `AlarmEventDao.kt`,
+  `AlarmEventRepository.kt`, and `app/schemas/.../11.json` - bumped Room to
+  v11 and persisted `challengeRetryCount` with a default-zero migration.
+- `AlarmFiringViewModel.kt`, `AlarmFiringActivity.kt`, and `AlarmService.kt` -
+  counted wrong challenge attempts, passed retry/solve metrics on dismiss, and
+  stored them with dismissed alarm events.
+- `StatsViewModel.kt` and `StatsScreen.kt` - added 14-day sleep/wake and
+  wake-friction chart cards without adding a new chart dependency.
+- `SleepWakeAnalyticsTest.kt` and `AlarmDatabaseMigrationTest.kt` - added unit
+  coverage for correlation and migration coverage for the v11 event column.
+- `CHANGELOG.md`, `README.md`, `ROADMAP.md`, `PROJECT_CONTEXT.md`,
+  F-Droid metadata, and research notes - bumped/synced version lines to
+  `1.13.7` / code `72`, marked roadmap X6 complete, and documented the DB v11
+  privacy boundary.
+
+### Verification
+
+- `.\gradlew.bat :app:testPlayDebugUnitTest --tests "com.sysadmindoc.alarmclock.ui.stats.SleepWakeAnalyticsTest" --tests "com.sysadmindoc.alarmclock.ui.stats.StatsFiltersTest" --console=plain`
+  passed after the analytics implementation and Room v11 schema export.
+- `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
+  passed for the full Play/F-Droid/Wear debug gate.
+- `.\gradlew.bat :app:assemblePlayDebugAndroidTest --console=plain` passed,
+  compiling the Room migration instrumentation tests including
+  `MIGRATION_10_11`.
+- `git diff --check` passed with only line-ending normalization warnings.
+- Schema check confirmed the only Room schema change is the expected new
+  `app/schemas/com.sysadmindoc.alarmclock.data.local.AlarmDatabase/11.json`.
+- Version consistency check passed for app, Wear, README, CHANGELOG, ROADMAP,
+  PROJECT_CONTEXT, and F-Droid metadata: all report `1.13.7` / code `72`.
+- `python scripts\osv_gradle_audit.py --configuration playReleaseRuntimeClasspath`
+  passed: 207 Maven dependencies resolved; no OSV vulnerabilities reported.
+- `.\gradlew.bat :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease --console=plain`
+  passed with a temporary local signing key removed after verification.
+- `apksigner verify --verbose` and `aapt2 dump badging` passed for Play,
+  F-Droid, and Wear release APKs: all report `versionCode=72` and
+  `versionName=1.13.7`; all verify with APK Signature Scheme v2.
+- `aapt2 dump permissions` confirmed `android.permission.health.READ_SLEEP`
+  remains Play-only, and `aapt2 dump xmltree --file AndroidManifest.xml`
+  confirmed the FileProvider and Direct Boot manifest entries remain present.
+
 ## Autonomous Roadmap Pass: X2 Backup Export Warning
 
 Date: 2026-05-17

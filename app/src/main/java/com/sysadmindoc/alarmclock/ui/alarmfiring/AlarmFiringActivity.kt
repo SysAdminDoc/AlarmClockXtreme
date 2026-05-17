@@ -495,9 +495,16 @@ class AlarmFiringActivity : ComponentActivity() {
     }
 
     private fun dismiss() {
+        val state = viewModel.uiState.value
+        val challengeSolveTimeMs = state.challengeStartedAtMillis
+            .takeIf { it > 0L && state.requiresChallenge }
+            ?.let { (System.currentTimeMillis() - it).coerceAtLeast(0L) }
+            ?: 0L
         val intent = Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_DISMISS
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+            putExtra(AlarmService.EXTRA_CHALLENGE_RETRY_COUNT, state.totalWrongAttempts.coerceAtLeast(0))
+            putExtra(AlarmService.EXTRA_CHALLENGE_SOLVE_TIME_MS, challengeSolveTimeMs)
         }
         try {
             startForegroundService(intent)

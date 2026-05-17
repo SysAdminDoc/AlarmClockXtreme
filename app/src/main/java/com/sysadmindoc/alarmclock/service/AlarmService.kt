@@ -64,6 +64,8 @@ class AlarmService : Service() {
         const val ACTION_SNOOZE = "com.sysadmindoc.alarmclock.SNOOZE"
         const val ACTION_DISMISS = "com.sysadmindoc.alarmclock.DISMISS"
         const val EXTRA_CUSTOM_SNOOZE_MINUTES = "custom_snooze_minutes"
+        const val EXTRA_CHALLENGE_RETRY_COUNT = "challenge_retry_count"
+        const val EXTRA_CHALLENGE_SOLVE_TIME_MS = "challenge_solve_time_ms"
         private const val MIN_CUSTOM_SNOOZE_MINUTES = 1
         private const val MAX_CUSTOM_SNOOZE_MINUTES = 120
         private const val HAPTIC_ONLY_COMPOSITION_INTERVAL_MS = 1_450L
@@ -259,12 +261,24 @@ class AlarmService : Service() {
             }
             ACTION_DISMISS -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
+                val challengeRetryCount = intent
+                    .getIntExtra(EXTRA_CHALLENGE_RETRY_COUNT, 0)
+                    .coerceAtLeast(0)
+                val challengeSolveTimeMs = intent
+                    .getLongExtra(EXTRA_CHALLENGE_SOLVE_TIME_MS, 0L)
+                    .coerceAtLeast(0L)
                 // v1.5.1: Same service-restart protection as ACTION_SNOOZE.
                 if (currentAlarmId == -1L && alarmId > 0L) {
                     currentAlarmId = alarmId
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                 }
-                serviceScope.launch { dismissAlarm(alarmId) }
+                serviceScope.launch {
+                    dismissAlarm(
+                        alarmId = alarmId,
+                        challengeRetryCount = challengeRetryCount,
+                        challengeSolveTimeMs = challengeSolveTimeMs
+                    )
+                }
             }
         }
         return START_NOT_STICKY
@@ -845,7 +859,11 @@ class AlarmService : Service() {
         stopSelf()
     }
 
-    private suspend fun dismissAlarm(alarmId: Long) {
+    private suspend fun dismissAlarm(
+        alarmId: Long,
+        challengeRetryCount: Int = 0,
+        challengeSolveTimeMs: Long = 0L
+    ) {
         autoSilenceJob?.cancel()
         backupSoundJob?.cancel()
         flashlightJob?.cancel()
@@ -853,7 +871,12 @@ class AlarmService : Service() {
         stopAlarmPlayback()
         val alarm = repository.getById(alarmId)?.sanitized()
         if (alarm != null) {
-            recordEvent(alarm, AlarmEvent.ACTION_DISMISSED)
+            recordEvent(
+                alarm = alarm,
+                action = AlarmEvent.ACTION_DISMISSED,
+                challengeRetryCount = challengeRetryCount,
+                challengeSolveTimeMs = challengeSolveTimeMs
+            )
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
             currentAlarmId = -1
@@ -1014,7 +1037,12 @@ class AlarmService : Service() {
         }
     }
 
-    private suspend fun recordEvent(alarm: Alarm, action: String) {
+    private suspend fun recordEvent(
+        alarm: Alarm,
+        action: String,
+        challengeRetryCount: Int = 0,
+        challengeSolveTimeMs: Long = 0L
+    ) {
         val now = System.currentTimeMillis()
         val dayOfWeek = java.time.Instant.ofEpochMilli(now)
             .atZone(java.time.ZoneId.systemDefault())
@@ -1028,6 +1056,8 @@ class AlarmService : Service() {
                 action = action,
                 actionAt = now,
                 challengeType = alarm.challengeType,
+                challengeSolveTimeMs = challengeSolveTimeMs.coerceAtLeast(0L),
+                challengeRetryCount = challengeRetryCount.coerceAtLeast(0),
                 snoozeCount = currentSnoozeCount.coerceAtLeast(0),
                 dayOfWeek = dayOfWeek
             )
