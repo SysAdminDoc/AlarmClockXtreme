@@ -12,7 +12,7 @@ known drift, and the active research plan. Tool-specific instructions remain in
 - Repo: `C:\Users\--\repos\AlarmClockXtreme`
 - Remote: `https://github.com/SysAdminDoc/AlarmClockXtreme.git`
 - Branch at latest update: `main`, tracking `origin/main`
-- App version: `versionName = "1.13.4"`, `versionCode = 69`
+- App version: `versionName = "1.13.5"`, `versionCode = 70`
 - Android targets: `compileSdk = 36`, `targetSdk = 35`, `minSdk = 26`
 - Database: Room `AlarmDatabase` version 10 with `exportSchema = true`
 - Backup format: v8
@@ -50,6 +50,11 @@ Preserve these principles:
 - `app/src/main/java/com/sysadmindoc/alarmclock/service/AlarmService.kt`
   wake-critical alarm firing, foreground service, audio, vibration, challenge
   handoff, snooze/dismiss behavior.
+- `app/src/main/java/com/sysadmindoc/alarmclock/directboot/*`
+  Direct Boot minimum-alarm fallback. Stores only the next alarm id, trigger
+  time, display time, default-sound flag, and vibration flag in
+  device-encrypted storage; no labels, custom URIs, integration secrets, or
+  challenge data.
 - `app/src/main/java/com/sysadmindoc/alarmclock/receiver/*`
   boot, exact-alarm permission, unlock/missed-alarm, and alarm event receivers.
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/preferences/PreferencesManager.kt`
@@ -120,7 +125,12 @@ aapt2 dump badging <release-apk>
 - Wear glanceable surfaces expanded on 2026-05-17: the Wear module now exposes
   a modern AndroidX next-alarm complication data source alongside the existing
   tile, and Data Layer updates request both tile and complication refreshes.
-- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.4`.
+- Direct Boot minimum support shipped on 2026-05-17: `BootReceiver` handles
+  `LOCKED_BOOT_COMPLETED` through device-encrypted `DirectBootAlarmCache`, a
+  direct-boot-aware fallback receiver/service, and post-unlock one-shot cleanup.
+  The full Room/DataStore/challenge/custom-audio alarm flow remains
+  credential-encrypted and post-unlock.
+- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.5`.
 
 ## Active Roadmap
 
@@ -130,8 +140,8 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Prototype Direct Boot minimum alarm support.
-2. Add local crash/support export.
+1. Add local crash/support export.
+2. Add sleep/wake analytics charts after the Health Connect integration.
 
 ## Research Artifacts
 

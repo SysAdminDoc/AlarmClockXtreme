@@ -82,7 +82,11 @@ Manifest evidence from `app/src/main/AndroidManifest.xml`:
 - Uses foreground-service permissions for media playback, data sync, and
   microphone.
 - Receives `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED`.
-- Boot receiver is present, but Direct Boot support is not implemented.
+- Boot receiver now has a v1.13.5 Direct Boot minimum-alarm path:
+  `LOCKED_BOOT_COMPLETED` schedules a device-encrypted fallback snapshot
+  through `DirectBootAlarmCache`, `DirectBootAlarmReceiver`, and
+  `DirectBootAlarmService`. The full Room/DataStore/custom-audio/challenge
+  flow remains credential-encrypted and post-unlock.
 - Health Connect permission is not declared yet, which matches the v1.13.1
   scaffold-only state.
 

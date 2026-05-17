@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.13.4-blue)
+![Version](https://img.shields.io/badge/version-1.13.5-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.13.4-play.apk
+adb install AlarmClockXtreme-v1.13.5-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, and optional Health Connect READ_SLEEP integration. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -39,6 +39,7 @@ cd AlarmClockXtreme
 | Feature | Description |
 |---------|-------------|
 | Reliable Scheduling | `setAlarmClock()` for maximum reliability, survives Doze mode |
+| Direct Boot Fallback | Re-registers a minimal default-sound/vibration alarm from device-encrypted storage before first unlock after reboot |
 | Solar-Relative Firing | Fire relative to sunrise/sunset with a configurable offset (NOAA approximation) |
 | Alarm Groups | Tag alarms (Work, School, Gym), filter with chips |
 | Alarm Profiles | Named configurations (Work, Travel, Weekend) for quick switching |
@@ -161,7 +162,7 @@ cd AlarmClockXtreme
 |---------|-------------|
 | Backup/Restore | JSON export/import of all 50+ alarm fields and 35+ settings, with optional AES-256 passphrase encryption, custom news-feed round-trip, and pre-export disclosure for secrets/private references (v8 format) |
 | Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link |
-| Boot Reschedule | All alarms re-registered after device reboot |
+| Boot Reschedule | All alarms re-registered after device reboot, with a Direct Boot fallback for the next alarm before first unlock |
 | Manufacturer Compat | Onboarding warnings for Xiaomi/Samsung/Huawei battery killers |
 | Crash Logger | Automatic crash log files for debugging |
 | Auto-Silence | Configurable timeout (0/5/10/15/30 min), records as missed |
@@ -186,8 +187,8 @@ cd AlarmClockXtreme
 |  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |
 +---------------------------------------------------------+
 |                   Android Platform                       |
-|  AlarmManager | 3 ForegroundServices | 8 Workers         |
-|  6 BroadcastReceivers | Glance Widget | QS Tile          |
+|  AlarmManager | 4 ForegroundServices | 8 Workers         |
+|  7 BroadcastReceivers | Direct Boot fallback | Glance/QS Tile |
 +---------------------------------------------------------+
 ```
 
@@ -212,7 +213,7 @@ GitHub tag releases require repository secrets. Use either the preferred
 | `ANDROID_KEY_ALIAS` | `KEY_ALIAS` | Signing key alias |
 | `ANDROID_KEY_PASSWORD` | `KEY_PASSWORD` | Signing key password |
 
-Tag pushes like `v1.13.4` build signed Play, F-Droid, and Wear release APKs,
+Tag pushes like `v1.13.5` build signed Play, F-Droid, and Wear release APKs,
 verify signatures with `apksigner`, write `SHA256SUMS.txt`, and attach the APKs
 plus hashes to the GitHub Release.
 

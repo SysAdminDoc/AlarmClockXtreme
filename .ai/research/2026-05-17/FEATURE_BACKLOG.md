@@ -27,7 +27,8 @@ in `PRIORITIZATION_MATRIX.md`; active roadmap order is in `ROADMAP.md`.
   export was generated and added by this research changeset.
 - Add migration tests for every schema bump and verify fresh-install parity.
 - Add Direct Boot support for the minimum alarm data required before first
-  unlock.
+  unlock. Status: shipped v1.13.5 as a minimum next-alarm fallback; full
+  custom-audio/challenge UX remains a later Direct-Boot full-screen item.
 - Add full-screen intent / notification permission diagnostic for Android 14+ and
   vendor-specific settings.
 - Add Android 15 foreground-service timeout audit for `dataSync` and
