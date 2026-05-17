@@ -78,10 +78,10 @@ Core app verification:
 .\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain
 ```
 
-Release verification should not rely on `.github/workflows/release.yml` until
-that workflow is repaired. At research time it builds `assembleDebug` and uploads
-debug APKs for tags. Use the explicit signed-release path from prior release
-memory when shipping:
+Release verification should use `.github/workflows/release.yml` for tag builds
+after the 2026-05-17 R2 repair. The workflow requires signing secrets, builds
+signed Play/F-Droid phone APKs plus the Wear release APK, verifies signatures,
+and uploads APKs with `SHA256SUMS.txt`. For local release verification, use:
 
 ```powershell
 .\gradlew.bat :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease --console=plain
@@ -91,8 +91,9 @@ aapt2 dump badging <release-apk>
 
 ## Active Risks Found On 2026-05-17
 
-- Release workflow drift: `.github/workflows/release.yml` builds debug APKs on
-  tags, not signed Play/F-Droid release artifacts.
+- Release workflow was repaired on 2026-05-17: tag builds now require signing
+  secrets, produce signed Play/F-Droid/Wear release APKs, verify them, and
+  upload SHA-256 hashes.
 - Privacy/data-safety language was reconciled on 2026-05-17: `PRIVACY_POLICY.html`,
   `README.md`, Settings Health Connect copy, and `metadata/*.yml` now enumerate
   current optional network/data surfaces and clarify that v1.13.1 stores only a
@@ -117,11 +118,9 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Repair release automation so tag builds produce signed Play/F-Droid release
-   artifacts and Wear artifacts, not debug APKs.
-2. Add migration-test and schema-export gates for future Room changes.
-3. Isolate or replace vulnerable Play-only downloader transitive dependencies.
-4. Complete Health Connect sleep-session SDK path behind the Play flavor after
+1. Add migration-test and schema-export gates for future Room changes.
+2. Isolate or replace vulnerable Play-only downloader transitive dependencies.
+3. Complete Health Connect sleep-session SDK path behind the Play flavor after
    Play Console health-permission review is ready.
 
 ## Research Artifacts

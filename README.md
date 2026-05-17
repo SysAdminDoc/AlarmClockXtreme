@@ -198,7 +198,21 @@ cd AlarmClockXtreme
 1. Generate a keystore: `keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias alarm`
 2. Copy `keystore.properties.template` to `keystore.properties`
 3. Fill in your keystore path and credentials
-4. Build: `./gradlew assembleRelease`
+4. Build: `./gradlew :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease`
+
+GitHub tag releases require repository secrets. Use either the preferred
+`ANDROID_*` names or the legacy short names:
+
+| Preferred secret | Legacy alias | Purpose |
+|------------------|--------------|---------|
+| `ANDROID_KEYSTORE_BASE64` | `KEYSTORE_BASE64` | Base64-encoded release keystore |
+| `ANDROID_KEYSTORE_PASSWORD` | `KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | `KEY_ALIAS` | Signing key alias |
+| `ANDROID_KEY_PASSWORD` | `KEY_PASSWORD` | Signing key password |
+
+Tag pushes like `v1.13.1` build signed Play, F-Droid, and Wear release APKs,
+verify signatures with `apksigner`, write `SHA256SUMS.txt`, and attach the APKs
+plus hashes to the GitHub Release.
 
 ### Build Variants
 

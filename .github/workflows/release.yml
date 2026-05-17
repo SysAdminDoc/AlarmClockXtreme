@@ -1,4 +1,4 @@
-name: Build & Release APK
+name: Build signed release APKs
 
 on:
   push:
@@ -7,10 +7,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-release:
+    name: Build signed Play, F-Droid, and Wear release APKs
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
+    env:
+      KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD }}
 
     steps:
       - name: Checkout
@@ -20,32 +27,133 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '17'
-          distribution: 'temurin'
+          distribution: temurin
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: ${{ runner.os }}-gradle-
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
-
-      - name: Find APK
-        id: apk
+      - name: Validate signing secrets
         run: |
-          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
-          echo "path=$APK_PATH" >> $GITHUB_OUTPUT
+          set -euo pipefail
 
-      - name: Upload APK to Release
+          missing=0
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is required for signed release builds"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            cat <<'EOF'
+          Configure either the ANDROID_* secret names or the legacy short names:
+            ANDROID_KEYSTORE_BASE64 / KEYSTORE_BASE64
+            ANDROID_KEYSTORE_PASSWORD / KEYSTORE_PASSWORD
+            ANDROID_KEY_ALIAS / KEY_ALIAS
+            ANDROID_KEY_PASSWORD / KEY_PASSWORD
+          EOF
+            exit 1
+          fi
+
+      - name: Write keystore.properties
+        run: |
+          set -euo pipefail
+
+          mkdir -p "$RUNNER_TEMP/signing"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/signing/release.jks"
+          cat > keystore.properties <<EOF
+          storeFile=$RUNNER_TEMP/signing/release.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+      - name: Verify tag matches Gradle version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+
+          version_name=$(grep -E 'versionName = "[^"]+"' app/build.gradle.kts \
+            | head -1 | sed -E 's/.*versionName = "([^"]+)".*/\1/')
+          if [ "${GITHUB_REF_NAME}" != "v${version_name}" ]; then
+            echo "::error file=app/build.gradle.kts::Tag ${GITHUB_REF_NAME} does not match Gradle versionName v${version_name}"
+            exit 1
+          fi
+
+      - name: Build signed release APKs
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease --console=plain
+
+      - name: Collect release artifacts
+        run: |
+          set -euo pipefail
+
+          version_name=$(grep -E 'versionName = "[^"]+"' app/build.gradle.kts \
+            | head -1 | sed -E 's/.*versionName = "([^"]+)".*/\1/')
+          mkdir -p release-artifacts
+
+          play_apk=$(find app/build/outputs/apk/play/release -maxdepth 1 -name '*play-release.apk' ! -name '*unsigned*' | head -1)
+          fdroid_apk=$(find app/build/outputs/apk/fdroid/release -maxdepth 1 -name '*fdroid-release.apk' ! -name '*unsigned*' | head -1)
+          wear_apk=$(find wear/build/outputs/apk/release -maxdepth 1 -name '*release.apk' ! -name '*unsigned*' | head -1)
+
+          if [ -z "$play_apk" ] || [ -z "$fdroid_apk" ] || [ -z "$wear_apk" ]; then
+            echo "::error::Expected signed release APKs were not produced"
+            find app/build/outputs/apk wear/build/outputs/apk -name '*.apk' -print
+            exit 1
+          fi
+
+          cp "$play_apk" "release-artifacts/AlarmClockXtreme-v${version_name}-play-release.apk"
+          cp "$fdroid_apk" "release-artifacts/AlarmClockXtreme-v${version_name}-fdroid-release.apk"
+          cp "$wear_apk" "release-artifacts/AlarmClockXtreme-v${version_name}-wear-release.apk"
+
+          {
+            echo "play=release-artifacts/AlarmClockXtreme-v${version_name}-play-release.apk"
+            echo "fdroid=release-artifacts/AlarmClockXtreme-v${version_name}-fdroid-release.apk"
+            echo "wear=release-artifacts/AlarmClockXtreme-v${version_name}-wear-release.apk"
+          } >> "$GITHUB_ENV"
+
+      - name: Verify APK signatures and metadata
+        run: |
+          set -euo pipefail
+
+          build_tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          for apk in release-artifacts/*.apk; do
+            "$build_tools/apksigner" verify --verbose --print-certs "$apk"
+            "$build_tools/aapt2" dump badging "$apk" > "${apk}.badging.txt"
+          done
+
+      - name: Generate SHA-256 hashes
+        run: |
+          set -euo pipefail
+          (cd release-artifacts && sha256sum *.apk > SHA256SUMS.txt)
+          cat release-artifacts/SHA256SUMS.txt
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-release-apks
+          path: |
+            release-artifacts/*.apk
+            release-artifacts/*.badging.txt
+            release-artifacts/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Upload APKs to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.apk.outputs.path }}
+          generate_release_notes: true
+          files: |
+            release-artifacts/*.apk
+            release-artifacts/SHA256SUMS.txt
           fail_on_unmatched_files: true
+
+      - name: Remove signing material
+        if: always()
+        run: |
+          rm -f keystore.properties
+          rm -rf "$RUNNER_TEMP/signing"
