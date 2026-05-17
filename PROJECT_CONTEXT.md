@@ -93,13 +93,10 @@ aapt2 dump badging <release-apk>
 
 - Release workflow drift: `.github/workflows/release.yml` builds debug APKs on
   tags, not signed Play/F-Droid release artifacts.
-- F-Droid metadata drift: `metadata/*.yml` still points to old app versions
-  (`0.5.0` and `0.8.1`) while app/wear Gradle files are `1.13.1`.
-- Privacy policy drift: `PRIVACY_POLICY.html` has an accurate Health Connect
-  section, but the broader network-disclosure text still reflects an older
-  Open-Meteo-only app and does not enumerate Nager.Date, NWS, Windy, RSS/news,
-  Hue LAN, webhooks, internet radio, YouTube download resolution, or local crash
-  logs.
+- Privacy/data-safety language was reconciled on 2026-05-17: `PRIVACY_POLICY.html`,
+  `README.md`, Settings Health Connect copy, and `metadata/*.yml` now enumerate
+  current optional network/data surfaces and clarify that v1.13.1 stores only a
+  local Health Connect opt-in preference.
 - Room schema discipline gap found during reconnaissance: current DB version was
   10 and `app/schemas` lacked the v10 export. This changeset adds the generated
   v10 schema; the remaining gap is an automated migration/schema gate.
@@ -107,8 +104,6 @@ aapt2 dump badging <release-apk>
   transitive dependencies through `youtubedl-android:0.18.1`, including
   `jackson-* 2.11.1`, `commons-compress 1.12`, `commons-io 2.5`, and
   `rhino 1.8.0`; OSV reports multiple known advisories for those coordinates.
-- Metadata/docs drift: `README.md` still says "Room DB v8" and "19 challenge
-  views" while live code and roadmap identify DB v10 and 22 challenge types.
 - Instruction drift: repo `CLAUDE.md` correctly says DB v10 at the top but still
   has older path notes saying Room DB v6 and 19 challenge types. `CLAUDE.md` is
   ignored by `.gitignore`, so do not treat it as the only durable source.
@@ -122,13 +117,12 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Fix privacy-policy and Play/F-Droid data-safety drift.
-2. Repair release automation so tag builds produce signed Play/F-Droid release
+1. Repair release automation so tag builds produce signed Play/F-Droid release
    artifacts and Wear artifacts, not debug APKs.
-3. Refresh F-Droid metadata and anti-feature language.
-4. Add migration-test and schema-export gates for future Room changes.
-5. Isolate or replace vulnerable Play-only downloader transitive dependencies.
-6. Complete the Health Connect sleep-session SDK path behind the Play flavor.
+2. Add migration-test and schema-export gates for future Room changes.
+3. Isolate or replace vulnerable Play-only downloader transitive dependencies.
+4. Complete Health Connect sleep-session SDK path behind the Play flavor after
+   Play Console health-permission review is ready.
 
 ## Research Artifacts
 

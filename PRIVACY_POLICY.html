@@ -16,65 +16,86 @@
 </head>
 <body>
     <h1>AlarmClockXtreme Privacy Policy</h1>
-    <p class="date">Effective date: February 21, 2026</p>
+    <p class="date">Effective date: May 17, 2026</p>
 
     <h2>Overview</h2>
-    <p>AlarmClockXtreme is an open-source alarm clock application. We are committed to protecting your privacy. This app does not collect, transmit, or share any personal data with anyone, including the developer.</p>
+    <p>AlarmClockXtreme is an open-source alarm clock application. The developer does not operate a backend service for this app, does not receive your alarm data, and does not collect analytics, advertising, or account data. Some optional features make direct network requests from your device to third-party services or to endpoints you configure.</p>
 
     <h2>Data Collection</h2>
-    <p>AlarmClockXtreme does <strong>not</strong> collect any personal information. Specifically:</p>
+    <p>AlarmClockXtreme does <strong>not</strong> collect personal information for the developer. Specifically:</p>
     <ul>
         <li>No analytics or tracking SDKs are included</li>
         <li>No advertising frameworks are included</li>
-        <li>No personal data is transmitted to any server</li>
         <li>No user accounts or registration are required</li>
-        <li>No crash reports are sent automatically (crash logs are stored locally on your device only)</li>
+        <li>No crash reports are sent automatically; crash logs are stored locally on your device only</li>
+        <li>No developer-operated server receives your alarms, settings, calendar events, health data, crash logs, downloads, or backup files</li>
     </ul>
 
     <h2>Permissions</h2>
-    <p>The app requests the following permissions, all used locally on your device:</p>
+    <p>The app requests permissions only for features you use:</p>
     <ul>
-        <li><strong>Exact Alarms (SCHEDULE_EXACT_ALARM)</strong> &mdash; Required to fire alarms at the exact time you set</li>
-        <li><strong>Notifications (POST_NOTIFICATIONS)</strong> &mdash; To show alarm alerts and the persistent next-alarm notification</li>
-        <li><strong>Foreground Service</strong> &mdash; To play alarm sounds and vibration reliably</li>
+        <li><strong>Exact Alarms (USE_EXACT_ALARM)</strong> &mdash; Required to fire alarms at the exact time you set</li>
+        <li><strong>Notifications (POST_NOTIFICATIONS and POST_PROMOTED_NOTIFICATIONS)</strong> &mdash; To show alarm alerts, promoted alarm updates where supported, and the persistent next-alarm notification</li>
+        <li><strong>Foreground Service</strong> &mdash; To play alarm sounds, monitor smart-alarm windows, and run configured alarm-related work reliably</li>
+        <li><strong>Full-Screen Intent</strong> &mdash; To show the alarm screen when an alarm fires</li>
         <li><strong>Boot Completed</strong> &mdash; To reschedule your alarms after device restart</li>
         <li><strong>Wake Lock</strong> &mdash; To keep the screen on while an alarm is firing</li>
-        <li><strong>Location (ACCESS_COARSE_LOCATION)</strong> &mdash; Optional. Used only to fetch weather for your area from the Open-Meteo API. Your coordinates are sent directly to Open-Meteo's server and are not stored or transmitted anywhere else. You can use the manual location feature instead.</li>
-        <li><strong>Calendar (READ_CALENDAR)</strong> &mdash; Optional. Used only to display today's events on the dashboard. Calendar data is read locally and never transmitted.</li>
         <li><strong>Vibrate</strong> &mdash; To vibrate the device when an alarm fires</li>
+        <li><strong>Notification Policy Access</strong> &mdash; Optional. Used only if you enable the bedtime Do Not Disturb rule</li>
+        <li><strong>Battery Optimization Exemption</strong> &mdash; Optional. Used only when you choose to whitelist the app for more reliable alarms on aggressive Android builds.</li>
+        <li><strong>Location (ACCESS_COARSE_LOCATION and ACCESS_FINE_LOCATION)</strong> &mdash; Optional. Coarse location is used for local weather, radar centering, and weather alerts. Fine location is requested by Android for Wi-Fi challenge matching on newer devices. Coordinates are sent directly to selected weather services only for weather features. You can use manual location instead.</li>
+        <li><strong>Calendar (READ_CALENDAR)</strong> &mdash; Optional. Used only to display today's events on the dashboard. Calendar data is read locally and never transmitted.</li>
+        <li><strong>NFC</strong> &mdash; Optional. Used for the NFC dismiss challenge.</li>
+        <li><strong>Camera</strong> &mdash; Optional. Used for barcode/QR and photo-match dismiss challenges.</li>
+        <li><strong>Microphone</strong> &mdash; Optional. Used for experimental sonar sleep tracking when enabled.</li>
+        <li><strong>Activity Recognition</strong> &mdash; Optional. Used for step and smart-alarm features.</li>
+        <li><strong>SMS and Phone</strong> &mdash; Optional. Used only for the Guardian Angel emergency contact feature.</li>
+        <li><strong>Audio and Storage</strong> &mdash; Optional. Used to browse audio files, control alarm audio behavior, and save downloaded alarm sounds to device media storage on supported Android versions.</li>
     </ul>
 
     <h2>Network Requests</h2>
-    <p>The app makes the following network requests, all to free, open-source APIs:</p>
+    <p>The app can make the following network requests depending on enabled features. Requests are made directly from your device; the developer does not proxy or receive them.</p>
     <ul>
-        <li><strong>Open-Meteo Weather API</strong> (api.open-meteo.com) &mdash; Fetches current weather and forecast. Only your latitude/longitude is sent. No API key or authentication required.</li>
-        <li><strong>Open-Meteo Geocoding API</strong> (geocoding-api.open-meteo.com) &mdash; Converts city names to coordinates when you manually set a location. Only the search query is sent.</li>
+        <li><strong>Open-Meteo Weather API</strong> (api.open-meteo.com) &mdash; Fetches current weather and forecast for your selected coordinates.</li>
+        <li><strong>Open-Meteo Air Quality API</strong> (air-quality-api.open-meteo.com) &mdash; Fetches air-quality, UV, and pollen data for your selected coordinates.</li>
+        <li><strong>Open-Meteo Geocoding API</strong> (geocoding-api.open-meteo.com) &mdash; Converts a city search query into coordinates when you use manual location search.</li>
+        <li><strong>National Weather Service</strong> (api.weather.gov) &mdash; Fetches US active weather alerts for your selected coordinates.</li>
+        <li><strong>Nager.Date</strong> (date.nager.at) &mdash; Fetches public-holiday dates for your selected country when holiday auto-skip is enabled.</li>
+        <li><strong>Windy</strong> (embed.windy.com and windy.com) &mdash; Displays the optional live radar map centered on your selected weather location. Windy's terms and privacy policy apply inside the embedded or external map.</li>
+        <li><strong>RSS/news feeds</strong> &mdash; Fetches headlines from your selected public feed, such as Google News, BBC, NPR, Hacker News, or a custom URL.</li>
+        <li><strong>User-configured webhooks</strong> &mdash; Sends alarm event payloads to the URL you configure, if you enable webhooks. Payloads can include event type, alarm identifier, alarm label, and timestamps. Use HTTPS and only endpoints you trust.</li>
+        <li><strong>Internet radio streams</strong> &mdash; Streams audio from the station URL you configure.</li>
+        <li><strong>Philips Hue bridge</strong> &mdash; Sends lighting commands to the bridge IP address and API key you configure on your local network.</li>
+        <li><strong>YouTube alarm sounds, Play flavor only</strong> &mdash; Searches, previews, resolves, and downloads audio using NewPipe Extractor, yt-dlp, and direct media stream requests. F-Droid builds exclude this feature.</li>
     </ul>
-    <p>No other network requests are made. The app functions fully offline except for weather data.</p>
+    <p>Core alarms, timers, stopwatch, local challenges, and local settings work without network access.</p>
 
     <h2>Data Storage</h2>
     <p>All data is stored locally on your device:</p>
     <ul>
         <li>Alarms, settings, and alarm history are stored in a local SQLite database</li>
-        <li>Preferences are stored in Android DataStore (local encrypted storage)</li>
-        <li>Backup/restore exports data as a JSON file to a location you choose</li>
+        <li>Preferences are stored in Android DataStore / app-private local storage</li>
+        <li>Crash logs are written to app-private local files and are not uploaded automatically</li>
+        <li>Downloaded alarm sounds are stored in device media storage when you choose to save them</li>
+        <li>Backup/restore exports data to a JSON file at a location you choose. Plain JSON backups may include alarms, labels, schedules, settings, integration URLs, Hue bridge details, webhook URLs, and other configuration values. Encrypted backups use your passphrase.</li>
+        <li>Shareable alarm links are created only when you choose to share an alarm.</li>
     </ul>
 
     <h2>Third-Party Services</h2>
-    <p>The app does not integrate with any third-party analytics, advertising, or tracking services. The only external service used is the Open-Meteo weather API, which is free, open-source, and does not require authentication.</p>
+    <p>The app does not integrate with third-party analytics, advertising, or tracking services. Optional features may contact the third-party services listed above. Those services receive the request data needed for the feature and are governed by their own policies.</p>
 
     <h2>Health Connect (Play flavor, opt-in)</h2>
-    <p>The Play-flavor build includes an opt-in toggle to read sleep session data from Android's Health Connect (Settings &rarr; Health Connect &rarr; "Allow reading sleep sessions"). When you enable the toggle and grant the Health Connect permission prompt:</p>
+    <p>Current v1.13.1 builds include a Health Connect preference scaffold only. They do not include the Health Connect SDK, do not request Health Connect permissions, and do not read or write Health Connect data yet.</p>
+    <p>A future Play-flavor release may request the Health Connect sleep-session permission after the integration ships. If that happens:</p>
     <ul>
-        <li>The app reads <strong>SleepSessionRecord</strong> entries (start time, end time, optional sleep stage breakdown) for the past 7 days to surface "Last night you slept X hours" context on the Bedtime tab and to drive future Stats charts.</li>
-        <li>All Health Connect data stays on your device. It is not uploaded, transmitted, shared with the developer, or persisted outside Health Connect's own encrypted store and the app's local DataStore preferences. There is no analytics SDK that could exfiltrate it.</li>
-        <li>You can revoke access at any time via Health Connect (Settings &rarr; Apps &rarr; Health Connect &rarr; Manage permissions) or by toggling the in-app switch off. Revoking immediately stops further reads; previously displayed values clear on next launch.</li>
-        <li>The F-Droid flavor does not include the Health Connect SDK at all. The toggle is visible but has no effect on F-Droid builds.</li>
-        <li>Per the Google Play Health Apps policy (April 2026), AlarmClockXtreme uses Health Connect sleep data only for the "wellness / sleep tracking" use case stated above. It is never used to determine employment or insurance eligibility, and it is never shared.</li>
+        <li>The app will request only the sleep data permission needed for the stated bedtime and statistics feature.</li>
+        <li>Health Connect data will stay on your device and will not be uploaded or shared with the developer.</li>
+        <li>You will be able to revoke access through Android Health Connect settings.</li>
+        <li>The F-Droid flavor is expected to remain without the Health Connect SDK unless documented otherwise.</li>
     </ul>
 
     <h2>Children's Privacy</h2>
-    <p>This app does not knowingly collect any information from children under 13. The app does not collect information from anyone.</p>
+    <p>This app does not knowingly collect information from children under 13. The developer does not collect information from anyone through the app.</p>
 
     <h2>Changes to This Policy</h2>
     <p>If we update this privacy policy, the changes will be posted here and the effective date will be updated. Since the app is open source, you can always verify the app's behavior by reviewing the source code.</p>

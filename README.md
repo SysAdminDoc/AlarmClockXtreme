@@ -6,7 +6,7 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)
 
-> A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 19 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
+> A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 22 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
 
 <img width="772" height="568" alt="image" src="https://github.com/user-attachments/assets/01e2e354-3905-4dd2-bb86-112282ae1346" />
 
@@ -158,7 +158,7 @@ cd AlarmClockXtreme
 ### Data & Reliability
 | Feature | Description |
 |---------|-------------|
-| Backup/Restore | JSON export/import of all 50+ alarm fields and 35+ settings, with optional AES-256 passphrase encryption (v6 format) |
+| Backup/Restore | JSON export/import of all 50+ alarm fields and 35+ settings, with optional AES-256 passphrase encryption (v7 format) |
 | Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link |
 | Boot Reschedule | All alarms re-registered after device reboot |
 | Manufacturer Compat | Onboarding warnings for Xiaomi/Samsung/Huawei battery killers |
@@ -172,14 +172,14 @@ cd AlarmClockXtreme
 +---------------------------------------------------------+
 |                    UI Layer (Compose)                     |
 |  Screens <- ViewModels <- StateFlow                      |
-|  19 challenge views, 8 alarm edit sections               |
+|  22 challenge flows, 8 alarm edit sections               |
 +---------------------------------------------------------+
 |                   Domain Layer                           |
 |  AlarmScheduler | NextAlarmCalculator | SolarCalculator  |
 |  Date-specific + holiday + vacation + solar-anchor logic |
 +---------------------------------------------------------+
 |                    Data Layer                            |
-|  Room DB v8 | DataStore | Retrofit (Open-Meteo, Nager)  |
+|  Room DB v10 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
 |  50+ field Alarm entity | 35+ field AppSettings          |
 |  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |
 +---------------------------------------------------------+
@@ -215,6 +215,8 @@ cd AlarmClockXtreme
 |------------|---------|----------|
 | `USE_EXACT_ALARM` | Fire alarms at exact time | Yes |
 | `POST_NOTIFICATIONS` | Show alarm alerts | Yes |
+| `POST_PROMOTED_NOTIFICATIONS` | Android 16 promoted alarm updates where available | Optional |
+| `USE_FULL_SCREEN_INTENT` | Show the alarm firing screen over the lock screen | Yes |
 | `ACCESS_NOTIFICATION_POLICY` | Optional bedtime DND rule access | Optional |
 | `FOREGROUND_SERVICE` | Reliable alarm playback | Yes |
 | `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Alarm audio | Yes |
@@ -223,33 +225,41 @@ cd AlarmClockXtreme
 | `RECEIVE_BOOT_COMPLETED` | Reschedule after reboot | Yes |
 | `WAKE_LOCK` | Keep CPU during alarm | Yes |
 | `VIBRATE` | Alarm vibration | Yes |
-| `INTERNET` | Weather, holidays, webhooks, radio | Yes |
+| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Optional manufacturer/battery reliability flow | Optional |
+| `INTERNET` | Weather, holidays, radar, news, webhooks, radio, Hue, and Play-flavor YouTube downloads | Yes |
 | `ACCESS_COARSE_LOCATION` | Weather for your area | Optional |
+| `ACCESS_FINE_LOCATION` | Wi-Fi challenge matching on Android 12+ | Optional |
 | `READ_CALENDAR` | Dashboard events + auto-alarm | Optional |
 | `NFC` | NFC tag dismiss challenge | Optional |
 | `CAMERA` | Barcode scan + photo match challenges | Optional |
 | `RECORD_AUDIO` | Sonar sleep tracking | Optional |
+| `MODIFY_AUDIO_SETTINGS` | Alarm audio routing and volume behavior | Yes |
 | `ACTIVITY_RECOGNITION` | Walk steps + smart alarm | Optional |
 | `SEND_SMS` / `CALL_PHONE` | Guardian Angel emergency contact | Optional |
-| `WRITE_EXTERNAL_STORAGE` (≤ Android 9) | Save downloaded YouTube alarm sounds to MediaStore | Optional (Play flavor only) |
+| `READ_MEDIA_AUDIO` / `READ_EXTERNAL_STORAGE` | Browse device audio for alarm sounds | Optional |
+| `WRITE_EXTERNAL_STORAGE` (<= Android 9) | Save downloaded YouTube alarm sounds to MediaStore | Optional (Play flavor only) |
 
 ## Privacy
 
 No analytics. No ads. No tracking. No accounts. No data leaves your device except:
-- Weather API calls to Open-Meteo (latitude/longitude only)
-- Active-alerts calls to api.weather.gov / NWS (latitude/longitude only, US-only)
-- Holiday API calls to Nager.Date (country code only)
-- Live radar embed from Windy.com on the Weather tab (latitude/longitude only — Windy's privacy policy applies inside the embed)
-- News RSS calls to your configured feed source (Google News / BBC / NPR / etc. — no auth, no fingerprinting)
-- Webhook calls to your own configured URL
+- Weather, air-quality, geocoding, and pollen calls to Open-Meteo for your selected location
+- Active-alerts calls to api.weather.gov / NWS for US weather-alert coverage
+- Holiday API calls to Nager.Date for the selected country
+- Live radar embed from Windy.com on the Weather tab; Windy's privacy policy applies inside the embed
+- News RSS calls to your configured feed source, including Google News, BBC, NPR, Hacker News, or a custom URL
+- Webhook calls to your configured URL, including alarm event metadata
 - Internet radio streaming to your configured station
+- Philips Hue commands to your configured bridge on your local network
+- YouTube search, preview, stream resolution, and download requests in the Play flavor only; F-Droid excludes this feature
+
+Crash logs stay in local app storage unless you export them. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, and Hue configuration. The v1.13.1 Health Connect setting stores only a local opt-in preference; it does not request Health Connect permission or read sleep-session data yet.
 
 Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
 
 ## FAQ
 
 **How does the YouTube alarm-sound downloader work?**
-On the Alarms tab tap "Download alarm sound from YouTube." A dialog opens with two modes: search YouTube directly (powered by NewPipe Extractor) or paste a video URL. Each result has a play/stop button to preview the audio before committing. Tap the row to download — yt-dlp resolves the best-audio stream, OkHttp streams it to your alarm library via MediaStore (`IS_ALARM=1`), and the ringtone picker re-enumerates so the new sound is immediately selectable. F-droid builds ship without this feature for licensing reasons.
+On the Alarms tab tap "Download alarm sound from YouTube." A dialog opens with two modes: search YouTube directly (powered by NewPipe Extractor) or paste a video URL. Each result has a play/stop button to preview the audio before committing. Tap the row to download; yt-dlp resolves the best-audio stream, OkHttp streams it to your alarm library via MediaStore (`IS_ALARM=1`), and the ringtone picker re-enumerates so the new sound is immediately selectable. F-Droid builds ship without this feature for licensing reasons.
 
 **Why does the alarm not fire on my Xiaomi/Samsung/Huawei?**
 These manufacturers aggressively kill background apps. The app shows a manufacturer-specific warning during onboarding with steps to whitelist it. Generally: Settings > Battery > App Launch > AlarmClockXtreme > Manual > enable all toggles.
@@ -258,7 +268,7 @@ These manufacturers aggressively kill background apps. The app shows a manufactu
 Check Settings > Dashboard > Temperature unit. The app defaults to Fahrenheit. You can also set a manual location if GPS isn't available.
 
 **Can I use this without Google Play Services?**
-Yes. The app has zero Google dependencies. Weather uses Open-Meteo (free, open-source). The F-Droid build variant excludes any Play-specific code.
+Yes. Core alarm features do not require Google Play Services. Weather uses Open-Meteo, Nager.Date, and api.weather.gov depending on enabled features. The F-Droid build variant excludes Play-specific code, including the YouTube downloader and Wear OS Data Layer bridge.
 
 **How does Mission Chaining work?**
 In alarm edit, set the "Challenge chain" field to a comma-separated list of challenge types (e.g., `MATH_EASY,SHAKE,TYPING`). The alarm will require you to solve each challenge in order before dismissing.
