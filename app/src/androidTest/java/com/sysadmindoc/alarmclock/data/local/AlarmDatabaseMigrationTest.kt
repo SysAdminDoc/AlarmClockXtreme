@@ -67,6 +67,24 @@ class AlarmDatabaseMigrationTest {
     }
 
     @Test
+    fun migrationTenToElevenAddsChallengeRetryDefaultZero() {
+        var db = helper.createDatabase("migration-10-to-11.db", 10)
+        insertSyntheticAlarmEvent(db)
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-10-to-11.db",
+            11,
+            true,
+            AlarmDatabase.MIGRATION_10_11,
+        )
+
+        assertEquals(1, db.queryLong("SELECT COUNT(*) FROM alarm_events"))
+        assertEquals(0, db.queryLong("SELECT challengeRetryCount FROM alarm_events LIMIT 1"))
+        db.close()
+    }
+
+    @Test
     fun freshInstallVersionMatchesLatestExportedSchema() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val exportedLatest = latestExportedSchemaVersion()
@@ -98,6 +116,37 @@ class AlarmDatabaseMigrationTest {
         db.execSQL(
             "INSERT INTO alarms ($columnSql) VALUES ($placeholders)",
             values,
+        )
+    }
+
+    private fun insertSyntheticAlarmEvent(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+                INSERT INTO alarm_events (
+                    alarmId,
+                    alarmLabel,
+                    scheduledTime,
+                    firedAt,
+                    action,
+                    actionAt,
+                    challengeType,
+                    challengeSolveTimeMs,
+                    snoozeCount,
+                    dayOfWeek
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent(),
+            arrayOf<Any>(
+                1L,
+                "Migration event",
+                1_700_000_000_000L,
+                1_700_000_000_000L,
+                "DISMISSED",
+                1_700_000_060_000L,
+                "MATH_EASY",
+                60_000L,
+                1,
+                1,
+            ),
         )
     }
 
@@ -184,6 +233,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 10
+        const val LATEST_SCHEMA_VERSION = 11
     }
 }

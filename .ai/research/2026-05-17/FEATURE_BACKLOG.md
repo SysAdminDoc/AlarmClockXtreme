@@ -24,7 +24,8 @@ in `PRIORITIZATION_MATRIX.md`; active roadmap order is in `ROADMAP.md`.
 ## Reliability And Android Platform
 
 - Enforce Room schema export checks and migration tests. The missing v10 schema
-  export was generated and added by this research changeset.
+  export was generated and added by this research changeset; v1.13.7 later
+  added the v11 retry-count schema and migration test.
 - Add migration tests for every schema bump and verify fresh-install parity.
 - Add Direct Boot support for the minimum alarm data required before first
   unlock. Status: shipped v1.13.5 as a minimum next-alarm fallback; full
@@ -46,9 +47,12 @@ in `PRIORITIZATION_MATRIX.md`; active roadmap order is in `ROADMAP.md`.
 - Surface last-night sleep duration/stages in Bedtime and Stats.
 - Use Health Connect sleep windows to choose a smart-wake point inside a user
   configured window.
-- Add local-only sleep trend charts.
+- Add local-only sleep trend charts. Status: shipped v1.13.7 with in-house
+  Compose charts for sleep duration, dismiss response, snoozes, and retries.
 - Add local sleep quality correlations with wake-streak, snooze count, missed
-  alarms, and alarm difficulty.
+  alarms, and alarm difficulty. Status: v1.13.7 covers the first local
+  correlation slice for sleep duration, dismiss response, snoozes, and
+  challenge retries.
 - Add optional manual sleep/mood note after dismissal.
 - Add actigraphy-light experimental mode using accelerometer while charging.
 - Add local-only snore/noise event detection behind explicit microphone consent.

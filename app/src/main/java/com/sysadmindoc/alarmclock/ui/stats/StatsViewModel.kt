@@ -19,7 +19,8 @@ data class StatsUiState(
     val isLoading: Boolean = true,
     val is24Hour: Boolean = false,
     val healthConnectEnabled: Boolean = false,
-    val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary()
+    val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary(),
+    val sleepWakeAnalytics: SleepWakeAnalytics = SleepWakeAnalytics()
 )
 
 @HiltViewModel
@@ -37,12 +38,14 @@ class StatsViewModel @Inject constructor(
         // and streak update live alongside the recent-events list. Without this
         // the stats were stale until the screen was reopened.
         viewModelScope.launch {
-            eventRepository.observeRecent(20).collect { events ->
+            eventRepository.observeRecent(50).collect { events ->
                 val stats = runCatching { eventRepository.getStats() }
                     .getOrDefault(_uiState.value.stats)
+                val analytics = readSleepWakeAnalytics(_uiState.value.healthConnectSleepSummary)
                 _uiState.value = _uiState.value.copy(
                     recentEvents = events,
                     stats = stats,
+                    sleepWakeAnalytics = analytics,
                     isLoading = false
                 )
             }
@@ -61,7 +64,10 @@ class StatsViewModel @Inject constructor(
                 } else {
                     HealthConnectSleepSummary()
                 }
-                _uiState.value = _uiState.value.copy(healthConnectSleepSummary = summary)
+                _uiState.value = _uiState.value.copy(
+                    healthConnectSleepSummary = summary,
+                    sleepWakeAnalytics = readSleepWakeAnalytics(summary)
+                )
             }
         }
     }
@@ -72,5 +78,23 @@ class StatsViewModel @Inject constructor(
             // observeRecent() will fire with an empty list and trigger getStats()
             // in the collect block above, so no manual reload needed.
         }
+    }
+
+    private suspend fun readSleepWakeAnalytics(
+        sleepSummary: HealthConnectSleepSummary
+    ): SleepWakeAnalytics {
+        val sinceMs = System.currentTimeMillis() - SLEEP_WAKE_WINDOW_MS
+        val events = runCatching { eventRepository.getSince(sinceMs) }
+            .getOrDefault(emptyList())
+        return buildSleepWakeAnalytics(
+            events = events,
+            sleepSessions = sleepSummary.recentSessions,
+            days = SLEEP_WAKE_WINDOW_DAYS
+        )
+    }
+
+    private companion object {
+        const val SLEEP_WAKE_WINDOW_DAYS = 14
+        const val SLEEP_WAKE_WINDOW_MS = SLEEP_WAKE_WINDOW_DAYS * 24L * 60L * 60L * 1000L
     }
 }

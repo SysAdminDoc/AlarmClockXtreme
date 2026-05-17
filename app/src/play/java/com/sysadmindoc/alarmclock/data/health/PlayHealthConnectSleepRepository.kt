@@ -87,8 +87,29 @@ class PlayHealthConnectSleepRepository @Inject constructor(
 
     private fun summarize(records: List<SleepSessionRecord>): HealthConnectSleepSummary {
         val sorted = records.sortedByDescending { it.endTime }
-        val last = sorted.firstOrNull()
-        val stageTotals = last?.stages.orEmpty().fold(StageTotals()) { totals, stage ->
+        val sessions = sorted.map { it.toSleepSession() }
+        val last = sessions.firstOrNull()
+
+        return HealthConnectSleepSummary(
+            availability = HealthConnectAvailability.AVAILABLE,
+            permissionGranted = true,
+            sessionsRead = sorted.size,
+            recentSessions = sessions,
+            lastSessionStartMillis = last?.startMillis,
+            lastSessionEndMillis = last?.endMillis,
+            lastSessionDurationMinutes = last?.durationMinutes,
+            asleepStageMinutes = last?.asleepStageMinutes ?: 0,
+            lightStageMinutes = last?.lightStageMinutes ?: 0,
+            deepStageMinutes = last?.deepStageMinutes ?: 0,
+            remStageMinutes = last?.remStageMinutes ?: 0,
+            awakeStageMinutes = last?.awakeStageMinutes ?: 0,
+            unknownStageMinutes = last?.unknownStageMinutes ?: 0,
+            refreshedAtMillis = System.currentTimeMillis()
+        )
+    }
+
+    private fun SleepSessionRecord.toSleepSession(): HealthConnectSleepSession {
+        val stageTotals = stages.fold(StageTotals()) { totals, stage ->
             val minutes = Duration.between(stage.startTime, stage.endTime)
                 .toMinutes()
                 .coerceAtLeast(0)
@@ -113,25 +134,16 @@ class PlayHealthConnectSleepRepository @Inject constructor(
                 else -> totals.copy(unknown = totals.unknown + minutes)
             }
         }
-
-        val duration = last?.let {
-            Duration.between(it.startTime, it.endTime).toMinutes().coerceAtLeast(0)
-        }
-
-        return HealthConnectSleepSummary(
-            availability = HealthConnectAvailability.AVAILABLE,
-            permissionGranted = true,
-            sessionsRead = sorted.size,
-            lastSessionStartMillis = last?.startTime?.toEpochMilli(),
-            lastSessionEndMillis = last?.endTime?.toEpochMilli(),
-            lastSessionDurationMinutes = duration,
+        return HealthConnectSleepSession(
+            startMillis = startTime.toEpochMilli(),
+            endMillis = endTime.toEpochMilli(),
+            durationMinutes = Duration.between(startTime, endTime).toMinutes().coerceAtLeast(0),
             asleepStageMinutes = stageTotals.asleep,
             lightStageMinutes = stageTotals.light,
             deepStageMinutes = stageTotals.deep,
             remStageMinutes = stageTotals.rem,
             awakeStageMinutes = stageTotals.awake,
-            unknownStageMinutes = stageTotals.unknown,
-            refreshedAtMillis = System.currentTimeMillis()
+            unknownStageMinutes = stageTotals.unknown
         )
     }
 
