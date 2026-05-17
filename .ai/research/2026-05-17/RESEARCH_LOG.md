@@ -123,6 +123,16 @@ X1 implementation pass:
 - Implemented the integration behind source-set boundaries so F-Droid has no
   SDK dependency and no `READ_SLEEP` manifest permission.
 
+X3 implementation pass:
+
+- Rechecked official Wear complication data-source docs and AndroidX Wear
+  Watchface release notes before wiring the Wear provider.
+- Used `androidx.wear.watchface:watchface-complications-data-source-ktx:1.3.0`
+  because the AndroidX Wear Watchface release notes list 1.3.0 as the latest
+  stable release and note that the complication APIs remain supported.
+- Implemented `SHORT_TEXT` and `LONG_TEXT` support only, matching common watch
+  face slots and the compact next-alarm payload already synced for the tile.
+
 ## Saturation Notes
 
 Source saturation was tested across four classes:

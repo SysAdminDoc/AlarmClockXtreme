@@ -127,6 +127,14 @@ Play dependency graph is now constrained to `com.google.guava:guava:33.6.0-andro
 the resolved Play release runtime classpath passed the OSV audit after that
 constraint.
 
+X3 dependency note: the Wear complication pass added
+`androidx.wear.watchface:watchface-complications-data-source-ktx:1.3.0`.
+Official AndroidX Wear Watchface release notes list 1.3.0 as the stable release
+and state that complication APIs remain supported even as watchface APIs move
+toward Watch Face Format. The provider service is protected with
+`com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER` in the Wear
+manifest and is `directBootAware` per current API reference guidance.
+
 ## Android Platform Security
 
 - Exact alarms: current manifest uses `USE_EXACT_ALARM`, which matches a core
