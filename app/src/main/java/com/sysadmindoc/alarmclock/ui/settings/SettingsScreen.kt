@@ -1338,18 +1338,18 @@ private fun HealthConnectSection(state: SettingsUiState, viewModel: SettingsView
         AppSectionTitle(
             title = "Health Connect",
             description = if (isPlayFlavor) {
-                "Read overnight sleep sessions from Health Connect to enrich the Bedtime tab and Stats. The connection prompt opens the system Health Connect screen."
+                "Prepare for opt-in sleep-session support in the Play flavor. This build stores your preference only; it does not request Health Connect permission or read sleep data yet."
             } else {
-                "The F-Droid flavor does not ship Health Connect support. Install the Play flavor to opt in."
+                "The F-Droid flavor does not ship the Health Connect SDK. This setting is retained for backup compatibility only."
             }
         )
         SettingsToggle(
-            label = "Allow reading sleep sessions",
+            label = "Remember Health Connect opt-in",
             checked = state.settings.healthConnectEnabled,
             supportingText = if (isPlayFlavor) {
-                "Toggle on to grant Health Connect access (data integration ships in a follow-up release; toggle survives backup/restore so opted-in users light up immediately when it does)."
+                "No sleep data is read in v1.13.1. A future Play-flavor update will request Health Connect permission before reading recent sleep sessions."
             } else {
-                "Disabled on F-Droid. Toggle has no effect on this build."
+                "No Health Connect permissions are requested on F-Droid."
             },
             onToggle = viewModel::updateHealthConnectEnabled
         )
