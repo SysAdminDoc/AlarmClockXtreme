@@ -109,3 +109,42 @@ Date: 2026-05-17
   all report `versionCode=66` and `versionName=1.13.1`.
 - `.\gradlew.bat :wear:assembleDebug --console=plain` passed after the Wear
   tile future fix.
+
+## Autonomous Roadmap Pass: R4 Room Schema Gate
+
+Date: 2026-05-17
+
+### Files Modified
+
+- `app/src/main/java/com/sysadmindoc/alarmclock/data/local/AlarmDatabase.kt` -
+  added `ALL_MIGRATIONS` so production database setup, tests, and future schema
+  work share the same ordered migration list.
+- `app/src/main/java/com/sysadmindoc/alarmclock/di/DatabaseModule.kt` - switched
+  the Room builder to `AlarmDatabase.ALL_MIGRATIONS`.
+- `app/build.gradle.kts` - exposes `app/schemas` as androidTest assets and adds
+  Room migration-test dependencies.
+- `app/src/androidTest/java/com/sysadmindoc/alarmclock/data/local/AlarmDatabaseMigrationTest.kt`
+  - added migration/fresh-install tests for earliest exported schema to latest,
+  v9 to v10 defaulting, latest exported schema parity, and contiguous migration
+  registration.
+- `.github/workflows/android-ci.yml` - added push/PR CI for unit tests, debug
+  builds, schema-export drift detection, and emulator-backed Room migration
+  tests.
+- `PROJECT_CONTEXT.md` and `ROADMAP.md` - marked R4 complete and moved the next
+  active priority to Play-only downloader dependency risk.
+
+### Verification
+
+- Workflow YAML parsing passed for all `.github/workflows/*.yml`.
+- Extracted and `bash -n` checked all 15 shell `run:` blocks across GitHub
+  workflows.
+- `git diff --check` passed with only existing line-ending normalization
+  warnings.
+- `.\gradlew.bat :app:compileFdroidDebugAndroidTestKotlin --console=plain`
+  passed, proving the Room migration instrumentation test source compiles.
+- `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
+  passed.
+- `git diff --exit-code -- app/schemas` passed after the Gradle build.
+- `adb devices` reported no attached device, so
+  `connectedFdroidDebugAndroidTest` was not runnable locally; the new GitHub
+  Actions emulator job is the execution gate for those tests.
