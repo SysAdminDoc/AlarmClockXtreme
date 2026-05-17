@@ -1,6 +1,6 @@
 # F-Droid Metadata
 # Place in fdroiddata repo as metadata/com.sysadmindoc.alarmclock.yml.
-# The build commit should be replaced with the signed release tag once v1.13.6
+# The build commit should be replaced with the signed release tag once v1.13.7
 # is tagged for distribution.
 
 Categories:
@@ -21,16 +21,16 @@ Description: |-
   local statistics, and full backup/restore.
 
   No ads, no analytics, no tracking, and no accounts required. The F-Droid
-  flavor excludes the Play-only YouTube downloader and Wear OS Data Layer
-  bridge.
+  flavor excludes the Play-only YouTube downloader, Wear OS Data Layer
+  bridge, and Health Connect SDK path.
 
 RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.13.6
-    versionCode: 71
-    commit: 98ca061
+  - versionName: 1.13.7
+    versionCode: 72
+    commit: v1.13.7
     subdir: app
     gradle:
       - fdroid
@@ -45,5 +45,5 @@ AntiFeatures:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.13.6
-CurrentVersionCode: 71
+CurrentVersion: 1.13.7
+CurrentVersionCode: 72

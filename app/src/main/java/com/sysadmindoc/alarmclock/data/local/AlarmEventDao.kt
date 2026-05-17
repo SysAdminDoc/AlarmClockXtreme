@@ -16,6 +16,9 @@ interface AlarmEventDao {
     @Query("SELECT * FROM alarm_events ORDER BY firedAt DESC LIMIT :limit")
     suspend fun getRecent(limit: Int = 50): List<AlarmEvent>
 
+    @Query("SELECT * FROM alarm_events WHERE firedAt >= :sinceMs ORDER BY firedAt DESC")
+    suspend fun getSince(sinceMs: Long): List<AlarmEvent>
+
     // Stats: total counts by action
     @Query("SELECT COUNT(*) FROM alarm_events WHERE action = :action")
     suspend fun countByAction(action: String): Int

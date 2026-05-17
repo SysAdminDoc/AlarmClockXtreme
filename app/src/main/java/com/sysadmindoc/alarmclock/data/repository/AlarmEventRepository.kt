@@ -84,6 +84,8 @@ class AlarmEventRepository @Inject constructor(
 
     suspend fun record(event: AlarmEvent): Long = dao.insert(event)
 
+    suspend fun getSince(sinceMs: Long): List<AlarmEvent> = dao.getSince(sinceMs)
+
     suspend fun getStats(): AlarmStats {
         val dismissed = dao.countByAction(AlarmEvent.ACTION_DISMISSED)
         val snoozed = dao.countByAction(AlarmEvent.ACTION_SNOOZED)

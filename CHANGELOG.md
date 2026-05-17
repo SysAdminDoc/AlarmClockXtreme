@@ -2,6 +2,32 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.13.7] - 2026-05-17
+
+Sleep/wake analytics charts pass (roadmap X6). **DB v11.**
+
+### Added
+
+- Statistics now includes local sleep/wake pattern charts that compare recent
+  Health Connect sleep duration with alarm dismiss response time, snoozes, and
+  challenge retries.
+- Health Connect sleep summaries now retain recent session windows in memory so
+  Statistics can pair sleep ending dates with wake behavior without writing
+  Health Connect records to Room, DataStore, backups, or support exports.
+- Alarm history now persists `challengeRetryCount` for dismissed alarms, using
+  the firing screen's wrong-attempt counter.
+- Added pure unit coverage for sleep/wake analytics pairing, wake-only
+  fallback behavior, and challenge retry aggregation.
+
+### Changed
+
+- Room database bumped to **v11** with `MIGRATION_10_11` adding
+  `alarm_events.challengeRetryCount INTEGER NOT NULL DEFAULT 0`.
+- The firing screen now passes challenge solve duration and retry count to
+  `AlarmService` on user dismiss, so future Statistics views can use both.
+- Bumped to `versionName = "1.13.7"`, `versionCode = 72`. README badge,
+  install command, roadmap snapshot, Wear module, and F-Droid metadata synced.
+
 ## [1.13.6] - 2026-05-17
 
 Local support export pass (roadmap X5).

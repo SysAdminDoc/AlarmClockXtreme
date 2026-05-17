@@ -18,15 +18,16 @@ Description: |-
   backup/restore.
 
   No ads, no analytics, no tracking, no accounts required. The F-Droid flavor
-  excludes the Play-only YouTube downloader and Wear OS Data Layer bridge.
+  excludes the Play-only YouTube downloader, Wear OS Data Layer bridge, and
+  Health Connect SDK path.
 
 RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.13.6
-    versionCode: 71
-    commit: 98ca061
+  - versionName: 1.13.7
+    versionCode: 72
+    commit: v1.13.7
     subdir: app
     gradle:
       - fdroid
@@ -39,5 +40,5 @@ AntiFeatures:
       api.weather.gov alerts, Windy radar, public RSS feeds, user-configured
       webhooks, internet radio streams, and a local Philips Hue bridge.
 
-CurrentVersion: 1.13.6
-CurrentVersionCode: 71
+CurrentVersion: 1.13.7
+CurrentVersionCode: 72

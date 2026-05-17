@@ -13,6 +13,7 @@ data class HealthConnectSleepSummary(
     val availability: HealthConnectAvailability = HealthConnectAvailability.NOT_INCLUDED,
     val permissionGranted: Boolean = false,
     val sessionsRead: Int = 0,
+    val recentSessions: List<HealthConnectSleepSession> = emptyList(),
     val lastSessionStartMillis: Long? = null,
     val lastSessionEndMillis: Long? = null,
     val lastSessionDurationMinutes: Long? = null,
@@ -31,6 +32,18 @@ data class HealthConnectSleepSummary(
     val hasRecentSession: Boolean
         get() = lastSessionDurationMinutes != null
 }
+
+data class HealthConnectSleepSession(
+    val startMillis: Long,
+    val endMillis: Long,
+    val durationMinutes: Long,
+    val asleepStageMinutes: Long = 0,
+    val lightStageMinutes: Long = 0,
+    val deepStageMinutes: Long = 0,
+    val remStageMinutes: Long = 0,
+    val awakeStageMinutes: Long = 0,
+    val unknownStageMinutes: Long = 0
+)
 
 interface HealthConnectSleepRepository {
     val requiredPermissions: Set<String>
