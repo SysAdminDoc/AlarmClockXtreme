@@ -98,9 +98,9 @@ aapt2 dump badging <release-apk>
   `README.md`, Settings Health Connect copy, and `metadata/*.yml` now enumerate
   current optional network/data surfaces and clarify that v1.13.1 stores only a
   local Health Connect opt-in preference.
-- Room schema discipline gap found during reconnaissance: current DB version was
-  10 and `app/schemas` lacked the v10 export. This changeset adds the generated
-  v10 schema; the remaining gap is an automated migration/schema gate.
+- Room schema discipline was hardened on 2026-05-17: current DB version is 10,
+  v10 schema is committed, `AlarmDatabaseMigrationTest` covers migration and
+  fresh-install/schema parity, and Android CI fails if `app/schemas` drifts.
 - Dependency risk: the Play flavor dependency tree pulls old downloader
   transitive dependencies through `youtubedl-android:0.18.1`, including
   `jackson-* 2.11.1`, `commons-compress 1.12`, `commons-io 2.5`, and
@@ -118,9 +118,8 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Add migration-test and schema-export gates for future Room changes.
-2. Isolate or replace vulnerable Play-only downloader transitive dependencies.
-3. Complete Health Connect sleep-session SDK path behind the Play flavor after
+1. Isolate or replace vulnerable Play-only downloader transitive dependencies.
+2. Complete Health Connect sleep-session SDK path behind the Play flavor after
    Play Console health-permission review is ready.
 
 ## Research Artifacts
