@@ -24,7 +24,6 @@ import com.google.android.gms.tasks.Tasks
 import com.google.android.gms.wearable.DataMap
 import com.google.android.gms.wearable.DataMapItem
 import com.google.android.gms.wearable.Wearable
-import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,11 +55,14 @@ class NextAlarmTileService : TileService() {
     }
 
     override fun onTileResourcesRequest(requestParams: ResourcesRequest): ListenableFuture<Resources> {
-        return Futures.immediateFuture(
-            Resources.Builder()
-                .setVersion(RESOURCES_VERSION)
-                .build()
-        )
+        return CallbackToFutureAdapter.getFuture { completer ->
+            completer.set(
+                Resources.Builder()
+                    .setVersion(RESOURCES_VERSION)
+                    .build()
+            )
+            "NextAlarmTileService#onTileResourcesRequest"
+        }
     }
 
     private fun buildTile(
