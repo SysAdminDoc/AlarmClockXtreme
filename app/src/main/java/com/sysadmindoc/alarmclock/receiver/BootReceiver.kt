@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
 import com.sysadmindoc.alarmclock.worker.BootRescheduleWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,12 +33,17 @@ import kotlinx.coroutines.launch
  * [BootRescheduleWorker]. The actual alarm batch runs in WorkManager, outside
  * the receiver ANR window, so users with large alarm libraries are not racing
  * an 8-second broadcast timeout at boot.
+ *
+ * v1.13.5: LOCKED_BOOT_COMPLETED only uses the tiny device-protected alarm
+ * snapshot. Room, DataStore, Hilt workers, custom ringtone URIs, and user
+ * secrets remain credential-encrypted until the normal BOOT_COMPLETED path.
  */
 class BootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
-        if (action != Intent.ACTION_BOOT_COMPLETED &&
+        if (action != Intent.ACTION_LOCKED_BOOT_COMPLETED &&
+            action != Intent.ACTION_BOOT_COMPLETED &&
             action != Intent.ACTION_MY_PACKAGE_REPLACED &&
             action != Intent.ACTION_TIME_CHANGED &&
             action != Intent.ACTION_TIMEZONE_CHANGED &&
@@ -47,6 +53,11 @@ class BootReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             try {
+                if (action == Intent.ACTION_LOCKED_BOOT_COMPLETED) {
+                    DirectBootAlarmCache.scheduleCachedAlarm(appContext)
+                    return@launch
+                }
+
                 // v1.5.1: A reboot invalidates the "user will unlock any second now"
                 // semantics of repeat-missed-alarm. Clear the state so the receiver
                 // doesn't fire a stale miss after the user pressed the power button

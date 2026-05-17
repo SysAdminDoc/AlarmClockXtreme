@@ -146,9 +146,11 @@ manifest and is `directBootAware` per current API reference guidance.
   Android vitals limits.
 - Foreground service timeouts: review `dataSync`/monitoring services as Android
   15+ limits evolve.
-- Direct Boot: not implemented; alarm-clock apps are a listed Direct Boot use
-  case, but implementation must separate device-encrypted minimum data from
-  credential-encrypted sensitive settings.
+- Direct Boot: v1.13.5 now implements the minimum alarm prototype for the next
+  alarm only. Device-encrypted storage contains id, trigger time, display time,
+  default-sound flag, vibration flag, and schema/update metadata. Labels,
+  custom media/content URIs, integration URLs/secrets, challenge values,
+  Health Connect data, Room, and DataStore remain credential-encrypted.
 - Hue TLS: trust-any-cert and allow-all hostname verification are currently a
   practical LAN bridge workaround but should be replaced with a pinned bridge
   identity or documented manual trust flow.
