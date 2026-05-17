@@ -20,6 +20,8 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.data.support.SupportExportFile
+import com.sysadmindoc.alarmclock.data.support.SupportExportManager
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.WebhookService
 import com.sysadmindoc.alarmclock.util.ManufacturerCompat
@@ -28,6 +30,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 import javax.inject.Inject
 
@@ -76,7 +79,8 @@ class SettingsViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
     private val backupManager: BackupManager,
     private val webhookService: WebhookService,
-    private val healthConnectSleepRepository: HealthConnectSleepRepository
+    private val healthConnectSleepRepository: HealthConnectSleepRepository,
+    private val supportExportManager: SupportExportManager
 ) : AndroidViewModel(application) {
 
     private val _batteryState = MutableStateFlow(
@@ -442,6 +446,10 @@ class SettingsViewModel @Inject constructor(
     val backupResult: StateFlow<String?> = _backupResult.asStateFlow()
     private val _backupBusy = MutableStateFlow(false)
     val backupBusy: StateFlow<Boolean> = _backupBusy.asStateFlow()
+    private val _supportExportResult = MutableStateFlow<String?>(null)
+    val supportExportResult: StateFlow<String?> = _supportExportResult.asStateFlow()
+    private val _supportExportBusy = MutableStateFlow(false)
+    val supportExportBusy: StateFlow<Boolean> = _supportExportBusy.asStateFlow()
 
     suspend fun inspectBackupExportWarning(): BackupExportWarning =
         backupManager.inspectExportWarning()
@@ -517,6 +525,39 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun clearBackupResult() { _backupResult.value = null }
+
+    suspend fun createSupportExport(): Result<SupportExportFile> {
+        _supportExportBusy.value = true
+        return try {
+            val export = withContext(Dispatchers.IO) {
+                supportExportManager.createSupportExport()
+            }
+            setSupportExportResult("Support bundle ready to share")
+            Result.success(export)
+        } catch (e: Exception) {
+            val message = "Support export failed: ${e.message ?: "unexpected error"}"
+            setSupportExportResult(message)
+            Result.failure(e)
+        } finally {
+            _supportExportBusy.value = false
+        }
+    }
+
+    fun setSupportExportShareFailed() {
+        setSupportExportResult("No app is available to share the support bundle")
+    }
+
+    fun clearSupportExportResult() { _supportExportResult.value = null }
+
+    private fun setSupportExportResult(message: String) {
+        _supportExportResult.value = message
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(5000)
+            if (_supportExportResult.value == message) {
+                _supportExportResult.value = null
+            }
+        }
+    }
 
     private data class BatteryState(val isIgnoring: Boolean, val needsGuidance: Boolean)
     private data class IntegrationTestState(

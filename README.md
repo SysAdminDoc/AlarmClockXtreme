@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.13.5-blue)
+![Version](https://img.shields.io/badge/version-1.13.6-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.13.5-play.apk
+adb install AlarmClockXtreme-v1.13.6-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, and optional Health Connect READ_SLEEP integration. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -165,6 +165,7 @@ cd AlarmClockXtreme
 | Boot Reschedule | All alarms re-registered after device reboot, with a Direct Boot fallback for the next alarm before first unlock |
 | Manufacturer Compat | Onboarding warnings for Xiaomi/Samsung/Huawei battery killers |
 | Crash Logger | Automatic crash log files for debugging |
+| Local Support Bundle | Settings can package crash logs plus redacted version, device, and alarm diagnostics into a shareable ZIP without telemetry |
 | Auto-Silence | Configurable timeout (0/5/10/15/30 min), records as missed |
 | Webhook Reliability | Application-lived dispatch scope guarantees Tasker events fire even when the alarm service stops mid-flight |
 
@@ -213,7 +214,7 @@ GitHub tag releases require repository secrets. Use either the preferred
 | `ANDROID_KEY_ALIAS` | `KEY_ALIAS` | Signing key alias |
 | `ANDROID_KEY_PASSWORD` | `KEY_PASSWORD` | Signing key password |
 
-Tag pushes like `v1.13.5` build signed Play, F-Droid, and Wear release APKs,
+Tag pushes like `v1.13.6` build signed Play, F-Droid, and Wear release APKs,
 verify signatures with `apksigner`, write `SHA256SUMS.txt`, and attach the APKs
 plus hashes to the GitHub Release.
 

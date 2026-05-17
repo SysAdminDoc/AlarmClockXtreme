@@ -12,7 +12,7 @@ known drift, and the active research plan. Tool-specific instructions remain in
 - Repo: `C:\Users\--\repos\AlarmClockXtreme`
 - Remote: `https://github.com/SysAdminDoc/AlarmClockXtreme.git`
 - Branch at latest update: `main`, tracking `origin/main`
-- App version: `versionName = "1.13.5"`, `versionCode = 70`
+- App version: `versionName = "1.13.6"`, `versionCode = 71`
 - Android targets: `compileSdk = 36`, `targetSdk = 35`, `minSdk = 26`
 - Database: Room `AlarmDatabase` version 10 with `exportSchema = true`
 - Backup format: v8
@@ -64,6 +64,9 @@ Preserve these principles:
   `READ_SLEEP` implementation and F-Droid binds a no-op repository.
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/backup/BackupManager.kt`
   backup/restore contract, backup format v8, and pre-export warning risk scan.
+- `app/src/main/java/com/sysadmindoc/alarmclock/data/support/*`
+  local support ZIP export. Packages crash logs and redacted app/device/alarm
+  diagnostics through a FileProvider without telemetry upload.
 - `app/src/main/java/com/sysadmindoc/alarmclock/ui/settings/SettingsScreen.kt`
   high-leverage trust surface: reliability, permissions, Health Connect, Hue,
   backup, and integration controls.
@@ -130,7 +133,10 @@ aapt2 dump badging <release-apk>
   direct-boot-aware fallback receiver/service, and post-unlock one-shot cleanup.
   The full Room/DataStore/challenge/custom-audio alarm flow remains
   credential-encrypted and post-unlock.
-- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.5`.
+- Local support export shipped on 2026-05-17: Settings creates a local ZIP with
+  crash logs, redacted alarm diagnostics, wake-readiness state, and version/device
+  metadata. It is user-initiated sharing only, with no telemetry upload.
+- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.6`.
 
 ## Active Roadmap
 
@@ -140,8 +146,8 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Add local crash/support export.
-2. Add sleep/wake analytics charts after the Health Connect integration.
+1. Add sleep/wake analytics charts after the Health Connect integration.
+2. Add on-device actigraphy buckets and smart-wake follow-up work.
 
 ## Research Artifacts
 

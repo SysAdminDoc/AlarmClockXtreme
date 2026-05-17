@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.Intent
 import android.os.Build
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
@@ -101,6 +103,7 @@ import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
+import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
@@ -126,6 +129,8 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val supportExportResult by viewModel.supportExportResult.collectAsStateWithLifecycle()
+    val supportExportBusy by viewModel.supportExportBusy.collectAsStateWithLifecycle()
 
     // v1.7.1: Re-check battery-optimisation status whenever the user returns
     // to this screen — most commonly after they bounced out to the system
@@ -149,6 +154,7 @@ fun SettingsScreen(
     var showTemperatureMenu by remember { mutableStateOf(false) }
     var showCalendarLeadMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val screenScope = rememberCoroutineScope()
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
@@ -166,6 +172,20 @@ fun SettingsScreen(
         })
     } else {
         null
+    }
+    fun shareSupportExport(export: SupportExportFile) {
+        val sendIntent = Intent(Intent.ACTION_SEND).apply {
+            type = export.mimeType
+            putExtra(Intent.EXTRA_STREAM, export.uri)
+            putExtra(Intent.EXTRA_SUBJECT, "AlarmClockXtreme support bundle")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            context.startActivity(Intent.createChooser(sendIntent, "Share support bundle"))
+        } catch (_: Exception) {
+            viewModel.setSupportExportShareFailed()
+            Toast.makeText(context, "No app is available to share this file.", Toast.LENGTH_SHORT).show()
+        }
     }
 
     Column(
@@ -465,6 +485,71 @@ fun SettingsScreen(
                         context.startActivity(intent)
                     }
                 )
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
+                UtilityShortcutCard(
+                    icon = Icons.Default.BugReport,
+                    title = "Export support bundle",
+                    description = if (supportExportBusy) {
+                        "Packaging local crash logs and redacted diagnostics..."
+                    } else {
+                        "Share local crash logs plus redacted version, device, and alarm diagnostics."
+                    },
+                    onClick = {
+                        if (!supportExportBusy) {
+                            screenScope.launch {
+                                viewModel.createSupportExport()
+                                    .onSuccess { export -> shareSupportExport(export) }
+                            }
+                        }
+                    }
+                )
+            }
+
+            if (supportExportBusy) {
+                AppSurfaceCard(highlighted = true) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Packaging support bundle",
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
+            supportExportResult?.let { message ->
+                AppSurfaceCard(highlighted = !message.contains("failed", ignoreCase = true)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            modifier = Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = if (message.contains("failed", ignoreCase = true)) Icons.Default.Warning else Icons.Default.BugReport,
+                                contentDescription = null,
+                                tint = if (message.contains("failed", ignoreCase = true)) AccentRed else DismissGreen
+                            )
+                            Text(message, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        IconButton(onClick = viewModel::clearSupportExportResult) {
+                            Icon(Icons.Default.Close, null, tint = TextMuted)
+                        }
+                    }
+                }
             }
 
             SettingsGroup(

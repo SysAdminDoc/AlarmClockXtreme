@@ -34,7 +34,9 @@ in `PRIORITIZATION_MATRIX.md`; active roadmap order is in `ROADMAP.md`.
 - Add Android 15 foreground-service timeout audit for `dataSync` and
   media-processing paths.
 - Add app standby/battery optimization troubleshooting export.
-- Add crash log export/share from Settings.
+- Add crash log export/share from Settings. Status: shipped v1.13.6 as a
+  local support ZIP with crash logs plus redacted version/device/alarm
+  diagnostics and no telemetry upload.
 - Tighten Hue v2 TLS by pinning bridge identity or Signify trust material.
 - Add backup-export warning when optional secrets/integration URLs are present.
 

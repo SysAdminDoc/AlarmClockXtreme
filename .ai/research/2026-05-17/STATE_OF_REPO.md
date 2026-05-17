@@ -87,6 +87,10 @@ Manifest evidence from `app/src/main/AndroidManifest.xml`:
   through `DirectBootAlarmCache`, `DirectBootAlarmReceiver`, and
   `DirectBootAlarmService`. The full Room/DataStore/custom-audio/challenge
   flow remains credential-encrypted and post-unlock.
+- Settings now has a v1.13.6 local support export action that packages
+  FileProvider-backed ZIPs from cache. Bundles include crash logs, app/device
+  wake-readiness diagnostics, aggregate alarm stats, and redacted alarm metadata
+  without telemetry.
 - Health Connect permission is not declared yet, which matches the v1.13.1
   scaffold-only state.
 
