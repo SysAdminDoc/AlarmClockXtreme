@@ -12,7 +12,7 @@ known drift, and the active research plan. Tool-specific instructions remain in
 - Repo: `C:\Users\--\repos\AlarmClockXtreme`
 - Remote: `https://github.com/SysAdminDoc/AlarmClockXtreme.git`
 - Branch at latest update: `main`, tracking `origin/main`
-- App version: `versionName = "1.13.3"`, `versionCode = 68`
+- App version: `versionName = "1.13.4"`, `versionCode = 69`
 - Android targets: `compileSdk = 36`, `targetSdk = 35`, `minSdk = 26`
 - Database: Room `AlarmDatabase` version 10 with `exportSchema = true`
 - Backup format: v8
@@ -63,7 +63,8 @@ Preserve these principles:
   high-leverage trust surface: reliability, permissions, Health Connect, Hue,
   backup, and integration controls.
 - `wear/src/main/java/...`
-  Wear tile and companion behavior. Maintain version parity with `:app`.
+  Wear tile, next-alarm complication data source, and companion behavior.
+  Maintain version parity with `:app`.
 
 ## Release And Verification Commands
 
@@ -116,7 +117,10 @@ aapt2 dump badging <release-apk>
   or encrypted backups that include configured webhook URLs, Hue details,
   custom feed URLs, stream URLs, local media/photo URIs, Wi-Fi/location/contact
   details, or NFC/barcode challenge values.
-- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.3`.
+- Wear glanceable surfaces expanded on 2026-05-17: the Wear module now exposes
+  a modern AndroidX next-alarm complication data source alongside the existing
+  tile, and Data Layer updates request both tile and complication refreshes.
+- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.4`.
 
 ## Active Roadmap
 
@@ -126,8 +130,8 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Add Wear OS next-alarm complication data source.
-2. Prototype Direct Boot minimum alarm support.
+1. Prototype Direct Boot minimum alarm support.
+2. Add local crash/support export.
 
 ## Research Artifacts
 

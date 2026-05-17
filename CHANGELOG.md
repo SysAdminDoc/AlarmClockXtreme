@@ -2,6 +2,26 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.13.4] - 2026-05-17
+
+Wear next-alarm complication pass (roadmap X3).
+
+### Added
+
+- Wear module now exposes a `NextAlarmComplicationDataSourceService` for
+  compatible watch-face complication slots. It supports `SHORT_TEXT` and
+  `LONG_TEXT`, uses the same cached next-alarm snapshot as the Wear tile, and
+  provides preview data for watch-face pickers.
+- Wear Data Layer updates now request both tile and complication refreshes when
+  the phone publishes a new next-alarm snapshot.
+- Added AndroidX Wear Watchface complication data-source dependency
+  `androidx.wear.watchface:watchface-complications-data-source-ktx:1.3.0`.
+
+### Changed
+
+- Bumped to `versionName = "1.13.4"`, `versionCode = 69`. README badge,
+  install command, roadmap snapshot, Wear module, and F-Droid metadata synced.
+
 ## [1.13.3] - 2026-05-17
 
 Backup-export trust pass (roadmap X2).
