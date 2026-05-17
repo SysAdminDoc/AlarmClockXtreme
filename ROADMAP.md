@@ -1,10 +1,10 @@
 # AlarmClockXtreme Roadmap
 
 Living feature backlog, refreshed alongside **v1.13.1** (Health Connect
-opt-in scaffold + privacy-policy update — completing the v1.12 cycle;
-see [CHANGELOG.md](CHANGELOG.md)). Last audit: **2026-05-16** —
-external scan against current OSS / commercial alarm-clock ecosystem,
-Android 16 / 17 platform direction, and Play Console policy changes.
+opt-in scaffold + privacy-policy update; see [CHANGELOG.md](CHANGELOG.md)).
+Deep research refresh: **2026-05-17**. Durable research artifacts live in
+[.ai/research/2026-05-17](.ai/research/2026-05-17), and consolidated project
+memory lives in [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md).
 
 This is the "what's left" companion to [CLAUDE.md](CLAUDE.md). Entries are
 ranked by impact-to-effort and grouped by theme.
@@ -40,6 +40,70 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
+## 2026-05-17 Deep Research Refresh
+
+This section supersedes the older v1.12/v1.13 candidate queue below. The older
+queue is retained for traceability because it records shipped items and source
+links.
+
+### Hard Findings From Local Evidence
+
+- `.github/workflows/release.yml` builds `assembleDebug` on tag pushes, while
+  the release notes below previously implied a signed multi-flavor release
+  workflow. Treat signed release automation as unshipped.
+- `PRIVACY_POLICY.html` now has Health Connect language, but its broader
+  network/data-flow text is stale relative to current optional surfaces:
+  Nager.Date, NWS, Windy, RSS/news, webhooks, Hue LAN, internet radio, YouTube
+  resolution/downloads, local crash logs, and future Health Connect reads.
+- `metadata/com.sysadmindoc.alarmclock.yml` and `metadata/en-US/fdroid.yml`
+  still describe much older app versions while Gradle/README/CHANGELOG are
+  v1.13.1.
+- Room is v10 with `exportSchema = true`; this research run generated and adds
+  the missing v10 schema export. The remaining gap is an automated migration and
+  schema-export gate for future DB changes.
+- The Play flavor dependency tree pulls `youtubedl-android:0.18.1` transitives
+  with OSV advisories: Jackson 2.11.1, Commons Compress 1.12, Commons IO 2.5,
+  and Rhino 1.8.0. The F-Droid flavor excludes this path.
+- The Health Connect feature is an opt-in scaffold only: DataStore + settings +
+  backup copy exist, but the SDK dependency, manifest permission, permission
+  prompt, repository, and Bedtime/Stats reads are not wired.
+- Latest local tag is `v1.9.5`; current app version is `v1.13.1`.
+
+### NOW - v1.13.2 Trust, Release, And Data-Safety Gate
+
+| # | Item | Evidence | Effort | Rationale |
+|---|------|----------|--------|-----------|
+| R1 | [ ] Privacy policy and data-safety reconciliation. Enumerate all current optional network/data surfaces, distinguish developer collection from user-triggered third-party requests, and align Health Connect language before SDK access ships. | local: `PRIVACY_POLICY.html`, `README.md`, `SettingsScreen.kt`; [Play Health Connect publishing](https://developer.android.com/health-and-fitness/health-connect/publish), [Play sensitive permissions policy](https://support.google.com/googleplay/android-developer/answer/9888170) | S | This is the highest-trust gap because Health Connect policy review and broad data-safety claims depend on accurate public language. |
+| R2 | [ ] Repair release automation. Tag builds must produce signed `playRelease`, `fdroidRelease`, and Wear artifacts or a documented Wear packaging path; upload SHA-256 hashes and avoid debug APK uploads. | local: `.github/workflows/release.yml`; prior release memory; [Android build release docs](https://developer.android.com/build/releases/gradle-plugin) | M | The current workflow builds debug APKs. Release trust must precede more feature shipping. |
+| R3 | [ ] Refresh F-Droid metadata and anti-feature declarations. Bring `metadata/*.yml` to current version/code and describe optional network surfaces accurately. | local: `metadata/com.sysadmindoc.alarmclock.yml`, `metadata/en-US/fdroid.yml`; [F-Droid Anti-Features](https://f-droid.org/en/docs/Anti-Features/) | S | The repo currently advertises old versions and stale anti-feature language. |
+| R4 | [~] Add Room migration/schema gate. The generated v10 schema export is included in this research changeset; next add migration/fresh-install parity tests and CI checks that fail when schema exports drift. | local: `AlarmDatabase.kt`, `DatabaseModule.kt`, `app/schemas`; [Room release notes](https://developer.android.com/jetpack/androidx/releases/room) | S | The immediate schema artifact gap is closed; the durable prevention gate still needs implementation. |
+| R5 | [ ] Mitigate Play-only downloader dependency risk. Either constrain vulnerable transitives, isolate downloader execution, or replace the update model; add an OSV-capable dependency audit job. | local: `app/build.gradle.kts`, Play dependency tree; [OSV API](https://api.osv.dev/v1/querybatch), [NewPipeExtractor releases](https://github.com/TeamNewPipe/NewPipeExtractor/releases), [yt-dlp](https://github.com/yt-dlp/yt-dlp) | M | OSV reports multiple advisories in downloader transitives. Alarm-critical runtime should not inherit avoidable parser/archive risk. |
+| R6 | [ ] Clean factual doc drift in README/CLAUDE and release notes. Update DB/challenge counts and make `PROJECT_CONTEXT.md` the canonical session-start memory. | local: `README.md`, ignored `CLAUDE.md`, `PROJECT_CONTEXT.md` | S | Reduces future agent mistakes and keeps public docs aligned with live code. |
+
+### NEXT - Product Differentiation After The Trust Gate
+
+| # | Item | Evidence | Effort | Rationale |
+|---|------|----------|--------|-----------|
+| X1 | [ ] Complete Health Connect sleep-session SDK integration behind the Play flavor. Request only `READ_SLEEP`, read recent `SleepSessionRecord` windows, and surface local-only summaries in Bedtime/Stats. | [Track sleep sessions](https://developer.android.com/health-and-fitness/guides/health-connect/develop/sleep-sessions), [Develop sleep experiences](https://developer.android.com/health-and-fitness/health-connect/experiences/sleep) | M | Best next user-value feature after policy/docs are accurate. |
+| X2 | [ ] Backup-export warning when configured secrets or private integration URLs are present. | local: `BackupManager.kt`, `SettingsScreen.kt` | S | Trust-critical and small. Warn before exporting webhooks, Hue keys, feeds, or local paths. |
+| X3 | [ ] Wear OS next-alarm complication data source. | [Wear complications](https://developer.android.com/training/wearables/exposing-data-complications), [Wear Tiles](https://developer.android.com/training/wearables/tiles) | M | Builds on the existing Wear tile and fills a common glanceable-surface expectation. |
+| X4 | [ ] Direct Boot minimum alarm support design and prototype. Keep only the minimum schedule/ringtone/defaults in device-encrypted storage. | [Direct Boot docs](https://developer.android.com/privacy-and-security/direct-boot) | L | High reliability value, but requires careful storage separation and recovery UX. |
+| X5 | [ ] Local crash/support export. Add a Settings action to package local crash logs and version/device alarm diagnostics without telemetry. | local: `CrashLogger.kt`, Settings reliability cards | S | Improves support while preserving no-tracking posture. |
+| X6 | [ ] Sleep/wake analytics charts after Health Connect lands. Correlate sleep duration, snooze count, dismiss time, wake-streak, and challenge retries locally. | Health Connect docs; local Room/DataStore history | M | Competes with commercial insight surfaces without cloud upload. |
+
+### Research Packet
+
+- State of repo: [.ai/research/2026-05-17/STATE_OF_REPO.md](.ai/research/2026-05-17/STATE_OF_REPO.md)
+- Memory reconciliation: [.ai/research/2026-05-17/MEMORY_CONSOLIDATION.md](.ai/research/2026-05-17/MEMORY_CONSOLIDATION.md)
+- Sources: [.ai/research/2026-05-17/SOURCE_REGISTER.md](.ai/research/2026-05-17/SOURCE_REGISTER.md)
+- Competitors: [.ai/research/2026-05-17/COMPETITOR_MATRIX.md](.ai/research/2026-05-17/COMPETITOR_MATRIX.md)
+- Raw backlog: [.ai/research/2026-05-17/FEATURE_BACKLOG.md](.ai/research/2026-05-17/FEATURE_BACKLOG.md)
+- Prioritization: [.ai/research/2026-05-17/PRIORITIZATION_MATRIX.md](.ai/research/2026-05-17/PRIORITIZATION_MATRIX.md)
+- Security/dependencies: [.ai/research/2026-05-17/SECURITY_AND_DEPENDENCY_REVIEW.md](.ai/research/2026-05-17/SECURITY_AND_DEPENDENCY_REVIEW.md)
+- Data/model/integrations: [.ai/research/2026-05-17/DATASET_MODEL_INTEGRATION_REVIEW.md](.ai/research/2026-05-17/DATASET_MODEL_INTEGRATION_REVIEW.md)
+
+---
+
 ## Current snapshot (v1.13.1)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
@@ -64,7 +128,10 @@ ranked by impact-to-effort and grouped by theme.
 
 ---
 
-## NOW — v1.12 candidates
+## Historical NOW - v1.12/v1.13 Shipped Cycle
+
+This older queue is retained for traceability. Use the 2026-05-17 section above
+for active priority order.
 
 Highest impact-to-effort with the existing stack. Each is scoped to land
 without breaking schema or flavor parity; schema-changing items call that out
@@ -324,7 +391,7 @@ Items that need scoping or platform readiness before they earn a tier.
 
 ### Distribution / packaging
 
-- Two flavors today: `play` (with YT downloader + Wear Data Layer), `fdroid` (without). Maintain parity on every other surface. CI workflow `release.yml` builds both via `gh release upload --clobber`.
+- Two flavors today: `play` (with YT downloader + Wear Data Layer), `fdroid` (without). Maintain parity on every other surface. 2026-05-17 audit note: current `.github/workflows/release.yml` still builds debug APKs only; signed multi-flavor release automation is tracked as R2 above.
 - F-Droid lint passes — anti-feature flag for the YT downloader is documented in `metadata/`. Re-verify on each release. Add explicit F-Droid anti-feature note for crash-log local files (L-DOC2).
 - AAB for Play Store, signed APK for GitHub Releases; never ship unsigned artifacts.
 - F-Droid users expect APK under **~40 MB**. Any TFLite-model or Matter-SDK work must respect this budget (downloadable models, not bundled).
