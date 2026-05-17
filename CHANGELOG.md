@@ -2,6 +2,30 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.13.6] - 2026-05-17
+
+Local support export pass (roadmap X5).
+
+### Added
+
+- Settings now includes an "Export support bundle" action that creates a
+  shareable local ZIP through a FileProvider. The app does not upload it.
+- Support bundles include `diagnostics.txt`, `alarms_redacted.csv`, and up to
+  10 newest local crash logs when present.
+- Diagnostics include app version/build, device/Android version, wake-readiness
+  checks, alarm counts, next trigger, and aggregate alarm-history stats.
+- Redacted alarm diagnostics omit alarm labels, custom media/content URIs,
+  internet-radio URLs, Spotify URIs, Hue/webhook secrets, Wi-Fi/location/contact
+  values, challenge reference values, and Health Connect records.
+- Added unit coverage for the support diagnostic redaction policy.
+
+### Changed
+
+- `CrashLogger` now exposes newest-first crash log files for local support
+  packaging while preserving the existing Settings/debug log read API.
+- Bumped to `versionName = "1.13.6"`, `versionCode = 71`. README badge,
+  install command, roadmap snapshot, Wear module, and F-Droid metadata synced.
+
 ## [1.13.5] - 2026-05-17
 
 Direct Boot minimum-alarm prototype (roadmap X4).

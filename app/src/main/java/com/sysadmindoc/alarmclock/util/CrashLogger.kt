@@ -50,7 +50,9 @@ object CrashLogger {
         }
 
         val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss-SSS", Locale.US).format(Date())
-        val file = File(dir, "crash_${timestamp}_${thread.id}.txt")
+        @Suppress("DEPRECATION")
+        val threadId = thread.id
+        val file = File(dir, "crash_${timestamp}_${threadId}.txt")
 
         val sw = StringWriter()
         val pw = PrintWriter(sw)
@@ -78,11 +80,19 @@ object CrashLogger {
      * Get all crash logs, newest first.
      */
     fun getLogs(context: Context): List<String> {
+        return getLogFiles(context).map { it.readText() }
+    }
+
+    /**
+     * Get crash log files, newest first. Support export uses the files so names
+     * and timestamps stay intact inside the generated bundle.
+     */
+    fun getLogFiles(context: Context): List<File> {
         val dir = File(context.filesDir, DIR_NAME)
         if (!dir.exists()) return emptyList()
         return dir.listFiles()
+            ?.filter { it.isFile }
             ?.sortedByDescending { it.lastModified() }
-            ?.map { it.readText() }
             ?: emptyList()
     }
 
