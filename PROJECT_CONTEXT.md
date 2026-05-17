@@ -1,0 +1,144 @@
+# AlarmClockXtreme Project Context
+
+Snapshot: 2026-05-17
+
+This is the canonical project context for future AI and maintainer sessions. It
+consolidates current repo state, durable architecture facts, release rules,
+known drift, and the active research plan. Tool-specific instructions remain in
+`AGENTS.md` and `CLAUDE.md`; this file is the shared project memory.
+
+## Current State
+
+- Repo: `C:\Users\--\repos\AlarmClockXtreme`
+- Remote: `https://github.com/SysAdminDoc/AlarmClockXtreme.git`
+- Branch at research time: `main`, clean, 13 commits ahead of `origin/main`
+- Head at research time: `3e9214c feat: Health Connect opt-in scaffold + privacy doc (N12+N13) - v1.13.1`
+- App version: `versionName = "1.13.1"`, `versionCode = 66`
+- Android targets: `compileSdk = 36`, `targetSdk = 35`, `minSdk = 26`
+- Database: Room `AlarmDatabase` version 10 with `exportSchema = true`
+- Backup format: v7 as documented in `CLAUDE.md` and `CHANGELOG.md`
+- Modules: `:app` phone app plus `:wear` Wear OS companion/tile module
+- Flavors: `play` includes YouTube downloader and Wear Data Layer; `fdroid`
+  excludes Play-specific/proprietary-adjacent dependencies
+
+## Product Stance
+
+AlarmClockXtreme is a privacy-first Android alarm clock for heavy sleepers and
+routine-driven users. The differentiator is not a minimal stock clock clone; it
+is a wake-reliability system with challenge dismissal, exact scheduling,
+wearable affordances, weather/news context, bedtime DND automation, backup, and
+transparent F-Droid/Play flavor boundaries.
+
+Preserve these principles:
+
+- No ads, tracking SDKs, accounts, or cloud-first architecture.
+- Keep alarm delivery reliable before adding wellness, analytics, or novelty.
+- Keep Play-only capabilities behind the `play` flavor and avoid contaminating
+  the F-Droid artifact.
+- Treat permissions, wake locks, foreground services, full-screen alarms, and
+  Health Connect as trust surfaces, not implementation details.
+- When schema, backup, or settings fields change, update tests, docs, and
+  migration/export artifacts in the same change set.
+
+## Architecture Map
+
+- `app/src/main/java/com/sysadmindoc/alarmclock/data/model/Alarm.kt`
+  Room entity and alarm field contract.
+- `app/src/main/java/com/sysadmindoc/alarmclock/data/local/AlarmDatabase.kt`
+  Room DB version and migrations. Current DB is v10 with `MIGRATION_9_10`.
+- `app/src/main/java/com/sysadmindoc/alarmclock/di/DatabaseModule.kt`
+  Hilt-provided singleton Room DB and migration registration.
+- `app/src/main/java/com/sysadmindoc/alarmclock/service/AlarmService.kt`
+  wake-critical alarm firing, foreground service, audio, vibration, challenge
+  handoff, snooze/dismiss behavior.
+- `app/src/main/java/com/sysadmindoc/alarmclock/receiver/*`
+  boot, exact-alarm permission, unlock/missed-alarm, and alarm event receivers.
+- `app/src/main/java/com/sysadmindoc/alarmclock/data/preferences/PreferencesManager.kt`
+  DataStore-backed `AppSettings`, including the v1.13.1 Health Connect opt-in
+  scaffold.
+- `app/src/main/java/com/sysadmindoc/alarmclock/data/backup/BackupManager.kt`
+  backup/restore contract and backup format v7.
+- `app/src/main/java/com/sysadmindoc/alarmclock/ui/settings/SettingsScreen.kt`
+  high-leverage trust surface: reliability, permissions, Health Connect, Hue,
+  backup, and integration controls.
+- `wear/src/main/java/...`
+  Wear tile and companion behavior. Maintain version parity with `:app`.
+
+## Release And Verification Commands
+
+Fast docs/change sanity:
+
+```powershell
+git diff --check
+```
+
+Core app verification:
+
+```powershell
+.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain
+```
+
+Release verification should not rely on `.github/workflows/release.yml` until
+that workflow is repaired. At research time it builds `assembleDebug` and uploads
+debug APKs for tags. Use the explicit signed-release path from prior release
+memory when shipping:
+
+```powershell
+.\gradlew.bat :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease --console=plain
+apksigner verify --print-certs <release-apk>
+aapt2 dump badging <release-apk>
+```
+
+## Active Risks Found On 2026-05-17
+
+- Release workflow drift: `.github/workflows/release.yml` builds debug APKs on
+  tags, not signed Play/F-Droid release artifacts.
+- F-Droid metadata drift: `metadata/*.yml` still points to old app versions
+  (`0.5.0` and `0.8.1`) while app/wear Gradle files are `1.13.1`.
+- Privacy policy drift: `PRIVACY_POLICY.html` has an accurate Health Connect
+  section, but the broader network-disclosure text still reflects an older
+  Open-Meteo-only app and does not enumerate Nager.Date, NWS, Windy, RSS/news,
+  Hue LAN, webhooks, internet radio, YouTube download resolution, or local crash
+  logs.
+- Room schema discipline gap found during reconnaissance: current DB version was
+  10 and `app/schemas` lacked the v10 export. This changeset adds the generated
+  v10 schema; the remaining gap is an automated migration/schema gate.
+- Dependency risk: the Play flavor dependency tree pulls old downloader
+  transitive dependencies through `youtubedl-android:0.18.1`, including
+  `jackson-* 2.11.1`, `commons-compress 1.12`, `commons-io 2.5`, and
+  `rhino 1.8.0`; OSV reports multiple known advisories for those coordinates.
+- Metadata/docs drift: `README.md` still says "Room DB v8" and "19 challenge
+  views" while live code and roadmap identify DB v10 and 22 challenge types.
+- Instruction drift: repo `CLAUDE.md` correctly says DB v10 at the top but still
+  has older path notes saying Room DB v6 and 19 challenge types. `CLAUDE.md` is
+  ignored by `.gitignore`, so do not treat it as the only durable source.
+- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.1`.
+
+## Active Roadmap
+
+The active prioritized plan lives in `ROADMAP.md`. The full research packet for
+the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
+
+Start the next implementation pass with these top candidates unless newer
+evidence changes the order:
+
+1. Fix privacy-policy and Play/F-Droid data-safety drift.
+2. Repair release automation so tag builds produce signed Play/F-Droid release
+   artifacts and Wear artifacts, not debug APKs.
+3. Refresh F-Droid metadata and anti-feature language.
+4. Add migration-test and schema-export gates for future Room changes.
+5. Isolate or replace vulnerable Play-only downloader transitive dependencies.
+6. Complete the Health Connect sleep-session SDK path behind the Play flavor.
+
+## Research Artifacts
+
+- `.ai/research/2026-05-17/STATE_OF_REPO.md`
+- `.ai/research/2026-05-17/MEMORY_CONSOLIDATION.md`
+- `.ai/research/2026-05-17/SOURCE_REGISTER.md`
+- `.ai/research/2026-05-17/RESEARCH_LOG.md`
+- `.ai/research/2026-05-17/COMPETITOR_MATRIX.md`
+- `.ai/research/2026-05-17/FEATURE_BACKLOG.md`
+- `.ai/research/2026-05-17/PRIORITIZATION_MATRIX.md`
+- `.ai/research/2026-05-17/SECURITY_AND_DEPENDENCY_REVIEW.md`
+- `.ai/research/2026-05-17/DATASET_MODEL_INTEGRATION_REVIEW.md`
+- `.ai/research/2026-05-17/CHANGESET_SUMMARY.md`
