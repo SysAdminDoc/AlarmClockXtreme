@@ -88,3 +88,9 @@
 # NewPipe extractor uses Jsoup; keep its public API.
 -keep class org.jsoup.** { *; }
 -dontwarn org.jsoup.**
+
+# ===== Play downloader transitive hardening =====
+# Commons Compress references optional Zstandard classes; the app's downloader
+# path does not create Zstandard streams, and adding zstd-jni would ship native
+# code that is not needed for alarm audio downloads.
+-dontwarn com.github.luben.zstd.**

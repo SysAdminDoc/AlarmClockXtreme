@@ -101,10 +101,11 @@ aapt2 dump badging <release-apk>
 - Room schema discipline was hardened on 2026-05-17: current DB version is 10,
   v10 schema is committed, `AlarmDatabaseMigrationTest` covers migration and
   fresh-install/schema parity, and Android CI fails if `app/schemas` drifts.
-- Dependency risk: the Play flavor dependency tree pulls old downloader
-  transitive dependencies through `youtubedl-android:0.18.1`, including
-  `jackson-* 2.11.1`, `commons-compress 1.12`, `commons-io 2.5`, and
-  `rhino 1.8.0`; OSV reports multiple known advisories for those coordinates.
+- Dependency risk was mitigated on 2026-05-17: the Play flavor constrains the
+  downloader graph to `jackson-* 2.18.6`, `commons-compress 1.28.0`,
+  `commons-io 2.20.0`, `rhino 1.8.1`, plus Play-only `org.tukaani:xz:1.10`;
+  `scripts/osv_gradle_audit.py` and Android CI now query OSV against the
+  resolved Play release runtime classpath.
 - Instruction drift: repo `CLAUDE.md` correctly says DB v10 at the top but still
   has older path notes saying Room DB v6 and 19 challenge types. `CLAUDE.md` is
   ignored by `.gitignore`, so do not treat it as the only durable source.
@@ -118,7 +119,7 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Isolate or replace vulnerable Play-only downloader transitive dependencies.
+1. Resolve the remaining R6 doc-drift decision for ignored local `CLAUDE.md`.
 2. Complete Health Connect sleep-session SDK path behind the Play flavor after
    Play Console health-permission review is ready.
 

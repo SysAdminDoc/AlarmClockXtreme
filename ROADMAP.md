@@ -58,9 +58,11 @@ links.
   preference until the SDK path ships.
 - Room is v10 with `exportSchema = true`; the v1.13.2 schema-gate pass added
   migration instrumentation tests and CI schema-drift checks.
-- The Play flavor dependency tree pulls `youtubedl-android:0.18.1` transitives
-  with OSV advisories: Jackson 2.11.1, Commons Compress 1.12, Commons IO 2.5,
-  and Rhino 1.8.0. The F-Droid flavor excludes this path.
+- The Play flavor downloader dependency tree was constrained in the v1.13.2
+  dependency-hardening pass: Jackson 2.18.6, Commons Compress 1.28.0, Commons
+  IO 2.20.0, Rhino 1.8.1, and Play-only XZ support now resolve cleanly through
+  the local OSV audit script and CI dependency-audit job. The F-Droid flavor
+  still excludes this path.
 - The Health Connect feature is an opt-in scaffold only: DataStore + settings +
   backup copy exist, but the SDK dependency, manifest permission, permission
   prompt, repository, and Bedtime/Stats reads are not wired.
@@ -74,7 +76,7 @@ links.
 | R2 | [x] Repair release automation — **shipped v1.13.2 automation pass.** Tag builds now require signing secrets, build signed `playRelease`, `fdroidRelease`, and `:wear:assembleRelease`, reject tag/version mismatches, verify APK signatures and badging, upload workflow artifacts, and attach APKs plus `SHA256SUMS.txt` to GitHub Releases. | local: `.github/workflows/release.yml`; prior release memory; [Android build release docs](https://developer.android.com/build/releases/gradle-plugin) | M | Release tags no longer publish debug APKs. |
 | R3 | [x] Refresh F-Droid metadata and anti-feature declarations — **shipped v1.13.2 docs pass.** Both metadata files now point to version `1.13.1` / code `66`, describe the F-Droid flavor exclusions, and disclose optional network surfaces under `NonFreeNet`. | local: `metadata/com.sysadmindoc.alarmclock.yml`, `metadata/en-US/fdroid.yml`; [F-Droid Anti-Features](https://f-droid.org/en/docs/Anti-Features/) | S | Current repo metadata no longer advertises old app versions or Open-Meteo-only network language. |
 | R4 | [x] Add Room migration/schema gate — **shipped v1.13.2 schema-gate pass.** Added `AlarmDatabase.ALL_MIGRATIONS`, Android instrumentation tests for earliest-exported-schema→latest, 9→10 defaulting, fresh-install/schema parity, and migration contiguity. Added `.github/workflows/android-ci.yml` to run unit tests/debug builds, fail on uncommitted `app/schemas` drift, and run the Room migration tests on an emulator. | local: `AlarmDatabase.kt`, `DatabaseModule.kt`, `AlarmDatabaseMigrationTest.kt`, `app/schemas`, `.github/workflows/android-ci.yml`; [Room release notes](https://developer.android.com/jetpack/androidx/releases/room) | S | Future DB bumps now have both migration validation and an exported-schema commit gate. |
-| R5 | [ ] Mitigate Play-only downloader dependency risk. Either constrain vulnerable transitives, isolate downloader execution, or replace the update model; add an OSV-capable dependency audit job. | local: `app/build.gradle.kts`, Play dependency tree; [OSV API](https://api.osv.dev/v1/querybatch), [NewPipeExtractor releases](https://github.com/TeamNewPipe/NewPipeExtractor/releases), [yt-dlp](https://github.com/yt-dlp/yt-dlp) | M | OSV reports multiple advisories in downloader transitives. Alarm-critical runtime should not inherit avoidable parser/archive risk. |
+| R5 | [x] Mitigate Play-only downloader dependency risk - **shipped v1.13.2 dependency-hardening pass.** Added Play-only constraints for stale downloader transitives (`jackson-* 2.18.6`, `commons-compress 1.28.0`, `commons-io 2.20.0`, `rhino 1.8.1`), added Play-only `org.tukaani:xz:1.10` support for release shrinking, documented the optional Commons Compress Zstandard warning in R8 rules, and added `scripts/osv_gradle_audit.py` plus a CI dependency-audit job. | local: `app/build.gradle.kts`, `app/proguard-rules.pro`, `scripts/osv_gradle_audit.py`, `.github/workflows/android-ci.yml`; [OSV API](https://api.osv.dev/v1/querybatch), [NewPipeExtractor releases](https://github.com/TeamNewPipe/NewPipeExtractor/releases), [yt-dlp](https://github.com/yt-dlp/yt-dlp) | M | `playDebugRuntimeClasspath` and `playReleaseRuntimeClasspath` now report no OSV vulnerabilities for resolved Maven dependencies; the release R8 path passes with a temporary signing key. |
 | R6 | [~] Clean factual doc drift in README/CLAUDE and release notes. README and `PROJECT_CONTEXT.md` now reflect DB v10, 22 challenge flows, backup format v7, and the current data-flow posture. Remaining: decide whether to force-add or leave ignored local `CLAUDE.md` untouched. | local: `README.md`, ignored `CLAUDE.md`, `PROJECT_CONTEXT.md` | S | Reduces future agent mistakes and keeps public docs aligned with live code. |
 
 ### NEXT - Product Differentiation After The Trust Gate
@@ -388,7 +390,7 @@ Items that need scoping or platform readiness before they earn a tier.
 
 ### Distribution / packaging
 
-- Two flavors today: `play` (with YT downloader + Wear Data Layer), `fdroid` (without). Maintain parity on every other surface. 2026-05-17 audit note: `.github/workflows/release.yml` now builds signed Play/F-Droid/Wear release artifacts and uploads SHA-256 hashes on tags.
+- Two flavors today: `play` (with YT downloader + Wear Data Layer), `fdroid` (without). Maintain parity on every other surface. 2026-05-17 audit note: `.github/workflows/release.yml` now builds signed Play/F-Droid/Wear release artifacts and uploads SHA-256 hashes on tags; `.github/workflows/android-ci.yml` runs an OSV audit against the resolved Play release runtime classpath.
 - F-Droid lint passes — anti-feature flag for the YT downloader is documented in `metadata/`. Re-verify on each release. Add explicit F-Droid anti-feature note for crash-log local files (L-DOC2).
 - AAB for Play Store, signed APK for GitHub Releases; never ship unsigned artifacts.
 - F-Droid users expect APK under **~40 MB**. Any TFLite-model or Matter-SDK work must respect this budget (downloadable models, not bundled).

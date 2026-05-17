@@ -187,6 +187,37 @@ dependencies {
     // Wear OS Data Layer bridge (play flavor only). F-Droid keeps the wearable
     // bridge as a no-op because Play Services is proprietary.
     "playImplementation"("com.google.android.gms:play-services-wearable:20.0.1")
+    // Commons Compress 1.28.0 references XZ stream classes during release
+    // shrinking; keep the support library Play-only with the downloader graph.
+    "playImplementation"("org.tukaani:xz:1.10")
+
+    constraints {
+        // v1.13.2 (R5): youtubedl-android 0.18.1 and NewPipeExtractor 0.24.8
+        // still resolve stale parser/archive transitives. Keep these as
+        // constraints, not direct feature dependencies, so F-Droid remains free
+        // of the Play-only downloader graph.
+        "playImplementation"("com.fasterxml.jackson.core:jackson-databind:2.18.6") {
+            because("OSV reports advisories against the youtubedl-android transitive 2.11.1")
+        }
+        "playImplementation"("com.fasterxml.jackson.core:jackson-core:2.18.6") {
+            because("Keep Jackson modules aligned with constrained jackson-databind")
+        }
+        "playImplementation"("com.fasterxml.jackson.core:jackson-annotations:2.18.6") {
+            because("Keep Jackson modules aligned with constrained jackson-databind")
+        }
+        "playImplementation"("org.apache.commons:commons-compress:1.28.0") {
+            because("OSV reports multiple advisories against the youtubedl-android transitive 1.12")
+        }
+        "playImplementation"("commons-io:commons-io:2.20.0") {
+            because("OSV reports advisories against the youtubedl-android transitive 2.5")
+        }
+        "playImplementation"("org.mozilla:rhino:1.8.1") {
+            because("OSV GHSA-3w8q-xq97-5j7x fixes the NewPipe transitive 1.8.0 in 1.8.1")
+        }
+        "playImplementation"("org.mozilla:rhino-engine:1.8.1") {
+            because("Keep Rhino engine aligned with constrained Rhino runtime")
+        }
+    }
 
     // Testing
     testImplementation("junit:junit:4.13.2")
