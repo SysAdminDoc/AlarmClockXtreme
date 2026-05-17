@@ -48,9 +48,9 @@ links.
 
 ### Hard Findings From Local Evidence
 
-- `.github/workflows/release.yml` builds `assembleDebug` on tag pushes, while
-  the release notes below previously implied a signed multi-flavor release
-  workflow. Treat signed release automation as unshipped.
+- `.github/workflows/release.yml` was repaired in the v1.13.2 automation pass:
+  tag builds now require signing secrets, build signed Play/F-Droid/Wear release
+  APKs, verify signatures/metadata, and upload SHA-256 hashes.
 - `PRIVACY_POLICY.html`, README privacy text, Settings Health Connect copy, and
   F-Droid metadata were reconciled in the v1.13.2 docs pass. Current public
   language now distinguishes developer collection from direct optional
@@ -72,7 +72,7 @@ links.
 | # | Item | Evidence | Effort | Rationale |
 |---|------|----------|--------|-----------|
 | R1 | [x] Privacy policy and data-safety reconciliation — **shipped v1.13.2 docs pass.** `PRIVACY_POLICY.html`, README privacy text, and Settings Health Connect copy now enumerate optional network/data surfaces, distinguish developer collection from user-triggered third-party requests, and state that v1.13.1 stores only a local Health Connect opt-in preference until the SDK path ships. | local: `PRIVACY_POLICY.html`, `README.md`, `SettingsScreen.kt`; [Play Health Connect publishing](https://developer.android.com/health-and-fitness/health-connect/publish), [Play sensitive permissions policy](https://support.google.com/googleplay/android-developer/answer/9888170) | S | This closes the highest-trust documentation gap before requesting Health Connect review. |
-| R2 | [ ] Repair release automation. Tag builds must produce signed `playRelease`, `fdroidRelease`, and Wear artifacts or a documented Wear packaging path; upload SHA-256 hashes and avoid debug APK uploads. | local: `.github/workflows/release.yml`; prior release memory; [Android build release docs](https://developer.android.com/build/releases/gradle-plugin) | M | The current workflow builds debug APKs. Release trust must precede more feature shipping. |
+| R2 | [x] Repair release automation — **shipped v1.13.2 automation pass.** Tag builds now require signing secrets, build signed `playRelease`, `fdroidRelease`, and `:wear:assembleRelease`, reject tag/version mismatches, verify APK signatures and badging, upload workflow artifacts, and attach APKs plus `SHA256SUMS.txt` to GitHub Releases. | local: `.github/workflows/release.yml`; prior release memory; [Android build release docs](https://developer.android.com/build/releases/gradle-plugin) | M | Release tags no longer publish debug APKs. |
 | R3 | [x] Refresh F-Droid metadata and anti-feature declarations — **shipped v1.13.2 docs pass.** Both metadata files now point to version `1.13.1` / code `66`, describe the F-Droid flavor exclusions, and disclose optional network surfaces under `NonFreeNet`. | local: `metadata/com.sysadmindoc.alarmclock.yml`, `metadata/en-US/fdroid.yml`; [F-Droid Anti-Features](https://f-droid.org/en/docs/Anti-Features/) | S | Current repo metadata no longer advertises old app versions or Open-Meteo-only network language. |
 | R4 | [~] Add Room migration/schema gate. The generated v10 schema export is included in this research changeset; next add migration/fresh-install parity tests and CI checks that fail when schema exports drift. | local: `AlarmDatabase.kt`, `DatabaseModule.kt`, `app/schemas`; [Room release notes](https://developer.android.com/jetpack/androidx/releases/room) | S | The immediate schema artifact gap is closed; the durable prevention gate still needs implementation. |
 | R5 | [ ] Mitigate Play-only downloader dependency risk. Either constrain vulnerable transitives, isolate downloader execution, or replace the update model; add an OSV-capable dependency audit job. | local: `app/build.gradle.kts`, Play dependency tree; [OSV API](https://api.osv.dev/v1/querybatch), [NewPipeExtractor releases](https://github.com/TeamNewPipe/NewPipeExtractor/releases), [yt-dlp](https://github.com/yt-dlp/yt-dlp) | M | OSV reports multiple advisories in downloader transitives. Alarm-critical runtime should not inherit avoidable parser/archive risk. |
@@ -389,7 +389,7 @@ Items that need scoping or platform readiness before they earn a tier.
 
 ### Distribution / packaging
 
-- Two flavors today: `play` (with YT downloader + Wear Data Layer), `fdroid` (without). Maintain parity on every other surface. 2026-05-17 audit note: current `.github/workflows/release.yml` still builds debug APKs only; signed multi-flavor release automation is tracked as R2 above.
+- Two flavors today: `play` (with YT downloader + Wear Data Layer), `fdroid` (without). Maintain parity on every other surface. 2026-05-17 audit note: `.github/workflows/release.yml` now builds signed Play/F-Droid/Wear release artifacts and uploads SHA-256 hashes on tags.
 - F-Droid lint passes — anti-feature flag for the YT downloader is documented in `metadata/`. Re-verify on each release. Add explicit F-Droid anti-feature note for crash-log local files (L-DOC2).
 - AAB for Play Store, signed APK for GitHub Releases; never ship unsigned artifacts.
 - F-Droid users expect APK under **~40 MB**. Any TFLite-model or Matter-SDK work must respect this budget (downloadable models, not bundled).
