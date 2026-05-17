@@ -14,8 +14,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 35
-        versionCode = 68
-        versionName = "1.13.3"
+        versionCode = 69
+        versionName = "1.13.4"
     }
 
     signingConfigs {
@@ -67,6 +67,7 @@ dependencies {
     implementation("androidx.wear.protolayout:protolayout:1.4.0")
     implementation("androidx.wear.protolayout:protolayout-material3:1.4.0")
     implementation("androidx.wear.protolayout:protolayout-expression:1.4.0")
+    implementation("androidx.wear.watchface:watchface-complications-data-source-ktx:1.3.0")
     implementation("com.google.android.gms:play-services-wearable:20.0.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 

@@ -43,6 +43,9 @@ run. Claims in `ROADMAP.md` and sibling research notes should map back here.
 | L32 | `app/src/play/java/com/sysadmindoc/alarmclock/data/health/PlayHealthConnectSleepRepository.kt` | Play-only Health Connect READ_SLEEP implementation. |
 | L33 | `app/src/fdroid/java/com/sysadmindoc/alarmclock/data/health/FdroidHealthConnectSleepRepository.kt` | F-Droid no-op Health Connect implementation. |
 | L34 | `app/src/play/AndroidManifest.xml` | Play-only Health Connect READ_SLEEP manifest declaration. |
+| L35 | `wear/src/main/java/com/sysadmindoc/alarmclock/wear/NextAlarmComplicationDataSourceService.kt` | Wear next-alarm complication data source implementation. |
+| L36 | `wear/src/main/AndroidManifest.xml` | Wear tile and complication provider declarations. |
+| L37 | `wear/build.gradle.kts` | Wear Tiles, Protolayout, Data Layer, and complication dependencies. |
 
 ## Shared Memory And Instruction Sources
 
@@ -80,6 +83,7 @@ run. Claims in `ROADMAP.md` and sibling research notes should map back here.
 | E18 | https://developer.android.com/build/releases/gradle-plugin | Android Gradle plugin release notes. |
 | E19 | https://docs.gradle.org/8.13/release-notes.html | Gradle 8.13 release notes. |
 | E20 | https://f-droid.org/en/docs/Anti-Features/ | F-Droid anti-feature definitions. |
+| E21 | https://developer.android.com/jetpack/androidx/releases/wear-watchface | AndroidX Wear Watchface / complication data-source 1.3.0 release notes. |
 
 ## External Competitor And Ecosystem Sources
 
