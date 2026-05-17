@@ -64,3 +64,26 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: ./gradlew :app:connectedFdroidDebugAndroidTest --console=plain
+
+  dependency-audit:
+    name: OSV audit for Play runtime dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Query OSV for resolved Play runtime dependencies
+        run: python scripts/osv_gradle_audit.py --configuration playReleaseRuntimeClasspath

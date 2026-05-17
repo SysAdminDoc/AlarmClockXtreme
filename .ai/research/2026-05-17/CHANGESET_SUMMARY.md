@@ -148,3 +148,38 @@ Date: 2026-05-17
 - `adb devices` reported no attached device, so
   `connectedFdroidDebugAndroidTest` was not runnable locally; the new GitHub
   Actions emulator job is the execution gate for those tests.
+
+## Autonomous Roadmap Pass: R5 Play Downloader Dependency Hardening
+
+Date: 2026-05-17
+
+### Files Modified
+
+- `app/build.gradle.kts` - added Play-only constraints for stale downloader
+  transitives (`jackson-* 2.18.6`, `commons-compress 1.28.0`,
+  `commons-io 2.20.0`, `rhino 1.8.1`) and added Play-only `org.tukaani:xz:1.10`
+  to satisfy the constrained Commons Compress release during release shrinking.
+- `app/proguard-rules.pro` - documented and suppressed the unused optional
+  Commons Compress Zstandard class warning instead of shipping unnecessary
+  native Zstd code.
+- `scripts/osv_gradle_audit.py` - added a stdlib-only OSV batch-query audit for
+  resolved Gradle Maven dependencies.
+- `.github/workflows/android-ci.yml` - added a dependency-audit job that runs
+  the OSV script against `playReleaseRuntimeClasspath`.
+- `ROADMAP.md`, `PROJECT_CONTEXT.md`,
+  `.ai/research/2026-05-17/SECURITY_AND_DEPENDENCY_REVIEW.md`,
+  `.ai/research/2026-05-17/SOURCE_REGISTER.md`, and
+  `.ai/research/2026-05-17/RESEARCH_LOG.md` - recorded the R5 resolution and
+  current verification posture.
+
+### Verification
+
+- `python scripts\osv_gradle_audit.py --configuration playDebugRuntimeClasspath`
+  passed: 204 Maven dependencies resolved; no OSV vulnerabilities reported.
+- `python scripts\osv_gradle_audit.py --configuration playReleaseRuntimeClasspath`
+  passed: 199 Maven dependencies resolved; no OSV vulnerabilities reported.
+- `.\gradlew.bat :app:assemblePlayRelease --console=plain` passed with a
+  temporary local signing key after the release-shrinker fix. The ignored local
+  `keystore.properties` was restored afterward.
+- `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
+  passed.
