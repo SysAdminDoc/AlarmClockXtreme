@@ -27,6 +27,8 @@ import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "alarm_settings")
 
+const val DEFAULT_NEWS_FEED_URL = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
+
 data class AppSettings(
     val is24HourFormat: Boolean = false,
     val defaultSnoozeDuration: Int = 10,
@@ -116,7 +118,7 @@ data class AppSettings(
     // v1.8.0: News feed source URL. Defaults to Google News top stories,
     // but power users can paste any RSS/Atom URL — Rome handles all three
     // major feed flavors.
-    val newsFeedUrl: String = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+    val newsFeedUrl: String = DEFAULT_NEWS_FEED_URL,
     // v1.11.6 (roadmap N6): "Pause all alarms" single-tap suspend. Distinct
     // from vacation mode — vacation requires a start+end date and only
     // touches repeating alarms; this hard-suspends every alarm (one-shots
@@ -380,8 +382,7 @@ class PreferencesManager @Inject constructor(
         showWorldClockTab = this[Keys.SHOW_WORLD_CLOCK_TAB] ?: true,
         showNewsTab = this[Keys.SHOW_NEWS_TAB] ?: true,
         showRadarEmbed = this[Keys.SHOW_RADAR_EMBED] ?: true,
-        newsFeedUrl = this[Keys.NEWS_FEED_URL]
-            ?: "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en",
+        newsFeedUrl = this[Keys.NEWS_FEED_URL] ?: DEFAULT_NEWS_FEED_URL,
         pauseUntilMillis = this[Keys.PAUSE_UNTIL] ?: 0L,
         healthConnectEnabled = this[Keys.HEALTH_CONNECT_ENABLED] ?: false,
     )
