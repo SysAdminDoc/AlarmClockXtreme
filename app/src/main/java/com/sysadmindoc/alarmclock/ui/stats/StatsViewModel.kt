@@ -2,6 +2,8 @@ package com.sysadmindoc.alarmclock.ui.stats
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
@@ -15,13 +17,16 @@ data class StatsUiState(
     val stats: AlarmStats = AlarmStats(),
     val recentEvents: List<AlarmEvent> = emptyList(),
     val isLoading: Boolean = true,
-    val is24Hour: Boolean = false
+    val is24Hour: Boolean = false,
+    val healthConnectEnabled: Boolean = false,
+    val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary()
 )
 
 @HiltViewModel
 class StatsViewModel @Inject constructor(
     private val eventRepository: AlarmEventRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val healthConnectSleepRepository: HealthConnectSleepRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(StatsUiState())
@@ -47,7 +52,16 @@ class StatsViewModel @Inject constructor(
         // because the nav graph wasn't passing the parameter through).
         viewModelScope.launch {
             preferencesManager.settings.collect { settings ->
-                _uiState.value = _uiState.value.copy(is24Hour = settings.is24HourFormat)
+                _uiState.value = _uiState.value.copy(
+                    is24Hour = settings.is24HourFormat,
+                    healthConnectEnabled = settings.healthConnectEnabled
+                )
+                val summary = if (settings.healthConnectEnabled) {
+                    healthConnectSleepRepository.readRecentSleepSummary()
+                } else {
+                    HealthConnectSleepSummary()
+                }
+                _uiState.value = _uiState.value.copy(healthConnectSleepSummary = summary)
             }
         }
     }

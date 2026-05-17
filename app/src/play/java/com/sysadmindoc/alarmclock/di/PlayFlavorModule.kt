@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.di
 
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
+import com.sysadmindoc.alarmclock.data.health.PlayHealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.service.PlayYouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.PlayYouTubeDownloadInitializer
 import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
@@ -34,4 +36,10 @@ abstract class PlayFlavorBindings {
     @Binds
     @Singleton
     abstract fun bindWearNextAlarmBridge(impl: PlayWearNextAlarmBridge): WearNextAlarmBridge
+
+    @Binds
+    @Singleton
+    abstract fun bindHealthConnectSleepRepository(
+        impl: PlayHealthConnectSleepRepository
+    ): HealthConnectSleepRepository
 }

@@ -57,13 +57,13 @@ local tool notes conflict with tracked project evidence.
 
 | Claim | Location | Current Evidence | Disposition |
 |---|---|---|---|
-| Current version around v1.6.3 or v1.9.5 | shared memories | `app/build.gradle.kts`, `wear/build.gradle.kts`, `CHANGELOG.md` are v1.13.1 | Stale memory; use only for historical release workflow. |
+| Current version around v1.6.3 or v1.9.5 | shared memories | `app/build.gradle.kts`, `wear/build.gradle.kts`, `CHANGELOG.md` are v1.13.2 | Stale memory; use only for historical release workflow. |
 | Room DB v6 | `CLAUDE.md` path notes | `AlarmDatabase.kt` is version 10 | Stale ignored local memory; tracked docs now state DB v10. |
 | Room DB v8 | `README.md` architecture box | `AlarmDatabase.kt` is version 10 | Corrected in README / tracked context. |
 | 19 challenge types/views | `README.md`, `CLAUDE.md` path notes | `ROADMAP.md` and code describe 22 user-facing dismiss challenges | Corrected in README / tracked context; stale only in ignored local notes. |
 | Release workflow builds both flavor artifacts | `ROADMAP.md` release hygiene note | `.github/workflows/release.yml` previously ran `assembleDebug`; R2 repaired the workflow | Corrected; release workflow now builds signed Play/F-Droid/Wear release APKs. |
 | Privacy policy says only Open-Meteo/geocoding network requests | `PRIVACY_POLICY.html` older section | README and source include Nager.Date, NWS, Windy, RSS/news, webhooks, Hue LAN, internet radio, YouTube resolution | Corrected in privacy policy, README, metadata, and tracked context. |
-| Latest release tag reflects current app version | tag namespace | latest local tag is `v1.9.5`, app is `v1.13.1` | Release hygiene gap. |
+| Latest release tag reflects current app version | tag namespace | latest local tag is `v1.9.5`, app is `v1.13.2` | Release hygiene gap. |
 
 ## Durable Facts Extracted To `PROJECT_CONTEXT.md`
 
@@ -77,7 +77,7 @@ local tool notes conflict with tracked project evidence.
 ## Open Conflicts
 
 - Latest release tag still does not reflect current app version: latest local
-  tag is `v1.9.5`, app is `v1.13.1`. This is a release-management gap, not a
+  tag is `v1.9.5`, app is `v1.13.2`. This is a release-management gap, not a
   source-of-truth conflict.
 
 ## Resolved Conflicts

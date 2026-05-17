@@ -114,7 +114,18 @@ third-party requests and documents these app surfaces:
 - Local crash logs.
 - Health Connect sleep sessions once the SDK path lands.
 
-Update store declarations again before shipping Health Connect SDK access.
+X1 update: the Play flavor now ships Health Connect SDK access for
+`android.permission.health.READ_SLEEP` only. `PRIVACY_POLICY.html` and README
+were refreshed to state that sleep-session summaries stay local, are not copied
+into Room/DataStore/backups, and are not uploaded. Play Console
+health-permission declaration/approval remains an external release gate before
+Play Store distribution.
+
+Dependency note: adding `androidx.health.connect:connect-client:1.1.0` pulled
+`com.google.guava:guava:31.1-android`, which OSV reported as vulnerable. The
+Play dependency graph is now constrained to `com.google.guava:guava:33.6.0-android`;
+the resolved Play release runtime classpath passed the OSV audit after that
+constraint.
 
 ## Android Platform Security
 

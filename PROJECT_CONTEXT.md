@@ -13,7 +13,7 @@ known drift, and the active research plan. Tool-specific instructions remain in
 - Remote: `https://github.com/SysAdminDoc/AlarmClockXtreme.git`
 - Branch at research time: `main`, clean, 13 commits ahead of `origin/main`
 - Head at research time: `3e9214c feat: Health Connect opt-in scaffold + privacy doc (N12+N13) - v1.13.1`
-- App version: `versionName = "1.13.1"`, `versionCode = 66`
+- App version: `versionName = "1.13.2"`, `versionCode = 67`
 - Android targets: `compileSdk = 36`, `targetSdk = 35`, `minSdk = 26`
 - Database: Room `AlarmDatabase` version 10 with `exportSchema = true`
 - Backup format: v7 as documented in `CLAUDE.md` and `CHANGELOG.md`
@@ -54,8 +54,10 @@ Preserve these principles:
 - `app/src/main/java/com/sysadmindoc/alarmclock/receiver/*`
   boot, exact-alarm permission, unlock/missed-alarm, and alarm event receivers.
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/preferences/PreferencesManager.kt`
-  DataStore-backed `AppSettings`, including the v1.13.1 Health Connect opt-in
-  scaffold.
+  DataStore-backed `AppSettings`, including the Health Connect opt-in flag.
+- `app/src/main/java/com/sysadmindoc/alarmclock/data/health/HealthConnectSleepRepository.kt`
+  common contract for local sleep summaries; Play binds the real Health Connect
+  `READ_SLEEP` implementation and F-Droid binds a no-op repository.
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/backup/BackupManager.kt`
   backup/restore contract and backup format v7.
 - `app/src/main/java/com/sysadmindoc/alarmclock/ui/settings/SettingsScreen.kt`
@@ -96,8 +98,8 @@ aapt2 dump badging <release-apk>
   upload SHA-256 hashes.
 - Privacy/data-safety language was reconciled on 2026-05-17: `PRIVACY_POLICY.html`,
   `README.md`, Settings Health Connect copy, and `metadata/*.yml` now enumerate
-  current optional network/data surfaces and clarify that v1.13.1 stores only a
-  local Health Connect opt-in preference.
+  current optional network/data surfaces. After X1, the policy also describes
+  the Play-only Health Connect `READ_SLEEP` path and the F-Droid no-SDK stance.
 - Room schema discipline was hardened on 2026-05-17: current DB version is 10,
   v10 schema is committed, `AlarmDatabaseMigrationTest` covers migration and
   fresh-install/schema parity, and Android CI fails if `app/schemas` drifts.
@@ -110,7 +112,7 @@ aapt2 dump badging <release-apk>
   `AGENTS.md` and `CLAUDE.md` are ignored local tool files. Do not force-add
   them or treat them as durable project truth. Prefer this tracked file,
   `ROADMAP.md`, `README.md`, and `CHANGELOG.md` when local tool notes conflict.
-- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.1`.
+- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.2`.
 
 ## Active Roadmap
 
@@ -120,10 +122,9 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Complete Health Connect sleep-session SDK path behind the Play flavor after
-   Play Console health-permission review is ready.
-2. Add backup-export warnings when configured secrets or private integration
+1. Add backup-export warnings when configured secrets or private integration
    URLs are present.
+2. Add Wear OS next-alarm complication data source.
 
 ## Research Artifacts
 

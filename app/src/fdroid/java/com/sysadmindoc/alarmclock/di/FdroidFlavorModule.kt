@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.di
 
+import com.sysadmindoc.alarmclock.data.health.FdroidHealthConnectSleepRepository
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.service.FdroidYouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.FdroidYouTubeDownloadInitializer
 import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
@@ -34,4 +36,10 @@ abstract class FdroidFlavorBindings {
     @Binds
     @Singleton
     abstract fun bindWearNextAlarmBridge(impl: FdroidWearNextAlarmBridge): WearNextAlarmBridge
+
+    @Binds
+    @Singleton
+    abstract fun bindHealthConnectSleepRepository(
+        impl: FdroidHealthConnectSleepRepository
+    ): HealthConnectSleepRepository
 }
