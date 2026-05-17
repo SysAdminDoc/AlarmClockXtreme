@@ -45,38 +45,63 @@ Important source examples:
   affected and recommends upgrading to 1.26.0.
 - OSV `GHSA-78wr-2p64-hpwj` says Commons IO before 2.14.0 is affected.
 
+## R5 Mitigation Implemented
+
+The 2026-05-17 dependency-hardening pass added Play-only dependency constraints
+and an OSV audit script:
+
+- `com.fasterxml.jackson.core:jackson-databind/core/annotations:2.18.6`
+- `org.apache.commons:commons-compress:1.28.0`
+- `commons-io:commons-io:2.20.0`
+- `org.mozilla:rhino` and `org.mozilla:rhino-engine:1.8.1`
+- `org.tukaani:xz:1.10` as a Play-only support dependency required by the
+  constrained Commons Compress release during Android release shrinking.
+
+`scripts/osv_gradle_audit.py` resolves a Gradle configuration, extracts Maven
+coordinates, queries `https://api.osv.dev/v1/querybatch`, and fails when OSV
+returns vulnerabilities. `.github/workflows/android-ci.yml` now runs it against
+`playReleaseRuntimeClasspath`.
+
+Verification after the constraints:
+
+```powershell
+python scripts\osv_gradle_audit.py --configuration playDebugRuntimeClasspath
+python scripts\osv_gradle_audit.py --configuration playReleaseRuntimeClasspath
+.\gradlew.bat :app:assemblePlayRelease --console=plain
+.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain
+```
+
+Both OSV audits reported no vulnerabilities for the resolved Maven dependency
+sets. The Play release build passed with a temporary local signing key after
+adding the XZ support dependency and suppressing the unused optional Commons
+Compress Zstandard warning.
+
 ## Dependency Recommendations
 
-1. Add Gradle dependency constraints for vulnerable transitive packages and run
-   the Play downloader tests against the constrained graph.
-2. If constraints break `youtubedl-android`, isolate downloader execution away
-   from alarm-critical code and document the risk.
+1. Keep the OSV dependency-audit job green on every pull request and push to
+   `main`.
+2. If future constraints break `youtubedl-android`, isolate downloader
+   execution away from alarm-critical code and document the risk.
 3. Evaluate replacing or augmenting the downloader path with a maintained
    yt-dlp binary/update model for the Play flavor.
 4. Add automated dependency update tooling.
-5. Add a dependency vulnerability workflow that resolves Gradle classpaths
-   before querying OSV or another advisory source.
 
 ## Release Security
 
-Current `.github/workflows/release.yml` builds `assembleDebug` and uploads debug
-APK outputs on tag pushes. This is not acceptable for a signed release path.
+`.github/workflows/release.yml` was repaired on 2026-05-17. Tag builds now
+require signing secrets, build signed `playRelease`, `fdroidRelease`, and Wear
+release APKs, verify signatures and APK badging, upload workflow artifacts, and
+attach APKs plus `SHA256SUMS.txt` to GitHub Releases.
 
-Required repairs:
-
-- Build signed `playRelease` and `fdroidRelease`.
-- Build Wear release artifact or explicitly document why it is packaged through
-  the phone app.
-- Verify signing certificate and APK metadata.
-- Upload SHA-256 checksums.
-- Avoid uploading debug artifacts on release tags.
-- Consider publishing artifact certificate fingerprints in the release notes.
+Remaining release-security recommendation: consider publishing artifact
+certificate fingerprints in release notes.
 
 ## Privacy And Data Safety
 
-Current `PRIVACY_POLICY.html` accurately describes the Health Connect scaffold,
-but older paragraphs still describe network behavior as Open-Meteo/geocoding
-only. Current app capabilities include additional optional data flows:
+`PRIVACY_POLICY.html`, README privacy text, Settings Health Connect copy, and
+F-Droid metadata were reconciled on 2026-05-17. Current public language now
+distinguishes developer collection from direct optional user-triggered
+third-party requests and documents these app surfaces:
 
 - Nager.Date holidays.
 - NWS alerts.
@@ -89,8 +114,7 @@ only. Current app capabilities include additional optional data flows:
 - Local crash logs.
 - Health Connect sleep sessions once the SDK path lands.
 
-Update the policy and store declarations before shipping Health Connect SDK
-access.
+Update store declarations again before shipping Health Connect SDK access.
 
 ## Android Platform Security
 
@@ -109,4 +133,3 @@ access.
 - Hue TLS: trust-any-cert and allow-all hostname verification are currently a
   practical LAN bridge workaround but should be replaced with a pinned bridge
   identity or documented manual trust flow.
-

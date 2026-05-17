@@ -37,6 +37,8 @@ run. Claims in `ROADMAP.md` and sibling research notes should map back here.
 | L26 | `.\gradlew.bat :app:dependencies --configuration playReleaseRuntimeClasspath --console=plain` | Play flavor dependency tree. |
 | L27 | `.\gradlew.bat :app:dependencies --configuration fdroidReleaseRuntimeClasspath --console=plain` | F-Droid dependency tree. |
 | L28 | OSV batch query run from PowerShell | Vulnerability IDs for downloader transitive dependencies. |
+| L29 | `scripts/osv_gradle_audit.py` | Repo-local OSV audit implementation for resolved Gradle Maven dependencies. |
+| L30 | `.github/workflows/android-ci.yml` | CI unit/build/schema/migration/dependency-audit gates. |
 
 ## Shared Memory And Instruction Sources
 
