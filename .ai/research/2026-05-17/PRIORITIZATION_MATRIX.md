@@ -24,7 +24,7 @@ Scoring: Impact 1-5, Confidence 1-5, Effort 1-5 where lower is easier, Risk
 | P1-2 | Backup-export warning for secrets | 4 | 5 | 2 | 2 | 5 | Trust-critical and smaller than full backup encryption redesign. |
 | P1-3 | Wear next-alarm complication | 4 | 4 | 3 | 2 | 3 | Natural follow-up to Wear tile and current Wear OS ecosystem. |
 | P1-4 | Direct Boot minimum alarm support | 5 | 3 | 5 | 4 | -1 | Shipped v1.13.5 as a minimum device-encrypted next-alarm fallback with storage separation documented. |
-| P1-5 | Crash log export/share | 3 | 5 | 2 | 1 | 5 | Improves support without adding telemetry. |
+| P1-5 | Crash log export/share | 3 | 5 | 2 | 1 | 5 | Shipped v1.13.6 as a FileProvider-backed local support ZIP with redacted diagnostics and no telemetry. |
 | P1-6 | Media3/ExoPlayer audio path audit | 3 | 3 | 4 | 3 | -1 | Useful but less urgent than downloader security and release trust. |
 
 ## Later

@@ -111,7 +111,10 @@ third-party requests and documents these app surfaces:
 - Philips Hue LAN bridge integration.
 - Internet radio.
 - YouTube resolution/downloader path in Play flavor.
-- Local crash logs.
+- Local crash logs. v1.13.6 adds a user-triggered support ZIP export from
+  Settings. The bundle stays local until shared by the user and redacts alarm
+  labels, raw URIs, integration secrets, contact/location/Wi-Fi values,
+  challenge reference values, and Health Connect records.
 - Health Connect sleep sessions once the SDK path lands.
 
 X1 update: the Play flavor now ships Health Connect SDK access for

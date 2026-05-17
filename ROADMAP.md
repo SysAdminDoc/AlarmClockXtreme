@@ -1,8 +1,8 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed through the **v1.13.5** Direct Boot minimum
-alarm prototype, Wear complication work, backup-export trust work, and Health
-Connect READ_SLEEP integration; see
+Living feature backlog, refreshed through the **v1.13.6** local support export,
+Direct Boot minimum alarm prototype, Wear complication work, backup-export trust
+work, and Health Connect READ_SLEEP integration; see
 [CHANGELOG.md](CHANGELOG.md).
 Deep research refresh: **2026-05-17**. Durable research artifacts live in
 [.ai/research/2026-05-17](.ai/research/2026-05-17), and consolidated project
@@ -21,7 +21,8 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): **v1.13.5 Direct Boot
+> **Recently shipped** (rolled up from prior tiers): **v1.13.6 local
+> crash/support export (X5)**; **v1.13.5 Direct Boot
 > minimum-alarm prototype (X4)**; **v1.13.4 Wear next-alarm
 > complication (X3)**; **v1.13.3 backup-export
 > warning + backup format v8 (X2)**; **v1.13.2 Health Connect READ_SLEEP
@@ -79,7 +80,7 @@ links.
 - Wear next-alarm surfaces now include both the existing Tile and a modern
   AndroidX complication data source that serves `SHORT_TEXT` and `LONG_TEXT`
   from the same cached phone snapshot.
-- Latest local tag is `v1.9.5`; current app version is `v1.13.5`.
+- Latest local tag is `v1.9.5`; current app version is `v1.13.6`.
 
 ### NOW - v1.13.2 Trust, Release, And Data-Safety Gate
 
@@ -100,7 +101,7 @@ links.
 | X2 | [x] Backup-export warning when configured secrets or private integration URLs are present — **shipped v1.13.3.** Added `BackupManager.assessExportWarning(...)`, unit coverage, Settings confirmation dialogs before plain/encrypted exports, custom news-feed URL round-trip in backup format v8, and docs/changelog version sync. | local: `BackupManager.kt`, `SettingsScreen.kt`, `BackupExportWarningTest.kt` | S | Trust-critical and small. Warn before exporting webhooks, Hue keys, feeds, or local paths. |
 | X3 | [x] Wear OS next-alarm complication data source — **shipped v1.13.4.** Added `NextAlarmComplicationDataSourceService`, AndroidX Wear Watchface complication data-source dependency `1.3.0`, manifest metadata for `SHORT_TEXT,LONG_TEXT`, preview data, and Data Layer-triggered `ComplicationDataSourceUpdateRequester.requestUpdateAll()` alongside tile refreshes. | [Wear complications](https://developer.android.com/training/wearables/exposing-data-complications), [Wear Tiles](https://developer.android.com/training/wearables/tiles), [Wear Watchface 1.3.0 release notes](https://developer.android.com/jetpack/androidx/releases/wear-watchface) | M | Builds on the existing Wear tile and fills a common glanceable-surface expectation. |
 | X4 | [x] Direct Boot minimum alarm support design and prototype — **shipped v1.13.5.** Added a device-encrypted next-alarm snapshot containing only id, trigger time, display time, default-sound flag, and vibration flag; `LOCKED_BOOT_COMPLETED` schedules a Direct-Boot-aware fallback receiver/service that avoids Room/DataStore/WorkManager before unlock. | [Direct Boot docs](https://developer.android.com/privacy-and-security/direct-boot); local: `docs/DIRECT_BOOT_MINIMUM_ALARM.md`, `DirectBootAlarmCache.kt`, `DirectBootAlarmService.kt` | L | High reliability value, with storage separation documented; full custom ringtone/challenge UX intentionally remains post-unlock. |
-| X5 | [ ] Local crash/support export. Add a Settings action to package local crash logs and version/device alarm diagnostics without telemetry. | local: `CrashLogger.kt`, Settings reliability cards | S | Improves support while preserving no-tracking posture. |
+| X5 | [x] Local crash/support export — **shipped v1.13.6.** Settings can package a local FileProvider-backed ZIP with crash logs, app/device/wake-readiness diagnostics, aggregate alarm-history stats, and redacted alarm metadata; no telemetry upload and no labels, custom URIs, integration secrets, contact/location/Wi-Fi values, challenge references, or Health Connect records. | local: `CrashLogger.kt`, `SupportExportManager.kt`, Settings utilities | S | Improves support while preserving no-tracking posture. |
 | X6 | [ ] Sleep/wake analytics charts after Health Connect lands. Correlate sleep duration, snooze count, dismiss time, wake-streak, and challenge retries locally. | Health Connect docs; local Room/DataStore history | M | Competes with commercial insight surfaces without cloud upload. |
 
 ### Research Packet
@@ -116,7 +117,7 @@ links.
 
 ---
 
-## Current snapshot (v1.13.5)
+## Current snapshot (v1.13.6)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
   Material 3 (1.4.x), Room v10, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
@@ -127,7 +128,7 @@ links.
   (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 70`, `versionName 1.13.5`.
+  `versionCode 71`, `versionName 1.13.6`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
