@@ -145,6 +145,71 @@ Date: 2026-05-17
 - `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
   passed.
 
+## Autonomous Roadmap Pass: X4 Direct Boot Minimum Alarm Prototype
+
+Date: 2026-05-17
+
+### Files Modified
+
+- `app/src/main/java/com/sysadmindoc/alarmclock/directboot/DirectBootAlarmSnapshot.kt`
+  - added the pure minimum snapshot model and policy for pre-unlock alarm
+  fallback data.
+- `app/src/main/java/com/sysadmindoc/alarmclock/directboot/DirectBootAlarmCache.kt`
+  - added device-encrypted SharedPreferences storage, earliest-next-alarm
+  cache maintenance, locked-boot scheduling, stale fallback cancellation, and
+  one-shot fired-marker handoff for post-unlock reschedule.
+- `app/src/main/java/com/sysadmindoc/alarmclock/directboot/DirectBootAlarmReceiver.kt`
+  and `DirectBootAlarmService.kt` - added the Direct-Boot-aware fallback alarm
+  path that posts a foreground notification, plays only the system default
+  alarm/notification tone, vibrates when allowed, and auto-stops after ten
+  minutes.
+- `BootReceiver.kt` and `AndroidManifest.xml` - added
+  `LOCKED_BOOT_COMPLETED`, `android:directBootAware="true"` declarations, and
+  isolated locked-boot behavior from normal WorkManager rescheduling.
+- `AlarmClockApp.kt` - deferred normal crash logger, DataStore, WorkManager,
+  Wear bridge, downloader, and default-alarm seeding until user credential
+  storage is unlocked.
+- `AlarmScheduler.kt` - writes/rebuilds the Direct Boot snapshot during normal
+  scheduling, cancels stale fallback PendingIntents after unlock, and consumes
+  one-shot alarms that fired through the fallback.
+- `DirectBootAlarmSnapshotTest.kt` - covers schedulability and the no-label /
+  no-custom-URI snapshot policy.
+- `docs/DIRECT_BOOT_MINIMUM_ALARM.md` - documents the design, stored fields,
+  runtime flow, boundaries, and verification expectations.
+- `CHANGELOG.md`, `README.md`, `ROADMAP.md`, `PROJECT_CONTEXT.md`,
+  F-Droid metadata, and research notes - bumped/synced version lines to
+  `1.13.5` / code `70` and marked roadmap X4 complete.
+
+### Verification
+
+- Official Android Direct Boot documentation checked during implementation:
+  alarm-clock apps are listed as a Direct Boot use case; Direct-Boot-aware
+  components must use device-encrypted storage before unlock and register
+  `ACTION_LOCKED_BOOT_COMPLETED`.
+- `.\gradlew.bat :app:compilePlayDebugKotlin --console=plain` passed after
+  adding the new direct-boot package.
+- `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
+  passed.
+- `python scripts\osv_gradle_audit.py --configuration playReleaseRuntimeClasspath`
+  passed: 207 Maven dependencies resolved; no OSV vulnerabilities reported.
+- Version consistency check passed for app, Wear, README badge, README install
+  command, changelog top entry, and roadmap current snapshot: all report
+  `1.13.5`.
+- `git diff --check` passed with only existing line-ending normalization
+  warnings.
+- `git diff --exit-code -- app/schemas` passed after the Gradle build.
+- `.\gradlew.bat :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease --console=plain`
+  passed with a temporary verification keystore created at the ignored local
+  `keystore.properties` path and removed afterward.
+- `apksigner verify --verbose` and `aapt2 dump badging` passed for Play,
+  F-Droid, and Wear release APKs: all report `versionCode=70` and
+  `versionName=1.13.5`; all verify with APK Signature Scheme v2.
+- `aapt2 dump xmltree --file AndroidManifest.xml` confirmed Play and F-Droid
+  release manifests include `LOCKED_BOOT_COMPLETED`, direct-boot-aware
+  `BootReceiver`, `DirectBootAlarmReceiver`, and `DirectBootAlarmService`.
+- `aapt2 dump permissions` confirmed `android.permission.health.READ_SLEEP`
+  remains Play-only.
+
 ## Autonomous Roadmap Pass: X2 Backup Export Warning
 
 Date: 2026-05-17

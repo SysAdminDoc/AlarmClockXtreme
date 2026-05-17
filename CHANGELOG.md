@@ -2,6 +2,37 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.13.5] - 2026-05-17
+
+Direct Boot minimum-alarm prototype (roadmap X4).
+
+### Added
+
+- Added a device-encrypted next-alarm snapshot for the minimum pre-unlock
+  fields: alarm id, trigger time, display time, default-sound flag, and
+  vibration flag. Alarm labels, custom ringtone/content URIs, integration URLs,
+  challenge data, and settings remain credential-encrypted.
+- Added a Direct-Boot-aware boot receiver path that handles
+  `LOCKED_BOOT_COMPLETED` without starting Room, DataStore, WorkManager, or
+  Hilt worker scheduling before first unlock.
+- Added a Direct-Boot-aware fallback receiver and foreground service that can
+  ring the next cached alarm with the system default alarm tone and vibration
+  before first unlock after reboot.
+- Added post-unlock app startup gating so normal crash logging, DataStore,
+  WorkManager, Wear bridge, and downloader initialization start only after the
+  user credential storage is available.
+- Added `docs/DIRECT_BOOT_MINIMUM_ALARM.md` and unit coverage for the
+  non-secret Direct Boot snapshot policy.
+
+### Changed
+
+- Normal post-unlock rescheduling now rebuilds the Direct Boot snapshot and
+  cancels any stale fallback PendingIntent to avoid duplicate alarm fires.
+- Direct-Boot-fired one-shot alarms are consumed during the first post-unlock
+  reschedule so they do not roll forward and ring again.
+- Bumped to `versionName = "1.13.5"`, `versionCode = 70`. README badge,
+  install command, roadmap snapshot, Wear module, and F-Droid metadata synced.
+
 ## [1.13.4] - 2026-05-17
 
 Wear next-alarm complication pass (roadmap X3).

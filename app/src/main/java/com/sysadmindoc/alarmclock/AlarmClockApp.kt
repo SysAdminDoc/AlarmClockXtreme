@@ -1,6 +1,12 @@
 package com.sysadmindoc.alarmclock
 
 import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.UserManager
+import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -39,6 +45,8 @@ class AlarmClockApp : Application(), Configuration.Provider {
     @Inject lateinit var wearNextAlarmBridge: WearNextAlarmBridge
 
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var unlockedStartupComplete = false
+    private var unlockReceiver: BroadcastReceiver? = null
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
@@ -57,6 +65,22 @@ class AlarmClockApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
+
+        if (!isUserUnlocked()) {
+            registerPostUnlockInitializer()
+            return
+        }
+
+        initializeUnlockedApp()
+    }
+
+    private fun initializeUnlockedApp() {
+        if (unlockedStartupComplete) return
+        unlockedStartupComplete = true
+        unlockReceiver?.let { receiver ->
+            runCatching { unregisterReceiver(receiver) }
+            unlockReceiver = null
+        }
 
         // Install crash logger for debugging
         com.sysadmindoc.alarmclock.util.CrashLogger.install(this)
@@ -110,6 +134,29 @@ class AlarmClockApp : Application(), Configuration.Provider {
                 } catch (_: Exception) { /* Will retry next launch */ }
             }
         }
+    }
+
+    private fun isUserUnlocked(): Boolean {
+        val userManager = getSystemService(UserManager::class.java)
+        return userManager?.isUserUnlocked != false
+    }
+
+    private fun registerPostUnlockInitializer() {
+        if (unlockReceiver != null) return
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == Intent.ACTION_USER_UNLOCKED) {
+                    initializeUnlockedApp()
+                }
+            }
+        }
+        unlockReceiver = receiver
+        ContextCompat.registerReceiver(
+            this,
+            receiver,
+            IntentFilter(Intent.ACTION_USER_UNLOCKED),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     private suspend fun seedDefaultAlarm(ep: AppEntryPoint) {

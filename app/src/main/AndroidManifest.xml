@@ -145,11 +145,19 @@
             android:name=".receiver.AlarmReceiver"
             android:exported="false" />
 
+        <!-- Minimal Direct Boot fallback alarm path before first unlock. -->
+        <receiver
+            android:name=".directboot.DirectBootAlarmReceiver"
+            android:directBootAware="true"
+            android:exported="false" />
+
         <!-- Boot Receiver - Reschedule alarms after reboot -->
         <receiver
             android:name=".receiver.BootReceiver"
+            android:directBootAware="true"
             android:exported="true">
             <intent-filter>
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIME_SET" />
@@ -194,6 +202,12 @@
         <!-- Alarm Foreground Service -->
         <service
             android:name=".service.AlarmService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <service
+            android:name=".directboot.DirectBootAlarmService"
+            android:directBootAware="true"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
