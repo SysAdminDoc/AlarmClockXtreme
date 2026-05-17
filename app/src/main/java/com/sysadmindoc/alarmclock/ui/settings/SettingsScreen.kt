@@ -48,6 +48,7 @@ import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -73,6 +74,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.onFocusChanged
@@ -96,6 +98,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
+import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
@@ -112,6 +115,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
@@ -1630,8 +1634,11 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
 private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
     val backupBusy by viewModel.backupBusy.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
     var encryptedPassphrase by remember { mutableStateOf("") }
     var encryptedPassphraseConfirm by remember { mutableStateOf("") }
+    var pendingExportWarning by remember { mutableStateOf<BackupExportWarning?>(null) }
+    var pendingExportKind by remember { mutableStateOf<BackupExportKind?>(null) }
     val encryptedExportEnabled = encryptedPassphrase.isNotBlank() &&
         encryptedPassphrase == encryptedPassphraseConfirm
     val encryptedImportEnabled = encryptedPassphrase.isNotBlank()
@@ -1652,13 +1659,38 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { viewModel.importEncryptedBackup(it, encryptedPassphrase) } }
 
+    fun launchBackupExport(kind: BackupExportKind) {
+        when (kind) {
+            BackupExportKind.Plain -> exportLauncher.launch("alarmclock_backup.json")
+            BackupExportKind.Encrypted -> encryptedExportLauncher.launch("alarmclock_backup_encrypted.json")
+        }
+    }
+
+    fun requestBackupExport(kind: BackupExportKind) {
+        scope.launch {
+            val warning = runCatching {
+                viewModel.inspectBackupExportWarning()
+            }.getOrElse { error ->
+                BackupExportWarning(
+                    listOf("Backup contents could not be inspected: ${error.message ?: "unexpected error"}")
+                )
+            }
+            if (warning.shouldWarn) {
+                pendingExportKind = kind
+                pendingExportWarning = warning
+            } else {
+                launchBackupExport(kind)
+            }
+        }
+    }
+
     SettingsGroup(
         title = "Backup and restore",
         description = "Keep a portable copy of alarms and app preferences for new devices or peace of mind."
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(
-                onClick = { exportLauncher.launch("alarmclock_backup.json") },
+                onClick = { requestBackupExport(BackupExportKind.Plain) },
                 enabled = !backupBusy,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
@@ -1682,7 +1714,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
         }
 
         Text(
-            text = "Plain backups include alarms and global settings in a readable JSON file.",
+            text = "Plain backups include alarms and global settings in a readable JSON file. AlarmClockXtreme warns before exporting configured secrets or private references.",
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
@@ -1734,7 +1766,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
-                    onClick = { encryptedExportLauncher.launch("alarmclock_backup_encrypted.json") },
+                    onClick = { requestBackupExport(BackupExportKind.Encrypted) },
                     enabled = encryptedExportEnabled && !backupBusy,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
@@ -1757,6 +1789,23 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 }
             }
         }
+    }
+
+    pendingExportWarning?.let { warning ->
+        val kind = pendingExportKind ?: BackupExportKind.Plain
+        BackupExportWarningDialog(
+            warning = warning,
+            encrypted = kind == BackupExportKind.Encrypted,
+            onDismiss = {
+                pendingExportWarning = null
+                pendingExportKind = null
+            },
+            onContinue = {
+                pendingExportWarning = null
+                pendingExportKind = null
+                launchBackupExport(kind)
+            }
+        )
     }
 
     if (backupBusy) {
@@ -1812,6 +1861,70 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
             }
         }
     }
+}
+
+private enum class BackupExportKind {
+    Plain,
+    Encrypted
+}
+
+@Composable
+private fun BackupExportWarningDialog(
+    warning: BackupExportWarning,
+    encrypted: Boolean,
+    onDismiss: () -> Unit,
+    onContinue: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(Icons.Default.Warning, contentDescription = null, tint = SnoozeYellow)
+        },
+        title = {
+            Text(
+                text = if (encrypted) "Encrypted backup includes private values" else "Plain backup includes private values"
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = if (encrypted) {
+                        "These values will be inside the encrypted file:"
+                    } else {
+                        "These values will be readable in the exported JSON:"
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextPrimary
+                )
+                warning.categories.forEach { category ->
+                    Text(
+                        text = "- $category",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                }
+                Text(
+                    text = if (encrypted) {
+                        "Keep the passphrase private. Anyone with the file and passphrase can restore these values."
+                    } else {
+                        "Use encrypted export when sharing or storing backups outside your own device."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onContinue) {
+                Text("Continue export")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable

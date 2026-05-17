@@ -5,12 +5,14 @@ import android.net.Uri
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
+import com.sysadmindoc.alarmclock.data.preferences.DEFAULT_NEWS_FEED_URL
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -84,7 +86,7 @@ data class AlarmBackup(
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 7,
+    val version: Int = 8,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -147,8 +149,18 @@ data class SettingsBackup(
     // v1.13.1 (roadmap N12): Health Connect opt-in survives backup so a
     // user who restores onto a new Play-flavor device doesn't have to
     // re-tap the toggle. F-Droid restore ignores it.
-    val healthConnectEnabled: Boolean = false
+    val healthConnectEnabled: Boolean = false,
+    // v1.13.3 (roadmap X2): round-trip the user's selected feed URL and warn
+    // before readable exports when custom/private feed endpoints are present.
+    val newsFeedUrl: String = DEFAULT_NEWS_FEED_URL
 )
+
+data class BackupExportWarning(
+    val categories: List<String> = emptyList()
+) {
+    val shouldWarn: Boolean
+        get() = categories.isNotEmpty()
+}
 
 @Singleton
 class BackupManager @Inject constructor(
@@ -163,7 +175,76 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 7
+        const val MAX_SUPPORTED_BACKUP_VERSION = 8
+
+        fun assessExportWarning(
+            settings: AppSettings,
+            alarms: List<Alarm>
+        ): BackupExportWarning {
+            val categories = buildList {
+                if (settings.webhookUrl.isNotBlank()) {
+                    add("Webhook endpoint URL")
+                }
+                if (
+                    settings.hueBridgeIp.isNotBlank() ||
+                    settings.hueApiKey.isNotBlank() ||
+                    settings.hueLightIds.isNotBlank()
+                ) {
+                    add("Philips Hue bridge details and API key")
+                }
+                if (settings.newsFeedUrl.isCustomFeedUrl()) {
+                    add("Custom news feed URL")
+                }
+                if (alarms.any { it.internetRadioUrl.isNotBlank() }) {
+                    add("Internet radio stream URLs")
+                }
+                if (alarms.any { it.hasDeviceLocalUris() }) {
+                    add("Device-local ringtone or photo URIs")
+                }
+                if (alarms.any { it.hasPrivateAlarmDetails() }) {
+                    add("Wi-Fi, location, or guardian contact details")
+                }
+                if (alarms.any { it.nfcTagId.isNotBlank() || it.barcodeValue.isNotBlank() }) {
+                    add("NFC or barcode challenge values")
+                }
+            }
+            return BackupExportWarning(categories)
+        }
+
+        private fun String.isCustomFeedUrl(): Boolean {
+            val value = trim()
+            return value.isNotEmpty() && !value.equals(DEFAULT_NEWS_FEED_URL, ignoreCase = true)
+        }
+
+        private fun Alarm.hasDeviceLocalUris(): Boolean {
+            val poolHasLocalUri = ringtonePool
+                .split(",")
+                .any { it.hasDeviceLocalUriScheme() }
+            return ringtoneUri.hasDeviceLocalUriScheme() ||
+                photoMatchUri.hasDeviceLocalUriScheme() ||
+                poolHasLocalUri
+        }
+
+        private fun Alarm.hasPrivateAlarmDetails(): Boolean =
+            guardianPhone.isNotBlank() ||
+                wifiDismissSsid.isNotBlank() ||
+                (locationDismissEnabled && (locationDismissLat != 0.0 || locationDismissLng != 0.0))
+
+        private fun String.hasDeviceLocalUriScheme(): Boolean {
+            val value = trim()
+            if (value.isEmpty()) return false
+            val lower = value.lowercase(Locale.US)
+            return lower.startsWith("content://") ||
+                lower.startsWith("file://") ||
+                lower.startsWith("/") ||
+                Regex("^[a-z]:[\\\\/].*").matches(lower)
+        }
+    }
+
+    suspend fun inspectExportWarning(): BackupExportWarning {
+        val alarms = repository.getAll()
+        val settings = preferencesManager.getCurrentSettings()
+        return assessExportWarning(settings, alarms)
     }
 
     suspend fun export(): String {
@@ -217,7 +298,8 @@ class BackupManager @Inject constructor(
                 repeatMissedAlarms = settings.repeatMissedAlarms,
                 napDefaultMinutes = settings.napDefaultMinutes,
                 pauseUntilMillis = settings.pauseUntilMillis,
-                healthConnectEnabled = settings.healthConnectEnabled
+                healthConnectEnabled = settings.healthConnectEnabled,
+                newsFeedUrl = settings.newsFeedUrl
             )
         )
 
@@ -363,7 +445,8 @@ class BackupManager @Inject constructor(
                         repeatMissedAlarms = s.repeatMissedAlarms,
                         napDefaultMinutes = s.napDefaultMinutes,
                         pauseUntilMillis = s.pauseUntilMillis,
-                        healthConnectEnabled = s.healthConnectEnabled
+                        healthConnectEnabled = s.healthConnectEnabled,
+                        newsFeedUrl = s.newsFeedUrl
                     )
                 }
             }
