@@ -19,15 +19,18 @@ new cloud dataset.
 
 ## Health Connect
 
-Recommended near-term integration:
+Implemented X1 code-side integration:
 
-- Add `androidx.health.connect:connect-client` to the Play flavor only.
-- Request only `android.permission.health.READ_SLEEP` initially.
-- Read `SleepSessionRecord` for recent windows.
-- Show sleep duration/stage summaries in Bedtime and Stats.
-- Use data only on device.
-- Keep F-Droid copy honest: no SDK and no Health Connect read path unless a
-  compatible FOSS distribution path exists.
+- `androidx.health.connect:connect-client:1.1.0` is Play-flavor only.
+- The Play manifest declares only `android.permission.health.READ_SLEEP`.
+- Settings requests only sleep read access through Health Connect's permission
+  contract.
+- `PlayHealthConnectSleepRepository` reads recent `SleepSessionRecord` windows
+  and summarizes duration/stage data for foreground UI.
+- Bedtime and Stats show local-only sleep summaries. Records are not copied into
+  Room, DataStore, backups, or a developer service.
+- F-Droid binds a no-op repository and has no Health Connect SDK or permission
+  request path.
 
 Evidence:
 
@@ -86,7 +89,7 @@ Current or planned external surfaces:
 - Internet radio streams.
 - YouTube downloader/resolution in the Play flavor.
 - Wear OS Data Layer and tile.
-- Health Connect sleep sessions, scaffolded but not yet wired.
+- Health Connect sleep sessions in the Play flavor; F-Droid excludes the SDK.
 
 Privacy note: the policy should describe these surfaces as optional/user-driven
 where applicable and distinguish developer collection from third-party network
@@ -101,4 +104,3 @@ requests triggered by app features.
 - Add release smoke tests for both flavors to prove Play-only dependencies do
   not leak into F-Droid.
 - Add Wear tile/complication render tests or screenshot QA.
-

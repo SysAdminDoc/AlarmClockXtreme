@@ -1,7 +1,7 @@
 # AlarmClockXtreme Roadmap
 
-Living feature backlog, refreshed alongside **v1.13.1** (Health Connect
-opt-in scaffold + privacy-policy update; see [CHANGELOG.md](CHANGELOG.md)).
+Living feature backlog, refreshed through the **v1.13.2** trust-gate work and
+Health Connect READ_SLEEP integration; see [CHANGELOG.md](CHANGELOG.md).
 Deep research refresh: **2026-05-17**. Durable research artifacts live in
 [.ai/research/2026-05-17](.ai/research/2026-05-17), and consolidated project
 memory lives in [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md).
@@ -19,7 +19,8 @@ ranked by impact-to-effort and grouped by theme.
   (kept on the list, not actively scheduled), **UC** (under consideration —
   needs scoping or platform readiness), **Rejected** (explicitly out).
 
-> **Recently shipped** (rolled up from prior tiers): **v1.13.1 Health Connect
+> **Recently shipped** (rolled up from prior tiers): **v1.13.2 Health Connect
+> READ_SLEEP integration + trust/release gates (R1-R6 + X1)**; **v1.13.1 Health Connect
 > opt-in scaffold + privacy-policy update (N12 + N13 scaffold)**; **v1.13.0
 > adaptive NavigationRail on MEDIUM/EXPANDED widths (N11)**; **v1.12.3 CI
 > version-line consistency lint (N10)**; **v1.12.2 RingtonePool chip-based
@@ -52,10 +53,8 @@ links.
   tag builds now require signing secrets, build signed Play/F-Droid/Wear release
   APKs, verify signatures/metadata, and upload SHA-256 hashes.
 - `PRIVACY_POLICY.html`, README privacy text, Settings Health Connect copy, and
-  F-Droid metadata were reconciled in the v1.13.2 docs pass. Current public
-  language now distinguishes developer collection from direct optional
-  third-party requests and states that Health Connect is only a local opt-in
-  preference until the SDK path ships.
+  F-Droid metadata were reconciled in the v1.13.2 docs pass. X1 then updated
+  the policy for the actual Play-only Health Connect `READ_SLEEP` path.
 - Room is v10 with `exportSchema = true`; the v1.13.2 schema-gate pass added
   migration instrumentation tests and CI schema-drift checks.
 - The Play flavor downloader dependency tree was constrained in the v1.13.2
@@ -63,18 +62,19 @@ links.
   IO 2.20.0, Rhino 1.8.1, and Play-only XZ support now resolve cleanly through
   the local OSV audit script and CI dependency-audit job. The F-Droid flavor
   still excludes this path.
-- The Health Connect feature is an opt-in scaffold only: DataStore + settings +
-  backup copy exist, but the SDK dependency, manifest permission, permission
-  prompt, repository, and Bedtime/Stats reads are not wired.
-- Latest local tag is `v1.9.5`; current app version is `v1.13.1`.
+- The Health Connect feature is now Play-flavor code-complete: `connect-client`
+  is Play-only, `READ_SLEEP` is declared only in `app/src/play`, Settings
+  requests only sleep read access, and Bedtime/Stats render local-only recent
+  sleep-session summaries. F-Droid binds a no-op repository.
+- Latest local tag is `v1.9.5`; current app version is `v1.13.2`.
 
 ### NOW - v1.13.2 Trust, Release, And Data-Safety Gate
 
 | # | Item | Evidence | Effort | Rationale |
 |---|------|----------|--------|-----------|
-| R1 | [x] Privacy policy and data-safety reconciliation — **shipped v1.13.2 docs pass.** `PRIVACY_POLICY.html`, README privacy text, and Settings Health Connect copy now enumerate optional network/data surfaces, distinguish developer collection from user-triggered third-party requests, and state that v1.13.1 stores only a local Health Connect opt-in preference until the SDK path ships. | local: `PRIVACY_POLICY.html`, `README.md`, `SettingsScreen.kt`; [Play Health Connect publishing](https://developer.android.com/health-and-fitness/health-connect/publish), [Play sensitive permissions policy](https://support.google.com/googleplay/android-developer/answer/9888170) | S | This closes the highest-trust documentation gap before requesting Health Connect review. |
+| R1 | [x] Privacy policy and data-safety reconciliation — **shipped v1.13.2 docs pass and refreshed in X1.** `PRIVACY_POLICY.html`, README privacy text, and Settings Health Connect copy enumerate optional network/data surfaces, distinguish developer collection from user-triggered third-party requests, and now describe the Play-only `READ_SLEEP` Health Connect path after X1. | local: `PRIVACY_POLICY.html`, `README.md`, `SettingsScreen.kt`; [Play Health Connect publishing](https://developer.android.com/health-and-fitness/health-connect/publish), [Play sensitive permissions policy](https://support.google.com/googleplay/android-developer/answer/9888170) | S | This closes the highest-trust documentation gap before requesting Health Connect review. |
 | R2 | [x] Repair release automation — **shipped v1.13.2 automation pass.** Tag builds now require signing secrets, build signed `playRelease`, `fdroidRelease`, and `:wear:assembleRelease`, reject tag/version mismatches, verify APK signatures and badging, upload workflow artifacts, and attach APKs plus `SHA256SUMS.txt` to GitHub Releases. | local: `.github/workflows/release.yml`; prior release memory; [Android build release docs](https://developer.android.com/build/releases/gradle-plugin) | M | Release tags no longer publish debug APKs. |
-| R3 | [x] Refresh F-Droid metadata and anti-feature declarations — **shipped v1.13.2 docs pass.** Both metadata files now point to version `1.13.1` / code `66`, describe the F-Droid flavor exclusions, and disclose optional network surfaces under `NonFreeNet`. | local: `metadata/com.sysadmindoc.alarmclock.yml`, `metadata/en-US/fdroid.yml`; [F-Droid Anti-Features](https://f-droid.org/en/docs/Anti-Features/) | S | Current repo metadata no longer advertises old app versions or Open-Meteo-only network language. |
+| R3 | [x] Refresh F-Droid metadata and anti-feature declarations — **shipped v1.13.2 docs pass.** Both metadata files now point to version `1.13.2` / code `67`, describe the F-Droid flavor exclusions, and disclose optional network surfaces under `NonFreeNet`. | local: `metadata/com.sysadmindoc.alarmclock.yml`, `metadata/en-US/fdroid.yml`; [F-Droid Anti-Features](https://f-droid.org/en/docs/Anti-Features/) | S | Current repo metadata no longer advertises old app versions or Open-Meteo-only network language. |
 | R4 | [x] Add Room migration/schema gate — **shipped v1.13.2 schema-gate pass.** Added `AlarmDatabase.ALL_MIGRATIONS`, Android instrumentation tests for earliest-exported-schema→latest, 9→10 defaulting, fresh-install/schema parity, and migration contiguity. Added `.github/workflows/android-ci.yml` to run unit tests/debug builds, fail on uncommitted `app/schemas` drift, and run the Room migration tests on an emulator. | local: `AlarmDatabase.kt`, `DatabaseModule.kt`, `AlarmDatabaseMigrationTest.kt`, `app/schemas`, `.github/workflows/android-ci.yml`; [Room release notes](https://developer.android.com/jetpack/androidx/releases/room) | S | Future DB bumps now have both migration validation and an exported-schema commit gate. |
 | R5 | [x] Mitigate Play-only downloader dependency risk - **shipped v1.13.2 dependency-hardening pass.** Added Play-only constraints for stale downloader transitives (`jackson-* 2.18.6`, `commons-compress 1.28.0`, `commons-io 2.20.0`, `rhino 1.8.1`), added Play-only `org.tukaani:xz:1.10` support for release shrinking, documented the optional Commons Compress Zstandard warning in R8 rules, and added `scripts/osv_gradle_audit.py` plus a CI dependency-audit job. | local: `app/build.gradle.kts`, `app/proguard-rules.pro`, `scripts/osv_gradle_audit.py`, `.github/workflows/android-ci.yml`; [OSV API](https://api.osv.dev/v1/querybatch), [NewPipeExtractor releases](https://github.com/TeamNewPipe/NewPipeExtractor/releases), [yt-dlp](https://github.com/yt-dlp/yt-dlp) | M | `playDebugRuntimeClasspath` and `playReleaseRuntimeClasspath` now report no OSV vulnerabilities for resolved Maven dependencies; the release R8 path passes with a temporary signing key. |
 | R6 | [x] Clean factual doc drift in README/CLAUDE and release notes - **shipped v1.13.2 doc-policy pass.** README, `PROJECT_CONTEXT.md`, and `CHANGELOG.md` now reflect DB v10, 22 challenge flows, backup format v7, the current Health Connect no-read scaffold, and the resolved ignored-tool-file policy. Decision: do not force-add ignored local `AGENTS.md` / `CLAUDE.md`; tracked context files are authoritative when local tool notes conflict. | local: `README.md`, ignored `AGENTS.md`, ignored `CLAUDE.md`, `PROJECT_CONTEXT.md`, `CHANGELOG.md`, `MEMORY_CONSOLIDATION.md` | S | Reduces future agent mistakes and keeps public docs aligned with live code without committing local scratch instruction files. |
@@ -83,7 +83,7 @@ links.
 
 | # | Item | Evidence | Effort | Rationale |
 |---|------|----------|--------|-----------|
-| X1 | [ ] Complete Health Connect sleep-session SDK integration behind the Play flavor. Request only `READ_SLEEP`, read recent `SleepSessionRecord` windows, and surface local-only summaries in Bedtime/Stats. | [Track sleep sessions](https://developer.android.com/health-and-fitness/guides/health-connect/develop/sleep-sessions), [Develop sleep experiences](https://developer.android.com/health-and-fitness/health-connect/experiences/sleep) | M | Best next user-value feature after policy/docs are accurate. |
+| X1 | [x] Complete Health Connect sleep-session SDK integration behind the Play flavor — **code-side shipped v1.13.2 X1 pass.** Play adds `androidx.health.connect:connect-client:1.1.0`, declares only `android.permission.health.READ_SLEEP`, requests access from Settings, reads recent `SleepSessionRecord` windows, and surfaces local-only summaries in Bedtime and Statistics. F-Droid binds a no-op repository with no SDK or permission. The new Health Connect Guava transitive is constrained to `33.6.0-android` so the Play runtime OSV audit stays clean. Play Console health-permission approval remains a release gate before Play distribution. | local: `HealthConnectSleepRepository.kt`, `PlayHealthConnectSleepRepository.kt`, `FdroidHealthConnectSleepRepository.kt`, `SettingsScreen.kt`, `BedtimeScreen.kt`, `StatsScreen.kt`, `PRIVACY_POLICY.html`; [Track sleep sessions](https://developer.android.com/health-and-fitness/guides/health-connect/develop/sleep-sessions), [Develop sleep experiences](https://developer.android.com/health-and-fitness/health-connect/experiences/sleep) | M | Best next user-value feature after policy/docs are accurate. |
 | X2 | [ ] Backup-export warning when configured secrets or private integration URLs are present. | local: `BackupManager.kt`, `SettingsScreen.kt` | S | Trust-critical and small. Warn before exporting webhooks, Hue keys, feeds, or local paths. |
 | X3 | [ ] Wear OS next-alarm complication data source. | [Wear complications](https://developer.android.com/training/wearables/exposing-data-complications), [Wear Tiles](https://developer.android.com/training/wearables/tiles) | M | Builds on the existing Wear tile and fills a common glanceable-surface expectation. |
 | X4 | [ ] Direct Boot minimum alarm support design and prototype. Keep only the minimum schedule/ringtone/defaults in device-encrypted storage. | [Direct Boot docs](https://developer.android.com/privacy-and-security/direct-boot) | L | High reliability value, but requires careful storage separation and recovery UX. |
@@ -103,15 +103,16 @@ links.
 
 ---
 
-## Current snapshot (v1.13.1)
+## Current snapshot (v1.13.2)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.05.00 /
   Material 3 (1.4.x), Room v10, Hilt 2.53.1, Retrofit 2.11 + Moshi (codegen),
   DataStore 1.1.1, Glance 1.1.1, OkHttp 4.12.0, WorkManager 2.9.1, Wear Tiles
-  1.6.0 / protolayout 1.4.0, Wear Data Layer, yt-dlp (`youtubedl-android`
-  0.18.1) + NewPipe Extractor 0.24.8 (Play flavor only).
+  1.6.0 / protolayout 1.4.0, Wear Data Layer, Health Connect client 1.1.0
+  (Play flavor), yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
+  0.24.8 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 35`, `compileSdk 36`,
-  `versionCode 66`, `versionName 1.13.1`.
+  `versionCode 67`, `versionName 1.13.2`.
 - **Surface area:** 120 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **22 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -149,8 +150,8 @@ in their notes. **Order is the recommended landing order.**
 | N9 | [x] RingtonePool chip-based editor — **shipped v1.12.2.** Replaced the textarea with a horizontally scrollable chip row in the Advanced section. Each pool URI renders as an `AppFilterChip` (tap to remove); an "Add" chip opens an `AlertDialog` for pasting a new URI with duplicate-protection. New `ringtoneShortName(uri)` helper trims content://media/external/audio/media/12345 → "audio/12345" without a per-render ContentResolver lookup. Storage format unchanged. | local: [AlarmEditScreen.kt:1247](app/src/main/java/com/sysadmindoc/alarmclock/ui/alarmedit/AlarmEditScreen.kt) | S | UX polish, no schema change. |
 | N10 | [x] CI version-line consistency lint — **shipped v1.12.3.** New `.github/workflows/version-lint.yml` runs on every push/PR. Asserts six touchpoints agree with `app/build.gradle.kts`: the `:wear` module's `versionName`, the README badge, the README `adb install` snippet, the CHANGELOG top `## [x.y.z]` header, and the ROADMAP `## Current snapshot (vX.Y.Z)` header. Pure regex/grep — no JDK/Gradle bootstrap. | local: [.github/workflows/version-lint.yml](.github/workflows/version-lint.yml) | S | Prevents the recurring "README still says vX.Y.Z" post-release mismatch. |
 | N11 | [x] Adaptive primary navigation — **shipped v1.13.0.** Used the lower-level `material3-window-size-class` API rather than `NavigationSuiteScaffold` so the existing custom `BottomNavContainer` treatment + accent colors carry through unchanged on phones. AppNavigation branches on width class: COMPACT keeps the bottom NavigationBar verbatim, MEDIUM/EXPANDED render a `NavigationRail` on the leading edge inside a Row. Extracted the per-route NavHost into a private `AppNavHost` to dedupe. | [Android Developers — adaptive navigation](https://developer.android.com/develop/ui/compose/layouts/adaptive/build-adaptive-navigation) | M | Phone UX is byte-for-byte identical. Defers dual-pane Alarms/Edit (X14 follow-on) to a later release. |
-| N12 | [~] Health Connect Sleep Sessions — **scaffold shipped v1.13.1.** DataStore opt-in toggle (`healthConnectEnabled`), Settings → Health Connect card with flavor-aware copy, backup round-trip. Actual `androidx.health.connect:connect-client` SDK integration + Bedtime/Stats data surfacing deferred to a follow-up release pending Play Console health-permissions review. | [androidx.health.connect:connect-client docs](https://developer.android.com/health-and-fitness/health-connect); [Track sleep sessions](https://developer.android.com/health-and-fitness/health-connect/features/sleep-sessions) | M | Toggle survives backup so opted-in users light up immediately when the data path lands. |
-| N13 | [~] Play Store data-safety + health-permission declaration refresh — **policy corrected in v1.13.2 docs pass.** `PRIVACY_POLICY.html` now accurately states that v1.13.1 stores only a local Health Connect opt-in preference and does not request permission or read data yet. Final Play Console health-permission wording remains tied to X1 when the SDK path actually ships. | [Play Health Connect publishing](https://developer.android.com/health-and-fitness/health-connect/publish), [Play Console policy April 15 2026](https://support.google.com/googleplay/android-developer/answer/16926792?hl=en) | S | Avoids overclaiming current Health Connect behavior while preserving the review prerequisite for the follow-up release that wires the SDK. |
+| N12 | [x] Health Connect Sleep Sessions — **scaffold shipped v1.13.1; SDK path completed in X1.** DataStore opt-in toggle (`healthConnectEnabled`), Settings → Health Connect permission flow, Play-only `connect-client`, backup round-trip, and Bedtime/Stats local summaries now exist. | [androidx.health.connect:connect-client docs](https://developer.android.com/health-and-fitness/health-connect); [Track sleep sessions](https://developer.android.com/health-and-fitness/health-connect/features/sleep-sessions) | M | Toggle survives backup so opted-in users light up immediately when the data path lands. |
+| N13 | [x] Play Store data-safety + health-permission declaration refresh — **policy corrected in v1.13.2 docs pass and refreshed in X1.** `PRIVACY_POLICY.html` now describes the actual Play-only `READ_SLEEP` behavior, local-only summaries, no write/background access, no backups of sleep records, and F-Droid exclusion. Play Console approval is still an external release gate. | [Play Health Connect publishing](https://developer.android.com/health-and-fitness/health-connect/publish), [Play Console policy April 15 2026](https://support.google.com/googleplay/android-developer/answer/16926792?hl=en) | S | Avoids overclaiming current Health Connect behavior while preserving the review prerequisite for the release that wires the SDK. |
 
 ## NEXT — v1.13 candidates
 
@@ -550,7 +551,7 @@ Items that need scoping or platform readiness before they earn a tier.
 
 ### Legal / compliance flags to budget before touching
 
-- Health Connect (N12 / X3) — published privacy-policy update + Play Console health-permissions declaration **must precede shipping** (April 2026 policy). ([Play Console policy](https://support.google.com/googleplay/android-developer/answer/16926792?hl=en))
+- Health Connect (N12 / X1) — code and privacy policy now describe Play-only `READ_SLEEP`; Play Console health-permissions declaration/approval must still precede Play Store distribution. ([Play Console policy](https://support.google.com/googleplay/android-developer/answer/16926792?hl=en))
 - Apnea event flagging (L-S7) — explicit "screening, not a medical device" disclaimer; consider keeping it `play`-flavor only for legal hygiene.
 - Power-off alarm (L-P1) — per-OEM privileged partner programs; may never be achievable for an indie app.
 - Partner-phone / paired-phone sync (L-H2 / L-C2) — explicit threat model doc before code.

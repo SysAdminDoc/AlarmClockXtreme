@@ -7,6 +7,8 @@ import android.content.Intent
 import android.os.Build
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
@@ -49,14 +51,17 @@ data class BedtimeUiState(
     val bedtimeDndAccessGranted: Boolean = false,
     val bedtimeDndActive: Boolean = false,
     val bedtimeDndStatus: String = "Off",
-    val bedtimeDndError: String? = null
+    val bedtimeDndError: String? = null,
+    val healthConnectEnabled: Boolean = false,
+    val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary()
 )
 
 @HiltViewModel
 class BedtimeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: AlarmRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val healthConnectSleepRepository: HealthConnectSleepRepository
 ) : ViewModel() {
 
     // F10: Sleep sound player
@@ -89,9 +94,11 @@ class BedtimeViewModel @Inject constructor(
                 sleepSoundFadeMinutes = if (settings.sleepSoundTimerMinutes > 0) settings.sleepSoundTimerMinutes else 30,
                 sleepSoundFadeSeconds = settings.sleepSoundFadeSeconds.coerceIn(5, 600),
                 bedtimeChecklist = checklistItems,
-                bedtimeDndEnabled = settings.bedtimeDndEnabled
+                bedtimeDndEnabled = settings.bedtimeDndEnabled,
+                healthConnectEnabled = settings.healthConnectEnabled
             )
             refreshAlarmInfo()
+            refreshHealthConnectSleep()
         }
     }
 
@@ -304,6 +311,24 @@ class BedtimeViewModel @Inject constructor(
     fun refreshBedtimeDndStatus() {
         viewModelScope.launch {
             syncBedtimeDndRule()
+            refreshHealthConnectSleep()
+        }
+    }
+
+    fun refreshHealthConnectSleep() {
+        viewModelScope.launch {
+            val settings = preferencesManager.getCurrentSettings()
+            val summary = if (settings.healthConnectEnabled) {
+                healthConnectSleepRepository.readRecentSleepSummary()
+            } else {
+                HealthConnectSleepSummary()
+            }
+            _uiState.update {
+                it.copy(
+                    healthConnectEnabled = settings.healthConnectEnabled,
+                    healthConnectSleepSummary = summary
+                )
+            }
         }
     }
 

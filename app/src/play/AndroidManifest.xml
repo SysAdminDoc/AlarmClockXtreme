@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Play flavor only: X1 Health Connect reads recent sleep sessions after
+         explicit in-app opt-in and Health Connect permission grant. -->
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+
+</manifest>

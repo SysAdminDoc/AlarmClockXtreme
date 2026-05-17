@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.13.1-blue)
+![Version](https://img.shields.io/badge/version-1.13.2-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,10 +15,10 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.13.1-play.apk
+adb install AlarmClockXtreme-v1.13.2-play.apk
 ```
 
-The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor) and the Wear OS Data Layer bridge. The F-Droid flavor strips those proprietary pieces for an unencumbered build.
+The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, and optional Health Connect READ_SLEEP integration. The F-Droid flavor strips those proprietary or Play-distribution-adjacent pieces for an unencumbered build.
 
 ## Build From Source
 
@@ -143,6 +143,7 @@ cd AlarmClockXtreme
 | Stopwatch | Lap tracking with best/worst marking |
 | Bedtime Tracking | Sleep goal, sleep cycle calculator, bedtime reminders, sleep sounds |
 | Bedtime DND | App-owned alarms-only Do Not Disturb rule for the sleep window, with clear access/status feedback |
+| Health Connect Sleep | Play flavor only: opt-in READ_SLEEP summaries for recent sleep duration/stages in Bedtime and Statistics |
 | Statistics | Wake-streak flame badge, snooze rate, day-of-week breakdown, response times, searchable alarm history |
 | Night Clock | Always-on bedside display with minimal brightness |
 | Home Widget | Glance-based widget showing next alarm countdown |
@@ -180,6 +181,7 @@ cd AlarmClockXtreme
 +---------------------------------------------------------+
 |                    Data Layer                            |
 |  Room DB v10 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
+|  HealthConnectSleepRepository (Play READ_SLEEP summaries) |
 |  50+ field Alarm entity | 35+ field AppSettings          |
 |  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |
 +---------------------------------------------------------+
@@ -189,7 +191,7 @@ cd AlarmClockXtreme
 +---------------------------------------------------------+
 ```
 
-**Tech stack:** Kotlin 2.1, Jetpack Compose (Material 3), Room, Hilt, Retrofit + Moshi (codegen), DataStore, Glance widgets, OkHttp, Coroutines/Flow, WorkManager, yt-dlp, NewPipe Extractor (Play flavor)
+**Tech stack:** Kotlin 2.1, Jetpack Compose (Material 3), Room, Hilt, Retrofit + Moshi (codegen), DataStore, Glance widgets, OkHttp, Coroutines/Flow, WorkManager, Health Connect client (Play flavor), yt-dlp, NewPipe Extractor (Play flavor)
 
 ## Configuration
 
@@ -210,7 +212,7 @@ GitHub tag releases require repository secrets. Use either the preferred
 | `ANDROID_KEY_ALIAS` | `KEY_ALIAS` | Signing key alias |
 | `ANDROID_KEY_PASSWORD` | `KEY_PASSWORD` | Signing key password |
 
-Tag pushes like `v1.13.1` build signed Play, F-Droid, and Wear release APKs,
+Tag pushes like `v1.13.2` build signed Play, F-Droid, and Wear release APKs,
 verify signatures with `apksigner`, write `SHA256SUMS.txt`, and attach the APKs
 plus hashes to the GitHub Release.
 
@@ -247,6 +249,7 @@ plus hashes to the GitHub Release.
 | `NFC` | NFC tag dismiss challenge | Optional |
 | `CAMERA` | Barcode scan + photo match challenges | Optional |
 | `RECORD_AUDIO` | Sonar sleep tracking | Optional |
+| `android.permission.health.READ_SLEEP` | Health Connect sleep-session summaries in Bedtime and Statistics | Optional (Play flavor only) |
 | `MODIFY_AUDIO_SETTINGS` | Alarm audio routing and volume behavior | Yes |
 | `ACTIVITY_RECOGNITION` | Walk steps + smart alarm | Optional |
 | `SEND_SMS` / `CALL_PHONE` | Guardian Angel emergency contact | Optional |
@@ -266,7 +269,7 @@ No analytics. No ads. No tracking. No accounts. No data leaves your device excep
 - Philips Hue commands to your configured bridge on your local network
 - YouTube search, preview, stream resolution, and download requests in the Play flavor only; F-Droid excludes this feature
 
-Crash logs stay in local app storage unless you export them. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, and Hue configuration. The v1.13.1 Health Connect setting stores only a local opt-in preference; it does not request Health Connect permission or read sleep-session data yet.
+Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, are not copied into Room/DataStore/backups, and are never uploaded to the developer. Crash logs stay in local app storage unless you export them. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, and Hue configuration.
 
 Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
 
@@ -282,7 +285,7 @@ These manufacturers aggressively kill background apps. The app shows a manufactu
 Check Settings > Dashboard > Temperature unit. The app defaults to Fahrenheit. You can also set a manual location if GPS isn't available.
 
 **Can I use this without Google Play Services?**
-Yes. Core alarm features do not require Google Play Services. Weather uses Open-Meteo, Nager.Date, and api.weather.gov depending on enabled features. The F-Droid build variant excludes Play-specific code, including the YouTube downloader and Wear OS Data Layer bridge.
+Yes. Core alarm features do not require Google Play Services. Weather uses Open-Meteo, Nager.Date, and api.weather.gov depending on enabled features. The F-Droid build variant excludes Play-specific code, including the YouTube downloader, Wear OS Data Layer bridge, and Health Connect SDK path.
 
 **How does Mission Chaining work?**
 In alarm edit, set the "Challenge chain" field to a comma-separated list of challenge types (e.g., `MATH_EASY,SHAKE,TYPING`). The alarm will require you to solve each challenge in order before dismissing.

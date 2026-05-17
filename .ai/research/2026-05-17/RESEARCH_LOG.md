@@ -17,7 +17,7 @@ rg -n "versionCode|versionName|compileSdk|targetSdk|minSdk|Room|Database\(|MIGRA
 
 Findings:
 
-- Current source is v1.13.1, DB v10, backup v7.
+- Current source is v1.13.2, DB v10, backup v7.
 - Worktree was clean at the start.
 - Local branch was ahead of origin by 13 commits.
 - Latest tag is v1.9.5, which lags current app version.
@@ -112,6 +112,16 @@ R5 implementation pass:
   resolved dependencies."
 - Re-ran the Play release build because Android release shrinking is the path
   most likely to expose optional transitive-class breakage.
+
+X1 implementation pass:
+
+- Rechecked official Android Health Connect sleep-session docs, Permission
+  Controller docs, HealthPermission API reference, HealthConnectClient SDK
+  status docs, and AndroidX Health Connect release notes before wiring code.
+- Used stable `androidx.health.connect:connect-client:1.1.0` rather than the
+  newer 1.2 alpha because X1 only needs sleep-session reads.
+- Implemented the integration behind source-set boundaries so F-Droid has no
+  SDK dependency and no `READ_SLEEP` manifest permission.
 
 ## Saturation Notes
 

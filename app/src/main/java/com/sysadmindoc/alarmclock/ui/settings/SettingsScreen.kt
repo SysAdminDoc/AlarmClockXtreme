@@ -96,6 +96,8 @@ import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
+import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
@@ -147,6 +149,19 @@ fun SettingsScreen(
         ActivityResultContracts.RequestPermission()
     ) {
         viewModel.refreshBatteryStatus()
+    }
+    val healthConnectPermissionContract = remember { viewModel.healthConnectPermissionContract() }
+    val requestHealthConnectPermissions: (() -> Unit)? = if (healthConnectPermissionContract != null) {
+        val launcher = rememberLauncherForActivityResult(healthConnectPermissionContract) { granted ->
+            viewModel.onHealthConnectPermissionsResult(granted)
+        }
+        ({
+            viewModel.requestHealthConnectPermissions { permissions ->
+                launcher.launch(permissions)
+            }
+        })
+    } else {
+        null
     }
 
     Column(
@@ -401,7 +416,11 @@ fun SettingsScreen(
             IntegrationsSection(state, viewModel)
             HolidaysSection(state, viewModel)
             PhilipsHueSection(state, viewModel)
-            HealthConnectSection(state, viewModel)
+            HealthConnectSection(
+                state = state,
+                viewModel = viewModel,
+                onRequestPermissions = requestHealthConnectPermissions
+            )
             PersonalizationSection(state, viewModel)
             BackupRestoreSection(viewModel)
 
@@ -1321,38 +1340,132 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
 }
 
 /**
- * v1.13.1 (roadmap N12 + N13): Health Connect opt-in scaffold. The first
- * pass surfaces the toggle so opted-in users light up immediately when
- * the follow-up release ships the `androidx.health.connect:connect-client`
- * SDK integration. F-Droid builds also see the row, but the toggle text
- * is honest about the flavor not yet shipping Health Connect.
- *
- * The Play Console health-permissions declaration (N13) is gated on the
- * actual data-read path landing; for now `PRIVACY_POLICY.html` carries
- * the narrative.
+ * v1.13.2 (roadmap X1): Play builds request only Health Connect READ_SLEEP and
+ * read recent sleep-session summaries for foreground Bedtime/Stats surfaces.
+ * F-Droid keeps the preference for backup compatibility without shipping the
+ * SDK or permission request path.
  */
 @Composable
-private fun HealthConnectSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+private fun HealthConnectSection(
+    state: SettingsUiState,
+    viewModel: SettingsViewModel,
+    onRequestPermissions: (() -> Unit)?
+) {
     val isPlayFlavor = com.sysadmindoc.alarmclock.BuildConfig.FLAVOR == "play"
+    val summary = state.healthConnectSleepSummary
     AppSurfaceCard {
         AppSectionTitle(
             title = "Health Connect",
             description = if (isPlayFlavor) {
-                "Prepare for opt-in sleep-session support in the Play flavor. This build stores your preference only; it does not request Health Connect permission or read sleep data yet."
+                healthConnectDescription(state.settings.healthConnectEnabled, summary)
             } else {
                 "The F-Droid flavor does not ship the Health Connect SDK. This setting is retained for backup compatibility only."
             }
         )
         SettingsToggle(
-            label = "Remember Health Connect opt-in",
+            label = "Read recent sleep sessions",
             checked = state.settings.healthConnectEnabled,
             supportingText = if (isPlayFlavor) {
-                "No sleep data is read in v1.13.1. A future Play-flavor update will request Health Connect permission before reading recent sleep sessions."
+                "Uses only android.permission.health.READ_SLEEP. Summaries stay local and are refreshed when Bedtime, Stats, or Settings is open."
             } else {
                 "No Health Connect permissions are requested on F-Droid."
             },
-            onToggle = viewModel::updateHealthConnectEnabled
+            onToggle = { enabled ->
+                if (enabled && isPlayFlavor && !summary.permissionGranted && onRequestPermissions != null) {
+                    onRequestPermissions()
+                } else {
+                    viewModel.updateHealthConnectEnabled(enabled)
+                }
+            }
         )
+        if (isPlayFlavor) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AppStatusChip(
+                    label = when (summary.availability) {
+                        HealthConnectAvailability.AVAILABLE -> "SDK available"
+                        HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED -> "Update needed"
+                        HealthConnectAvailability.UNAVAILABLE -> "Unavailable"
+                        HealthConnectAvailability.NOT_INCLUDED -> "Not included"
+                    },
+                    icon = if (summary.isAvailable) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    color = if (summary.isAvailable) DismissGreen else SnoozeYellow
+                )
+                AppStatusChip(
+                    label = if (summary.permissionGranted) "READ_SLEEP granted" else "Permission needed",
+                    icon = if (summary.permissionGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
+                    color = if (summary.permissionGranted) DismissGreen else SnoozeYellow
+                )
+            }
+            if (summary.permissionGranted) {
+                Text(
+                    text = if (summary.hasRecentSession) {
+                        "Last Health Connect session: ${formatSleepMinutes(summary.lastSessionDurationMinutes)} · ${summary.sessionsRead} read in the last 14 days."
+                    } else {
+                        "READ_SLEEP is granted, but no recent sleep sessions were returned in the last 14 days."
+                    },
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            summary.errorMessage?.let { error ->
+                Text(
+                    text = "Health Connect needs attention: $error",
+                    color = SnoozeYellow,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedButton(
+                    onClick = { onRequestPermissions?.invoke() },
+                    enabled = onRequestPermissions != null && summary.isAvailable,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(if (summary.permissionGranted) "Review access" else "Grant access")
+                }
+                OutlinedButton(
+                    onClick = viewModel::refreshHealthConnectSleep,
+                    enabled = summary.isAvailable,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(Icons.Default.Bedtime, null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text("Refresh")
+                }
+            }
+        }
+    }
+}
+
+private fun healthConnectDescription(
+    enabled: Boolean,
+    summary: HealthConnectSleepSummary
+): String = when {
+    summary.availability == HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED ->
+        "Health Connect is installed but needs an update before sleep sessions can be read."
+    summary.availability == HealthConnectAvailability.UNAVAILABLE ->
+        "Health Connect is not available on this device."
+    !enabled ->
+        "Opt in to read recent Health Connect sleep sessions on-device for Bedtime and Stats context."
+    !summary.permissionGranted ->
+        "Grant READ_SLEEP in Health Connect before AlarmClockXtreme can show recent sleep summaries."
+    summary.hasRecentSession ->
+        "Recent sleep summaries are available locally from Health Connect."
+    else ->
+        "READ_SLEEP is granted; no recent Health Connect sleep sessions were found yet."
+}
+
+private fun formatSleepMinutes(minutes: Long?): String {
+    val value = minutes ?: return "No session"
+    val hours = value / 60
+    val mins = value % 60
+    return when {
+        hours > 0 && mins > 0 -> "${hours}h ${mins}m"
+        hours > 0 -> "${hours}h"
+        else -> "${mins}m"
     }
 }
 

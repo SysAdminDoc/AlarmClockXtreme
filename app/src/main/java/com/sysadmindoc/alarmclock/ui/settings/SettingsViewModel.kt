@@ -15,6 +15,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.backup.BackupManager
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
+import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
@@ -56,7 +58,8 @@ data class SettingsUiState(
     // work, which can delay or drop the alarm-schedule path. UNKNOWN (-1)
     // means the API isn't available on this device or returned no data —
     // we surface a generic "Standby bucket unknown" in that case.
-    val appStandbyBucket: Int = AppStandbyBucket.UNKNOWN
+    val appStandbyBucket: Int = AppStandbyBucket.UNKNOWN,
+    val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary()
 )
 
 object AppStandbyBucket {
@@ -71,7 +74,8 @@ class SettingsViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     private val alarmScheduler: AlarmScheduler,
     private val backupManager: BackupManager,
-    private val webhookService: WebhookService
+    private val webhookService: WebhookService,
+    private val healthConnectSleepRepository: HealthConnectSleepRepository
 ) : AndroidViewModel(application) {
 
     private val _batteryState = MutableStateFlow(
@@ -83,14 +87,23 @@ class SettingsViewModel @Inject constructor(
     private val _webhookTestState = MutableStateFlow(IntegrationTestState())
     private val _hueTestState = MutableStateFlow(IntegrationTestState())
     private val _wakeReadinessState = MutableStateFlow(WakeReadinessState.from(application))
+    private val _healthConnectSleepState = MutableStateFlow(HealthConnectSleepSummary())
+
+    private val readinessAndHealth = combine(
+        _wakeReadinessState,
+        _healthConnectSleepState
+    ) { wakeReadiness, healthConnectSleep ->
+        wakeReadiness to healthConnectSleep
+    }
 
     val uiState: StateFlow<SettingsUiState> = combine(
         preferencesManager.settings,
         _batteryState,
         _webhookTestState,
         _hueTestState,
-        _wakeReadinessState
-    ) { settings, battery, webhookState, hueState, wakeReadiness ->
+        readinessAndHealth
+    ) { settings, battery, webhookState, hueState, readinessHealth ->
+        val (wakeReadiness, healthConnectSleep) = readinessHealth
         val guidance = ManufacturerCompat.getGuidance()
         SettingsUiState(
             settings = settings,
@@ -108,9 +121,14 @@ class SettingsViewModel @Inject constructor(
             isHueTesting = hueState.isRunning,
             hasNotificationPermission = wakeReadiness.hasNotificationPermission,
             canScheduleExactAlarms = wakeReadiness.canScheduleExactAlarms,
-            appStandbyBucket = wakeReadiness.appStandbyBucket
+            appStandbyBucket = wakeReadiness.appStandbyBucket,
+            healthConnectSleepSummary = healthConnectSleep
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState())
+
+    init {
+        refreshHealthConnectSleep()
+    }
 
     fun requestBatteryExemption() {
         val context = getApplication<Application>()
@@ -343,15 +361,44 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * v1.13.1 (roadmap N12): toggle the Health Connect opt-in. The
-     * concrete sleep-session read path is deferred to a follow-up
-     * release that bundles the `androidx.health.connect:connect-client`
-     * SDK and the matching Play Console health-permissions declaration
-     * (see N13). For now the toggle stores intent so the future
-     * release can light up immediately for opted-in users.
+     * v1.13.2 (roadmap X1): toggles the local Health Connect opt-in. The
+     * Play flavor requests only READ_SLEEP and reads recent sessions in
+     * foreground UI; the F-Droid flavor keeps the value only for backup
+     * compatibility.
      */
     fun updateHealthConnectEnabled(enabled: Boolean) {
-        updateSettings { it.copy(healthConnectEnabled = enabled) }
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(healthConnectEnabled = enabled) }
+            refreshHealthConnectSleep()
+        }
+    }
+
+    fun healthConnectPermissionContract() =
+        healthConnectSleepRepository.createPermissionRequestContract()
+
+    fun requestHealthConnectPermissions(launch: (Set<String>) -> Unit) {
+        val permissions = healthConnectSleepRepository.requiredPermissions
+        if (permissions.isNotEmpty()) {
+            launch(permissions)
+        }
+    }
+
+    fun onHealthConnectPermissionsResult(grantedPermissions: Set<String>) {
+        viewModelScope.launch {
+            val granted = grantedPermissions.containsAll(healthConnectSleepRepository.requiredPermissions)
+            if (granted) {
+                preferencesManager.update { it.copy(healthConnectEnabled = true) }
+            }
+            refreshHealthConnectSleep()
+        }
+    }
+
+    fun refreshHealthConnectSleep() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val enabled = preferencesManager.getCurrentSettings().healthConnectEnabled
+            _healthConnectSleepState.value =
+                healthConnectSleepRepository.readRecentSleepSummary(includeRecords = enabled)
+        }
     }
 
     /** v1.11.6: Clear an active pause and re-arm alarms. */

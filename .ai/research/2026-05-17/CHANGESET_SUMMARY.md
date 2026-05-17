@@ -169,6 +169,72 @@ Date: 2026-05-17
   global Git ignore and `CLAUDE.md` by repo `.gitignore`.
 - No code changed in this pass; verification was limited to documentation
   consistency and `git diff --check`.
+
+## Autonomous Roadmap Pass: X1 Health Connect READ_SLEEP Integration
+
+Date: 2026-05-17
+
+### Files Modified
+
+- `app/build.gradle.kts` - added `androidx.health.connect:connect-client:1.1.0`
+  as a Play-flavor-only dependency and constrained the new Play-only Guava
+  transitive to `33.6.0-android` after OSV flagged `31.1-android`.
+- `app/src/play/AndroidManifest.xml` - declared only
+  `android.permission.health.READ_SLEEP` for the Play flavor.
+- `app/src/main/java/com/sysadmindoc/alarmclock/data/health/HealthConnectSleepRepository.kt`
+  - added the common flavor-safe contract and local summary model.
+- `app/src/play/java/com/sysadmindoc/alarmclock/data/health/PlayHealthConnectSleepRepository.kt`
+  - added the real Health Connect implementation: SDK status, permission
+  status, recent `SleepSessionRecord` reads, and stage/duration summarization.
+- `app/src/fdroid/java/com/sysadmindoc/alarmclock/data/health/FdroidHealthConnectSleepRepository.kt`
+  - added a no-op F-Droid implementation with no SDK or permission path.
+- `PlayFlavorModule.kt` and `FdroidFlavorModule.kt` - bound the flavor-specific
+  Health Connect repositories through Hilt.
+- `SettingsViewModel.kt` / `SettingsScreen.kt` - wired status refresh,
+  permission request, READ_SLEEP result handling, and Settings summaries.
+- `BedtimeViewModel.kt` / `BedtimeScreen.kt` - surfaced recent local sleep
+  summaries in the Bedtime planning flow.
+- `StatsViewModel.kt` / `StatsScreen.kt` - surfaced local sleep context beside
+  alarm history.
+- `PRIVACY_POLICY.html`, `README.md`, `ROADMAP.md`, `PROJECT_CONTEXT.md`, and
+  research notes - updated policy and roadmap state for the actual Play-only
+  READ_SLEEP behavior.
+- `app/build.gradle.kts`, `wear/build.gradle.kts`, `CHANGELOG.md`, README,
+  ROADMAP, and F-Droid metadata - bumped/synced version lines to `1.13.2` /
+  code `67` so the new user-facing integration is not misreported as v1.13.1.
+
+### Verification
+
+- Official Android docs checked during implementation:
+  Health Connect sleep sessions require `android.permission.health.READ_SLEEP`
+  for reads, `PermissionController.createRequestPermissionResultContract()`
+  requests Health permissions, and `connect-client:1.1.0` is the latest stable
+  release noted in AndroidX release notes.
+- `.\gradlew.bat :app:compilePlayDebugKotlin :app:compileFdroidDebugKotlin --console=plain`
+  passed after the flavor split and Guava constraint were wired.
+- `python scripts\osv_gradle_audit.py --configuration playDebugRuntimeClasspath`
+  passed: 212 Maven dependencies resolved; no OSV vulnerabilities reported.
+- `python scripts\osv_gradle_audit.py --configuration playReleaseRuntimeClasspath`
+  passed after the Guava constraint: 207 Maven dependencies resolved; no OSV
+  vulnerabilities reported.
+- F-Droid release runtime dependency inspection passed with no
+  `androidx.health.connect` or `connect-client` dependency present.
+- `.\gradlew.bat :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain`
+  passed.
+- Version consistency check passed for app, Wear, README badge, README install
+  command, changelog top entry, and roadmap current snapshot: all report
+  `1.13.2`.
+- Workflow YAML/shell syntax check passed for all 17 GitHub Actions shell
+  `run:` blocks.
+- `git diff --check` passed with only existing line-ending normalization
+  warnings.
+- `.\gradlew.bat :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease --console=plain`
+  passed with a temporary local signing key. The ignored local
+  `keystore.properties` was restored afterward.
+- `aapt2 dump permissions`, `aapt2 dump badging`, and
+  `apksigner verify --verbose` passed for Play, F-Droid, and Wear release APKs:
+  all report `versionCode=67` and `versionName=1.13.2`; only the Play APK
+  declares `android.permission.health.READ_SLEEP`.
 - `git diff --exit-code -- app/schemas` passed after the Gradle build.
 - `adb devices` reported no attached device, so
   `connectedFdroidDebugAndroidTest` was not runnable locally; the new GitHub
