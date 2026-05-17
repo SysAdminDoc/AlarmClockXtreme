@@ -91,24 +91,29 @@ Manifest evidence from `app/src/main/AndroidManifest.xml`:
   FileProvider-backed ZIPs from cache. Bundles include crash logs, app/device
   wake-readiness diagnostics, aggregate alarm stats, and redacted alarm metadata
   without telemetry.
-- Health Connect permission is not declared yet, which matches the v1.13.1
-  scaffold-only state.
+- Statistics now has a v1.13.7 local sleep/wake analytics card that compares
+  Health Connect sleep-session duration with Room alarm response, snooze, and
+  challenge-retry history. Health Connect session windows remain foreground UI
+  data and are not persisted to Room/DataStore/backups/support exports.
+- Health Connect is Play-flavor only and declares `READ_SLEEP`; F-Droid keeps a
+  no-op repository with no SDK or permission path.
 
 Database evidence:
 
-- `AlarmDatabase.kt` declares `@Database(... version = 10, exportSchema = true)`.
-- `DatabaseModule.kt` registers `MIGRATION_9_10`.
+- `AlarmDatabase.kt` declares `@Database(... version = 11, exportSchema = true)`.
+- `DatabaseModule.kt` registers all migrations through `MIGRATION_10_11`.
 - `app/schemas/...` lacked the v10 schema export during reconnaissance. The
   verification build generated `app/schemas/com.sysadmindoc.alarmclock.data.local.AlarmDatabase/10.json`,
-  and this changeset includes it.
+  and v1.13.7 adds `11.json` for persisted challenge retry counts.
 
 Health Connect evidence:
 
 - `PreferencesManager.kt` adds `AppSettings.healthConnectEnabled`.
 - `BackupManager.kt` round-trips the opt-in.
 - `SettingsScreen.kt` exposes flavor-aware Health Connect copy.
-- No `androidx.health.connect:connect-client` dependency or permission path is
-  wired yet.
+- `app/src/play` declares `READ_SLEEP` and uses
+  `androidx.health.connect:connect-client`; F-Droid has no Health Connect SDK
+  dependency.
 
 ## Local Drift Findings
 
@@ -125,3 +130,7 @@ Health Connect evidence:
 6. `PRIVACY_POLICY.html` Health Connect section is current, but broad data-flow
    text predates the current integration set.
 7. The latest local tag is v1.9.5 while the app is v1.13.1.
+
+Post-X6 update: tracked README/ROADMAP/PROJECT_CONTEXT now report app
+`1.13.7`, version code `72`, and Room DB v11. Local tag drift remains until a
+release tag is cut.

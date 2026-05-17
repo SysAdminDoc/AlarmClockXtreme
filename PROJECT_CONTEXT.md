@@ -12,9 +12,9 @@ known drift, and the active research plan. Tool-specific instructions remain in
 - Repo: `C:\Users\--\repos\AlarmClockXtreme`
 - Remote: `https://github.com/SysAdminDoc/AlarmClockXtreme.git`
 - Branch at latest update: `main`, tracking `origin/main`
-- App version: `versionName = "1.13.6"`, `versionCode = 71`
+- App version: `versionName = "1.13.7"`, `versionCode = 72`
 - Android targets: `compileSdk = 36`, `targetSdk = 35`, `minSdk = 26`
-- Database: Room `AlarmDatabase` version 10 with `exportSchema = true`
+- Database: Room `AlarmDatabase` version 11 with `exportSchema = true`
 - Backup format: v8
 - Modules: `:app` phone app plus `:wear` Wear OS companion/tile module
 - Flavors: `play` includes YouTube downloader and Wear Data Layer; `fdroid`
@@ -44,7 +44,7 @@ Preserve these principles:
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/model/Alarm.kt`
   Room entity and alarm field contract.
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/local/AlarmDatabase.kt`
-  Room DB version and migrations. Current DB is v10 with `MIGRATION_9_10`.
+  Room DB version and migrations. Current DB is v11 with `MIGRATION_10_11`.
 - `app/src/main/java/com/sysadmindoc/alarmclock/di/DatabaseModule.kt`
   Hilt-provided singleton Room DB and migration registration.
 - `app/src/main/java/com/sysadmindoc/alarmclock/service/AlarmService.kt`
@@ -60,8 +60,13 @@ Preserve these principles:
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/preferences/PreferencesManager.kt`
   DataStore-backed `AppSettings`, including the Health Connect opt-in flag.
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/health/HealthConnectSleepRepository.kt`
-  common contract for local sleep summaries; Play binds the real Health Connect
-  `READ_SLEEP` implementation and F-Droid binds a no-op repository.
+  common contract for local sleep summaries and recent session windows; Play
+  binds the real Health Connect `READ_SLEEP` implementation and F-Droid binds a
+  no-op repository.
+- `app/src/main/java/com/sysadmindoc/alarmclock/ui/stats/SleepWakeAnalytics.kt`
+  pure local analytics model that pairs Health Connect sleep ending dates with
+  Room alarm events for sleep duration, dismiss response, snoozes, and
+  challenge retries.
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/backup/BackupManager.kt`
   backup/restore contract, backup format v8, and pre-export warning risk scan.
 - `app/src/main/java/com/sysadmindoc/alarmclock/data/support/*`
@@ -108,8 +113,8 @@ aapt2 dump badging <release-apk>
   `README.md`, Settings Health Connect copy, and `metadata/*.yml` now enumerate
   current optional network/data surfaces. After X1, the policy also describes
   the Play-only Health Connect `READ_SLEEP` path and the F-Droid no-SDK stance.
-- Room schema discipline was hardened on 2026-05-17: current DB version is 10,
-  v10 schema is committed, `AlarmDatabaseMigrationTest` covers migration and
+- Room schema discipline was hardened on 2026-05-17: current DB version is 11,
+  v11 schema is committed, `AlarmDatabaseMigrationTest` covers migration and
   fresh-install/schema parity, and Android CI fails if `app/schemas` drifts.
 - Dependency risk was mitigated on 2026-05-17: the Play flavor constrains the
   downloader graph to `jackson-* 2.18.6`, `commons-compress 1.28.0`,
@@ -136,7 +141,11 @@ aapt2 dump badging <release-apk>
 - Local support export shipped on 2026-05-17: Settings creates a local ZIP with
   crash logs, redacted alarm diagnostics, wake-readiness state, and version/device
   metadata. It is user-initiated sharing only, with no telemetry upload.
-- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.6`.
+- Sleep/wake analytics shipped on 2026-05-17: Statistics renders local charts
+  that correlate Health Connect sleep session duration with Room alarm history.
+  DB v11 adds `alarm_events.challengeRetryCount`; Health Connect session windows
+  remain foreground UI data and are not copied into Room/DataStore/backups.
+- Release tagging drift: latest local tag is `v1.9.5`; app is `v1.13.7`.
 
 ## Active Roadmap
 
@@ -146,8 +155,9 @@ the 2026-05-17 walk-away session is under `.ai/research/2026-05-17/`.
 Start the next implementation pass with these top candidates unless newer
 evidence changes the order:
 
-1. Add sleep/wake analytics charts after the Health Connect integration.
-2. Add on-device actigraphy buckets and smart-wake follow-up work.
+1. Add on-device actigraphy buckets and smart-wake follow-up work.
+2. Continue challenge/analytics refinements such as response histograms or
+   persisted per-challenge solve quality if the roadmap promotes them.
 
 ## Research Artifacts
 

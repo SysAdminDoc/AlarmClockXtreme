@@ -217,6 +217,17 @@ fun StatsScreen(
             }
 
             item {
+                SleepWakeAnalyticsCard(
+                    analytics = state.sleepWakeAnalytics,
+                    healthConnectEnabled = state.healthConnectEnabled,
+                    sleepPermissionGranted = state.healthConnectSleepSummary.permissionGranted,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            item {
                 AppSurfaceCard(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -737,6 +748,259 @@ private fun HealthConnectStatsCard(
 }
 
 @Composable
+private fun SleepWakeAnalyticsCard(
+    analytics: SleepWakeAnalytics,
+    healthConnectEnabled: Boolean,
+    sleepPermissionGranted: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val hasSleepData = analytics.points.any { it.sleepMinutes != null }
+    val hasWakeData = analytics.points.any { it.hasWakeData }
+
+    AppSurfaceCard(modifier = modifier, highlighted = analytics.hasSleepWakeCorrelation) {
+        AppSectionTitle(
+            title = "Sleep and wake patterns",
+            description = sleepWakeAnalyticsDescription(
+                analytics = analytics,
+                healthConnectEnabled = healthConnectEnabled,
+                sleepPermissionGranted = sleepPermissionGranted,
+                hasSleepData = hasSleepData,
+                hasWakeData = hasWakeData
+            )
+        )
+
+        if (!analytics.hasAnyData) {
+            AppEmptyState(
+                icon = Icons.Default.BarChart,
+                title = "No sleep or wake trend yet",
+                description = "Alarm history and optional Health Connect sleep sessions will build this view locally."
+            )
+            return@AppSurfaceCard
+        }
+
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AppStatusChip(
+                label = "Sleep ${formatSleepMinutes(analytics.averageSleepMinutes)} avg",
+                icon = Icons.Default.CalendarMonth,
+                color = if (hasSleepData) MaterialTheme.colorScheme.primary else TextMuted
+            )
+            AppStatusChip(
+                label = "Response ${analytics.averageResponseSec?.let(::formatSeconds) ?: "0s"} avg",
+                icon = Icons.Default.CheckCircle,
+                color = if (analytics.averageResponseSec != null) DismissGreen else TextMuted
+            )
+            AppStatusChip(
+                label = "${analytics.totalSnoozes} snoozes",
+                icon = Icons.Default.Snooze,
+                color = if (analytics.totalSnoozes > 0) SnoozeYellow else TextMuted
+            )
+            AppStatusChip(
+                label = "${analytics.totalChallengeRetries} retries",
+                icon = Icons.Default.ErrorOutline,
+                color = if (analytics.totalChallengeRetries > 0) AccentRed else TextMuted
+            )
+        }
+
+        SleepWakeTrendChart(
+            points = analytics.points,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(156.dp)
+        )
+
+        SleepWakeFrictionChart(
+            points = analytics.points,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(118.dp)
+        )
+
+        analytics.responseDeltaAfterShortSleepSec?.let { delta ->
+            val label = if (delta >= 0) {
+                "${formatSignedSeconds(delta)} slower after short sleep"
+            } else {
+                "${formatSeconds(-delta)} faster after short sleep"
+            }
+            Text(
+                text = label,
+                color = if (delta > 0) SnoozeYellow else DismissGreen,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+    }
+}
+
+@Composable
+private fun SleepWakeTrendChart(
+    points: List<SleepWakeDayPoint>,
+    modifier: Modifier = Modifier
+) {
+    val maxSleep = points.mapNotNull { it.sleepMinutes }.maxOrNull()?.coerceAtLeast(1L) ?: 1L
+    val maxResponse = points.mapNotNull { it.averageResponseSec }.maxOrNull()?.coerceAtLeast(1) ?: 1
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ChartLegend("Sleep", MaterialTheme.colorScheme.primary)
+            ChartLegend("Dismiss", DismissGreen)
+        }
+        Row(
+            modifier = modifier.horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            points.forEach { point ->
+                val sleepRatio = point.sleepMinutes?.let { (it.toFloat() / maxSleep).coerceIn(0.08f, 1f) }
+                val responseRatio = point.averageResponseSec?.let { (it.toFloat() / maxResponse).coerceIn(0.08f, 1f) }
+                Column(
+                    modifier = Modifier.width(34.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .height(96.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        ChartBar(
+                            ratio = sleepRatio,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.width(11.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        ChartBar(
+                            ratio = responseRatio,
+                            color = DismissGreen,
+                            modifier = Modifier.width(11.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = point.date.format(CHART_DAY_FORMATTER),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SleepWakeFrictionChart(
+    points: List<SleepWakeDayPoint>,
+    modifier: Modifier = Modifier
+) {
+    val maxFriction = points
+        .maxOfOrNull { maxOf(it.snoozeCount, it.challengeRetryCount) }
+        ?.coerceAtLeast(1)
+        ?: 1
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ChartLegend("Snooze", SnoozeYellow)
+            ChartLegend("Retry", AccentRed)
+        }
+        Row(
+            modifier = modifier.horizontalScroll(rememberScrollState()),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            points.forEach { point ->
+                val snoozeRatio = point.snoozeCount.takeIf { it > 0 }
+                    ?.let { (it.toFloat() / maxFriction).coerceIn(0.08f, 1f) }
+                val retryRatio = point.challengeRetryCount.takeIf { it > 0 }
+                    ?.let { (it.toFloat() / maxFriction).coerceIn(0.08f, 1f) }
+                Column(
+                    modifier = Modifier.width(34.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Bottom
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .height(62.dp)
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        ChartBar(
+                            ratio = snoozeRatio,
+                            color = SnoozeYellow,
+                            modifier = Modifier.width(11.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        ChartBar(
+                            ratio = retryRatio,
+                            color = AccentRed,
+                            modifier = Modifier.width(11.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "${point.snoozeCount}/${point.challengeRetryCount}",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChartBar(
+    ratio: Float?,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxHeight()
+            .background(SurfaceCard.copy(alpha = 0.54f), RoundedCornerShape(8.dp)),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        ratio?.let {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(it)
+                    .background(color, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChartLegend(label: String, color: Color) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(9.dp)
+                .background(color, RoundedCornerShape(6.dp))
+        )
+        Text(
+            text = label,
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelMedium
+        )
+    }
+}
+
+@Composable
 private fun BreakdownRow(label: String, count: Int, color: Color) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -849,11 +1113,24 @@ private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
                 )
             }
         }
-        if (event.responseTimeMs > 0) {
-            AppStatusChip(
-                label = "${event.responseTimeMs / 1000}s",
-                color = TextMuted
-            )
+        if (event.responseTimeMs > 0 || event.challengeRetryCount > 0) {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                if (event.responseTimeMs > 0) {
+                    AppStatusChip(
+                        label = "${event.responseTimeMs / 1000}s",
+                        color = TextMuted
+                    )
+                }
+                if (event.challengeRetryCount > 0) {
+                    AppStatusChip(
+                        label = "${event.challengeRetryCount} retries",
+                        color = AccentRed
+                    )
+                }
+            }
         }
     }
 }
@@ -880,6 +1157,37 @@ private fun dayCountLabel(days: Int): String {
 
 private fun compactDays(days: Int): String = "${days}d"
 
+private fun sleepWakeAnalyticsDescription(
+    analytics: SleepWakeAnalytics,
+    healthConnectEnabled: Boolean,
+    sleepPermissionGranted: Boolean,
+    hasSleepData: Boolean,
+    hasWakeData: Boolean
+): String {
+    return when {
+        analytics.hasSleepWakeCorrelation ->
+            "Compares recent sleep duration with dismiss speed, snoozes, and challenge retries on this device."
+        !healthConnectEnabled ->
+            "Enable Health Connect to layer sleep duration over local wake behavior."
+        !sleepPermissionGranted ->
+            "Grant READ_SLEEP to add sleep duration; alarm response, snooze, and retry trends stay local."
+        hasSleepData && !hasWakeData ->
+            "Sleep sessions are ready. Alarm outcomes will add wake-behavior bars once they occur."
+        !hasSleepData && hasWakeData ->
+            "Wake-behavior bars are ready. Sleep bars appear after Health Connect returns recent sessions."
+        else ->
+            "Recent sleep sessions and alarm outcomes will build this chart locally."
+    }
+}
+
+private fun formatSeconds(seconds: Int): String {
+    val mins = seconds / 60
+    val secs = seconds % 60
+    return if (mins > 0) "${mins}m ${secs}s" else "${secs}s"
+}
+
+private fun formatSignedSeconds(seconds: Int): String = "+${formatSeconds(seconds)}"
+
 private fun formatSleepMinutes(minutes: Long?): String {
     val value = minutes ?: return "0m"
     val hours = value / 60
@@ -890,3 +1198,5 @@ private fun formatSleepMinutes(minutes: Long?): String {
         else -> "${mins}m"
     }
 }
+
+private val CHART_DAY_FORMATTER: DateTimeFormatter = DateTimeFormatter.ofPattern("E")
