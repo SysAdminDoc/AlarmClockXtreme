@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
+import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
+import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
@@ -20,12 +22,14 @@ data class StatsUiState(
     val is24Hour: Boolean = false,
     val healthConnectEnabled: Boolean = false,
     val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary(),
-    val sleepWakeAnalytics: SleepWakeAnalytics = SleepWakeAnalytics()
+    val sleepWakeAnalytics: SleepWakeAnalytics = SleepWakeAnalytics(),
+    val actigraphySessions: List<ActigraphySession> = emptyList()
 )
 
 @HiltViewModel
 class StatsViewModel @Inject constructor(
     private val eventRepository: AlarmEventRepository,
+    private val actigraphyRepository: ActigraphyRepository,
     private val preferencesManager: PreferencesManager,
     private val healthConnectSleepRepository: HealthConnectSleepRepository
 ) : ViewModel() {
@@ -48,6 +52,11 @@ class StatsViewModel @Inject constructor(
                     sleepWakeAnalytics = analytics,
                     isLoading = false
                 )
+            }
+        }
+        viewModelScope.launch {
+            actigraphyRepository.observeRecent(5).collect { sessions ->
+                _uiState.value = _uiState.value.copy(actigraphySessions = sessions)
             }
         }
         // Track the user's 24-hour preference so EventRow timestamps respect
