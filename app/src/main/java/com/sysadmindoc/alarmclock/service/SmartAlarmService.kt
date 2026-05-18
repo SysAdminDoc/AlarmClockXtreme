@@ -13,10 +13,20 @@ import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphyEpoch
+import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphySleepClassifier
+import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.sqrt
+import javax.inject.Inject
 
 /**
  * F7: Smart alarm window — monitors accelerometer overnight.
@@ -26,6 +36,8 @@ import kotlin.math.sqrt
  */
 @AndroidEntryPoint
 class SmartAlarmService : Service(), SensorEventListener {
+
+    @Inject lateinit var actigraphyRepository: ActigraphyRepository
 
     companion object {
         const val ACTION_START_SMART = "com.sysadmindoc.alarmclock.SMART_ALARM_START"
@@ -49,7 +61,12 @@ class SmartAlarmService : Service(), SensorEventListener {
     private var lowMotionWindowCount = 0
     private var windowMotionMax = 0f
     private var windowStartMs = 0L
+    private var sessionStartMs = 0L
+    private var sessionClosed = false
     private val WINDOW_MS = 30_000L  // 30-second motion sampling windows
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val halfMinuteMotion = mutableListOf<Float>()
+    private val actigraphyEpochs = mutableListOf<ActigraphyEpoch>()
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -105,7 +122,12 @@ class SmartAlarmService : Service(), SensorEventListener {
         accelerometer?.let {
             sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }
-        windowStartMs = System.currentTimeMillis()
+        val now = System.currentTimeMillis()
+        windowStartMs = now
+        sessionStartMs = now
+        sessionClosed = false
+        halfMinuteMotion.clear()
+        actigraphyEpochs.clear()
 
         return START_NOT_STICKY
     }
@@ -118,7 +140,7 @@ class SmartAlarmService : Service(), SensorEventListener {
 
         // If we've passed the scheduled alarm time, stop — regular alarm will fire
         if (now >= targetTimeMs) {
-            stopSelf()
+            finishMonitoring(firedEarly = false, launchAlarm = false)
             return
         }
 
@@ -140,13 +162,62 @@ class SmartAlarmService : Service(), SensorEventListener {
             } else {
                 lowMotionWindowCount = 0
             }
+            appendActigraphyWindow(windowStartMs, windowMotionMax)
             windowMotionMax = 0f
             windowStartMs = now
         }
     }
 
     private fun fireAlarmEarly() {
+        finishMonitoring(firedEarly = true, launchAlarm = true)
+    }
+
+    private fun appendActigraphyWindow(startMillis: Long, motionMax: Float) {
+        halfMinuteMotion.add(motionMax)
+        if (halfMinuteMotion.size < 2) return
+
+        val minuteMotion = halfMinuteMotion.maxOrNull() ?: 0f
+        val minuteStart = startMillis - WINDOW_MS
+        actigraphyEpochs.add(
+            ActigraphyEpoch(
+                startMillis = minuteStart,
+                activityCount = ActigraphySleepClassifier.phoneMotionToActivityCount(minuteMotion)
+            )
+        )
+        halfMinuteMotion.clear()
+    }
+
+    private fun finishMonitoring(firedEarly: Boolean, launchAlarm: Boolean) {
+        if (sessionClosed) return
+        sessionClosed = true
         sensorManager?.unregisterListener(this)
+        val endedAt = System.currentTimeMillis()
+        val epochs = actigraphyEpochs.toList()
+        if (epochs.isEmpty()) {
+            if (launchAlarm) startAlarmService()
+            stopSelf()
+            return
+        }
+        val summary = ActigraphySleepClassifier.summarize(epochs)
+        serviceScope.launch {
+            runCatching {
+                actigraphyRepository.record(
+                    alarmId = alarmId,
+                    startedAt = sessionStartMs,
+                    endedAt = endedAt,
+                    targetTime = targetTimeMs,
+                    firedEarly = firedEarly,
+                    summary = summary
+                )
+            }
+            withContext(Dispatchers.Main) {
+                if (launchAlarm) startAlarmService()
+                stopSelf()
+            }
+        }
+    }
+
+    private fun startAlarmService() {
         val intent = Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_START_ALARM
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
@@ -156,7 +227,6 @@ class SmartAlarmService : Service(), SensorEventListener {
         } catch (e: Exception) {
             android.util.Log.e("SmartAlarmService", "startForegroundService failed for alarm $alarmId", e)
         }
-        stopSelf()
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -164,6 +234,7 @@ class SmartAlarmService : Service(), SensorEventListener {
     override fun onDestroy() {
         sensorManager?.unregisterListener(this)
         wakeLock?.let { if (it.isHeld) it.release() }
+        serviceScope.cancel()
         super.onDestroy()
     }
 

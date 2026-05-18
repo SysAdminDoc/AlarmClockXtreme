@@ -5,14 +5,16 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 
-@Database(entities = [Alarm::class, AlarmEvent::class], version = 11, exportSchema = true)
+@Database(entities = [Alarm::class, AlarmEvent::class, ActigraphySession::class], version = 12, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
     abstract fun alarmEventDao(): AlarmEventDao
+    abstract fun actigraphySessionDao(): ActigraphySessionDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -158,6 +160,32 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // v1.13.8 (roadmap X2): compact smart-window actigraphy
+                // summaries. Raw accelerometer samples are intentionally not
+                // persisted.
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS actigraphy_sessions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        alarmId INTEGER NOT NULL,
+                        startedAt INTEGER NOT NULL,
+                        endedAt INTEGER NOT NULL,
+                        targetTime INTEGER NOT NULL,
+                        totalMinutes INTEGER NOT NULL,
+                        awakeMinutes INTEGER NOT NULL,
+                        lightMinutes INTEGER NOT NULL,
+                        deepMinutes INTEGER NOT NULL,
+                        averageSleepIndex REAL NOT NULL,
+                        firedEarly INTEGER NOT NULL,
+                        algorithm TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -169,6 +197,7 @@ abstract class AlarmDatabase : RoomDatabase() {
             MIGRATION_8_9,
             MIGRATION_9_10,
             MIGRATION_10_11,
+            MIGRATION_11_12,
         )
     }
 }
