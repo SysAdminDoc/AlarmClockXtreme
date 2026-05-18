@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -60,6 +61,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
+import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
@@ -221,6 +223,15 @@ fun StatsScreen(
                     analytics = state.sleepWakeAnalytics,
                     healthConnectEnabled = state.healthConnectEnabled,
                     sleepPermissionGranted = state.healthConnectSleepSummary.permissionGranted,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            item {
+                ActigraphyBucketsCard(
+                    sessions = state.actigraphySessions,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -997,6 +1008,134 @@ private fun ChartLegend(label: String, color: Color) {
             color = TextSecondary,
             style = MaterialTheme.typography.labelMedium
         )
+    }
+}
+
+@Composable
+private fun ActigraphyBucketsCard(
+    sessions: List<ActigraphySession>,
+    modifier: Modifier = Modifier
+) {
+    val latest = sessions.firstOrNull()
+    AppSurfaceCard(modifier = modifier, highlighted = latest?.firedEarly == true) {
+        AppSectionTitle(
+            title = "Actigraphy buckets",
+            description = if (latest == null) {
+                "Smart alarm windows will save compact Awake, Light, and Deep motion buckets here."
+            } else {
+                "Experimental phone-motion buckets from smart alarm monitoring. Raw accelerometer samples are not stored."
+            }
+        )
+
+        if (latest == null) {
+            AppEmptyState(
+                icon = Icons.Default.BarChart,
+                title = "No actigraphy sessions yet",
+                description = "Enable a smart alarm window on an alarm to collect compact local sleep-motion summaries."
+            )
+            return@AppSurfaceCard
+        }
+
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AppStatusChip(
+                label = "${latest.totalMinutes} min",
+                icon = Icons.Default.CalendarMonth,
+                color = MaterialTheme.colorScheme.primary
+            )
+            AppStatusChip(
+                label = if (latest.firedEarly) "Fired early" else "Reached target",
+                icon = Icons.Default.CheckCircle,
+                color = if (latest.firedEarly) DismissGreen else TextMuted
+            )
+            AppStatusChip(
+                label = "Index ${"%.2f".format(latest.averageSleepIndex)}",
+                icon = Icons.Default.BarChart,
+                color = TextMuted
+            )
+        }
+
+        StageDistributionBar(session = latest)
+
+        sessions.take(3).forEachIndexed { index, session ->
+            ActigraphySessionRow(session = session)
+            if (index != sessions.take(3).lastIndex) {
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
+            }
+        }
+    }
+}
+
+@Composable
+private fun StageDistributionBar(session: ActigraphySession) {
+    val total = session.totalMinutes.coerceAtLeast(1)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(14.dp)
+                .background(SurfaceCard.copy(alpha = 0.52f), RoundedCornerShape(10.dp))
+        ) {
+            StageSegment(session.awakeMinutes, total, AccentRed)
+            StageSegment(session.lightMinutes, total, SnoozeYellow)
+            StageSegment(session.deepMinutes, total, DismissGreen)
+        }
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            ChartLegend("Awake ${session.awakeMinutes}m", AccentRed)
+            ChartLegend("Light ${session.lightMinutes}m", SnoozeYellow)
+            ChartLegend("Deep ${session.deepMinutes}m", DismissGreen)
+        }
+    }
+}
+
+@Composable
+private fun RowScope.StageSegment(minutes: Int, total: Int, color: Color) {
+    if (minutes <= 0) return
+    Box(
+        modifier = Modifier
+            .weight(minutes.toFloat() / total)
+            .fillMaxHeight()
+            .background(color)
+    )
+}
+
+@Composable
+private fun ActigraphySessionRow(session: ActigraphySession) {
+    val ended = remember(session.endedAt) {
+        Instant.ofEpochMilli(session.endedAt)
+            .atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("MMM d, h:mm a"))
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.BarChart,
+            contentDescription = null,
+            tint = if (session.firedEarly) DismissGreen else TextMuted,
+            modifier = Modifier.size(20.dp)
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = ended,
+                color = TextPrimary,
+                style = MaterialTheme.typography.titleSmall
+            )
+            Text(
+                text = "${session.awakeMinutes}m awake · ${session.lightMinutes}m light · ${session.deepMinutes}m deep",
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 
