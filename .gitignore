@@ -14,3 +14,7 @@ ChatGPT*.png
 keystore.properties
 releases/
 
+
+# Markdown files local-only (except README)
+*.md
+!README.md
