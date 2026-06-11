@@ -79,7 +79,7 @@
         <li>Crash logs are written to app-private local files and are not uploaded automatically</li>
         <li>Health Connect sleep sessions are read on demand for local Bedtime and Statistics summaries only. Sleep-session records are not copied into the app database or uploaded to the developer.</li>
         <li>Smart-alarm actigraphy stores compact motion-bucket summaries locally for up to 30 days. The app does not retain raw accelerometer samples, and these buckets are not medical sleep-stage records.</li>
-        <li>Support bundles are created only when you choose to export one. They can include redacted wake-readiness diagnostics, aggregate smart-wake counts and decision reasons, and local crash logs if present.</li>
+        <li>Support bundles are created only when you choose to export one. They can include redacted wake-readiness diagnostics, aggregate smart-wake counts and decision reasons, recent alarm incident event codes, and local crash logs if present.</li>
         <li>Downloaded alarm sounds are stored in device media storage when you choose to save them</li>
         <li>Backup/restore exports data to a JSON file at a location you choose. Plain JSON backups may include alarms, labels, schedules, settings, integration URLs, Hue bridge details, webhook URLs, and other configuration values. Encrypted backups use your passphrase.</li>
         <li>Shareable alarm links are created only when you choose to share an alarm.</li>
@@ -89,7 +89,7 @@
     <p>When smart-alarm monitoring is enabled, the app can summarize phone motion during the smart wake window into local awake-motion, light-motion, and still-motion buckets. These summaries are stored in the app database for up to 30 days so Statistics can explain recent smart-wake behavior. Raw accelerometer samples are not retained, the summaries are not exported in normal backups, and they are not uploaded to the developer.</p>
 
     <h2>Support Bundles</h2>
-    <p>When you tap the support export action, the app creates a local ZIP file and hands it to Android's share sheet. The ZIP can include version/build/device details, wake-readiness status, aggregate smart-wake session counts and last decision reason, redacted alarm diagnostics, and local crash logs if present. It omits alarm labels, custom media URIs, integration secrets, Health Connect records, and per-minute local actigraphy motion buckets. The app does not upload the ZIP automatically.</p>
+    <p>When you tap the support export action, the app creates a local ZIP file and hands it to Android's share sheet. The ZIP can include version/build/device details, wake-readiness status, aggregate smart-wake session counts and last decision reason, recent alarm incident event codes, redacted alarm diagnostics, and local crash logs if present. It omits alarm labels, custom media URIs, integration secrets, Health Connect records, and per-minute local actigraphy motion buckets. The app does not upload the ZIP automatically.</p>
 
     <h2>Third-Party Services</h2>
     <p>The app does not integrate with third-party analytics, advertising, or tracking services. Optional features may contact the third-party services listed above. Those services receive the request data needed for the feature and are governed by their own policies.</p>

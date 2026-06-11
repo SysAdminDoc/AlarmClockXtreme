@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
+import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
 import com.sysadmindoc.alarmclock.util.CrashLogger
@@ -38,7 +39,8 @@ class SupportExportManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val alarmRepository: AlarmRepository,
     private val alarmEventRepository: AlarmEventRepository,
-    private val actigraphyRepository: ActigraphyRepository
+    private val actigraphyRepository: ActigraphyRepository,
+    private val alarmIncidentRepository: AlarmIncidentRepository
 ) {
     suspend fun createSupportExport(): SupportExportFile {
         val generatedAt = Instant.now()
@@ -57,6 +59,8 @@ class SupportExportManager @Inject constructor(
         val stats = alarmEventRepository.getStats()
         val smartWakeSessions = actigraphyRepository.getRecent(limit = 10)
         val latestSmartWakeSession = smartWakeSessions.firstOrNull()
+        val incidents = alarmIncidentRepository.getRecent(limit = MAX_INCIDENTS)
+        val latestIncident = incidents.firstOrNull()
         val crashLogs = CrashLogger.getLogFiles(context).take(MAX_CRASH_LOGS)
 
         ZipOutputStream(FileOutputStream(zipFile)).use { zip ->
@@ -87,10 +91,15 @@ class SupportExportManager @Inject constructor(
                     smartWakeLastDecisionReason = latestSmartWakeSession?.decisionReason,
                     smartWakeLastObservedMinutes = latestSmartWakeSession?.observedMinutesBeforeDecision,
                     smartWakeMode = latestSmartWakeSession?.smartWakeMode,
+                    recentIncidentCount = incidents.size,
+                    latestIncidentType = latestIncident?.type,
+                    latestIncidentStatus = latestIncident?.status,
+                    latestIncidentReason = latestIncident?.reasonCode,
                     stats = stats
                 )
             )
             zip.writeTextEntry("alarms_redacted.csv", SupportDiagnosticsFormatter.alarmCsv(alarms))
+            zip.writeTextEntry("incident_timeline.csv", SupportDiagnosticsFormatter.alarmIncidentCsv(incidents))
             if (crashLogs.isEmpty()) {
                 zip.writeTextEntry("crash_logs/README.txt", "No local crash logs were present.\n")
             } else {
@@ -169,6 +178,7 @@ class SupportExportManager @Inject constructor(
         const val EXPORT_DIR_NAME = "support_exports"
         const val FILE_PREFIX = "alarmclockxtreme-support"
         const val MAX_CRASH_LOGS = 10
+        const val MAX_INCIDENTS = 25
         val FILE_TIMESTAMP: DateTimeFormatter = DateTimeFormatter
             .ofPattern("yyyyMMdd-HHmmss", Locale.US)
             .withZone(java.time.ZoneOffset.UTC)
