@@ -18,6 +18,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
+import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.Challenge
@@ -39,6 +41,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 /**
  * Full-screen Activity shown when an alarm fires.
@@ -46,6 +49,8 @@ import kotlinx.coroutines.withContext
  */
 @AndroidEntryPoint
 class AlarmFiringActivity : ComponentActivity() {
+
+    @Inject lateinit var alarmIncidentRepository: AlarmIncidentRepository
 
     private val viewModel: AlarmFiringViewModel by viewModels()
     private var shakeDetector: ShakeDetector? = null
@@ -56,6 +61,8 @@ class AlarmFiringActivity : ComponentActivity() {
     private var nfcAdapter: NfcAdapter? = null
     private var nfcDispatchEnabled = false
     private var alarmId: Long = -1
+    private var scheduledAt: Long = 0L
+    private var fireId: String = ""
     private var wifiPollingJob: kotlinx.coroutines.Job? = null
     private var walkPermissionRequestInFlight = false
     private var wifiPermissionRequestInFlight = false
@@ -110,6 +117,8 @@ class AlarmFiringActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         alarmId = intent?.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1) ?: -1
+        scheduledAt = intent?.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, 0L) ?: 0L
+        fireId = intent?.getStringExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID).orEmpty()
         // Defensive: if launched without a valid alarm id (rare — only really
         // possible from a stale full-screen-intent or a third party), get out
         // immediately rather than rendering broken state. The user will see
@@ -118,6 +127,14 @@ class AlarmFiringActivity : ComponentActivity() {
             finish()
             return
         }
+        if (fireId.isBlank()) {
+            fireId = AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt)
+        }
+        recordIncidentAsync(
+            type = AlarmIncidentEvent.TYPE_ACTIVITY_LAUNCH,
+            status = AlarmIncidentEvent.STATUS_RECEIVED,
+            reasonCode = "FIRING_ACTIVITY_CREATED"
+        )
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
 
         // Show on lock screen
@@ -223,7 +240,14 @@ class AlarmFiringActivity : ComponentActivity() {
         // v1.5.1: If the alarm row disappeared between schedule and fire,
         // the view model signals finish so we don't render a blank screen.
         lifecycleScope.launch {
-            viewModel.finishEvents.collect { finish() }
+            viewModel.finishEvents.collect {
+                recordIncidentAsync(
+                    type = AlarmIncidentEvent.TYPE_ACTIVITY_LAUNCH,
+                    status = AlarmIncidentEvent.STATUS_SKIPPED,
+                    reasonCode = "FIRING_ACTIVITY_FINISHED_BY_VIEWMODEL"
+                )
+                finish()
+            }
         }
 
         setContent {
@@ -482,14 +506,26 @@ class AlarmFiringActivity : ComponentActivity() {
         val intent = Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_SNOOZE
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, scheduledAt)
+            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
             if (customMinutes != null) {
                 putExtra(AlarmService.EXTRA_CUSTOM_SNOOZE_MINUTES, customMinutes)
             }
         }
         try {
             startForegroundService(intent)
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_USER_ACTION,
+                status = AlarmIncidentEvent.STATUS_REQUESTED,
+                reasonCode = if (customMinutes != null) "UI_CUSTOM_SNOOZE_REQUESTED" else "UI_SNOOZE_REQUESTED"
+            )
         } catch (e: Exception) {
             android.util.Log.e("AlarmFiringActivity", "startForegroundService(snooze) failed", e)
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_USER_ACTION,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "UI_SNOOZE_START_FAILED_${e.javaClass.simpleName}"
+            )
         }
         finish()
     }
@@ -503,13 +539,25 @@ class AlarmFiringActivity : ComponentActivity() {
         val intent = Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_DISMISS
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, scheduledAt)
+            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
             putExtra(AlarmService.EXTRA_CHALLENGE_RETRY_COUNT, state.totalWrongAttempts.coerceAtLeast(0))
             putExtra(AlarmService.EXTRA_CHALLENGE_SOLVE_TIME_MS, challengeSolveTimeMs)
         }
         try {
             startForegroundService(intent)
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_USER_ACTION,
+                status = AlarmIncidentEvent.STATUS_REQUESTED,
+                reasonCode = "UI_DISMISS_REQUESTED"
+            )
         } catch (e: Exception) {
             android.util.Log.e("AlarmFiringActivity", "startForegroundService(dismiss) failed", e)
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_USER_ACTION,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "UI_DISMISS_START_FAILED_${e.javaClass.simpleName}"
+            )
         }
         finish()
     }
@@ -567,5 +615,24 @@ class AlarmFiringActivity : ComponentActivity() {
         stopFlipDetector()
         stopCoverDetector()
         super.onDestroy()
+    }
+
+    private fun recordIncidentAsync(
+        type: String,
+        status: String,
+        reasonCode: String
+    ) {
+        if (alarmId <= 0L) return
+        // Repository-owned scope: most records here are immediately followed
+        // by finish(), which would cancel lifecycleScope mid-write.
+        alarmIncidentRepository.recordAsync(
+            alarmId = alarmId,
+            fireId = fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) },
+            scheduledAt = scheduledAt,
+            type = type,
+            status = status,
+            reasonCode = reasonCode,
+            source = "AlarmFiringActivity"
+        )
     }
 }

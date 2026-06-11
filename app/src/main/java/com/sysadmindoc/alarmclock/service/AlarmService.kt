@@ -363,6 +363,8 @@ class AlarmService : Service() {
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
                     Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
+            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, currentFireId)
         }
         try {
             startActivity(firingIntent)
@@ -1051,6 +1053,10 @@ class AlarmService : Service() {
         stopAlarmPlayback()
         val alarm = repository.getById(alarmId)?.sanitized()
         if (alarm != null) {
+            val wakeConfirmFireId = currentFireId.ifBlank {
+                AlarmIncidentEvent.fireIdFor(alarm.id, currentScheduledAt)
+            }
+            val wakeConfirmScheduledAt = currentScheduledAt
             recordEvent(
                 alarm = alarm,
                 action = AlarmEvent.ACTION_DISMISSED,
@@ -1082,7 +1088,11 @@ class AlarmService : Service() {
 
             // F5: Post-alarm wake confirmation
             if (alarm.wakeConfirmEnabled) {
-                scheduleWakeConfirmation(alarm)
+                scheduleWakeConfirmation(
+                    alarm = alarm,
+                    fireId = wakeConfirmFireId,
+                    scheduledAt = wakeConfirmScheduledAt
+                )
             }
 
             // v1.2.0: Cancel guardian if active (alarm was dismissed in time)
@@ -1202,9 +1212,17 @@ class AlarmService : Service() {
     // from a corrupt setting) doesn't fire the worker the same instant we
     // dismissed — which would race the worker's prompt against the morning
     // briefing animation.
-    private fun scheduleWakeConfirmation(alarm: Alarm) {
+    private fun scheduleWakeConfirmation(
+        alarm: Alarm,
+        fireId: String,
+        scheduledAt: Long
+    ) {
         val delayMinutes = alarm.wakeConfirmDelayMinutes.coerceAtLeast(1).toLong()
-        val data = workDataOf(WakeConfirmWorker.KEY_ALARM_ID to alarm.id)
+        val data = workDataOf(
+            WakeConfirmWorker.KEY_ALARM_ID to alarm.id,
+            WakeConfirmWorker.KEY_ALARM_FIRE_ID to fireId,
+            WakeConfirmWorker.KEY_SCHEDULED_AT to scheduledAt
+        )
         val request = OneTimeWorkRequestBuilder<WakeConfirmWorker>()
             .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
             .setInputData(data)
@@ -1221,7 +1239,9 @@ class AlarmService : Service() {
             status = AlarmIncidentEvent.STATUS_REQUESTED,
             reasonCode = "WAKE_CONFIRM_SCHEDULED",
             source = "AlarmService",
-            alarmId = alarm.id
+            alarmId = alarm.id,
+            fireId = fireId,
+            scheduledAt = scheduledAt
         )
     }
 
@@ -1275,17 +1295,17 @@ class AlarmService : Service() {
         scheduledAt: Long = currentScheduledAt
     ) {
         if (alarmId <= 0L) return
-        serviceScope.launch {
-            alarmIncidentRepository.record(
-                alarmId = alarmId,
-                fireId = fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) },
-                scheduledAt = scheduledAt,
-                type = type,
-                status = status,
-                reasonCode = reasonCode,
-                source = source
-            )
-        }
+        // Repository-owned scope: records issued right before stopSelf()
+        // must not race serviceScope.cancel() in onDestroy().
+        alarmIncidentRepository.recordAsync(
+            alarmId = alarmId,
+            fireId = fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) },
+            scheduledAt = scheduledAt,
+            type = type,
+            status = status,
+            reasonCode = reasonCode,
+            source = source
+        )
     }
 
     private suspend fun recordIncident(
