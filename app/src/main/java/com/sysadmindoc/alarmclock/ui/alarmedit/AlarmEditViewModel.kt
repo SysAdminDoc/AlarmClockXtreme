@@ -295,7 +295,8 @@ class AlarmEditViewModel @Inject constructor(
     fun updateSmartAlarm(enabled: Boolean, windowMinutes: Int? = null) {
         _uiState.value = _uiState.value.copy(
             smartAlarmEnabled = enabled,
-            smartAlarmWindowMinutes = windowMinutes ?: _uiState.value.smartAlarmWindowMinutes
+            smartAlarmWindowMinutes = (windowMinutes ?: _uiState.value.smartAlarmWindowMinutes)
+                .coerceIn(0, Alarm.MAX_SMART_ALARM_WINDOW_MINUTES)
         )
     }
 

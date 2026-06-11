@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.data.repository
 
 import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphySessionSummary
+import com.sysadmindoc.alarmclock.data.actigraphy.SmartWakeDecisionEngine
 import com.sysadmindoc.alarmclock.data.local.ActigraphySessionDao
 import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import kotlinx.coroutines.flow.Flow
@@ -13,13 +14,18 @@ class ActigraphyRepository @Inject constructor(
 ) {
     fun observeRecent(limit: Int = 10): Flow<List<ActigraphySession>> = dao.observeRecent(limit)
 
+    suspend fun getRecent(limit: Int = 10): List<ActigraphySession> = dao.getRecent(limit)
+
     suspend fun record(
         alarmId: Long,
         startedAt: Long,
         endedAt: Long,
         targetTime: Long,
         firedEarly: Boolean,
-        summary: ActigraphySessionSummary
+        summary: ActigraphySessionSummary,
+        decisionReason: String = "UNKNOWN",
+        observedMinutesBeforeDecision: Int = summary.totalMinutes,
+        smartWakeMode: String = SmartWakeDecisionEngine.MODE_CONSERVATIVE
     ): Long {
         val session = ActigraphySession(
             alarmId = alarmId,
@@ -32,7 +38,10 @@ class ActigraphyRepository @Inject constructor(
             deepMinutes = summary.deepMinutes,
             averageSleepIndex = summary.averageSleepIndex,
             firedEarly = firedEarly,
-            algorithm = summary.algorithm
+            algorithm = summary.algorithm,
+            decisionReason = decisionReason,
+            observedMinutesBeforeDecision = observedMinutesBeforeDecision,
+            smartWakeMode = smartWakeMode
         )
         val id = dao.insert(session)
         dao.deleteOlderThan(System.currentTimeMillis() - RETENTION_MS)

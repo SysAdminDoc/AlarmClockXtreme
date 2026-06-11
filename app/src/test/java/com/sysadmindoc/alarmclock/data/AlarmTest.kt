@@ -118,7 +118,7 @@ class AlarmTest {
         assertEquals("default", sanitized.vibrationPattern)
         assertEquals(1, sanitized.walkStepsRequired)
         assertEquals(1, sanitized.wakeConfirmDelayMinutes)
-        assertEquals(180, sanitized.smartAlarmWindowMinutes)
+        assertEquals(60, sanitized.smartAlarmWindowMinutes)
         assertEquals("MATH_EASY,STROOP", sanitized.challengeChain)
         assertEquals("", sanitized.specificDate)
         assertEquals("Daily", sanitized.profileName)

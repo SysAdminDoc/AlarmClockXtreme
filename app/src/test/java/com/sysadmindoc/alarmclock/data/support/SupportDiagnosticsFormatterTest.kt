@@ -51,9 +51,34 @@ class SupportDiagnosticsFormatterTest {
         assertTrue(notApplicable.contains("- Full-screen alarm access: not_applicable"))
     }
 
+    @Test
+    fun `diagnostics expose aggregate smart wake fields only`() {
+        val text = diagnosticsText(
+            sdkInt = 35,
+            fullScreenIntentAllowed = true,
+            smartWakeSessionCount = 3,
+            smartWakeFiredEarlyCount = 1,
+            smartWakeLastDecisionReason = "WAIT_TOO_ACTIVE",
+            smartWakeLastObservedMinutes = 12,
+            smartWakeMode = "CONSERVATIVE"
+        )
+
+        assertTrue(text.contains("Smart wake summary"))
+        assertTrue(text.contains("- Recent sessions: 3"))
+        assertTrue(text.contains("- Fired early sessions: 1"))
+        assertTrue(text.contains("- Last decision reason: WAIT_TOO_ACTIVE"))
+        assertTrue(text.contains("- Last observed minutes: 12"))
+        assertTrue(text.contains("per-minute local actigraphy motion buckets"))
+    }
+
     private fun diagnosticsText(
         sdkInt: Int,
-        fullScreenIntentAllowed: Boolean?
+        fullScreenIntentAllowed: Boolean?,
+        smartWakeSessionCount: Int = 0,
+        smartWakeFiredEarlyCount: Int = 0,
+        smartWakeLastDecisionReason: String? = null,
+        smartWakeLastObservedMinutes: Int? = null,
+        smartWakeMode: String? = null
     ): String = SupportDiagnosticsFormatter.diagnosticsText(
         generatedAt = Instant.EPOCH,
         appVersion = "test",
@@ -74,6 +99,11 @@ class SupportDiagnosticsFormatterTest {
         enabledAlarms = 0,
         nextTriggerTime = null,
         crashLogCount = 0,
+        smartWakeSessionCount = smartWakeSessionCount,
+        smartWakeFiredEarlyCount = smartWakeFiredEarlyCount,
+        smartWakeLastDecisionReason = smartWakeLastDecisionReason,
+        smartWakeLastObservedMinutes = smartWakeLastObservedMinutes,
+        smartWakeMode = smartWakeMode,
         stats = AlarmStats()
     )
 }

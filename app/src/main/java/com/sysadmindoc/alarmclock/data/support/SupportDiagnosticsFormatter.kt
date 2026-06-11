@@ -100,6 +100,11 @@ object SupportDiagnosticsFormatter {
         enabledAlarms: Int,
         nextTriggerTime: Long?,
         crashLogCount: Int,
+        smartWakeSessionCount: Int,
+        smartWakeFiredEarlyCount: Int,
+        smartWakeLastDecisionReason: String?,
+        smartWakeLastObservedMinutes: Int?,
+        smartWakeMode: String?,
         stats: AlarmStats
     ): String {
         val nextTrigger = nextTriggerTime?.takeIf { it > 0L }?.let(::formatEpochMillis) ?: "none"
@@ -129,6 +134,13 @@ object SupportDiagnosticsFormatter {
             appendLine("- Enabled alarms: $enabledAlarms")
             appendLine("- Next trigger: $nextTrigger")
             appendLine()
+            appendLine("Smart wake summary")
+            appendLine("- Recent sessions: $smartWakeSessionCount")
+            appendLine("- Fired early sessions: $smartWakeFiredEarlyCount")
+            appendLine("- Last decision reason: ${smartWakeLastDecisionReason ?: "none"}")
+            appendLine("- Last observed minutes: ${smartWakeLastObservedMinutes?.toString() ?: "none"}")
+            appendLine("- Decision mode: ${smartWakeMode ?: "none"}")
+            appendLine()
             appendLine("History summary")
             appendLine("- Dismissed: ${stats.totalDismissed}")
             appendLine("- Snoozed: ${stats.totalSnoozed}")
@@ -147,7 +159,7 @@ object SupportDiagnosticsFormatter {
             appendLine()
             appendLine("Privacy note")
             appendLine("This bundle is generated locally and is not uploaded by the app.")
-            appendLine("It omits alarm labels, custom media URIs, internet-radio URLs, Spotify URIs, Hue/webhook secrets, Wi-Fi/location/contact values, challenge reference values, Health Connect records, and local actigraphy motion buckets.")
+            appendLine("It omits alarm labels, custom media URIs, internet-radio URLs, Spotify URIs, Hue/webhook secrets, Wi-Fi/location/contact values, challenge reference values, Health Connect records, and per-minute local actigraphy motion buckets.")
         }
     }
 

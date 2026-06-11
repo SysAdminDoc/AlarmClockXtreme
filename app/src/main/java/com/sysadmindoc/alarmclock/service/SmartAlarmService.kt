@@ -15,7 +15,9 @@ import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphyEpoch
 import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphySleepClassifier
-import com.sysadmindoc.alarmclock.data.actigraphy.SmartWakeObservationGate
+import com.sysadmindoc.alarmclock.data.actigraphy.SmartWakeDecision
+import com.sysadmindoc.alarmclock.data.actigraphy.SmartWakeDecisionEngine
+import com.sysadmindoc.alarmclock.data.actigraphy.SmartWakeDecisionResult
 import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import dagger.hilt.android.AndroidEntryPoint
@@ -32,7 +34,7 @@ import javax.inject.Inject
 /**
  * F7: Smart alarm window — monitors accelerometer overnight.
  * Started by AlarmScheduler [smartAlarmWindowMinutes] before the scheduled alarm time.
- * If low motion is sustained (indicating light sleep), fires the alarm early.
+ * If scored phone-motion buckets indicate a conservative light-motion window, fires the alarm early.
  * If the scheduled time arrives without detection, the regular AlarmReceiver fires normally.
  */
 @AndroidEntryPoint
@@ -46,11 +48,8 @@ class SmartAlarmService : Service(), SensorEventListener {
         const val EXTRA_TARGET_TIME = "smart_target_time"
         const val CHANNEL_SMART = "smart_alarm_channel"
         const val NOTIF_ID_SMART = 2003
-
-        /** Threshold below which movement is considered "still / light sleep" */
-        private const val MOTION_THRESHOLD = 0.8f  // m/s² delta from gravity
-        /** How many consecutive low-motion windows (each ~30s) to confirm light sleep */
-        private const val LOW_MOTION_WINDOWS_REQUIRED = 3
+        private const val MAX_SMART_WAKELOCK_MS = 65 * 60 * 1000L
+        private const val WAKELOCK_TEARDOWN_BUFFER_MS = 5 * 60 * 1000L
     }
 
     private var sensorManager: SensorManager? = null
@@ -59,11 +58,11 @@ class SmartAlarmService : Service(), SensorEventListener {
 
     private var alarmId: Long = -1L
     private var targetTimeMs: Long = 0L
-    private var lowMotionWindowCount = 0
     private var windowMotionMax = 0f
     private var windowStartMs = 0L
     private var sessionStartMs = 0L
     private var sessionClosed = false
+    private var latestDecision: SmartWakeDecisionResult? = null
     private val WINDOW_MS = 30_000L  // 30-second motion sampling windows
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val halfMinuteMotion = mutableListOf<Float>()
@@ -103,30 +102,27 @@ class SmartAlarmService : Service(), SensorEventListener {
             .build()
         startForeground(NOTIF_ID_SMART, notification)
 
+        val now = System.currentTimeMillis()
+        // v1.13.11 (roadmap A4): the UI/product cap is 60 minutes, so the
+        // wake lock now follows the remaining smart window plus a small
+        // teardown buffer instead of a stale 90-minute hard cap.
+        val wakeLockTimeoutMs = (targetTimeMs - now + WAKELOCK_TEARDOWN_BUFFER_MS)
+            .coerceIn(WAKELOCK_TEARDOWN_BUFFER_MS, MAX_SMART_WAKELOCK_MS)
         // v1.11.4 (roadmap N4) Play wake-lock policy audit:
         //   SmartAlarmService is the one PARTIAL_WAKE_LOCK acquisition in the
         //   app that is NOT exempt under the March-2026 Play policy — it
         //   wraps a `dataSync` foreground service (not media playback) and
         //   the accelerometer monitoring isn't an exempted activity. The
-        //   90-minute hard cap on a single window means a worst-case
-        //   power-user with one smart-wake alarm holds 90 min / 24 h —
-        //   under the 2 h / 24 h non-exempt budget. Users who layer
-        //   multiple smart-wake alarms on the same calendar day (e.g., a
-        //   morning alarm with smartAlarmWindowMinutes = 90 plus an
-        //   afternoon nap with the same window) could theoretically exceed
-        //   the cap; the service is single-instance and stopSelf()s after
-        //   firing or canceling, so cumulative time is bounded by the sum
-        //   of fires per day. If that pattern emerges in field data, lower
-        //   the per-window cap or cumulate-time-track here and break
-        //   monitoring early.
-        wakeLock?.acquire(90 * 60 * 1000L)  // Max 90 min
+        //   65-minute command-local cap keeps one default smart-wake run
+        //   under the 2 h / 24 h non-exempt budget with margin.
+        wakeLock?.acquire(wakeLockTimeoutMs)
         accelerometer?.let {
             sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
         }
-        val now = System.currentTimeMillis()
         windowStartMs = now
         sessionStartMs = now
         sessionClosed = false
+        latestDecision = null
         halfMinuteMotion.clear()
         actigraphyEpochs.clear()
 
@@ -141,7 +137,12 @@ class SmartAlarmService : Service(), SensorEventListener {
 
         // If we've passed the scheduled alarm time, stop — regular alarm will fire
         if (now >= targetTimeMs) {
-            finishMonitoring(firedEarly = false, launchAlarm = false)
+            val scored = ActigraphySleepClassifier.classify(actigraphyEpochs)
+            finishMonitoring(
+                firedEarly = false,
+                launchAlarm = false,
+                decisionResult = SmartWakeDecisionEngine.reachedTarget(scored)
+            )
             return
         }
 
@@ -153,35 +154,32 @@ class SmartAlarmService : Service(), SensorEventListener {
 
         // Check window boundary
         if (now - windowStartMs >= WINDOW_MS) {
-            val lowMotionReady = if (windowMotionMax < MOTION_THRESHOLD) {
-                lowMotionWindowCount++
-                lowMotionWindowCount >= LOW_MOTION_WINDOWS_REQUIRED
-            } else {
-                lowMotionWindowCount = 0
-                false
-            }
-            appendActigraphyWindow(windowStartMs, windowMotionMax)
-            if (lowMotionReady && SmartWakeObservationGate.canConsiderEarlyFire(
+            val appendedMinute = appendActigraphyWindow(windowStartMs, windowMotionMax)
+            if (appendedMinute) {
+                val decision = SmartWakeDecisionEngine.decide(
+                    scoredEpochs = ActigraphySleepClassifier.classify(actigraphyEpochs),
                     sessionStartMs = sessionStartMs,
                     nowMs = now,
                     targetTimeMs = targetTimeMs
                 )
-            ) {
-                fireAlarmEarly()
-                return
+                latestDecision = decision
+                if (decision.decision == SmartWakeDecision.FIRE_EARLY) {
+                    fireAlarmEarly(decision)
+                    return
+                }
             }
             windowMotionMax = 0f
             windowStartMs = now
         }
     }
 
-    private fun fireAlarmEarly() {
-        finishMonitoring(firedEarly = true, launchAlarm = true)
+    private fun fireAlarmEarly(decisionResult: SmartWakeDecisionResult) {
+        finishMonitoring(firedEarly = true, launchAlarm = true, decisionResult = decisionResult)
     }
 
-    private fun appendActigraphyWindow(startMillis: Long, motionMax: Float) {
+    private fun appendActigraphyWindow(startMillis: Long, motionMax: Float): Boolean {
         halfMinuteMotion.add(motionMax)
-        if (halfMinuteMotion.size < 2) return
+        if (halfMinuteMotion.size < 2) return false
 
         val minuteMotion = halfMinuteMotion.maxOrNull() ?: 0f
         val minuteStart = startMillis - WINDOW_MS
@@ -192,9 +190,14 @@ class SmartAlarmService : Service(), SensorEventListener {
             )
         )
         halfMinuteMotion.clear()
+        return true
     }
 
-    private fun finishMonitoring(firedEarly: Boolean, launchAlarm: Boolean) {
+    private fun finishMonitoring(
+        firedEarly: Boolean,
+        launchAlarm: Boolean,
+        decisionResult: SmartWakeDecisionResult? = null
+    ) {
         if (sessionClosed) return
         sessionClosed = true
         sensorManager?.unregisterListener(this)
@@ -205,7 +208,11 @@ class SmartAlarmService : Service(), SensorEventListener {
             stopSelf()
             return
         }
-        val summary = ActigraphySleepClassifier.summarize(epochs)
+        val scored = ActigraphySleepClassifier.classify(epochs)
+        val summary = ActigraphySleepClassifier.summarizeScored(scored)
+        val finalDecision = decisionResult
+            ?: latestDecision
+            ?: SmartWakeDecisionEngine.reachedTarget(scored)
         serviceScope.launch {
             runCatching {
                 actigraphyRepository.record(
@@ -214,7 +221,10 @@ class SmartAlarmService : Service(), SensorEventListener {
                     endedAt = endedAt,
                     targetTime = targetTimeMs,
                     firedEarly = firedEarly,
-                    summary = summary
+                    summary = summary,
+                    decisionReason = finalDecision.reasonCode,
+                    observedMinutesBeforeDecision = finalDecision.observedMinutes,
+                    smartWakeMode = finalDecision.mode
                 )
             }
             withContext(Dispatchers.Main) {
@@ -234,6 +244,16 @@ class SmartAlarmService : Service(), SensorEventListener {
         } catch (e: Exception) {
             android.util.Log.e("SmartAlarmService", "startForegroundService failed for alarm $alarmId", e)
         }
+    }
+
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        val scored = ActigraphySleepClassifier.classify(actigraphyEpochs)
+        finishMonitoring(
+            firedEarly = false,
+            launchAlarm = false,
+            decisionResult = SmartWakeDecisionEngine.serviceTimeout(scored)
+        )
+        super.onTimeout(startId, fgsType)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}

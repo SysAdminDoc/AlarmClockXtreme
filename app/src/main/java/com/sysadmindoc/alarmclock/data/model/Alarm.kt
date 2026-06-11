@@ -117,6 +117,8 @@ data class Alarm(
     val vibrationDelaySeconds: Int = 0
 ) {
     companion object {
+        const val MAX_SMART_ALARM_WINDOW_MINUTES = 60
+
         // Must stay in lockstep with ChallengeType (see ChallengeGenerator.kt).
         // Adding a new ChallengeType without listing it here causes sanitized()
         // to silently rewrite it back to "NONE" on every backup/share/DataStore
@@ -214,7 +216,7 @@ data class Alarm(
             vibrationPattern = normalizedVibrationPattern,
             walkStepsRequired = walkStepsRequired.coerceIn(1, 10_000),
             wakeConfirmDelayMinutes = wakeConfirmDelayMinutes.coerceIn(1, 180),
-            smartAlarmWindowMinutes = smartAlarmWindowMinutes.coerceIn(0, 180),
+            smartAlarmWindowMinutes = smartAlarmWindowMinutes.coerceIn(0, MAX_SMART_ALARM_WINDOW_MINUTES),
             nfcTagId = nfcTagId.trim(),
             barcodeValue = barcodeValue.trim(),
             spotifyUri = spotifyUri.trim(),

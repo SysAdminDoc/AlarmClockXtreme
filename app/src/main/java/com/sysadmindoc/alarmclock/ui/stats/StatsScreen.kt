@@ -1055,6 +1055,11 @@ private fun ActigraphyBucketsCard(
                 icon = Icons.Default.BarChart,
                 color = TextMuted
             )
+            AppStatusChip(
+                label = "Decision ${smartWakeDecisionLabel(latest.decisionReason)}",
+                icon = Icons.Default.Search,
+                color = if (latest.firedEarly) DismissGreen else TextMuted
+            )
         }
 
         StageDistributionBar(session = latest)
@@ -1135,8 +1140,31 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )
+            Text(
+                text = smartWakeDecisionDetail(session),
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
+}
+
+private fun smartWakeDecisionDetail(session: ActigraphySession): String {
+    val observed = session.observedMinutesBeforeDecision.coerceAtLeast(0)
+    return "Decision: ${smartWakeDecisionLabel(session.decisionReason)} after ${observed}m observed (${session.smartWakeMode.lowercase()})"
+}
+
+private fun smartWakeDecisionLabel(reason: String): String = when (reason) {
+    "FIRE_LIGHT_MOTION" -> "light motion"
+    "WAIT_INSUFFICIENT_DATA" -> "not enough data"
+    "WAIT_TOO_ACTIVE" -> "too active"
+    "WAIT_DEEP_OR_STILL" -> "still motion"
+    "WAIT_LIGHT_NOT_STABLE" -> "unstable light motion"
+    "WAIT_FINAL_MINUTE" -> "final minute"
+    "WAIT_SERVICE_TIMEOUT" -> "service timeout"
+    "REACHED_TARGET" -> "target time"
+    "UNKNOWN" -> "unknown"
+    else -> reason.lowercase().replace('_', ' ')
 }
 
 @Composable

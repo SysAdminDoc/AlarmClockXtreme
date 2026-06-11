@@ -14,6 +14,7 @@ import androidx.core.content.FileProvider
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
 import com.sysadmindoc.alarmclock.util.CrashLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -36,7 +37,8 @@ data class SupportExportFile(
 class SupportExportManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val alarmRepository: AlarmRepository,
-    private val alarmEventRepository: AlarmEventRepository
+    private val alarmEventRepository: AlarmEventRepository,
+    private val actigraphyRepository: ActigraphyRepository
 ) {
     suspend fun createSupportExport(): SupportExportFile {
         val generatedAt = Instant.now()
@@ -53,6 +55,8 @@ class SupportExportManager @Inject constructor(
             .filter { it.enabled && it.nextTriggerTime > 0L }
             .minOfOrNull { it.nextTriggerTime }
         val stats = alarmEventRepository.getStats()
+        val smartWakeSessions = actigraphyRepository.getRecent(limit = 10)
+        val latestSmartWakeSession = smartWakeSessions.firstOrNull()
         val crashLogs = CrashLogger.getLogFiles(context).take(MAX_CRASH_LOGS)
 
         ZipOutputStream(FileOutputStream(zipFile)).use { zip ->
@@ -78,6 +82,11 @@ class SupportExportManager @Inject constructor(
                     enabledAlarms = enabledCount,
                     nextTriggerTime = nextTrigger,
                     crashLogCount = crashLogs.size,
+                    smartWakeSessionCount = smartWakeSessions.size,
+                    smartWakeFiredEarlyCount = smartWakeSessions.count { it.firedEarly },
+                    smartWakeLastDecisionReason = latestSmartWakeSession?.decisionReason,
+                    smartWakeLastObservedMinutes = latestSmartWakeSession?.observedMinutesBeforeDecision,
+                    smartWakeMode = latestSmartWakeSession?.smartWakeMode,
                     stats = stats
                 )
             )
