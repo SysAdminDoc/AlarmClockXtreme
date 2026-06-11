@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.sysadmindoc.alarmclock.AlarmClockApp
+import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -47,6 +49,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import dagger.hilt.android.EntryPointAccessors
 
 /**
  * F5: Wake confirmation activity.
@@ -57,6 +60,8 @@ class WakeConfirmActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_ALARM_ID = "alarm_id"
+        const val EXTRA_ALARM_FIRE_ID = "alarm_fire_id"
+        const val EXTRA_SCHEDULED_AT = "scheduled_at"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,6 +80,17 @@ class WakeConfirmActivity : ComponentActivity() {
         }
 
         val alarmId = intent.getLongExtra(EXTRA_ALARM_ID, -1L)
+        val scheduledAt = intent.getLongExtra(EXTRA_SCHEDULED_AT, 0L)
+        val fireId = intent.getStringExtra(EXTRA_ALARM_FIRE_ID)
+            ?.takeIf { it.isNotBlank() }
+            ?: AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt)
+        recordIncidentAsync(
+            alarmId = alarmId,
+            fireId = fireId,
+            scheduledAt = scheduledAt,
+            status = AlarmIncidentEvent.STATUS_RECEIVED,
+            reasonCode = "WAKE_CONFIRM_ACTIVITY_OPENED"
+        )
 
         setContent {
             AlarmClockXtremeTheme {
@@ -84,12 +100,55 @@ class WakeConfirmActivity : ComponentActivity() {
                             val prefs = getSharedPreferences("wake_confirm", Context.MODE_PRIVATE)
                             prefs.edit().putBoolean("confirmed_$alarmId", true).apply()
                         }
+                        recordIncidentAsync(
+                            alarmId = alarmId,
+                            fireId = fireId,
+                            scheduledAt = scheduledAt,
+                            status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                            reasonCode = "WAKE_CONFIRM_CONFIRMED_IN_ACTIVITY"
+                        )
                         finish()
                     },
-                    onKeepChecking = { finish() }
+                    onKeepChecking = {
+                        recordIncidentAsync(
+                            alarmId = alarmId,
+                            fireId = fireId,
+                            scheduledAt = scheduledAt,
+                            status = AlarmIncidentEvent.STATUS_SKIPPED,
+                            reasonCode = "WAKE_CONFIRM_KEEP_CHECKING"
+                        )
+                        finish()
+                    }
                 )
             }
         }
+    }
+
+    private fun recordIncidentAsync(
+        alarmId: Long,
+        fireId: String,
+        scheduledAt: Long,
+        status: String,
+        reasonCode: String
+    ) {
+        if (alarmId <= 0L) return
+        // Repository-owned scope: records here precede finish(), which would
+        // cancel lifecycleScope mid-write and drop the event.
+        EntryPointAccessors
+            .fromApplication(
+                applicationContext,
+                AlarmClockApp.AppEntryPoint::class.java
+            )
+            .alarmIncidentRepository()
+            .recordAsync(
+                alarmId = alarmId,
+                fireId = fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) },
+                scheduledAt = scheduledAt,
+                type = AlarmIncidentEvent.TYPE_WAKE_CONFIRM,
+                status = status,
+                reasonCode = reasonCode,
+                source = "WakeConfirmActivity"
+            )
     }
 }
 

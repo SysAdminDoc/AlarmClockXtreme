@@ -22,10 +22,6 @@ import com.sysadmindoc.alarmclock.service.SmartAlarmService
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
 import com.sysadmindoc.alarmclock.worker.HueSunriseWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import java.time.Instant
 import java.time.ZoneId
@@ -43,7 +39,6 @@ class AlarmScheduler @Inject constructor(
     private val alarmIncidentRepository: AlarmIncidentRepository
 ) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    private val incidentScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     companion object {
         const val EXTRA_ALARM_ID = "alarm_id"
@@ -421,17 +416,15 @@ class AlarmScheduler @Inject constructor(
         status: String,
         reasonCode: String
     ) {
-        incidentScope.launch {
-            alarmIncidentRepository.record(
-                alarmId = alarmId,
-                fireId = fireId,
-                scheduledAt = triggerTime,
-                type = AlarmIncidentEvent.TYPE_SCHEDULE,
-                status = status,
-                reasonCode = reasonCode,
-                source = "AlarmScheduler"
-            )
-        }
+        alarmIncidentRepository.recordAsync(
+            alarmId = alarmId,
+            fireId = fireId,
+            scheduledAt = triggerTime,
+            type = AlarmIncidentEvent.TYPE_SCHEDULE,
+            status = status,
+            reasonCode = reasonCode,
+            source = "AlarmScheduler"
+        )
     }
 
     private fun scheduleSupportingWork(alarm: Alarm, triggerTime: Long) {

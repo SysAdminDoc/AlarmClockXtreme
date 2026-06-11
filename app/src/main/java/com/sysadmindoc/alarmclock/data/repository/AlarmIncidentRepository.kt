@@ -12,7 +12,11 @@ import androidx.core.content.ContextCompat
 import com.sysadmindoc.alarmclock.data.local.AlarmIncidentEventDao
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +25,12 @@ class AlarmIncidentRepository @Inject constructor(
     private val dao: AlarmIncidentEventDao,
     @ApplicationContext private val context: Context
 ) {
+    // Application-lived scope so fire-and-forget records survive component
+    // teardown. Callers that record right before finish()/stopSelf() (firing
+    // activity, AlarmService, wake-confirm activity) would otherwise race
+    // their own scope cancellation and silently drop the most diagnostic
+    // events — the same bug class WebhookService.fireAsync() exists to fix.
+    private val recordScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     fun observeRecent(limit: Int = DEFAULT_EXPORT_LIMIT): Flow<List<AlarmIncidentEvent>> {
         return dao.observeRecent(limit.coerceIn(1, MAX_ROWS))
     }
@@ -31,6 +41,32 @@ class AlarmIncidentRepository @Inject constructor(
 
     suspend fun clearHistory() {
         dao.deleteAll()
+    }
+
+    fun recordAsync(
+        alarmId: Long,
+        fireId: String,
+        scheduledAt: Long,
+        eventAt: Long = System.currentTimeMillis(),
+        type: String,
+        status: String,
+        reasonCode: String = AlarmIncidentEvent.REASON_NONE,
+        source: String,
+        algorithmVersion: String = AlarmIncidentEvent.VALUE_NONE
+    ) {
+        recordScope.launch {
+            record(
+                alarmId = alarmId,
+                fireId = fireId,
+                scheduledAt = scheduledAt,
+                eventAt = eventAt,
+                type = type,
+                status = status,
+                reasonCode = reasonCode,
+                source = source,
+                algorithmVersion = algorithmVersion
+            )
+        }
     }
 
     suspend fun record(
