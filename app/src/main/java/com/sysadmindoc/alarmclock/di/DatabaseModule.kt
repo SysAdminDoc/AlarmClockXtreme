@@ -6,6 +6,7 @@ import com.sysadmindoc.alarmclock.data.local.ActigraphySessionDao
 import com.sysadmindoc.alarmclock.data.local.AlarmDao
 import com.sysadmindoc.alarmclock.data.local.AlarmDatabase
 import com.sysadmindoc.alarmclock.data.local.AlarmEventDao
+import com.sysadmindoc.alarmclock.data.local.AlarmIncidentEventDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -45,5 +46,11 @@ object DatabaseModule {
     @Singleton
     fun provideActigraphySessionDao(database: AlarmDatabase): ActigraphySessionDao {
         return database.actigraphySessionDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideAlarmIncidentEventDao(database: AlarmDatabase): AlarmIncidentEventDao {
+        return database.alarmIncidentEventDao()
     }
 }

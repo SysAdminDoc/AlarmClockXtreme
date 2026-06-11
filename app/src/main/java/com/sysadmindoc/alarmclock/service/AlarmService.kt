@@ -20,10 +20,12 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.*
+import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
+import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.receiver.DismissReceiver
@@ -55,6 +57,7 @@ class AlarmService : Service() {
     @Inject lateinit var repository: AlarmRepository
     @Inject lateinit var alarmScheduler: AlarmScheduler
     @Inject lateinit var eventRepository: AlarmEventRepository
+    @Inject lateinit var alarmIncidentRepository: AlarmIncidentRepository
     @Inject lateinit var preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
     @Inject lateinit var webhookService: WebhookService
     @Inject lateinit var wearNextAlarmBridge: WearNextAlarmBridge
@@ -149,6 +152,8 @@ class AlarmService : Service() {
     private var volumeJob: Job? = null
     private var hapticOnlyJob: Job? = null
     private var currentAlarmId: Long = -1
+    private var currentFireId: String = ""
+    private var currentScheduledAt: Long = 0L
     private var alarmFiredAt: Long = 0
     private var autoSilenceJob: Job? = null
     private var backupSoundJob: Job? = null
@@ -225,14 +230,25 @@ class AlarmService : Service() {
             ACTION_START_ALARM -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1)
                 if (alarmId != -1L) {
+                    val scheduledAt = intent.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, 0L)
+                    val fireId = intent.getStringExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID)
+                        ?: AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt)
                     // Cancel any prior auto-silence/fade jobs before starting new alarm
                     autoSilenceJob?.cancel()
                     volumeJob?.cancel()
                     stopAlarmPlayback()
                     currentAlarmId = alarmId
+                    currentScheduledAt = scheduledAt
+                    currentFireId = fireId
                     activeAlarmId = alarmId
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                     alarmFiredAt = System.currentTimeMillis()
+                    recordIncidentAsync(
+                        type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
+                        status = AlarmIncidentEvent.STATUS_RECEIVED,
+                        reasonCode = "START_COMMAND_RECEIVED",
+                        source = "AlarmService"
+                    )
                     // v1.5.4: Android 14+ requires startForeground() within ~5 s of
                     // startForegroundService() or the app crashes with
                     // ForegroundServiceDidNotStartInTimeException. Previously the
@@ -247,6 +263,9 @@ class AlarmService : Service() {
             }
             ACTION_SNOOZE -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
+                val scheduledAt = intent.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
+                val fireId = intent.getStringExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID)
+                    ?: currentFireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) }
                 val customMinutes = intent.getIntExtra(EXTRA_CUSTOM_SNOOZE_MINUTES, -1)
                     .takeIf { it > 0 }
                     ?.coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES)
@@ -255,12 +274,17 @@ class AlarmService : Service() {
                 // persisted count so the progressive-snooze ladder doesn't reset.
                 if (currentAlarmId == -1L && alarmId > 0L) {
                     currentAlarmId = alarmId
+                    currentScheduledAt = scheduledAt
+                    currentFireId = fireId
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                 }
                 serviceScope.launch { snoozeAlarm(alarmId, customMinutes) }
             }
             ACTION_DISMISS -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
+                val scheduledAt = intent.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
+                val fireId = intent.getStringExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID)
+                    ?: currentFireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) }
                 val challengeRetryCount = intent
                     .getIntExtra(EXTRA_CHALLENGE_RETRY_COUNT, 0)
                     .coerceAtLeast(0)
@@ -270,6 +294,8 @@ class AlarmService : Service() {
                 // v1.5.1: Same service-restart protection as ACTION_SNOOZE.
                 if (currentAlarmId == -1L && alarmId > 0L) {
                     currentAlarmId = alarmId
+                    currentScheduledAt = scheduledAt
+                    currentFireId = fireId
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                 }
                 serviceScope.launch {
@@ -290,6 +316,12 @@ class AlarmService : Service() {
         // ringtonePool entries so a bad backup restore or buggy older-version
         // write can't crash the firing path.
         val alarm = repository.getById(alarmId)?.sanitized() ?: run {
+            recordIncident(
+                type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "ALARM_ROW_MISSING",
+                source = "AlarmService"
+            )
             clearAlarmRuntimeState(alarmId)
             activeAlarmId = -1L
             stopSelf()
@@ -308,10 +340,22 @@ class AlarmService : Service() {
                 getSystemService(NotificationManager::class.java)
                     .notify(NOTIFICATION_ID, notification)
             }
-        } catch (_: Exception) {
+            recordIncident(
+                type = AlarmIncidentEvent.TYPE_NOTIFICATION,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = "ALARM_NOTIFICATION_POSTED",
+                source = "AlarmService"
+            )
+        } catch (e: Exception) {
             // Service may already be foregrounded or the system may reject
             // an update during teardown; neither is fatal — the alarm still
             // plays and the firing Activity is launched below.
+            recordIncident(
+                type = AlarmIncidentEvent.TYPE_NOTIFICATION,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "ALARM_NOTIFICATION_FAILED_${e.javaClass.simpleName}",
+                source = "AlarmService"
+            )
         }
 
         val firingIntent = Intent(this, AlarmFiringActivity::class.java).apply {
@@ -320,7 +364,22 @@ class AlarmService : Service() {
                     Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
         }
-        startActivity(firingIntent)
+        try {
+            startActivity(firingIntent)
+            recordIncident(
+                type = AlarmIncidentEvent.TYPE_ACTIVITY_LAUNCH,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = "FIRING_ACTIVITY_LAUNCHED",
+                source = "AlarmService"
+            )
+        } catch (e: Exception) {
+            recordIncident(
+                type = AlarmIncidentEvent.TYPE_ACTIVITY_LAUNCH,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "FIRING_ACTIVITY_FAILED_${e.javaClass.simpleName}",
+                source = "AlarmService"
+            )
+        }
 
         startAudio(alarm)
 
@@ -356,6 +415,12 @@ class AlarmService : Service() {
                 val missedAlarm = repository.getById(alarmId)
                 if (missedAlarm != null) {
                     recordEvent(missedAlarm, com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent.ACTION_MISSED)
+                    recordIncident(
+                        type = AlarmIncidentEvent.TYPE_AUTO_SILENCE,
+                        status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                        reasonCode = "AUTO_SILENCED_AFTER_${autoSilenceMinutes}_MINUTES",
+                        source = "AlarmService"
+                    )
                     showMissedNotification(missedAlarm, autoSilenceMinutes)
                     // v1.4.0: Repeat missed alarms — record the alarm id / timestamp
                     // so MissedAlarmUnlockReceiver can re-fire when the user unlocks
@@ -447,6 +512,12 @@ class AlarmService : Service() {
                 .setAutoCancel(false)
                 .build()
             startForeground(NOTIFICATION_ID, placeholder)
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_FOREGROUND_PROMOTION,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = "PLACEHOLDER_FOREGROUND_STARTED",
+                source = "AlarmService"
+            )
         } catch (e: Exception) {
             // Roll back the flag on failure so a subsequent retry can try again
             // (instead of pretending we already foregrounded).
@@ -455,12 +526,20 @@ class AlarmService : Service() {
             // is background-restricted at fire time. The AlarmManager exact
             // alarm guarantee makes this very rare; log and continue.
             Log.w(TAG, "Failed to foreground service with placeholder", e)
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_FOREGROUND_PROMOTION,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "PLACEHOLDER_FOREGROUND_FAILED_${e.javaClass.simpleName}",
+                source = "AlarmService"
+            )
         }
     }
 
     private fun buildAlarmNotification(alarm: Alarm): Notification {
         val fullScreenIntent = Intent(this, AlarmFiringActivity::class.java).apply {
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
+            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
+            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, currentFireId)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         }
         val fullScreenPi = PendingIntent.getActivity(
@@ -470,6 +549,8 @@ class AlarmService : Service() {
 
         val snoozeIntent = Intent(this, SnoozeReceiver::class.java).apply {
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
+            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
+            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, currentFireId)
         }
         val snoozePi = PendingIntent.getBroadcast(
             this, alarm.id.toInt() + 10000, snoozeIntent,
@@ -478,6 +559,8 @@ class AlarmService : Service() {
 
         val dismissIntent = Intent(this, DismissReceiver::class.java).apply {
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
+            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
+            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, currentFireId)
         }
         val dismissPi = PendingIntent.getBroadcast(
             this, alarm.id.toInt() + 20000, dismissIntent,
@@ -510,7 +593,15 @@ class AlarmService : Service() {
 
     private fun startAudio(alarm: Alarm) {
         // Silent mode - skip audio entirely
-        if (alarm.ringtoneUri == "silent" || alarm.usesMutedAlarmAudio()) return
+        if (alarm.ringtoneUri == "silent" || alarm.usesMutedAlarmAudio()) {
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_AUDIO,
+                status = AlarmIncidentEvent.STATUS_SKIPPED,
+                reasonCode = "SILENT_OR_HAPTIC_ONLY",
+                source = "AlarmService"
+            )
+            return
+        }
 
         // v1.11.2 (roadmap N2): Watch for in-progress / incoming calls so the
         // alarm audio can step out of the way without tearing down the rest
@@ -522,7 +613,15 @@ class AlarmService : Service() {
         // startAudio on serviceScope; without this, a transient failure
         // during the default-fallback path could recurse and leak
         // MediaPlayers. The guard is released when the method returns.
-        if (audioStarting) return
+        if (audioStarting) {
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_AUDIO,
+                status = AlarmIncidentEvent.STATUS_SKIPPED,
+                reasonCode = "AUDIO_START_REENTRY_SKIPPED",
+                source = "AlarmService"
+            )
+            return
+        }
         audioStarting = true
         try {
             // v1.4.0: Random pick from a ringtone pool (comma-separated URIs).
@@ -570,6 +669,12 @@ class AlarmService : Service() {
                 // makes noise instead of silently no-oping.
                 if (spotifyIntent.resolveActivity(packageManager) != null) {
                     startActivity(spotifyIntent)
+                    recordIncidentAsync(
+                        type = AlarmIncidentEvent.TYPE_AUDIO,
+                        status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                        reasonCode = "SPOTIFY_DELEGATED",
+                        source = "AlarmService"
+                    )
                     return  // Spotify handles playback; no MediaPlayer needed
                 }
             } catch (_: Exception) {
@@ -592,6 +697,12 @@ class AlarmService : Service() {
                     isLooping = false  // Streams don't loop
                     setOnPreparedListener { mp ->
                         mp.start()
+                        recordIncidentAsync(
+                            type = AlarmIncidentEvent.TYPE_AUDIO,
+                            status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                            reasonCode = "INTERNET_RADIO_STARTED",
+                            source = "AlarmService"
+                        )
                         if (alarm.overrideSystemVolume) {
                             val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
                             val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
@@ -607,6 +718,12 @@ class AlarmService : Service() {
                     setOnErrorListener { mp, _, _ ->
                         try { mp.release() } catch (_: Exception) {}
                         if (mediaPlayer === mp) mediaPlayer = null
+                        recordIncidentAsync(
+                            type = AlarmIncidentEvent.TYPE_AUDIO,
+                            status = AlarmIncidentEvent.STATUS_FAILED,
+                            reasonCode = "INTERNET_RADIO_ERROR",
+                            source = "AlarmService"
+                        )
                         // Re-enter startAudio without the radio URL so the default
                         // ringtone path runs. Done on the service scope so the
                         // OnErrorListener returns immediately.
@@ -617,9 +734,21 @@ class AlarmService : Service() {
                     }
                     prepareAsync()
                 }
+                recordIncidentAsync(
+                    type = AlarmIncidentEvent.TYPE_AUDIO,
+                    status = AlarmIncidentEvent.STATUS_REQUESTED,
+                    reasonCode = "INTERNET_RADIO_PREPARING",
+                    source = "AlarmService"
+                )
                 return  // Radio handles playback
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 // Fall through to default audio
+                recordIncidentAsync(
+                    type = AlarmIncidentEvent.TYPE_AUDIO,
+                    status = AlarmIncidentEvent.STATUS_FAILED,
+                    reasonCode = "INTERNET_RADIO_SETUP_FAILED_${e.javaClass.simpleName}",
+                    source = "AlarmService"
+                )
                 try { mediaPlayer?.release() } catch (_: Exception) {}
                 mediaPlayer = null
             }
@@ -634,6 +763,12 @@ class AlarmService : Service() {
             // Stripped-down AOSP / managed-profile devices may not report any
             // default ringtone. Don't crash — leave the alarm silent (the
             // notification + vibration + flashlight still fire) and bail out.
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_AUDIO,
+                status = AlarmIncidentEvent.STATUS_SKIPPED,
+                reasonCode = "NO_DEFAULT_TONE",
+                source = "AlarmService"
+            )
             return
         }
 
@@ -676,6 +811,12 @@ class AlarmService : Service() {
                 else if (fadeInMs > 0) setVolume(0f, 0f) else setVolume(1f, 1f)
                 start()
             }
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_AUDIO,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = "MEDIA_PLAYER_STARTED",
+                source = "AlarmService"
+            )
 
             if (fadeInMs > 0) {
                 volumeJob = serviceScope.launch {
@@ -693,6 +834,12 @@ class AlarmService : Service() {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Failed to start configured alarm sound; falling back to default tone", e)
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_AUDIO,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "MEDIA_PLAYER_FAILED_${e.javaClass.simpleName}",
+                source = "AlarmService"
+            )
             try { mediaPlayer?.release() } catch (_: Exception) {}
             mediaPlayer = null
             // Fallback to default alarm sound
@@ -713,9 +860,21 @@ class AlarmService : Service() {
                         if (callMutedAudio) setVolume(0f, 0f) else setVolume(1f, 1f)
                         start()
                     }
+                    recordIncidentAsync(
+                        type = AlarmIncidentEvent.TYPE_AUDIO,
+                        status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                        reasonCode = "DEFAULT_FALLBACK_STARTED",
+                        source = "AlarmService"
+                    )
                 }
-            } catch (_: Exception) {
+            } catch (fallbackError: Exception) {
                 // Last resort - alarm fires silently but notification is still shown
+                recordIncidentAsync(
+                    type = AlarmIncidentEvent.TYPE_AUDIO,
+                    status = AlarmIncidentEvent.STATUS_FAILED,
+                    reasonCode = "DEFAULT_FALLBACK_FAILED_${fallbackError.javaClass.simpleName}",
+                    source = "AlarmService"
+                )
             }
         }
     }
@@ -829,6 +988,13 @@ class AlarmService : Service() {
                 // Max snoozes reached - treat as dismiss
                 currentSnoozeCount = alarm.maxSnoozeCount
                 recordEvent(alarm, AlarmEvent.ACTION_DISMISSED)
+                recordIncident(
+                    type = AlarmIncidentEvent.TYPE_USER_ACTION,
+                    status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                    reasonCode = "MAX_SNOOZE_DISMISSED",
+                    source = "AlarmService",
+                    alarmId = alarm.id
+                )
                 clearAlarmRuntimeState(alarmId)
                 currentSnoozeCount = 0
                 currentAlarmId = -1
@@ -843,11 +1009,25 @@ class AlarmService : Service() {
                 } else customMinutes
                 alarmScheduler.scheduleSnooze(alarm, effectiveSnooze)
                 recordEvent(alarm, AlarmEvent.ACTION_SNOOZED)
+                recordIncident(
+                    type = AlarmIncidentEvent.TYPE_USER_ACTION,
+                    status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                    reasonCode = "SNOOZED",
+                    source = "AlarmService",
+                    alarmId = alarm.id
+                )
                 webhookEvent = "snoozed"
             }
             webhookService.fireAsync(webhookEvent, alarm.id, alarm.label, formatAlarmTime(alarm))
             wearNextAlarmBridge.publishAlarmIdle(alarm.id)
         } else {
+            recordIncident(
+                type = AlarmIncidentEvent.TYPE_USER_ACTION,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "SNOOZE_ALARM_ROW_MISSING",
+                source = "AlarmService",
+                alarmId = alarmId
+            )
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
             currentAlarmId = -1
@@ -877,6 +1057,13 @@ class AlarmService : Service() {
                 challengeRetryCount = challengeRetryCount,
                 challengeSolveTimeMs = challengeSolveTimeMs
             )
+            recordIncident(
+                type = AlarmIncidentEvent.TYPE_USER_ACTION,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = "DISMISSED",
+                source = "AlarmService",
+                alarmId = alarm.id
+            )
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
             currentAlarmId = -1
@@ -901,6 +1088,13 @@ class AlarmService : Service() {
             // v1.2.0: Cancel guardian if active (alarm was dismissed in time)
             WorkManager.getInstance(applicationContext).cancelUniqueWork("guardian_${alarm.id}")
         } else {
+            recordIncident(
+                type = AlarmIncidentEvent.TYPE_USER_ACTION,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "DISMISS_ALARM_ROW_MISSING",
+                source = "AlarmService",
+                alarmId = alarmId
+            )
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
             currentAlarmId = -1
@@ -1022,6 +1216,13 @@ class AlarmService : Service() {
                 ExistingWorkPolicy.REPLACE,
                 request
             )
+        recordIncidentAsync(
+            type = AlarmIncidentEvent.TYPE_WAKE_CONFIRM,
+            status = AlarmIncidentEvent.STATUS_REQUESTED,
+            reasonCode = "WAKE_CONFIRM_SCHEDULED",
+            source = "AlarmService",
+            alarmId = alarm.id
+        )
     }
 
     private fun formatAlarmTime(alarm: Alarm): String {
@@ -1061,6 +1262,50 @@ class AlarmService : Service() {
                 snoozeCount = currentSnoozeCount.coerceAtLeast(0),
                 dayOfWeek = dayOfWeek
             )
+        )
+    }
+
+    private fun recordIncidentAsync(
+        type: String,
+        status: String,
+        reasonCode: String,
+        source: String,
+        alarmId: Long = currentAlarmId,
+        fireId: String = currentFireId,
+        scheduledAt: Long = currentScheduledAt
+    ) {
+        if (alarmId <= 0L) return
+        serviceScope.launch {
+            alarmIncidentRepository.record(
+                alarmId = alarmId,
+                fireId = fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) },
+                scheduledAt = scheduledAt,
+                type = type,
+                status = status,
+                reasonCode = reasonCode,
+                source = source
+            )
+        }
+    }
+
+    private suspend fun recordIncident(
+        type: String,
+        status: String,
+        reasonCode: String,
+        source: String,
+        alarmId: Long = currentAlarmId,
+        fireId: String = currentFireId,
+        scheduledAt: Long = currentScheduledAt
+    ) {
+        if (alarmId <= 0L) return
+        alarmIncidentRepository.record(
+            alarmId = alarmId,
+            fireId = fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) },
+            scheduledAt = scheduledAt,
+            type = type,
+            status = status,
+            reasonCode = reasonCode,
+            source = source
         )
     }
 

@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.data.support
 
+import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
 import org.junit.Assert.assertFalse
@@ -71,6 +72,41 @@ class SupportDiagnosticsFormatterTest {
         assertTrue(text.contains("per-minute local actigraphy motion buckets"))
     }
 
+    @Test
+    fun `incident diagnostics omit labels urls and secret-like reason text`() {
+        val csv = SupportDiagnosticsFormatter.alarmIncidentCsv(
+            listOf(
+                AlarmIncidentEvent(
+                    id = 9,
+                    fireId = "fire://private-label",
+                    alarmId = 7,
+                    scheduledAt = 1_000L,
+                    eventAt = 1_500L,
+                    elapsedMs = 500L,
+                    type = "activity launch",
+                    status = "failed",
+                    reasonCode = "https://secret.example/path?token=abc",
+                    source = "AlarmService Private appointment",
+                    sdkInt = 35,
+                    standbyBucket = "ACTIVE (10)",
+                    exactAlarmAllowed = "true",
+                    notificationPermissionGranted = "true",
+                    fullScreenIntentAllowed = "false",
+                    batteryOptimizationsIgnored = "true",
+                    algorithmVersion = ""
+                )
+            )
+        )
+
+        assertTrue(csv.contains("fireId"))
+        assertTrue(csv.contains("ACTIVITY_LAUNCH"))
+        assertTrue(csv.contains("NONE"))
+        assertFalse(csv.contains("private-label"))
+        assertFalse(csv.contains("Private appointment"))
+        assertFalse(csv.contains("https://secret.example"))
+        assertFalse(csv.contains("token=abc"))
+    }
+
     private fun diagnosticsText(
         sdkInt: Int,
         fullScreenIntentAllowed: Boolean?,
@@ -78,7 +114,11 @@ class SupportDiagnosticsFormatterTest {
         smartWakeFiredEarlyCount: Int = 0,
         smartWakeLastDecisionReason: String? = null,
         smartWakeLastObservedMinutes: Int? = null,
-        smartWakeMode: String? = null
+        smartWakeMode: String? = null,
+        recentIncidentCount: Int = 0,
+        latestIncidentType: String? = null,
+        latestIncidentStatus: String? = null,
+        latestIncidentReason: String? = null
     ): String = SupportDiagnosticsFormatter.diagnosticsText(
         generatedAt = Instant.EPOCH,
         appVersion = "test",
@@ -104,6 +144,10 @@ class SupportDiagnosticsFormatterTest {
         smartWakeLastDecisionReason = smartWakeLastDecisionReason,
         smartWakeLastObservedMinutes = smartWakeLastObservedMinutes,
         smartWakeMode = smartWakeMode,
+        recentIncidentCount = recentIncidentCount,
+        latestIncidentType = latestIncidentType,
+        latestIncidentStatus = latestIncidentStatus,
+        latestIncidentReason = latestIncidentReason,
         stats = AlarmStats()
     )
 }

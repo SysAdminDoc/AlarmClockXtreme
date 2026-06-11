@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.data.support
 
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
 import java.time.DayOfWeek
 import java.time.Instant
@@ -43,6 +44,56 @@ data class SupportAlarmDiagnostic(
 }
 
 object SupportDiagnosticsFormatter {
+    fun alarmIncidentCsv(incidents: List<AlarmIncidentEvent>): String {
+        return buildString {
+            appendLine(
+                listOf(
+                    "id",
+                    "fireId",
+                    "alarmId",
+                    "scheduledAt",
+                    "eventAt",
+                    "elapsedMs",
+                    "type",
+                    "status",
+                    "reasonCode",
+                    "source",
+                    "sdkInt",
+                    "standbyBucket",
+                    "exactAlarmAllowed",
+                    "notificationPermissionGranted",
+                    "fullScreenIntentAllowed",
+                    "batteryOptimizationsIgnored",
+                    "algorithmVersion"
+                ).joinToString(",")
+            )
+            incidents.forEach { raw ->
+                val incident = raw.sanitized()
+                appendLine(
+                    listOf(
+                        incident.id.toString(),
+                        csv(incident.fireId),
+                        incident.alarmId.toString(),
+                        incident.scheduledAt.toString(),
+                        incident.eventAt.toString(),
+                        incident.elapsedMs.toString(),
+                        csv(incident.type),
+                        csv(incident.status),
+                        csv(incident.reasonCode),
+                        csv(incident.source),
+                        incident.sdkInt.toString(),
+                        csv(incident.standbyBucket),
+                        csv(incident.exactAlarmAllowed),
+                        csv(incident.notificationPermissionGranted),
+                        csv(incident.fullScreenIntentAllowed),
+                        csv(incident.batteryOptimizationsIgnored),
+                        csv(incident.algorithmVersion)
+                    ).joinToString(",")
+                )
+            }
+        }
+    }
+
     fun alarmCsv(alarms: List<SupportAlarmDiagnostic>): String {
         return buildString {
             appendLine(
@@ -105,6 +156,10 @@ object SupportDiagnosticsFormatter {
         smartWakeLastDecisionReason: String?,
         smartWakeLastObservedMinutes: Int?,
         smartWakeMode: String?,
+        recentIncidentCount: Int,
+        latestIncidentType: String?,
+        latestIncidentStatus: String?,
+        latestIncidentReason: String?,
         stats: AlarmStats
     ): String {
         val nextTrigger = nextTriggerTime?.takeIf { it > 0L }?.let(::formatEpochMillis) ?: "none"
@@ -140,6 +195,12 @@ object SupportDiagnosticsFormatter {
             appendLine("- Last decision reason: ${smartWakeLastDecisionReason ?: "none"}")
             appendLine("- Last observed minutes: ${smartWakeLastObservedMinutes?.toString() ?: "none"}")
             appendLine("- Decision mode: ${smartWakeMode ?: "none"}")
+            appendLine()
+            appendLine("Incident summary")
+            appendLine("- Recent incidents: $recentIncidentCount")
+            appendLine("- Latest type: ${latestIncidentType ?: "none"}")
+            appendLine("- Latest status: ${latestIncidentStatus ?: "none"}")
+            appendLine("- Latest reason: ${latestIncidentReason ?: "none"}")
             appendLine()
             appendLine("History summary")
             appendLine("- Dismissed: ${stats.totalDismissed}")

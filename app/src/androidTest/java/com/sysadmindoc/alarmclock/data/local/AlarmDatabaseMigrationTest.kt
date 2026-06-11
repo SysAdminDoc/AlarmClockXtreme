@@ -126,6 +126,31 @@ class AlarmDatabaseMigrationTest {
     }
 
     @Test
+    fun migrationThirteenToFourteenCreatesAlarmIncidentEventsTable() {
+        var db = helper.createDatabase("migration-13-to-14.db", 13)
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-13-to-14.db",
+            14,
+            true,
+            AlarmDatabase.MIGRATION_13_14,
+        )
+
+        assertEquals(0, db.queryLong("SELECT COUNT(*) FROM alarm_incident_events"))
+        val columns = tableColumns(db, "alarm_incident_events").map { it.name }.toSet()
+        assertTrue(columns.contains("fireId"))
+        assertTrue(columns.contains("alarmId"))
+        assertTrue(columns.contains("scheduledAt"))
+        assertTrue(columns.contains("eventAt"))
+        assertTrue(columns.contains("elapsedMs"))
+        assertTrue(columns.contains("reasonCode"))
+        assertTrue(columns.contains("fullScreenIntentAllowed"))
+        assertTrue(columns.contains("batteryOptimizationsIgnored"))
+        db.close()
+    }
+
+    @Test
     fun freshInstallVersionMatchesLatestExportedSchema() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val exportedLatest = latestExportedSchemaVersion()
@@ -307,6 +332,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 13
+        const val LATEST_SCHEMA_VERSION = 14
     }
 }

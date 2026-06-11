@@ -6,15 +6,21 @@ import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
+import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 
-@Database(entities = [Alarm::class, AlarmEvent::class, ActigraphySession::class], version = 13, exportSchema = true)
+@Database(
+    entities = [Alarm::class, AlarmEvent::class, ActigraphySession::class, AlarmIncidentEvent::class],
+    version = 14,
+    exportSchema = true
+)
 @TypeConverters(Converters::class)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
     abstract fun alarmEventDao(): AlarmEventDao
     abstract fun actigraphySessionDao(): ActigraphySessionDao
+    abstract fun alarmIncidentEventDao(): AlarmIncidentEventDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -194,6 +200,37 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS alarm_incident_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        fireId TEXT NOT NULL,
+                        alarmId INTEGER NOT NULL,
+                        scheduledAt INTEGER NOT NULL,
+                        eventAt INTEGER NOT NULL,
+                        elapsedMs INTEGER NOT NULL,
+                        type TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        reasonCode TEXT NOT NULL,
+                        source TEXT NOT NULL,
+                        sdkInt INTEGER NOT NULL,
+                        standbyBucket TEXT NOT NULL,
+                        exactAlarmAllowed TEXT NOT NULL,
+                        notificationPermissionGranted TEXT NOT NULL,
+                        fullScreenIntentAllowed TEXT NOT NULL,
+                        batteryOptimizationsIgnored TEXT NOT NULL,
+                        algorithmVersion TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_alarm_incident_events_alarmId ON alarm_incident_events(alarmId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_alarm_incident_events_fireId ON alarm_incident_events(fireId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_alarm_incident_events_eventAt ON alarm_incident_events(eventAt)")
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -207,6 +244,7 @@ abstract class AlarmDatabase : RoomDatabase() {
             MIGRATION_10_11,
             MIGRATION_11_12,
             MIGRATION_12_13,
+            MIGRATION_13_14,
         )
     }
 }

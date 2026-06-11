@@ -61,6 +61,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
         fun alarmScheduler(): com.sysadmindoc.alarmclock.domain.AlarmScheduler
         fun nextAlarmCalculator(): com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
         fun alarmEventRepository(): com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
+        fun alarmIncidentRepository(): com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
     }
 
     override fun onCreate() {

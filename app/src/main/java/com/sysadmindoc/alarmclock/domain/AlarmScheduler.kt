@@ -11,6 +11,8 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.isPaused
+import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
+import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
 import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
@@ -20,6 +22,10 @@ import com.sysadmindoc.alarmclock.service.SmartAlarmService
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
 import com.sysadmindoc.alarmclock.worker.HueSunriseWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import java.time.Instant
 import java.time.ZoneId
@@ -33,12 +39,16 @@ class AlarmScheduler @Inject constructor(
     private val repository: AlarmRepository,
     private val calculator: NextAlarmCalculator,
     private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager,
-    private val holidayRepository: HolidayRepository
+    private val holidayRepository: HolidayRepository,
+    private val alarmIncidentRepository: AlarmIncidentRepository
 ) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val incidentScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     companion object {
         const val EXTRA_ALARM_ID = "alarm_id"
+        const val EXTRA_ALARM_FIRE_ID = "alarm_fire_id"
+        const val EXTRA_SCHEDULED_AT = "scheduled_at"
     }
 
     /**
@@ -324,7 +334,15 @@ class AlarmScheduler @Inject constructor(
 
     private fun scheduleAlarmClock(alarmId: Long, triggerTime: Long) {
         DirectBootAlarmCache.cancelScheduledFallback(context, alarmId)
-        val pendingIntent = createPendingIntent(alarmId)
+        val fireId = AlarmIncidentEvent.fireIdFor(alarmId, triggerTime)
+        recordScheduleIncident(
+            alarmId = alarmId,
+            fireId = fireId,
+            triggerTime = triggerTime,
+            status = AlarmIncidentEvent.STATUS_REQUESTED,
+            reasonCode = "SET_ALARM_CLOCK"
+        )
+        val pendingIntent = createPendingIntent(alarmId, triggerTime, fireId)
         val showIntent = createShowIntent(alarmId)
         val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showIntent)
         // v1.6.3: `canScheduleExactAlarms()` is checked upstream, but the
@@ -337,6 +355,13 @@ class AlarmScheduler @Inject constructor(
         // of vanishing silently.
         try {
             alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+            recordScheduleIncident(
+                alarmId = alarmId,
+                fireId = fireId,
+                triggerTime = triggerTime,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = "SET_ALARM_CLOCK"
+            )
         } catch (e: SecurityException) {
             android.util.Log.w(
                 "AlarmScheduler",
@@ -349,11 +374,25 @@ class AlarmScheduler @Inject constructor(
                     triggerTime,
                     pendingIntent
                 )
+                recordScheduleIncident(
+                    alarmId = alarmId,
+                    fireId = fireId,
+                    triggerTime = triggerTime,
+                    status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                    reasonCode = "SET_AND_ALLOW_WHILE_IDLE_AFTER_SECURITY_EXCEPTION"
+                )
             } catch (e2: Exception) {
                 android.util.Log.e(
                     "AlarmScheduler",
                     "Inexact fallback also failed for alarm $alarmId",
                     e2
+                )
+                recordScheduleIncident(
+                    alarmId = alarmId,
+                    fireId = fireId,
+                    triggerTime = triggerTime,
+                    status = AlarmIncidentEvent.STATUS_FAILED,
+                    reasonCode = "SET_AND_ALLOW_WHILE_IDLE_FAILED_${e2.javaClass.simpleName}"
                 )
             }
         } catch (e: Exception) {
@@ -364,6 +403,33 @@ class AlarmScheduler @Inject constructor(
                 "AlarmScheduler",
                 "Unexpected error scheduling alarm $alarmId",
                 e
+            )
+            recordScheduleIncident(
+                alarmId = alarmId,
+                fireId = fireId,
+                triggerTime = triggerTime,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "SET_ALARM_CLOCK_FAILED_${e.javaClass.simpleName}"
+            )
+        }
+    }
+
+    private fun recordScheduleIncident(
+        alarmId: Long,
+        fireId: String,
+        triggerTime: Long,
+        status: String,
+        reasonCode: String
+    ) {
+        incidentScope.launch {
+            alarmIncidentRepository.record(
+                alarmId = alarmId,
+                fireId = fireId,
+                scheduledAt = triggerTime,
+                type = AlarmIncidentEvent.TYPE_SCHEDULE,
+                status = status,
+                reasonCode = reasonCode,
+                source = "AlarmScheduler"
             )
         }
     }
@@ -472,10 +538,16 @@ class AlarmScheduler @Inject constructor(
         }
     }
 
-    private fun createPendingIntent(alarmId: Long): PendingIntent {
+    private fun createPendingIntent(
+        alarmId: Long,
+        triggerTime: Long = 0L,
+        fireId: String = ""
+    ): PendingIntent {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
             action = "com.sysadmindoc.alarmclock.ALARM_FIRE"
             putExtra(EXTRA_ALARM_ID, alarmId)
+            putExtra(EXTRA_SCHEDULED_AT, triggerTime)
+            putExtra(EXTRA_ALARM_FIRE_ID, fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, triggerTime) })
         }
         return PendingIntent.getBroadcast(
             context,
