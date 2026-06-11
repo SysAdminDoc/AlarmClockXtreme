@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -1530,8 +1531,8 @@ private fun SettingsRow(
         modifier = Modifier
             .fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        color = SurfaceCard.copy(alpha = 0.34f),
-        border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
+        color = SurfaceLight.copy(alpha = 0.58f),
+        border = BorderStroke(1.dp, BorderSubtle)
     ) {
         Row(
             modifier = Modifier
@@ -1544,7 +1545,9 @@ private fun SettingsRow(
                 text = label,
                 color = TextPrimary,
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleSmall
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             if (trailing != null) {
                 Spacer(modifier = Modifier.width(12.dp))
@@ -1579,7 +1582,9 @@ private fun SettingsValueButton(
                 text = label,
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Icon(
                 imageVector = Icons.Default.ChevronRight,

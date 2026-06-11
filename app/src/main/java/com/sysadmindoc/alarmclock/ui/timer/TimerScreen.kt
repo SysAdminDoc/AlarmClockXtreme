@@ -12,6 +12,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -68,6 +71,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.ClockTimeDisplay
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
@@ -100,7 +104,6 @@ fun TimerScreen(
             } else {
                 "Stack multiple countdowns and keep every one of them visible."
             },
-            overline = "Countdowns",
             badge = {
                 if (state.activeTimers.any { it.state == TimerState.FINISHED }) {
                     AppStatusChip(label = "Attention needed", icon = Icons.Default.TimerOff, color = AccentRed)
@@ -368,7 +371,8 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
-                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
+                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                disabledContentColor = TextMuted
             )
         ) {
             Icon(Icons.Default.PlayArrow, contentDescription = "Start timer", modifier = Modifier.size(34.dp))
@@ -381,8 +385,7 @@ private fun TimeUnit(value: Int, unit: String) {
     Row(verticalAlignment = Alignment.Bottom) {
         Text(
             text = String.format("%02d", value),
-            fontSize = 48.sp,
-            fontWeight = FontWeight.Light,
+            style = ClockTimeDisplay,
             color = TextPrimary
         )
         Text(
@@ -409,6 +412,13 @@ private fun NumPad(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 row.forEach { key ->
+                    val interactionSource = remember { MutableInteractionSource() }
+                    val pressed by interactionSource.collectIsPressedAsState()
+                    val pressScale by animateFloatAsState(
+                        targetValue = if (pressed) 0.97f else 1f,
+                        animationSpec = tween(durationMillis = 90, easing = FastOutSlowInEasing),
+                        label = "key-press-scale"
+                    )
                     val accent = when (key) {
                         -1 -> AccentRed
                         -2 -> MaterialTheme.colorScheme.primary
@@ -418,7 +428,15 @@ private fun NumPad(
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1.12f)
-                            .clickable(role = Role.Button) {
+                            .graphicsLayer {
+                                scaleX = pressScale
+                                scaleY = pressScale
+                            }
+                            .clickable(
+                                role = Role.Button,
+                                interactionSource = interactionSource,
+                                indication = null
+                            ) {
                                 when (key) {
                                     -1 -> onDelete()
                                     -2 -> onDoubleZero()

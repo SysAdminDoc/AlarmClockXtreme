@@ -540,9 +540,8 @@ private fun AlarmHeader(
         subtitle = when {
             hasAlarms && remainingTime.isNotBlank() -> "Tap an alarm to edit, or add a new one below."
             alarmCount > 0 -> "Enable a saved alarm when you want it back in rotation."
-            else -> "Tap + New alarm to schedule your first."
+            else -> "Create your first wake-up, or start from a template."
         },
-        overline = "Alarms",
         badge = {
             AppStatusChip(
                 label = when (alarmCount) {
@@ -567,7 +566,7 @@ private fun AlarmHeader(
             AppStatusChip(
                 label = sortLabel,
                 icon = Icons.AutoMirrored.Filled.Sort,
-                modifier = Modifier.clickable(role = Role.Button, onClick = onCycleSort)
+                onClick = onCycleSort
             )
             if (vacationActive) {
                 AppStatusChip(
