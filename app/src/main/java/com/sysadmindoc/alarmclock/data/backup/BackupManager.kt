@@ -86,7 +86,7 @@ data class AlarmBackup(
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 8,
+    val version: Int = 9,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -152,7 +152,23 @@ data class SettingsBackup(
     val healthConnectEnabled: Boolean = false,
     // v1.13.3 (roadmap X2): round-trip the user's selected feed URL and warn
     // before readable exports when custom/private feed endpoints are present.
-    val newsFeedUrl: String = DEFAULT_NEWS_FEED_URL
+    val newsFeedUrl: String = DEFAULT_NEWS_FEED_URL,
+    // Backup v9: AppSettings fields that previously never made it into the
+    // backup, so every restore silently reset them to defaults — the same
+    // drift class as the v1.1.0 backup data loss. Defaults below match
+    // AppSettings so v1-v8 backups import unchanged.
+    val upcomingAlarmMinutes: Int = 60,
+    val showNoAlarmsWarning: Boolean = true,
+    val autoSilenceMinutes: Int = 10,
+    val locationName: String = "",
+    val useManualLocation: Boolean = false,
+    val lastKnownLatitude: Double = 0.0,
+    val lastKnownLongitude: Double = 0.0,
+    val showDashboardTab: Boolean = true,
+    val showTimerTab: Boolean = true,
+    val showWorldClockTab: Boolean = true,
+    val showNewsTab: Boolean = true,
+    val showRadarEmbed: Boolean = true
 )
 
 data class BackupExportWarning(
@@ -175,7 +191,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 8
+        const val MAX_SUPPORTED_BACKUP_VERSION = 9
 
         fun assessExportWarning(
             settings: AppSettings,
@@ -194,6 +210,14 @@ class BackupManager @Inject constructor(
                 }
                 if (settings.newsFeedUrl.isCustomFeedUrl()) {
                     add("Custom news feed URL")
+                }
+                // Backup v9 carries the saved weather location; surface it the
+                // same way the per-alarm location-dismiss coordinates are.
+                if (settings.locationName.isNotBlank() ||
+                    settings.lastKnownLatitude != 0.0 ||
+                    settings.lastKnownLongitude != 0.0
+                ) {
+                    add("Saved weather location")
                 }
                 if (alarms.any { it.internetRadioUrl.isNotBlank() }) {
                     add("Internet radio stream URLs")
@@ -299,7 +323,19 @@ class BackupManager @Inject constructor(
                 napDefaultMinutes = settings.napDefaultMinutes,
                 pauseUntilMillis = settings.pauseUntilMillis,
                 healthConnectEnabled = settings.healthConnectEnabled,
-                newsFeedUrl = settings.newsFeedUrl
+                newsFeedUrl = settings.newsFeedUrl,
+                upcomingAlarmMinutes = settings.upcomingAlarmMinutes,
+                showNoAlarmsWarning = settings.showNoAlarmsWarning,
+                autoSilenceMinutes = settings.autoSilenceMinutes,
+                locationName = settings.locationName,
+                useManualLocation = settings.useManualLocation,
+                lastKnownLatitude = settings.lastKnownLatitude,
+                lastKnownLongitude = settings.lastKnownLongitude,
+                showDashboardTab = settings.showDashboardTab,
+                showTimerTab = settings.showTimerTab,
+                showWorldClockTab = settings.showWorldClockTab,
+                showNewsTab = settings.showNewsTab,
+                showRadarEmbed = settings.showRadarEmbed
             )
         )
 
@@ -446,7 +482,19 @@ class BackupManager @Inject constructor(
                         napDefaultMinutes = s.napDefaultMinutes,
                         pauseUntilMillis = s.pauseUntilMillis,
                         healthConnectEnabled = s.healthConnectEnabled,
-                        newsFeedUrl = s.newsFeedUrl
+                        newsFeedUrl = s.newsFeedUrl,
+                        upcomingAlarmMinutes = s.upcomingAlarmMinutes,
+                        showNoAlarmsWarning = s.showNoAlarmsWarning,
+                        autoSilenceMinutes = s.autoSilenceMinutes,
+                        locationName = s.locationName,
+                        useManualLocation = s.useManualLocation,
+                        lastKnownLatitude = s.lastKnownLatitude,
+                        lastKnownLongitude = s.lastKnownLongitude,
+                        showDashboardTab = s.showDashboardTab,
+                        showTimerTab = s.showTimerTab,
+                        showWorldClockTab = s.showWorldClockTab,
+                        showNewsTab = s.showNewsTab,
+                        showRadarEmbed = s.showRadarEmbed
                     )
                 }
             }

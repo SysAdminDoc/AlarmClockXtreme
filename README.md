@@ -161,7 +161,7 @@ cd AlarmClockXtreme
 ### Data & Reliability
 | Feature | Description |
 |---------|-------------|
-| Backup/Restore | JSON export/import of all 50+ alarm fields and 35+ settings, with optional AES-256 passphrase encryption, custom news-feed round-trip, and pre-export disclosure for secrets/private references (v8 format) |
+| Backup/Restore | JSON export/import of all 50+ alarm fields and 58 settings, with optional AES-256 passphrase encryption, custom news-feed round-trip, and pre-export disclosure for secrets/private references (v9 format) |
 | Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link |
 | Boot Reschedule | All alarms re-registered after device reboot, with a Direct Boot fallback for the next alarm before first unlock |
 | Wake Readiness | Settings checks exact alarms, notifications, Android 14+ full-screen alarm access, battery optimization, and App Standby state before bedtime |

@@ -614,10 +614,14 @@ class AlarmFiringViewModel @Inject constructor(
         val input = state.typingSpeedInput.trim()
         val targetWords = challenge.phrase.split(" ").map { it.lowercase().filter { c -> c.isLetter() } }
         val inputWords  = input.split(" ").map { it.lowercase().filter { c -> c.isLetter() } }
+        // Count missing AND extra words as errors, and only credit words up to
+        // the target length toward WPM — otherwise padding the input with junk
+        // words inflates the numerator and defeats the speed gate.
         val errors = targetWords.zip(inputWords).count { (t, i) -> t != i } +
-                maxOf(0, targetWords.size - inputWords.size)
+                kotlin.math.abs(targetWords.size - inputWords.size)
         val elapsedMs = maxOf(if (state.typingSpeedStartTime > 0L) System.currentTimeMillis() - state.typingSpeedStartTime else 1L, 1L)
-        val wpm = (inputWords.size.toLong() * 60000L / elapsedMs).toInt()
+        val countedWords = inputWords.size.coerceAtMost(targetWords.size)
+        val wpm = (countedWords.toLong() * 60000L / elapsedMs).toInt()
         if (wpm >= challenge.minWpm && errors <= challenge.maxErrors) {
             proceedToNextChallenge()
         } else {

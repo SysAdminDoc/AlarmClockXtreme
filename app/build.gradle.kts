@@ -227,6 +227,10 @@ dependencies {
 
     // Testing
     testImplementation("junit:junit:4.13.2")
+    // Drift guard: BackupManagerSettingsDriftTest reflects over AppSettings /
+    // SettingsBackup constructor parameters so a new settings field can't ship
+    // without a backup round-trip again.
+    testImplementation(kotlin("reflect"))
     androidTestImplementation("androidx.room:room-testing:2.6.1")
     androidTestImplementation("androidx.test:core:1.6.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
