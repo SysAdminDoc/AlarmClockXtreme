@@ -86,6 +86,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -106,10 +107,12 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
@@ -197,7 +200,6 @@ fun SettingsScreen(
         AlarmClockHeroHeader(
             title = "Settings",
             subtitle = "Tune the app once and it stays out of your way. Changes save immediately.",
-            overline = "Preferences",
             badge = {
                 AppStatusChip(
                     label = if (state.isIgnoringBatteryOptimizations) "Battery protected" else "Needs battery setup",
@@ -1236,6 +1238,7 @@ private fun SettingsToggle(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 64.dp)
             .toggleable(
                 value = checked,
                 role = Role.Switch,
@@ -1245,14 +1248,14 @@ private fun SettingsToggle(
         color = if (checked) {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
         } else {
-            SurfaceCard.copy(alpha = 0.28f)
+            SurfaceLight.copy(alpha = 0.58f)
         },
         border = BorderStroke(
             1.dp,
             if (checked) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
             } else {
-                TextMuted.copy(alpha = 0.14f)
+                BorderSubtle
             }
         )
     ) {
@@ -1267,7 +1270,13 @@ private fun SettingsToggle(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(label, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    text = label,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
                 if (!supportingText.isNullOrBlank()) {
                     Text(supportingText, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
@@ -1292,10 +1301,11 @@ private fun SettingsActionRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 64.dp)
             .clickable(role = Role.Button, onClick = onClick),
         shape = RoundedCornerShape(10.dp),
-        color = SurfaceCard.copy(alpha = 0.28f),
-        border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.14f))
+        color = SurfaceLight.copy(alpha = 0.58f),
+        border = BorderStroke(1.dp, BorderSubtle)
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
@@ -1310,7 +1320,9 @@ private fun SettingsActionRow(
                     label,
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Surface(
                     shape = RoundedCornerShape(10.dp),
@@ -1324,7 +1336,9 @@ private fun SettingsActionRow(
                         Text(
                             value,
                             color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelLarge
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.primary)
                     }

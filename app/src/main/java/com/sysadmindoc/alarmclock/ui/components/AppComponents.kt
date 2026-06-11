@@ -340,23 +340,17 @@ fun AppStatusChip(
     label: String,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    color: Color = MaterialTheme.colorScheme.primary
+    color: Color = MaterialTheme.colorScheme.primary,
+    onClick: (() -> Unit)? = null
 ) {
     val shapeTokens = LocalAppShapeTokens.current
-    // Slightly tighter, slightly more confident: subtler fill, color-matched
-    // border (was hard-coded primary alpha), and SemiBold label so chips read
-    // as deliberate metadata rather than free-floating UI clutter.
-    Surface(
-        modifier = modifier,
-        shape = shapeTokens.chip,
-        color = color.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.22f)),
-        tonalElevation = 0.dp
-    ) {
+    val minHeight = if (onClick != null) 40.dp else 30.dp
+    val horizontalPadding = if (onClick != null) 13.dp else 11.dp
+    val chipContent: @Composable () -> Unit = {
         Row(
             modifier = Modifier
-                .defaultMinSize(minHeight = 30.dp)
-                .padding(horizontal = 11.dp, vertical = 6.dp),
+                .defaultMinSize(minHeight = minHeight)
+                .padding(horizontal = horizontalPadding, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -374,6 +368,26 @@ fun AppStatusChip(
                 style = MaterialTheme.typography.labelMedium
             )
         }
+    }
+    if (onClick != null) {
+        Surface(
+            modifier = modifier,
+            shape = shapeTokens.chip,
+            color = color.copy(alpha = 0.12f),
+            border = BorderStroke(1.dp, color.copy(alpha = 0.30f)),
+            tonalElevation = 0.dp,
+            onClick = onClick,
+            content = chipContent
+        )
+    } else {
+        Surface(
+            modifier = modifier,
+            shape = shapeTokens.chip,
+            color = color.copy(alpha = 0.10f),
+            border = BorderStroke(1.dp, color.copy(alpha = 0.22f)),
+            tonalElevation = 0.dp,
+            content = chipContent
+        )
     }
 }
 
@@ -532,8 +546,8 @@ fun AppFilterChip(
     ) {
         Row(
             modifier = Modifier
-                .defaultMinSize(minHeight = 32.dp)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .defaultMinSize(minHeight = 38.dp)
+                .padding(horizontal = 12.dp, vertical = 7.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
