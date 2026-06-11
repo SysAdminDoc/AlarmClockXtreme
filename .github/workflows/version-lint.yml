@@ -7,7 +7,7 @@ on:
 
 jobs:
   version-lint:
-    name: README / CHANGELOG / ROADMAP / build.gradle versions must match
+    name: README / metadata / Gradle versions must match
     runs-on: ubuntu-latest
 
     steps:
@@ -16,35 +16,55 @@ jobs:
 
       - name: Extract version strings from source-of-truth files
         id: extract
-        # v1.12.3 (roadmap N10): Catch the post-release drift class where the
-        # app/build.gradle.kts versionName advances but the README badge, the
-        # adb install command, the CHANGELOG top entry, the ROADMAP "Current
-        # snapshot" line, or the :wear module's versionName lags behind. The
-        # check is structural (string equality across pinned anchors), not
-        # semver-aware — bumping all of them together is the intended
-        # workflow per the docs cross-cutting track.
+        # v1.13.8: Catch release-surface drift using tracked files only. Local
+        # planning docs are intentionally ignored, so CI validates Gradle,
+        # README, and F-Droid metadata versionName/versionCode anchors.
         run: |
           set -euo pipefail
 
           APP_VERSION=$(grep -E 'versionName = "[^"]+"' app/build.gradle.kts \
             | head -1 | sed -E 's/.*versionName = "([^"]+)".*/\1/')
+          APP_CODE=$(grep -E 'versionCode = [0-9]+' app/build.gradle.kts \
+            | head -1 | sed -E 's/.*versionCode = ([0-9]+).*/\1/')
           WEAR_VERSION=$(grep -E 'versionName = "[^"]+"' wear/build.gradle.kts \
             | head -1 | sed -E 's/.*versionName = "([^"]+)".*/\1/')
+          WEAR_CODE=$(grep -E 'versionCode = [0-9]+' wear/build.gradle.kts \
+            | head -1 | sed -E 's/.*versionCode = ([0-9]+).*/\1/')
           README_BADGE=$(grep -E 'shields\.io/badge/version-[0-9.]+-' README.md \
             | head -1 | sed -E 's/.*badge\/version-([0-9.]+)-.*/\1/')
           README_INSTALL=$(grep -E 'AlarmClockXtreme-v[0-9.]+-play\.apk' README.md \
             | head -1 | sed -E 's/.*AlarmClockXtreme-v([0-9.]+)-play\.apk.*/\1/')
-          CHANGELOG_TOP=$(grep -E '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md \
-            | head -1 | sed -E 's/.*\[([0-9.]+)\].*/\1/')
-          ROADMAP_SNAPSHOT=$(grep -E '^## Current snapshot \(v[0-9.]+\)' ROADMAP.md \
-            | head -1 | sed -E 's/.*\(v([0-9.]+)\).*/\1/')
+          FDROID_VERSION=$(grep -E '^[[:space:]]*-?[[:space:]]*versionName: [0-9.]+' metadata/com.sysadmindoc.alarmclock.yml \
+            | head -1 | awk '{print $NF}')
+          FDROID_CODE=$(grep -E '^[[:space:]]*-?[[:space:]]*versionCode: [0-9]+' metadata/com.sysadmindoc.alarmclock.yml \
+            | head -1 | awk '{print $NF}')
+          FDROID_CURRENT_VERSION=$(grep -E '^CurrentVersion: [0-9.]+' metadata/com.sysadmindoc.alarmclock.yml \
+            | head -1 | awk '{print $NF}')
+          FDROID_CURRENT_CODE=$(grep -E '^CurrentVersionCode: [0-9]+' metadata/com.sysadmindoc.alarmclock.yml \
+            | head -1 | awk '{print $NF}')
+          FDROID_EN_VERSION=$(grep -E '^[[:space:]]*-?[[:space:]]*versionName: [0-9.]+' metadata/en-US/fdroid.yml \
+            | head -1 | awk '{print $NF}')
+          FDROID_EN_CODE=$(grep -E '^[[:space:]]*-?[[:space:]]*versionCode: [0-9]+' metadata/en-US/fdroid.yml \
+            | head -1 | awk '{print $NF}')
+          FDROID_EN_CURRENT_VERSION=$(grep -E '^CurrentVersion: [0-9.]+' metadata/en-US/fdroid.yml \
+            | head -1 | awk '{print $NF}')
+          FDROID_EN_CURRENT_CODE=$(grep -E '^CurrentVersionCode: [0-9]+' metadata/en-US/fdroid.yml \
+            | head -1 | awk '{print $NF}')
 
           echo "app=$APP_VERSION"            | tee -a "$GITHUB_OUTPUT"
+          echo "app_code=$APP_CODE"          | tee -a "$GITHUB_OUTPUT"
           echo "wear=$WEAR_VERSION"          | tee -a "$GITHUB_OUTPUT"
+          echo "wear_code=$WEAR_CODE"        | tee -a "$GITHUB_OUTPUT"
           echo "readme_badge=$README_BADGE"  | tee -a "$GITHUB_OUTPUT"
           echo "readme_install=$README_INSTALL" | tee -a "$GITHUB_OUTPUT"
-          echo "changelog=$CHANGELOG_TOP"    | tee -a "$GITHUB_OUTPUT"
-          echo "roadmap=$ROADMAP_SNAPSHOT"   | tee -a "$GITHUB_OUTPUT"
+          echo "fdroid_version=$FDROID_VERSION" | tee -a "$GITHUB_OUTPUT"
+          echo "fdroid_code=$FDROID_CODE" | tee -a "$GITHUB_OUTPUT"
+          echo "fdroid_current_version=$FDROID_CURRENT_VERSION" | tee -a "$GITHUB_OUTPUT"
+          echo "fdroid_current_code=$FDROID_CURRENT_CODE" | tee -a "$GITHUB_OUTPUT"
+          echo "fdroid_en_version=$FDROID_EN_VERSION" | tee -a "$GITHUB_OUTPUT"
+          echo "fdroid_en_code=$FDROID_EN_CODE" | tee -a "$GITHUB_OUTPUT"
+          echo "fdroid_en_current_version=$FDROID_EN_CURRENT_VERSION" | tee -a "$GITHUB_OUTPUT"
+          echo "fdroid_en_current_code=$FDROID_EN_CURRENT_CODE" | tee -a "$GITHUB_OUTPUT"
 
       - name: Assert all version strings agree
         run: |
@@ -54,30 +74,52 @@ jobs:
             [wear/build.gradle.kts]="${{ steps.extract.outputs.wear }}"
             [README.md_badge]="${{ steps.extract.outputs.readme_badge }}"
             [README.md_install]="${{ steps.extract.outputs.readme_install }}"
-            [CHANGELOG.md_top_entry]="${{ steps.extract.outputs.changelog }}"
-            [ROADMAP.md_current_snapshot]="${{ steps.extract.outputs.roadmap }}"
+            [metadata/com.sysadmindoc.alarmclock.yml_versionName]="${{ steps.extract.outputs.fdroid_version }}"
+            [metadata/com.sysadmindoc.alarmclock.yml_CurrentVersion]="${{ steps.extract.outputs.fdroid_current_version }}"
+            [metadata/en-US/fdroid.yml_versionName]="${{ steps.extract.outputs.fdroid_en_version }}"
+            [metadata/en-US/fdroid.yml_CurrentVersion]="${{ steps.extract.outputs.fdroid_en_current_version }}"
+          )
+          declare -A codes=(
+            [app/build.gradle.kts]="${{ steps.extract.outputs.app_code }}"
+            [wear/build.gradle.kts]="${{ steps.extract.outputs.wear_code }}"
+            [metadata/com.sysadmindoc.alarmclock.yml_versionCode]="${{ steps.extract.outputs.fdroid_code }}"
+            [metadata/com.sysadmindoc.alarmclock.yml_CurrentVersionCode]="${{ steps.extract.outputs.fdroid_current_code }}"
+            [metadata/en-US/fdroid.yml_versionCode]="${{ steps.extract.outputs.fdroid_en_code }}"
+            [metadata/en-US/fdroid.yml_CurrentVersionCode]="${{ steps.extract.outputs.fdroid_en_current_code }}"
           )
 
           fail=0
-          target="${versions[app/build.gradle.kts]}"
+          target_version="${versions[app/build.gradle.kts]}"
           for source in "${!versions[@]}"; do
             actual="${versions[$source]}"
             if [ -z "$actual" ]; then
               echo "::error file=$source::Could not extract a version string from $source"
               fail=1
-            elif [ "$actual" != "$target" ]; then
-              echo "::error file=$source::$source reports v$actual but app/build.gradle.kts is v$target"
+            elif [ "$actual" != "$target_version" ]; then
+              echo "::error file=$source::$source reports v$actual but app/build.gradle.kts is v$target_version"
               fail=1
             else
               echo "ok: $source = v$actual"
             fi
           done
 
+          target_code="${codes[app/build.gradle.kts]}"
+          for source in "${!codes[@]}"; do
+            actual="${codes[$source]}"
+            if [ -z "$actual" ]; then
+              echo "::error file=$source::Could not extract a versionCode from $source"
+              fail=1
+            elif [ "$actual" != "$target_code" ]; then
+              echo "::error file=$source::$source reports versionCode $actual but app/build.gradle.kts is $target_code"
+              fail=1
+            else
+              echo "ok: $source versionCode = $actual"
+            fi
+          done
+
           if [ $fail -ne 0 ]; then
             echo
             echo "Bump versionName + versionCode in BOTH app/build.gradle.kts AND wear/build.gradle.kts,"
-            echo "and update the README badge, README adb-install snippet, the CHANGELOG top entry"
-            echo "(## [x.y.z] - YYYY-MM-DD), and the ROADMAP 'Current snapshot (vX.Y.Z)' header to"
-            echo "match. See the 'docs' cross-cutting track in ROADMAP.md for the canonical list."
+            echo "then update the README badge, README adb-install snippet, and both metadata files."
             exit 1
           fi

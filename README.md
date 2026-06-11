@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.13.7-blue)
+![Version](https://img.shields.io/badge/version-1.13.8-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** — [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.13.7-play.apk
+adb install AlarmClockXtreme-v1.13.8-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, and optional Health Connect READ_SLEEP integration. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -125,6 +125,7 @@ cd AlarmClockXtreme
 |---------|-------------|
 | Smart Alarm | Accelerometer-based light sleep detection, fires early during optimal window |
 | Sonar Sleep Tracking | Experimental ultrasonic breathing/movement detection |
+| Local Actigraphy Buckets | Smart-alarm windows store compact awake-motion, light-motion, and still-motion summaries for 30 days; raw accelerometer samples are not retained |
 | Philips Hue Sunrise | Gradually ramp smart lights before alarm fires |
 | Webhook / Tasker | POST JSON on alarm fire/snooze/dismiss/miss events |
 | Flip-to-Snooze | Place phone face-down to snooze |
@@ -183,7 +184,7 @@ cd AlarmClockXtreme
 |  Date-specific + holiday + vacation + solar-anchor logic |
 +---------------------------------------------------------+
 |                    Data Layer                            |
-|  Room DB v11 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
+|  Room DB v12 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
 |  HealthConnectSleepRepository (Play READ_SLEEP summaries) |
 |  50+ field Alarm entity | 35+ field AppSettings          |
 |  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |
@@ -215,7 +216,7 @@ GitHub tag releases require repository secrets. Use either the preferred
 | `ANDROID_KEY_ALIAS` | `KEY_ALIAS` | Signing key alias |
 | `ANDROID_KEY_PASSWORD` | `KEY_PASSWORD` | Signing key password |
 
-Tag pushes like `v1.13.7` build signed Play, F-Droid, and Wear release APKs,
+Tag pushes like `v1.13.8` build signed Play, F-Droid, and Wear release APKs,
 verify signatures with `apksigner`, write `SHA256SUMS.txt`, and attach the APKs
 plus hashes to the GitHub Release.
 
@@ -272,7 +273,7 @@ No analytics. No ads. No tracking. No accounts. No data leaves your device excep
 - Philips Hue commands to your configured bridge on your local network
 - YouTube search, preview, stream resolution, and download requests in the Play flavor only; F-Droid excludes this feature
 
-Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, including sleep/wake trend charts; they are not copied into Room/DataStore/backups and are never uploaded to the developer. Crash logs stay in local app storage unless you export them. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, and Hue configuration.
+Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, including sleep/wake trend charts; they are not copied into Room/DataStore/backups and are never uploaded to the developer. Smart-alarm actigraphy stores only compact local motion-bucket summaries for 30 days; raw accelerometer samples are not retained and the buckets are not medical sleep-stage records. Crash logs stay in local app storage unless you export them. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, and Hue configuration.
 
 Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
 
