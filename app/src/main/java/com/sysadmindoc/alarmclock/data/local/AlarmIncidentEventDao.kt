@@ -31,4 +31,7 @@ interface AlarmIncidentEventDao {
         """
     )
     suspend fun trimToLatest(maxRows: Int)
+
+    @Query("DELETE FROM alarm_incident_events")
+    suspend fun deleteAll()
 }

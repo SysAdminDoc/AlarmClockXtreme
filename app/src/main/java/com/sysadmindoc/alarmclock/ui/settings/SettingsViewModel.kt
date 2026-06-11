@@ -19,8 +19,10 @@ import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.backup.BackupManager
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
+import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.data.support.SupportExportManager
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
@@ -65,13 +67,56 @@ data class SettingsUiState(
     // means the API isn't available on this device or returned no data —
     // we surface a generic "Standby bucket unknown" in that case.
     val appStandbyBucket: Int = AppStandbyBucket.UNKNOWN,
-    val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary()
+    val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary(),
+    val incidentTimeline: SettingsIncidentTimelineState = SettingsIncidentTimelineState()
 )
 
 object AppStandbyBucket {
     const val UNKNOWN: Int = -1
     /** True when the bucket actively throttles alarm scheduling. */
     fun isDegraded(bucket: Int): Boolean = bucket >= 30  // FREQUENT == 30
+}
+
+data class SettingsIncidentTimelineState(
+    val recentCount: Int = 0,
+    val latestType: String? = null,
+    val latestStatus: String? = null,
+    val latestReason: String? = null,
+    val latestEventAt: Long? = null,
+    val latestElapsedMs: Long? = null,
+    val latestIsDegraded: Boolean = false
+) {
+    val hasIncidents: Boolean
+        get() = recentCount > 0
+
+    companion object {
+        fun from(events: List<AlarmIncidentEvent>): SettingsIncidentTimelineState {
+            val sanitized = events.map { it.sanitized() }
+            val notable = sanitized.firstOrNull { it.isNotable() }
+            val latest = notable ?: sanitized.firstOrNull()
+            return SettingsIncidentTimelineState(
+                recentCount = sanitized.size,
+                latestType = latest?.type,
+                latestStatus = latest?.status,
+                latestReason = latest?.reasonCode,
+                latestEventAt = latest?.eventAt,
+                latestElapsedMs = latest?.elapsedMs,
+                latestIsDegraded = notable != null
+            )
+        }
+
+        private fun AlarmIncidentEvent.isNotable(): Boolean {
+            if (status == AlarmIncidentEvent.STATUS_FAILED ||
+                status == AlarmIncidentEvent.STATUS_SKIPPED
+            ) {
+                return true
+            }
+            return type == AlarmIncidentEvent.TYPE_AUTO_SILENCE ||
+                reasonCode.contains("FALLBACK") ||
+                reasonCode.contains("MISSING") ||
+                reasonCode.contains("BLOCKED")
+        }
+    }
 }
 
 @HiltViewModel
@@ -82,7 +127,8 @@ class SettingsViewModel @Inject constructor(
     private val backupManager: BackupManager,
     private val webhookService: WebhookService,
     private val healthConnectSleepRepository: HealthConnectSleepRepository,
-    private val supportExportManager: SupportExportManager
+    private val supportExportManager: SupportExportManager,
+    private val alarmIncidentRepository: AlarmIncidentRepository
 ) : AndroidViewModel(application) {
 
     private val _batteryState = MutableStateFlow(
@@ -96,11 +142,16 @@ class SettingsViewModel @Inject constructor(
     private val _wakeReadinessState = MutableStateFlow(WakeReadinessState.from(application))
     private val _healthConnectSleepState = MutableStateFlow(HealthConnectSleepSummary())
 
-    private val readinessAndHealth = combine(
+    private val incidentTimelineState = alarmIncidentRepository.observeRecent(limit = 10)
+        .map { SettingsIncidentTimelineState.from(it) }
+        .catch { emit(SettingsIncidentTimelineState()) }
+
+    private val auxiliaryState = combine(
         _wakeReadinessState,
-        _healthConnectSleepState
-    ) { wakeReadiness, healthConnectSleep ->
-        wakeReadiness to healthConnectSleep
+        _healthConnectSleepState,
+        incidentTimelineState
+    ) { wakeReadiness, healthConnectSleep, incidentTimeline ->
+        SettingsAuxiliaryState(wakeReadiness, healthConnectSleep, incidentTimeline)
     }
 
     val uiState: StateFlow<SettingsUiState> = combine(
@@ -108,9 +159,9 @@ class SettingsViewModel @Inject constructor(
         _batteryState,
         _webhookTestState,
         _hueTestState,
-        readinessAndHealth
-    ) { settings, battery, webhookState, hueState, readinessHealth ->
-        val (wakeReadiness, healthConnectSleep) = readinessHealth
+        auxiliaryState
+    ) { settings, battery, webhookState, hueState, auxiliary ->
+        val wakeReadiness = auxiliary.wakeReadiness
         val guidance = ManufacturerCompat.getGuidance()
         SettingsUiState(
             settings = settings,
@@ -130,7 +181,8 @@ class SettingsViewModel @Inject constructor(
             canScheduleExactAlarms = wakeReadiness.canScheduleExactAlarms,
             canUseFullScreenIntent = wakeReadiness.canUseFullScreenIntent,
             appStandbyBucket = wakeReadiness.appStandbyBucket,
-            healthConnectSleepSummary = healthConnectSleep
+            healthConnectSleepSummary = auxiliary.healthConnectSleep,
+            incidentTimeline = auxiliary.incidentTimeline
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState())
 
@@ -572,6 +624,12 @@ class SettingsViewModel @Inject constructor(
 
     fun clearSupportExportResult() { _supportExportResult.value = null }
 
+    fun clearIncidentHistory() {
+        viewModelScope.launch(Dispatchers.IO) {
+            alarmIncidentRepository.clearHistory()
+        }
+    }
+
     private fun setSupportExportResult(message: String) {
         _supportExportResult.value = message
         viewModelScope.launch {
@@ -586,6 +644,12 @@ class SettingsViewModel @Inject constructor(
     private data class IntegrationTestState(
         val message: String? = null,
         val isRunning: Boolean = false
+    )
+
+    private data class SettingsAuxiliaryState(
+        val wakeReadiness: WakeReadinessState,
+        val healthConnectSleep: HealthConnectSleepSummary,
+        val incidentTimeline: SettingsIncidentTimelineState
     )
 
     private data class WakeReadinessState(
