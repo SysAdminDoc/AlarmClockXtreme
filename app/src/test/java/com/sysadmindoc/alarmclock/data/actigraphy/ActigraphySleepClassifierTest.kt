@@ -54,6 +54,38 @@ class ActigraphySleepClassifierTest {
     }
 
     @Test
+    fun mixedMotionProducesAwakeLightAndStillMotionBuckets() {
+        val epochs = listOf(0f, 0f, 0f, 0f, 5f, 0f, 0f).mapIndexed { index, activity ->
+            ActigraphyEpoch(startMillis = index * 60_000L, activityCount = activity)
+        }
+
+        val summary = ActigraphySleepClassifier.summarize(epochs)
+
+        assertEquals(7, summary.totalMinutes)
+        assertEquals(1, summary.awakeMinutes)
+        assertEquals(2, summary.lightMinutes)
+        assertEquals(4, summary.deepMinutes)
+    }
+
+    @Test
+    fun boundaryWeightingZeroPadsMissingNeighborEpochs() {
+        val scored = ActigraphySleepClassifier.classify(
+            listOf(
+                ActigraphyEpoch(startMillis = 0L, activityCount = 10f),
+                ActigraphyEpoch(startMillis = 60_000L, activityCount = 0f),
+                ActigraphyEpoch(startMillis = 120_000L, activityCount = 0f)
+            )
+        )
+
+        assertEquals(2.3f, scored[0].sleepIndex, 0.0001f)
+        assertEquals(0.76f, scored[1].sleepIndex, 0.0001f)
+        assertEquals(0.58f, scored[2].sleepIndex, 0.0001f)
+        assertEquals(ActigraphyStage.AWAKE, scored[0].stage)
+        assertEquals(ActigraphyStage.LIGHT, scored[1].stage)
+        assertEquals(ActigraphyStage.LIGHT, scored[2].stage)
+    }
+
+    @Test
     fun phoneMotionToActivityCountClampsSensorNoiseToClassifierRange() {
         assertEquals(0f, ActigraphySleepClassifier.phoneMotionToActivityCount(-1f), 0.0001f)
         assertEquals(5f, ActigraphySleepClassifier.phoneMotionToActivityCount(0.5f), 0.0001f)

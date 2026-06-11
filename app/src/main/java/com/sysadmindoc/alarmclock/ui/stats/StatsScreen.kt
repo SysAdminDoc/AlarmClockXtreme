@@ -1019,18 +1019,18 @@ private fun ActigraphyBucketsCard(
     val latest = sessions.firstOrNull()
     AppSurfaceCard(modifier = modifier, highlighted = latest?.firedEarly == true) {
         AppSectionTitle(
-            title = "Actigraphy buckets",
+            title = "Phone-motion buckets",
             description = if (latest == null) {
-                "Smart alarm windows will save compact Awake, Light, and Deep motion buckets here."
+                "Smart alarm windows will save compact awake-motion, light-motion, and still-motion buckets here."
             } else {
-                "Experimental phone-motion buckets from smart alarm monitoring. Raw accelerometer samples are not stored."
+                "Experimental phone-motion buckets from smart alarm monitoring. They are not medical sleep stages."
             }
         )
 
         if (latest == null) {
             AppEmptyState(
                 icon = Icons.Default.BarChart,
-                title = "No actigraphy sessions yet",
+                title = "No phone-motion sessions yet",
                 description = "Enable a smart alarm window on an alarm to collect compact local sleep-motion summaries."
             )
             return@AppSurfaceCard
@@ -1051,7 +1051,7 @@ private fun ActigraphyBucketsCard(
                 color = if (latest.firedEarly) DismissGreen else TextMuted
             )
             AppStatusChip(
-                label = "Index ${"%.2f".format(latest.averageSleepIndex)}",
+                label = "Motion index ${"%.2f".format(latest.averageSleepIndex)}",
                 icon = Icons.Default.BarChart,
                 color = TextMuted
             )
@@ -1086,9 +1086,9 @@ private fun StageDistributionBar(session: ActigraphySession) {
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            ChartLegend("Awake ${session.awakeMinutes}m", AccentRed)
-            ChartLegend("Light ${session.lightMinutes}m", SnoozeYellow)
-            ChartLegend("Deep ${session.deepMinutes}m", DismissGreen)
+            ChartLegend("Awake motion ${session.awakeMinutes}m", AccentRed)
+            ChartLegend("Light motion ${session.lightMinutes}m", SnoozeYellow)
+            ChartLegend("Still motion ${session.deepMinutes}m", DismissGreen)
         }
     }
 }
@@ -1131,7 +1131,7 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
                 style = MaterialTheme.typography.titleSmall
             )
             Text(
-                text = "${session.awakeMinutes}m awake · ${session.lightMinutes}m light · ${session.deepMinutes}m deep",
+                text = "${session.awakeMinutes}m awake motion · ${session.lightMinutes}m light motion · ${session.deepMinutes}m still motion",
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )

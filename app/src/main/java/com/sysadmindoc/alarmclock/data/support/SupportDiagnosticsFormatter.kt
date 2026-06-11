@@ -147,7 +147,7 @@ object SupportDiagnosticsFormatter {
             appendLine()
             appendLine("Privacy note")
             appendLine("This bundle is generated locally and is not uploaded by the app.")
-            appendLine("It omits alarm labels, custom media URIs, internet-radio URLs, Spotify URIs, Hue/webhook secrets, Wi-Fi/location/contact values, challenge reference values, and Health Connect records.")
+            appendLine("It omits alarm labels, custom media URIs, internet-radio URLs, Spotify URIs, Hue/webhook secrets, Wi-Fi/location/contact values, challenge reference values, Health Connect records, and local actigraphy motion buckets.")
         }
     }
 
