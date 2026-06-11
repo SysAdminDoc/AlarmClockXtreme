@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphyEpoch
 import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphySleepClassifier
+import com.sysadmindoc.alarmclock.data.actigraphy.SmartWakeObservationGate
 import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import dagger.hilt.android.AndroidEntryPoint
@@ -152,17 +153,23 @@ class SmartAlarmService : Service(), SensorEventListener {
 
         // Check window boundary
         if (now - windowStartMs >= WINDOW_MS) {
-            if (windowMotionMax < MOTION_THRESHOLD) {
+            val lowMotionReady = if (windowMotionMax < MOTION_THRESHOLD) {
                 lowMotionWindowCount++
-                if (lowMotionWindowCount >= LOW_MOTION_WINDOWS_REQUIRED) {
-                    // User is in light sleep — fire alarm early
-                    fireAlarmEarly()
-                    return
-                }
+                lowMotionWindowCount >= LOW_MOTION_WINDOWS_REQUIRED
             } else {
                 lowMotionWindowCount = 0
+                false
             }
             appendActigraphyWindow(windowStartMs, windowMotionMax)
+            if (lowMotionReady && SmartWakeObservationGate.canConsiderEarlyFire(
+                    sessionStartMs = sessionStartMs,
+                    nowMs = now,
+                    targetTimeMs = targetTimeMs
+                )
+            ) {
+                fireAlarmEarly()
+                return
+            }
             windowMotionMax = 0f
             windowStartMs = now
         }
