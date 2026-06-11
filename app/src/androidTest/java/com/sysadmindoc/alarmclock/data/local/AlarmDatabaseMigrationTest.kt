@@ -106,6 +106,26 @@ class AlarmDatabaseMigrationTest {
     }
 
     @Test
+    fun migrationTwelveToThirteenAddsSmartWakeDecisionEvidenceDefaults() {
+        var db = helper.createDatabase("migration-12-to-13.db", 12)
+        insertSyntheticActigraphySession(db)
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-12-to-13.db",
+            13,
+            true,
+            AlarmDatabase.MIGRATION_12_13,
+        )
+
+        assertEquals(1, db.queryLong("SELECT COUNT(*) FROM actigraphy_sessions"))
+        assertEquals("UNKNOWN", db.queryString("SELECT decisionReason FROM actigraphy_sessions LIMIT 1"))
+        assertEquals(0, db.queryLong("SELECT observedMinutesBeforeDecision FROM actigraphy_sessions LIMIT 1"))
+        assertEquals("CONSERVATIVE", db.queryString("SELECT smartWakeMode FROM actigraphy_sessions LIMIT 1"))
+        db.close()
+    }
+
+    @Test
     fun freshInstallVersionMatchesLatestExportedSchema() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val exportedLatest = latestExportedSchemaVersion()
@@ -167,6 +187,39 @@ class AlarmDatabaseMigrationTest {
                 60_000L,
                 1,
                 1,
+            ),
+        )
+    }
+
+    private fun insertSyntheticActigraphySession(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+                INSERT INTO actigraphy_sessions (
+                    alarmId,
+                    startedAt,
+                    endedAt,
+                    targetTime,
+                    totalMinutes,
+                    awakeMinutes,
+                    lightMinutes,
+                    deepMinutes,
+                    averageSleepIndex,
+                    firedEarly,
+                    algorithm
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """.trimIndent(),
+            arrayOf<Any>(
+                1L,
+                1_700_000_000_000L,
+                1_700_000_600_000L,
+                1_700_000_900_000L,
+                10,
+                1,
+                6,
+                3,
+                0.42,
+                0,
+                "phone_cole_kripke_experimental_v1",
             ),
         )
     }
@@ -254,6 +307,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 12
+        const val LATEST_SCHEMA_VERSION = 13
     }
 }

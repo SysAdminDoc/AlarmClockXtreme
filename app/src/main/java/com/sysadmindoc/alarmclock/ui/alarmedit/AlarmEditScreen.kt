@@ -840,7 +840,7 @@ fun AlarmEditScreen(
                         }
                     }
                     SettingsHint(
-                        "Monitors motion via accelerometer. Fires the alarm early if light sleep is detected within the window.",
+                        "Uses conservative phone-motion scoring and waits for enough evidence before firing early.",
                         tone = HintTone.Neutral
                     )
                 }

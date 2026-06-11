@@ -9,7 +9,7 @@ import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 
-@Database(entities = [Alarm::class, AlarmEvent::class, ActigraphySession::class], version = 12, exportSchema = true)
+@Database(entities = [Alarm::class, AlarmEvent::class, ActigraphySession::class], version = 13, exportSchema = true)
 @TypeConverters(Converters::class)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
@@ -186,6 +186,14 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE actigraphy_sessions ADD COLUMN decisionReason TEXT NOT NULL DEFAULT 'UNKNOWN'")
+                db.execSQL("ALTER TABLE actigraphy_sessions ADD COLUMN observedMinutesBeforeDecision INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE actigraphy_sessions ADD COLUMN smartWakeMode TEXT NOT NULL DEFAULT 'CONSERVATIVE'")
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -198,6 +206,7 @@ abstract class AlarmDatabase : RoomDatabase() {
             MIGRATION_9_10,
             MIGRATION_10_11,
             MIGRATION_11_12,
+            MIGRATION_12_13,
         )
     }
 }

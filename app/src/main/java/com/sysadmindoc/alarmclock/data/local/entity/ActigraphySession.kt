@@ -17,5 +17,8 @@ data class ActigraphySession(
     val deepMinutes: Int,
     val averageSleepIndex: Float,
     val firedEarly: Boolean,
-    val algorithm: String
+    val algorithm: String,
+    val decisionReason: String,
+    val observedMinutesBeforeDecision: Int,
+    val smartWakeMode: String
 )
