@@ -19,3 +19,4 @@ releases/
 # Markdown files local-only (except README)
 *.md
 !README.md
+Thumbs.db
