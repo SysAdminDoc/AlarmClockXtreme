@@ -180,10 +180,10 @@ dependencies {
     // from the Aura/FreeVibe app (~/repos/Aura).
     "playImplementation"("io.github.junkfood02.youtubedl-android:library:0.18.1")
     // NewPipe Extractor — drives the in-dialog YouTube search ("rooster
-    // crowing alarm" → list of short clips you can tap to download). Pinned
-    // to the same v0.24.8 Aura uses; jitpack repo declared in
-    // settings.gradle.kts.
-    "playImplementation"("com.github.teamnewpipe:NewPipeExtractor:v0.24.8")
+    // crowing alarm" -> list of short clips you can tap to download). Keep on
+    // the current 0.26.x line for YouTube integrity/poToken parser fixes.
+    // JitPack repo declared in settings.gradle.kts.
+    "playImplementation"("com.github.teamnewpipe:NewPipeExtractor:v0.26.3")
     // Wear OS Data Layer bridge (play flavor only). F-Droid keeps the wearable
     // bridge as a no-op because Play Services is proprietary.
     "playImplementation"("com.google.android.gms:play-services-wearable:20.0.1")
@@ -195,7 +195,7 @@ dependencies {
     "playImplementation"("org.tukaani:xz:1.10")
 
     constraints {
-        // v1.13.2 (R5): youtubedl-android 0.18.1 and NewPipeExtractor 0.24.8
+        // v1.13.2+ (R5): youtubedl-android 0.18.1 and NewPipeExtractor 0.26.x
         // still resolve stale parser/archive transitives. Keep these as
         // constraints, not direct feature dependencies, so F-Droid remains free
         // of the Play-only downloader graph.
