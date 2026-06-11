@@ -33,7 +33,8 @@ import java.util.concurrent.TimeUnit
 
 class NextAlarmTileService : TileService() {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val serviceJob = SupervisorJob()
+    private val scope = CoroutineScope(serviceJob + Dispatchers.IO)
 
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<Tile> {
         return CallbackToFutureAdapter.getFuture { completer ->
@@ -63,6 +64,11 @@ class NextAlarmTileService : TileService() {
             )
             "NextAlarmTileService#onTileResourcesRequest"
         }
+    }
+
+    override fun onDestroy() {
+        serviceJob.cancel()
+        super.onDestroy()
     }
 
     private fun buildTile(
