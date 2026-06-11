@@ -29,6 +29,10 @@ class AlarmIncidentRepository @Inject constructor(
         return dao.getRecent(limit.coerceIn(1, MAX_ROWS))
     }
 
+    suspend fun clearHistory() {
+        dao.deleteAll()
+    }
+
     suspend fun record(
         alarmId: Long,
         fireId: String,

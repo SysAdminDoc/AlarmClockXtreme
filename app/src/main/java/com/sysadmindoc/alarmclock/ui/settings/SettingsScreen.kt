@@ -226,6 +226,11 @@ fun SettingsScreen(
                 onRequestFullScreenAlarms = viewModel::requestFullScreenAlarmAccess,
                 onRequestBatteryExemption = viewModel::requestBatteryExemption
             )
+            IncidentTimelineSection(
+                timeline = state.incidentTimeline,
+                use24Hour = state.settings.is24HourFormat,
+                onClearIncidentHistory = viewModel::clearIncidentHistory
+            )
             PermissionRequestCard(includeNotifications = false)
             SettingsOverviewRow(state)
 
@@ -493,7 +498,7 @@ fun SettingsScreen(
                     description = if (supportExportBusy) {
                         "Packaging local crash logs and redacted diagnostics..."
                     } else {
-                        "Share local crash logs plus redacted version, device, and alarm diagnostics."
+                        "Share local crash logs plus redacted wake, incident, and alarm diagnostics."
                     },
                     onClick = {
                         if (!supportExportBusy) {
@@ -566,6 +571,99 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun IncidentTimelineSection(
+    timeline: SettingsIncidentTimelineState,
+    use24Hour: Boolean,
+    onClearIncidentHistory: () -> Unit
+) {
+    var showClearDialog by remember { mutableStateOf(false) }
+    SettingsGroup(
+        title = "Alarm diagnostics",
+        description = "Recent redacted incident codes explain alarm delivery without storing labels, URLs, contacts, or locations."
+    ) {
+        if (!timeline.hasIncidents) {
+            SettingsInfo(
+                label = "Incident history",
+                description = "No incident events yet. New alarm fires will add compact local diagnostic codes here."
+            )
+            Text(
+                text = "This history is separate from Statistics and is bounded to the newest 100 rows or 30 days.",
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
+        } else {
+            AppSectionTitle(
+                title = if (timeline.latestIsDegraded) "Latest degraded event" else "Latest incident event",
+                description = "${timeline.recentCount} recent diagnostic events retained locally.",
+                action = {
+                    AppStatusChip(
+                        label = timeline.latestStatus.orEmpty().ifBlank { "UNKNOWN" },
+                        icon = if (timeline.latestIsDegraded) Icons.Default.Warning else Icons.Default.CheckCircle,
+                        color = if (timeline.latestIsDegraded) SnoozeYellow else DismissGreen
+                    )
+                }
+            )
+            SettingsInfo(
+                label = incidentLabel(timeline.latestType),
+                description = buildString {
+                    append(formatIncidentTimestamp(timeline.latestEventAt, use24Hour))
+                    append(" - ")
+                    append(formatIncidentElapsed(timeline.latestElapsedMs))
+                }
+            )
+            SettingsInfo(
+                label = "Reason code",
+                description = timeline.latestReason.orEmpty().ifBlank { "NONE" }
+            )
+            Text(
+                text = "Clearing diagnostics removes only incident rows. Alarm statistics and support-export crash logs are kept separate.",
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
+            OutlinedButton(
+                onClick = { showClearDialog = true },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
+            ) {
+                Text("Clear diagnostics")
+            }
+        }
+    }
+
+    if (showClearDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearDialog = false },
+            icon = {
+                Icon(Icons.Default.Warning, contentDescription = null, tint = SnoozeYellow)
+            },
+            title = { Text("Clear alarm diagnostics?") },
+            text = {
+                Text(
+                    text = "This deletes the redacted incident timeline only. Alarm statistics, alarms, backups, and crash logs are not changed.",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showClearDialog = false
+                        onClearIncidentHistory()
+                    }
+                ) {
+                    Text("Clear diagnostics", color = AccentRed)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
@@ -2081,6 +2179,31 @@ private fun dashboardSummary(state: SettingsUiState): String {
         else -> "Minimal"
     }
     return if (state.settings.calendarAutoAlarmEnabled) "$base + auto-alarm" else base
+}
+
+private fun incidentLabel(type: String?): String {
+    val token = type.orEmpty().ifBlank { "UNKNOWN" }
+    return token
+        .replace('_', ' ')
+        .lowercase(Locale.US)
+        .replaceFirstChar { it.titlecase(Locale.US) }
+}
+
+private fun formatIncidentTimestamp(eventAt: Long?, use24Hour: Boolean): String {
+    if (eventAt == null || eventAt <= 0L) return "Time unknown"
+    val pattern = if (use24Hour) "MMM d, HH:mm" else "MMM d, h:mm a"
+    return DateTimeFormatter.ofPattern(pattern, Locale.US)
+        .withZone(ZoneId.systemDefault())
+        .format(Instant.ofEpochMilli(eventAt))
+}
+
+private fun formatIncidentElapsed(elapsedMs: Long?): String {
+    if (elapsedMs == null) return "No schedule delta"
+    val absoluteSeconds = kotlin.math.abs(elapsedMs) / 1000L
+    if (absoluteSeconds < 60L) return "within 1 min of schedule"
+    val minutes = absoluteSeconds / 60L
+    val label = if (minutes == 1L) "1 min" else "$minutes min"
+    return if (elapsedMs < 0L) "$label before schedule" else "$label after schedule"
 }
 
 private fun wakeReadinessSummary(state: SettingsUiState): String {
