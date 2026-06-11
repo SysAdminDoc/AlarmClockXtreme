@@ -554,7 +554,7 @@ fun SettingsScreen(
                             Text(message, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
                         }
                         IconButton(onClick = viewModel::clearSupportExportResult) {
-                            Icon(Icons.Default.Close, null, tint = TextMuted)
+                            Icon(Icons.Default.Close, "Dismiss", tint = TextMuted)
                         }
                     }
                 }
@@ -2074,7 +2074,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                     Text(message, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
                 }
                 IconButton(onClick = viewModel::clearBackupResult) {
-                    Icon(Icons.Default.Close, null, tint = TextMuted)
+                    Icon(Icons.Default.Close, "Dismiss", tint = TextMuted)
                 }
             }
         }
