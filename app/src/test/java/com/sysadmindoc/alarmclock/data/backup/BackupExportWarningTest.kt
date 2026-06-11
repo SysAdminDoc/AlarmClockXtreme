@@ -38,6 +38,21 @@ class BackupExportWarningTest {
     }
 
     @Test
+    fun `saved weather location is disclosed before export`() {
+        val warning = BackupManager.assessExportWarning(
+            settings = AppSettings(
+                locationName = "Dallas, Texas, United States",
+                lastKnownLatitude = 32.78,
+                lastKnownLongitude = -96.8
+            ),
+            alarms = emptyList()
+        )
+
+        assertTrue(warning.shouldWarn)
+        assertTrue(warning.categories.contains("Saved weather location"))
+    }
+
+    @Test
     fun `alarm local references and challenge secrets are disclosed before export`() {
         val warning = BackupManager.assessExportWarning(
             settings = AppSettings(),
