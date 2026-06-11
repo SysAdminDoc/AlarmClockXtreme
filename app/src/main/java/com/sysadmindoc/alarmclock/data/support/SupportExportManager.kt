@@ -2,6 +2,7 @@ package com.sysadmindoc.alarmclock.data.support
 
 import android.Manifest
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -70,6 +71,7 @@ class SupportExportManager @Inject constructor(
                     sdkInt = Build.VERSION.SDK_INT,
                     notificationPermissionGranted = hasNotificationPermission(),
                     exactAlarmsAllowed = canScheduleExactAlarms(),
+                    fullScreenIntentAllowed = canUseFullScreenIntent(),
                     ignoringBatteryOptimizations = isIgnoringBatteryOptimizations(),
                     appStandbyBucket = appStandbyBucketLabel(),
                     totalAlarms = alarms.size,
@@ -116,6 +118,14 @@ class SupportExportManager @Inject constructor(
         } else {
             true
         }
+    }
+
+    private fun canUseFullScreenIntent(): Boolean? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return null
+        return runCatching {
+            context.getSystemService(NotificationManager::class.java)
+                ?.canUseFullScreenIntent()
+        }.getOrNull()
     }
 
     private fun isIgnoringBatteryOptimizations(): Boolean {

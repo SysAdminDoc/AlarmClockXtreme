@@ -223,6 +223,7 @@ fun SettingsScreen(
                     }
                 },
                 onRequestExactAlarms = viewModel::requestExactAlarmAccess,
+                onRequestFullScreenAlarms = viewModel::requestFullScreenAlarmAccess,
                 onRequestBatteryExemption = viewModel::requestBatteryExemption
             )
             PermissionRequestCard(includeNotifications = false)
@@ -575,9 +576,12 @@ private fun SettingsOverviewRow(state: SettingsUiState) {
     // drag the tile state.
     val standbyOk = state.appStandbyBucket == AppStandbyBucket.UNKNOWN ||
         !AppStandbyBucket.isDegraded(state.appStandbyBucket)
+    val fullScreenOk = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
+        state.canUseFullScreenIntent == true
     val reliabilityReady = state.isIgnoringBatteryOptimizations &&
         state.hasNotificationPermission &&
         state.canScheduleExactAlarms &&
+        fullScreenOk &&
         standbyOk
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppSectionTitle(
@@ -667,6 +671,7 @@ private fun WakeReadinessSection(
     state: SettingsUiState,
     onRequestNotifications: () -> Unit,
     onRequestExactAlarms: () -> Unit,
+    onRequestFullScreenAlarms: () -> Unit,
     onRequestBatteryExemption: () -> Unit
 ) {
     // v1.11.3 (roadmap N3): Standby bucket is only surfaced when the API is
@@ -679,10 +684,12 @@ private fun WakeReadinessSection(
     val standbyDegraded = standbyKnown && AppStandbyBucket.isDegraded(state.appStandbyBucket)
     val standbyReady = standbyKnown && !standbyDegraded
     val standbyRowVisible = standbyKnown  // only show the row when we have a real value
+    val fullScreenRowVisible = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
 
     val checks = buildList {
         add(state.canScheduleExactAlarms)
         add(state.hasNotificationPermission)
+        if (fullScreenRowVisible) add(state.canUseFullScreenIntent == true)
         add(state.isIgnoringBatteryOptimizations)
         if (standbyRowVisible) add(standbyReady)
     }
@@ -719,6 +726,20 @@ private fun WakeReadinessSection(
             actionLabel = "Allow notifications",
             onAction = onRequestNotifications
         )
+        if (fullScreenRowVisible) {
+            WakeReadinessRow(
+                icon = Icons.Default.NotificationsActive,
+                title = "Full-screen alarm access",
+                description = when (state.canUseFullScreenIntent) {
+                    true -> "Allows the ringing screen to open over the lock screen on Android 14+."
+                    false -> "Android may only show a notification until full-screen alarm access is allowed."
+                    null -> "Settings could not confirm full-screen alarm access; review the platform setting."
+                },
+                ready = state.canUseFullScreenIntent == true,
+                actionLabel = "Open full-screen settings",
+                onAction = onRequestFullScreenAlarms
+            )
+        }
         WakeReadinessRow(
             icon = Icons.Default.BatteryAlert,
             title = "Battery protection",
@@ -2066,6 +2087,11 @@ private fun wakeReadinessSummary(state: SettingsUiState): String {
     val missing = buildList {
         if (!state.canScheduleExactAlarms) add("exact alarms")
         if (!state.hasNotificationPermission) add("notifications")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
+            state.canUseFullScreenIntent != true
+        ) {
+            add("full-screen alarm access")
+        }
         if (!state.isIgnoringBatteryOptimizations) add("battery")
         // v1.11.3 (roadmap N3): include standby-bucket throttling in the
         // top-tile summary so the user sees it without expanding the section.
@@ -2076,7 +2102,11 @@ private fun wakeReadinessSummary(state: SettingsUiState): String {
         }
     }
     return if (missing.isEmpty()) {
-        "Exact alarms, alerts, battery, and standby are ready"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            "Exact alarms, alerts, full-screen access, battery, and standby are ready"
+        } else {
+            "Exact alarms, alerts, battery, and standby are ready"
+        }
     } else {
         "Review ${missing.joinToString(", ")}"
     }

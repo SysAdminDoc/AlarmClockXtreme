@@ -1,9 +1,11 @@
 package com.sysadmindoc.alarmclock.data.support
 
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.repository.AlarmStats
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
 
 class SupportDiagnosticsFormatterTest {
 
@@ -37,4 +39,41 @@ class SupportDiagnosticsFormatterTest {
         assertTrue(csv.contains("hasCustomSound"))
         assertTrue(csv.contains("true"))
     }
+
+    @Test
+    fun `diagnostics expose full-screen alarm readiness status`() {
+        val blocked = diagnosticsText(sdkInt = 34, fullScreenIntentAllowed = false)
+        val unknown = diagnosticsText(sdkInt = 35, fullScreenIntentAllowed = null)
+        val notApplicable = diagnosticsText(sdkInt = 33, fullScreenIntentAllowed = null)
+
+        assertTrue(blocked.contains("- Full-screen alarm access: blocked"))
+        assertTrue(unknown.contains("- Full-screen alarm access: unknown"))
+        assertTrue(notApplicable.contains("- Full-screen alarm access: not_applicable"))
+    }
+
+    private fun diagnosticsText(
+        sdkInt: Int,
+        fullScreenIntentAllowed: Boolean?
+    ): String = SupportDiagnosticsFormatter.diagnosticsText(
+        generatedAt = Instant.EPOCH,
+        appVersion = "test",
+        versionCode = 1,
+        flavor = "fdroid",
+        buildType = "debug",
+        packageName = "com.sysadmindoc.alarmclock",
+        deviceManufacturer = "Test",
+        deviceModel = "Device",
+        androidRelease = "14",
+        sdkInt = sdkInt,
+        notificationPermissionGranted = true,
+        exactAlarmsAllowed = true,
+        fullScreenIntentAllowed = fullScreenIntentAllowed,
+        ignoringBatteryOptimizations = true,
+        appStandbyBucket = "ACTIVE (10)",
+        totalAlarms = 0,
+        enabledAlarms = 0,
+        nextTriggerTime = null,
+        crashLogCount = 0,
+        stats = AlarmStats()
+    )
 }

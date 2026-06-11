@@ -16,7 +16,7 @@ jobs:
 
       - name: Extract version strings from source-of-truth files
         id: extract
-        # v1.13.8: Catch release-surface drift using tracked files only. Local
+        # v1.13.9: Catch release-surface drift using tracked files only. Local
         # planning docs are intentionally ignored, so CI validates Gradle,
         # README, and F-Droid metadata versionName/versionCode anchors.
         run: |

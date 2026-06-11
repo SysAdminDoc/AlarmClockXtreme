@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.ui.settings
 import android.app.Application
 import android.Manifest
 import android.app.AlarmManager
+import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
@@ -55,6 +56,7 @@ data class SettingsUiState(
     // Wake readiness
     val hasNotificationPermission: Boolean = true,
     val canScheduleExactAlarms: Boolean = true,
+    val canUseFullScreenIntent: Boolean? = null,
     // v1.11.3 (roadmap N3): App Standby bucket awareness. UsageStatsManager
     // returns one of STANDBY_BUCKET_ACTIVE / WORKING_SET / FREQUENT / RARE /
     // RESTRICTED on API 28+. ACTIVE and WORKING_SET are the alarm-friendly
@@ -126,6 +128,7 @@ class SettingsViewModel @Inject constructor(
             isHueTesting = hueState.isRunning,
             hasNotificationPermission = wakeReadiness.hasNotificationPermission,
             canScheduleExactAlarms = wakeReadiness.canScheduleExactAlarms,
+            canUseFullScreenIntent = wakeReadiness.canUseFullScreenIntent,
             appStandbyBucket = wakeReadiness.appStandbyBucket,
             healthConnectSleepSummary = healthConnectSleep
         )
@@ -146,6 +149,26 @@ class SettingsViewModel @Inject constructor(
         try {
             context.startActivity(
                 Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+        } catch (_: Exception) {
+            context.startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+        }
+    }
+
+    fun requestFullScreenAlarmAccess() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+        val context = getApplication<Application>()
+        try {
+            context.startActivity(
+                Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
                     data = Uri.parse("package:${context.packageName}")
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
@@ -568,6 +591,7 @@ class SettingsViewModel @Inject constructor(
     private data class WakeReadinessState(
         val hasNotificationPermission: Boolean,
         val canScheduleExactAlarms: Boolean,
+        val canUseFullScreenIntent: Boolean?,
         val appStandbyBucket: Int
     ) {
         companion object {
@@ -585,6 +609,14 @@ class SettingsViewModel @Inject constructor(
                 } else {
                     true
                 }
+                val fullScreenIntentReady = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    runCatching {
+                        context.getSystemService(NotificationManager::class.java)
+                            ?.canUseFullScreenIntent()
+                    }.getOrNull()
+                } else {
+                    null
+                }
                 // UsageStatsManager.getAppStandbyBucket() is API 28+. We never
                 // require PACKAGE_USAGE_STATS for the self-query — the system
                 // returns the calling app's own bucket without it.
@@ -600,6 +632,7 @@ class SettingsViewModel @Inject constructor(
                 return WakeReadinessState(
                     hasNotificationPermission = notificationsReady,
                     canScheduleExactAlarms = exactAlarmsReady,
+                    canUseFullScreenIntent = fullScreenIntentReady,
                     appStandbyBucket = bucket
                 )
             }

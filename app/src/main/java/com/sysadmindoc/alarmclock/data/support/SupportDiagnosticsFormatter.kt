@@ -93,6 +93,7 @@ object SupportDiagnosticsFormatter {
         sdkInt: Int,
         notificationPermissionGranted: Boolean,
         exactAlarmsAllowed: Boolean,
+        fullScreenIntentAllowed: Boolean?,
         ignoringBatteryOptimizations: Boolean,
         appStandbyBucket: String,
         totalAlarms: Int,
@@ -119,6 +120,7 @@ object SupportDiagnosticsFormatter {
             appendLine("Wake readiness")
             appendLine("- Notifications granted: $notificationPermissionGranted")
             appendLine("- Exact alarms allowed: $exactAlarmsAllowed")
+            appendLine("- Full-screen alarm access: ${formatFullScreenIntentStatus(fullScreenIntentAllowed, sdkInt)}")
             appendLine("- Ignoring battery optimizations: $ignoringBatteryOptimizations")
             appendLine("- App standby bucket: $appStandbyBucket")
             appendLine()
@@ -158,6 +160,12 @@ object SupportDiagnosticsFormatter {
         return Instant.ofEpochMilli(value)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
+    }
+
+    private fun formatFullScreenIntentStatus(value: Boolean?, sdkInt: Int): String = when (value) {
+        true -> "allowed"
+        false -> "blocked"
+        null -> if (sdkInt >= 34) "unknown" else "not_applicable"
     }
 
     private fun <T> formatDayMap(values: Map<DayOfWeek, T>): String {
