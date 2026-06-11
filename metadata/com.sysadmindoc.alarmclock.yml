@@ -1,6 +1,6 @@
 # F-Droid Metadata
 # Place in fdroiddata repo as metadata/com.sysadmindoc.alarmclock.yml.
-# The build commit should be replaced with the signed release tag once v1.13.8
+# The build commit should be replaced with the signed release tag once v1.13.9
 # is tagged for distribution.
 
 Categories:
@@ -28,9 +28,9 @@ RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.13.8
-    versionCode: 73
-    commit: v1.13.8
+  - versionName: 1.13.9
+    versionCode: 74
+    commit: v1.13.9
     subdir: app
     gradle:
       - fdroid
@@ -45,5 +45,5 @@ AntiFeatures:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.13.8
-CurrentVersionCode: 73
+CurrentVersion: 1.13.9
+CurrentVersionCode: 74
