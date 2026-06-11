@@ -57,7 +57,7 @@ object ActigraphySleepClassifier {
         }
     }
 
-    fun summarize(scored: List<ActigraphyScoredEpoch>): ActigraphySessionSummary {
+    fun summarizeScored(scored: List<ActigraphyScoredEpoch>): ActigraphySessionSummary {
         val awake = scored.count { it.stage == ActigraphyStage.AWAKE }
         val light = scored.count { it.stage == ActigraphyStage.LIGHT }
         val deep = scored.count { it.stage == ActigraphyStage.DEEP }
@@ -72,7 +72,7 @@ object ActigraphySleepClassifier {
     }
 
     fun summarize(epochs: List<ActigraphyEpoch>): ActigraphySessionSummary {
-        return summarize(classify(epochs))
+        return summarizeScored(classify(epochs))
     }
 
     fun phoneMotionToActivityCount(maxGravityDelta: Float): Float {

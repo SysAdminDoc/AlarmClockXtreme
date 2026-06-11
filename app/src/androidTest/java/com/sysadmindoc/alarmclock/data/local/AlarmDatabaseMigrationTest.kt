@@ -85,6 +85,27 @@ class AlarmDatabaseMigrationTest {
     }
 
     @Test
+    fun migrationElevenToTwelveCreatesActigraphySessionsTable() {
+        var db = helper.createDatabase("migration-11-to-12.db", 11)
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-11-to-12.db",
+            12,
+            true,
+            AlarmDatabase.MIGRATION_11_12,
+        )
+
+        assertEquals(0, db.queryLong("SELECT COUNT(*) FROM actigraphy_sessions"))
+        val columns = tableColumns(db, "actigraphy_sessions").map { it.name }.toSet()
+        assertTrue(columns.contains("alarmId"))
+        assertTrue(columns.contains("averageSleepIndex"))
+        assertTrue(columns.contains("firedEarly"))
+        assertTrue(columns.contains("algorithm"))
+        db.close()
+    }
+
+    @Test
     fun freshInstallVersionMatchesLatestExportedSchema() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val exportedLatest = latestExportedSchemaVersion()
@@ -233,6 +254,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 11
+        const val LATEST_SCHEMA_VERSION = 12
     }
 }
