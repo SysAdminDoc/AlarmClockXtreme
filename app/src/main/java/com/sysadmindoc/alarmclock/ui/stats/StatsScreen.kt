@@ -1125,7 +1125,8 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
     ) {
         Icon(
             imageVector = Icons.Default.BarChart,
-            contentDescription = null,
+            // Outcome is otherwise conveyed by tint alone on this row.
+            contentDescription = if (session.firedEarly) "Fired early" else "Reached target",
             tint = if (session.firedEarly) DismissGreen else TextMuted,
             modifier = Modifier.size(20.dp)
         )

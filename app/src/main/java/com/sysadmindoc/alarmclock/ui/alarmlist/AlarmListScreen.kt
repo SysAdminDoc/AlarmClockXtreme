@@ -351,7 +351,7 @@ fun AlarmListScreen(
                                         trailingIcon = {
                                             if (searchQuery.isNotBlank()) {
                                                 IconButton(onClick = { searchQuery = "" }) {
-                                                    Icon(Icons.Default.Clear, null, tint = TextMuted)
+                                                    Icon(Icons.Default.Clear, "Clear search", tint = TextMuted)
                                                 }
                                             }
                                         },
