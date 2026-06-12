@@ -86,7 +86,7 @@ data class AlarmBackup(
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 9,
+    val version: Int = 10,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -100,6 +100,7 @@ data class SettingsBackup(
     val defaultGradualVolume: Int,
     val usePhoneSpeakers: Boolean,
     val showOnLockScreen: Boolean,
+    val hideAlarmLabelsOnPublicSurfaces: Boolean = false,
     val vacationModeEnabled: Boolean,
     val vacationStartMillis: Long,
     val vacationEndMillis: Long,
@@ -154,10 +155,10 @@ data class SettingsBackup(
     // v1.13.3 (roadmap X2): round-trip the user's selected feed URL and warn
     // before readable exports when custom/private feed endpoints are present.
     val newsFeedUrl: String = DEFAULT_NEWS_FEED_URL,
-    // Backup v9: AppSettings fields that previously never made it into the
+    // Backup v9+: AppSettings fields that previously never made it into the
     // backup, so every restore silently reset them to defaults — the same
     // drift class as the v1.1.0 backup data loss. Defaults below match
-    // AppSettings so v1-v8 backups import unchanged.
+    // AppSettings so v1-v9 backups import unchanged.
     val upcomingAlarmMinutes: Int = 60,
     val showNoAlarmsWarning: Boolean = true,
     val autoSilenceMinutes: Int = 10,
@@ -192,7 +193,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 9
+        const val MAX_SUPPORTED_BACKUP_VERSION = 10
 
         fun assessExportWarning(
             settings: AppSettings,
@@ -212,7 +213,7 @@ class BackupManager @Inject constructor(
                 if (settings.newsFeedUrl.isCustomFeedUrl()) {
                     add("Custom news feed URL")
                 }
-                // Backup v9 carries the saved weather location; surface it the
+                // Backup v9+ carries the saved weather location; surface it the
                 // same way the per-alarm location-dismiss coordinates are.
                 if (settings.locationName.isNotBlank() ||
                     settings.lastKnownLatitude != 0.0 ||
@@ -284,6 +285,7 @@ class BackupManager @Inject constructor(
                 defaultGradualVolume = settings.defaultGradualVolume,
                 usePhoneSpeakers = settings.usePhoneSpeakers,
                 showOnLockScreen = settings.showOnLockScreen,
+                hideAlarmLabelsOnPublicSurfaces = settings.hideAlarmLabelsOnPublicSurfaces,
                 vacationModeEnabled = settings.vacationModeEnabled,
                 vacationStartMillis = settings.vacationStartMillis,
                 vacationEndMillis = settings.vacationEndMillis,
@@ -444,6 +446,7 @@ class BackupManager @Inject constructor(
                         defaultGradualVolume = s.defaultGradualVolume,
                         usePhoneSpeakers = s.usePhoneSpeakers,
                         showOnLockScreen = s.showOnLockScreen,
+                        hideAlarmLabelsOnPublicSurfaces = s.hideAlarmLabelsOnPublicSurfaces,
                         vacationModeEnabled = s.vacationModeEnabled,
                         vacationStartMillis = s.vacationStartMillis,
                         vacationEndMillis = s.vacationEndMillis,

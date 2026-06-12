@@ -34,6 +34,7 @@ import com.sysadmindoc.alarmclock.receiver.DismissReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeReceiver
 import com.sysadmindoc.alarmclock.ui.alarmfiring.AlarmFiringActivity
 import com.sysadmindoc.alarmclock.ui.alarmfiring.MorningBriefingActivity
+import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import dagger.hilt.android.AndroidEntryPoint
@@ -601,11 +602,18 @@ class AlarmService : Service() {
 
         // v1.5.1: 24h preference honoured via shared formatter.
         val timeText = formatAlarmTime(alarm)
+        val hideLabel = preferencesManager.getCachedSettings().hideAlarmLabelsOnPublicSurfaces
 
         return NotificationCompat.Builder(this, CHANNEL_ALARM)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle("Alarm")
-            .setContentText(if (alarm.label.isNotBlank()) alarm.label else timeText)
+            .setContentText(
+                AlarmPublicText.firingNotificationText(
+                    label = alarm.label,
+                    fallbackTime = timeText,
+                    hideLabel = hideLabel
+                )
+            )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -1484,11 +1492,15 @@ class AlarmService : Service() {
         val nm = getSystemService(NotificationManager::class.java)
         // v1.5.1: 24-hour preference honoured.
         val timeStr = formatAlarmTime(alarm)
+        val label = AlarmPublicText.requiredAlarmLabel(
+            label = alarm.label,
+            hideLabel = preferencesManager.getCachedSettings().hideAlarmLabelsOnPublicSurfaces
+        )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_MISSED)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle("Missed Alarm")
-            .setContentText("${alarm.label.ifBlank { "Alarm" }} at $timeStr was auto-silenced after $autoSilenceMinutes minutes")
+            .setContentText("$label at $timeStr was auto-silenced after $autoSilenceMinutes minutes")
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)

@@ -17,6 +17,7 @@ import androidx.glance.unit.ColorProvider
 import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.MainActivity
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,6 +54,9 @@ class NextAlarmWidget : GlanceAppWidget() {
             val alarm = ep.alarmRepository().getNextAlarm()
 
             if (alarm != null && alarm.nextTriggerTime > System.currentTimeMillis()) {
+                val hideLabel = ep.preferencesManager()
+                    .getCurrentSettings()
+                    .hideAlarmLabelsOnPublicSurfaces
                 val calc = ep.nextAlarmCalculator()
                 val remaining = calc.formatRemaining(alarm.nextTriggerTime)
                 val triggerInstant = Instant.ofEpochMilli(alarm.nextTriggerTime)
@@ -64,7 +68,7 @@ class NextAlarmWidget : GlanceAppWidget() {
                     timeFormatted = timeStr,
                     dayFormatted = dayStr,
                     remaining = remaining,
-                    label = alarm.label
+                    label = AlarmPublicText.optionalAlarmLabel(alarm.label, hideLabel)
                 )
             } else null
         } catch (_: Exception) {

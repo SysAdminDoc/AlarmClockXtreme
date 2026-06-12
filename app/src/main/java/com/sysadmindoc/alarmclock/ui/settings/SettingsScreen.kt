@@ -263,6 +263,12 @@ fun SettingsScreen(
                     onToggle = viewModel::toggleLockScreen
                 )
                 SettingsToggle(
+                    label = "Hide public alarm labels",
+                    checked = state.settings.hideAlarmLabelsOnPublicSurfaces,
+                    supportingText = "Use neutral text on lock screen, widget, quick settings, and Wear surfaces.",
+                    onToggle = viewModel::toggleHideAlarmLabelsOnPublicSurfaces
+                )
+                SettingsToggle(
                     label = "Use phone speakers",
                     checked = state.settings.usePhoneSpeakers,
                     supportingText = "Route alarm playback through the loudspeaker even with accessories connected.",

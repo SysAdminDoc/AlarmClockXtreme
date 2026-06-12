@@ -52,7 +52,7 @@ cd AlarmClockXtreme
 | Shareable Alarms | Share a single alarm as an `acx://alarm?data=` link; imports open a review screen, stay disabled, and can strip private references before saving |
 | Early Dismiss | Skip upcoming alarm from the persistent notification |
 | Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
-| Wear OS Tile + Complication | Shows the next alarm on the watch tile and compatible watch faces; the tile also exposes skip controls before fire and snooze/dismiss controls while ringing |
+| Wear OS Tile + Complication | Shows the next alarm on the watch tile and compatible watch faces; the tile also exposes skip controls before fire and snooze/dismiss controls while ringing and honors the public-label privacy setting |
 
 ### Dismiss Challenges (22 Types)
 | Challenge | Description |
@@ -148,9 +148,9 @@ cd AlarmClockXtreme
 | Health Connect Sleep | Play flavor only: opt-in READ_SLEEP summaries and local sleep/wake trend charts in Bedtime and Statistics |
 | Statistics | Wake-streak flame badge, snooze rate, day-of-week breakdown, response times, searchable alarm history |
 | Night Clock | Always-on bedside display with minimal brightness |
-| Home Widget | Glance-based widget showing next alarm countdown |
-| Persistent Notification | Always-visible next alarm countdown in shade, with Android 16 Live Update progress during the final two hours |
-| Quick Settings Tile | Skip the next alarm from the system shade with one tap |
+| Home Widget | Glance-based widget showing next alarm countdown, with optional neutral alarm labels on public surfaces |
+| Persistent Notification | Always-visible next alarm countdown in shade, with Android 16 Live Update progress during the final two hours and optional public-label hiding |
+| Quick Settings Tile | Skip the next alarm from the system shade with one tap; subtitles can use neutral next-alarm text |
 | Tab Visibility Toggles | Hide Weather / Timer / World / News tabs from the bottom nav (Alarms + Settings always visible) |
 | Accent Color | Customizable accent color within dark theme |
 | Material You | Opt-in dynamic color from wallpaper palette (Android 12+) |
@@ -161,7 +161,7 @@ cd AlarmClockXtreme
 ### Data & Reliability
 | Feature | Description |
 |---------|-------------|
-| Backup/Restore | JSON export/import of all 50+ alarm fields and 58 settings, with optional AES-256 passphrase encryption, custom news-feed round-trip, and pre-export disclosure for secrets/private references (v9 format) |
+| Backup/Restore | JSON export/import of all 50+ alarm fields and 59 settings, with optional AES-256 passphrase encryption, custom news-feed round-trip, and pre-export disclosure for secrets/private references (v10 format) |
 | Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link; received links are reviewed and saved disabled |
 | Boot Reschedule | All alarms re-registered after device reboot, with a Direct Boot fallback for the next alarm before first unlock |
 | Wake Readiness | Settings checks exact alarms, notifications, Android 14+ full-screen alarm access, battery optimization, and App Standby state before bedtime |
@@ -287,6 +287,8 @@ No analytics. No ads. No tracking. No accounts. No data leaves your device excep
 - YouTube search, preview, stream resolution, and download requests in the Play flavor only; F-Droid excludes this feature
 
 Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, including sleep/wake trend charts; they are not copied into Room/DataStore/backups and are never uploaded to the developer. Smart-alarm actigraphy stores only compact local motion-bucket summaries for 30 days; raw accelerometer samples are not retained and the buckets are not medical sleep-stage records. Support bundles are created only when you choose to export them and include redacted wake-readiness, aggregate smart-wake decision metadata, and recent alarm incident event codes, not labels or per-minute motion buckets. Crash logs stay in local app storage unless you export them. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, and Hue configuration.
+
+Settings can hide alarm labels on public surfaces. When enabled, alarm notifications, missed-alarm prompts, wake-confirm prompts, the home widget, the quick settings tile, and Play-flavor Wear next-alarm snapshots use neutral alarm text while labels remain visible inside the unlocked app.
 
 Android system Auto Backup is deliberately narrower than manual export. On Android 8-11 it includes only app DataStore preferences; Room alarm history, crash logs, support bundles, downloaded media, and challenge reference files are excluded from legacy cloud backup.
 

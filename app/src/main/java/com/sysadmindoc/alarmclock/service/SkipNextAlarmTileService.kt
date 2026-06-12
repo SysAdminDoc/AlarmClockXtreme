@@ -9,6 +9,7 @@ import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.receiver.SkipNextReceiver
+import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -71,6 +72,9 @@ class SkipNextAlarmTileService : TileService() {
                 AlarmClockApp.AppEntryPoint::class.java
             )
             val next = ep.alarmRepository().getNextAlarm()
+            val hideLabel = ep.preferencesManager()
+                .getCurrentSettings()
+                .hideAlarmLabelsOnPublicSurfaces
             val label: String
             val subtitleCandidate: String?
             val state: Int
@@ -85,7 +89,7 @@ class SkipNextAlarmTileService : TileService() {
                 )
                 val timeLabel = time.format(DateTimeFormatter.ofPattern("EEE h:mm a"))
                 label = "Skip $timeLabel"
-                subtitleCandidate = if (next.label.isBlank()) "Next alarm" else next.label
+                subtitleCandidate = AlarmPublicText.quickSettingsSubtitle(next.label, hideLabel)
                 state = Tile.STATE_ACTIVE
             }
 
