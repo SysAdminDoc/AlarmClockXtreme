@@ -8,6 +8,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import java.util.Base64
+import java.util.Locale
 
 @JsonClass(generateAdapter = true)
 data class AlarmSharePayload(
@@ -21,6 +22,12 @@ object AlarmShareCodec {
     const val HOST = "alarm"
     const val DATA_PARAM = "data"
     private const val MAX_SUPPORTED_VERSION = 1
+    private val REFERENCE_BACKED_CHALLENGES = setOf(
+        "NFC_SCAN",
+        "BARCODE_SCAN",
+        "PHOTO_MATCH",
+        "WIFI_CONNECT"
+    )
 
     /**
      * Hard ceiling on the base64 token we'll attempt to decode. A real
@@ -71,6 +78,37 @@ object AlarmShareCodec {
             isEnabled = false,
             createdAt = nowMillis,
             nextTriggerTime = 0
+        ).sanitized()
+    }
+
+    fun stripRiskyImportedFields(alarm: Alarm): Alarm {
+        return alarm.copy(
+            ringtoneUri = "",
+            spotifyUri = "",
+            nfcTagId = "",
+            barcodeValue = "",
+            photoMatchUri = "",
+            hueEnabled = false,
+            guardianEnabled = false,
+            guardianPhone = "",
+            locationDismissEnabled = false,
+            locationDismissLat = 0.0,
+            locationDismissLng = 0.0,
+            locationDismissRadius = 100,
+            wifiDismissSsid = "",
+            internetRadioUrl = "",
+            morningRoutine = "",
+            ringtonePool = "",
+            challengeType = alarm.challengeType
+                .takeUnless { it.uppercase(Locale.US) in REFERENCE_BACKED_CHALLENGES }
+                ?: "NONE",
+            challengeChain = alarm.challengeChain
+                .split(",")
+                .map { it.trim() }
+                .filter {
+                    it.isNotEmpty() && it.uppercase(Locale.US) !in REFERENCE_BACKED_CHALLENGES
+                }
+                .joinToString(",")
         ).sanitized()
     }
 }

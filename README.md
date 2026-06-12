@@ -49,7 +49,7 @@ cd AlarmClockXtreme
 | Vacation Mode | Date range auto-skip for all repeating alarms |
 | Holiday Auto-Skip | Skip public holidays via Nager.Date API (40+ countries) |
 | Templates | Power Nap, Early Bird, Weekday, Weekend presets |
-| Shareable Alarms | Share a single alarm as an `acx://alarm?data=` link; imports are disabled until reviewed |
+| Shareable Alarms | Share a single alarm as an `acx://alarm?data=` link; imports open a review screen, stay disabled, and can strip private references before saving |
 | Early Dismiss | Skip upcoming alarm from the persistent notification |
 | Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
 | Wear OS Tile + Complication | Shows the next alarm on the watch tile and compatible watch faces; the tile also exposes skip controls before fire and snooze/dismiss controls while ringing |
@@ -162,7 +162,7 @@ cd AlarmClockXtreme
 | Feature | Description |
 |---------|-------------|
 | Backup/Restore | JSON export/import of all 50+ alarm fields and 58 settings, with optional AES-256 passphrase encryption, custom news-feed round-trip, and pre-export disclosure for secrets/private references (v9 format) |
-| Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link |
+| Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link; received links are reviewed and saved disabled |
 | Boot Reschedule | All alarms re-registered after device reboot, with a Direct Boot fallback for the next alarm before first unlock |
 | Wake Readiness | Settings checks exact alarms, notifications, Android 14+ full-screen alarm access, battery optimization, and App Standby state before bedtime |
 | Manufacturer Compat | Onboarding warnings for Xiaomi/Samsung/Huawei battery killers |

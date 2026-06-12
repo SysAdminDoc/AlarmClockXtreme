@@ -86,6 +86,51 @@ class AlarmShareCodecTest {
     }
 
     @Test
+    fun stripRiskyImportedFieldsClearsPrivateReferences() {
+        val stripped = AlarmShareCodec.stripRiskyImportedFields(
+            Alarm(
+                ringtoneUri = "content://tone",
+                spotifyUri = "spotify:track:abc",
+                nfcTagId = "nfc-secret",
+                barcodeValue = "barcode-secret",
+                photoMatchUri = "content://photo",
+                hueEnabled = true,
+                guardianEnabled = true,
+                guardianPhone = "+15551234567",
+                locationDismissEnabled = true,
+                locationDismissLat = 39.0,
+                locationDismissLng = -77.0,
+                locationDismissRadius = 250,
+                wifiDismissSsid = "Home WiFi",
+                internetRadioUrl = "https://radio.example/stream",
+                morningRoutine = "Medication\nCoffee",
+                ringtonePool = "content://a,content://b",
+                challengeType = "BARCODE_SCAN",
+                challengeChain = "NFC_SCAN,MATH_EASY,WIFI_CONNECT"
+            )
+        )
+
+        assertEquals("", stripped.ringtoneUri)
+        assertEquals("", stripped.spotifyUri)
+        assertEquals("", stripped.nfcTagId)
+        assertEquals("", stripped.barcodeValue)
+        assertEquals("", stripped.photoMatchUri)
+        assertFalse(stripped.hueEnabled)
+        assertFalse(stripped.guardianEnabled)
+        assertEquals("", stripped.guardianPhone)
+        assertFalse(stripped.locationDismissEnabled)
+        assertEquals(0.0, stripped.locationDismissLat, 0.0)
+        assertEquals(0.0, stripped.locationDismissLng, 0.0)
+        assertEquals(100, stripped.locationDismissRadius)
+        assertEquals("", stripped.wifiDismissSsid)
+        assertEquals("", stripped.internetRadioUrl)
+        assertEquals("", stripped.morningRoutine)
+        assertEquals("", stripped.ringtonePool)
+        assertEquals("NONE", stripped.challengeType)
+        assertEquals("MATH_EASY", stripped.challengeChain)
+    }
+
+    @Test
     fun decodeTokenRejectsInvalidPayload() {
         assertTrue(AlarmShareCodec.decodeToken("not a token").isFailure)
     }
