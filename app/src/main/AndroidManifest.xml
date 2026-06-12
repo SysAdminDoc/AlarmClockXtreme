@@ -199,6 +199,11 @@
             </intent-filter>
         </receiver>
 
+        <!-- Timer expiry survives app process death via AlarmManager. -->
+        <receiver
+            android:name=".ui.timer.TimerExpiryReceiver"
+            android:exported="false" />
+
         <!-- Alarm Foreground Service -->
         <service
             android:name=".service.AlarmService"

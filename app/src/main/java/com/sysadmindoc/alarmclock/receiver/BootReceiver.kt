@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
+import com.sysadmindoc.alarmclock.ui.timer.TimerNotifications
+import com.sysadmindoc.alarmclock.ui.timer.TimerStore
 import com.sysadmindoc.alarmclock.worker.BootRescheduleWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,6 +72,8 @@ class BootReceiver : BroadcastReceiver() {
                     } catch (_: Exception) {
                         // Prefs backup failure isn't fatal — continue to reschedule.
                     }
+                    val canceledTimers = TimerStore(appContext).removeRunningTimersForReboot()
+                    TimerNotifications.postTimersCanceledAfterRestart(appContext, canceledTimers.size)
                 }
 
                 val forceRecalculate = action == Intent.ACTION_TIME_CHANGED ||
