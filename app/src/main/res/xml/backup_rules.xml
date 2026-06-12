@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legacy Auto Backup rules for Android 8-11 (API 26-30).
+
+  Android 12+ uses data_extraction_rules.xml. Older devices ignore that file
+  and would otherwise back up every app-private file because allowBackup=true.
+  Keep the legacy cloud-backup surface intentionally narrow: DataStore
+  preferences only. Room history, crash logs, support exports, downloaded
+  media, and challenge reference files stay local unless the user explicitly
+  exports a JSON/AES backup.
+-->
+<full-backup-content>
+    <include domain="file" path="datastore/" />
+</full-backup-content>

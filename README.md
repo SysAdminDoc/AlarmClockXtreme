@@ -278,6 +278,8 @@ No analytics. No ads. No tracking. No accounts. No data leaves your device excep
 
 Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, including sleep/wake trend charts; they are not copied into Room/DataStore/backups and are never uploaded to the developer. Smart-alarm actigraphy stores only compact local motion-bucket summaries for 30 days; raw accelerometer samples are not retained and the buckets are not medical sleep-stage records. Support bundles are created only when you choose to export them and include redacted wake-readiness, aggregate smart-wake decision metadata, and recent alarm incident event codes, not labels or per-minute motion buckets. Crash logs stay in local app storage unless you export them. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, and Hue configuration.
 
+Android system Auto Backup is deliberately narrower than manual export. On Android 8-11 it includes only app DataStore preferences; Room alarm history, crash logs, support bundles, downloaded media, and challenge reference files are excluded from legacy cloud backup.
+
 Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
 
 ## FAQ
