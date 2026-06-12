@@ -36,15 +36,23 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -65,8 +73,8 @@ import com.sysadmindoc.alarmclock.ui.theme.ToggleOff
 import com.sysadmindoc.alarmclock.ui.theme.ToggleTrackOff
 
 // ─── Shared shape tokens ───────────────────────────────────────────────────
-val AppCardShape = RoundedCornerShape(12.dp)
-val AppTileShape = RoundedCornerShape(10.dp)
+val AppCardShape = RoundedCornerShape(8.dp)
+val AppTileShape = RoundedCornerShape(8.dp)
 val AppChipShape = RoundedCornerShape(8.dp)
 
 // ─── Icon size scale ───────────────────────────────────────────────────────
@@ -371,7 +379,12 @@ fun AppStatusChip(
     }
     if (onClick != null) {
         Surface(
-            modifier = modifier,
+            modifier = modifier
+                .minimumInteractiveComponentSize()
+                .semantics {
+                    role = Role.Button
+                    contentDescription = label
+                },
             shape = shapeTokens.chip,
             color = color.copy(alpha = 0.12f),
             border = BorderStroke(1.dp, color.copy(alpha = 0.30f)),
@@ -458,6 +471,81 @@ fun AppEmptyState(
 }
 
 @Composable
+fun AppFeedbackCard(
+    message: String,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    onDismiss: (() -> Unit)? = null,
+) {
+    val shapeTokens = LocalAppShapeTokens.current
+    AppSurfaceCard(
+        modifier = modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+            contentDescription = listOfNotNull(title, message).joinToString(". ")
+        },
+        highlighted = false
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(shapeTokens.iconContainer)
+                    .background(color.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                if (!title.isNullOrBlank()) {
+                    Text(
+                        text = title,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Text(
+                    text = message,
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            if (onDismiss != null) {
+                Surface(
+                    modifier = Modifier.minimumInteractiveComponentSize(),
+                    shape = shapeTokens.chip,
+                    color = SurfaceLight,
+                    border = BorderStroke(1.dp, BorderSubtle),
+                    tonalElevation = 0.dp,
+                    onClick = onDismiss
+                ) {
+                    Text(
+                        text = "Dismiss",
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun AppLoadingCard(
     modifier: Modifier = Modifier,
     height: Dp = 148.dp
@@ -530,14 +618,21 @@ fun AppFilterChip(
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
 ) {
+    val isSelected = selected
     val shapeTokens = LocalAppShapeTokens.current
     val accent = MaterialTheme.colorScheme.primary
-    val containerColor = if (selected) accent.copy(alpha = 0.16f) else SurfaceLight
-    val borderColor = if (selected) accent.copy(alpha = 0.32f) else BorderSubtle
-    val labelColor = if (selected) accent else TextSecondary
+    val containerColor = if (isSelected) accent.copy(alpha = 0.16f) else SurfaceLight
+    val borderColor = if (isSelected) accent.copy(alpha = 0.32f) else BorderSubtle
+    val labelColor = if (isSelected) accent else TextSecondary
 
     Surface(
-        modifier = modifier,
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .semantics {
+                role = Role.Button
+                this.selected = isSelected
+                contentDescription = if (isSelected) "$label selected" else label
+            },
         shape = shapeTokens.chip,
         color = containerColor,
         border = BorderStroke(1.dp, borderColor),

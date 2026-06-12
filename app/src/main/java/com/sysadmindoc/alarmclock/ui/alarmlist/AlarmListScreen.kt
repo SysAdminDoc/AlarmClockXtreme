@@ -12,6 +12,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -382,22 +383,10 @@ fun AlarmListScreen(
                                         title = "No alarms yet",
                                         description = "Create your first wake-up, or start from a template.",
                                         footer = {
-                                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                                Button(
-                                                    onClick = onAddAlarm,
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                                ) {
-                                                    Text("Create alarm")
-                                                }
-                                                OutlinedButton(
-                                                    onClick = { showTemplates = true },
-                                                    shape = RoundedCornerShape(12.dp),
-                                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                                                ) {
-                                                    Text("Browse templates")
-                                                }
-                                            }
+                                            AlarmListEmptyActions(
+                                                onAddAlarm = onAddAlarm,
+                                                onBrowseTemplates = { showTemplates = true }
+                                            )
                                         }
                                     )
                                 }
@@ -515,6 +504,60 @@ fun AlarmListScreen(
                             napDefaultMinutes = state.napDefaultMinutes
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AlarmListEmptyActions(
+    onAddAlarm: () -> Unit,
+    onBrowseTemplates: () -> Unit
+) {
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val compact = maxWidth < 360.dp
+        if (compact) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Button(
+                    onClick = onAddAlarm,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Create alarm")
+                }
+                OutlinedButton(
+                    onClick = onBrowseTemplates,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Browse templates")
+                }
+            }
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = onAddAlarm,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Create alarm")
+                }
+                OutlinedButton(
+                    onClick = onBrowseTemplates,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Browse templates")
                 }
             }
         }
