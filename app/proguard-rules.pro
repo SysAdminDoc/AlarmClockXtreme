@@ -16,6 +16,11 @@
 -keep class com.sysadmindoc.alarmclock.receiver.** { *; }
 -keep class com.sysadmindoc.alarmclock.service.** { *; }
 
+# ===== Direct Boot fallback path =====
+# These classes are the minimal pre-unlock alarm path. Keep them explicitly so
+# release shrinking cannot break Direct Boot if manifest wiring is refactored.
+-keep class com.sysadmindoc.alarmclock.directboot.** { *; }
+
 # ===== Moshi (codegen only - no reflection adapter) =====
 -keep class com.sysadmindoc.alarmclock.data.remote.** { *; }
 -keep class com.sysadmindoc.alarmclock.data.backup.AlarmBackup { *; }
