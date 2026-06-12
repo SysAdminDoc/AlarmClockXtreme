@@ -11,9 +11,22 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import java.time.Instant
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+
+enum class WebhookEvent(val wireName: String) {
+    AlarmFired("alarm_fired"),
+    AlarmSnoozed("alarm_snoozed"),
+    AlarmDismissed("alarm_dismissed"),
+    AlarmMissed("alarm_missed"),
+    AlarmSkipped("alarm_skipped"),
+    Test("test")
+}
 
 /**
  * F8: Outbound webhook / Tasker integration.
@@ -51,14 +64,29 @@ class WebhookService @Inject constructor(
      * runs on an application-lived scope so the AlarmService can stopSelf()
      * immediately without cancelling the request.
      */
-    fun fireAsync(event: String, alarmId: Long, label: String, timeFormatted: String) {
+    fun fireAsync(
+        event: WebhookEvent,
+        alarmId: Long,
+        label: String,
+        timeFormatted: String,
+        scheduledForMillis: Long? = null,
+        fireId: String? = null
+    ) {
         webhookScope.launch {
             try {
                 val settings = preferencesManager.getCurrentSettings()
                 if (!settings.webhookEnabled || settings.webhookUrl.isBlank()) return@launch
                 if (!isAllowedUrl(settings.webhookUrl)) return@launch
 
-                val body = buildJson(event, alarmId, label, timeFormatted)
+                val body = buildPayloadJson(
+                    event = event,
+                    alarmId = alarmId,
+                    label = label,
+                    displayTime = timeFormatted,
+                    includeLabel = settings.webhookIncludeLabel,
+                    scheduledForMillis = scheduledForMillis,
+                    fireId = fireId
+                )
                 val request = Request.Builder()
                     .url(settings.webhookUrl)
                     .post(body.toRequestBody(JSON))
@@ -76,7 +104,15 @@ class WebhookService @Inject constructor(
     suspend fun test(url: String): Boolean {
         if (!isAllowedUrl(url)) return false
         return try {
-            val body = buildJson("test", 0, "Test Alarm", "12:00 PM")
+            val body = buildPayloadJson(
+                event = WebhookEvent.Test,
+                alarmId = 0,
+                label = "Test Alarm",
+                displayTime = "12:00 PM",
+                includeLabel = true,
+                scheduledForMillis = null,
+                fireId = null
+            )
             val request = Request.Builder()
                 .url(url)
                 .post(body.toRequestBody(JSON))
@@ -95,29 +131,57 @@ class WebhookService @Inject constructor(
 
     companion object {
         /**
-         * Reject webhook URLs that are not http(s) and reject malformed input early
+         * Reject webhook URLs that are not HTTPS and reject malformed input early
          * so a typo (e.g. "javascript:" or "file://") never reaches OkHttp's URL
-         * parser. Plain http is still allowed because Tasker / local automation
-         * servers frequently run on a LAN without TLS, but the Settings screen
-         * flags this for the user.
+         * parser. Plain HTTP is intentionally rejected instead of enabling
+         * app-wide cleartext traffic for one integration surface.
          */
         @JvmStatic
         fun isAllowedWebhookUrl(url: String): Boolean {
             val trimmed = url.trim()
             if (trimmed.isBlank()) return false
-            val lower = trimmed.lowercase()
-            return (lower.startsWith("http://") || lower.startsWith("https://")) &&
-                    trimmed.toHttpUrlOrNull() != null
+            val parsed = trimmed.toHttpUrlOrNull() ?: return false
+            return parsed.isHttps
         }
-    }
 
-    private fun buildJson(event: String, alarmId: Long, label: String, time: String): String {
-        return org.json.JSONObject().apply {
-            put("event", event)
-            put("alarmId", alarmId)
-            put("label", label)
-            put("time", time)
-            put("timestamp", System.currentTimeMillis())
-        }.toString()
+        const val PAYLOAD_SCHEMA_VERSION = 1
+
+        private val payloadJsonAdapter = Moshi.Builder()
+            .build()
+            .adapter<Map<String, Any?>>(
+                Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java)
+            )
+            .serializeNulls()
+
+        internal fun buildPayloadJson(
+            event: WebhookEvent,
+            alarmId: Long,
+            label: String,
+            displayTime: String,
+            includeLabel: Boolean,
+            scheduledForMillis: Long?,
+            fireId: String?,
+            occurredAtMillis: Long = System.currentTimeMillis(),
+            eventId: String = UUID.randomUUID().toString()
+        ): String {
+            val payload = linkedMapOf<String, Any?>(
+                "schemaVersion" to PAYLOAD_SCHEMA_VERSION,
+                "event" to event.wireName,
+                "eventId" to eventId,
+                "occurredAt" to Instant.ofEpochMilli(occurredAtMillis).toString(),
+                "alarmId" to alarmId,
+                "scheduledFor" to scheduledForMillis?.let { Instant.ofEpochMilli(it).toString() },
+                "displayTime" to displayTime,
+                "labelIncluded" to includeLabel
+            ).apply {
+                if (includeLabel) {
+                    put("label", label)
+                }
+                if (!fireId.isNullOrBlank()) {
+                    put("fireId", fireId)
+                }
+            }
+            return payloadJsonAdapter.toJson(payload)
+        }
     }
 }

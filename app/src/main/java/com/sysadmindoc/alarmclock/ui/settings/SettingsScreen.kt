@@ -1233,6 +1233,7 @@ private fun SettingsToggle(
     label: String,
     checked: Boolean,
     supportingText: String? = null,
+    enabled: Boolean = true,
     onToggle: (Boolean) -> Unit
 ) {
     Surface(
@@ -1241,18 +1242,23 @@ private fun SettingsToggle(
             .heightIn(min = 64.dp)
             .toggleable(
                 value = checked,
+                enabled = enabled,
                 role = Role.Switch,
                 onValueChange = onToggle
             ),
         shape = RoundedCornerShape(10.dp),
-        color = if (checked) {
+        color = if (!enabled) {
+            SurfaceLight.copy(alpha = 0.34f)
+        } else if (checked) {
             MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
         } else {
             SurfaceLight.copy(alpha = 0.58f)
         },
         border = BorderStroke(
             1.dp,
-            if (checked) {
+            if (!enabled) {
+                BorderSubtle.copy(alpha = 0.55f)
+            } else if (checked) {
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
             } else {
                 BorderSubtle
@@ -1272,19 +1278,24 @@ private fun SettingsToggle(
             ) {
                 Text(
                     text = label,
-                    color = TextPrimary,
+                    color = if (enabled) TextPrimary else TextMuted,
                     style = MaterialTheme.typography.titleSmall,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (!supportingText.isNullOrBlank()) {
-                    Text(supportingText, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        supportingText,
+                        color = if (enabled) TextSecondary else TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                 }
             }
             Spacer(modifier = Modifier.size(12.dp))
             Switch(
                 checked = checked,
                 onCheckedChange = null,
+                enabled = enabled,
                 colors = appSwitchColors()
             )
         }
@@ -1379,7 +1390,7 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
         SettingsToggle(
             label = "Enable webhook",
             checked = state.settings.webhookEnabled,
-            supportingText = "Send a JSON payload when alarms fire, snooze, dismiss, or fail.",
+            supportingText = "Send v1 JSON events for alarm_fired, alarm_snoozed, alarm_dismissed, alarm_missed, and alarm_skipped.",
             onToggle = viewModel::toggleWebhook
         )
 
@@ -1393,17 +1404,25 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
             singleLine = true
         )
 
-        // Warn if the user pasted a plain-http endpoint — alarm metadata (label,
-        // time) leaks across the network unencrypted otherwise. The Settings hint
-        // takes priority over the test result so it's always visible.
+        SettingsToggle(
+            label = "Include alarm labels",
+            checked = state.settings.webhookIncludeLabel,
+            supportingText = "When off, payloads send labelIncluded=false instead of the alarm name.",
+            enabled = state.settings.webhookEnabled,
+            onToggle = viewModel::toggleWebhookLabelSharing
+        )
+
+        // Warn if the user pasted a plain-http endpoint. ACX intentionally
+        // keeps app-wide cleartext traffic disabled, so these endpoints cannot
+        // be treated as reliable on current Android.
         val urlLower = state.settings.webhookUrl.trim().lowercase()
         val plainHttpWarning = state.settings.webhookEnabled &&
                 urlLower.startsWith("http://")
 
         if (plainHttpWarning) {
             Text(
-                text = "This URL is plain HTTP. Alarm event payloads will be sent unencrypted — prefer https:// when possible.",
-                color = SnoozeYellow,
+                text = "Plain HTTP webhooks are blocked. Use an HTTPS endpoint or a local HTTPS bridge for Home Assistant or Tasker.",
+                color = AccentRed,
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -1414,7 +1433,7 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = state.webhookTestResult ?: "Use a secure HTTPS endpoint for best reliability.",
+                text = state.webhookTestResult ?: "Payloads include schemaVersion, eventId, occurredAt, scheduledFor, displayTime, and labelIncluded.",
                 color = when {
                     state.isWebhookTesting -> MaterialTheme.colorScheme.primary
                     state.webhookTestResult?.contains("OK") == true -> DismissGreen

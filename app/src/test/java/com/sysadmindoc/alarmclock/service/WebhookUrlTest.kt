@@ -1,5 +1,8 @@
 package com.sysadmindoc.alarmclock.service
 
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -13,8 +16,13 @@ import org.junit.Test
 class WebhookUrlTest {
 
     private fun ok(url: String) = WebhookService.isAllowedWebhookUrl(url)
+    private val payloadAdapter = Moshi.Builder()
+        .build()
+        .adapter<Map<String, Any?>>(
+            Types.newParameterizedType(Map::class.java, String::class.java, Any::class.java)
+        )
 
-    @Test fun `accepts http url`() = assertTrue(ok("http://example.com/hook"))
+    @Test fun `rejects http url`() = assertFalse(ok("http://example.com/hook"))
     @Test fun `accepts https url`() = assertTrue(ok("https://example.com/hook"))
     @Test fun `accepts trimmed https url`() = assertTrue(ok("  https://example.com/x  "))
 
@@ -24,4 +32,66 @@ class WebhookUrlTest {
     @Test fun `rejects file scheme`() = assertFalse(ok("file:///etc/passwd"))
     @Test fun `rejects bare host`() = assertFalse(ok("example.com"))
     @Test fun `rejects garbage`() = assertFalse(ok("not a url"))
+
+    @Test
+    fun `payload includes stable schema fields`() {
+        val payload = payloadAdapter.fromJson(
+            WebhookService.buildPayloadJson(
+                event = WebhookEvent.AlarmFired,
+                alarmId = 42,
+                label = "Early flight",
+                displayTime = "5:30 AM",
+                includeLabel = true,
+                scheduledForMillis = 1_800_000L,
+                fireId = "fire-42",
+                occurredAtMillis = 1_700_000_000_000L,
+                eventId = "event-1"
+            )
+        )!!
+
+        assertEquals(1.0, payload["schemaVersion"])
+        assertEquals("alarm_fired", payload["event"])
+        assertEquals("event-1", payload["eventId"])
+        assertEquals("2023-11-14T22:13:20Z", payload["occurredAt"])
+        assertEquals(42.0, payload["alarmId"])
+        assertEquals("1970-01-01T00:30:00Z", payload["scheduledFor"])
+        assertEquals("5:30 AM", payload["displayTime"])
+        assertEquals(true, payload["labelIncluded"])
+        assertEquals("Early flight", payload["label"])
+        assertEquals("fire-42", payload["fireId"])
+    }
+
+    @Test
+    fun `payload omits label value when label sharing is disabled`() {
+        val payload = payloadAdapter.fromJson(
+            WebhookService.buildPayloadJson(
+                event = WebhookEvent.AlarmMissed,
+                alarmId = 7,
+                label = "Medical appointment",
+                displayTime = "7:00 AM",
+                includeLabel = false,
+                scheduledForMillis = null,
+                fireId = null,
+                occurredAtMillis = 1_700_000_000_000L,
+                eventId = "event-2"
+            )
+        )!!
+
+        assertEquals("alarm_missed", payload["event"])
+        assertEquals(false, payload["labelIncluded"])
+        assertFalse(payload.containsKey("label"))
+        assertTrue(payload.containsKey("scheduledFor"))
+        assertEquals(null, payload["scheduledFor"])
+        assertFalse(payload.containsKey("fireId"))
+    }
+
+    @Test
+    fun `event enum exposes documented event names`() {
+        assertEquals("alarm_fired", WebhookEvent.AlarmFired.wireName)
+        assertEquals("alarm_snoozed", WebhookEvent.AlarmSnoozed.wireName)
+        assertEquals("alarm_dismissed", WebhookEvent.AlarmDismissed.wireName)
+        assertEquals("alarm_missed", WebhookEvent.AlarmMissed.wireName)
+        assertEquals("alarm_skipped", WebhookEvent.AlarmSkipped.wireName)
+        assertEquals("test", WebhookEvent.Test.wireName)
+    }
 }

@@ -7,6 +7,7 @@ import android.util.Log
 import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.service.WebhookEvent
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import java.time.Instant
 import java.time.ZoneId
+import java.util.Locale
 
 /**
  * Handles the "Skip this alarm" action from the persistent next-alarm notification.
@@ -53,6 +55,7 @@ class SkipNextReceiver : BroadcastReceiver() {
                     val scheduler = ep.alarmScheduler()
                     val calculator = ep.nextAlarmCalculator()
                     val eventRepo = ep.alarmEventRepository()
+                    val webhookService = ep.webhookService()
 
                     val alarm = repo.getById(alarmId) ?: return@withTimeout
 
@@ -72,6 +75,15 @@ class SkipNextReceiver : BroadcastReceiver() {
                             )
                         )
                     }
+
+                    webhookService.fireAsync(
+                        event = WebhookEvent.AlarmSkipped,
+                        alarmId = alarm.id,
+                        label = alarm.label,
+                        timeFormatted = "%02d:%02d".format(Locale.US, alarm.hour, alarm.minute),
+                        scheduledForMillis = alarm.nextTriggerTime.takeIf { it > 0L },
+                        fireId = null
+                    )
 
                     if (alarm.repeatDays.isEmpty()) {
                         repo.setEnabled(alarm.id, enabled = false, nextTrigger = 0)
