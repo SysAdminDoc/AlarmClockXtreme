@@ -222,6 +222,16 @@ Tag pushes like `v1.13.14` build signed Play, F-Droid, and Wear release APKs,
 verify signatures with `apksigner`, write `SHA256SUMS.txt`, and attach the APKs
 plus hashes to the GitHub Release.
 
+Before a local or CI release, run:
+
+```bash
+bash scripts/check-signing-hygiene.sh
+```
+
+The check fails if keystore files or `keystore.properties` are tracked/staged,
+or if common signing-material paths are not ignored. CI runs the same preflight
+before creating `keystore.properties` from repository secrets.
+
 ### Build Variants
 
 | Variant | Description |
