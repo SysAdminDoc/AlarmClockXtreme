@@ -63,6 +63,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
         fun alarmEventRepository(): com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
         fun alarmIncidentRepository(): com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
         fun webhookService(): com.sysadmindoc.alarmclock.service.WebhookService
+        fun preferencesManager(): PreferencesManager
     }
 
     override fun onCreate() {

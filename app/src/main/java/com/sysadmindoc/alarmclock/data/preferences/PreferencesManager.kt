@@ -35,6 +35,7 @@ data class AppSettings(
     val defaultGradualVolume: Int = 60,
     val usePhoneSpeakers: Boolean = false,
     val showOnLockScreen: Boolean = true,
+    val hideAlarmLabelsOnPublicSurfaces: Boolean = false,
     val upcomingAlarmMinutes: Int = 60,
     val showNoAlarmsWarning: Boolean = true,
     // Vacation mode
@@ -228,6 +229,7 @@ class PreferencesManager @Inject constructor(
         val DEFAULT_GRADUAL_VOLUME = intPreferencesKey("default_gradual_volume")
         val USE_PHONE_SPEAKERS = booleanPreferencesKey("use_phone_speakers")
         val SHOW_ON_LOCK_SCREEN = booleanPreferencesKey("show_on_lock_screen")
+        val HIDE_ALARM_LABELS_PUBLIC = booleanPreferencesKey("hide_alarm_labels_public")
         val UPCOMING_ALARM_MINUTES = intPreferencesKey("upcoming_alarm_minutes")
         val SHOW_NO_ALARMS_WARNING = booleanPreferencesKey("show_no_alarms_warning")
         val VACATION_ENABLED = booleanPreferencesKey("vacation_enabled")
@@ -334,6 +336,7 @@ class PreferencesManager @Inject constructor(
         defaultGradualVolume = this[Keys.DEFAULT_GRADUAL_VOLUME] ?: 60,
         usePhoneSpeakers = this[Keys.USE_PHONE_SPEAKERS] ?: false,
         showOnLockScreen = this[Keys.SHOW_ON_LOCK_SCREEN] ?: true,
+        hideAlarmLabelsOnPublicSurfaces = this[Keys.HIDE_ALARM_LABELS_PUBLIC] ?: false,
         upcomingAlarmMinutes = this[Keys.UPCOMING_ALARM_MINUTES] ?: 60,
         showNoAlarmsWarning = this[Keys.SHOW_NO_ALARMS_WARNING] ?: true,
         vacationModeEnabled = this[Keys.VACATION_ENABLED] ?: false,
@@ -396,6 +399,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.DEFAULT_GRADUAL_VOLUME] = s.defaultGradualVolume
         this[Keys.USE_PHONE_SPEAKERS] = s.usePhoneSpeakers
         this[Keys.SHOW_ON_LOCK_SCREEN] = s.showOnLockScreen
+        this[Keys.HIDE_ALARM_LABELS_PUBLIC] = s.hideAlarmLabelsOnPublicSurfaces
         this[Keys.UPCOMING_ALARM_MINUTES] = s.upcomingAlarmMinutes
         this[Keys.SHOW_NO_ALARMS_WARNING] = s.showNoAlarmsWarning
         this[Keys.VACATION_ENABLED] = s.vacationModeEnabled

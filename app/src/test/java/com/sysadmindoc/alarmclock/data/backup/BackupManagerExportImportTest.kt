@@ -78,6 +78,7 @@ class BackupManagerExportImportTest {
         assertEquals("Portland, Oregon", settings.locationName)
         assertEquals(false, settings.showTimerTab)
         assertEquals("https://feeds.example/private.xml", settings.newsFeedUrl)
+        assertEquals(true, settings.hideAlarmLabelsOnPublicSurfaces)
     }
 
     @Test
@@ -91,6 +92,7 @@ class BackupManagerExportImportTest {
                     defaultGradualVolume = 90,
                     usePhoneSpeakers = true,
                     showOnLockScreen = false,
+                    hideAlarmLabelsOnPublicSurfaces = true,
                     vacationModeEnabled = false,
                     vacationStartMillis = 0,
                     vacationEndMillis = 0,
@@ -120,6 +122,7 @@ class BackupManagerExportImportTest {
         assertEquals("Portland, Oregon", restoredSettings!!.locationName)
         assertEquals(false, restoredSettings!!.showTimerTab)
         assertEquals("https://feeds.example/private.xml", restoredSettings!!.newsFeedUrl)
+        assertEquals(true, restoredSettings!!.hideAlarmLabelsOnPublicSurfaces)
         coVerify {
             repository.save(
                 match {
@@ -162,6 +165,7 @@ class BackupManagerExportImportTest {
         defaultGradualVolume = 90,
         usePhoneSpeakers = true,
         showOnLockScreen = false,
+        hideAlarmLabelsOnPublicSurfaces = true,
         showWeatherOnDashboard = false,
         showCalendarOnDashboard = true,
         autoSilenceMinutes = 15,

@@ -17,6 +17,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -83,14 +84,19 @@ class NextAlarmNotifier @Inject constructor(
             repository.observeNextAlarm()
                 .combine(
                     preferencesManager.settings
-                        .map { it.is24HourFormat }
+                        .map {
+                            NextAlarmNotificationSettings(
+                                is24HourFormat = it.is24HourFormat,
+                                hideAlarmLabelsOnPublicSurfaces = it.hideAlarmLabelsOnPublicSurfaces
+                            )
+                        }
                         .distinctUntilChanged()
-                ) { alarm, is24HourFormat ->
-                    alarm to is24HourFormat
+                ) { alarm, settings ->
+                    alarm to settings
                 }
-                .collectLatest { (alarm, is24HourFormat) ->
+                .collectLatest { (alarm, settings) ->
                     if (alarm != null && alarm.nextTriggerTime > System.currentTimeMillis()) {
-                        refreshNotificationUntilInvalid(alarm, is24HourFormat)
+                        refreshNotificationUntilInvalid(alarm, settings)
                     } else {
                         dismiss()
                     }
@@ -98,7 +104,10 @@ class NextAlarmNotifier @Inject constructor(
         }
     }
 
-    private suspend fun refreshNotificationUntilInvalid(initialAlarm: Alarm, is24HourFormat: Boolean) {
+    private suspend fun refreshNotificationUntilInvalid(
+        initialAlarm: Alarm,
+        settings: NextAlarmNotificationSettings
+    ) {
         var alarm = initialAlarm
         while (true) {
             val now = System.currentTimeMillis()
@@ -113,7 +122,7 @@ class NextAlarmNotifier @Inject constructor(
                 }
             }
 
-            showNotification(alarm, is24HourFormat)
+            showNotification(alarm, settings)
             delay(NextAlarmNotificationTiming.millisUntilNextRefresh(now, alarm.nextTriggerTime))
             alarm = repository.getById(alarm.id) ?: repository.getNextAlarm() ?: run {
                 dismiss()
@@ -122,7 +131,7 @@ class NextAlarmNotifier @Inject constructor(
         }
     }
 
-    private fun showNotification(alarm: Alarm, is24HourFormat: Boolean) {
+    private fun showNotification(alarm: Alarm, settings: NextAlarmNotificationSettings) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -144,11 +153,14 @@ class NextAlarmNotifier @Inject constructor(
         // Format time
         val triggerInstant = Instant.ofEpochMilli(alarm.nextTriggerTime)
         val localDateTime = triggerInstant.atZone(ZoneId.systemDefault()).toLocalDateTime()
-        val timePattern = if (is24HourFormat) "EEE HH:mm" else "EEE h:mm a"
+        val timePattern = if (settings.is24HourFormat) "EEE HH:mm" else "EEE h:mm a"
         val timeStr = localDateTime.format(DateTimeFormatter.ofPattern(timePattern))
         val remaining = calculator.formatRemaining(alarm.nextTriggerTime)
 
-        val title = if (alarm.label.isNotBlank()) alarm.label else "Alarm"
+        val title = AlarmPublicText.requiredAlarmLabel(
+            label = alarm.label,
+            hideLabel = settings.hideAlarmLabelsOnPublicSurfaces
+        )
 
         val now = System.currentTimeMillis()
         val notification = if (
@@ -266,3 +278,8 @@ class NextAlarmNotifier @Inject constructor(
         notificationManager.cancel(NOTIFICATION_ID_PERSISTENT)
     }
 }
+
+private data class NextAlarmNotificationSettings(
+    val is24HourFormat: Boolean,
+    val hideAlarmLabelsOnPublicSurfaces: Boolean
+)

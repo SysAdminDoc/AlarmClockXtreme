@@ -11,11 +11,13 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
+import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.ui.alarmfiring.WakeConfirmActivity
+import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.delay
@@ -34,6 +36,7 @@ class WakeConfirmWorker @AssistedInject constructor(
     @Assisted private val context: Context,
     @Assisted workerParams: WorkerParameters,
     private val alarmRepository: AlarmRepository,
+    private val preferencesManager: PreferencesManager,
     private val alarmIncidentRepository: AlarmIncidentRepository
 ) : CoroutineWorker(context, workerParams) {
 
@@ -97,6 +100,7 @@ class WakeConfirmWorker @AssistedInject constructor(
         val promptPosted = postPrompt(
             alarmId = alarmId,
             label = alarm.label,
+            hideLabel = preferencesManager.getCurrentSettings().hideAlarmLabelsOnPublicSurfaces,
             fireId = fireId,
             scheduledAt = scheduledAt
         )
@@ -188,6 +192,7 @@ class WakeConfirmWorker @AssistedInject constructor(
     private fun postPrompt(
         alarmId: Long,
         label: String,
+        hideLabel: Boolean,
         fireId: String,
         scheduledAt: Long
     ): Boolean {
@@ -205,7 +210,7 @@ class WakeConfirmWorker @AssistedInject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val title = if (label.isBlank()) "Are you awake?" else "Awake check: $label"
+        val title = AlarmPublicText.wakeConfirmTitle(label, hideLabel)
         val notification = NotificationCompat.Builder(context, CHANNEL_WAKE_CONFIRM)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(title)

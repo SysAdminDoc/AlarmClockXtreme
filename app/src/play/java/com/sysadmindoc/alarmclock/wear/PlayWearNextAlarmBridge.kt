@@ -7,8 +7,10 @@ import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.wearable.PutDataMapRequest
 import com.google.android.gms.wearable.Wearable
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,13 +44,18 @@ class PlayWearNextAlarmBridge @Inject constructor(
             repository.observeNextAlarm()
                 .combine(
                     preferencesManager.settings
-                        .map { it.is24HourFormat }
+                        .map {
+                            WearPublishSettings(
+                                is24HourFormat = it.is24HourFormat,
+                                hideAlarmLabelsOnPublicSurfaces = it.hideAlarmLabelsOnPublicSurfaces
+                            )
+                        }
                         .distinctUntilChanged()
-                ) { alarm, is24HourFormat ->
-                    alarm to is24HourFormat
+                ) { alarm, settings ->
+                    alarm to settings
                 }
-                .collect { (alarm, is24HourFormat) ->
-                    publish(alarm, is24HourFormat)
+                .collect { (alarm, settings) ->
+                    publish(alarm, settings)
                 }
         }
     }
@@ -56,18 +63,19 @@ class PlayWearNextAlarmBridge @Inject constructor(
     override fun publishAlarmFiring(alarm: Alarm) {
         firingAlarmId.set(alarm.id)
         scope.launch {
-            publish(alarm, preferencesManager.getCachedSettings().is24HourFormat)
+            publish(alarm, WearPublishSettings.from(preferencesManager.getCachedSettings()))
         }
     }
 
     override fun publishAlarmIdle(alarmId: Long) {
         firingAlarmId.compareAndSet(alarmId, -1L)
         scope.launch {
-            publish(repository.getNextAlarm(), preferencesManager.getCachedSettings().is24HourFormat)
+            val settings = WearPublishSettings.from(preferencesManager.getCachedSettings())
+            publish(repository.getNextAlarm(), settings)
         }
     }
 
-    private fun publish(alarm: Alarm?, is24HourFormat: Boolean) {
+    private fun publish(alarm: Alarm?, settings: WearPublishSettings) {
         if (!isWearableApiAvailable()) return
 
         val now = System.currentTimeMillis()
@@ -86,11 +94,14 @@ class PlayWearNextAlarmBridge @Inject constructor(
                 putLong(WearAlarmData.KEY_ALARM_ID, activeAlarm.id)
                 putString(
                     WearAlarmData.KEY_LABEL,
-                    activeAlarm.label.ifBlank { "Alarm" }
+                    AlarmPublicText.requiredAlarmLabel(
+                        label = activeAlarm.label,
+                        hideLabel = settings.hideAlarmLabelsOnPublicSurfaces
+                    )
                 )
                 putString(
                     WearAlarmData.KEY_TIME_LABEL,
-                    formatTriggerTime(activeAlarm.nextTriggerTime, is24HourFormat)
+                    formatTriggerTime(activeAlarm.nextTriggerTime, settings.is24HourFormat)
                 )
                 putLong(WearAlarmData.KEY_TRIGGER_TIME, activeAlarm.nextTriggerTime)
                 putBoolean(
@@ -121,5 +132,19 @@ class PlayWearNextAlarmBridge @Inject constructor(
 
     companion object {
         private const val TAG = "WearAlarmBridge"
+    }
+}
+
+private data class WearPublishSettings(
+    val is24HourFormat: Boolean,
+    val hideAlarmLabelsOnPublicSurfaces: Boolean
+) {
+    companion object {
+        fun from(settings: AppSettings): WearPublishSettings {
+            return WearPublishSettings(
+                is24HourFormat = settings.is24HourFormat,
+                hideAlarmLabelsOnPublicSurfaces = settings.hideAlarmLabelsOnPublicSurfaces
+            )
+        }
     }
 }
