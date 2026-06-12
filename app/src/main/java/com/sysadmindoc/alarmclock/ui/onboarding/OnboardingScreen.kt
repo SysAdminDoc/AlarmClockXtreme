@@ -1,7 +1,14 @@
 package com.sysadmindoc.alarmclock.ui.onboarding
 
 import android.Manifest
+import android.app.AlarmManager
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateDpAsState
@@ -24,8 +31,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Shield
@@ -37,18 +43,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
@@ -60,6 +71,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.util.ManufacturerCompat
 import kotlinx.coroutines.launch
 
 data class OnboardingPage(
@@ -117,14 +129,16 @@ private val onboardingPages = listOf(
 fun OnboardingScreen(
     onComplete: () -> Unit
 ) {
+    val context = LocalContext.current
     val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
     val scope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == onboardingPages.lastIndex
+    var readiness by remember { mutableStateOf(OnboardingReadiness.from(context)) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
-        onComplete()
+        readiness = OnboardingReadiness.from(context)
     }
 
     Box(
@@ -249,16 +263,45 @@ fun OnboardingScreen(
                             )
                         }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            PermissionChip(Icons.Default.NotificationsActive, "Alerts")
-                            PermissionChip(Icons.Default.CalendarMonth, "Calendar")
-                            PermissionChip(Icons.Default.LocationOn, "Weather")
+                        ReadinessMiniRow(
+                            icon = Icons.Default.Alarm,
+                            title = "Exact alarm access",
+                            ready = readiness.exactAlarmReady,
+                            onAction = { context.openExactAlarmSettings() }
+                        )
+                        ReadinessMiniRow(
+                            icon = Icons.Default.NotificationsActive,
+                            title = "Alarm notifications",
+                            ready = readiness.notificationsReady,
+                            onAction = {
+                                val perms = buildList {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        add(Manifest.permission.POST_NOTIFICATIONS)
+                                    }
+                                    add(Manifest.permission.READ_CALENDAR)
+                                    add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                                }.toTypedArray()
+                                if (perms.isNotEmpty()) {
+                                    permissionLauncher.launch(perms)
+                                }
+                            }
+                        )
+                        if (readiness.fullScreenRelevant) {
+                            ReadinessMiniRow(
+                                icon = Icons.Default.NotificationsActive,
+                                title = "Full-screen alarm access",
+                                ready = readiness.fullScreenReady == true,
+                                onAction = { context.openFullScreenAlarmSettings() }
+                            )
                         }
+                        ReadinessMiniRow(
+                            icon = Icons.Default.BatteryAlert,
+                            title = "Battery protection",
+                            ready = readiness.batteryReady,
+                            onAction = { ManufacturerCompat.requestBatteryOptimizationExemption(context) }
+                        )
                         Text(
-                            text = "Recommended for weather, calendar, and dependable alerts. Optional, and easy to change later.",
+                            text = "Set these before relying on an overnight alarm. Calendar and weather permissions are optional and can be changed later.",
                             color = TextSecondary,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center
@@ -294,7 +337,7 @@ fun OnboardingScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = if (isLastPage) "Enable recommended permissions" else "Continue",
+                        text = if (isLastPage) "Enable alerts, calendar, and weather" else "Continue",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -308,7 +351,7 @@ fun OnboardingScreen(
 
                 Text(
                     text = if (isLastPage) {
-                        "The app still works without them, and every permission can be revisited later from Settings."
+                        "Use each Review action for platform settings that Android cannot grant inside the app."
                     } else {
                         "Step ${pagerState.currentPage + 1} of ${onboardingPages.size}"
                     },
@@ -339,44 +382,57 @@ private fun OnboardingPageContent(
             highlighted = true,
             contentPadding = PaddingValues(if (compact) 14.dp else 18.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(if (compact) 76.dp else 112.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                page.accentColor.copy(alpha = 0.28f),
-                                page.accentColor.copy(alpha = 0.06f)
-                            )
+            if (compact) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OnboardingIconTile(
+                        page = page,
+                        size = 72.dp,
+                        iconSize = 36.dp
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = page.title,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = TextPrimary
                         )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = page.icon,
-                    contentDescription = page.title,
-                    tint = page.accentColor,
-                    modifier = Modifier.size(if (compact) 38.dp else 52.dp)
+                        Text(
+                            text = "Finish with the reliability switches that matter before an overnight alarm.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+                }
+            } else {
+                OnboardingIconTile(
+                    page = page,
+                    size = 112.dp,
+                    iconSize = 52.dp
                 )
-            }
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Text(
-                    text = page.title,
-                    style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
-                    color = TextPrimary,
-                    textAlign = TextAlign.Center
-                )
-                Text(
-                    text = page.description,
-                    style = if (compact) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyLarge,
-                    color = TextSecondary,
-                    textAlign = TextAlign.Center
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = page.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = TextPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = page.description,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
 
             if (!compact) {
@@ -394,6 +450,35 @@ private fun OnboardingPageContent(
             }
 
         }
+    }
+}
+
+@Composable
+private fun OnboardingIconTile(
+    page: OnboardingPage,
+    size: androidx.compose.ui.unit.Dp,
+    iconSize: androidx.compose.ui.unit.Dp
+) {
+    Box(
+        modifier = Modifier
+            .size(size)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                Brush.radialGradient(
+                    colors = listOf(
+                        page.accentColor.copy(alpha = 0.28f),
+                        page.accentColor.copy(alpha = 0.06f)
+                    )
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = page.icon,
+            contentDescription = page.title,
+            tint = page.accentColor,
+            modifier = Modifier.size(iconSize)
+        )
     }
 }
 
@@ -421,10 +506,106 @@ private fun FeatureRow(text: String, accent: Color) {
 }
 
 @Composable
-private fun PermissionChip(icon: ImageVector, label: String) {
-    AppStatusChip(
-        label = label,
-        icon = icon,
-        color = MaterialTheme.colorScheme.primary
-    )
+private fun ReadinessMiniRow(
+    icon: ImageVector,
+    title: String,
+    ready: Boolean,
+    onAction: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (ready) DismissGreen else SnoozeYellow,
+            modifier = Modifier.size(20.dp)
+        )
+        Text(
+            text = title,
+            color = TextPrimary,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f)
+        )
+        TextButton(onClick = onAction, enabled = !ready) {
+            Text(if (ready) "Ready" else "Review")
+        }
+    }
+}
+
+private data class OnboardingReadiness(
+    val exactAlarmReady: Boolean,
+    val notificationsReady: Boolean,
+    val fullScreenRelevant: Boolean,
+    val fullScreenReady: Boolean?,
+    val batteryReady: Boolean
+) {
+    companion object {
+        fun from(context: Context): OnboardingReadiness {
+            val exact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                context.getSystemService(AlarmManager::class.java)?.canScheduleExactAlarms() == true
+            } else {
+                true
+            }
+            val notifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true
+            }
+            val fullScreenRelevant = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+            val fullScreen = if (fullScreenRelevant) {
+                runCatching {
+                    context.getSystemService(NotificationManager::class.java)?.canUseFullScreenIntent()
+                }.getOrNull()
+            } else {
+                null
+            }
+            return OnboardingReadiness(
+                exactAlarmReady = exact,
+                notificationsReady = notifications,
+                fullScreenRelevant = fullScreenRelevant,
+                fullScreenReady = fullScreen,
+                batteryReady = ManufacturerCompat.isIgnoringBatteryOptimizations(context)
+            )
+        }
+    }
+}
+
+private fun Context.openExactAlarmSettings() {
+    val primary = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+            data = Uri.parse("package:$packageName")
+        }
+    } else {
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:$packageName")
+        }
+    }
+    startActivityWithFallback(primary)
+}
+
+private fun Context.openFullScreenAlarmSettings() {
+    val primary = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+            data = Uri.parse("package:$packageName")
+        }
+    } else {
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+            data = Uri.parse("package:$packageName")
+        }
+    }
+    startActivityWithFallback(primary)
+}
+
+private fun Context.startActivityWithFallback(primary: Intent) {
+    val fallback = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+        data = Uri.parse("package:$packageName")
+    }
+    runCatching { startActivity(primary.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        .onFailure { startActivity(fallback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }
