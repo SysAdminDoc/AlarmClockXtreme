@@ -160,6 +160,8 @@ class AlarmService : Service() {
     private var alarmFiredAt: Long = 0
     private var autoSilenceJob: Job? = null
     private var backupSoundJob: Job? = null
+    @Volatile
+    private var backupSoundOriginalAlarmVolume: Int? = null
     private var flashlightJob: Job? = null
     private var currentSnoozeCount: Int = 0
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -462,9 +464,17 @@ class AlarmService : Service() {
                 // muted because of a call, escalate the *system* stream so the
                 // post-call audio is loud, but don't unmute the MediaPlayer
                 // mid-call.
-                val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+                val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return@launch
                 val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+                backupSoundOriginalAlarmVolume = backupSoundOriginalAlarmVolume
+                    ?: audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
                 audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxVol, 0)
+                recordIncident(
+                    type = AlarmIncidentEvent.TYPE_AUDIO,
+                    status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                    reasonCode = "BACKUP_SOUND_ESCALATED",
+                    source = "AlarmService"
+                )
                 if (!callMutedAudio) mediaPlayer?.setVolume(1f, 1f)
             }
         }
@@ -647,6 +657,33 @@ class AlarmService : Service() {
             Log.w(TAG, "MediaSession release failed", e)
         } finally {
             mediaSession = null
+        }
+    }
+
+    private fun restoreBackupSoundVolume() {
+        val originalVolume = backupSoundOriginalAlarmVolume ?: return
+        backupSoundOriginalAlarmVolume = null
+        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return
+        try {
+            val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
+            audioManager.setStreamVolume(
+                AudioManager.STREAM_ALARM,
+                originalVolume.coerceIn(0, maxVol),
+                0
+            )
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_AUDIO,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = "BACKUP_SOUND_VOLUME_RESTORED",
+                source = "AlarmService"
+            )
+        } catch (e: Exception) {
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_AUDIO,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "BACKUP_SOUND_VOLUME_RESTORE_FAILED_${e.javaClass.simpleName}",
+                source = "AlarmService"
+            )
         }
     }
 
@@ -1461,6 +1498,7 @@ class AlarmService : Service() {
         hapticOnlyJob?.cancel()
         hapticOnlyJob = null
         releaseAlarmMediaSession()
+        restoreBackupSoundVolume()
         flashlightJob?.cancel()
         flashlightJob = null
         try {
