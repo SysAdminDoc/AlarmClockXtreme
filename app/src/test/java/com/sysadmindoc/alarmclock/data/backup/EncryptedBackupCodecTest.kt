@@ -18,6 +18,22 @@ class EncryptedBackupCodecTest {
         assertFalse(encrypted.contains("Gym"))
         assertTrue(encrypted.contains(EncryptedBackupCodec.FORMAT))
         assertTrue(encrypted.contains(EncryptedBackupCodec.CIPHER_ALGORITHM))
+        assertTrue(encrypted.contains("\"iterations\": ${EncryptedBackupCodec.PBKDF2_ITERATIONS}"))
+    }
+
+    @Test
+    fun legacyIterationEnvelopeStillDecrypts() {
+        val plainJson = """{"version":8,"settings":{"is24HourFormat":true}}"""
+        val encrypted = EncryptedBackupCodec.encrypt(
+            plainJson = plainJson,
+            passphrase = "old backup passphrase",
+            iterations = EncryptedBackupCodec.LEGACY_PBKDF2_ITERATIONS
+        )
+
+        val decrypted = EncryptedBackupCodec.decrypt(encrypted, "old backup passphrase")
+
+        assertEquals(plainJson, decrypted)
+        assertTrue(encrypted.contains("\"iterations\": ${EncryptedBackupCodec.LEGACY_PBKDF2_ITERATIONS}"))
     }
 
     @Test

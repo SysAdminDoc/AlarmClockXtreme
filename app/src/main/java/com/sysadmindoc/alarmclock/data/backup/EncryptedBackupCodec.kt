@@ -28,7 +28,8 @@ object EncryptedBackupCodec {
     const val VERSION = 1
     const val KDF_ALGORITHM = "PBKDF2WithHmacSHA256"
     const val CIPHER_ALGORITHM = "AES/GCM/NoPadding"
-    const val PBKDF2_ITERATIONS = 210_000
+    const val PBKDF2_ITERATIONS = 600_000
+    internal const val LEGACY_PBKDF2_ITERATIONS = 210_000
 
     private const val KEY_BITS = 256
     private const val GCM_TAG_BITS = 128
@@ -42,12 +43,19 @@ object EncryptedBackupCodec {
     private val base64Encoder = Base64.getEncoder()
     private val base64Decoder = Base64.getDecoder()
 
-    fun encrypt(plainJson: String, passphrase: String, secureRandom: SecureRandom = SecureRandom()): String {
+    fun encrypt(
+        plainJson: String,
+        passphrase: String,
+        secureRandom: SecureRandom = SecureRandom(),
+        iterations: Int = PBKDF2_ITERATIONS
+    ): String {
         require(passphrase.isNotBlank()) { "Backup passphrase is required" }
+        require(iterations in MIN_ITERATIONS..MAX_ITERATIONS) { "Unsupported backup encryption settings" }
 
         val salt = ByteArray(SALT_BYTES).also(secureRandom::nextBytes)
         val iv = ByteArray(IV_BYTES).also(secureRandom::nextBytes)
         val envelope = EncryptedBackupData(
+            iterations = iterations,
             salt = encode(salt),
             iv = encode(iv),
             payload = ""
