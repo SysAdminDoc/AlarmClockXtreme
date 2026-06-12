@@ -113,8 +113,16 @@ fun WorldClockScreen(
                                 title = "No world clocks yet",
                                 description = "Add the cities you check most often and keep them one tap away.",
                                 footer = {
-                                    TextButton(onClick = viewModel::showAddDialog) {
-                                        Text("Add a city", color = MaterialTheme.colorScheme.primary)
+                                    Button(
+                                        onClick = viewModel::showAddDialog,
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.size(8.dp))
+                                        Text("Add city")
                                     }
                                 }
                             )

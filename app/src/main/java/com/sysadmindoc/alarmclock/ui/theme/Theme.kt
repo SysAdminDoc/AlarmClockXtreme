@@ -28,6 +28,14 @@ data class AppShapeTokens(
 )
 
 private val StandardShapeTokens = AppShapeTokens(
+    card = RoundedCornerShape(8.dp),
+    tile = RoundedCornerShape(8.dp),
+    chip = RoundedCornerShape(8.dp),
+    iconContainer = RoundedCornerShape(8.dp),
+    bottomNav = RoundedCornerShape(8.dp)
+)
+
+private val ExpressiveShapeTokens = AppShapeTokens(
     card = RoundedCornerShape(12.dp),
     tile = RoundedCornerShape(10.dp),
     chip = RoundedCornerShape(8.dp),
@@ -35,30 +43,22 @@ private val StandardShapeTokens = AppShapeTokens(
     bottomNav = RoundedCornerShape(12.dp)
 )
 
-private val ExpressiveShapeTokens = AppShapeTokens(
-    card = RoundedCornerShape(16.dp),
-    tile = RoundedCornerShape(14.dp),
-    chip = RoundedCornerShape(10.dp),
-    iconContainer = RoundedCornerShape(16.dp),
-    bottomNav = RoundedCornerShape(18.dp)
-)
-
 val LocalAppShapeTokens = compositionLocalOf { StandardShapeTokens }
 
 private val AppShapes = Shapes(
+    extraSmall = RoundedCornerShape(8.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(8.dp),
+    large = RoundedCornerShape(8.dp),
+    extraLarge = RoundedCornerShape(8.dp)
+)
+
+private val ExpressiveMaterialShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp),
     small = RoundedCornerShape(10.dp),
     medium = RoundedCornerShape(10.dp),
     large = RoundedCornerShape(12.dp),
     extraLarge = RoundedCornerShape(12.dp)
-)
-
-private val ExpressiveMaterialShapes = Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(12.dp),
-    medium = RoundedCornerShape(14.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(18.dp)
 )
 
 private val DarkColorScheme = darkColorScheme(

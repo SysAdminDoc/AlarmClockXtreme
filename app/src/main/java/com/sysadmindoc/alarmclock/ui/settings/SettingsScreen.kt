@@ -41,7 +41,6 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
@@ -95,6 +94,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
+import com.sysadmindoc.alarmclock.ui.components.AppFeedbackCard
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -537,29 +537,14 @@ fun SettingsScreen(
             }
 
             supportExportResult?.let { message ->
-                AppSurfaceCard(highlighted = !message.contains("failed", ignoreCase = true)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            modifier = Modifier.weight(1f),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = if (message.contains("failed", ignoreCase = true)) Icons.Default.Warning else Icons.Default.BugReport,
-                                contentDescription = null,
-                                tint = if (message.contains("failed", ignoreCase = true)) AccentRed else DismissGreen
-                            )
-                            Text(message, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
-                        }
-                        IconButton(onClick = viewModel::clearSupportExportResult) {
-                            Icon(Icons.Default.Close, "Dismiss", tint = TextMuted)
-                        }
-                    }
-                }
+                val failed = message.contains("failed", ignoreCase = true)
+                AppFeedbackCard(
+                    title = if (failed) "Support export failed" else "Support bundle ready",
+                    message = message,
+                    icon = if (failed) Icons.Default.Warning else Icons.Default.BugReport,
+                    color = if (failed) AccentRed else DismissGreen,
+                    onDismiss = viewModel::clearSupportExportResult
+                )
             }
 
             SettingsGroup(
@@ -2089,29 +2074,14 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     }
 
     backupResult?.let { message ->
-        AppSurfaceCard(highlighted = !message.contains("failed", ignoreCase = true)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = if (message.contains("failed", ignoreCase = true)) Icons.Default.Warning else Icons.Default.Backup,
-                        contentDescription = null,
-                        tint = if (message.contains("failed", ignoreCase = true)) AccentRed else DismissGreen
-                    )
-                    Text(message, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
-                }
-                IconButton(onClick = viewModel::clearBackupResult) {
-                    Icon(Icons.Default.Close, "Dismiss", tint = TextMuted)
-                }
-            }
-        }
+        val failed = message.contains("failed", ignoreCase = true)
+        AppFeedbackCard(
+            title = if (failed) "Backup needs attention" else "Backup complete",
+            message = message,
+            icon = if (failed) Icons.Default.Warning else Icons.Default.Backup,
+            color = if (failed) AccentRed else DismissGreen,
+            onDismiss = viewModel::clearBackupResult
+        )
     }
 }
 

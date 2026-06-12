@@ -156,7 +156,10 @@ fun NewsScreen(
                                     AppEmptyState(
                                         icon = Icons.Default.RssFeed,
                                         title = "Couldn't load this feed",
-                                        description = "Pull down to try again, or pick a different source.",
+                                        description = state.errorMessage
+                                            ?.takeIf { it.isNotBlank() }
+                                            ?.let { "Tap Refresh to try again, or pick a different source. $it" }
+                                            ?: "Tap Refresh to try again, or pick a different source.",
                                     )
                                 }
                             }
