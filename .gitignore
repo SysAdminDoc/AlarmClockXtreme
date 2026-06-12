@@ -5,6 +5,9 @@ local.properties
 *.iml
 .idea/
 *.jks
+*.keystore
+*.p12
+*.pfx
 *.apk
 *.aab
 captures/

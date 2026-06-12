@@ -58,6 +58,9 @@ jobs:
             exit 1
           fi
 
+      - name: Check signing secret hygiene
+        run: bash scripts/check-signing-hygiene.sh
+
       - name: Write keystore.properties
         run: |
           set -euo pipefail
