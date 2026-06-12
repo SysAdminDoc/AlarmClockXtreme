@@ -413,7 +413,14 @@ class AlarmService : Service() {
         }
 
         // F8: Webhook on alarm fire (fire-and-forget on its own scope; see WebhookService)
-        webhookService.fireAsync("fired", alarm.id, alarm.label, formatAlarmTime(alarm))
+        webhookService.fireAsync(
+            event = WebhookEvent.AlarmFired,
+            alarmId = alarm.id,
+            label = alarm.label,
+            timeFormatted = formatAlarmTime(alarm),
+            scheduledForMillis = currentScheduledAt.takeIf { it > 0L },
+            fireId = currentFireId
+        )
 
         // Auto-silence after timeout - records as missed
         val settings = preferencesManager.getCurrentSettings()
@@ -429,6 +436,14 @@ class AlarmService : Service() {
                         status = AlarmIncidentEvent.STATUS_SUCCEEDED,
                         reasonCode = "AUTO_SILENCED_AFTER_${autoSilenceMinutes}_MINUTES",
                         source = "AlarmService"
+                    )
+                    webhookService.fireAsync(
+                        event = WebhookEvent.AlarmMissed,
+                        alarmId = missedAlarm.id,
+                        label = missedAlarm.label,
+                        timeFormatted = formatAlarmTime(missedAlarm),
+                        scheduledForMillis = currentScheduledAt.takeIf { it > 0L },
+                        fireId = currentFireId
                     )
                     showMissedNotification(missedAlarm, autoSilenceMinutes)
                     // v1.4.0: Repeat missed alarms — record the alarm id / timestamp
@@ -1072,6 +1087,8 @@ class AlarmService : Service() {
         stopAlarmPlayback()
         val alarm = repository.getById(alarmId)?.sanitized()
         if (alarm != null) {
+            val webhookScheduledAt = currentScheduledAt
+            val webhookFireId = currentFireId
             // Snoozing means the user interacted with the alarm, so cancel any pending
             // Guardian Angel call/SMS — they're plainly awake enough to hit snooze.
             // The next fire after snooze will re-arm Guardian if still configured.
@@ -1084,7 +1101,7 @@ class AlarmService : Service() {
             // emits the matching event name. The previous code recorded
             // ACTION_DISMISSED when the snooze cap was hit but still fired the
             // "snoozed" webhook — Tasker integrations got the wrong event.
-            val webhookEvent: String
+            val webhookEvent: WebhookEvent
             if (alarm.maxSnoozeCount > 0 && nextSnoozeCount > alarm.maxSnoozeCount) {
                 // Max snoozes reached - treat as dismiss
                 currentSnoozeCount = alarm.maxSnoozeCount
@@ -1101,7 +1118,7 @@ class AlarmService : Service() {
                 currentAlarmId = -1
                 activeAlarmId = -1L
                 alarmScheduler.handleAlarmFired(alarmId)
-                webhookEvent = "dismissed"
+                webhookEvent = WebhookEvent.AlarmDismissed
             } else {
                 currentSnoozeCount = nextSnoozeCount
                 persistSnoozeCount(alarmId, currentSnoozeCount)
@@ -1117,9 +1134,16 @@ class AlarmService : Service() {
                     source = "AlarmService",
                     alarmId = alarm.id
                 )
-                webhookEvent = "snoozed"
+                webhookEvent = WebhookEvent.AlarmSnoozed
             }
-            webhookService.fireAsync(webhookEvent, alarm.id, alarm.label, formatAlarmTime(alarm))
+            webhookService.fireAsync(
+                event = webhookEvent,
+                alarmId = alarm.id,
+                label = alarm.label,
+                timeFormatted = formatAlarmTime(alarm),
+                scheduledForMillis = webhookScheduledAt.takeIf { it > 0L },
+                fireId = webhookFireId
+            )
             wearNextAlarmBridge.publishAlarmIdle(alarm.id)
         } else {
             recordIncident(
@@ -1175,7 +1199,14 @@ class AlarmService : Service() {
             activeAlarmId = -1L
 
             // F8: Webhook on dismiss (fire-and-forget on its own scope)
-            webhookService.fireAsync("dismissed", alarm.id, alarm.label, formatAlarmTime(alarm))
+            webhookService.fireAsync(
+                event = WebhookEvent.AlarmDismissed,
+                alarmId = alarm.id,
+                label = alarm.label,
+                timeFormatted = formatAlarmTime(alarm),
+                scheduledForMillis = wakeConfirmScheduledAt.takeIf { it > 0L },
+                fireId = wakeConfirmFireId
+            )
 
             // F11: TTS morning announcement
             if (alarm.ttsEnabled) {

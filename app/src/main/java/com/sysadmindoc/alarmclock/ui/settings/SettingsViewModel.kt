@@ -314,6 +314,7 @@ class SettingsViewModel @Inject constructor(
     // F11: Webhooks
     fun toggleWebhook(enabled: Boolean) = updateSettings { it.copy(webhookEnabled = enabled) }
     fun updateWebhookUrl(url: String) = updateSettings { it.copy(webhookUrl = url) }
+    fun toggleWebhookLabelSharing(enabled: Boolean) = updateSettings { it.copy(webhookIncludeLabel = enabled) }
     fun testWebhook() {
         viewModelScope.launch(Dispatchers.IO) {
             _webhookTestState.value = IntegrationTestState(
@@ -321,8 +322,14 @@ class SettingsViewModel @Inject constructor(
                 isRunning = true
             )
             val url = preferencesManager.getCurrentSettings().webhookUrl
-            val ok = if (url.isBlank()) false else webhookService.test(url)
-            val result = if (ok) "Webhook OK" else "Webhook failed — check URL"
+            val result = when {
+                url.isBlank() -> "Webhook failed — add an HTTPS URL first"
+                !webhookService.isAllowedUrl(url) && url.trim().startsWith("http://", ignoreCase = true) ->
+                    "Webhook failed — use HTTPS; cleartext HTTP is blocked"
+                !webhookService.isAllowedUrl(url) -> "Webhook failed — enter a valid HTTPS URL"
+                webhookService.test(url) -> "Webhook OK"
+                else -> "Webhook failed — endpoint did not return 2xx"
+            }
             _webhookTestState.value = IntegrationTestState(message = result, isRunning = false)
             kotlinx.coroutines.delay(4000)
             if (_webhookTestState.value.message == result) {

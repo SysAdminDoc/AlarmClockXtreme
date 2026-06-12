@@ -67,6 +67,7 @@ data class AppSettings(
     // F11: Webhook integrations
     val webhookEnabled: Boolean = false,
     val webhookUrl: String = "",
+    val webhookIncludeLabel: Boolean = true,
     // F13: Public holiday auto-skip
     val holidayAutoSkipEnabled: Boolean = false,
     val holidayCountryCode: String = "",  // ISO 3166-1 alpha-2 (e.g. "US", "GB")
@@ -250,6 +251,7 @@ class PreferencesManager @Inject constructor(
         val FLIP_TO_SNOOZE = booleanPreferencesKey("flip_to_snooze")
         val WEBHOOK_ENABLED = booleanPreferencesKey("webhook_enabled")
         val WEBHOOK_URL = stringPreferencesKey("webhook_url")
+        val WEBHOOK_INCLUDE_LABEL = booleanPreferencesKey("webhook_include_label")
         val HOLIDAY_AUTO_SKIP = booleanPreferencesKey("holiday_auto_skip")
         val HOLIDAY_COUNTRY_CODE = stringPreferencesKey("holiday_country_code")
         val HUE_BRIDGE_IP = stringPreferencesKey("hue_bridge_ip")
@@ -355,6 +357,7 @@ class PreferencesManager @Inject constructor(
         flipToSnoozeEnabled = this[Keys.FLIP_TO_SNOOZE] ?: false,
         webhookEnabled = this[Keys.WEBHOOK_ENABLED] ?: false,
         webhookUrl = this[Keys.WEBHOOK_URL] ?: "",
+        webhookIncludeLabel = this[Keys.WEBHOOK_INCLUDE_LABEL] ?: true,
         holidayAutoSkipEnabled = this[Keys.HOLIDAY_AUTO_SKIP] ?: false,
         holidayCountryCode = this[Keys.HOLIDAY_COUNTRY_CODE] ?: "",
         hueBridgeIp = this[Keys.HUE_BRIDGE_IP] ?: "",
@@ -416,6 +419,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.FLIP_TO_SNOOZE] = s.flipToSnoozeEnabled
         this[Keys.WEBHOOK_ENABLED] = s.webhookEnabled
         this[Keys.WEBHOOK_URL] = s.webhookUrl
+        this[Keys.WEBHOOK_INCLUDE_LABEL] = s.webhookIncludeLabel
         this[Keys.HOLIDAY_AUTO_SKIP] = s.holidayAutoSkipEnabled
         this[Keys.HOLIDAY_COUNTRY_CODE] = s.holidayCountryCode
         this[Keys.HUE_BRIDGE_IP] = s.hueBridgeIp

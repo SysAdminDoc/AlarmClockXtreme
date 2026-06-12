@@ -127,7 +127,7 @@ cd AlarmClockXtreme
 | Sonar Sleep Tracking | Experimental ultrasonic breathing/movement detection |
 | Local Actigraphy Buckets | Smart-alarm windows store compact awake-motion, light-motion, and still-motion summaries for 30 days; raw accelerometer samples are not retained |
 | Philips Hue Sunrise | Gradually ramp smart lights before alarm fires |
-| Webhook / Tasker | POST JSON on alarm fire/snooze/dismiss/miss events |
+| Webhook / Tasker | POST HTTPS JSON on `alarm_fired`, `alarm_snoozed`, `alarm_dismissed`, `alarm_missed`, and `alarm_skipped` events |
 | Flip-to-Snooze | Place phone face-down to snooze |
 
 ### Dashboard & Utilities
@@ -171,7 +171,7 @@ cd AlarmClockXtreme
 | Alarm Diagnostics | Settings shows the latest redacted incident event and can clear incident history separately from Statistics |
 | Sleep/Wake Analytics | Statistics correlates local alarm history with Health Connect sleep duration, snoozes, dismiss response, and challenge retries |
 | Auto-Silence | Configurable timeout (0/5/10/15/30 min), records as missed |
-| Webhook Reliability | Application-lived dispatch scope guarantees Tasker events fire even when the alarm service stops mid-flight |
+| Webhook Reliability | Application-lived dispatch scope keeps automation events moving even when the alarm service stops mid-flight; payloads use a versioned schema |
 
 ## Architecture
 
@@ -271,7 +271,7 @@ No analytics. No ads. No tracking. No accounts. No data leaves your device excep
 - Holiday API calls to Nager.Date for the selected country
 - Live radar embed from Windy.com on the Weather tab; Windy's privacy policy applies inside the embed
 - News RSS calls to your configured feed source, including Google News, BBC, NPR, Hacker News, or a custom URL
-- Webhook calls to your configured URL, including alarm event metadata
+- Webhook calls to your configured HTTPS URL, including alarm event metadata. Payloads include `schemaVersion`, `event`, `eventId`, `occurredAt`, `alarmId`, `scheduledFor`, `displayTime`, and `labelIncluded`; alarm labels are included only when the Settings toggle is on.
 - Internet radio streaming to your configured station
 - Philips Hue commands to your configured bridge on your local network
 - YouTube search, preview, stream resolution, and download requests in the Play flavor only; F-Droid excludes this feature
