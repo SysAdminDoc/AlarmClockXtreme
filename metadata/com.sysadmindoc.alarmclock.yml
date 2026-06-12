@@ -1,8 +1,3 @@
-# F-Droid Metadata
-# Place in fdroiddata repo as metadata/com.sysadmindoc.alarmclock.yml.
-# The build commit should be replaced with the signed release tag once v1.13.11
-# is tagged for distribution.
-
 Categories:
   - Time
 License: Apache-2.0
