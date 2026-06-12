@@ -11,6 +11,7 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
 import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
 import com.sysadmindoc.alarmclock.service.SleepSoundPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,7 +41,7 @@ data class BedtimeUiState(
     // F9: Sleep cycle calculator — list of formatted optimal sleep times
     val sleepCycleOptions: List<String> = emptyList(),
     // F10: Sleep sounds
-    val activeSoundResId: Int = 0,        // 0 = stopped
+    val activeSoundKey: String = "",      // blank = stopped
     val sleepSoundFadeMinutes: Int = 30,  // Total timer; 0 = no fade
     val sleepSoundFadeSeconds: Int = 60,  // v1.4.0: length of the final taper
     // v1.4.0: Pre-sleep checklist (newline-separated wind-down items)
@@ -65,7 +66,7 @@ class BedtimeViewModel @Inject constructor(
 ) : ViewModel() {
 
     // F10: Sleep sound player
-    private val sleepSoundPlayer = SleepSoundPlayer(context)
+    private val sleepSoundPlayer = SleepSoundPlayer()
 
     private val _uiState = MutableStateFlow(BedtimeUiState())
     val uiState: StateFlow<BedtimeUiState> = _uiState.asStateFlow()
@@ -270,16 +271,16 @@ class BedtimeViewModel @Inject constructor(
 
     // F10: Sleep sound controls. v1.4.0 — honours the fade-duration setting
     // so users can choose a slower taper than the previous hard-coded 60s.
-    fun playSound(rawResId: Int) {
+    fun playSound(preset: SleepNoisePreset) {
         val fadeMinutes = _uiState.value.sleepSoundFadeMinutes
         val fadeSeconds = _uiState.value.sleepSoundFadeSeconds
-        sleepSoundPlayer.play(rawResId, fadeMinutes, fadeSeconds)
-        _uiState.value = _uiState.value.copy(activeSoundResId = rawResId)
+        sleepSoundPlayer.play(preset, fadeMinutes, fadeSeconds)
+        _uiState.value = _uiState.value.copy(activeSoundKey = preset.key)
     }
 
     fun stopSound() {
         sleepSoundPlayer.stop()
-        _uiState.value = _uiState.value.copy(activeSoundResId = 0)
+        _uiState.value = _uiState.value.copy(activeSoundKey = "")
     }
 
     fun setSleepSoundFade(minutes: Int) {

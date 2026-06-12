@@ -84,6 +84,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
+import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
@@ -656,15 +657,15 @@ fun BedtimeScreen(
 private data class SleepSound(
     val label: String,
     val icon: ImageVector,
-    val resName: String
+    val preset: SleepNoisePreset
 )
 
 private val SLEEP_SOUNDS = listOf(
-    SleepSound("White Noise", Icons.Default.Waves, "sleep_white_noise"),
-    SleepSound("Rain", Icons.Default.WaterDrop, "sleep_rain"),
-    SleepSound("Brown Noise", Icons.Default.GraphicEq, "sleep_brown_noise"),
-    SleepSound("Ocean", Icons.Default.Sailing, "sleep_ocean"),
-    SleepSound("Fan", Icons.Default.Air, "sleep_fan"),
+    SleepSound("White Noise", Icons.Default.Waves, SleepNoisePreset.WHITE),
+    SleepSound("Rain", Icons.Default.WaterDrop, SleepNoisePreset.RAIN),
+    SleepSound("Brown Noise", Icons.Default.GraphicEq, SleepNoisePreset.BROWN),
+    SleepSound("Ocean", Icons.Default.Sailing, SleepNoisePreset.OCEAN),
+    SleepSound("Fan", Icons.Default.Air, SleepNoisePreset.FAN),
 )
 
 @Composable
@@ -755,25 +756,22 @@ private fun SleepSoundsSection(
     viewModel: BedtimeViewModel,
     modifier: Modifier = Modifier
 ) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-
     AppSurfaceCard(modifier = modifier) {
         AppSectionTitle(
             title = "Sleep sounds",
-            description = "Keep a calming soundscape playing while you wind down."
+            description = "Continuous procedural soundscapes with no looping artifacts."
         )
 
         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             itemsIndexed(SLEEP_SOUNDS) { _, sound ->
-                val resId = context.resources.getIdentifier(sound.resName, "raw", context.packageName)
-                val isActive = state.activeSoundResId == resId && resId != 0
+                val isActive = state.activeSoundKey == sound.preset.key
 
                 Card(
                     modifier = Modifier
                         .size(width = 112.dp, height = 108.dp)
                         .clickable(role = Role.Button) {
                             if (isActive) viewModel.stopSound()
-                            else if (resId != 0) viewModel.playSound(resId)
+                            else viewModel.playSound(sound.preset)
                         },
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(
@@ -862,7 +860,7 @@ private fun SleepSoundsSection(
             }
         }
 
-        if (state.activeSoundResId != 0) {
+        if (state.activeSoundKey.isNotBlank()) {
             TextButton(
                 onClick = viewModel::stopSound,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
