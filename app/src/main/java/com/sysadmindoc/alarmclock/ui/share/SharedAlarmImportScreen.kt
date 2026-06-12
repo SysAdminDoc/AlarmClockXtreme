@@ -1,7 +1,10 @@
 package com.sysadmindoc.alarmclock.ui.share
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,17 +12,26 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -28,16 +40,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.ui.components.AppChipShape
+import com.sysadmindoc.alarmclock.ui.components.AppFeedbackCard
+import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
+import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
@@ -83,7 +101,7 @@ fun SharedAlarmImportScreen(
                     style = MaterialTheme.typography.headlineSmall
                 )
                 Text(
-                    text = "Saved imports stay disabled until you turn them on.",
+                    text = "Saved imports stay off until you review and enable them.",
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -101,16 +119,28 @@ fun SharedAlarmImportScreen(
             SharedImportDetailRow(label = "Repeat", value = alarm.repeatLabel)
             SharedImportDetailRow(label = "Challenge", value = alarm.challengeSummary())
             SharedImportDetailRow(label = "Sound", value = alarm.soundSummary())
-            SharedImportDetailRow(label = "Status", value = "Will be saved disabled")
+            SharedImportDetailRow(label = "Status", value = "Saved off until reviewed")
         }
 
         AppSurfaceCard(highlighted = riskyFields.isNotEmpty()) {
-            Text(
-                text = "Private references",
-                color = TextPrimary,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Private references",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                AppStatusChip(
+                    label = if (riskyFields.isEmpty()) "Clean" else "Review",
+                    icon = if (riskyFields.isEmpty()) Icons.Default.CheckCircle else Icons.Default.Security,
+                    color = if (riskyFields.isEmpty()) DismissGreen else SnoozeYellow
+                )
+            }
             if (riskyFields.isEmpty()) {
                 Text(
                     text = "No contact, location, Wi-Fi, media, or challenge reference was found.",
@@ -118,41 +148,37 @@ fun SharedAlarmImportScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
             } else {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     riskyFields.forEach { label ->
-                        Text(
-                            text = "- $label",
-                            color = TextSecondary,
-                            style = MaterialTheme.typography.bodyMedium
+                        AppStatusChip(
+                            label = label,
+                            color = SnoozeYellow
                         )
                     }
                 }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Checkbox(
-                        checked = stripRiskyFields,
-                        onCheckedChange = { stripRiskyFields = it },
-                        modifier = Modifier.semantics {
-                            contentDescription = "Strip private references before saving"
-                        }
-                    )
-                    Text(
-                        text = "Strip these references before saving",
-                        color = TextPrimary,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
+                PrivateReferenceToggle(
+                    checked = stripRiskyFields,
+                    onCheckedChange = { stripRiskyFields = it }
+                )
+                Text(
+                    text = "Sanitizing keeps the wake time and repeat pattern, but removes values that can identify devices, places, people, media, or challenge secrets.",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
 
         uiState.error?.let { error ->
-            Text(
-                text = error,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium
+            AppFeedbackCard(
+                title = "Import could not be saved",
+                message = error,
+                icon = Icons.Default.Warning,
+                color = AccentRed
             )
         }
 
@@ -181,11 +207,98 @@ fun SharedAlarmImportScreen(
                 enabled = !uiState.isSaving,
                 shape = AppChipShape
             ) {
-                Text(if (uiState.isSaving) "Saving..." else "Save disabled")
+                if (uiState.isSaving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text("Saving")
+                } else {
+                    Text("Save inactive")
+                }
             }
         }
 
         Spacer(modifier = Modifier.padding(bottom = 4.dp))
+    }
+}
+
+@Composable
+private fun PrivateReferenceToggle(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = checked,
+                role = Role.Checkbox,
+                onValueChange = onCheckedChange
+            ),
+        shape = RoundedCornerShape(10.dp),
+        color = if (checked) {
+            DismissGreen.copy(alpha = 0.10f)
+        } else {
+            SurfaceLight.copy(alpha = 0.58f)
+        },
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (checked) DismissGreen.copy(alpha = 0.28f) else BorderSubtle
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Checkbox(
+                checked = checked,
+                onCheckedChange = null,
+                colors = CheckboxDefaults.colors(
+                    checkedColor = DismissGreen,
+                    uncheckedColor = TextMuted,
+                    checkmarkColor = SurfaceDark
+                )
+            )
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .background(
+                        color = DismissGreen.copy(alpha = 0.14f),
+                        shape = RoundedCornerShape(8.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Security,
+                    contentDescription = null,
+                    tint = DismissGreen,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = "Strip private references",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = if (checked) {
+                        "Recommended for alarms from other people or public links."
+                    } else {
+                        "Keep only when you trust the sender and need these references."
+                    },
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
     }
 }
 
@@ -218,7 +331,10 @@ private fun Alarm.formatSharedImportTime(): String {
 private fun Alarm.challengeSummary(): String {
     return when {
         challengeChain.isNotBlank() -> challengeChain
-        challengeType.isNotBlank() && challengeType != "NONE" -> challengeType
+            .split(",")
+            .mapNotNull { it.trim().takeIf(String::isNotBlank)?.toSharedImportLabel() }
+            .joinToString(" + ")
+        challengeType.isNotBlank() && challengeType != "NONE" -> challengeType.toSharedImportLabel()
         else -> "None"
     }
 }
@@ -228,8 +344,18 @@ private fun Alarm.soundSummary(): String {
         ringtonePool.isNotBlank() -> "Random ringtone pool"
         internetRadioUrl.isNotBlank() -> "Internet radio"
         spotifyUri.isNotBlank() -> "Spotify"
+        ringtoneUri == "silent" -> "Silent alarm"
         ringtoneUri.isNotBlank() -> "Custom ringtone"
         else -> "Device default"
+    }
+}
+
+private fun String.toSharedImportLabel(): String {
+    val normalized = trim()
+        .replace('_', ' ')
+        .lowercase(Locale.US)
+    return normalized.replaceFirstChar { char ->
+        if (char.isLowerCase()) char.titlecase(Locale.US) else char.toString()
     }
 }
 

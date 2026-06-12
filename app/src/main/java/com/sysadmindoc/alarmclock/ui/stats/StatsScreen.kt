@@ -575,6 +575,7 @@ private fun <T> FilterChipRow(
                     label = text,
                     selected = selected == value,
                     onClick = { onSelect(value) },
+                    selectionSemantics = true,
                 )
             }
         }

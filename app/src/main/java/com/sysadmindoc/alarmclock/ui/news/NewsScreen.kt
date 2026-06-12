@@ -125,6 +125,7 @@ fun NewsScreen(
                                 label = feed.label,
                                 selected = feed.key == state.activeFeedKey,
                                 onClick = { viewModel.selectFeed(feed.key) },
+                                selectionSemantics = true,
                             )
                         }
                     }

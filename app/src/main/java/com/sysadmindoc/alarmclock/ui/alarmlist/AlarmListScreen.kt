@@ -641,12 +641,14 @@ private fun GroupFilterRow(
                 label = "All",
                 selected = selectedGroup == null,
                 onClick = { onSelectGroup(null) },
+                selectionSemantics = true,
             )
             groups.forEach { group ->
                 AppFilterChip(
                     label = group,
                     selected = selectedGroup == group,
                     onClick = { onSelectGroup(if (selectedGroup == group) null else group) },
+                    selectionSemantics = true,
                 )
             }
         }
