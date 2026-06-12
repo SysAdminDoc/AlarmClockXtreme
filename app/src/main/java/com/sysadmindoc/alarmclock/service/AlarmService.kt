@@ -11,6 +11,8 @@ import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.RingtoneManager
+import android.media.session.MediaSession
+import android.media.session.PlaybackState
 import android.net.Uri
 import android.os.*
 import android.speech.tts.TextToSpeech
@@ -148,6 +150,7 @@ class AlarmService : Service() {
     }
 
     private var mediaPlayer: MediaPlayer? = null
+    private var mediaSession: MediaSession? = null
     private var vibrator: Vibrator? = null
     private var volumeJob: Job? = null
     private var hapticOnlyJob: Job? = null
@@ -249,6 +252,7 @@ class AlarmService : Service() {
                         reasonCode = "START_COMMAND_RECEIVED",
                         source = "AlarmService"
                     )
+                    activateAlarmMediaSession("START_COMMAND")
                     // v1.5.4: Android 14+ requires startForeground() within ~5 s of
                     // startForegroundService() or the app crashes with
                     // ForegroundServiceDidNotStartInTimeException. Previously the
@@ -324,6 +328,7 @@ class AlarmService : Service() {
             )
             clearAlarmRuntimeState(alarmId)
             activeAlarmId = -1L
+            releaseAlarmMediaSession()
             stopSelf()
             return
         }
@@ -593,6 +598,58 @@ class AlarmService : Service() {
             .build()
     }
 
+    private fun activateAlarmMediaSession(reasonCode: String) {
+        val session = mediaSession ?: run {
+            MediaSession(this, "AlarmClockXtremeAlarm").also { created ->
+                mediaSession = created
+            }
+        }
+        try {
+            session.isActive = true
+            updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_AUDIO,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = "MEDIA_SESSION_ACTIVE_$reasonCode",
+                source = "AlarmService"
+            )
+        } catch (e: Exception) {
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_AUDIO,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "MEDIA_SESSION_FAILED_${e.javaClass.simpleName}",
+                source = "AlarmService"
+            )
+        }
+    }
+
+    private fun updateAlarmMediaSessionState(state: Int) {
+        val session = mediaSession ?: return
+        val speed = if (state == PlaybackState.STATE_PLAYING) 1f else 0f
+        try {
+            val playbackState = PlaybackState.Builder()
+                .setActions(PlaybackState.ACTION_STOP)
+                .setState(state, PlaybackState.PLAYBACK_POSITION_UNKNOWN, speed)
+                .build()
+            session.setPlaybackState(playbackState)
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaSession playback state update failed", e)
+        }
+    }
+
+    private fun releaseAlarmMediaSession() {
+        val session = mediaSession ?: return
+        try {
+            updateAlarmMediaSessionState(PlaybackState.STATE_STOPPED)
+            session.isActive = false
+            session.release()
+        } catch (e: Exception) {
+            Log.w(TAG, "MediaSession release failed", e)
+        } finally {
+            mediaSession = null
+        }
+    }
+
     private fun startAudio(alarm: Alarm) {
         // Silent mode - skip audio entirely
         if (alarm.ringtoneUri == "silent" || alarm.usesMutedAlarmAudio()) {
@@ -602,6 +659,7 @@ class AlarmService : Service() {
                 reasonCode = "SILENT_OR_HAPTIC_ONLY",
                 source = "AlarmService"
             )
+            updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
             return
         }
 
@@ -671,6 +729,7 @@ class AlarmService : Service() {
                 // makes noise instead of silently no-oping.
                 if (spotifyIntent.resolveActivity(packageManager) != null) {
                     startActivity(spotifyIntent)
+                    updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
                     recordIncidentAsync(
                         type = AlarmIncidentEvent.TYPE_AUDIO,
                         status = AlarmIncidentEvent.STATUS_SUCCEEDED,
@@ -699,6 +758,7 @@ class AlarmService : Service() {
                     isLooping = false  // Streams don't loop
                     setOnPreparedListener { mp ->
                         mp.start()
+                        updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
                         recordIncidentAsync(
                             type = AlarmIncidentEvent.TYPE_AUDIO,
                             status = AlarmIncidentEvent.STATUS_SUCCEEDED,
@@ -812,6 +872,7 @@ class AlarmService : Service() {
                 if (callMutedAudio) setVolume(0f, 0f)
                 else if (fadeInMs > 0) setVolume(0f, 0f) else setVolume(1f, 1f)
                 start()
+                updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
             }
             recordIncidentAsync(
                 type = AlarmIncidentEvent.TYPE_AUDIO,
@@ -861,6 +922,7 @@ class AlarmService : Service() {
                         // v1.11.2: honour an active call right out of the gate.
                         if (callMutedAudio) setVolume(0f, 0f) else setVolume(1f, 1f)
                         start()
+                        updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
                     }
                     recordIncidentAsync(
                         type = AlarmIncidentEvent.TYPE_AUDIO,
@@ -1398,6 +1460,7 @@ class AlarmService : Service() {
         volumeJob = null
         hapticOnlyJob?.cancel()
         hapticOnlyJob = null
+        releaseAlarmMediaSession()
         flashlightJob?.cancel()
         flashlightJob = null
         try {
