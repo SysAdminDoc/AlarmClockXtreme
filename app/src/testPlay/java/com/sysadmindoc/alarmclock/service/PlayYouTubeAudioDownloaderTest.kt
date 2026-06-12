@@ -29,6 +29,8 @@ class PlayYouTubeAudioDownloaderTest {
         assertFalse(isLikelyYouTubeUrl("https://evil.com/watch?v=abc"))
         assertFalse(isLikelyYouTubeUrl("ftp://youtube.com/watch?v=abc"))
         assertFalse(isLikelyYouTubeUrl("https://youtube.com.evil.com/x"))
+        assertFalse(isLikelyYouTubeUrl("https://youtube.com/watch?v=abc --netrc-cmd=calc"))
+        assertFalse(isLikelyYouTubeUrl("https://youtube.com/watch?v=abc\n--netrc-cmd=calc"))
     }
 
     @Test
