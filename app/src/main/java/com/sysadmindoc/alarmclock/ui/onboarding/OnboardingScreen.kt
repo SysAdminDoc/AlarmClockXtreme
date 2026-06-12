@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +61,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
@@ -134,11 +138,27 @@ fun OnboardingScreen(
     val scope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == onboardingPages.lastIndex
     var readiness by remember { mutableStateOf(OnboardingReadiness.from(context)) }
+    var testAlarmStatus by remember { mutableStateOf("") }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
         readiness = OnboardingReadiness.from(context)
+    }
+
+    DisposableEffect(lifecycleOwner, context) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val updatedReadiness = OnboardingReadiness.from(context)
+                if (updatedReadiness.testAlarmReady && !readiness.testAlarmReady) {
+                    testAlarmStatus = "Test alarm completed. Your device opened the alarm screen successfully."
+                }
+                readiness = updatedReadiness
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     Box(
@@ -300,8 +320,27 @@ fun OnboardingScreen(
                             ready = readiness.batteryReady,
                             onAction = { ManufacturerCompat.requestBatteryOptimizationExemption(context) }
                         )
+                        ReadinessMiniRow(
+                            icon = Icons.Default.Alarm,
+                            title = "Test alarm",
+                            ready = readiness.testAlarmReady,
+                            actionLabel = "Run",
+                            onAction = {
+                                OnboardingTestAlarm.schedule(context).fold(
+                                    onSuccess = {
+                                        testAlarmStatus = "Test alarm scheduled. It will ring in 10 seconds."
+                                        readiness = OnboardingReadiness.from(context)
+                                    },
+                                    onFailure = { error ->
+                                        testAlarmStatus = error.message ?: "Could not schedule the test alarm."
+                                    }
+                                )
+                            }
+                        )
                         Text(
-                            text = "Set these before relying on an overnight alarm. Calendar and weather permissions are optional and can be changed later.",
+                            text = testAlarmStatus.ifBlank {
+                                "Set these before relying on an overnight alarm. Calendar and weather permissions are optional and can be changed later."
+                            },
                             color = TextSecondary,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center
@@ -510,6 +549,7 @@ private fun ReadinessMiniRow(
     icon: ImageVector,
     title: String,
     ready: Boolean,
+    actionLabel: String = "Review",
     onAction: () -> Unit
 ) {
     Row(
@@ -530,7 +570,7 @@ private fun ReadinessMiniRow(
             modifier = Modifier.weight(1f)
         )
         TextButton(onClick = onAction, enabled = !ready) {
-            Text(if (ready) "Ready" else "Review")
+            Text(if (ready) "Ready" else actionLabel)
         }
     }
 }
@@ -540,7 +580,8 @@ private data class OnboardingReadiness(
     val notificationsReady: Boolean,
     val fullScreenRelevant: Boolean,
     val fullScreenReady: Boolean?,
-    val batteryReady: Boolean
+    val batteryReady: Boolean,
+    val testAlarmReady: Boolean
 ) {
     companion object {
         fun from(context: Context): OnboardingReadiness {
@@ -570,7 +611,8 @@ private data class OnboardingReadiness(
                 notificationsReady = notifications,
                 fullScreenRelevant = fullScreenRelevant,
                 fullScreenReady = fullScreen,
-                batteryReady = ManufacturerCompat.isIgnoringBatteryOptimizations(context)
+                batteryReady = ManufacturerCompat.isIgnoringBatteryOptimizations(context),
+                testAlarmReady = OnboardingTestAlarm.isCompleted(context)
             )
         }
     }

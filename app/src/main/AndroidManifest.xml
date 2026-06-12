@@ -139,9 +139,22 @@
             android:taskAffinity=""
             android:theme="@style/Theme.AlarmClockXtreme" />
 
+        <activity
+            android:name=".ui.onboarding.OnboardingTestAlarmActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.AlarmClockXtreme" />
+
         <!-- Alarm Receiver -->
         <receiver
             android:name=".receiver.AlarmReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".ui.onboarding.OnboardingTestAlarmReceiver"
             android:exported="false" />
 
         <!-- Minimal Direct Boot fallback alarm path before first unlock. -->
