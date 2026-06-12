@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- F-Droid flavor only: Guardian Angel can send automatic emergency SMS
+         after explicit user opt-in. The Play flavor uses a prefilled composer
+         to comply with Google Play restricted SMS permission policy. -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+
+</manifest>

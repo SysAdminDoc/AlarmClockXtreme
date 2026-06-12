@@ -65,11 +65,9 @@
     <!-- Sonar sleep tracking microphone service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
-    <!-- v1.2.0: Guardian Angel — request only when user enables the feature.
-         Both permissions are optional: GuardianWorker degrades gracefully to
-         ACTION_DIAL when CALL_PHONE is missing and silently skips SMS when
-         SEND_SMS is missing. -->
-    <uses-permission android:name="android.permission.SEND_SMS" />
+    <!-- v1.2.0: Guardian Angel — CALL_PHONE is optional and falls back to
+         ACTION_DIAL when missing. SEND_SMS is declared only by the F-Droid
+         flavor; the Play flavor opens a prefilled SMS composer instead. -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 

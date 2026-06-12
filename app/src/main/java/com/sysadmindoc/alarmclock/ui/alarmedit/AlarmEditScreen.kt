@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -1121,7 +1122,11 @@ fun AlarmEditScreen(
                         }
                     }
                     SettingsHint(
-                        "Sends an SMS and places a call if the alarm is not dismissed within the delay.",
+                        if (BuildConfig.FLAVOR == "fdroid") {
+                            "Sends an emergency SMS and opens the call path if the alarm is not dismissed within the delay."
+                        } else {
+                            "Opens a prefilled emergency SMS composer if the alarm is not dismissed; falls back to call or dialer if texting cannot open."
+                        },
                         tone = HintTone.Danger
                     )
                 }
