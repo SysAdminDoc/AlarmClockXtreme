@@ -11,18 +11,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
-import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
 import com.sysadmindoc.alarmclock.ui.components.WhatsNewDialog
 import com.sysadmindoc.alarmclock.ui.navigation.AppNavigation
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
 import com.sysadmindoc.alarmclock.util.WhatsNewTracker
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -31,16 +29,16 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var preferencesManager: PreferencesManager
 
-    @Inject
-    lateinit var alarmRepository: AlarmRepository
-
     private var lastHandledShareToken: String? = null
+    private var pendingSharedAlarmToken: String? = null
+    private var pendingSharedAlarmDraft by mutableStateOf<Alarm?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         lastHandledShareToken = savedInstanceState?.getString(KEY_LAST_HANDLED_SHARE_TOKEN)
-        handleSharedAlarmIntent(intent)
+        pendingSharedAlarmToken = savedInstanceState?.getString(KEY_PENDING_SHARE_TOKEN)
+        pendingSharedAlarmToken?.let { restorePendingSharedAlarm(it) } ?: handleSharedAlarmIntent(intent)
 
         // v1.5.0: Decide once at launch whether to surface the What's-new
         // dialog; avoid re-checking during recomposition.
@@ -55,7 +53,13 @@ class MainActivity : ComponentActivity() {
                 dynamicColor = settings.value.dynamicColorEnabled,
                 expressiveMode = settings.value.expressiveModeEnabled
             ) {
-                AppNavigation()
+                AppNavigation(
+                    sharedAlarmDraft = pendingSharedAlarmDraft,
+                    onSharedAlarmConsumed = {
+                        pendingSharedAlarmDraft = null
+                        pendingSharedAlarmToken = null
+                    }
+                )
 
                 var dialogVisible by remember { mutableStateOf(showWhatsNew) }
                 if (dialogVisible) {
@@ -97,6 +101,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString(KEY_LAST_HANDLED_SHARE_TOKEN, lastHandledShareToken)
+        outState.putString(KEY_PENDING_SHARE_TOKEN, pendingSharedAlarmToken)
         super.onSaveInstanceState(outState)
     }
 
@@ -108,31 +113,42 @@ class MainActivity : ComponentActivity() {
         if (token.isBlank() || token == lastHandledShareToken) return
         lastHandledShareToken = token
 
-        lifecycleScope.launch {
-            val decoded = AlarmShareCodec.decodeToken(token)
-            decoded.fold(
-                onSuccess = { alarm ->
-                    val imported = AlarmShareCodec.prepareImportedAlarm(alarm)
-                    alarmRepository.save(imported)
+        queueSharedAlarmDraft(token, showReadyToast = true)
+    }
+
+    private fun restorePendingSharedAlarm(token: String) {
+        queueSharedAlarmDraft(token, showReadyToast = false)
+    }
+
+    private fun queueSharedAlarmDraft(token: String, showReadyToast: Boolean) {
+        val decoded = AlarmShareCodec.decodeToken(token)
+        decoded.fold(
+            onSuccess = { alarm ->
+                pendingSharedAlarmToken = token
+                pendingSharedAlarmDraft = AlarmShareCodec.prepareImportedAlarm(alarm)
+                if (showReadyToast) {
                     Toast.makeText(
-                        this@MainActivity,
-                        "Imported shared alarm. Review it before enabling.",
-                        Toast.LENGTH_LONG
-                    ).show()
-                },
-                onFailure = {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Unable to import this shared alarm.",
+                        this,
+                        "Review this shared alarm before saving it.",
                         Toast.LENGTH_LONG
                     ).show()
                 }
-            )
-        }
+            },
+            onFailure = {
+                pendingSharedAlarmToken = null
+                pendingSharedAlarmDraft = null
+                Toast.makeText(
+                    this,
+                    "Unable to import this shared alarm.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        )
     }
 
     companion object {
         private const val KEY_LAST_HANDLED_SHARE_TOKEN = "last_handled_share_token"
+        private const val KEY_PENDING_SHARE_TOKEN = "pending_share_token"
         private const val ROADMAP_URL = "https://github.com/SysAdminDoc/AlarmClockXtreme/blob/main/ROADMAP.md"
 
         /**

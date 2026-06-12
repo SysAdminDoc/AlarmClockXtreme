@@ -33,6 +33,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.ui.alarmedit.AlarmEditScreen
 import com.sysadmindoc.alarmclock.ui.alarmlist.AlarmListScreen
 import com.sysadmindoc.alarmclock.ui.bedtime.BedtimeScreen
@@ -41,6 +42,7 @@ import com.sysadmindoc.alarmclock.ui.dashboard.DashboardScreen
 import com.sysadmindoc.alarmclock.ui.onboarding.OnboardingScreen
 import com.sysadmindoc.alarmclock.ui.stats.StatsScreen
 import com.sysadmindoc.alarmclock.ui.settings.SettingsScreen
+import com.sysadmindoc.alarmclock.ui.share.SharedAlarmImportScreen
 import com.sysadmindoc.alarmclock.ui.stopwatch.StopwatchScreen
 import com.sysadmindoc.alarmclock.ui.theme.*
 import com.sysadmindoc.alarmclock.ui.timer.TimerScreen
@@ -60,6 +62,7 @@ sealed class Screen(val route: String) {
     data object Stats : Screen("stats")
     data object Onboarding : Screen("onboarding")
     data object WorldClock : Screen("world_clock")
+    data object SharedAlarmImport : Screen("shared_alarm_import")
     // v1.8.0
     data object News : Screen("news")
 }
@@ -111,7 +114,11 @@ private fun visibleBottomNavItems(
 
 @OptIn(androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
-fun AppNavigation(navController: NavHostController = rememberNavController()) {
+fun AppNavigation(
+    navController: NavHostController = rememberNavController(),
+    sharedAlarmDraft: Alarm? = null,
+    onSharedAlarmConsumed: () -> Unit = {}
+) {
     val context = LocalContext.current
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -281,7 +288,9 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
                     AppNavHost(
                         navController = navController,
                         startDest = startDest,
-                        prefs = prefs
+                        prefs = prefs,
+                        sharedAlarmDraft = sharedAlarmDraft,
+                        onSharedAlarmConsumed = onSharedAlarmConsumed
                     )
                 }
             }
@@ -289,12 +298,14 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
         }
 
         AppNavHost(
-            navController = navController,
-            startDest = startDest,
-            prefs = prefs,
-            modifier = Modifier.padding(padding)
-        )
-    }
+        navController = navController,
+        startDest = startDest,
+        prefs = prefs,
+        sharedAlarmDraft = sharedAlarmDraft,
+        onSharedAlarmConsumed = onSharedAlarmConsumed,
+        modifier = Modifier.padding(padding)
+    )
+}
 }
 
 /**
@@ -310,8 +321,18 @@ private fun AppNavHost(
     navController: NavHostController,
     startDest: String,
     prefs: android.content.SharedPreferences,
+    sharedAlarmDraft: Alarm?,
+    onSharedAlarmConsumed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    LaunchedEffect(sharedAlarmDraft) {
+        if (sharedAlarmDraft != null) {
+            navController.navigate(Screen.SharedAlarmImport.route) {
+                launchSingleTop = true
+            }
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = startDest,
@@ -359,6 +380,37 @@ private fun AppNavHost(
             AlarmEditScreen(
                 onNavigateBack = { navController.popBackStack() }
             )
+        }
+
+        composable(Screen.SharedAlarmImport.route) {
+            val draft = sharedAlarmDraft
+            if (draft == null) {
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                }
+            } else {
+                SharedAlarmImportScreen(
+                    alarm = draft,
+                    onCancel = {
+                        onSharedAlarmConsumed()
+                        if (!navController.popBackStack()) {
+                            navController.navigate(Screen.AlarmList.route) {
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = false
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onSaved = { savedId ->
+                        onSharedAlarmConsumed()
+                        navController.navigate(Screen.AlarmEdit.createRoute(savedId)) {
+                            popUpTo(Screen.SharedAlarmImport.route) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                )
+            }
         }
 
         composable(Screen.Timer.route) {
