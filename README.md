@@ -86,7 +86,7 @@ cd AlarmClockXtreme
 | Progressive Snooze | Each snooze shortens by 1 minute (10 -> 9 -> 8 -> ...) |
 | Backup Sound Escalation | Ultra-loud volume boost if no interaction within configurable delay |
 | Max Snooze Count | Auto-dismiss after N snoozes reached |
-| Guardian Angel | Emergency contact SMS + phone call if alarm not dismissed |
+| Guardian Angel | Emergency-contact escalation if an alarm is not dismissed; F-Droid can auto-send SMS, Play opens a prefilled SMS composer |
 | Wake Confirmation | Re-fires alarm if user doesn't confirm they're awake |
 | Flashlight Strobe | Camera flash LED strobe during alarm |
 | Repeat Missed Alarms | Auto-silenced alarm re-fires briefly on next unlock (configurable) |
@@ -258,7 +258,8 @@ plus hashes to the GitHub Release.
 | `android.permission.health.READ_SLEEP` | Health Connect sleep-session summaries in Bedtime and Statistics | Optional (Play flavor only) |
 | `MODIFY_AUDIO_SETTINGS` | Alarm audio routing and volume behavior | Yes |
 | `ACTIVITY_RECOGNITION` | Walk steps + smart alarm | Optional |
-| `SEND_SMS` / `CALL_PHONE` | Guardian Angel emergency contact | Optional |
+| `SEND_SMS` | Guardian Angel automatic emergency SMS | Optional (F-Droid flavor only) |
+| `CALL_PHONE` | Guardian Angel emergency call path; falls back to the dialer when denied | Optional |
 | `READ_MEDIA_AUDIO` / `READ_EXTERNAL_STORAGE` | Browse device audio for alarm sounds | Optional |
 | `WRITE_EXTERNAL_STORAGE` (<= Android 9) | Save downloaded YouTube alarm sounds to MediaStore | Optional (Play flavor only) |
 
@@ -297,7 +298,7 @@ Yes. Core alarm features do not require Google Play Services. Weather uses Open-
 In alarm edit, set the "Challenge chain" field to a comma-separated list of challenge types (e.g., `MATH_EASY,SHAKE,TYPING`). The alarm will require you to solve each challenge in order before dismissing.
 
 **What is Guardian Angel?**
-If enabled on an alarm, and you don't dismiss within the configured delay (default 5 minutes), the app sends an SMS and attempts to call your emergency contact. Requires SEND_SMS and CALL_PHONE permissions.
+If enabled on an alarm, and you don't dismiss within the configured delay (default 5 minutes), the app escalates to your emergency contact. F-Droid builds can auto-send the emergency SMS when you grant `SEND_SMS`, then open the call path. Play builds do not request `SEND_SMS`; they open a prefilled SMS composer and fall back to call or dialer if texting cannot open. `CALL_PHONE` is optional because the app can always fall back to the dialer.
 
 ## Contributing
 
