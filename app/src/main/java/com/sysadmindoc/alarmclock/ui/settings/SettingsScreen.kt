@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Warning
@@ -116,6 +117,8 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.worker.GuardianReadiness
+import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -160,6 +163,16 @@ fun SettingsScreen(
     val context = LocalContext.current
     val screenScope = rememberCoroutineScope()
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.refreshBatteryStatus()
+    }
+    val guardianSmsPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.refreshBatteryStatus()
+    }
+    val guardianCallPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
         viewModel.refreshBatteryStatus()
@@ -228,6 +241,12 @@ fun SettingsScreen(
                 onRequestExactAlarms = viewModel::requestExactAlarmAccess,
                 onRequestFullScreenAlarms = viewModel::requestFullScreenAlarmAccess,
                 onRequestBatteryExemption = viewModel::requestBatteryExemption,
+                onRequestGuardianSmsPermission = {
+                    guardianSmsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
+                },
+                onRequestGuardianCallPermission = {
+                    guardianCallPermissionLauncher.launch(Manifest.permission.CALL_PHONE)
+                },
                 onOpenOnboardingChecklist = onOpenOnboardingChecklist
             )
             IncidentTimelineSection(
@@ -766,6 +785,8 @@ private fun WakeReadinessSection(
     onRequestExactAlarms: () -> Unit,
     onRequestFullScreenAlarms: () -> Unit,
     onRequestBatteryExemption: () -> Unit,
+    onRequestGuardianSmsPermission: () -> Unit,
+    onRequestGuardianCallPermission: () -> Unit,
     onOpenOnboardingChecklist: () -> Unit
 ) {
     // v1.11.3 (roadmap N3): Standby bucket is only surfaced when the API is
@@ -786,6 +807,9 @@ private fun WakeReadinessSection(
         if (fullScreenRowVisible) add(state.canUseFullScreenIntent == true)
         add(state.isIgnoringBatteryOptimizations)
         if (standbyRowVisible) add(standbyReady)
+        if (state.guardianReadiness.hasEnabledAlarms) {
+            add(!state.guardianReadiness.needsUserAction)
+        }
     }
     val readyCount = checks.count { it }
     val total = checks.size
@@ -864,6 +888,23 @@ private fun WakeReadinessSection(
                 onAction = onRequestBatteryExemption
             )
         }
+        if (state.guardianReadiness.hasEnabledAlarms) {
+            WakeReadinessRow(
+                icon = Icons.Default.Security,
+                title = "Guardian Angel escalation",
+                description = guardianReadinessDescription(state.guardianReadiness),
+                ready = !state.guardianReadiness.needsUserAction,
+                statusLabel = guardianReadinessStatusLabel(state.guardianReadiness),
+                actionLabel = guardianReadinessActionLabel(state.guardianReadiness),
+                onAction = {
+                    if (state.guardianReadiness.needsSmsPermission) {
+                        onRequestGuardianSmsPermission()
+                    } else {
+                        onRequestGuardianCallPermission()
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -881,12 +922,48 @@ private fun standbyBucketDescription(bucket: Int): String = when (bucket) {
     else -> "Standby bucket $bucket — open battery settings to promote the app to Working set."
 }
 
+private fun guardianReadinessDescription(readiness: GuardianReadiness): String {
+    val alarmCount = if (readiness.enabledAlarmCount == 1) {
+        "1 Guardian alarm"
+    } else {
+        "${readiness.enabledAlarmCount} Guardian alarms"
+    }
+    val callPath = if (readiness.hasCallPhonePermission) {
+        "Direct call permission is granted."
+    } else {
+        "Call fallback opens the dialer because CALL_PHONE is not granted."
+    }
+    return when (readiness.smsPath) {
+        GuardianSmsPath.INACTIVE -> "No Guardian alarms are enabled."
+        GuardianSmsPath.DIRECT_SMS ->
+            "$alarmCount can send automatic SMS in F-Droid. $callPath"
+        GuardianSmsPath.NEEDS_SEND_SMS_PERMISSION ->
+            "$alarmCount will open the SMS composer until SEND_SMS is allowed. $callPath"
+        GuardianSmsPath.SMS_COMPOSER ->
+            "$alarmCount uses a prefilled SMS composer in this build. $callPath"
+    }
+}
+
+private fun guardianReadinessStatusLabel(readiness: GuardianReadiness): String {
+    if (readiness.needsUserAction) return "Review"
+    return when (readiness.smsPath) {
+        GuardianSmsPath.INACTIVE -> "Off"
+        GuardianSmsPath.DIRECT_SMS -> "Direct SMS"
+        GuardianSmsPath.NEEDS_SEND_SMS_PERMISSION -> "Review"
+        GuardianSmsPath.SMS_COMPOSER -> "Composer"
+    }
+}
+
+private fun guardianReadinessActionLabel(readiness: GuardianReadiness): String =
+    if (readiness.needsSmsPermission) "Allow SMS" else "Allow calls"
+
 @Composable
 private fun WakeReadinessRow(
     icon: ImageVector,
     title: String,
     description: String,
     ready: Boolean,
+    statusLabel: String = if (ready) "Ready" else "Review",
     actionLabel: String,
     onAction: () -> Unit
 ) {
@@ -933,7 +1010,7 @@ private fun WakeReadinessRow(
                     Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
                 AppStatusChip(
-                    label = if (ready) "Ready" else "Review",
+                    label = statusLabel,
                     icon = if (ready) Icons.Default.CheckCircle else Icons.Default.Warning,
                     color = accent
                 )

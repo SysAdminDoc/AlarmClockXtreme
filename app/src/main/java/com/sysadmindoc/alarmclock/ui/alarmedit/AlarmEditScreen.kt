@@ -41,6 +41,9 @@ import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.*
 import com.sysadmindoc.alarmclock.util.PhotoMatcher
+import com.sysadmindoc.alarmclock.worker.GuardianEscalationPolicy
+import com.sysadmindoc.alarmclock.worker.GuardianReadiness
+import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.DayOfWeek
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1121,13 +1124,21 @@ fun AlarmEditScreen(
                             }
                         }
                     }
+                    val guardianReadiness = GuardianEscalationPolicy.readiness(
+                        flavor = BuildConfig.FLAVOR,
+                        enabledAlarmCount = 1,
+                        hasSendSmsPermission = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.SEND_SMS
+                        ) == PackageManager.PERMISSION_GRANTED,
+                        hasCallPhonePermission = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.CALL_PHONE
+                        ) == PackageManager.PERMISSION_GRANTED
+                    )
                     SettingsHint(
-                        if (BuildConfig.FLAVOR == "fdroid") {
-                            "Sends an emergency SMS and opens the call path if the alarm is not dismissed within the delay."
-                        } else {
-                            "Opens a prefilled emergency SMS composer if the alarm is not dismissed; falls back to call or dialer if texting cannot open."
-                        },
-                        tone = HintTone.Danger
+                        guardianEditHint(guardianReadiness),
+                        tone = if (guardianReadiness.needsUserAction) HintTone.Warning else HintTone.Danger
                     )
                 }
             }
@@ -1906,6 +1917,23 @@ private fun AlarmEditUiState.soundSummary(): String = when {
     ringtoneUri == "silent" -> "Silent wake"
     ringtoneUri.isBlank() -> "Default sound"
     else -> "Custom tone"
+}
+
+private fun guardianEditHint(readiness: GuardianReadiness): String {
+    val callPath = if (readiness.hasCallPhonePermission) {
+        "Direct call permission is granted."
+    } else {
+        "Call fallback opens the dialer because CALL_PHONE is not granted."
+    }
+    return when (readiness.smsPath) {
+        GuardianSmsPath.INACTIVE -> "Guardian Angel is off for this alarm."
+        GuardianSmsPath.DIRECT_SMS ->
+            "Sends an emergency SMS automatically, then opens the call path if the alarm is not dismissed. $callPath"
+        GuardianSmsPath.NEEDS_SEND_SMS_PERMISSION ->
+            "F-Droid can send automatic SMS after SEND_SMS is allowed. Until then, it opens a prefilled SMS composer. $callPath"
+        GuardianSmsPath.SMS_COMPOSER ->
+            "Opens a prefilled emergency SMS composer if the alarm is not dismissed, then falls back to call or dialer. $callPath"
+    }
 }
 
 private fun alarmChallengeOptions(): List<Pair<String, String>> = listOf(

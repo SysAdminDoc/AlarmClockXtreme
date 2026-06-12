@@ -17,6 +17,7 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
 import com.sysadmindoc.alarmclock.util.CrashLogger
+import com.sysadmindoc.alarmclock.worker.GuardianEscalationPolicy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileOutputStream
@@ -62,6 +63,12 @@ class SupportExportManager @Inject constructor(
         val incidents = alarmIncidentRepository.getRecent(limit = MAX_INCIDENTS)
         val latestIncident = incidents.firstOrNull()
         val crashLogs = CrashLogger.getLogFiles(context).take(MAX_CRASH_LOGS)
+        val guardianReadiness = GuardianEscalationPolicy.readiness(
+            flavor = BuildConfig.FLAVOR,
+            enabledAlarmCount = alarms.count { it.enabled && it.guardianEnabled },
+            hasSendSmsPermission = hasPermission(Manifest.permission.SEND_SMS),
+            hasCallPhonePermission = hasPermission(Manifest.permission.CALL_PHONE)
+        )
 
         ZipOutputStream(FileOutputStream(zipFile)).use { zip ->
             zip.writeTextEntry(
@@ -82,6 +89,7 @@ class SupportExportManager @Inject constructor(
                     fullScreenIntentAllowed = canUseFullScreenIntent(),
                     ignoringBatteryOptimizations = isIgnoringBatteryOptimizations(),
                     appStandbyBucket = appStandbyBucketLabel(),
+                    guardianReadiness = guardianReadiness,
                     totalAlarms = alarms.size,
                     enabledAlarms = enabledCount,
                     nextTriggerTime = nextTrigger,
@@ -123,12 +131,14 @@ class SupportExportManager @Inject constructor(
 
     private fun hasNotificationPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
-                PackageManager.PERMISSION_GRANTED
+            hasPermission(Manifest.permission.POST_NOTIFICATIONS)
         } else {
             true
         }
     }
+
+    private fun hasPermission(name: String): Boolean =
+        ContextCompat.checkSelfPermission(context, name) == PackageManager.PERMISSION_GRANTED
 
     private fun canScheduleExactAlarms(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

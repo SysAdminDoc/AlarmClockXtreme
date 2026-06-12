@@ -312,7 +312,7 @@ Yes. Core alarm features do not require Google Play Services. Weather uses Open-
 In alarm edit, set the "Challenge chain" field to a comma-separated list of challenge types (e.g., `MATH_EASY,SHAKE,TYPING`). The alarm will require you to solve each challenge in order before dismissing.
 
 **What is Guardian Angel?**
-If enabled on an alarm, and you don't dismiss within the configured delay (default 5 minutes), the app escalates to your emergency contact. F-Droid builds can auto-send the emergency SMS when you grant `SEND_SMS`, then open the call path. Play builds do not request `SEND_SMS`; they open a prefilled SMS composer and fall back to call or dialer if texting cannot open. `CALL_PHONE` is optional because the app can always fall back to the dialer.
+If enabled on an alarm, and you don't dismiss within the configured delay (default 5 minutes), the app escalates to your emergency contact. F-Droid builds can auto-send the emergency SMS when you grant `SEND_SMS`, then open the call path. Play builds do not request `SEND_SMS`; they open a prefilled SMS composer and fall back to call or dialer if texting cannot open. `CALL_PHONE` is optional because the app can always fall back to the dialer. Settings > Wake readiness shows active Guardian alarms, the current SMS/call path, and direct recovery actions for missing SMS or call permission.
 
 ## Contributing
 

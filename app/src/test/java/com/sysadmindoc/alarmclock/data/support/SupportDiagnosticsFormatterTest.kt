@@ -3,6 +3,8 @@ package com.sysadmindoc.alarmclock.data.support
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
+import com.sysadmindoc.alarmclock.worker.GuardianReadiness
+import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -50,6 +52,25 @@ class SupportDiagnosticsFormatterTest {
         assertTrue(blocked.contains("- Full-screen alarm access: blocked"))
         assertTrue(unknown.contains("- Full-screen alarm access: unknown"))
         assertTrue(notApplicable.contains("- Full-screen alarm access: not_applicable"))
+    }
+
+    @Test
+    fun `diagnostics expose guardian readiness status`() {
+        val text = diagnosticsText(
+            sdkInt = 35,
+            fullScreenIntentAllowed = true,
+            guardianReadiness = GuardianReadiness(
+                enabledAlarmCount = 2,
+                smsPath = GuardianSmsPath.NEEDS_SEND_SMS_PERMISSION,
+                hasSendSmsPermission = false,
+                hasCallPhonePermission = true
+            )
+        )
+
+        assertTrue(text.contains("- Guardian Angel alarms: 2"))
+        assertTrue(text.contains("- Guardian SMS path: NEEDS_SEND_SMS_PERMISSION"))
+        assertTrue(text.contains("- Guardian SEND_SMS granted: false"))
+        assertTrue(text.contains("- Guardian CALL_PHONE granted: true"))
     }
 
     @Test
@@ -118,7 +139,13 @@ class SupportDiagnosticsFormatterTest {
         recentIncidentCount: Int = 0,
         latestIncidentType: String? = null,
         latestIncidentStatus: String? = null,
-        latestIncidentReason: String? = null
+        latestIncidentReason: String? = null,
+        guardianReadiness: GuardianReadiness = GuardianReadiness(
+            enabledAlarmCount = 0,
+            smsPath = GuardianSmsPath.INACTIVE,
+            hasSendSmsPermission = false,
+            hasCallPhonePermission = false
+        )
     ): String = SupportDiagnosticsFormatter.diagnosticsText(
         generatedAt = Instant.EPOCH,
         appVersion = "test",
@@ -135,6 +162,7 @@ class SupportDiagnosticsFormatterTest {
         fullScreenIntentAllowed = fullScreenIntentAllowed,
         ignoringBatteryOptimizations = true,
         appStandbyBucket = "ACTIVE (10)",
+        guardianReadiness = guardianReadiness,
         totalAlarms = 0,
         enabledAlarms = 0,
         nextTriggerTime = null,

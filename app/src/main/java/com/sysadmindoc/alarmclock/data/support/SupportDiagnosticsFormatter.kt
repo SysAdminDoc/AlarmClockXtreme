@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.data.support
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
+import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.ZoneId
@@ -147,6 +148,7 @@ object SupportDiagnosticsFormatter {
         fullScreenIntentAllowed: Boolean?,
         ignoringBatteryOptimizations: Boolean,
         appStandbyBucket: String,
+        guardianReadiness: GuardianReadiness,
         totalAlarms: Int,
         enabledAlarms: Int,
         nextTriggerTime: Long?,
@@ -183,6 +185,10 @@ object SupportDiagnosticsFormatter {
             appendLine("- Full-screen alarm access: ${formatFullScreenIntentStatus(fullScreenIntentAllowed, sdkInt)}")
             appendLine("- Ignoring battery optimizations: $ignoringBatteryOptimizations")
             appendLine("- App standby bucket: $appStandbyBucket")
+            appendLine("- Guardian Angel alarms: ${guardianReadiness.enabledAlarmCount}")
+            appendLine("- Guardian SMS path: ${guardianReadiness.smsPath.name}")
+            appendLine("- Guardian SEND_SMS granted: ${guardianReadiness.hasSendSmsPermission}")
+            appendLine("- Guardian CALL_PHONE granted: ${guardianReadiness.hasCallPhonePermission}")
             appendLine()
             appendLine("Alarm summary")
             appendLine("- Total alarms: $totalAlarms")
