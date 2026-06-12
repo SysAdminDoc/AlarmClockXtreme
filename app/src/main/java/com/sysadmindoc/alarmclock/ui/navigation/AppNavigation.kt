@@ -395,6 +395,11 @@ private fun AppNavHost(
                 },
                 onNavigateToBedtime = {
                     navController.navigate(Screen.Bedtime.route)
+                },
+                onOpenOnboardingChecklist = {
+                    navController.navigate(Screen.Onboarding.route) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
