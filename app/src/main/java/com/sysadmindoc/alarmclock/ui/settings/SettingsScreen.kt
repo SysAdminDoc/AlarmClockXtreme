@@ -129,6 +129,7 @@ fun SettingsScreen(
     onNavigateToStats: () -> Unit = {},
     onNavigateToStopwatch: () -> Unit = {},
     onNavigateToBedtime: () -> Unit = {},
+    onOpenOnboardingChecklist: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -226,7 +227,8 @@ fun SettingsScreen(
                 },
                 onRequestExactAlarms = viewModel::requestExactAlarmAccess,
                 onRequestFullScreenAlarms = viewModel::requestFullScreenAlarmAccess,
-                onRequestBatteryExemption = viewModel::requestBatteryExemption
+                onRequestBatteryExemption = viewModel::requestBatteryExemption,
+                onOpenOnboardingChecklist = onOpenOnboardingChecklist
             )
             IncidentTimelineSection(
                 timeline = state.incidentTimeline,
@@ -772,7 +774,8 @@ private fun WakeReadinessSection(
     onRequestNotifications: () -> Unit,
     onRequestExactAlarms: () -> Unit,
     onRequestFullScreenAlarms: () -> Unit,
-    onRequestBatteryExemption: () -> Unit
+    onRequestBatteryExemption: () -> Unit,
+    onOpenOnboardingChecklist: () -> Unit
 ) {
     // v1.11.3 (roadmap N3): Standby bucket is only surfaced when the API is
     // available (API 28+) AND the bucket is actually concerning. ACTIVE /
@@ -809,6 +812,18 @@ private fun WakeReadinessSection(
                 )
             }
         )
+
+        OutlinedButton(
+            onClick = onOpenOnboardingChecklist,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.primary
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f))
+        ) {
+            Text("Open setup checklist")
+        }
 
         WakeReadinessRow(
             icon = Icons.Default.Alarm,
