@@ -65,6 +65,57 @@ jobs:
           disable-animations: true
           script: ./gradlew :app:connectedFdroidDebugAndroidTest --console=plain
 
+  release-r8-smoke:
+    name: Release R8 smoke builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build release APKs through R8
+        run: ./gradlew :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease --console=plain
+
+      - name: Assert release APK size budgets
+        run: |
+          set -euo pipefail
+
+          assert_apk_under() {
+            local label="$1"
+            local pattern="$2"
+            local max_bytes="$3"
+            local apk
+            apk="$(find . -path "$pattern" -name '*.apk' -print -quit)"
+            if [[ -z "$apk" ]]; then
+              echo "Missing APK for $label ($pattern)" >&2
+              exit 1
+            fi
+            local size
+            size="$(stat -c%s "$apk")"
+            echo "$label: $apk = $size bytes (max $max_bytes)"
+            if (( size > max_bytes )); then
+              echo "$label APK exceeds size budget" >&2
+              exit 1
+            fi
+          }
+
+          assert_apk_under "Play release" './app/build/outputs/apk/play/release/*' 125829120
+          assert_apk_under "F-Droid release" './app/build/outputs/apk/fdroid/release/*' 36700160
+          assert_apk_under "Wear release" './wear/build/outputs/apk/release/*' 5242880
+
   dependency-audit:
     name: OSV audit for Play runtime dependencies
     runs-on: ubuntu-latest
