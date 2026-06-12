@@ -14,6 +14,13 @@ import javax.inject.Singleton
 class FdroidYouTubeAudioDownloader @Inject constructor() : YouTubeAudioDownloader {
     override fun isAvailable(): Boolean = false
 
+    override suspend fun updateEngine(): Result<YouTubeEngineUpdateResult> =
+        Result.failure(
+            UnsupportedOperationException(
+                "YouTube downloader updates aren't available in the F-Droid build."
+            )
+        )
+
     override suspend fun downloadAsAlarm(youtubeUrl: String, displayName: String): Result<String> =
         Result.failure(
             UnsupportedOperationException(

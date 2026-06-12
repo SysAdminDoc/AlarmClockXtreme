@@ -285,7 +285,7 @@ Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
 ## FAQ
 
 **How does the YouTube alarm-sound downloader work?**
-On the Alarms tab tap "Download alarm sound from YouTube." A dialog opens with two modes: search YouTube directly (powered by NewPipe Extractor) or paste a video URL. Each result has a play/stop button to preview the audio before committing. Tap the row to download; yt-dlp resolves the best-audio stream, OkHttp streams it to your alarm library via MediaStore (`IS_ALARM=1`), and the ringtone picker re-enumerates so the new sound is immediately selectable. F-Droid builds ship without this feature for licensing reasons.
+On the Alarms tab tap "Download alarm sound from YouTube." A dialog opens with two modes: search YouTube directly (powered by NewPipe Extractor) or paste a video URL. Each result has a play/stop button to preview the audio before committing. Tap the row to download; yt-dlp resolves the best-audio stream with a fixed `--get-url` option allow-list, OkHttp streams it to your alarm library via MediaStore (`IS_ALARM=1`), and the ringtone picker re-enumerates so the new sound is immediately selectable. The Play flavor also includes a manual "Update" action for the local yt-dlp engine; ACX never updates it in the background, and a failed update keeps the existing engine in place. F-Droid builds ship without this feature for licensing reasons.
 
 **Why does the alarm not fire on my Xiaomi/Samsung/Huawei?**
 These manufacturers aggressively kill background apps. The app shows a manufacturer-specific warning during onboarding with steps to whitelist it. Generally: Settings > Battery > App Launch > AlarmClockXtreme > Manual > enable all toggles.

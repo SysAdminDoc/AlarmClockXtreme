@@ -38,6 +38,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
 ) : YouTubeAudioDownloader {
 
     private val initialized = AtomicBoolean(false)
+    private val engineUpdateInFlight = AtomicBoolean(false)
 
     /**
      * Session-only cache for resolved preview URLs. YouTube's signed audio
@@ -69,6 +70,55 @@ class PlayYouTubeAudioDownloader @Inject constructor(
     }
 
     override fun isAvailable(): Boolean = initialized.get()
+
+    override fun engineVersionName(): String? =
+        runCatching {
+            if (!isAvailable()) return@runCatching null
+            YoutubeDL.getInstance()
+                .versionName(context)
+                ?.trim()
+                ?.ifBlank { null }
+        }.getOrNull()
+
+    override suspend fun updateEngine(): Result<YouTubeEngineUpdateResult> = withContext(Dispatchers.IO) {
+        if (!engineUpdateInFlight.compareAndSet(false, true)) {
+            return@withContext Result.failure(
+                IllegalStateException("Downloader engine update is already running.")
+            )
+        }
+        try {
+            runCatching<YouTubeEngineUpdateResult> {
+                require(isAvailable()) {
+                    "YouTube engine is still warming up. Try again in a moment."
+                }
+                val before = engineVersionName()
+                val status = YoutubeDL.getInstance().updateYoutubeDL(
+                    context,
+                    YoutubeDL.UpdateChannel._STABLE
+                )
+                val after = engineVersionName()
+                when (status) {
+                    YoutubeDL.UpdateStatus.DONE -> YouTubeEngineUpdateResult(
+                        state = YouTubeEngineUpdateState.Updated,
+                        beforeVersionName = before,
+                        afterVersionName = after
+                    )
+                    YoutubeDL.UpdateStatus.ALREADY_UP_TO_DATE -> YouTubeEngineUpdateResult(
+                        state = YouTubeEngineUpdateState.AlreadyCurrent,
+                        beforeVersionName = before,
+                        afterVersionName = after ?: before
+                    )
+                    else -> throw IllegalStateException("Unexpected yt-dlp update status: $status")
+                }
+            }.recoverCatching { e ->
+                if (e is CancellationException) throw e
+                Log.w(TAG, "yt-dlp engine update failed", e)
+                throw e
+            }
+        } finally {
+            engineUpdateInFlight.set(false)
+        }
+    }
 
     override suspend fun getPreviewStreamUrl(youtubeUrl: String): Result<String> = withContext(Dispatchers.IO) {
         runCatching {
@@ -155,9 +205,12 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                 "That doesn't look like a YouTube URL. Paste a watch link, share link, or shorts URL."
             }
 
-            // Resolve the bestaudio direct URL via yt-dlp (--get-url, no download).
-            // Keep this as a fixed option allow-list; do not thread user input
-            // into yt-dlp flags such as --netrc-cmd.
+            // Resolve the bestaudio direct URL via yt-dlp (--get-url, no
+            // download). June 2026 yt-dlp CVEs around curl cookie leaks,
+            // aria2c manifests, and filename-created desktop/link files affect
+            // downloader/file-write paths ACX does not enable: user input is
+            // validated as a URL, options stay on this fixed allow-list, and
+            // OkHttp writes the resolved stream into MediaStore.
             val request = YoutubeDLRequest(youtubeUrl).apply {
                 addOption("-f", "bestaudio")
                 addOption("--get-url")
