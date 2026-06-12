@@ -86,6 +86,9 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                 previewCache.remove(youtubeUrl)
             }
             // worstaudio = fastest to resolve, smallest to buffer; perfect for preview.
+            // CVE-2026-26331 affects callers that enable yt-dlp's --netrc-cmd
+            // option. ACX never exposes arbitrary yt-dlp options and only adds
+            // this fixed allow-list after validating a whitespace-free YouTube URL.
             val request = YoutubeDLRequest(youtubeUrl).apply {
                 addOption("-f", "worstaudio")
                 addOption("--get-url")
@@ -152,7 +155,9 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                 "That doesn't look like a YouTube URL. Paste a watch link, share link, or shorts URL."
             }
 
-            // Resolve the bestaudio direct URL via yt-dlp (--get-url, no download)
+            // Resolve the bestaudio direct URL via yt-dlp (--get-url, no download).
+            // Keep this as a fixed option allow-list; do not thread user input
+            // into yt-dlp flags such as --netrc-cmd.
             val request = YoutubeDLRequest(youtubeUrl).apply {
                 addOption("-f", "bestaudio")
                 addOption("--get-url")
@@ -277,7 +282,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
         private const val PREVIEW_TTL_MS = 3L * 60 * 60 * 1000
 
         private val URL_REGEX = Regex(
-            "^https?://(www\\.|m\\.|music\\.)?(youtube\\.com|youtu\\.be|youtube-nocookie\\.com)/.+",
+            "^https?://(www\\.|m\\.|music\\.)?(youtube\\.com|youtu\\.be|youtube-nocookie\\.com)/\\S+",
             RegexOption.IGNORE_CASE
         )
 
