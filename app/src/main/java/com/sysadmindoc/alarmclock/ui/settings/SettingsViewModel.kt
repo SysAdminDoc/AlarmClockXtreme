@@ -22,6 +22,7 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.data.support.SupportExportManager
@@ -29,6 +30,9 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.WebhookService
 import com.sysadmindoc.alarmclock.util.ManufacturerCompat
 import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
+import com.sysadmindoc.alarmclock.worker.GuardianEscalationPolicy
+import com.sysadmindoc.alarmclock.worker.GuardianReadiness
+import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -59,6 +63,12 @@ data class SettingsUiState(
     val hasNotificationPermission: Boolean = true,
     val canScheduleExactAlarms: Boolean = true,
     val canUseFullScreenIntent: Boolean? = null,
+    val guardianReadiness: GuardianReadiness = GuardianReadiness(
+        enabledAlarmCount = 0,
+        smsPath = GuardianSmsPath.INACTIVE,
+        hasSendSmsPermission = false,
+        hasCallPhonePermission = false
+    ),
     // v1.11.3 (roadmap N3): App Standby bucket awareness. UsageStatsManager
     // returns one of STANDBY_BUCKET_ACTIVE / WORKING_SET / FREQUENT / RARE /
     // RESTRICTED on API 28+. ACTIVE and WORKING_SET are the alarm-friendly
@@ -128,6 +138,7 @@ class SettingsViewModel @Inject constructor(
     private val webhookService: WebhookService,
     private val healthConnectSleepRepository: HealthConnectSleepRepository,
     private val supportExportManager: SupportExportManager,
+    private val alarmRepository: AlarmRepository,
     private val alarmIncidentRepository: AlarmIncidentRepository
 ) : AndroidViewModel(application) {
 
@@ -146,12 +157,18 @@ class SettingsViewModel @Inject constructor(
         .map { SettingsIncidentTimelineState.from(it) }
         .catch { emit(SettingsIncidentTimelineState()) }
 
+    private val guardianAlarmCountState = alarmRepository.observeAll()
+        .map { alarms -> alarms.count { it.isEnabled && it.guardianEnabled } }
+        .distinctUntilChanged()
+        .catch { emit(0) }
+
     private val auxiliaryState = combine(
         _wakeReadinessState,
         _healthConnectSleepState,
-        incidentTimelineState
-    ) { wakeReadiness, healthConnectSleep, incidentTimeline ->
-        SettingsAuxiliaryState(wakeReadiness, healthConnectSleep, incidentTimeline)
+        incidentTimelineState,
+        guardianAlarmCountState
+    ) { wakeReadiness, healthConnectSleep, incidentTimeline, guardianAlarmCount ->
+        SettingsAuxiliaryState(wakeReadiness, healthConnectSleep, incidentTimeline, guardianAlarmCount)
     }
 
     val uiState: StateFlow<SettingsUiState> = combine(
@@ -180,6 +197,12 @@ class SettingsViewModel @Inject constructor(
             hasNotificationPermission = wakeReadiness.hasNotificationPermission,
             canScheduleExactAlarms = wakeReadiness.canScheduleExactAlarms,
             canUseFullScreenIntent = wakeReadiness.canUseFullScreenIntent,
+            guardianReadiness = GuardianEscalationPolicy.readiness(
+                flavor = BuildConfig.FLAVOR,
+                enabledAlarmCount = auxiliary.guardianAlarmCount,
+                hasSendSmsPermission = wakeReadiness.hasSendSmsPermission,
+                hasCallPhonePermission = wakeReadiness.hasCallPhonePermission
+            ),
             appStandbyBucket = wakeReadiness.appStandbyBucket,
             healthConnectSleepSummary = auxiliary.healthConnectSleep,
             incidentTimeline = auxiliary.incidentTimeline
@@ -658,13 +681,16 @@ class SettingsViewModel @Inject constructor(
     private data class SettingsAuxiliaryState(
         val wakeReadiness: WakeReadinessState,
         val healthConnectSleep: HealthConnectSleepSummary,
-        val incidentTimeline: SettingsIncidentTimelineState
+        val incidentTimeline: SettingsIncidentTimelineState,
+        val guardianAlarmCount: Int
     )
 
     private data class WakeReadinessState(
         val hasNotificationPermission: Boolean,
         val canScheduleExactAlarms: Boolean,
         val canUseFullScreenIntent: Boolean?,
+        val hasSendSmsPermission: Boolean,
+        val hasCallPhonePermission: Boolean,
         val appStandbyBucket: Int
     ) {
         companion object {
@@ -690,6 +716,14 @@ class SettingsViewModel @Inject constructor(
                 } else {
                     null
                 }
+                val sendSmsGranted = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.SEND_SMS
+                ) == PackageManager.PERMISSION_GRANTED
+                val callPhoneGranted = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.CALL_PHONE
+                ) == PackageManager.PERMISSION_GRANTED
                 // UsageStatsManager.getAppStandbyBucket() is API 28+. We never
                 // require PACKAGE_USAGE_STATS for the self-query — the system
                 // returns the calling app's own bucket without it.
@@ -706,6 +740,8 @@ class SettingsViewModel @Inject constructor(
                     hasNotificationPermission = notificationsReady,
                     canScheduleExactAlarms = exactAlarmsReady,
                     canUseFullScreenIntent = fullScreenIntentReady,
+                    hasSendSmsPermission = sendSmsGranted,
+                    hasCallPhonePermission = callPhoneGranted,
                     appStandbyBucket = bucket
                 )
             }
