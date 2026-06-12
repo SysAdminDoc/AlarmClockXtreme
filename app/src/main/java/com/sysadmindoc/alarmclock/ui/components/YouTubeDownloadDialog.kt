@@ -96,6 +96,8 @@ fun YouTubeDownloadDialog(
     var hits by remember { mutableStateOf<List<YouTubeSearchHit>>(emptyList()) }
     var searching by remember { mutableStateOf(false) }
     var inFlight by remember { mutableStateOf(false) }
+    var updatingEngine by remember { mutableStateOf(false) }
+    var engineVersion by remember { mutableStateOf(downloader.engineVersionName()) }
     var statusMessage by remember { mutableStateOf("") }
 
     // Preview machinery — the URL currently resolving (loading) or playing.
@@ -180,7 +182,7 @@ fun YouTubeDownloadDialog(
 
     AlertDialog(
         onDismissRequest = {
-            if (!inFlight && !searching) {
+            if (!inFlight && !searching && !updatingEngine) {
                 stopPreview()
                 onDismiss()
             }
@@ -201,6 +203,49 @@ fun YouTubeDownloadDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                EngineUpdatePanel(
+                    versionName = engineVersion,
+                    updating = updatingEngine,
+                    enabled = !inFlight && !searching,
+                    onUpdate = {
+                        stopPreview()
+                        updatingEngine = true
+                        statusMessage = "Updating downloader engine..."
+                        scope.launch {
+                            val result = downloader.updateEngine()
+                            updatingEngine = false
+                            result.fold(
+                                onSuccess = { update ->
+                                    engineVersion = update.afterVersionName ?: update.beforeVersionName
+                                    statusMessage = update.userMessage()
+                                },
+                                onFailure = { error ->
+                                    statusMessage = error.message
+                                        ?.let { "Update failed. Your current engine was kept. $it" }
+                                        ?: "Update failed. Your current engine was kept."
+                                }
+                            )
+                        }
+                    }
+                )
+
+                if (statusMessage.isNotBlank()) {
+                    Text(
+                        statusMessage,
+                        color = if (
+                            inFlight ||
+                            searching ||
+                            updatingEngine ||
+                            statusMessage.startsWith("Downloader engine")
+                        ) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            AccentRed
+                        },
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
                 SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                     SegmentedButton(
                         selected = mode == DownloadMode.Search,
@@ -209,7 +254,7 @@ fun YouTubeDownloadDialog(
                             mode = DownloadMode.Search
                         },
                         shape = SegmentedButtonDefaults.itemShape(0, 2),
-                        enabled = !inFlight && !searching,
+                        enabled = !inFlight && !searching && !updatingEngine,
                         label = { Text("Search YouTube") }
                     )
                     SegmentedButton(
@@ -219,7 +264,7 @@ fun YouTubeDownloadDialog(
                             mode = DownloadMode.PasteUrl
                         },
                         shape = SegmentedButtonDefaults.itemShape(1, 2),
-                        enabled = !inFlight && !searching,
+                        enabled = !inFlight && !searching && !updatingEngine,
                         label = { Text("Paste URL") }
                     )
                 }
@@ -230,8 +275,8 @@ fun YouTubeDownloadDialog(
                         onQueryChange = { query = it },
                         searching = searching,
                         results = hits,
-                        statusMessage = statusMessage,
-                        canSubmit = !inFlight,
+                        canSubmit = !inFlight && !updatingEngine,
+                        controlsEnabled = !inFlight && !updatingEngine,
                         loadingPreviewUrl = loadingPreviewUrl,
                         playingPreviewUrl = playingPreviewUrl,
                         onTogglePreview = ::togglePreview,
@@ -282,6 +327,7 @@ fun YouTubeDownloadDialog(
                         name = name,
                         onNameChange = { name = it },
                         inFlight = inFlight,
+                        controlsEnabled = !inFlight && !updatingEngine,
                     )
                 }
             }
@@ -289,7 +335,7 @@ fun YouTubeDownloadDialog(
         confirmButton = {
             Button(
                 enabled = when (mode) {
-                    DownloadMode.PasteUrl -> !inFlight && url.isNotBlank()
+                    DownloadMode.PasteUrl -> !inFlight && !updatingEngine && url.isNotBlank()
                     DownloadMode.Search -> false  // Search mode submits via tap-on-result
                 },
                 onClick = {
@@ -317,7 +363,7 @@ fun YouTubeDownloadDialog(
                     stopPreview()
                     onDismiss()
                 },
-                enabled = !inFlight && !searching
+                enabled = !inFlight && !searching && !updatingEngine
             ) {
                 Text("Cancel", color = TextSecondary)
             }
@@ -328,12 +374,64 @@ fun YouTubeDownloadDialog(
 }
 
 @Composable
+private fun EngineUpdatePanel(
+    versionName: String?,
+    updating: Boolean,
+    enabled: Boolean,
+    onUpdate: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(SurfaceLight)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = "Downloader engine",
+                color = TextPrimary,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = versionName
+                    ?.let { "yt-dlp $it. Update only if YouTube search or downloads stop working." }
+                    ?: "Update yt-dlp only if YouTube search or downloads stop working.",
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        TextButton(
+            onClick = onUpdate,
+            enabled = enabled && !updating
+        ) {
+            if (updating) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+            } else {
+                Text("Update", fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
+@Composable
 private fun PasteBody(
     url: String,
     onUrlChange: (String) -> Unit,
     name: String,
     onNameChange: (String) -> Unit,
     inFlight: Boolean,
+    controlsEnabled: Boolean,
 ) {
     Text(
         "Paste a YouTube URL — the audio is saved into your device's Alarms folder, so it shows up wherever you pick alarm sounds.",
@@ -345,7 +443,7 @@ private fun PasteBody(
         onValueChange = onUrlChange,
         placeholder = { Text("https://youtube.com/watch?v=...") },
         singleLine = true,
-        enabled = !inFlight,
+        enabled = controlsEnabled,
         colors = appOutlinedTextFieldColors(),
         modifier = Modifier.fillMaxWidth()
     )
@@ -354,7 +452,7 @@ private fun PasteBody(
         onValueChange = onNameChange,
         placeholder = { Text("Name this sound (optional)") },
         singleLine = true,
-        enabled = !inFlight,
+        enabled = controlsEnabled,
         colors = appOutlinedTextFieldColors(),
         modifier = Modifier.fillMaxWidth()
     )
@@ -367,8 +465,8 @@ private fun SearchBody(
     onQueryChange: (String) -> Unit,
     searching: Boolean,
     results: List<YouTubeSearchHit>,
-    statusMessage: String,
     canSubmit: Boolean,
+    controlsEnabled: Boolean,
     loadingPreviewUrl: String?,
     playingPreviewUrl: String?,
     onTogglePreview: (YouTubeSearchHit) -> Unit,
@@ -386,7 +484,7 @@ private fun SearchBody(
         onValueChange = onQueryChange,
         placeholder = { Text("rooster crow alarm") },
         singleLine = true,
-        enabled = !searching && !inFlight,
+        enabled = controlsEnabled && !searching,
         leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
         trailingIcon = {
             TextButton(onClick = onSearch, enabled = canSubmit && !searching && query.isNotBlank()) {
@@ -415,14 +513,6 @@ private fun SearchBody(
         }
     }
 
-    if (statusMessage.isNotBlank()) {
-        Text(
-            statusMessage,
-            color = if (inFlight) MaterialTheme.colorScheme.primary else AccentRed,
-            style = MaterialTheme.typography.bodySmall
-        )
-    }
-
     if (results.isNotEmpty() && !searching) {
         LazyColumn(
             modifier = Modifier
@@ -435,7 +525,7 @@ private fun SearchBody(
                     hit = hit,
                     isLoadingPreview = loadingPreviewUrl == hit.videoUrl,
                     isPlayingPreview = playingPreviewUrl == hit.videoUrl,
-                    enabled = !inFlight,
+                    enabled = controlsEnabled && !inFlight,
                     onTogglePreview = { onTogglePreview(hit) },
                     onPick = { onPick(hit) }
                 )

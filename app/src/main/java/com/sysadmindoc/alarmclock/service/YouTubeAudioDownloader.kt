@@ -25,9 +25,41 @@ data class YouTubeSearchHit(
     val durationSeconds: Long,
 )
 
+enum class YouTubeEngineUpdateState {
+    Updated,
+    AlreadyCurrent
+}
+
+data class YouTubeEngineUpdateResult(
+    val state: YouTubeEngineUpdateState,
+    val beforeVersionName: String?,
+    val afterVersionName: String?,
+) {
+    fun userMessage(): String = when (state) {
+        YouTubeEngineUpdateState.Updated ->
+            afterVersionName?.let { "Downloader engine updated to $it." }
+                ?: "Downloader engine updated."
+        YouTubeEngineUpdateState.AlreadyCurrent ->
+            afterVersionName?.let { "Downloader engine is current ($it)." }
+                ?: "Downloader engine is already current."
+    }
+}
+
 interface YouTubeAudioDownloader {
     /** True when the underlying engine is present and initialised. */
     fun isAvailable(): Boolean
+
+    /**
+     * Best-effort local yt-dlp version label. Must not perform network I/O;
+     * used only for user-facing diagnostics in the Play-flavor downloader UI.
+     */
+    fun engineVersionName(): String? = null
+
+    /**
+     * User-triggered updater for the bundled yt-dlp engine. Implementations
+     * must keep the old engine in place if the update fails.
+     */
+    suspend fun updateEngine(): Result<YouTubeEngineUpdateResult>
 
     /**
      * Download the best-quality audio track from a YouTube URL and save it as
