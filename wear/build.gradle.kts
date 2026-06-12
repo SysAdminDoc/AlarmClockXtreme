@@ -13,7 +13,7 @@ android {
     defaultConfig {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 79
         versionName = "1.13.14"
     }
