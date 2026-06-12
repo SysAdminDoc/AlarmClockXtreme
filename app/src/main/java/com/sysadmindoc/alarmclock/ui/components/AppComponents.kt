@@ -52,6 +52,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -608,7 +609,8 @@ fun AppLoadingCard(
  * filter-row contexts so chip rows hold a single rhythm regardless of which
  * chip kind is rendered. Selected chips fill the accent at 16% with a
  * 32%-alpha border; unselected chips sit on `SurfaceLight` with the subtle
- * stroke. Tap-target is the full chip, not just the label.
+ * stroke. Tap-target is the full chip, not just the label, and TalkBack gets
+ * a real selected state instead of a hand-built label suffix.
  */
 @Composable
 fun AppFilterChip(
@@ -617,6 +619,7 @@ fun AppFilterChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
+    selectionSemantics: Boolean = selected,
 ) {
     val isSelected = selected
     val shapeTokens = LocalAppShapeTokens.current
@@ -630,8 +633,10 @@ fun AppFilterChip(
             .minimumInteractiveComponentSize()
             .semantics {
                 role = Role.Button
-                this.selected = isSelected
-                contentDescription = if (isSelected) "$label selected" else label
+                if (selectionSemantics) {
+                    this.selected = isSelected
+                    stateDescription = if (isSelected) "Selected" else "Not selected"
+                }
             },
         shape = shapeTokens.chip,
         color = containerColor,
@@ -641,8 +646,8 @@ fun AppFilterChip(
     ) {
         Row(
             modifier = Modifier
-                .defaultMinSize(minHeight = 38.dp)
-                .padding(horizontal = 12.dp, vertical = 7.dp),
+                .defaultMinSize(minHeight = 42.dp)
+                .padding(horizontal = 13.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

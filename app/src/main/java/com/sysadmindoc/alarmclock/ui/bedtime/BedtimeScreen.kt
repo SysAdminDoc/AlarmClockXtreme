@@ -554,6 +554,7 @@ fun BedtimeScreen(
                             label = "$minutes min",
                             selected = state.reminderMinutesBefore == minutes,
                             onClick = { viewModel.updateReminderMinutes(minutes) },
+                            selectionSemantics = true,
                         )
                     }
                 }
@@ -827,6 +828,7 @@ private fun SleepSoundsSection(
                     label = if (minutes == 0) "Never" else "$minutes min",
                     selected = state.sleepSoundFadeMinutes == minutes,
                     onClick = { viewModel.setSleepSoundFade(minutes) },
+                    selectionSemantics = true,
                 )
             }
         }
@@ -856,6 +858,7 @@ private fun SleepSoundsSection(
                         // path; adjust our local UI state and persist directly.
                         viewModel.setSleepSoundFadeSeconds(seconds)
                     },
+                    selectionSemantics = true,
                 )
             }
         }

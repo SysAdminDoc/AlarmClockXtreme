@@ -85,6 +85,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -1919,28 +1923,45 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
                 val isSelected = hex.equals(currentHex, ignoreCase = true)
                 val color = runCatching { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(hex)) }
                     .getOrDefault(androidx.compose.ui.graphics.Color.Gray)
+                val swatchShape = RoundedCornerShape(8.dp)
+                val selectedIconTint = if (hex in lightAccentSwatches) SurfaceDark else TextPrimary
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(48.dp)
+                        .clip(swatchShape)
                         .background(color)
-                        .clickable { onPick(hex) }
+                        .clickable(
+                            role = Role.RadioButton,
+                            onClickLabel = "Use $label accent",
+                            onClick = { onPick(hex) }
+                        )
+                        .semantics {
+                            contentDescription = "$label accent color"
+                            selected = isSelected
+                            stateDescription = if (isSelected) "Selected" else "Not selected"
+                        }
                         .then(
                             if (isSelected) {
                                 Modifier.border(
                                     width = 3.dp,
                                     color = TextPrimary,
-                                    shape = RoundedCornerShape(8.dp)
+                                    shape = swatchShape
                                 )
-                            } else Modifier
+                            } else {
+                                Modifier.border(
+                                    width = 1.dp,
+                                    color = BorderSubtle,
+                                    shape = swatchShape
+                                )
+                            }
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     if (isSelected) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "$label selected",
-                            tint = TextPrimary,
+                            contentDescription = null,
+                            tint = selectedIconTint,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -1949,6 +1970,8 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
         }
     }
 }
+
+private val lightAccentSwatches = setOf("#FFB347", "#5BD49A", "#E0E4EA")
 
 @Composable
 private fun BackupRestoreSection(viewModel: SettingsViewModel) {
@@ -2239,36 +2262,45 @@ private fun UtilityShortcutCard(
     description: String,
     onClick: () -> Unit
 ) {
-    Row(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(vertical = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .heightIn(min = 64.dp)
+            .clickable(role = Role.Button, onClick = onClick),
+        shape = RoundedCornerShape(10.dp),
+        color = SurfaceLight.copy(alpha = 0.58f),
+        border = BorderStroke(1.dp, BorderSubtle)
     ) {
         Row(
-            modifier = Modifier.weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                        shape = RoundedCornerShape(10.dp)
-                    ),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+                Box(
+                    modifier = Modifier
+                        .size(46.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                            shape = RoundedCornerShape(10.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(icon, null, tint = MaterialTheme.colorScheme.primary)
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(title, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+                    Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                }
             }
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
-                Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-            }
+            Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
         }
-        Icon(Icons.Default.ChevronRight, null, tint = TextMuted)
     }
 }
 

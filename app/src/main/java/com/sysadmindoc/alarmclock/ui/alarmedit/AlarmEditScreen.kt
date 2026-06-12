@@ -1291,6 +1291,7 @@ fun AlarmEditScreen(
                             AppFilterChip(
                                 label = ringtoneShortName(uri),
                                 selected = true,
+                                selectionSemantics = false,
                                 onClick = {
                                     val next = ringtonePoolEntries.filterNot { it == uri }.joinToString(",")
                                     viewModel.updateRingtonePool(next)
