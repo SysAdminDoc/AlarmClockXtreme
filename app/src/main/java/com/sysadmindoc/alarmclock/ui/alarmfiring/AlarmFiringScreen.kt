@@ -356,6 +356,13 @@ fun AlarmFiringScreen(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    if (state.weatherTemp != null) {
+                        AppStatusChip(
+                            label = "${state.weatherTemp} ${state.weatherDescription ?: ""}".trim(),
+                            icon = Icons.Default.Cloud,
+                            color = TextSecondary
+                        )
+                    }
                     AppStatusChip(
                         label = if (state.totalChallenges > 1) stepLabel else "Wake-up check",
                         icon = Icons.Default.TaskAlt,

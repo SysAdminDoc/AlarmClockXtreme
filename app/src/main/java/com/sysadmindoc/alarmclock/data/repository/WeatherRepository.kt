@@ -12,9 +12,25 @@ class WeatherRepository @Inject constructor(
     private val api: WeatherApi,
     private val airQualityApi: AirQualityApi
 ) {
+    @Volatile
+    private var lastWeather: CachedWeather? = null
+
+    data class CachedWeather(
+        val response: WeatherResponse,
+        val fetchedAtMillis: Long
+    )
+
+    fun getCachedWeather(): WeatherResponse? {
+        val cached = lastWeather ?: return null
+        val ageMs = System.currentTimeMillis() - cached.fetchedAtMillis
+        if (ageMs > 3_600_000) return null
+        return cached.response
+    }
+
     suspend fun getWeather(latitude: Double, longitude: Double, tempUnit: String = "fahrenheit", windUnit: String = "mph"): Result<WeatherResponse> {
         return try {
             val response = api.getForecast(latitude, longitude, tempUnit = tempUnit, windUnit = windUnit)
+            lastWeather = CachedWeather(response, System.currentTimeMillis())
             Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
