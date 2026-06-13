@@ -342,6 +342,14 @@ fun AlarmListScreen(
                                 )
                             }
 
+                            if (state.profiles.any { it.isNotBlank() }) {
+                                GroupFilterRow(
+                                    groups = state.profiles.filter { it.isNotBlank() },
+                                    selectedGroup = state.selectedProfile,
+                                    onSelectGroup = viewModel::selectProfile
+                                )
+                            }
+
                             if (state.alarms.size > 3) {
                                 AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
                                     OutlinedTextField(

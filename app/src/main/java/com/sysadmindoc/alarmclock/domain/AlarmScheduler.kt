@@ -36,7 +36,8 @@ class AlarmScheduler @Inject constructor(
     private val calculator: NextAlarmCalculator,
     private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager,
     private val holidayRepository: HolidayRepository,
-    private val alarmIncidentRepository: AlarmIncidentRepository
+    private val alarmIncidentRepository: AlarmIncidentRepository,
+    private val weatherRepository: com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 ) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -44,6 +45,9 @@ class AlarmScheduler @Inject constructor(
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_ALARM_FIRE_ID = "alarm_fire_id"
         const val EXTRA_SCHEDULED_AT = "scheduled_at"
+
+        private val SNOW_ICE_CODES = setOf(56, 57, 66, 67, 71, 73, 75, 77, 85, 86)
+        fun isSnowOrIceCode(code: Int): Boolean = code in SNOW_ICE_CODES
     }
 
     /**
@@ -135,6 +139,19 @@ class AlarmScheduler @Inject constructor(
                         requestWidgetUpdateIfNeeded(requestWidgetUpdate)
                         return
                     }
+                }
+            }
+        }
+
+        if (sanitizedAlarm.weatherEarlyMinutes > 0 && triggerTime > 0) {
+            val cached = weatherRepository.getCachedWeather()
+            val triggerDate = java.time.Instant.ofEpochMilli(triggerTime)
+                .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+            val dayIndex = cached?.daily?.time?.indexOfFirst { it == triggerDate.toString() } ?: -1
+            if (dayIndex >= 0) {
+                val code = cached?.daily?.weatherCode?.getOrNull(dayIndex)
+                if (code != null && isSnowOrIceCode(code)) {
+                    triggerTime -= sanitizedAlarm.weatherEarlyMinutes * 60_000L
                 }
             }
         }

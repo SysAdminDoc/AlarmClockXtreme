@@ -25,7 +25,8 @@ private data class SelectionSnapshot(
     val selectedIds: Set<Long>,
     val isSelectionMode: Boolean,
     val undoAlarm: Alarm?,
-    val selectedGroup: String?
+    val selectedGroup: String?,
+    val selectedProfile: String?
 )
 
 data class AlarmListUiState(
@@ -37,6 +38,8 @@ data class AlarmListUiState(
     val is24HourFormat: Boolean = false,
     val groups: List<String> = emptyList(),
     val selectedGroup: String? = null,
+    val profiles: List<String> = emptyList(),
+    val selectedProfile: String? = null,
     val undoAlarm: Alarm? = null,
     val selectedIds: Set<Long> = emptySet(),
     val isSelectionMode: Boolean = false,
@@ -64,6 +67,7 @@ class AlarmListViewModel @Inject constructor(
 
     private val _sortOrder = MutableStateFlow(AlarmSortOrder.TIME)
     private val _selectedGroup = MutableStateFlow<String?>(null)
+    private val _selectedProfile = MutableStateFlow<String?>(null)
     private val _undoAlarm = MutableStateFlow<Alarm?>(null)
     private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
     private val _isSelectionMode = MutableStateFlow(false)
@@ -81,14 +85,16 @@ class AlarmListViewModel @Inject constructor(
         repository.observeNextAlarm(),
         preferencesManager.settings,
         _sortOrder,
-        combine(ticker, _selectedIds, _isSelectionMode, _undoAlarm, _selectedGroup) { _, sel, mode, undo, group ->
-            SelectionSnapshot(sel, mode, undo, group)
+        combine(ticker, _selectedIds, _isSelectionMode, _undoAlarm, combine(_selectedGroup, _selectedProfile) { g, p -> g to p }) { _, sel, mode, undo, gp ->
+            SelectionSnapshot(sel, mode, undo, gp.first, gp.second)
         }
     ) { alarms, nextAlarm, settings, sort, snap ->
-        val filtered = if (snap.selectedGroup.isNullOrBlank()) {
-            alarms
-        } else {
-            alarms.filter { it.group == snap.selectedGroup }
+        var filtered = alarms
+        if (!snap.selectedGroup.isNullOrBlank()) {
+            filtered = filtered.filter { it.group == snap.selectedGroup }
+        }
+        if (!snap.selectedProfile.isNullOrBlank()) {
+            filtered = filtered.filter { it.profileName == snap.selectedProfile }
         }
 
         val sorted = when (sort) {
@@ -105,6 +111,10 @@ class AlarmListViewModel @Inject constructor(
             .filter { it.isNotBlank() }
             .distinct()
             .sorted()
+        val profiles = alarms.map { it.profileName.trim() }
+            .filter { it.isNotBlank() }
+            .distinct()
+            .sorted()
         val now = System.currentTimeMillis()
 
         AlarmListUiState(
@@ -118,6 +128,8 @@ class AlarmListViewModel @Inject constructor(
             is24HourFormat = settings.is24HourFormat,
             groups = groups,
             selectedGroup = snap.selectedGroup,
+            profiles = profiles,
+            selectedProfile = snap.selectedProfile,
             undoAlarm = snap.undoAlarm,
             selectedIds = snap.selectedIds,
             isSelectionMode = snap.isSelectionMode,
@@ -145,6 +157,10 @@ class AlarmListViewModel @Inject constructor(
 
     fun selectGroup(group: String?) {
         _selectedGroup.value = group
+    }
+
+    fun selectProfile(profile: String?) {
+        _selectedProfile.value = profile
     }
 
     // -- Multi-select --

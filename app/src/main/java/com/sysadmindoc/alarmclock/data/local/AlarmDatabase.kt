@@ -12,7 +12,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 
 @Database(
     entities = [Alarm::class, AlarmEvent::class, ActigraphySession::class, AlarmIncidentEvent::class],
-    version = 14,
+    version = 15,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -231,6 +231,12 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE alarms ADD COLUMN weatherEarlyMinutes INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -245,6 +251,7 @@ abstract class AlarmDatabase : RoomDatabase() {
             MIGRATION_11_12,
             MIGRATION_12_13,
             MIGRATION_13_14,
+            MIGRATION_14_15,
         )
     }
 }
