@@ -136,6 +136,7 @@ data class AppSettings(
     // permissions policy refresh required to actually ship the data path
     // is tracked alongside (roadmap N13).
     val healthConnectEnabled: Boolean = false,
+    val cancellationLockMinutes: Int = 0
 )
 
 private fun AppSettings.sanitized(): AppSettings {
@@ -198,7 +199,8 @@ private fun AppSettings.sanitized(): AppSettings {
         sleepSoundTimerMinutes = sleepSoundTimerMinutes.coerceIn(0, 240),
         sleepSoundFadeSeconds = sleepSoundFadeSeconds.coerceIn(5, 600),
         napDefaultMinutes = napDefaultMinutes.coerceIn(1, 180),
-        pauseUntilMillis = normalizedPauseUntil
+        pauseUntilMillis = normalizedPauseUntil,
+        cancellationLockMinutes = cancellationLockMinutes.coerceIn(0, 120)
     )
 }
 
@@ -284,6 +286,7 @@ class PreferencesManager @Inject constructor(
         val NEWS_FEED_URL = stringPreferencesKey("news_feed_url")
         val PAUSE_UNTIL = longPreferencesKey("pause_until_millis")
         val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
+        val CANCELLATION_LOCK_MINUTES = intPreferencesKey("cancellation_lock_minutes")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -391,6 +394,7 @@ class PreferencesManager @Inject constructor(
         newsFeedUrl = this[Keys.NEWS_FEED_URL] ?: DEFAULT_NEWS_FEED_URL,
         pauseUntilMillis = this[Keys.PAUSE_UNTIL] ?: 0L,
         healthConnectEnabled = this[Keys.HEALTH_CONNECT_ENABLED] ?: false,
+        cancellationLockMinutes = this[Keys.CANCELLATION_LOCK_MINUTES] ?: 0,
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
@@ -454,5 +458,6 @@ class PreferencesManager @Inject constructor(
         this[Keys.NEWS_FEED_URL] = s.newsFeedUrl
         this[Keys.PAUSE_UNTIL] = s.pauseUntilMillis
         this[Keys.HEALTH_CONNECT_ENABLED] = s.healthConnectEnabled
+        this[Keys.CANCELLATION_LOCK_MINUTES] = s.cancellationLockMinutes
     }
 }

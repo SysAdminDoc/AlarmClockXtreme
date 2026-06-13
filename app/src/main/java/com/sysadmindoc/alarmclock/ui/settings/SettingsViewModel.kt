@@ -295,6 +295,8 @@ class SettingsViewModel @Inject constructor(
         updateSettings { it.copy(coverToSnoozeEnabled = enabled) }
     fun toggleRepeatMissed(enabled: Boolean) =
         updateSettings { it.copy(repeatMissedAlarms = enabled) }
+    fun updateCancellationLockMinutes(minutes: Int) =
+        updateSettings { it.copy(cancellationLockMinutes = minutes.coerceIn(0, 120)) }
     fun updateBedtimeChecklist(items: String) =
         updateSettings { it.copy(bedtimeChecklist = items) }
     fun updateSleepSoundTimer(minutes: Int) =

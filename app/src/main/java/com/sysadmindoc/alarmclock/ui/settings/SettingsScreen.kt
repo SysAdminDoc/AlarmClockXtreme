@@ -1858,6 +1858,30 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
             onToggle = viewModel::toggleRepeatMissed
         )
 
+        var showLockMenu by remember { mutableStateOf(false) }
+        SettingsRow(label = "Cancellation lock") {
+            Box {
+                SettingsValueButton(
+                    label = if (state.settings.cancellationLockMinutes == 0) "Disabled" else "${state.settings.cancellationLockMinutes} min",
+                    onClick = { showLockMenu = true }
+                )
+                DropdownMenu(expanded = showLockMenu, onDismissRequest = { showLockMenu = false }) {
+                    listOf(0, 15, 30, 60).forEach { mins ->
+                        DropdownMenuItem(
+                            text = { Text(if (mins == 0) "Disabled" else "Lock $mins min before fire") },
+                            onClick = { viewModel.updateCancellationLockMinutes(mins); showLockMenu = false }
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            text = "Prevent disabling alarms within the configured window. Protects heavy sleepers from toggling alarms off while half-asleep.",
+            color = TextMuted,
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
         BufferedSettingsTextField(
             value = state.settings.customTypingPhrases,
             onCommit = viewModel::updateCustomTypingPhrases,
