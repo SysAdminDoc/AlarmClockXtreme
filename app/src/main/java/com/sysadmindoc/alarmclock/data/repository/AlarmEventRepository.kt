@@ -129,5 +129,10 @@ class AlarmEventRepository @Inject constructor(
         )
     }
 
+    suspend fun avgSnoozeCountForAlarm(alarmId: Long, lookbackDays: Int = 14): Double? {
+        val sinceMs = System.currentTimeMillis() - lookbackDays * 86_400_000L
+        return dao.avgSnoozeCountForAlarm(alarmId, sinceMs)
+    }
+
     suspend fun clearHistory() = dao.deleteAll()
 }

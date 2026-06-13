@@ -81,12 +81,13 @@ data class AlarmBackup(
     // v1.10.3 fields
     val holdToDismissEnabled: Boolean = false,
     // v1.12.0 fields (roadmap N7): per-alarm pre-vibration delay (seconds).
-    val vibrationDelaySeconds: Int = 0
+    val vibrationDelaySeconds: Int = 0,
+    val weatherEarlyMinutes: Int = 0
 )
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 10,
+    val version: Int = 11,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -170,7 +171,8 @@ data class SettingsBackup(
     val showTimerTab: Boolean = true,
     val showWorldClockTab: Boolean = true,
     val showNewsTab: Boolean = true,
-    val showRadarEmbed: Boolean = true
+    val showRadarEmbed: Boolean = true,
+    val cancellationLockMinutes: Int = 0
 )
 
 data class BackupExportWarning(
@@ -339,7 +341,8 @@ class BackupManager @Inject constructor(
                 showTimerTab = settings.showTimerTab,
                 showWorldClockTab = settings.showWorldClockTab,
                 showNewsTab = settings.showNewsTab,
-                showRadarEmbed = settings.showRadarEmbed
+                showRadarEmbed = settings.showRadarEmbed,
+                cancellationLockMinutes = settings.cancellationLockMinutes
             )
         )
 
@@ -500,7 +503,8 @@ class BackupManager @Inject constructor(
                         showTimerTab = s.showTimerTab,
                         showWorldClockTab = s.showWorldClockTab,
                         showNewsTab = s.showNewsTab,
-                        showRadarEmbed = s.showRadarEmbed
+                        showRadarEmbed = s.showRadarEmbed,
+                        cancellationLockMinutes = s.cancellationLockMinutes
                     )
                 }
             }

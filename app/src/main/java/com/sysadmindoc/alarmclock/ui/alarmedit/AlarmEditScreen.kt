@@ -619,8 +619,8 @@ fun AlarmEditScreen(
                 state.solarOffsetMinutes, state.solarAnchor, state.skipOnHolidays) {
                 viewModel.computeForecast()
             }
-            if (state.forecastDates.isNotEmpty()) {
-                SettingsSection("Upcoming fire dates") {
+            SettingsSection("Upcoming fire dates") {
+                if (state.forecastDates.isNotEmpty()) {
                     state.forecastDates.forEach { entry ->
                         val instant = java.time.Instant.ofEpochMilli(entry.timeMillis)
                         val dt = instant.atZone(java.time.ZoneId.systemDefault())
@@ -632,9 +632,8 @@ fun AlarmEditScreen(
                         val tone = if (entry.skippedByVacation) HintTone.Warning else HintTone.Neutral
                         SettingsHint(label, tone = tone)
                     }
-                    if (state.forecastDates.isEmpty()) {
-                        SettingsHint("This alarm will not ring with the current settings.", tone = HintTone.Warning)
-                    }
+                } else {
+                    SettingsHint("This alarm will not ring with the current settings.", tone = HintTone.Warning)
                 }
             }
 
