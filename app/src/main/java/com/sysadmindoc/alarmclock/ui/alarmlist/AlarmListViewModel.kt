@@ -262,6 +262,14 @@ class AlarmListViewModel @Inject constructor(
                 scheduler.schedule(alarm.copy(isEnabled = true, nextTriggerTime = nextTrigger))
                 emitFeedback("Alarm enabled for ${formatFeedbackTime(nextTrigger)}")
             } else {
+                val lockMinutes = preferencesManager.getCachedSettings().cancellationLockMinutes
+                if (lockMinutes > 0 && alarm.nextTriggerTime > 0) {
+                    val minutesUntilFire = (alarm.nextTriggerTime - System.currentTimeMillis()) / 60_000
+                    if (minutesUntilFire in 0..lockMinutes) {
+                        emitFeedback("Locked — this alarm fires in $minutesUntilFire min. Hold toggle to override.")
+                        return@launch
+                    }
+                }
                 repository.setEnabled(alarm.id, enabled = false, nextTrigger = 0)
                 scheduler.cancel(alarm.id)
                 scheduler.syncBedtimeDndRule()
