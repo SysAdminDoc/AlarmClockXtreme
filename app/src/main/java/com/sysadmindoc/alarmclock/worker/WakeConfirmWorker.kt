@@ -72,9 +72,13 @@ class WakeConfirmWorker @AssistedInject constructor(
             )
             return Result.success()
         }
-        // If the alarm was disabled after it fired (user cancelled, or it was
-        // a one-shot that auto-disabled), skip the confirmation prompt.
-        if (!alarm.isEnabled) {
+        // Skip only if a repeating alarm was manually disabled by the user.
+        // One-shot alarms are auto-disabled by handleAlarmFired() before
+        // this worker runs, so checking isEnabled on them would always
+        // skip — defeating wake confirmation for the exact use case where
+        // users need it most.
+        val isOneShot = alarm.repeatDays.isBlank() || alarm.repeatDays == "[]"
+        if (!alarm.isEnabled && !isOneShot) {
             recordIncident(
                 alarmId = alarmId,
                 fireId = fireId,
