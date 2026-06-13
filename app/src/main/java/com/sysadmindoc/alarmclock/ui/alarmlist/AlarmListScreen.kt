@@ -155,7 +155,7 @@ fun AlarmListScreen(
                 showYouTubeDialog = false
                 snackbarScope.launch {
                     snackbarHostState.showSnackbar(
-                        "Saved \"$savedTitle\" — pick it from any alarm's sound list.",
+                        "Saved \"$savedTitle\". Pick it from any alarm's sound list.",
                         duration = SnackbarDuration.Long
                     )
                 }

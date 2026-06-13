@@ -159,12 +159,12 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Stats now has a wake-streak flame badge with best streak and next-goal progress.",
-            "Calendar auto-alarm now shifts when tomorrow's first timed meeting moves.",
-            "Bedtime can own an alarms-only Do Not Disturb rule for your sleep window.",
-            "New Don't wake partner preset mutes alarm audio while keeping haptic wake cues.",
-            "Optional Hold to dismiss adds a 1.5-second confirmation before final dismissal.",
-            "Long-press Snooze on the firing screen to pick an exact snooze length."
+            "YouTube alarm-sound search now has clearer status, empty, retry, and download feedback.",
+            "Search results now separate preview from save so choosing a sound feels more deliberate.",
+            "Shared alarm imports now explain private-reference review and save received alarms inactive.",
+            "Settings accent colors and shortcut rows now have stronger touch targets and accessibility states.",
+            "Filter chips now expose selected state consistently across alarms, bedtime, news, and stats.",
+            "Release metadata and first-run copy were refreshed for this premium interaction polish pass."
         )
     }
 }
