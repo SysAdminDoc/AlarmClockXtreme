@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_alarm"
+        android:enabled="true"
+        android:icon="@drawable/ic_alarm"
+        android:shortcutShortLabel="@string/shortcut_new_alarm"
+        android:shortcutLongLabel="@string/shortcut_new_alarm_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.sysadmindoc.alarmclock"
+            android:targetClass="com.sysadmindoc.alarmclock.MainActivity"
+            android:data="acx://navigate/alarm_edit/0" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="start_timer"
+        android:enabled="true"
+        android:icon="@drawable/ic_alarm"
+        android:shortcutShortLabel="@string/shortcut_timer"
+        android:shortcutLongLabel="@string/shortcut_timer_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.sysadmindoc.alarmclock"
+            android:targetClass="com.sysadmindoc.alarmclock.MainActivity"
+            android:data="acx://navigate/timer" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="bedtime"
+        android:enabled="true"
+        android:icon="@drawable/ic_alarm"
+        android:shortcutShortLabel="@string/shortcut_bedtime"
+        android:shortcutLongLabel="@string/shortcut_bedtime_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.sysadmindoc.alarmclock"
+            android:targetClass="com.sysadmindoc.alarmclock.MainActivity"
+            android:data="acx://navigate/bedtime" />
+    </shortcut>
+</shortcuts>
