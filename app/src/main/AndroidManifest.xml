@@ -8,6 +8,9 @@
 
     <!-- Network for weather API -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 17+: required for LAN access to Philips Hue bridges and
+         local webhook endpoints (Tasker HTTP server, Home Assistant). -->
+    <uses-permission android:name="android.permission.LOCAL_NETWORK" />
 
     <!-- Calendar for My Day dashboard -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />

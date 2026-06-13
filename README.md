@@ -268,6 +268,7 @@ before creating `keystore.properties` from repository secrets.
 | `VIBRATE` | Alarm vibration | Yes |
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Optional manufacturer/battery reliability flow | Optional |
 | `INTERNET` | Weather, holidays, radar, news, webhooks, radio, Hue, and Play-flavor YouTube downloads | Yes |
+| `LOCAL_NETWORK` | Android 17+: LAN access for Philips Hue bridge and local webhook endpoints | Optional |
 | `ACCESS_COARSE_LOCATION` | Weather for your area | Optional |
 | `ACCESS_FINE_LOCATION` | Wi-Fi challenge matching on Android 12+ | Optional |
 | `READ_CALENDAR` | Dashboard events + auto-alarm | Optional |
