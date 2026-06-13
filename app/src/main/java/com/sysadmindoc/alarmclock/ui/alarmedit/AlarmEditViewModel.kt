@@ -417,7 +417,7 @@ class AlarmEditViewModel @Inject constructor(
             val probe = Alarm(
                 hour = s.hour,
                 minute = s.minute,
-                repeatDays = s.repeatDays.joinToString(",") { it.name },
+                repeatDays = s.repeatDays,
                 specificDate = s.specificDate,
                 solarOffsetMinutes = s.solarOffsetMinutes,
                 solarAnchor = s.solarAnchor,

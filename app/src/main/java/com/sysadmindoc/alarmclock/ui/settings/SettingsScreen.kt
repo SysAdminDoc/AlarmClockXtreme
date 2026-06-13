@@ -111,6 +111,7 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
+import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
@@ -1859,12 +1860,28 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
         )
 
         var showLockMenu by remember { mutableStateOf(false) }
-        SettingsRow(label = "Cancellation lock") {
-            Box {
-                SettingsValueButton(
-                    label = if (state.settings.cancellationLockMinutes == 0) "Disabled" else "${state.settings.cancellationLockMinutes} min",
-                    onClick = { showLockMenu = true }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Cancellation lock", color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "Prevent disabling alarms close to fire time",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall
                 )
+            }
+            Box {
+                TextButton(onClick = { showLockMenu = true }) {
+                    Text(
+                        if (state.settings.cancellationLockMinutes == 0) "Disabled" else "${state.settings.cancellationLockMinutes} min",
+                        color = AccentBlue
+                    )
+                }
                 DropdownMenu(expanded = showLockMenu, onDismissRequest = { showLockMenu = false }) {
                     listOf(0, 15, 30, 60).forEach { mins ->
                         DropdownMenuItem(
@@ -1875,12 +1892,6 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
                 }
             }
         }
-        Text(
-            text = "Prevent disabling alarms within the configured window. Protects heavy sleepers from toggling alarms off while half-asleep.",
-            color = TextMuted,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
 
         BufferedSettingsTextField(
             value = state.settings.customTypingPhrases,

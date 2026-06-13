@@ -77,7 +77,7 @@ class WakeConfirmWorker @AssistedInject constructor(
         // this worker runs, so checking isEnabled on them would always
         // skip — defeating wake confirmation for the exact use case where
         // users need it most.
-        val isOneShot = alarm.repeatDays.isBlank() || alarm.repeatDays == "[]"
+        val isOneShot = alarm.repeatDays.isEmpty()
         if (!alarm.isEnabled && !isOneShot) {
             recordIncident(
                 alarmId = alarmId,

@@ -42,6 +42,7 @@ class AlarmSchedulerTest {
     private lateinit var preferencesManager: PreferencesManager
     private lateinit var holidayRepository: HolidayRepository
     private lateinit var incidentRepository: AlarmIncidentRepository
+    private lateinit var weatherRepository: com.sysadmindoc.alarmclock.data.repository.WeatherRepository
     private lateinit var workManager: WorkManager
     private lateinit var scheduler: AlarmScheduler
 
@@ -65,13 +66,17 @@ class AlarmSchedulerTest {
         coEvery { preferencesManager.getCurrentSettings() } returns AppSettings()
         coEvery { holidayRepository.isHoliday(any()) } returns false
 
+        weatherRepository = mockk(relaxed = true)
+        every { weatherRepository.getCachedWeather() } returns null
+
         scheduler = AlarmScheduler(
             context = context,
             repository = repository,
             calculator = calculator,
             preferencesManager = preferencesManager,
             holidayRepository = holidayRepository,
-            alarmIncidentRepository = incidentRepository
+            alarmIncidentRepository = incidentRepository,
+            weatherRepository = weatherRepository
         )
     }
 
