@@ -172,7 +172,7 @@ dependencies {
     implementation("androidx.glance:glance-material3:1.1.1")
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // YouTube alarm-sound download (play flavor only — bundles a native Python
     // interpreter that isn't F-Droid-compatible, so the f-droid flavor uses a
@@ -229,7 +229,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("io.mockk:mockk:1.13.17")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     testImplementation("org.robolectric:robolectric:4.14.1")
     // Drift guard: BackupManagerSettingsDriftTest reflects over AppSettings /
     // SettingsBackup constructor parameters so a new settings field can't ship
