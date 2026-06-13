@@ -219,8 +219,17 @@ GitHub tag releases require repository secrets. Use either the preferred
 | `ANDROID_KEY_PASSWORD` | `KEY_PASSWORD` | Signing key password |
 
 Tag pushes like `v1.13.16` build signed Play, F-Droid, and Wear release APKs,
-verify signatures with `apksigner`, write `SHA256SUMS.txt`, and attach the APKs
-plus hashes to the GitHub Release.
+verify signatures with `apksigner`, write `SHA256SUMS.txt` and
+`APK-CERT-FINGERPRINTS.txt`, and attach all artifacts to the GitHub Release.
+
+To verify a sideloaded APK's signing certificate:
+
+```bash
+apksigner verify --print-certs AlarmClockXtreme-v1.13.16-play-release.apk
+```
+
+Compare the `certificate SHA-256 digest` against the fingerprint published in
+the release's `APK-CERT-FINGERPRINTS.txt`.
 
 Before a local or CI release, run:
 

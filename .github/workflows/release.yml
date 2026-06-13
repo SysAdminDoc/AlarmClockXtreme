@@ -129,6 +129,24 @@ jobs:
             "$build_tools/aapt2" dump badging "$apk" > "${apk}.badging.txt"
           done
 
+      - name: Generate signing certificate fingerprints
+        run: |
+          set -euo pipefail
+
+          build_tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          {
+            echo "APK Signing Certificate Fingerprints"
+            echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo ""
+            for apk in release-artifacts/*.apk; do
+              echo "=== $(basename "$apk") ==="
+              "$build_tools/apksigner" verify --print-certs "$apk" 2>/dev/null \
+                | grep -E '(certificate DN|certificate SHA-256|certificate SHA-1)'
+              echo ""
+            done
+          } > release-artifacts/APK-CERT-FINGERPRINTS.txt
+          cat release-artifacts/APK-CERT-FINGERPRINTS.txt
+
       - name: Generate SHA-256 hashes
         run: |
           set -euo pipefail
@@ -143,6 +161,7 @@ jobs:
             release-artifacts/*.apk
             release-artifacts/*.badging.txt
             release-artifacts/SHA256SUMS.txt
+            release-artifacts/APK-CERT-FINGERPRINTS.txt
           if-no-files-found: error
 
       - name: Upload APKs to GitHub Release
@@ -153,6 +172,7 @@ jobs:
           files: |
             release-artifacts/*.apk
             release-artifacts/SHA256SUMS.txt
+            release-artifacts/APK-CERT-FINGERPRINTS.txt
           fail_on_unmatched_files: true
 
       - name: Remove signing material
