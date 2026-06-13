@@ -72,6 +72,7 @@ class AlarmService : Service() {
         const val EXTRA_CUSTOM_SNOOZE_MINUTES = "custom_snooze_minutes"
         const val EXTRA_CHALLENGE_RETRY_COUNT = "challenge_retry_count"
         const val EXTRA_CHALLENGE_SOLVE_TIME_MS = "challenge_solve_time_ms"
+        const val EXTRA_WAKE_CONFIRM_REFIRE_COUNT = "wake_confirm_refire_count"
         private const val MIN_CUSTOM_SNOOZE_MINUTES = 1
         private const val MAX_CUSTOM_SNOOZE_MINUTES = 120
         private const val HAPTIC_ONLY_COMPOSITION_INTERVAL_MS = 1_450L
@@ -165,6 +166,7 @@ class AlarmService : Service() {
     private var backupSoundOriginalAlarmVolume: Int? = null
     private var flashlightJob: Job? = null
     private var currentSnoozeCount: Int = 0
+    private var currentWakeConfirmRefireCount: Int = 0
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var wakeLock: PowerManager.WakeLock? = null
     // v1.9.1: AtomicBoolean (was @Volatile Boolean). Multiple coroutines on
@@ -248,6 +250,9 @@ class AlarmService : Service() {
                     currentFireId = fireId
                     activeAlarmId = alarmId
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
+                    currentWakeConfirmRefireCount = intent.getIntExtra(
+                        EXTRA_WAKE_CONFIRM_REFIRE_COUNT, 0
+                    )
                     alarmFiredAt = System.currentTimeMillis()
                     recordIncidentAsync(
                         type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
@@ -1353,13 +1358,15 @@ class AlarmService : Service() {
     private fun scheduleWakeConfirmation(
         alarm: Alarm,
         fireId: String,
-        scheduledAt: Long
+        scheduledAt: Long,
+        refireCount: Int = currentWakeConfirmRefireCount
     ) {
         val delayMinutes = alarm.wakeConfirmDelayMinutes.coerceAtLeast(1).toLong()
         val data = workDataOf(
             WakeConfirmWorker.KEY_ALARM_ID to alarm.id,
             WakeConfirmWorker.KEY_ALARM_FIRE_ID to fireId,
-            WakeConfirmWorker.KEY_SCHEDULED_AT to scheduledAt
+            WakeConfirmWorker.KEY_SCHEDULED_AT to scheduledAt,
+            WakeConfirmWorker.KEY_REFIRE_COUNT to refireCount
         )
         val request = OneTimeWorkRequestBuilder<WakeConfirmWorker>()
             .setInitialDelay(delayMinutes, TimeUnit.MINUTES)

@@ -44,14 +44,17 @@ class WakeConfirmWorker @AssistedInject constructor(
         const val KEY_ALARM_ID = "alarm_id"
         const val KEY_ALARM_FIRE_ID = "alarm_fire_id"
         const val KEY_SCHEDULED_AT = "scheduled_at"
+        const val KEY_REFIRE_COUNT = "refire_count"
         const val CHANNEL_WAKE_CONFIRM = "wake_confirm_channel"
         // Far above the other per-id notification ranges (TimerFinished is
         // 7000 + timerId, also unbounded) so a long-lived install with alarm
         // ids past 2000 can't collide wake-confirm and timer notifications.
         const val NOTIF_ID_BASE = 500_000
         // Time the user has to tap "I'm awake" before the alarm re-fires.
-        private const val CONFIRM_WAIT_MS = 60_000L
+        const val CONFIRM_WAIT_SECONDS = 60
+        private const val CONFIRM_WAIT_MS = CONFIRM_WAIT_SECONDS * 1_000L
         private const val POLL_INTERVAL_MS = 1_000L
+        const val MAX_REFIRES = 3
     }
 
     override suspend fun doWork(): Result {
@@ -61,6 +64,8 @@ class WakeConfirmWorker @AssistedInject constructor(
         val fireId = inputData.getString(KEY_ALARM_FIRE_ID)
             ?.takeIf { it.isNotBlank() }
             ?: AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt)
+
+        val refireCount = inputData.getInt(KEY_REFIRE_COUNT, 0)
 
         val alarm = alarmRepository.getById(alarmId) ?: run {
             recordIncident(
@@ -106,7 +111,8 @@ class WakeConfirmWorker @AssistedInject constructor(
             label = alarm.label,
             hideLabel = preferencesManager.getCurrentSettings().hideAlarmLabelsOnPublicSurfaces,
             fireId = fireId,
-            scheduledAt = scheduledAt
+            scheduledAt = scheduledAt,
+            refireCount = refireCount
         )
         recordIncident(
             alarmId = alarmId,
@@ -134,7 +140,8 @@ class WakeConfirmWorker @AssistedInject constructor(
             delay(POLL_INTERVAL_MS)
         }
 
-        // No confirmation in time: clear the prompt and re-fire the alarm.
+        // No confirmation in time: clear the prompt and re-fire the alarm
+        // unless the repeat cap has been reached.
         cancelPrompt(alarmId)
         prefs.edit().remove("confirmed_$alarmId").apply()
         recordIncident(
@@ -145,11 +152,23 @@ class WakeConfirmWorker @AssistedInject constructor(
             reasonCode = "WAKE_CONFIRM_TIMED_OUT"
         )
 
+        if (refireCount >= MAX_REFIRES) {
+            recordIncident(
+                alarmId = alarmId,
+                fireId = fireId,
+                scheduledAt = scheduledAt,
+                status = AlarmIncidentEvent.STATUS_SKIPPED,
+                reasonCode = "WAKE_CONFIRM_REFIRE_CAP_REACHED"
+            )
+            return Result.success()
+        }
+
         val startIntent = Intent(context, AlarmService::class.java).apply {
             action = AlarmService.ACTION_START_ALARM
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
             putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, scheduledAt)
             putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
+            putExtra(AlarmService.EXTRA_WAKE_CONFIRM_REFIRE_COUNT, refireCount + 1)
         }
         try {
             context.startForegroundService(startIntent)
@@ -162,8 +181,6 @@ class WakeConfirmWorker @AssistedInject constructor(
                 reasonCode = "WAKE_CONFIRM_REFIRE_REQUESTED"
             )
         } catch (_: Exception) {
-            // Background-start restrictions may block this on rare OEMs; the
-            // notification's full-screen intent stays available.
             recordIncident(
                 alarmId = alarmId,
                 fireId = fireId,
@@ -198,7 +215,8 @@ class WakeConfirmWorker @AssistedInject constructor(
         label: String,
         hideLabel: Boolean,
         fireId: String,
-        scheduledAt: Long
+        scheduledAt: Long,
+        refireCount: Int
     ): Boolean {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return false
         val activityIntent = Intent(context, WakeConfirmActivity::class.java).apply {
@@ -206,6 +224,8 @@ class WakeConfirmWorker @AssistedInject constructor(
             putExtra(WakeConfirmActivity.EXTRA_ALARM_ID, alarmId)
             putExtra(WakeConfirmActivity.EXTRA_ALARM_FIRE_ID, fireId)
             putExtra(WakeConfirmActivity.EXTRA_SCHEDULED_AT, scheduledAt)
+            putExtra(WakeConfirmActivity.EXTRA_COUNTDOWN_SECONDS, CONFIRM_WAIT_SECONDS)
+            putExtra(WakeConfirmActivity.EXTRA_REFIRE_COUNT, refireCount)
         }
         val fullScreenPi = PendingIntent.getActivity(
             context,
@@ -215,10 +235,16 @@ class WakeConfirmWorker @AssistedInject constructor(
         )
 
         val title = AlarmPublicText.wakeConfirmTitle(label, hideLabel)
+        val remainingAttempts = MAX_REFIRES - refireCount
+        val contentText = if (remainingAttempts > 0) {
+            "Confirm within ${CONFIRM_WAIT_SECONDS}s or the alarm rings again ($remainingAttempts left)."
+        } else {
+            "Final check — confirm within ${CONFIRM_WAIT_SECONDS}s."
+        }
         val notification = NotificationCompat.Builder(context, CHANNEL_WAKE_CONFIRM)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(title)
-            .setContentText("Tap to confirm — otherwise the alarm will ring again.")
+            .setContentText(contentText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
