@@ -299,7 +299,7 @@ Play-flavor Health Connect support is opt-in and requests only `android.permissi
 
 Settings can hide alarm labels on public surfaces. When enabled, alarm notifications, missed-alarm prompts, wake-confirm prompts, the home widget, the quick settings tile, and Play-flavor Wear next-alarm snapshots use neutral alarm text while labels remain visible inside the unlocked app.
 
-Android system Auto Backup is deliberately narrower than manual export. On Android 8-11 it includes only app DataStore preferences; Room alarm history, crash logs, support bundles, downloaded media, and challenge reference files are excluded from legacy cloud backup.
+Android system Auto Backup is deliberately narrower than manual export. On Android 12+, cloud backup includes the Room alarm database (schedules, labels, challenge configs) but excludes DataStore preferences, which contain webhook URLs, Hue API keys, guardian contacts, and custom feed URLs. Device-transfer (same-device or direct migration) includes DataStore so those settings survive a local upgrade. On Android 8-11, legacy cloud backup includes only DataStore preferences. Crash logs, support bundles, downloaded media, and challenge reference files are excluded from all backup paths. After a cloud restore, enabled alarms are automatically re-armed via a restore agent.
 
 Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
 
