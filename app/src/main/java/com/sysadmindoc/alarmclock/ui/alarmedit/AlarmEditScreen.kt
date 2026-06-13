@@ -997,6 +997,20 @@ fun AlarmEditScreen(
                     "Stack multiple challenges in sequence. Use the picker above for a guided setup, or edit the raw chain directly if you already know the codes.",
                     tone = HintTone.Neutral
                 )
+                if (chainItems.isNotEmpty()) {
+                    val missingRefs = buildList {
+                        if ("NFC_SCAN" in chainItems && state.nfcTagId.isBlank()) add("NFC tag ID")
+                        if ("BARCODE_SCAN" in chainItems && state.barcodeValue.isBlank()) add("barcode value")
+                        if ("PHOTO_MATCH" in chainItems && state.photoMatchUri.isBlank()) add("reference photo")
+                        if ("WIFI_CONNECT" in chainItems && state.wifiDismissSsid.isBlank()) add("Wi-Fi SSID")
+                    }
+                    if (missingRefs.isNotEmpty()) {
+                        SettingsHint(
+                            "Missing ${missingRefs.joinToString(", ")}. These challenges will be skipped at fire time.",
+                            tone = HintTone.Warning
+                        )
+                    }
+                }
             }
 
             // v1.2.0: Anti-Snooze Features
