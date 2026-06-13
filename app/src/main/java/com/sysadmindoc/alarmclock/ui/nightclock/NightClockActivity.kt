@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +37,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
 import com.sysadmindoc.alarmclock.ui.theme.BlueLight
@@ -98,6 +100,26 @@ fun NightClockScreen(onExit: () -> Unit) {
     )
     val amPm = if (is24Hour) "" else currentTime.format(DateTimeFormatter.ofPattern("a"))
 
+    val driftTransition = rememberInfiniteTransition(label = "burnInDrift")
+    val driftX by driftTransition.animateFloat(
+        initialValue = -24f,
+        targetValue = 24f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 120_000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "driftX"
+    )
+    val driftY by driftTransition.animateFloat(
+        initialValue = 18f,
+        targetValue = -18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 90_000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "driftY"
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -131,6 +153,7 @@ fun NightClockScreen(onExit: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .offset { IntOffset(driftX.dp.roundToPx(), driftY.dp.roundToPx()) }
                 .padding(horizontal = 28.dp, vertical = 36.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween

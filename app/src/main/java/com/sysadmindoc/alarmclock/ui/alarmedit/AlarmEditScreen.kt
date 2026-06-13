@@ -687,6 +687,12 @@ fun AlarmEditScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
                     )
+                    if (state.nfcTagId.isBlank()) {
+                        SettingsHint(
+                            "No NFC tag registered. This challenge will be skipped at fire time until a tag ID is set.",
+                            tone = HintTone.Warning
+                        )
+                    }
                 }
 
                 // BARCODE_SCAN: barcode value field
@@ -699,6 +705,30 @@ fun AlarmEditScreen(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
                     )
+                    if (state.barcodeValue.isBlank()) {
+                        SettingsHint(
+                            "No barcode or QR code registered. This challenge will be skipped at fire time until a value is set.",
+                            tone = HintTone.Warning
+                        )
+                    }
+                }
+
+                // WIFI_CONNECT: surface SSID field in context
+                if (state.challengeType == "WIFI_CONNECT") {
+                    OutlinedTextField(
+                        value = state.wifiDismissSsid,
+                        onValueChange = viewModel::updateWifiDismissSsid,
+                        label = { Text("Wi-Fi network name (SSID)", color = TextMuted) },
+                        colors = appOutlinedTextFieldColors(),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        singleLine = true
+                    )
+                    if (state.wifiDismissSsid.isBlank()) {
+                        SettingsHint(
+                            "No Wi-Fi network specified. Set the SSID the alarm should require you to connect to.",
+                            tone = HintTone.Warning
+                        )
+                    }
                 }
 
                 // PHOTO_MATCH: reference photo URI field
