@@ -199,13 +199,13 @@ dependencies {
         // still resolve stale parser/archive transitives. Keep these as
         // constraints, not direct feature dependencies, so F-Droid remains free
         // of the Play-only downloader graph.
-        "playImplementation"("com.fasterxml.jackson.core:jackson-databind:2.18.6") {
+        "playImplementation"("com.fasterxml.jackson.core:jackson-databind:2.22.0") {
             because("OSV reports advisories against the youtubedl-android transitive 2.11.1")
         }
-        "playImplementation"("com.fasterxml.jackson.core:jackson-core:2.18.6") {
+        "playImplementation"("com.fasterxml.jackson.core:jackson-core:2.22.0") {
             because("Keep Jackson modules aligned with constrained jackson-databind")
         }
-        "playImplementation"("com.fasterxml.jackson.core:jackson-annotations:2.18.6") {
+        "playImplementation"("com.fasterxml.jackson.core:jackson-annotations:2.22.0") {
             because("Keep Jackson modules aligned with constrained jackson-databind")
         }
         "playImplementation"("org.apache.commons:commons-compress:1.28.0") {
