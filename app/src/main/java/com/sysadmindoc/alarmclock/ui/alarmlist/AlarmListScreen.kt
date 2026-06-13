@@ -464,13 +464,11 @@ fun AlarmListScreen(
                                     }
                             }
                         }
-                        val conflictTimes = remember(filteredAlarms) {
-                            filteredAlarms
-                                .filter { it.isEnabled }
-                                .groupBy { it.hour * 60 + it.minute }
-                                .filterValues { it.size > 1 }
-                                .keys
-                        }
+                        val conflictTimes = filteredAlarms
+                            .filter { it.isEnabled }
+                            .groupBy { it.hour * 60 + it.minute }
+                            .filterValues { it.size > 1 }
+                            .keys
                         if (conflictTimes.isNotEmpty()) {
                             item {
                                 val timeLabels = conflictTimes.joinToString(", ") { totalMin ->

@@ -195,7 +195,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 10
+        const val MAX_SUPPORTED_BACKUP_VERSION = 11
 
         fun assessExportWarning(
             settings: AppSettings,
