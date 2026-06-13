@@ -157,6 +157,13 @@ class AlarmTest {
     }
 
     @Test
+    fun `weatherEarlyMinutes clamped to 0-60`() {
+        assertEquals(0, Alarm(weatherEarlyMinutes = -5).sanitized().weatherEarlyMinutes)
+        assertEquals(15, Alarm(weatherEarlyMinutes = 15).sanitized().weatherEarlyMinutes)
+        assertEquals(60, Alarm(weatherEarlyMinutes = 120).sanitized().weatherEarlyMinutes)
+    }
+
+    @Test
     fun `every ChallengeType is preserved when used in a challenge chain`() {
         // Companion check: the chain sanitizer also reads VALID_CHALLENGE_TYPES,
         // so it must accept every non-NONE type.

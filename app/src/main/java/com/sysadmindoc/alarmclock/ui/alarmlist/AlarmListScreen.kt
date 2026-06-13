@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -134,6 +135,32 @@ fun AlarmListScreen(
     // build up an alarm-sound library without first creating an alarm.
     var showYouTubeDialog by remember { mutableStateOf(false) }
     val youTubeAvailable = com.sysadmindoc.alarmclock.ui.components.isYouTubeDownloaderAvailable()
+
+    var statsAlarmLabel by remember { mutableStateOf<String?>(null) }
+    val alarmStats by viewModel.alarmStats.collectAsStateWithLifecycle()
+    if (statsAlarmLabel != null && alarmStats != null) {
+        val stats = alarmStats!!
+        AlertDialog(
+            onDismissRequest = { statsAlarmLabel = null; viewModel.clearAlarmStats() },
+            confirmButton = {
+                TextButton(onClick = { statsAlarmLabel = null; viewModel.clearAlarmStats() }) {
+                    Text("Close")
+                }
+            },
+            title = { Text(statsAlarmLabel ?: "Alarm history") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Last 30 days", color = TextMuted, style = MaterialTheme.typography.labelSmall)
+                    Text("Fired ${stats.fireCount} times")
+                    Text("Avg ${String.format("%.1f", stats.avgSnoozesPerFire)} snoozes per fire")
+                    Text("Avg dismiss in ${stats.avgDismissTimeSec}s")
+                    if (stats.missedCount > 0) {
+                        Text("${stats.missedCount} missed", color = AccentRed)
+                    }
+                }
+            }
+        )
+    }
 
     if (showTemplates) {
         TemplatePickerSheet(
@@ -518,6 +545,10 @@ fun AlarmListScreen(
                                             onSkipNext = { viewModel.skipNextOccurrence(alarm) },
                                             onDuplicate = { viewModel.duplicateAlarm(alarm) },
                                             onShare = { shareAlarm(context, alarm, state.is24HourFormat) },
+                                            onShowHistory = {
+                                                statsAlarmLabel = alarm.label.ifBlank { "%d:%02d".format(alarm.hour, alarm.minute) }
+                                                viewModel.loadAlarmStats(alarm.id)
+                                            },
                                             onLongClick = { viewModel.toggleSelection(alarm.id) }
                                         )
                                     }
@@ -757,6 +788,7 @@ private fun AlarmCard(
     onSkipNext: () -> Unit,
     onDuplicate: () -> Unit,
     onShare: () -> Unit,
+    onShowHistory: () -> Unit = {},
     onLongClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -849,6 +881,11 @@ private fun AlarmCard(
                                     onClick = { showMenu = false; onSkipNext() }
                                 )
                             }
+                            DropdownMenuItem(
+                                text = { Text("History") },
+                                leadingIcon = { Icon(Icons.Default.History, null, modifier = Modifier.size(18.dp)) },
+                                onClick = { showMenu = false; onShowHistory() }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Delete", color = AccentRed) },
                                 leadingIcon = { Icon(Icons.Default.Delete, null, tint = AccentRed, modifier = Modifier.size(18.dp)) },

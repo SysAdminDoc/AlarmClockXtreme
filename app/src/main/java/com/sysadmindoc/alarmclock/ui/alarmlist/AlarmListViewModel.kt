@@ -54,6 +54,7 @@ data class AlarmListUiState(
 
 @HiltViewModel
 class AlarmListViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     private val repository: AlarmRepository,
     private val scheduler: AlarmScheduler,
     private val calculator: NextAlarmCalculator,
@@ -150,12 +151,17 @@ class AlarmListViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             kotlinx.coroutines.delay(3000)
+            val prefs = context.getSharedPreferences("snooze_suggest", android.content.Context.MODE_PRIVATE)
+            val lastSuggestDay = prefs.getString("last_suggest_day", "")
+            val today = java.time.LocalDate.now().toString()
+            if (lastSuggestDay == today) return@launch
             val alarms = repository.getAll()
             for (alarm in alarms.filter { it.isEnabled }) {
                 val avg = eventRepository.avgSnoozeCountForAlarm(alarm.id) ?: continue
                 if (avg >= 3.0) {
                     val label = alarm.label.ifBlank { "%d:%02d".format(alarm.hour, alarm.minute) }
                     emitFeedback("\"$label\" averages ${avg.toInt()} snoozes — consider moving it 15 min later")
+                    prefs.edit().putString("last_suggest_day", today).apply()
                     break
                 }
             }
@@ -176,6 +182,19 @@ class AlarmListViewModel @Inject constructor(
 
     fun selectProfile(profile: String?) {
         _selectedProfile.value = profile
+    }
+
+    private val _alarmStats = MutableStateFlow<AlarmEventRepository.PerAlarmStats?>(null)
+    val alarmStats: StateFlow<AlarmEventRepository.PerAlarmStats?> = _alarmStats.asStateFlow()
+
+    fun loadAlarmStats(alarmId: Long) {
+        viewModelScope.launch {
+            _alarmStats.value = eventRepository.getPerAlarmStats(alarmId)
+        }
+    }
+
+    fun clearAlarmStats() {
+        _alarmStats.value = null
     }
 
     // -- Multi-select --
