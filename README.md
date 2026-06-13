@@ -304,6 +304,80 @@ Android system Auto Backup is deliberately narrower than manual export. On Andro
 
 Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
 
+## Webhook Integration Recipes
+
+ACX sends an HTTPS POST with a JSON payload on alarm lifecycle events. Enable webhooks in Settings > Integrations > Webhooks and enter your HTTPS endpoint URL.
+
+**Payload schema (v1):**
+
+```json
+{
+  "schemaVersion": 1,
+  "event": "alarm_fired",
+  "eventId": "550e8400-e29b-41d4-a716-446655440000",
+  "occurredAt": "2026-06-13T07:00:00Z",
+  "alarmId": 42,
+  "scheduledFor": "2026-06-13T07:00:00Z",
+  "displayTime": "7:00 AM",
+  "labelIncluded": true,
+  "label": "Work alarm",
+  "fireId": "42-1718258400000"
+}
+```
+
+Events: `alarm_fired`, `alarm_snoozed`, `alarm_dismissed`, `alarm_missed`, `alarm_skipped`, `test`. The `label` field is present only when `labelIncluded` is `true` (controlled by Settings > Webhooks > Include alarm labels). `fireId` is present when available.
+
+### Home Assistant
+
+Create a webhook automation in your `automations.yaml`:
+
+```yaml
+automation:
+  - alias: "ACX alarm fired — turn on lights"
+    trigger:
+      - platform: webhook
+        webhook_id: "your-secret-random-id-here"
+        allowed_methods:
+          - POST
+        local_only: true
+    condition:
+      - condition: template
+        value_template: "{{ trigger.json.event == 'alarm_fired' }}"
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: light.bedroom
+        data:
+          brightness_pct: 80
+          color_temp_kelvin: 3000
+```
+
+In ACX Settings, enter `https://your-ha-host:8123/api/webhook/your-secret-random-id-here`. Generate a unique random `webhook_id` (e.g., `uuidgen` or `python -c "import uuid; print(uuid.uuid4())"`) — do not reuse example values. Home Assistant webhook triggers do not require an API token when `local_only: true`.
+
+### Tasker
+
+ACX requires HTTPS endpoints. For local Tasker automation, set up a local HTTPS bridge:
+
+1. Install the **Tasker** app and the **AutoRemote** plugin (or another HTTPS-capable receiver).
+2. In Tasker, create a Profile > Event > Plugin > AutoRemote > Message Filter = `acx_alarm`.
+3. In ACX Settings, enter your AutoRemote personal HTTPS URL.
+4. Create a Tasker Task linked to the profile with your desired actions (e.g., enable Wi-Fi, launch music app, set display brightness).
+
+Alternatively, if your network supports it, use a Tasker HTTP Server plugin with a self-signed certificate and configure ACX to POST to `https://your-phone-ip:port/alarm`.
+
+### MacroDroid
+
+1. In MacroDroid, create a Macro with trigger **Webhook (URL)**.
+2. Copy the generated HTTPS webhook URL (MacroDroid provides one per macro via cloud relay; requires Play Services).
+3. Paste the URL into ACX Settings > Webhooks.
+4. In the macro action, use **Set Variable** to capture `{webhook_body}`, then parse with `JSONPath` expressions:
+   - Event: `$.event`
+   - Alarm ID: `$.alarmId`
+   - Display time: `$.displayTime`
+5. Add a **Condition** checking the variable against your target event (e.g., `alarm_fired`).
+
+Note: MacroDroid's saved webhook body limit is ~3800 characters. ACX payloads are well under this limit.
+
 ## FAQ
 
 **How does the YouTube alarm-sound downloader work?**
