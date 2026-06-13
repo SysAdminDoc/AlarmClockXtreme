@@ -71,7 +71,9 @@ data class FiringUiState(
     // v1.6.0: Wordle challenge
     val wordleGuesses: List<String> = emptyList(),
     val wordleCurrentInput: String = "",
-    val wordleGameOver: Boolean = false
+    val wordleGameOver: Boolean = false,
+    val weatherTemp: String? = null,
+    val weatherDescription: String? = null
 ) {
     val requiresChallenge: Boolean get() {
         val type = alarm?.challengeType ?: "NONE"
@@ -85,7 +87,8 @@ class AlarmFiringViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: AlarmRepository,
     private val eventRepository: com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository,
-    private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+    private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager,
+    private val weatherRepository: com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 ) : ViewModel() {
 
     private val alarmId: Long = savedStateHandle.get<Long>(AlarmScheduler.EXTRA_ALARM_ID) ?: -1
@@ -179,6 +182,15 @@ class AlarmFiringViewModel @Inject constructor(
 
             val quote = MOTIVATIONAL_QUOTES.random()
 
+            val cached = weatherRepository.getCachedWeather()
+            val weatherTemp = cached?.current?.temperature?.let { temp ->
+                val unit = cached.currentUnits?.temperature ?: ""
+                "${temp.toInt()}$unit"
+            }
+            val weatherDesc = cached?.current?.weatherCode?.let { code ->
+                com.sysadmindoc.alarmclock.data.remote.WeatherCodes.describe(code)
+            }
+
             _uiState.value = FiringUiState(
                 alarm = alarm,
                 challenge = firstChallenge,
@@ -187,7 +199,9 @@ class AlarmFiringViewModel @Inject constructor(
                 totalChallenges = maxOf(adaptedChain.size, 1),
                 currentChallengeIndex = 0,
                 motivationalQuote = quote,
-                mazeCurrentPos = (firstChallenge as? Challenge.MazeChallenge)?.startPos ?: 0
+                mazeCurrentPos = (firstChallenge as? Challenge.MazeChallenge)?.startPos ?: 0,
+                weatherTemp = weatherTemp,
+                weatherDescription = weatherDesc
             )
             // Start Simon sequence playback when Simon is the very first challenge.
             if (firstChallenge is Challenge.SimonSaysChallenge) {
