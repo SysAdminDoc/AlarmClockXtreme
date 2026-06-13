@@ -14,6 +14,7 @@ import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.*
 import androidx.glance.text.*
 import androidx.glance.unit.ColorProvider
+import android.text.format.DateFormat
 import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.MainActivity
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
@@ -61,7 +62,9 @@ class NextAlarmWidget : GlanceAppWidget() {
                 val remaining = calc.formatRemaining(alarm.nextTriggerTime)
                 val triggerInstant = Instant.ofEpochMilli(alarm.nextTriggerTime)
                 val localTime = triggerInstant.atZone(ZoneId.systemDefault()).toLocalDateTime()
-                val timeStr = localTime.format(DateTimeFormatter.ofPattern("h:mm a"))
+                val is24Hour = DateFormat.is24HourFormat(context)
+                val timePattern = if (is24Hour) "HH:mm" else "h:mm a"
+                val timeStr = localTime.format(DateTimeFormatter.ofPattern(timePattern))
                 val dayStr = localTime.format(DateTimeFormatter.ofPattern("EEE"))
 
                 WidgetAlarmData(

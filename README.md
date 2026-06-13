@@ -102,7 +102,7 @@ cd AlarmClockXtreme
 | Morning Briefing | Full-screen good morning card with weather + calendar |
 | Morning Routine | Post-alarm checklist (stretch, water, journal, etc.) |
 | Motivational Quotes | Random inspirational quotes on alarm firing screen |
-| Swipe Gestures | Swipe right to dismiss, left to snooze |
+| Swipe Gestures | Swipe left to dismiss, right to snooze |
 | Custom Snooze | Pick 1/3/5/15/30 minute snooze from firing screen |
 | Hold to Dismiss | Optional 1.5-second hold gesture before final dismissal |
 
