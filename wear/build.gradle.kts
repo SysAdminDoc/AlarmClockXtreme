@@ -61,7 +61,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.core:core-ktx:1.19.0")
     implementation("androidx.concurrent:concurrent-futures:1.3.0")
     implementation("androidx.wear.tiles:tiles:1.6.0")
     implementation("androidx.wear.protolayout:protolayout:1.4.0")
