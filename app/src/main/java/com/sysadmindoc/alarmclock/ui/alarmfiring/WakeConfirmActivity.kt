@@ -26,14 +26,21 @@ import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -49,19 +56,18 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.delay
 
-/**
- * F5: Wake confirmation activity.
- * Launched from the wake-confirmation notification. Tapping "I'm Awake" marks
- * the alarm as confirmed so WakeConfirmWorker won't re-fire it.
- */
 class WakeConfirmActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_ALARM_FIRE_ID = "alarm_fire_id"
         const val EXTRA_SCHEDULED_AT = "scheduled_at"
+        const val EXTRA_COUNTDOWN_SECONDS = "countdown_seconds"
+        const val EXTRA_REFIRE_COUNT = "refire_count"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,6 +90,13 @@ class WakeConfirmActivity : ComponentActivity() {
         val fireId = intent.getStringExtra(EXTRA_ALARM_FIRE_ID)
             ?.takeIf { it.isNotBlank() }
             ?: AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt)
+        val countdownSeconds = intent.getIntExtra(
+            EXTRA_COUNTDOWN_SECONDS,
+            WakeConfirmWorker.CONFIRM_WAIT_SECONDS
+        )
+        val refireCount = intent.getIntExtra(EXTRA_REFIRE_COUNT, 0)
+        val remainingRefires = WakeConfirmWorker.MAX_REFIRES - refireCount
+
         recordIncidentAsync(
             alarmId = alarmId,
             fireId = fireId,
@@ -95,6 +108,8 @@ class WakeConfirmActivity : ComponentActivity() {
         setContent {
             AlarmClockXtremeTheme {
                 WakeConfirmScreen(
+                    countdownSeconds = countdownSeconds,
+                    remainingRefires = remainingRefires,
                     onConfirmAwake = {
                         if (alarmId != -1L) {
                             val prefs = getSharedPreferences("wake_confirm", Context.MODE_PRIVATE)
@@ -132,8 +147,6 @@ class WakeConfirmActivity : ComponentActivity() {
         reasonCode: String
     ) {
         if (alarmId <= 0L) return
-        // Repository-owned scope: records here precede finish(), which would
-        // cancel lifecycleScope mid-write and drop the event.
         EntryPointAccessors
             .fromApplication(
                 applicationContext,
@@ -154,9 +167,24 @@ class WakeConfirmActivity : ComponentActivity() {
 
 @Composable
 private fun WakeConfirmScreen(
+    countdownSeconds: Int,
+    remainingRefires: Int,
     onConfirmAwake: () -> Unit,
     onKeepChecking: () -> Unit
 ) {
+    var secondsLeft by remember { mutableIntStateOf(countdownSeconds) }
+
+    LaunchedEffect(Unit) {
+        while (secondsLeft > 0) {
+            delay(1_000L)
+            secondsLeft--
+        }
+    }
+
+    val progress = if (countdownSeconds > 0) {
+        secondsLeft.toFloat() / countdownSeconds
+    } else 0f
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -187,19 +215,33 @@ private fun WakeConfirmScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = null,
-                        tint = DismissGreen,
-                        modifier = Modifier.size(72.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            progress = { progress },
+                            modifier = Modifier.size(96.dp),
+                            color = if (secondsLeft > 10) DismissGreen else AccentRed,
+                            trackColor = SurfaceDark.copy(alpha = 0.3f),
+                            strokeWidth = 6.dp,
+                            strokeCap = StrokeCap.Round
+                        )
+                        Text(
+                            text = "${secondsLeft}s",
+                            color = if (secondsLeft > 10) DismissGreen else AccentRed,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
                         text = "Are you actually up?",
                         color = TextPrimary,
                         style = MaterialTheme.typography.headlineSmall
                     )
                     Text(
-                        text = "Confirming here stops the follow-up alarm check. If you skip this, the app can ring again to make sure you did not drift back to sleep.",
+                        text = if (secondsLeft > 0) {
+                            "Confirm within ${secondsLeft}s or the alarm will ring again."
+                        } else {
+                            "Time's up — the alarm is ringing again."
+                        },
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center
@@ -220,11 +262,19 @@ private fun WakeConfirmScreen(
                         icon = Icons.Default.CheckCircle,
                         color = DismissGreen
                     )
-                    AppStatusChip(
-                        label = "Skip and the alarm may ring again",
-                        icon = Icons.Default.WarningAmber,
-                        color = AccentRed
-                    )
+                    if (remainingRefires > 0) {
+                        AppStatusChip(
+                            label = "$remainingRefires re-fire${if (remainingRefires != 1) "s" else ""} left",
+                            icon = Icons.Default.WarningAmber,
+                            color = AccentRed
+                        )
+                    } else {
+                        AppStatusChip(
+                            label = "Final check — no more re-fires",
+                            icon = Icons.Default.WarningAmber,
+                            color = AccentRed
+                        )
+                    }
                 }
 
                 Button(
@@ -252,12 +302,12 @@ private fun WakeConfirmScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Check again later"
+                        text = "Not yet — keep checking"
                     )
                 }
 
                 Text(
-                    text = "Choosing \"Check again later\" simply closes this screen and keeps the follow-up protection active.",
+                    text = "Closing this screen keeps wake-check protection active. The alarm can ring up to ${WakeConfirmWorker.MAX_REFIRES} more time${if (WakeConfirmWorker.MAX_REFIRES != 1) "s" else ""} if you don't confirm.",
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
