@@ -7,7 +7,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -16,10 +18,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -29,6 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -45,11 +50,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.YouTubeSearchHit
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
@@ -94,11 +101,13 @@ fun YouTubeDownloadDialog(
     var name by remember { mutableStateOf("") }
     var query by remember { mutableStateOf("") }
     var hits by remember { mutableStateOf<List<YouTubeSearchHit>>(emptyList()) }
+    var hasSearched by remember { mutableStateOf(false) }
     var searching by remember { mutableStateOf(false) }
     var inFlight by remember { mutableStateOf(false) }
     var updatingEngine by remember { mutableStateOf(false) }
     var engineVersion by remember { mutableStateOf(downloader.engineVersionName()) }
     var statusMessage by remember { mutableStateOf("") }
+    var statusIsError by remember { mutableStateOf(false) }
 
     // Preview machinery — the URL currently resolving (loading) or playing.
     // Owns a single MediaPlayer so a second preview tap stops the first.
@@ -108,6 +117,11 @@ fun YouTubeDownloadDialog(
     var previewJob by remember { mutableStateOf<Job?>(null) }
 
     val scope = rememberCoroutineScope()
+
+    fun setStatus(message: String, isError: Boolean = false) {
+        statusMessage = message
+        statusIsError = isError
+    }
 
     fun stopPreview() {
         previewJob?.cancel()
@@ -154,7 +168,7 @@ fun YouTubeDownloadDialog(
                             }
                             setOnCompletionListener { stopPreview() }
                             setOnErrorListener { _, _, _ ->
-                                statusMessage = "Couldn't play that preview. Try another result."
+                                setStatus("That preview could not play. Try another result.", isError = true)
                                 stopPreview()
                                 true
                             }
@@ -162,13 +176,13 @@ fun YouTubeDownloadDialog(
                         }
                         mediaPlayerHolder.value = player
                     } catch (_: Exception) {
-                        statusMessage = "Couldn't start preview. Try another result."
+                        setStatus("That preview could not start. Try another result.", isError = true)
                         stopPreview()
                     }
                 },
                 onFailure = { e ->
                     if (loadingPreviewUrl == hit.videoUrl) {
-                        statusMessage = e.message ?: "Couldn't get a preview stream."
+                        setStatus(e.message ?: "Could not get a preview stream.", isError = true)
                     }
                     loadingPreviewUrl = null
                 }
@@ -210,19 +224,22 @@ fun YouTubeDownloadDialog(
                     onUpdate = {
                         stopPreview()
                         updatingEngine = true
-                        statusMessage = "Updating downloader engine..."
+                        setStatus("Updating downloader engine...")
                         scope.launch {
                             val result = downloader.updateEngine()
                             updatingEngine = false
                             result.fold(
                                 onSuccess = { update ->
                                     engineVersion = update.afterVersionName ?: update.beforeVersionName
-                                    statusMessage = update.userMessage()
+                                    setStatus(update.userMessage())
                                 },
                                 onFailure = { error ->
-                                    statusMessage = error.message
-                                        ?.let { "Update failed. Your current engine was kept. $it" }
-                                        ?: "Update failed. Your current engine was kept."
+                                    setStatus(
+                                        error.message
+                                            ?.let { "Update failed. Your current engine was kept. $it" }
+                                            ?: "Update failed. Your current engine was kept.",
+                                        isError = true
+                                    )
                                 }
                             )
                         }
@@ -230,19 +247,11 @@ fun YouTubeDownloadDialog(
                 )
 
                 if (statusMessage.isNotBlank()) {
-                    Text(
-                        statusMessage,
-                        color = if (
-                            inFlight ||
-                            searching ||
-                            updatingEngine ||
-                            statusMessage.startsWith("Downloader engine")
-                        ) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            AccentRed
-                        },
-                        style = MaterialTheme.typography.bodySmall
+                    AppFeedbackCard(
+                        title = if (statusIsError) "Action needed" else "Downloader status",
+                        message = statusMessage,
+                        icon = if (statusIsError) Icons.Default.Warning else Icons.Default.CheckCircle,
+                        color = if (statusIsError) AccentRed else MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -272,8 +281,12 @@ fun YouTubeDownloadDialog(
                 when (mode) {
                     DownloadMode.Search -> SearchBody(
                         query = query,
-                        onQueryChange = { query = it },
+                        onQueryChange = {
+                            query = it
+                            hasSearched = false
+                        },
                         searching = searching,
+                        hasSearched = hasSearched,
                         results = hits,
                         canSubmit = !inFlight && !updatingEngine,
                         controlsEnabled = !inFlight && !updatingEngine,
@@ -284,7 +297,8 @@ fun YouTubeDownloadDialog(
                             if (query.isBlank()) return@SearchBody
                             stopPreview()
                             searching = true
-                            statusMessage = ""
+                            hasSearched = true
+                            setStatus("")
                             hits = emptyList()
                             scope.launch {
                                 val r = downloader.searchAlarmSounds(query.trim())
@@ -293,11 +307,11 @@ fun YouTubeDownloadDialog(
                                     onSuccess = { found ->
                                         hits = found
                                         if (found.isEmpty()) {
-                                            statusMessage = "No short clips found. Try a different search."
+                                            setStatus("")
                                         }
                                     },
                                     onFailure = { e ->
-                                        statusMessage = e.message ?: "Search failed."
+                                        setStatus(e.message ?: "Search failed.", isError = true)
                                     }
                                 )
                             }
@@ -305,14 +319,14 @@ fun YouTubeDownloadDialog(
                         onPick = { hit ->
                             stopPreview()
                             inFlight = true
-                            statusMessage = "Downloading \"${hit.title.take(40)}\"…"
+                            setStatus("Downloading \"${hit.title.take(40)}\"...")
                             scope.launch {
                                 val r = downloader.downloadAsAlarm(hit.videoUrl, hit.title)
                                 inFlight = false
                                 r.fold(
                                     onSuccess = onDownloaded,
                                     onFailure = { e ->
-                                        statusMessage = ""
+                                        setStatus("")
                                         onError(e.message ?: "Download failed.")
                                     }
                                 )
@@ -333,28 +347,27 @@ fun YouTubeDownloadDialog(
             }
         },
         confirmButton = {
-            Button(
-                enabled = when (mode) {
-                    DownloadMode.PasteUrl -> !inFlight && !updatingEngine && url.isNotBlank()
-                    DownloadMode.Search -> false  // Search mode submits via tap-on-result
-                },
-                onClick = {
-                    stopPreview()
-                    inFlight = true
-                    val labelGuess = name.ifBlank { url.substringAfter("v=").substringBefore('&').take(11) }
-                    scope.launch {
-                        val result = downloader.downloadAsAlarm(url.trim(), labelGuess)
-                        inFlight = false
-                        result.fold(
-                            onSuccess = onDownloaded,
-                            onFailure = { e -> onError(e.message ?: "Download failed.") }
-                        )
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text(if (mode == DownloadMode.PasteUrl) "Download" else "Pick a result")
+            if (mode == DownloadMode.PasteUrl) {
+                Button(
+                    enabled = !inFlight && !updatingEngine && url.isNotBlank(),
+                    onClick = {
+                        stopPreview()
+                        inFlight = true
+                        val labelGuess = name.ifBlank { url.substringAfter("v=").substringBefore('&').take(11) }
+                        scope.launch {
+                            val result = downloader.downloadAsAlarm(url.trim(), labelGuess)
+                            inFlight = false
+                            result.fold(
+                                onSuccess = onDownloaded,
+                                onFailure = { e -> onError(e.message ?: "Download failed.") }
+                            )
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Download")
+                }
             }
         },
         dismissButton = {
@@ -434,7 +447,7 @@ private fun PasteBody(
     controlsEnabled: Boolean,
 ) {
     Text(
-        "Paste a YouTube URL — the audio is saved into your device's Alarms folder, so it shows up wherever you pick alarm sounds.",
+        "Paste a YouTube URL. The audio is saved into your device's Alarms folder, so it appears wherever you pick alarm sounds.",
         color = TextSecondary,
         style = MaterialTheme.typography.bodySmall
     )
@@ -464,6 +477,7 @@ private fun SearchBody(
     query: String,
     onQueryChange: (String) -> Unit,
     searching: Boolean,
+    hasSearched: Boolean,
     results: List<YouTubeSearchHit>,
     canSubmit: Boolean,
     controlsEnabled: Boolean,
@@ -475,7 +489,7 @@ private fun SearchBody(
     inFlight: Boolean,
 ) {
     Text(
-        "Try \"rooster crow\", \"piano bell\", or \"forest birds\". Tap ▶ to preview, then tap the row to save it as an alarm.",
+        "Try \"rooster crow\", \"piano bell\", or \"forest birds\". Preview first, then save the result that feels right.",
         color = TextSecondary,
         style = MaterialTheme.typography.bodySmall
     )
@@ -496,20 +510,26 @@ private fun SearchBody(
     )
 
     if (searching) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        AppSurfaceCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)
         ) {
-            CircularProgressIndicator(
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(16.dp),
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                "Searching YouTube…",
-                color = TextMuted,
-                style = MaterialTheme.typography.bodySmall
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(16.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    "Searching YouTube...",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
     }
 
@@ -530,6 +550,28 @@ private fun SearchBody(
                     onPick = { onPick(hit) }
                 )
             }
+        }
+    } else if (hasSearched && !searching && query.isNotBlank()) {
+        AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
+            AppEmptyState(
+                icon = Icons.Default.Search,
+                title = "No matching clips",
+                description = "Try a shorter phrase, a different sound name, or paste a direct URL instead.",
+                footer = {
+                    OutlinedButton(
+                        onClick = onSearch,
+                        enabled = canSubmit && query.isNotBlank()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text("Search again")
+                    }
+                }
+            )
         }
     }
 
@@ -595,9 +637,9 @@ private fun SearchResultRow(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(enabled = enabled, onClick = onPick)
+                    .clickable(enabled = enabled, role = Role.Button, onClick = onPick)
                     .padding(vertical = 4.dp, horizontal = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = hit.title,
@@ -619,7 +661,7 @@ private fun SearchResultRow(
                             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
                         )
-                        Text("·", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                        Text("-", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                     }
                     Text(
                         text = formatDuration(hit.durationSeconds),
@@ -627,7 +669,7 @@ private fun SearchResultRow(
                         style = MaterialTheme.typography.bodySmall
                     )
                     if (isPlayingPreview) {
-                        Text("·", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                        Text("-", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                         Text(
                             "Previewing",
                             color = MaterialTheme.colorScheme.primary,
@@ -636,6 +678,11 @@ private fun SearchResultRow(
                         )
                     }
                 }
+                AppStatusChip(
+                    label = if (highlight) "Tap row to save this preview" else "Tap row to save",
+                    icon = Icons.Default.CloudDownload,
+                    color = if (highlight) MaterialTheme.colorScheme.primary else DismissGreen
+                )
             }
         }
     }
@@ -650,11 +697,11 @@ private fun formatDuration(seconds: Long): String {
 /**
  * v1.7.3: Faux-progress download hint.
  *
- * Real progress is hard to surface here — yt-dlp's `--get-url` resolve step
+ * Real progress is hard to surface here because yt-dlp's `--get-url` resolve step
  * has no progress signal, and OkHttp byte-counting only kicks in once the
  * stream resolves. A static spinner read as "stuck" in user testing.
  *
- * The faux-progress curve is `1 - e^(-3t) * 0.92` over 30 s — fast off the
+ * The faux-progress curve is `1 - e^(-3t) * 0.92` over 30 s: fast off the
  * line, slows asymptotically toward 92% so completion (which jumps it to
  * 100% instantly) still feels like a finish, not a fast-forward. The status
  * label rotates through phases on the same timer so the user sees something
@@ -664,11 +711,11 @@ private fun formatDuration(seconds: Long): String {
 private fun DownloadingHint() {
     val phases = remember {
         listOf(
-            "Resolving audio stream…",
-            "Connecting to YouTube…",
-            "Downloading audio…",
-            "Almost there…",
-            "Saving to your alarms…"
+            "Resolving audio stream...",
+            "Connecting to YouTube...",
+            "Downloading audio...",
+            "Almost there...",
+            "Saving to your alarms..."
         )
     }
     var progress by remember { mutableStateOf(0f) }
@@ -719,7 +766,7 @@ private fun DownloadingHint() {
             trackColor = SurfaceLight
         )
         Text(
-            text = "Sit tight — this can take 10–60 seconds depending on the clip and your connection.",
+            text = "This can take 10-60 seconds depending on the clip and your connection.",
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
