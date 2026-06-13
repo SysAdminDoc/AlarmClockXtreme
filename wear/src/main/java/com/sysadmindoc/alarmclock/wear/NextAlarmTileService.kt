@@ -31,6 +31,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 
+// DO NOT RENAME: Wear OS identifies tile placements by service class name.
+// Renaming this class would orphan every user's carousel slot. When migrating
+// to Wear Widgets (Glance + RemoteCompose), keep this exact class name and
+// map it via the Wear OS 7 widget `group` config attribute.
 class NextAlarmTileService : TileService() {
 
     private val serviceJob = SupervisorJob()
