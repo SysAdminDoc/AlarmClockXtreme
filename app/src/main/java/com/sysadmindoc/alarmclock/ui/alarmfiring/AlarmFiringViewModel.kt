@@ -73,7 +73,8 @@ data class FiringUiState(
     val wordleCurrentInput: String = "",
     val wordleGameOver: Boolean = false,
     val weatherTemp: String? = null,
-    val weatherDescription: String? = null
+    val weatherDescription: String? = null,
+    val firedEarlyForWeather: Boolean = false
 ) {
     val requiresChallenge: Boolean get() {
         val type = alarm?.challengeType ?: "NONE"
@@ -201,7 +202,11 @@ class AlarmFiringViewModel @Inject constructor(
                 motivationalQuote = quote,
                 mazeCurrentPos = (firstChallenge as? Challenge.MazeChallenge)?.startPos ?: 0,
                 weatherTemp = weatherTemp,
-                weatherDescription = weatherDesc
+                weatherDescription = weatherDesc,
+                firedEarlyForWeather = alarm.weatherEarlyMinutes > 0 && weatherDesc != null &&
+                    com.sysadmindoc.alarmclock.domain.AlarmScheduler.isSnowOrIceCode(
+                        cached?.current?.weatherCode ?: 0
+                    )
             )
             // Start Simon sequence playback when Simon is the very first challenge.
             if (firstChallenge is Challenge.SimonSaysChallenge) {

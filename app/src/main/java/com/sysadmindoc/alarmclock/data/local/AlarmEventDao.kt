@@ -47,6 +47,9 @@ interface AlarmEventDao {
     @Query("SELECT DISTINCT date(firedAt / 1000, 'unixepoch', 'localtime') as d FROM alarm_events WHERE action = 'DISMISSED' ORDER BY d DESC")
     suspend fun dismissDates(): List<String>
 
+    @Query("SELECT AVG(snoozeCount) FROM alarm_events WHERE alarmId = :alarmId AND action IN ('DISMISSED', 'MISSED') AND firedAt > :sinceMs")
+    suspend fun avgSnoozeCountForAlarm(alarmId: Long, sinceMs: Long): Double?
+
     @Query("DELETE FROM alarm_events")
     suspend fun deleteAll()
 }

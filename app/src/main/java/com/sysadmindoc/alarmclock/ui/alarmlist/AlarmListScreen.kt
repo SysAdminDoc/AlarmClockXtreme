@@ -464,6 +464,29 @@ fun AlarmListScreen(
                                     }
                             }
                         }
+                        val conflictTimes = remember(filteredAlarms) {
+                            filteredAlarms
+                                .filter { it.isEnabled }
+                                .groupBy { it.hour * 60 + it.minute }
+                                .filterValues { it.size > 1 }
+                                .keys
+                        }
+                        if (conflictTimes.isNotEmpty()) {
+                            item {
+                                val timeLabels = conflictTimes.joinToString(", ") { totalMin ->
+                                    val h = totalMin / 60
+                                    val m = totalMin % 60
+                                    if (state.is24HourFormat) "%02d:%02d".format(h, m)
+                                    else "%d:%02d %s".format(if (h % 12 == 0) 12 else h % 12, m, if (h < 12) "AM" else "PM")
+                                }
+                                Text(
+                                    text = "Multiple enabled alarms at $timeLabels",
+                                    color = SnoozeYellow,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                         items(filteredAlarms, key = { it.id }) { alarm ->
                             Box(modifier = Modifier
                                 .padding(horizontal = 16.dp)
@@ -491,6 +514,7 @@ fun AlarmListScreen(
                                             is24Hour = state.is24HourFormat,
                                             suppressedByVacation = suppressedByVacation,
                                             onToggle = { viewModel.toggleAlarm(alarm) },
+                                            onForceToggle = { viewModel.forceDisableAlarm(alarm) },
                                             onClick = { onEditAlarm(alarm.id) },
                                             onDelete = { viewModel.deleteAlarm(alarm) },
                                             onSkipNext = { viewModel.skipNextOccurrence(alarm) },
@@ -729,6 +753,7 @@ private fun AlarmCard(
     is24Hour: Boolean,
     suppressedByVacation: Boolean = false,
     onToggle: () -> Unit,
+    onForceToggle: () -> Unit = {},
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onSkipNext: () -> Unit,
@@ -785,11 +810,18 @@ private fun AlarmCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Switch(
-                        checked = alarm.isEnabled,
-                        onCheckedChange = { onToggle() },
-                        colors = appSwitchColors()
-                    )
+                    Box(
+                        modifier = Modifier.combinedClickable(
+                            onClick = { onToggle() },
+                            onLongClick = { if (alarm.isEnabled) onForceToggle() }
+                        )
+                    ) {
+                        Switch(
+                            checked = alarm.isEnabled,
+                            onCheckedChange = null,
+                            colors = appSwitchColors()
+                        )
+                    }
                     Box {
                         IconButton(onClick = { showMenu = true }) {
                             Icon(Icons.Default.MoreVert, "Alarm options", tint = TextSecondary)

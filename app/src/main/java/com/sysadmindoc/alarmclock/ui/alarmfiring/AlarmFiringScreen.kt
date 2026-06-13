@@ -356,7 +356,13 @@ fun AlarmFiringScreen(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    if (state.weatherTemp != null) {
+                    if (state.firedEarlyForWeather) {
+                        AppStatusChip(
+                            label = "Fired early — ${state.weatherDescription ?: "weather"}",
+                            icon = Icons.Default.AcUnit,
+                            color = AccentBlue
+                        )
+                    } else if (state.weatherTemp != null) {
                         AppStatusChip(
                             label = "${state.weatherTemp} ${state.weatherDescription ?: ""}".trim(),
                             icon = Icons.Default.Cloud,

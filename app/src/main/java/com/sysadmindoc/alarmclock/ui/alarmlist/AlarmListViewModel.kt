@@ -147,6 +147,21 @@ class AlarmListViewModel @Inject constructor(
         AlarmListUiState()
     )
 
+    init {
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(3000)
+            val alarms = repository.getAll()
+            for (alarm in alarms.filter { it.isEnabled }) {
+                val avg = eventRepository.avgSnoozeCountForAlarm(alarm.id) ?: continue
+                if (avg >= 3.0) {
+                    val label = alarm.label.ifBlank { "%d:%02d".format(alarm.hour, alarm.minute) }
+                    emitFeedback("\"$label\" averages ${avg.toInt()} snoozes — consider moving it 15 min later")
+                    break
+                }
+            }
+        }
+    }
+
     fun cycleSortOrder() {
         _sortOrder.value = when (_sortOrder.value) {
             AlarmSortOrder.TIME -> AlarmSortOrder.CREATED
@@ -266,16 +281,27 @@ class AlarmListViewModel @Inject constructor(
                 if (lockMinutes > 0 && alarm.nextTriggerTime > 0) {
                     val minutesUntilFire = (alarm.nextTriggerTime - System.currentTimeMillis()) / 60_000
                     if (minutesUntilFire in 0..lockMinutes) {
-                        emitFeedback("Locked — this alarm fires in $minutesUntilFire min. Hold toggle to override.")
+                        emitFeedback("Locked — fires in $minutesUntilFire min. Long-press toggle to override.")
                         return@launch
                     }
                 }
-                repository.setEnabled(alarm.id, enabled = false, nextTrigger = 0)
-                scheduler.cancel(alarm.id)
-                scheduler.syncBedtimeDndRule()
-                emitFeedback("Alarm paused")
+                disableAlarm(alarm)
             }
         }
+    }
+
+    fun forceDisableAlarm(alarm: Alarm) {
+        viewModelScope.launch {
+            disableAlarm(alarm)
+            emitFeedback("Cancellation lock overridden — alarm paused")
+        }
+    }
+
+    private suspend fun disableAlarm(alarm: Alarm) {
+        repository.setEnabled(alarm.id, enabled = false, nextTrigger = 0)
+        scheduler.cancel(alarm.id)
+        scheduler.syncBedtimeDndRule()
+        emitFeedback("Alarm paused")
     }
 
     fun deleteAlarm(alarm: Alarm) {
