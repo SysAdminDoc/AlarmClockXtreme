@@ -172,7 +172,9 @@ data class SettingsBackup(
     val showWorldClockTab: Boolean = true,
     val showNewsTab: Boolean = true,
     val showRadarEmbed: Boolean = true,
-    val cancellationLockMinutes: Int = 0
+    val cancellationLockMinutes: Int = 0,
+    val hueBridgeCertFingerprint: String = "",
+    val hueLegacyHttpEnabled: Boolean = false
 )
 
 data class BackupExportWarning(
@@ -342,7 +344,9 @@ class BackupManager @Inject constructor(
                 showWorldClockTab = settings.showWorldClockTab,
                 showNewsTab = settings.showNewsTab,
                 showRadarEmbed = settings.showRadarEmbed,
-                cancellationLockMinutes = settings.cancellationLockMinutes
+                cancellationLockMinutes = settings.cancellationLockMinutes,
+                hueBridgeCertFingerprint = settings.hueBridgeCertFingerprint,
+                hueLegacyHttpEnabled = settings.hueLegacyHttpEnabled
             )
         )
 
@@ -504,7 +508,9 @@ class BackupManager @Inject constructor(
                         showWorldClockTab = s.showWorldClockTab,
                         showNewsTab = s.showNewsTab,
                         showRadarEmbed = s.showRadarEmbed,
-                        cancellationLockMinutes = s.cancellationLockMinutes
+                        cancellationLockMinutes = s.cancellationLockMinutes,
+                        hueBridgeCertFingerprint = s.hueBridgeCertFingerprint,
+                        hueLegacyHttpEnabled = s.hueLegacyHttpEnabled
                     )
                 }
             }

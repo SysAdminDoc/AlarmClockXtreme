@@ -70,7 +70,56 @@ class SupportExportManager @Inject constructor(
             hasCallPhonePermission = hasPermission(Manifest.permission.CALL_PHONE)
         )
 
+        val notificationPermission = hasNotificationPermission()
+        val exactAlarms = canScheduleExactAlarms()
+        val fsiAllowed = canUseFullScreenIntent()
+        val batteryIgnored = isIgnoringBatteryOptimizations()
+        val standbyBucket = appStandbyBucketLabel()
+        val sdkInt = Build.VERSION.SDK_INT
+
+        val includedFiles = mutableListOf(
+            "support_manifest.json",
+            "readiness.json",
+            "smart_wake_summary.json",
+            "diagnostics.txt",
+            "alarms_redacted.csv",
+            "incident_timeline.csv"
+        )
+        if (crashLogs.isNotEmpty()) {
+            crashLogs.forEach { includedFiles.add("crash_logs/${it.name}") }
+        }
+
         ZipOutputStream(FileOutputStream(zipFile)).use { zip ->
+            zip.writeTextEntry(
+                "support_manifest.json",
+                SupportDiagnosticsFormatter.manifestJson(
+                    generatedAt = generatedAt,
+                    appVersion = BuildConfig.VERSION_NAME,
+                    versionCode = BuildConfig.VERSION_CODE,
+                    flavor = BuildConfig.FLAVOR,
+                    buildType = BuildConfig.BUILD_TYPE,
+                    includedFiles = includedFiles,
+                    maxIncidentRows = MAX_INCIDENTS,
+                    maxCrashLogs = MAX_CRASH_LOGS,
+                    crashLogsScrubbed = true
+                )
+            )
+            zip.writeTextEntry(
+                "readiness.json",
+                SupportDiagnosticsFormatter.readinessJson(
+                    notificationPermissionGranted = notificationPermission,
+                    exactAlarmsAllowed = exactAlarms,
+                    fullScreenIntentAllowed = fsiAllowed,
+                    ignoringBatteryOptimizations = batteryIgnored,
+                    appStandbyBucket = standbyBucket,
+                    sdkInt = sdkInt,
+                    guardianReadiness = guardianReadiness
+                )
+            )
+            zip.writeTextEntry(
+                "smart_wake_summary.json",
+                SupportDiagnosticsFormatter.smartWakeSummaryJson(smartWakeSessions)
+            )
             zip.writeTextEntry(
                 "diagnostics.txt",
                 SupportDiagnosticsFormatter.diagnosticsText(
@@ -83,12 +132,12 @@ class SupportExportManager @Inject constructor(
                     deviceManufacturer = Build.MANUFACTURER,
                     deviceModel = Build.MODEL,
                     androidRelease = Build.VERSION.RELEASE,
-                    sdkInt = Build.VERSION.SDK_INT,
-                    notificationPermissionGranted = hasNotificationPermission(),
-                    exactAlarmsAllowed = canScheduleExactAlarms(),
-                    fullScreenIntentAllowed = canUseFullScreenIntent(),
-                    ignoringBatteryOptimizations = isIgnoringBatteryOptimizations(),
-                    appStandbyBucket = appStandbyBucketLabel(),
+                    sdkInt = sdkInt,
+                    notificationPermissionGranted = notificationPermission,
+                    exactAlarmsAllowed = exactAlarms,
+                    fullScreenIntentAllowed = fsiAllowed,
+                    ignoringBatteryOptimizations = batteryIgnored,
+                    appStandbyBucket = standbyBucket,
                     guardianReadiness = guardianReadiness,
                     totalAlarms = alarms.size,
                     enabledAlarms = enabledCount,
@@ -112,10 +161,11 @@ class SupportExportManager @Inject constructor(
                 zip.writeTextEntry("crash_logs/README.txt", "No local crash logs were present.\n")
             } else {
                 crashLogs.forEach { file ->
+                    val rawText = runCatching { file.readText() }
+                        .getOrElse { "Unable to read crash log: ${it.message}\n" }
                     zip.writeTextEntry(
                         name = "crash_logs/${file.name}",
-                        text = runCatching { file.readText() }
-                            .getOrElse { "Unable to read crash log: ${it.message}\n" }
+                        text = CrashLogScrubber.scrub(rawText)
                     )
                 }
             }

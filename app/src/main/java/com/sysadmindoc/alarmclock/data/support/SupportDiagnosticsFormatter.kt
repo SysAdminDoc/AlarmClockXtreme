@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.data.support
 
+import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
@@ -44,7 +45,126 @@ data class SupportAlarmDiagnostic(
     }
 }
 
+object CrashLogScrubber {
+    private val URL_PATTERN = Regex("""https?://[^\s"')\]]+""", RegexOption.IGNORE_CASE)
+    private val CONTENT_URI_PATTERN = Regex("""content://[^\s"')\]]+""", RegexOption.IGNORE_CASE)
+    private val FILE_URI_PATTERN = Regex("""file://[^\s"')\]]+""", RegexOption.IGNORE_CASE)
+    private val PHONE_PATTERN = Regex("""\+?\d[\d\s\-()]{6,15}\d""")
+    private val EMAIL_PATTERN = Regex("""[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}""")
+    private val HEX_TOKEN_PATTERN = Regex("""(?<![a-zA-Z0-9])[0-9a-fA-F]{32,}(?![a-zA-Z0-9])""")
+    private val API_KEY_PATTERN = Regex("""(?:api[_\-]?key|token|secret|password|credential|authorization)[=:\s"']+[^\s"']+""", RegexOption.IGNORE_CASE)
+
+    fun scrub(text: String): String {
+        var result = text
+        result = URL_PATTERN.replace(result, "[URL_REDACTED]")
+        result = CONTENT_URI_PATTERN.replace(result, "[URI_REDACTED]")
+        result = FILE_URI_PATTERN.replace(result, "[URI_REDACTED]")
+        result = EMAIL_PATTERN.replace(result, "[EMAIL_REDACTED]")
+        result = API_KEY_PATTERN.replace(result, "[SECRET_REDACTED]")
+        result = HEX_TOKEN_PATTERN.replace(result, "[TOKEN_REDACTED]")
+        result = scrubPhoneNumbers(result)
+        return result
+    }
+
+    private fun scrubPhoneNumbers(text: String): String {
+        return PHONE_PATTERN.replace(text) { match ->
+            val digits = match.value.count { it.isDigit() }
+            if (digits >= 7) "[PHONE_REDACTED]" else match.value
+        }
+    }
+}
+
 object SupportDiagnosticsFormatter {
+    const val SCHEMA_VERSION = 1
+    const val REDACTION_POLICY_VERSION = 1
+
+    private val READINESS_FIELDS = listOf(
+        "notificationPermissionGranted",
+        "exactAlarmsAllowed",
+        "fullScreenIntentAllowed",
+        "batteryOptimizationsIgnored",
+        "appStandbyBucket"
+    )
+
+    private val ALARM_DIAGNOSTIC_FIELDS = listOf(
+        "id", "enabled", "time", "repeat", "nextTriggerTime", "challengeType",
+        "hasCustomSound", "hasInternetRadio", "hueEnabled", "guardianEnabled",
+        "wakeConfirmEnabled"
+    )
+
+    fun manifestJson(
+        generatedAt: Instant,
+        appVersion: String,
+        versionCode: Int,
+        flavor: String,
+        buildType: String,
+        includedFiles: List<String>,
+        maxIncidentRows: Int,
+        maxCrashLogs: Int,
+        crashLogsScrubbed: Boolean
+    ): String = buildString {
+        appendLine("{")
+        appendLine("""  "schemaVersion": $SCHEMA_VERSION,""")
+        appendLine("""  "redactionPolicyVersion": $REDACTION_POLICY_VERSION,""")
+        appendLine("""  "generatedAt": "${generatedAt}",""")
+        appendLine("""  "appVersion": "${jsonEscape(appVersion)}",""")
+        appendLine("""  "versionCode": $versionCode,""")
+        appendLine("""  "flavor": "${jsonEscape(flavor)}",""")
+        appendLine("""  "buildType": "${jsonEscape(buildType)}",""")
+        appendLine("""  "maxIncidentRows": $maxIncidentRows,""")
+        appendLine("""  "maxCrashLogs": $maxCrashLogs,""")
+        appendLine("""  "crashLogsScrubbed": $crashLogsScrubbed,""")
+        appendLine("""  "includedFiles": [${includedFiles.joinToString(", ") { "\"${jsonEscape(it)}\"" }}],""")
+        appendLine("""  "readinessFields": [${READINESS_FIELDS.joinToString(", ") { "\"$it\"" }}],""")
+        appendLine("""  "alarmDiagnosticFields": [${ALARM_DIAGNOSTIC_FIELDS.joinToString(", ") { "\"$it\"" }}]""")
+        appendLine("}")
+    }
+
+    fun readinessJson(
+        notificationPermissionGranted: Boolean,
+        exactAlarmsAllowed: Boolean,
+        fullScreenIntentAllowed: Boolean?,
+        ignoringBatteryOptimizations: Boolean,
+        appStandbyBucket: String,
+        sdkInt: Int,
+        guardianReadiness: GuardianReadiness
+    ): String = buildString {
+        appendLine("{")
+        appendLine("""  "notificationPermissionGranted": $notificationPermissionGranted,""")
+        appendLine("""  "exactAlarmsAllowed": $exactAlarmsAllowed,""")
+        appendLine("""  "fullScreenIntentAllowed": ${formatFsiJson(fullScreenIntentAllowed, sdkInt)},""")
+        appendLine("""  "batteryOptimizationsIgnored": $ignoringBatteryOptimizations,""")
+        appendLine("""  "appStandbyBucket": "${jsonEscape(appStandbyBucket)}",""")
+        appendLine("""  "sdkInt": $sdkInt,""")
+        appendLine("""  "guardianAlarmCount": ${guardianReadiness.enabledAlarmCount},""")
+        appendLine("""  "guardianSmsPath": "${guardianReadiness.smsPath.name}",""")
+        appendLine("""  "guardianSendSmsGranted": ${guardianReadiness.hasSendSmsPermission},""")
+        appendLine("""  "guardianCallPhoneGranted": ${guardianReadiness.hasCallPhonePermission}""")
+        appendLine("}")
+    }
+
+    fun smartWakeSummaryJson(sessions: List<ActigraphySession>): String = buildString {
+        val sessionCount = sessions.size
+        val firedEarlyCount = sessions.count { it.firedEarly }
+        val targetFireCount = sessions.count { !it.firedEarly }
+        val totalRuntimeMinutes = sessions.sumOf { it.totalMinutes }
+        val avgObservedMinutes = if (sessions.isNotEmpty()) {
+            sessions.sumOf { it.observedMinutesBeforeDecision } / sessions.size
+        } else 0
+        val latest = sessions.firstOrNull()
+
+        appendLine("{")
+        appendLine("""  "sessionCount": $sessionCount,""")
+        appendLine("""  "firedEarlyCount": $firedEarlyCount,""")
+        appendLine("""  "targetFireCount": $targetFireCount,""")
+        appendLine("""  "totalRuntimeMinutes": $totalRuntimeMinutes,""")
+        appendLine("""  "averageObservedMinutes": $avgObservedMinutes,""")
+        appendLine("""  "latestDecisionReason": ${jsonStringOrNull(latest?.decisionReason)},""")
+        appendLine("""  "latestObservedMinutes": ${latest?.observedMinutesBeforeDecision ?: "null"},""")
+        appendLine("""  "latestMode": ${jsonStringOrNull(latest?.smartWakeMode)}""")
+        appendLine("}")
+    }
+
     fun alarmIncidentCsv(incidents: List<AlarmIncidentEvent>): String {
         return buildString {
             appendLine(
@@ -235,6 +355,12 @@ object SupportDiagnosticsFormatter {
         return "\"$escaped\""
     }
 
+    private fun jsonEscape(value: String): String =
+        value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+
+    private fun jsonStringOrNull(value: String?): String =
+        if (value != null) "\"${jsonEscape(value)}\"" else "null"
+
     private fun formatEpochMillis(value: Long): String {
         return Instant.ofEpochMilli(value)
             .atZone(ZoneId.systemDefault())
@@ -245,6 +371,12 @@ object SupportDiagnosticsFormatter {
         true -> "allowed"
         false -> "blocked"
         null -> if (sdkInt >= 34) "unknown" else "not_applicable"
+    }
+
+    private fun formatFsiJson(value: Boolean?, sdkInt: Int): String = when (value) {
+        true -> "true"
+        false -> "false"
+        null -> "\"${if (sdkInt >= 34) "unknown" else "not_applicable"}\""
     }
 
     private fun <T> formatDayMap(values: Map<DayOfWeek, T>): String {
