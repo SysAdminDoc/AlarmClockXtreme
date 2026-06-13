@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring
 
+import android.content.Context
 import android.text.format.DateFormat
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
@@ -136,7 +137,17 @@ fun AlarmFiringScreen(
     // mid-alarm (rare, but possible if user pulls down quick settings).
     val showQuotes by viewModel.showMotivationalQuotes.collectAsStateWithLifecycle()
     val flipToSnoozeEnabled by viewModel.flipToSnoozeEnabled.collectAsStateWithLifecycle()
+    val firingControlMode by viewModel.firingControlMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val accessibilityManager = remember {
+        context.getSystemService(Context.ACCESSIBILITY_SERVICE) as? android.view.accessibility.AccessibilityManager
+    }
+    val effectiveControlMode = if (
+        firingControlMode == "hybrid" &&
+        accessibilityManager?.isTouchExplorationEnabled == true
+    ) "buttons" else firingControlMode
+    val showSwipeControls = effectiveControlMode != "buttons"
+    val showButtonControls = effectiveControlMode != "swipe"
     val is24Hour = DateFormat.is24HourFormat(context)
     val currentTime by produceState(initialValue = LocalTime.now()) {
         while (true) {
@@ -219,11 +230,9 @@ fun AlarmFiringScreen(
                     )
                 )
             )
-            .pointerInput(state.canDismiss, holdToDismissEnabled) {
-                // Swipe LEFT to dismiss/disarm, RIGHT to snooze. Dismiss is
-                // the destructive action — putting it on the left mirrors
-                // common swipe-to-delete conventions and matches the user's
-                // muscle memory for "get this out of the way."
+            .let { mod ->
+                if (!showSwipeControls) return@let mod
+                mod.pointerInput(state.canDismiss, holdToDismissEnabled) {
                 detectHorizontalDragGestures(
                     onDragStart = { swipeCumulativeDrag = 0f },
                     onDragEnd = {
@@ -262,6 +271,7 @@ fun AlarmFiringScreen(
                         }
                     }
                 )
+            }
             }
     ) {
         Box(
@@ -650,33 +660,35 @@ fun AlarmFiringScreen(
 
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
 
-                Text(
-                    text = if (swipeHint.isBlank()) {
-                        if (state.canDismiss) {
-                            if (holdToDismissEnabled && flipToSnoozeEnabled) {
-                                "Hold Dismiss for 1.5 seconds or swipe right to snooze. Flip the phone over for a quick snooze."
-                            } else if (holdToDismissEnabled) {
-                                "Hold Dismiss for 1.5 seconds or swipe right to snooze."
-                            } else if (flipToSnoozeEnabled) {
-                                "Swipe left to dismiss or right to snooze. Flip the phone over for a quick snooze."
+                if (showSwipeControls) {
+                    Text(
+                        text = if (swipeHint.isBlank()) {
+                            if (state.canDismiss) {
+                                if (holdToDismissEnabled && flipToSnoozeEnabled) {
+                                    "Hold Dismiss for 1.5 seconds or swipe right to snooze. Flip the phone over for a quick snooze."
+                                } else if (holdToDismissEnabled) {
+                                    "Hold Dismiss for 1.5 seconds or swipe right to snooze."
+                                } else if (flipToSnoozeEnabled) {
+                                    "Swipe left to dismiss or right to snooze. Flip the phone over for a quick snooze."
+                                } else {
+                                    "Swipe left to dismiss or right to snooze."
+                                }
                             } else {
-                                "Swipe left to dismiss or right to snooze."
+                                "Swipe right to snooze if you need a short reset. Dismiss unlocks once the wake-up task is complete."
                             }
                         } else {
-                            "Swipe right to snooze if you need a short reset. Dismiss unlocks once the wake-up task is complete."
-                        }
-                    } else {
-                        swipeHint
-                    },
-                    color = when {
-                        swipeHint.contains("Release") -> MaterialTheme.colorScheme.primary
-                        state.canDismiss -> TextSecondary
-                        else -> TextMuted
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                            swipeHint
+                        },
+                        color = when {
+                            swipeHint.contains("Release") -> MaterialTheme.colorScheme.primary
+                            state.canDismiss -> TextSecondary
+                            else -> TextMuted
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
@@ -702,61 +714,63 @@ fun AlarmFiringScreen(
                     AppStatusChip(
                         label = when {
                             state.canDismiss && holdToDismissEnabled -> "Hold Dismiss to finish"
-                            state.canDismiss -> "Swipe left to dismiss"
+                            state.canDismiss && showSwipeControls -> "Swipe left to dismiss"
+                            state.canDismiss -> "Tap to dismiss"
                             else -> "Dismiss unlocks after challenge"
                         },
                         icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
                         color = if (state.canDismiss) DismissGreen else TextMuted
                     )
                     AppStatusChip(
-                        label = "Swipe right to snooze",
+                        label = if (showSwipeControls) "Swipe right to snooze" else "Tap to snooze",
                         icon = Icons.Default.Snooze,
                         color = SnoozeYellow
                     )
                 }
 
-                if (holdToDismissEnabled) {
-                    HoldToDismissButton(
-                        enabled = state.canDismiss,
-                        onDismiss = onDismiss
-                    )
-                } else {
-                    Button(
-                        onClick = onDismiss,
-                        enabled = state.canDismiss,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = DismissGreen,
-                            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                            disabledContentColor = TextMuted
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = if (state.canDismiss) "Dismiss alarm" else "Finish wake-up challenge",
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp
+                if (showButtonControls) {
+                    if (holdToDismissEnabled) {
+                        HoldToDismissButton(
+                            enabled = state.canDismiss,
+                            onDismiss = onDismiss
                         )
+                    } else {
+                        Button(
+                            onClick = onDismiss,
+                            enabled = state.canDismiss,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = DismissGreen,
+                                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                                disabledContentColor = TextMuted
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = if (state.canDismiss) "Dismiss alarm" else "Finish wake-up challenge",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp
+                            )
+                        }
                     }
-                }
 
-                LongPressSnoozeButton(
-                    minutes = defaultSnoozeMinutes,
-                    onClick = onSnooze,
-                    onLongClick = {
-                        customSnoozeMinutes = defaultSnoozeMinutes
-                            .coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES)
-                        showSnoozeOptions = true
-                    }
-                )
+                    LongPressSnoozeButton(
+                        minutes = defaultSnoozeMinutes,
+                        onClick = onSnooze,
+                        onLongClick = {
+                            customSnoozeMinutes = defaultSnoozeMinutes
+                                .coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES)
+                            showSnoozeOptions = true
+                        }
+                    )
 
-                Text(
-                    text = "Long-press Snooze for exact minutes. Your saved default stays unchanged.",
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center,
+                    Text(
+                        text = "Long-press Snooze for exact minutes. Your saved default stays unchanged.",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -794,6 +808,7 @@ fun AlarmFiringScreen(
                         },
                         onSnooze = { onSnoozeCustom(customSnoozeMinutes) }
                     )
+                }
                 }
             }
         }

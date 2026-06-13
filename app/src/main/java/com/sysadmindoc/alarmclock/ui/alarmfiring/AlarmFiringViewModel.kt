@@ -122,6 +122,10 @@ class AlarmFiringViewModel @Inject constructor(
         .map { it.coverToSnoozeEnabled }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    val firingControlMode: StateFlow<String> = preferencesManager.settings
+        .map { it.firingControlMode }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "hybrid")
+
     // v1.2.0: Challenge chain list built from alarm config
     private var challengeChainTypes: List<ChallengeType> = emptyList()
     private var currentAlarm: Alarm? = null

@@ -138,7 +138,8 @@ data class AppSettings(
     // permissions policy refresh required to actually ship the data path
     // is tracked alongside (roadmap N13).
     val healthConnectEnabled: Boolean = false,
-    val cancellationLockMinutes: Int = 0
+    val cancellationLockMinutes: Int = 0,
+    val firingControlMode: String = "hybrid"
 )
 
 private fun AppSettings.sanitized(): AppSettings {
@@ -203,7 +204,10 @@ private fun AppSettings.sanitized(): AppSettings {
         sleepSoundFadeSeconds = sleepSoundFadeSeconds.coerceIn(5, 600),
         napDefaultMinutes = napDefaultMinutes.coerceIn(1, 180),
         pauseUntilMillis = normalizedPauseUntil,
-        cancellationLockMinutes = cancellationLockMinutes.coerceIn(0, 120)
+        cancellationLockMinutes = cancellationLockMinutes.coerceIn(0, 120),
+        firingControlMode = firingControlMode.takeIf {
+            it in setOf("hybrid", "buttons", "swipe")
+        } ?: "hybrid"
     )
 }
 
@@ -292,6 +296,7 @@ class PreferencesManager @Inject constructor(
         val PAUSE_UNTIL = longPreferencesKey("pause_until_millis")
         val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
         val CANCELLATION_LOCK_MINUTES = intPreferencesKey("cancellation_lock_minutes")
+        val FIRING_CONTROL_MODE = stringPreferencesKey("firing_control_mode")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -402,6 +407,7 @@ class PreferencesManager @Inject constructor(
         pauseUntilMillis = this[Keys.PAUSE_UNTIL] ?: 0L,
         healthConnectEnabled = this[Keys.HEALTH_CONNECT_ENABLED] ?: false,
         cancellationLockMinutes = this[Keys.CANCELLATION_LOCK_MINUTES] ?: 0,
+        firingControlMode = this[Keys.FIRING_CONTROL_MODE] ?: "hybrid",
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
@@ -468,5 +474,6 @@ class PreferencesManager @Inject constructor(
         this[Keys.PAUSE_UNTIL] = s.pauseUntilMillis
         this[Keys.HEALTH_CONNECT_ENABLED] = s.healthConnectEnabled
         this[Keys.CANCELLATION_LOCK_MINUTES] = s.cancellationLockMinutes
+        this[Keys.FIRING_CONTROL_MODE] = s.firingControlMode
     }
 }

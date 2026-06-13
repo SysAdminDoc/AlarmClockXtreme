@@ -1893,6 +1893,50 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
             }
         }
 
+        var showFiringModeMenu by remember { mutableStateOf(false) }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Firing controls", color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "How you dismiss and snooze alarms. Buttons mode is recommended for screen readers.",
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Box {
+                TextButton(onClick = { showFiringModeMenu = true }) {
+                    Text(
+                        when (state.settings.firingControlMode) {
+                            "buttons" -> "Buttons"
+                            "swipe" -> "Swipe"
+                            else -> "Hybrid"
+                        },
+                        color = AccentBlue
+                    )
+                }
+                DropdownMenu(expanded = showFiringModeMenu, onDismissRequest = { showFiringModeMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Hybrid — swipe gestures and buttons") },
+                        onClick = { viewModel.updateFiringControlMode("hybrid"); showFiringModeMenu = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Buttons only — accessible, no gestures") },
+                        onClick = { viewModel.updateFiringControlMode("buttons"); showFiringModeMenu = false }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Swipe only — gesture-driven") },
+                        onClick = { viewModel.updateFiringControlMode("swipe"); showFiringModeMenu = false }
+                    )
+                }
+            }
+        }
+
         BufferedSettingsTextField(
             value = state.settings.customTypingPhrases,
             onCommit = viewModel::updateCustomTypingPhrases,

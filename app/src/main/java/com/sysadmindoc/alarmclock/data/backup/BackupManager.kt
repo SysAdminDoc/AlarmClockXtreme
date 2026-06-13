@@ -174,7 +174,8 @@ data class SettingsBackup(
     val showRadarEmbed: Boolean = true,
     val cancellationLockMinutes: Int = 0,
     val hueBridgeCertFingerprint: String = "",
-    val hueLegacyHttpEnabled: Boolean = false
+    val hueLegacyHttpEnabled: Boolean = false,
+    val firingControlMode: String = "hybrid"
 )
 
 data class BackupExportWarning(
@@ -346,7 +347,8 @@ class BackupManager @Inject constructor(
                 showRadarEmbed = settings.showRadarEmbed,
                 cancellationLockMinutes = settings.cancellationLockMinutes,
                 hueBridgeCertFingerprint = settings.hueBridgeCertFingerprint,
-                hueLegacyHttpEnabled = settings.hueLegacyHttpEnabled
+                hueLegacyHttpEnabled = settings.hueLegacyHttpEnabled,
+                firingControlMode = settings.firingControlMode
             )
         )
 
@@ -510,7 +512,8 @@ class BackupManager @Inject constructor(
                         showRadarEmbed = s.showRadarEmbed,
                         cancellationLockMinutes = s.cancellationLockMinutes,
                         hueBridgeCertFingerprint = s.hueBridgeCertFingerprint,
-                        hueLegacyHttpEnabled = s.hueLegacyHttpEnabled
+                        hueLegacyHttpEnabled = s.hueLegacyHttpEnabled,
+                        firingControlMode = s.firingControlMode
                     )
                 }
             }

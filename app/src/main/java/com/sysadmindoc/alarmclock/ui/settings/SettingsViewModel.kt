@@ -297,6 +297,8 @@ class SettingsViewModel @Inject constructor(
         updateSettings { it.copy(repeatMissedAlarms = enabled) }
     fun updateCancellationLockMinutes(minutes: Int) =
         updateSettings { it.copy(cancellationLockMinutes = minutes.coerceIn(0, 120)) }
+    fun updateFiringControlMode(mode: String) =
+        updateSettings { it.copy(firingControlMode = mode) }
     fun updateBedtimeChecklist(items: String) =
         updateSettings { it.copy(bedtimeChecklist = items) }
     fun updateSleepSoundTimer(minutes: Int) =
