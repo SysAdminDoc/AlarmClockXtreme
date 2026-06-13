@@ -114,7 +114,8 @@ data class Alarm(
     // users build a "gentle wake" preset that ramps audio first and only
     // adds haptic intensity after a configurable window. 0 = vibrate as
     // soon as the alarm fires (preserves prior behaviour).
-    val vibrationDelaySeconds: Int = 0
+    val vibrationDelaySeconds: Int = 0,
+    val weatherEarlyMinutes: Int = 0
 ) {
     companion object {
         const val MAX_SMART_ALARM_WINDOW_MINUTES = 60
@@ -246,7 +247,8 @@ data class Alarm(
             solarAnchor = if (solarAnchor.equals("SUNSET", ignoreCase = true)) "SUNSET" else "SUNRISE",
             // v1.12.0 (roadmap N7): 0..600 s (10 min hard cap matches the
             // ceiling on gradualVolumeSeconds so the two can pair cleanly).
-            vibrationDelaySeconds = vibrationDelaySeconds.coerceIn(0, 600)
+            vibrationDelaySeconds = vibrationDelaySeconds.coerceIn(0, 600),
+            weatherEarlyMinutes = weatherEarlyMinutes.coerceIn(0, 60)
         )
     }
 }

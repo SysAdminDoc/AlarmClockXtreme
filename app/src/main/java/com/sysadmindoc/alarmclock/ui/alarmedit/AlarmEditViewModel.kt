@@ -99,7 +99,14 @@ data class AlarmEditUiState(
     val solarAnchor: String = "SUNRISE",
     // v1.12.0 (roadmap N7): pre-vibration delay in seconds (pairs with
     // gradualVolumeSeconds for a "gentle wake" preset).
-    val vibrationDelaySeconds: Int = 0
+    val vibrationDelaySeconds: Int = 0,
+    val weatherEarlyMinutes: Int = 0,
+    val forecastDates: List<ForecastEntry> = emptyList()
+)
+
+data class ForecastEntry(
+    val timeMillis: Long,
+    val skippedByVacation: Boolean = false
 )
 
 @HiltViewModel
@@ -185,7 +192,8 @@ class AlarmEditViewModel @Inject constructor(
                         ringtonePool = alarm.ringtonePool,
                         solarOffsetMinutes = alarm.solarOffsetMinutes,
                         solarAnchor = alarm.solarAnchor,
-                        vibrationDelaySeconds = alarm.vibrationDelaySeconds
+                        vibrationDelaySeconds = alarm.vibrationDelaySeconds,
+                        weatherEarlyMinutes = alarm.weatherEarlyMinutes
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(notFound = true, is24HourFormat = is24h)
@@ -234,6 +242,10 @@ class AlarmEditViewModel @Inject constructor(
     /** v1.12.0 (roadmap N7): set per-alarm vibration start-delay (seconds). */
     fun updateVibrationDelay(seconds: Int) {
         _uiState.value = _uiState.value.copy(vibrationDelaySeconds = seconds.coerceIn(0, 600))
+    }
+
+    fun updateWeatherEarlyMinutes(minutes: Int) {
+        _uiState.value = _uiState.value.copy(weatherEarlyMinutes = minutes.coerceIn(0, 60))
     }
 
     fun updateOverrideVolume(override: Boolean) {
@@ -399,6 +411,39 @@ class AlarmEditViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(saveError = null)
     }
 
+    fun computeForecast() {
+        viewModelScope.launch {
+            val s = _uiState.value
+            val probe = Alarm(
+                hour = s.hour,
+                minute = s.minute,
+                repeatDays = s.repeatDays.joinToString(",") { it.name },
+                specificDate = s.specificDate,
+                solarOffsetMinutes = s.solarOffsetMinutes,
+                solarAnchor = s.solarAnchor,
+                skipOnHolidays = s.skipOnHolidays,
+                isEnabled = true
+            )
+            val settings = preferencesManager.getCurrentSettings()
+            val zone = java.time.ZoneId.systemDefault()
+            val entries = mutableListOf<ForecastEntry>()
+            var cursor = java.time.ZonedDateTime.now()
+            repeat(7) {
+                val raw = calculator.calculate(probe, cursor)
+                if (raw <= 0L) return@repeat
+                val adj = com.sysadmindoc.alarmclock.domain.VacationAlarmPolicy
+                    .adjustTrigger(probe, raw, settings, zone) { a, from ->
+                        calculator.calculate(a, from)
+                    }
+                entries.add(ForecastEntry(adj.triggerTime, adj.skippedByVacation))
+                cursor = java.time.Instant.ofEpochMilli(raw)
+                    .atZone(zone)
+                    .plusMinutes(1)
+            }
+            _uiState.value = _uiState.value.copy(forecastDates = entries)
+        }
+    }
+
     fun save(onComplete: () -> Unit) {
         // Re-entrancy guard: a fast double-tap on the Save button would otherwise
         // create two alarm rows. The state flag still updates, but races against
@@ -468,7 +513,8 @@ class AlarmEditViewModel @Inject constructor(
                 ringtonePool = s.ringtonePool,
                 solarOffsetMinutes = s.solarOffsetMinutes,
                 solarAnchor = s.solarAnchor,
-                vibrationDelaySeconds = s.vibrationDelaySeconds
+                vibrationDelaySeconds = s.vibrationDelaySeconds,
+                weatherEarlyMinutes = s.weatherEarlyMinutes
             )
 
             try {

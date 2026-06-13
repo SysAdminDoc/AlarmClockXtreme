@@ -614,6 +614,30 @@ fun AlarmEditScreen(
                 }
             }
 
+            // Schedule forecast
+            LaunchedEffect(state.hour, state.minute, state.repeatDays, state.specificDate,
+                state.solarOffsetMinutes, state.solarAnchor, state.skipOnHolidays) {
+                viewModel.computeForecast()
+            }
+            if (state.forecastDates.isNotEmpty()) {
+                SettingsSection("Upcoming fire dates") {
+                    state.forecastDates.forEach { entry ->
+                        val instant = java.time.Instant.ofEpochMilli(entry.timeMillis)
+                        val dt = instant.atZone(java.time.ZoneId.systemDefault())
+                        val dateStr = dt.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))
+                        val timeStr = dt.format(java.time.format.DateTimeFormatter.ofPattern(
+                            if (state.is24HourFormat) "HH:mm" else "h:mm a"
+                        ))
+                        val label = if (entry.skippedByVacation) "$dateStr $timeStr (vacation skip)" else "$dateStr $timeStr"
+                        val tone = if (entry.skippedByVacation) HintTone.Warning else HintTone.Neutral
+                        SettingsHint(label, tone = tone)
+                    }
+                    if (state.forecastDates.isEmpty()) {
+                        SettingsHint("This alarm will not ring with the current settings.", tone = HintTone.Warning)
+                    }
+                }
+            }
+
             // Dismiss Challenge
             SettingsSection("Dismiss challenge") {
                 val challengeOptions = alarmChallengeOptions()
@@ -1224,6 +1248,28 @@ fun AlarmEditScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
+                var showWeatherEarlyMenu by remember { mutableStateOf(false) }
+                SettingsRow(label = "Weather early fire") {
+                    Box {
+                        SettingsValueButton(
+                            label = if (state.weatherEarlyMinutes == 0) "Disabled" else "${state.weatherEarlyMinutes} min",
+                            onClick = { showWeatherEarlyMenu = true }
+                        )
+                        DropdownMenu(expanded = showWeatherEarlyMenu, onDismissRequest = { showWeatherEarlyMenu = false }) {
+                            listOf(0, 10, 15, 20, 30).forEach { mins ->
+                                DropdownMenuItem(
+                                    text = { Text(if (mins == 0) "Disabled" else "$mins minutes earlier") },
+                                    onClick = { viewModel.updateWeatherEarlyMinutes(mins); showWeatherEarlyMenu = false }
+                                )
+                            }
+                        }
+                    }
+                }
+                SettingsHint(
+                    "Fire this alarm earlier when snow, freezing rain, or ice is forecast. Uses cached weather data.",
+                    tone = HintTone.Neutral
+                )
+
                 var showEarlyMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = "Early dismiss window") {
                     Box {
