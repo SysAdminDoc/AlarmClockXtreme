@@ -88,4 +88,12 @@
 
     <!-- v1.4.0: Quick Settings tile -->
     <string name="qs_tile_skip_next_alarm">Skip next alarm</string>
+
+    <!-- Launcher shortcuts -->
+    <string name="shortcut_new_alarm">New alarm</string>
+    <string name="shortcut_new_alarm_long">Create a new alarm</string>
+    <string name="shortcut_timer">Timer</string>
+    <string name="shortcut_timer_long">Start a timer</string>
+    <string name="shortcut_bedtime">Bedtime</string>
+    <string name="shortcut_bedtime_long">Open bedtime tracker</string>
 </resources>

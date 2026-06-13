@@ -115,6 +115,15 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+            <!-- Launcher shortcut deep links -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="acx" android:host="navigate" />
+            </intent-filter>
             <!-- Allows the system clock affordance ("upcoming alarm" tap) and other
                  apps (e.g., Google Assistant) to open the alarm list directly. -->
             <intent-filter>

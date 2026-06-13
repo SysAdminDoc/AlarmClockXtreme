@@ -164,6 +164,19 @@ fun AppNavigation(
         route in bottomNavItems.map { it.screen.route }
     } ?: false
 
+    LaunchedEffect(Unit) {
+        val data = (context as? android.app.Activity)?.intent?.data ?: return@LaunchedEffect
+        if (data.scheme == "acx" && data.host == "navigate") {
+            val targetRoute = data.pathSegments.joinToString("/")
+            if (targetRoute.isNotBlank()) {
+                navController.navigate(targetRoute) {
+                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                    launchSingleTop = true
+                }
+            }
+        }
+    }
+
     // If the user is currently on a tab that's been hidden, bounce them to
     // Alarms (the always-visible "home" tab). Without this they'd be stuck on
     // Today, Timer, or World with no way back via the bottom nav.
