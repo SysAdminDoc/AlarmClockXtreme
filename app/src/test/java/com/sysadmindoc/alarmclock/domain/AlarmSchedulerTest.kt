@@ -123,6 +123,74 @@ class AlarmSchedulerTest {
         verify { WidgetUpdater.requestUpdate(context) }
     }
 
+    @Test
+    fun weatherEarlyShiftsTriggerTimeWhenSnowForecast() = runTest {
+        val triggerTime = System.currentTimeMillis() + 8 * 3_600_000L
+        val triggerDate = java.time.Instant.ofEpochMilli(triggerTime)
+            .atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
+        val alarm = enabledAlarm(id = 99L).copy(weatherEarlyMinutes = 15)
+        every { calculator.calculate(any<Alarm>(), any()) } returns triggerTime
+
+        val weatherResponse = com.sysadmindoc.alarmclock.data.remote.WeatherResponse(
+            current = null,
+            hourly = null,
+            daily = com.sysadmindoc.alarmclock.data.remote.DailyWeather(
+                time = listOf(triggerDate),
+                maxTemp = listOf(28.0),
+                minTemp = listOf(20.0),
+                weatherCode = listOf(71),
+                precipChance = null,
+                sunrise = null,
+                sunset = null,
+                uvIndexMax = null
+            ),
+            currentUnits = null
+        )
+        every { weatherRepository.getCachedWeather() } returns weatherResponse
+
+        scheduler.schedule(alarm, requestWidgetUpdate = false)
+
+        coVerify { repository.updateNextTrigger(99L, triggerTime - 15 * 60_000L) }
+    }
+
+    @Test
+    fun weatherEarlyNoShiftWhenClearForecast() = runTest {
+        val triggerTime = System.currentTimeMillis() + 8 * 3_600_000L
+        val triggerDate = java.time.Instant.ofEpochMilli(triggerTime)
+            .atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
+        val alarm = enabledAlarm(id = 100L).copy(weatherEarlyMinutes = 15)
+        every { calculator.calculate(any<Alarm>(), any()) } returns triggerTime
+
+        val weatherResponse = com.sysadmindoc.alarmclock.data.remote.WeatherResponse(
+            current = null,
+            hourly = null,
+            daily = com.sysadmindoc.alarmclock.data.remote.DailyWeather(
+                time = listOf(triggerDate),
+                maxTemp = listOf(72.0),
+                minTemp = listOf(55.0),
+                weatherCode = listOf(0),
+                precipChance = null,
+                sunrise = null,
+                sunset = null,
+                uvIndexMax = null
+            ),
+            currentUnits = null
+        )
+        every { weatherRepository.getCachedWeather() } returns weatherResponse
+
+        scheduler.schedule(alarm, requestWidgetUpdate = false)
+
+        coVerify { repository.updateNextTrigger(100L, triggerTime) }
+    }
+
+    @Test
+    fun isSnowOrIceCodeMatchesExpectedWmoCodes() {
+        val snowCodes = listOf(56, 57, 66, 67, 71, 73, 75, 77, 85, 86)
+        val clearCodes = listOf(0, 1, 2, 3, 45, 48, 51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99)
+        snowCodes.forEach { assert(AlarmScheduler.isSnowOrIceCode(it)) { "Expected $it to be snow/ice" } }
+        clearCodes.forEach { assert(!AlarmScheduler.isSnowOrIceCode(it)) { "Expected $it to NOT be snow/ice" } }
+    }
+
     private fun enabledAlarm(id: Long): Alarm = Alarm(
         id = id,
         hour = 7,

@@ -790,6 +790,38 @@ fun AlarmEditScreen(
 
             // Wake effects
             SettingsSection("Wake effects") {
+                val isGentleWake = state.gradualVolumeSeconds >= 120 &&
+                    state.vibrationDelaySeconds >= 60 &&
+                    state.sunriseSimulation
+                OutlinedButton(
+                    onClick = {
+                        if (!isGentleWake) {
+                            viewModel.updateGradualVolume(120)
+                            viewModel.updateVibrationDelay(60)
+                            viewModel.updateSunriseSimulation(true)
+                            viewModel.updateFlashWake(true)
+                        } else {
+                            viewModel.updateGradualVolume(60)
+                            viewModel.updateVibrationDelay(0)
+                            viewModel.updateSunriseSimulation(false)
+                            viewModel.updateFlashWake(false)
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = if (isGentleWake) DismissGreen else AccentBlue
+                    ),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    Text(if (isGentleWake) "Gentle wake active" else "Apply gentle wake preset")
+                }
+                if (!isGentleWake) {
+                    SettingsHint(
+                        "Sets 2-min volume fade, 1-min vibration delay, and sunrise simulation for a calm wake.",
+                        tone = HintTone.Neutral
+                    )
+                }
+
                 SettingsRow(
                     label = "Flash wake (brighten screen)",
                     trailing = {

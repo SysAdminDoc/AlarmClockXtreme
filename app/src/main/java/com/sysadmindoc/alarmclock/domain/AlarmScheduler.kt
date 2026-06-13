@@ -144,14 +144,24 @@ class AlarmScheduler @Inject constructor(
         }
 
         if (sanitizedAlarm.weatherEarlyMinutes > 0 && triggerTime > 0) {
-            val cached = weatherRepository.getCachedWeather()
-            val triggerDate = java.time.Instant.ofEpochMilli(triggerTime)
-                .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-            val dayIndex = cached?.daily?.time?.indexOfFirst { it == triggerDate.toString() } ?: -1
-            if (dayIndex >= 0) {
-                val code = cached?.daily?.weatherCode?.getOrNull(dayIndex)
-                if (code != null && isSnowOrIceCode(code)) {
-                    triggerTime -= sanitizedAlarm.weatherEarlyMinutes * 60_000L
+            var weather = weatherRepository.getCachedWeather()
+            if (weather == null) {
+                val settings = preferencesManager.getCurrentSettings()
+                val lat = settings.lastKnownLatitude
+                val lng = settings.lastKnownLongitude
+                if (lat != 0.0 || lng != 0.0) {
+                    weather = weatherRepository.getWeather(lat, lng, settings.temperatureUnit).getOrNull()
+                }
+            }
+            if (weather != null) {
+                val triggerDate = java.time.Instant.ofEpochMilli(triggerTime)
+                    .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+                val dayIndex = weather.daily?.time?.indexOfFirst { it == triggerDate.toString() } ?: -1
+                if (dayIndex >= 0) {
+                    val code = weather.daily?.weatherCode?.getOrNull(dayIndex)
+                    if (code != null && isSnowOrIceCode(code)) {
+                        triggerTime -= sanitizedAlarm.weatherEarlyMinutes * 60_000L
+                    }
                 }
             }
         }

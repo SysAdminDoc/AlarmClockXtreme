@@ -134,5 +134,22 @@ class AlarmEventRepository @Inject constructor(
         return dao.avgSnoozeCountForAlarm(alarmId, sinceMs)
     }
 
+    data class PerAlarmStats(
+        val fireCount: Int,
+        val avgSnoozesPerFire: Double,
+        val avgDismissTimeSec: Long,
+        val missedCount: Int
+    )
+
+    suspend fun getPerAlarmStats(alarmId: Long, lookbackDays: Int = 30): PerAlarmStats {
+        val sinceMs = System.currentTimeMillis() - lookbackDays * 86_400_000L
+        return PerAlarmStats(
+            fireCount = dao.countForAlarm(alarmId, sinceMs),
+            avgSnoozesPerFire = dao.avgSnoozeCountForAlarm(alarmId, sinceMs) ?: 0.0,
+            avgDismissTimeSec = (dao.avgDismissTimeForAlarm(alarmId, sinceMs) ?: 0L) / 1000,
+            missedCount = dao.missedCountForAlarm(alarmId, sinceMs)
+        )
+    }
+
     suspend fun clearHistory() = dao.deleteAll()
 }

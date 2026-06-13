@@ -50,6 +50,15 @@ interface AlarmEventDao {
     @Query("SELECT AVG(snoozeCount) FROM alarm_events WHERE alarmId = :alarmId AND action IN ('DISMISSED', 'MISSED') AND firedAt > :sinceMs")
     suspend fun avgSnoozeCountForAlarm(alarmId: Long, sinceMs: Long): Double?
 
+    @Query("SELECT COUNT(*) FROM alarm_events WHERE alarmId = :alarmId AND firedAt > :sinceMs")
+    suspend fun countForAlarm(alarmId: Long, sinceMs: Long): Int
+
+    @Query("SELECT AVG(actionAt - firedAt) FROM alarm_events WHERE alarmId = :alarmId AND action = 'DISMISSED' AND actionAt > 0 AND firedAt > :sinceMs")
+    suspend fun avgDismissTimeForAlarm(alarmId: Long, sinceMs: Long): Long?
+
+    @Query("SELECT COUNT(*) FROM alarm_events WHERE alarmId = :alarmId AND action = 'MISSED' AND firedAt > :sinceMs")
+    suspend fun missedCountForAlarm(alarmId: Long, sinceMs: Long): Int
+
     @Query("DELETE FROM alarm_events")
     suspend fun deleteAll()
 }
