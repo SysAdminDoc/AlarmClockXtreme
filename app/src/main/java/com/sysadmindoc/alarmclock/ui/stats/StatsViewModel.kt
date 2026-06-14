@@ -23,7 +23,8 @@ data class StatsUiState(
     val healthConnectEnabled: Boolean = false,
     val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary(),
     val sleepWakeAnalytics: SleepWakeAnalytics = SleepWakeAnalytics(),
-    val actigraphySessions: List<ActigraphySession> = emptyList()
+    val actigraphySessions: List<ActigraphySession> = emptyList(),
+    val sleepNeedMinutes: Long = DEFAULT_SLEEP_NEED_MINUTES
 )
 
 @HiltViewModel
@@ -45,7 +46,10 @@ class StatsViewModel @Inject constructor(
             eventRepository.observeRecent(50).collect { events ->
                 val stats = runCatching { eventRepository.getStats() }
                     .getOrDefault(_uiState.value.stats)
-                val analytics = readSleepWakeAnalytics(_uiState.value.healthConnectSleepSummary)
+                val analytics = readSleepWakeAnalytics(
+                    _uiState.value.healthConnectSleepSummary,
+                    _uiState.value.sleepNeedMinutes
+                )
                 _uiState.value = _uiState.value.copy(
                     recentEvents = events,
                     stats = stats,
@@ -64,9 +68,12 @@ class StatsViewModel @Inject constructor(
         // because the nav graph wasn't passing the parameter through).
         viewModelScope.launch {
             preferencesManager.settings.collect { settings ->
+                val needMinutes = (settings.sleepGoalHours * 60L + settings.sleepGoalMinutes)
+                    .coerceAtLeast(60L)
                 _uiState.value = _uiState.value.copy(
                     is24Hour = settings.is24HourFormat,
-                    healthConnectEnabled = settings.healthConnectEnabled
+                    healthConnectEnabled = settings.healthConnectEnabled,
+                    sleepNeedMinutes = needMinutes
                 )
                 val summary = if (settings.healthConnectEnabled) {
                     healthConnectSleepRepository.readRecentSleepSummary()
@@ -75,7 +82,7 @@ class StatsViewModel @Inject constructor(
                 }
                 _uiState.value = _uiState.value.copy(
                     healthConnectSleepSummary = summary,
-                    sleepWakeAnalytics = readSleepWakeAnalytics(summary)
+                    sleepWakeAnalytics = readSleepWakeAnalytics(summary, needMinutes)
                 )
             }
         }
@@ -90,7 +97,8 @@ class StatsViewModel @Inject constructor(
     }
 
     private suspend fun readSleepWakeAnalytics(
-        sleepSummary: HealthConnectSleepSummary
+        sleepSummary: HealthConnectSleepSummary,
+        sleepNeedMinutes: Long
     ): SleepWakeAnalytics {
         val sinceMs = System.currentTimeMillis() - SLEEP_WAKE_WINDOW_MS
         val events = runCatching { eventRepository.getSince(sinceMs) }
@@ -98,7 +106,8 @@ class StatsViewModel @Inject constructor(
         return buildSleepWakeAnalytics(
             events = events,
             sleepSessions = sleepSummary.recentSessions,
-            days = SLEEP_WAKE_WINDOW_DAYS
+            days = SLEEP_WAKE_WINDOW_DAYS,
+            sleepNeedMinutes = sleepNeedMinutes
         )
     }
 
