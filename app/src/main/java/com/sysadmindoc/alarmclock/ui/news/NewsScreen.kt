@@ -302,12 +302,12 @@ private fun NewsCardSkeleton() {
                 AppSkeletonBlock(
                     modifier = Modifier.fillMaxWidth(0.32f),
                     height = 22.dp,
-                    cornerRadius = 999.dp,
+                    cornerRadius = 8.dp,
                 )
                 AppSkeletonBlock(
                     modifier = Modifier.fillMaxWidth(0.22f),
                     height = 22.dp,
-                    cornerRadius = 999.dp,
+                    cornerRadius = 8.dp,
                 )
             }
         }

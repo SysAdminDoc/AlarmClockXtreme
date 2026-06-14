@@ -532,7 +532,7 @@ private fun FeatureRow(text: String, accent: Color) {
             modifier = Modifier
                 .padding(top = 6.dp)
                 .size(8.dp)
-                .clip(RoundedCornerShape(2.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .background(accent)
         )
         Text(

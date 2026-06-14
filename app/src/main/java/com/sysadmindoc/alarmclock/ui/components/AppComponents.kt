@@ -282,7 +282,7 @@ fun AppMetricTile(
             verticalAlignment = Alignment.CenterVertically
         ) {
             if (icon != null) {
-                Icon(icon, null, tint = accent, modifier = Modifier.size(15.dp))
+                Icon(icon, null, tint = accent, modifier = Modifier.size(AppIconSize.xs))
             }
             Text(
                 text = label,
@@ -368,7 +368,7 @@ fun AppStatusChip(
                     imageVector = icon,
                     contentDescription = null,
                     tint = color,
-                    modifier = Modifier.size(13.dp)
+                    modifier = Modifier.size(AppIconSize.xs)
                 )
             }
             Text(

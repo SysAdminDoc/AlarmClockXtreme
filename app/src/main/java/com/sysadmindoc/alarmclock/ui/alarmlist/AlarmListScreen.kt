@@ -151,11 +151,20 @@ fun AlarmListScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Last 30 days", color = TextMuted, style = MaterialTheme.typography.labelSmall)
-                    Text("Fired ${stats.fireCount} times")
-                    Text("Avg ${String.format("%.1f", stats.avgSnoozesPerFire)} snoozes per fire")
-                    Text("Avg dismiss in ${stats.avgDismissTimeSec}s")
-                    if (stats.missedCount > 0) {
-                        Text("${stats.missedCount} missed", color = AccentRed)
+                    if (stats.fireCount == 0) {
+                        // A brand-new (or recently-cleared) alarm has nothing to
+                        // report yet — frame it rather than dumping all-zero stats.
+                        Text(
+                            "This alarm hasn't fired in the last 30 days yet.",
+                            color = TextSecondary
+                        )
+                    } else {
+                        Text("Fired ${stats.fireCount} times")
+                        Text("Avg ${String.format("%.1f", stats.avgSnoozesPerFire)} snoozes per fire")
+                        Text("Avg dismiss in ${stats.avgDismissTimeSec}s")
+                        if (stats.missedCount > 0) {
+                            Text("${stats.missedCount} missed", color = AccentRed)
+                        }
                     }
                 }
             }
