@@ -146,8 +146,8 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.56.2")
-    ksp("com.google.dagger:hilt-compiler:2.56.2")
+    implementation("com.google.dagger:hilt-android:2.59.2")
+    ksp("com.google.dagger:hilt-compiler:2.59.2")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     // Hilt WorkManager integration (F5, F13, F15 workers)
     implementation("androidx.hilt:hilt-work:1.2.0")
