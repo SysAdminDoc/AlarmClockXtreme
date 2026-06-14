@@ -111,6 +111,27 @@ class AlarmSchedulerTest {
     }
 
     @Test
+    fun handleAlarmFiredTearsDownStaleExactAlarmForOneShot() = runTest {
+        // A smart-wake early fire starts AlarmService directly without consuming
+        // the original exact-alarm PendingIntent, so handleAlarmFired() must cancel
+        // it for a one-shot — otherwise the alarm fires a second time at the
+        // originally-scheduled minute.
+        val triggerTime = System.currentTimeMillis() + 20 * 60_000L
+        val oneShot = enabledAlarm(id = 55L).copy(repeatDays = emptySet())
+        every { calculator.calculate(any<Alarm>(), any()) } returns triggerTime
+        coEvery { repository.getById(55L) } returns oneShot
+
+        scheduler.schedule(oneShot, requestWidgetUpdate = false)
+        val alarmManager = shadowOf(context.getSystemService(AlarmManager::class.java))
+        assertEquals(1, alarmManager.scheduledAlarms.size)
+
+        scheduler.handleAlarmFired(55L)
+
+        assertEquals(0, alarmManager.scheduledAlarms.size)
+        coVerify { repository.setEnabled(55L, false, 0L) }
+    }
+
+    @Test
     fun rescheduleAllKeepsExistingFutureTriggerAndReturnsProcessedCount() = runTest {
         val triggerTime = System.currentTimeMillis() + 30 * 60_000L
         val alarm = enabledAlarm(id = 7L).copy(nextTriggerTime = triggerTime)
