@@ -150,14 +150,14 @@ class NextAlarmTileService : TileService() {
                     textButton(
                         shape = shapes.small,
                         labelContent = { text("Snooze".layoutString) },
-                        onClick = clickable(id = CLICK_SNOOZE, action = loadAction()),
+                        onClick = clickable(id = WearAlarmData.CLICK_SNOOZE, action = loadAction()),
                     )
                 }
                 buttonGroupItem {
                     textButton(
                         shape = shapes.small,
                         labelContent = { text("Dismiss".layoutString) },
-                        onClick = clickable(id = CLICK_DISMISS, action = loadAction()),
+                        onClick = clickable(id = WearAlarmData.CLICK_DISMISS, action = loadAction()),
                     )
                 }
             }
@@ -166,42 +166,15 @@ class NextAlarmTileService : TileService() {
         return textButton(
             shape = shapes.small,
             labelContent = { text("Skip next".layoutString) },
-            onClick = clickable(id = CLICK_SKIP, action = loadAction()),
+            onClick = clickable(id = WearAlarmData.CLICK_SKIP, action = loadAction()),
         )
     }
 
-    private fun mainTimeLabel(snapshot: WearAlarmSnapshot): String {
-        return when {
-            !snapshot.hasAlarm -> "Open phone app"
-            snapshot.timeLabel.isNotBlank() -> snapshot.timeLabel
-            else -> "Scheduled"
-        }
-    }
+    private fun mainTimeLabel(snapshot: WearAlarmSnapshot): String =
+        WearAlarmText.mainTimeLabel(snapshot)
 
-    private fun secondaryLabel(snapshot: WearAlarmSnapshot, actionStatus: String?): String {
-        actionStatus?.let { return it }
-        if (!snapshot.hasAlarm) return "Waiting for phone sync"
-        if (snapshot.isFiring) return "Alarm is ringing"
-        val remaining = formatRemaining(snapshot.triggerTime)
-        return listOf(snapshot.label, remaining)
-            .filter { it.isNotBlank() }
-            .joinToString(" - ")
-            .ifBlank { "Ready on phone" }
-    }
-
-    private fun formatRemaining(triggerTime: Long): String {
-        val diff = triggerTime - System.currentTimeMillis()
-        if (diff <= 0L) return "due now"
-        val days = diff / 86_400_000L
-        val hours = (diff % 86_400_000L) / 3_600_000L
-        val minutes = (diff % 3_600_000L) / 60_000L
-        return when {
-            days > 0 -> "${days}d ${hours}h"
-            hours > 0 -> "${hours}h ${minutes}m"
-            minutes > 0 -> "${minutes}m"
-            else -> "<1m"
-        }
-    }
+    private fun secondaryLabel(snapshot: WearAlarmSnapshot, actionStatus: String?): String =
+        WearAlarmText.secondaryLabel(snapshot, actionStatus)
 
     private fun readLatestSnapshot(): WearAlarmSnapshot {
         val cached = WearAlarmStore.load(applicationContext)
@@ -233,12 +206,7 @@ class NextAlarmTileService : TileService() {
         clickableId: String,
         snapshot: WearAlarmSnapshot,
     ): String? {
-        val path = when (clickableId) {
-            CLICK_SKIP -> WearAlarmData.PATH_ACTION_SKIP
-            CLICK_SNOOZE -> WearAlarmData.PATH_ACTION_SNOOZE
-            CLICK_DISMISS -> WearAlarmData.PATH_ACTION_DISMISS
-            else -> return null
-        }
+        val path = WearAlarmData.actionPathForClick(clickableId) ?: return null
         if (!snapshot.hasAlarm || snapshot.alarmId <= 0L) return "Phone sync needed"
 
         val payload = DataMap().apply {
@@ -266,8 +234,5 @@ class NextAlarmTileService : TileService() {
         private const val TAG = "WearNextAlarmTile"
         private const val RESOURCES_VERSION = "1"
         private const val CLICK_REFRESH = "refresh"
-        private const val CLICK_SKIP = "skip"
-        private const val CLICK_SNOOZE = "snooze"
-        private const val CLICK_DISMISS = "dismiss"
     }
 }
