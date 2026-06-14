@@ -49,6 +49,7 @@ data class SettingsUiState(
     val manufacturerName: String = "",
     val batteryGuidanceSteps: List<String> = emptyList(),
     val batteryGuidanceTitle: String = "",
+    val batteryGuidanceUrl: String = "",
     // Device info
     val androidVersion: String = "",
     val deviceModel: String = "",
@@ -187,6 +188,7 @@ class SettingsViewModel @Inject constructor(
             manufacturerName = guidance?.manufacturer ?: Build.MANUFACTURER.replaceFirstChar { it.uppercase() },
             batteryGuidanceSteps = guidance?.steps ?: emptyList(),
             batteryGuidanceTitle = guidance?.title ?: "",
+            batteryGuidanceUrl = guidance?.dontKillMyAppUrl ?: "",
             androidVersion = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
             deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
             appVersion = BuildConfig.VERSION_NAME,

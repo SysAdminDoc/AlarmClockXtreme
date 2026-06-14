@@ -84,6 +84,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -1293,6 +1294,14 @@ private fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Settin
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
                     )
+                }
+            }
+            if (state.batteryGuidanceUrl.isNotBlank()) {
+                val uriHandler = LocalUriHandler.current
+                TextButton(
+                    onClick = { runCatching { uriHandler.openUri(state.batteryGuidanceUrl) } }
+                ) {
+                    Text("View the up-to-date ${state.manufacturerName} guide at dontkillmyapp.com")
                 }
             }
         }
