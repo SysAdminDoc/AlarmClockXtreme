@@ -41,6 +41,7 @@ import javax.inject.Inject
 class SmartAlarmService : Service(), SensorEventListener {
 
     @Inject lateinit var actigraphyRepository: ActigraphyRepository
+    @Inject lateinit var alarmScheduler: AlarmScheduler
 
     companion object {
         const val ACTION_START_SMART = "com.sysadmindoc.alarmclock.SMART_ALARM_START"
@@ -235,6 +236,13 @@ class SmartAlarmService : Service(), SensorEventListener {
     }
 
     private fun startAlarmService() {
+        // Fire early via the foreground service directly. The original exact alarm
+        // scheduled at the unmodified trigger time is still armed (this path does
+        // not consume its PendingIntent), so cancel it now to prevent a spurious
+        // second fire at the originally-scheduled minute.
+        runCatching { alarmScheduler.cancelMainScheduledAlarm(alarmId) }
+            .onFailure { android.util.Log.e("SmartAlarmService", "Failed to cancel stale alarm $alarmId", it) }
+
         val intent = Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_START_ALARM
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)

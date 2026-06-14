@@ -316,13 +316,32 @@ class AlarmScheduler @Inject constructor(
         val alarm = repository.getById(alarmId) ?: return
 
         if (alarm.repeatDays.isEmpty()) {
-            // One-shot alarm: disable after firing
+            // One-shot alarm: disable after firing. Also tear down any still-armed
+            // exact-alarm entry. A normally-fired one-shot's PendingIntent was
+            // already consumed by AlarmManager (this is a no-op), but a smart-wake
+            // *early* fire bypasses that PendingIntent, so without this the original
+            // exact alarm would fire a second time at the unmodified trigger minute.
+            cancelMainScheduledAlarm(alarmId)
             repository.setEnabled(alarmId, enabled = false, nextTrigger = 0)
             syncBedtimeDndRule()
         } else {
-            // Repeating alarm: schedule next occurrence
+            // Repeating alarm: schedule next occurrence (FLAG_UPDATE_CURRENT
+            // replaces any stale early-fire PendingIntent with the same requestCode).
             schedule(alarm)
         }
+    }
+
+    /**
+     * Cancels the main AlarmManager exact-alarm entry for [alarmId] without
+     * touching the alarm row. Used by [SmartAlarmService] when it fires an alarm
+     * early: the original exact alarm scheduled at the unmodified trigger time is
+     * still armed and would otherwise fire a spurious second time. Safe no-op when
+     * nothing is armed.
+     */
+    fun cancelMainScheduledAlarm(alarmId: Long) {
+        val pendingIntent = createPendingIntent(alarmId)
+        alarmManager.cancel(pendingIntent)
+        pendingIntent.cancel()
     }
 
     /**
