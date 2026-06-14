@@ -93,6 +93,72 @@ class SleepWakeAnalyticsTest {
         assertNotNull(analytics.points.single().averageResponseSec)
     }
 
+    @Test
+    fun computesDurationOnlySleepScoreAndRollingDebt() {
+        val today = LocalDate.of(2026, 5, 20)
+        val sleeps = listOf(
+            // wake 05-18: 4h = 240m -> score 50, deficit 240 against an 8h need
+            sleep(start = "2026-05-17T22:00:00", end = "2026-05-18T02:00:00"),
+            // wake 05-19: 8h = 480m -> score 100, deficit 0
+            sleep(start = "2026-05-18T22:00:00", end = "2026-05-19T06:00:00"),
+            // wake 05-20: 10h = 600m -> score capped 100, surplus pays debt down 120
+            sleep(start = "2026-05-19T21:00:00", end = "2026-05-20T07:00:00")
+        )
+
+        val analytics = buildSleepWakeAnalytics(
+            events = emptyList(),
+            sleepSessions = sleeps,
+            zoneId = zone,
+            today = today,
+            days = 4,
+            sleepNeedMinutes = 480
+        )
+
+        assertTrue(analytics.hasSleepScore)
+        assertEquals(480L, analytics.sleepNeedMinutes)
+        // Debt walk: +240 -> 240, +0 -> 240, -120 -> 120 (floored at 0, capped at a week).
+        assertEquals(120L, analytics.sleepDebtMinutes)
+        assertEquals(100, analytics.latestSleepScore)
+        // Mean of [50, 100, 100] truncated to int.
+        assertEquals(83, analytics.averageSleepScore)
+
+        val shortNight = analytics.points.first { it.date == LocalDate.of(2026, 5, 18) }
+        assertEquals(50, shortNight.sleepScore)
+        val longNight = analytics.points.first { it.date == LocalDate.of(2026, 5, 20) }
+        assertEquals(100, longNight.sleepScore)
+    }
+
+    @Test
+    fun sleepDebtNeverGoesNegativeAndScoreIsNullWithoutSleep() {
+        val today = LocalDate.of(2026, 5, 20)
+        val analytics = buildSleepWakeAnalytics(
+            events = listOf(dismissed(millis("2026-05-20T07:00:00"), 30_000, 0, 0)),
+            // Two long nights that would over-pay debt if it could go negative.
+            sleepSessions = listOf(
+                sleep(start = "2026-05-18T20:00:00", end = "2026-05-19T08:00:00"),
+                sleep(start = "2026-05-19T20:00:00", end = "2026-05-20T08:00:00")
+            ),
+            zoneId = zone,
+            today = today,
+            days = 3,
+            sleepNeedMinutes = 480
+        )
+
+        assertEquals(0L, analytics.sleepDebtMinutes)
+        // The 05-18 day has no sleep session ending on it, so its score is null.
+        val noSleepDay = analytics.points.first { it.date == LocalDate.of(2026, 5, 18) }
+        assertEquals(null, noSleepDay.sleepScore)
+    }
+
+    @Test
+    fun sleepScoreScalesLinearlyAndCapsAtFullNeed() {
+        assertEquals(null, sleepScoreFor(null, 480))
+        assertEquals(0, sleepScoreFor(0, 480))
+        assertEquals(50, sleepScoreFor(240, 480))
+        assertEquals(100, sleepScoreFor(480, 480))
+        assertEquals(100, sleepScoreFor(600, 480))
+    }
+
     private fun dismissed(
         firedAt: Long,
         responseMs: Long,

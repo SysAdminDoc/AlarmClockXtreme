@@ -799,6 +799,20 @@ private fun SleepWakeAnalyticsCard(
                 icon = Icons.Default.CalendarMonth,
                 color = if (hasSleepData) MaterialTheme.colorScheme.primary else TextMuted
             )
+            analytics.latestSleepScore?.let { score ->
+                AppStatusChip(
+                    label = "Sleep score $score",
+                    icon = Icons.Default.CheckCircle,
+                    color = sleepScoreColor(score)
+                )
+            }
+            if (hasSleepData) {
+                AppStatusChip(
+                    label = "Sleep debt ${formatSleepMinutes(analytics.sleepDebtMinutes)}",
+                    icon = Icons.Default.Snooze,
+                    color = if (analytics.sleepDebtMinutes > 0L) SnoozeYellow else DismissGreen
+                )
+            }
             AppStatusChip(
                 label = "Response ${analytics.averageResponseSec?.let(::formatSeconds) ?: "0s"} avg",
                 icon = Icons.Default.CheckCircle,
@@ -1356,6 +1370,12 @@ private fun formatSeconds(seconds: Int): String {
 }
 
 private fun formatSignedSeconds(seconds: Int): String = "+${formatSeconds(seconds)}"
+
+private fun sleepScoreColor(score: Int): Color = when {
+    score >= 85 -> DismissGreen
+    score >= 70 -> SnoozeYellow
+    else -> AccentRed
+}
 
 private fun formatSleepMinutes(minutes: Long?): String {
     val value = minutes ?: return "0m"
