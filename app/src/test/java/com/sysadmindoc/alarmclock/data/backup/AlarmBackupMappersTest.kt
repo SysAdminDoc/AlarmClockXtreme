@@ -1,0 +1,102 @@
+package com.sysadmindoc.alarmclock.data.backup
+
+import com.sysadmindoc.alarmclock.data.model.Alarm
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.time.DayOfWeek
+
+/**
+ * Backup-import resilience: [AlarmBackup.toAlarmOrNull] must tolerate malformed
+ * or out-of-range data from an old/edited/corrupt backup file and never produce
+ * an invalid alarm (it sanitizes) or crash the whole import (it returns null on
+ * a hard failure so the per-alarm loop can skip it).
+ */
+class AlarmBackupMappersTest {
+
+    @Test
+    fun roundTripPreservesCoreFields() {
+        val alarm = Alarm(
+            id = 5L,
+            hour = 7,
+            minute = 30,
+            label = "Work",
+            repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
+            challengeType = "MATH_EASY",
+            volume = 80
+        ).sanitized()
+
+        val restored = alarm.toAlarmBackup().toAlarmOrNull()
+
+        assertNotNull(restored)
+        requireNotNull(restored)
+        assertEquals(7, restored.hour)
+        assertEquals(30, restored.minute)
+        assertEquals("Work", restored.label)
+        assertEquals(setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY), restored.repeatDays)
+        assertEquals("MATH_EASY", restored.challengeType)
+        assertEquals(80, restored.volume)
+    }
+
+    @Test
+    fun malformedRepeatDaysAreDroppedCaseInsensitively() {
+        val backup = Alarm(id = 1L, hour = 6, minute = 0).toAlarmBackup()
+            .copy(repeatDays = listOf("MONDAY", "FUNDAY", " tuesday ", "", "WEDNESDAY"))
+
+        val restored = backup.toAlarmOrNull()
+
+        assertNotNull(restored)
+        requireNotNull(restored)
+        assertEquals(
+            setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY),
+            restored.repeatDays
+        )
+    }
+
+    @Test
+    fun outOfRangeAndInvalidValuesAreSanitized() {
+        val backup = Alarm(id = 2L, hour = 6, minute = 0).toAlarmBackup().copy(
+            hour = 99,
+            minute = -5,
+            volume = 250,
+            challengeType = "BOGUS_CHALLENGE",
+            vibrationPattern = "weird"
+        )
+
+        val restored = backup.toAlarmOrNull()
+
+        assertNotNull(restored)
+        requireNotNull(restored)
+        assertEquals(23, restored.hour)
+        assertEquals(0, restored.minute)
+        assertEquals(100, restored.volume)
+        assertEquals("NONE", restored.challengeType)
+        assertEquals("default", restored.vibrationPattern)
+    }
+
+    @Test
+    fun emptyRepeatDaysYieldsOneShotAlarm() {
+        val backup = Alarm(id = 3L, hour = 8, minute = 15).toAlarmBackup()
+            .copy(repeatDays = emptyList())
+
+        val restored = backup.toAlarmOrNull()
+
+        assertNotNull(restored)
+        requireNotNull(restored)
+        assertTrue(restored.repeatDays.isEmpty())
+    }
+
+    @Test
+    fun invalidChallengeChainEntriesAreFilteredOut() {
+        val backup = Alarm(id = 4L, hour = 9, minute = 0).toAlarmBackup()
+            .copy(challengeChain = "MATH_EASY,NONE,GARBAGE,SHAKE")
+
+        val restored = backup.toAlarmOrNull()
+
+        assertNotNull(restored)
+        requireNotNull(restored)
+        // sanitized() keeps only known challenge types and drops NONE.
+        assertEquals("MATH_EASY,SHAKE", restored.challengeChain)
+    }
+}
