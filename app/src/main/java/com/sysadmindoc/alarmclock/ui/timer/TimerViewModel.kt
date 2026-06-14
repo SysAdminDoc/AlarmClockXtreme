@@ -90,6 +90,7 @@ class TimerViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "TimerViewModel"
+        private const val COUNTDOWN_TICK_MS = 250L
     }
 
     private val appContext = application.applicationContext
@@ -259,7 +260,10 @@ class TimerViewModel @Inject constructor(
                         postTimerFinishedNotification(id)
                         break
                     }
-                    delay(50)
+                    // The UI only renders down to whole seconds plus a progress
+                    // ring, so a 250ms cadence is visually smooth while rebuilding
+                    // the active-timers state 5x less often than the old 50ms tick.
+                    delay(COUNTDOWN_TICK_MS)
                 }
             } finally {
                 if (countdownJobs[id] === countdownJob) {

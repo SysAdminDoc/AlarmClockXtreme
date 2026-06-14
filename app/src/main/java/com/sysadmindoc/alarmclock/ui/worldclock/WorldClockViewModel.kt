@@ -42,6 +42,22 @@ class WorldClockViewModel @Inject constructor(
 
     private var is24Hour = false
 
+    // The ticker calls updateTimes() every second; building a DateTimeFormatter
+    // per zone per tick (ofPattern re-parses the pattern each call) churned ~9
+    // formatter allocations/second forever. Cache them and rebuild only when the
+    // 12/24-hour preference actually changes.
+    private var cachedIs24Hour: Boolean? = null
+    private var localTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm:ss a")
+    private var zoneTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+    private val zoneDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d")
+
+    private fun refreshFormatters() {
+        if (cachedIs24Hour == is24Hour) return
+        localTimeFormatter = DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm:ss" else "h:mm:ss a")
+        zoneTimeFormatter = DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm" else "h:mm a")
+        cachedIs24Hour = is24Hour
+    }
+
     private val _uiState = MutableStateFlow(WorldClockUiState())
     val uiState: StateFlow<WorldClockUiState> = _uiState.asStateFlow()
 
@@ -91,6 +107,7 @@ class WorldClockViewModel @Inject constructor(
     }
 
     private fun updateTimes() {
+        refreshFormatters()
         val now = ZonedDateTime.now()
         val localZone = ZoneId.systemDefault()
 
@@ -102,7 +119,7 @@ class WorldClockViewModel @Inject constructor(
 
         _uiState.value = _uiState.value.copy(
             clocks = entries,
-            localTime = now.format(DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm:ss" else "h:mm:ss a")),
+            localTime = now.format(localTimeFormatter),
             localZone = localZone.id.substringAfterLast("/").replace("_", " ")
         )
     }
@@ -182,8 +199,8 @@ class WorldClockViewModel @Inject constructor(
         return WorldClockEntry(
             zoneId = zoneId,
             cityName = zoneId.substringAfterLast("/").replace("_", " "),
-            time = zdt.format(DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm" else "h:mm a")),
-            date = zdt.format(DateTimeFormatter.ofPattern("EEE, MMM d")),
+            time = zdt.format(zoneTimeFormatter),
+            date = zdt.format(zoneDateFormatter),
             offsetLabel = diffLabel,
             isAhead = diffHours >= 0
         )
