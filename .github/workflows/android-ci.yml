@@ -27,7 +27,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run unit tests and debug builds
-        run: ./gradlew :app:testPlayDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain
+        run: ./gradlew :app:testPlayDebugUnitTest :wear:testDebugUnitTest :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug --console=plain
 
       - name: Assert Room schema exports are committed
         run: |

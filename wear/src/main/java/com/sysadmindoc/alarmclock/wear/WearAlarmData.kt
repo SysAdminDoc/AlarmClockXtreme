@@ -17,6 +17,19 @@ object WearAlarmData {
     const val KEY_TRIGGER_TIME = "trigger_time"
     const val KEY_IS_FIRING = "is_firing"
     const val KEY_UPDATED_AT = "updated_at"
+
+    // Tile clickable IDs for the wrist-side actions.
+    const val CLICK_SKIP = "skip"
+    const val CLICK_SNOOZE = "snooze"
+    const val CLICK_DISMISS = "dismiss"
+
+    /** Map a tile clickable ID to the Data Layer message path, or null if it is not an action. */
+    fun actionPathForClick(clickableId: String): String? = when (clickableId) {
+        CLICK_SKIP -> PATH_ACTION_SKIP
+        CLICK_SNOOZE -> PATH_ACTION_SNOOZE
+        CLICK_DISMISS -> PATH_ACTION_DISMISS
+        else -> null
+    }
 }
 
 data class WearAlarmSnapshot(
@@ -28,6 +41,82 @@ data class WearAlarmSnapshot(
     val isFiring: Boolean = false,
     val updatedAt: Long = 0L,
 )
+
+/**
+ * Pure text formatting shared by the Wear tile and complication surfaces. Kept
+ * free of Android/Wear types so it can be unit tested on the JVM; [now] is
+ * injectable for deterministic countdown tests.
+ */
+object WearAlarmText {
+    const val SHORT_TITLE_LIMIT = 12
+
+    fun formatRemaining(triggerTime: Long, now: Long = System.currentTimeMillis()): String {
+        val diff = triggerTime - now
+        if (diff <= 0L) return "due now"
+        val days = diff / 86_400_000L
+        val hours = (diff % 86_400_000L) / 3_600_000L
+        val minutes = (diff % 3_600_000L) / 60_000L
+        return when {
+            days > 0 -> "${days}d ${hours}h"
+            hours > 0 -> "${hours}h ${minutes}m"
+            minutes > 0 -> "${minutes}m"
+            else -> "<1m"
+        }
+    }
+
+    fun mainTimeLabel(snapshot: WearAlarmSnapshot): String = when {
+        !snapshot.hasAlarm -> "Open phone app"
+        snapshot.timeLabel.isNotBlank() -> snapshot.timeLabel
+        else -> "Scheduled"
+    }
+
+    fun secondaryLabel(
+        snapshot: WearAlarmSnapshot,
+        actionStatus: String? = null,
+        now: Long = System.currentTimeMillis()
+    ): String {
+        actionStatus?.let { return it }
+        if (!snapshot.hasAlarm) return "Waiting for phone sync"
+        if (snapshot.isFiring) return "Alarm is ringing"
+        val remaining = formatRemaining(snapshot.triggerTime, now)
+        return listOf(snapshot.label, remaining)
+            .filter { it.isNotBlank() }
+            .joinToString(" - ")
+            .ifBlank { "Ready on phone" }
+    }
+
+    fun contentDescription(snapshot: WearAlarmSnapshot): String = when {
+        snapshot.isFiring -> "AlarmClockXtreme alarm is ringing"
+        snapshot.hasAlarm -> "Next AlarmClockXtreme alarm ${snapshot.timeLabel.ifBlank { "scheduled" }}"
+        else -> "No AlarmClockXtreme alarm synced from phone"
+    }
+
+    fun complicationShortText(snapshot: WearAlarmSnapshot): String = when {
+        snapshot.isFiring -> "Ringing"
+        snapshot.hasAlarm && snapshot.timeLabel.isNotBlank() -> snapshot.timeLabel
+        snapshot.hasAlarm -> "Alarm"
+        else -> "No alarm"
+    }
+
+    fun complicationShortTitle(snapshot: WearAlarmSnapshot): String = when {
+        snapshot.isFiring -> "ACX"
+        snapshot.hasAlarm -> snapshot.label.ifBlank { "Next" }.take(SHORT_TITLE_LIMIT)
+        else -> "ACX"
+    }
+
+    fun complicationLongText(
+        snapshot: WearAlarmSnapshot,
+        now: Long = System.currentTimeMillis()
+    ): String = when {
+        snapshot.isFiring -> "Alarm is ringing"
+        snapshot.hasAlarm -> listOf(
+            snapshot.timeLabel.ifBlank { "Scheduled" },
+            snapshot.label,
+            formatRemaining(snapshot.triggerTime, now)
+        ).filter { it.isNotBlank() }.joinToString(" - ")
+        else -> "No phone alarm synced"
+    }
+}
 
 object WearAlarmStore {
     private const val PREFS = "wear_alarm_snapshot"
