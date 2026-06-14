@@ -676,6 +676,34 @@ fun AlarmEditScreen(
                     )
                 }
 
+                // Physical-challenge readiness preflight: surface whether the device
+                // has the required hardware, runtime permission, and registered
+                // reference for the active challenge (and any chained challenges).
+                val challengeReadiness = evaluateActiveChallengeReadiness(
+                    challengeType = state.challengeType,
+                    challengeChain = state.challengeChain,
+                    capabilities = deviceChallengeCapabilities(context),
+                    references = ChallengeReferences(
+                        nfcTagId = state.nfcTagId,
+                        barcodeValue = state.barcodeValue,
+                        photoMatchUri = state.photoMatchUri,
+                        wifiDismissSsid = state.wifiDismissSsid
+                    )
+                )
+                if (challengeReadiness != null) {
+                    if (challengeReadiness.status == ChallengeReadinessStatus.READY) {
+                        SettingsHint(
+                            "This challenge is ready on your device.",
+                            tone = HintTone.Neutral
+                        )
+                    } else {
+                        SettingsHint(
+                            challengeReadiness.message,
+                            tone = HintTone.Warning
+                        )
+                    }
+                }
+
                 // WALK_STEPS: step count config
                 if (state.challengeType == "WALK_STEPS") {
                     var showStepsMenu by remember { mutableStateOf(false) }

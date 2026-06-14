@@ -444,6 +444,14 @@ class AlarmEditViewModel @Inject constructor(
         }
     }
 
+    private fun String.toChallengeReferenceLabel(): String = when (this) {
+        "NFC_SCAN" -> "an NFC tag"
+        "BARCODE_SCAN" -> "a barcode value"
+        "PHOTO_MATCH" -> "a reference photo"
+        "WIFI_CONNECT" -> "a Wi-Fi network name"
+        else -> "challenge details"
+    }
+
     fun save(onComplete: () -> Unit) {
         // Re-entrancy guard: a fast double-tap on the Save button would otherwise
         // create two alarm rows. The state flag still updates, but races against
@@ -452,6 +460,29 @@ class AlarmEditViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isSaving = true, saveError = null)
             val s = _uiState.value
+
+            // Physical-challenge readiness preflight: refuse to save an alarm whose
+            // dismiss challenge has no registered reference, because it could never
+            // be dismissed. Hardware/permission gaps only warn (handled in the UI);
+            // missing references are a hard block.
+            val missingReferences = missingChallengeReferences(
+                challengeType = s.challengeType,
+                challengeChain = s.challengeChain,
+                references = ChallengeReferences(
+                    nfcTagId = s.nfcTagId,
+                    barcodeValue = s.barcodeValue,
+                    photoMatchUri = s.photoMatchUri,
+                    wifiDismissSsid = s.wifiDismissSsid
+                )
+            )
+            if (missingReferences.isNotEmpty()) {
+                val labels = missingReferences.joinToString(", ") { it.toChallengeReferenceLabel() }
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    saveError = "Finish the challenge setup first: missing $labels."
+                )
+                return@launch
+            }
 
             val alarm = Alarm(
                 id = if (s.isEditing) alarmId else 0,
