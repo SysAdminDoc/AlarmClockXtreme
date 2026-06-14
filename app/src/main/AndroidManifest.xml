@@ -95,6 +95,7 @@
     <application
         android:name=".AlarmClockApp"
         android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true"
         android:backupAgent=".RestoreAlarmAgent"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"

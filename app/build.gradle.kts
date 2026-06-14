@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 88
-        versionName = "1.14.6"
+        versionCode = 89
+        versionName = "1.14.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -164,8 +164,9 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-moshi:2.11.0")
     implementation("com.squareup.moshi:moshi:1.15.1")
     ksp("com.squareup.moshi:moshi-kotlin-codegen:1.15.1")
-    // OkHttp (explicit — also used by WebhookService and HueSunriseWorker)
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // OkHttp (explicit — also used by WebhookService and HueSunriseWorker).
+    // 5.x adds an HTTP/2 total-header-size limit (resource-exhaustion guard).
+    implementation("com.squareup.okhttp3:okhttp:5.4.0")
 
     // Glance widget
     implementation("androidx.glance:glance-appwidget:1.1.1")

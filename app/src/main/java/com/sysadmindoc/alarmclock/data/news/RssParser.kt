@@ -39,18 +39,28 @@ import java.util.TimeZone
  */
 object RssParser {
 
-    private val rfc822Patterns = listOf(
+    private val datePatterns = listOf(
+        // RFC 822 (RSS 2.0)
         "EEE, dd MMM yyyy HH:mm:ss zzz",
         "EEE, dd MMM yyyy HH:mm:ss Z",
         "dd MMM yyyy HH:mm:ss zzz",
         "dd MMM yyyy HH:mm:ss Z",
-    )
-
-    private val iso8601Patterns = listOf(
+        // ISO 8601 (Atom)
         "yyyy-MM-dd'T'HH:mm:ssXXX",
         "yyyy-MM-dd'T'HH:mm:ss'Z'",
         "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
     )
+
+    // SimpleDateFormat is not thread-safe and feed parsing runs on the IO
+    // dispatcher. Cache one compiled set per thread instead of constructing up
+    // to seven SimpleDateFormat instances per feed item per call.
+    private val dateFormatters = ThreadLocal.withInitial {
+        datePatterns.map { pattern ->
+            SimpleDateFormat(pattern, Locale.ENGLISH).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+        }
+    }
 
     @Throws(Exception::class)
     fun parse(input: InputStream, defaultSource: String): List<NewsItem> {
@@ -138,13 +148,10 @@ object RssParser {
     private fun NewsItem.withFallbackSource(fallback: String): NewsItem =
         if (source.isBlank()) copy(source = fallback) else this
 
-    private fun parseDate(raw: String): Long? {
+    internal fun parseDate(raw: String): Long? {
         val cleaned = raw.trim().ifBlank { return null }
-        val patterns = rfc822Patterns + iso8601Patterns
-        for (pattern in patterns) {
+        for (sdf in dateFormatters.get().orEmpty()) {
             try {
-                val sdf = SimpleDateFormat(pattern, Locale.ENGLISH)
-                sdf.timeZone = TimeZone.getTimeZone("UTC")
                 return sdf.parse(cleaned)?.time
             } catch (_: Throwable) {
                 // try next pattern
