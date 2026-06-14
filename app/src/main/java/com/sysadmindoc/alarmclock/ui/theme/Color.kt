@@ -32,7 +32,12 @@ val HeaderBottom = Color(0xFF080D14)
 // in the dark surfaces.
 val TextPrimary = Color(0xFFF1F5FB)
 val TextSecondary = Color(0xFFA9BED8)
-val TextMuted = Color(0xFF6A819F)
+// Muted helper/caption text. Brightened from the old 0xFF6A819F so it clears
+// WCAG AA (>=4.5:1) for body copy on the elevated surfaces it actually renders
+// on — card bodies (SurfaceCard) and chips/tiles/inputs (SurfaceLight), where
+// the old value measured 4.11:1 and 3.77:1. Still a clear step below
+// TextSecondary, preserving the title/body/caption hierarchy.
+val TextMuted = Color(0xFF7E93AE)
 
 // ─── Semantic accents ───────────────────────────────────────────────────────
 val AccentBlue = BluePrimary

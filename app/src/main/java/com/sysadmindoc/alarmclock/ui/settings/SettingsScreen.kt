@@ -2516,7 +2516,14 @@ private fun DateField(
                 shape = RoundedCornerShape(10.dp)
             )
             .border(1.dp, TextMuted.copy(alpha = 0.16f), RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
+            .clickable(
+                onClickLabel = "Change ${label.lowercase()} date",
+                role = Role.Button,
+                onClick = onClick
+            )
+            // Merge the label + value into one actionable announcement so TalkBack
+            // reads "Starts: Jun 14, 2026, button" instead of two separate nodes.
+            .semantics(mergeDescendants = true) { contentDescription = "$label: $value" }
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

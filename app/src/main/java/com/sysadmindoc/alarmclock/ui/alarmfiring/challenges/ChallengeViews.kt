@@ -55,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -1682,8 +1683,20 @@ fun WordleChallengeView(
                             isCurrentRow  -> AccentBlue.copy(alpha = 0.6f)
                             else          -> TextMuted.copy(alpha = 0.3f)
                         }
+                        // Letter state is also signalled by color (green/yellow/dim),
+                        // so expose it to TalkBack / colorblind users as text instead of
+                        // relying on the tile background alone.
+                        val tileDescription = when {
+                            displayCh == ' ' -> "empty"
+                            state == WordleLetterState.CORRECT -> "$displayCh, correct position"
+                            state == WordleLetterState.PRESENT -> "$displayCh, in the word, wrong position"
+                            state == WordleLetterState.ABSENT -> "$displayCh, not in the word"
+                            else -> "$displayCh"
+                        }
                         Card(
-                            modifier = Modifier.size(48.dp),
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clearAndSetSemantics { contentDescription = tileDescription },
                             shape = RoundedCornerShape(8.dp),
                             colors = CardDefaults.cardColors(containerColor = bgColor),
                             border = BorderStroke(1.dp, borderColor)
