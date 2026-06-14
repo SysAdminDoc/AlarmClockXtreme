@@ -21,14 +21,20 @@ object ManufacturerCompat {
         val manufacturer: String,
         val title: String,
         val steps: List<String>,
+        /** Vendor-specific DontKillMyApp page with up-to-date remediation. */
+        val dontKillMyAppUrl: String,
         val settingsIntent: Intent? = null
     )
 
     fun getManufacturer(): String = Build.MANUFACTURER.lowercase()
 
-    fun needsBatteryGuidance(): Boolean {
-        return getManufacturer() in listOf("samsung", "xiaomi", "oneplus", "huawei", "oppo", "vivo", "realme")
-    }
+    /**
+     * True when this OEM is known to kill background apps beyond stock Doze.
+     * Derived from [getGuidance] so the two can never drift — every flagged OEM
+     * always has actionable steps (guarded by ManufacturerCompatTest).
+     */
+    fun needsBatteryGuidance(manufacturer: String = getManufacturer()): Boolean =
+        getGuidance(manufacturer) != null
 
     fun isIgnoringBatteryOptimizations(context: Context): Boolean {
         val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -55,8 +61,8 @@ object ManufacturerCompat {
         }
     }
 
-    fun getGuidance(): BatteryGuidance? {
-        return when (getManufacturer()) {
+    fun getGuidance(manufacturer: String = getManufacturer()): BatteryGuidance? {
+        return when (manufacturer.lowercase()) {
             "samsung" -> BatteryGuidance(
                 manufacturer = "Samsung",
                 title = "Prevent Samsung from killing alarms",
@@ -65,9 +71,10 @@ object ManufacturerCompat {
                     "Tap 'Background usage limits'",
                     "Tap 'Never sleeping apps'",
                     "Add AlarmClockXtreme to the list"
-                )
+                ),
+                dontKillMyAppUrl = "https://dontkillmyapp.com/samsung"
             )
-            "xiaomi" -> BatteryGuidance(
+            "xiaomi", "redmi", "poco" -> BatteryGuidance(
                 manufacturer = "Xiaomi",
                 title = "Enable Autostart on Xiaomi",
                 steps = listOf(
@@ -75,7 +82,8 @@ object ManufacturerCompat {
                     "Find AlarmClockXtreme and tap it",
                     "Enable 'Autostart'",
                     "Set Battery saver to 'No restrictions'"
-                )
+                ),
+                dontKillMyAppUrl = "https://dontkillmyapp.com/xiaomi"
             )
             "oneplus" -> BatteryGuidance(
                 manufacturer = "OnePlus",
@@ -84,9 +92,10 @@ object ManufacturerCompat {
                     "Open Settings > Battery > Battery optimization",
                     "Find AlarmClockXtreme",
                     "Select 'Don't optimize'"
-                )
+                ),
+                dontKillMyAppUrl = "https://dontkillmyapp.com/oneplus"
             )
-            "huawei" -> BatteryGuidance(
+            "huawei", "honor" -> BatteryGuidance(
                 manufacturer = "Huawei",
                 title = "Allow background activity on Huawei",
                 steps = listOf(
@@ -94,7 +103,29 @@ object ManufacturerCompat {
                     "Find AlarmClockXtreme",
                     "Disable 'Manage automatically'",
                     "Enable all three toggles manually"
-                )
+                ),
+                dontKillMyAppUrl = "https://dontkillmyapp.com/huawei"
+            )
+            "oppo", "realme" -> BatteryGuidance(
+                manufacturer = manufacturer.replaceFirstChar { it.uppercase() },
+                title = "Allow background activity on ColorOS",
+                steps = listOf(
+                    "Open Settings > Battery > App battery management",
+                    "Find AlarmClockXtreme",
+                    "Enable 'Allow background activity' and 'Allow auto-launch'",
+                    "Set Battery optimization to 'Don't optimize'"
+                ),
+                dontKillMyAppUrl = "https://dontkillmyapp.com/${manufacturer.lowercase()}"
+            )
+            "vivo", "iqoo" -> BatteryGuidance(
+                manufacturer = "Vivo",
+                title = "Allow background activity on Vivo",
+                steps = listOf(
+                    "Open Settings > Battery > Background power consumption",
+                    "Find AlarmClockXtreme and allow high background power",
+                    "Open Settings > Apps > Auto-start and enable AlarmClockXtreme"
+                ),
+                dontKillMyAppUrl = "https://dontkillmyapp.com/vivo"
             )
             else -> null
         }
