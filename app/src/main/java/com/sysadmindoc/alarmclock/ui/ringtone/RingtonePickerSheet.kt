@@ -88,6 +88,17 @@ data class RingtoneItem(
     val isSilent: Boolean = false
 )
 
+/**
+ * Result of enumerating system tones. [enumerationFailed] is true when the
+ * RingtoneManager cursor threw, so the UI can distinguish "this device has no
+ * extra tones" from "we couldn't read the tone list" (the latter looks like a
+ * broken picker if surfaced silently).
+ */
+data class RingtoneLoadResult(
+    val items: List<RingtoneItem>,
+    val enumerationFailed: Boolean = false
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RingtonePickerSheet(
@@ -99,7 +110,8 @@ fun RingtonePickerSheet(
     // v1.7.0: Ringtones are loaded into state instead of remember-once so the
     // list refreshes after a YouTube download finishes (the new alarm tone
     // appears under Alarms/ in MediaStore and we re-enumerate to pick it up).
-    var ringtones by remember { mutableStateOf(loadRingtones(context)) }
+    var ringtoneLoad by remember { mutableStateOf(loadRingtones(context)) }
+    val ringtones = ringtoneLoad.items
     val currentSelection = remember(currentUri, ringtones) {
         ringtones.firstOrNull { ringtone ->
             when {
@@ -152,7 +164,7 @@ fun RingtonePickerSheet(
                 lastDownloadedTitle = savedTitle
                 youTubeStatus = "Saved \"$savedTitle\" to your alarms."
                 // Refresh the picker list so the new file shows up immediately.
-                ringtones = loadRingtones(context)
+                ringtoneLoad = loadRingtones(context)
             },
             onError = { msg -> youTubeStatus = msg }
         )
@@ -286,6 +298,14 @@ fun RingtonePickerSheet(
             if (previewError.isNotBlank()) {
                 Text(
                     text = previewError,
+                    color = SnoozeYellow,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            if (ringtoneLoad.enumerationFailed) {
+                Text(
+                    text = "Couldn't read this device's sound list. Default and Silent are still available, or add a sound from YouTube.",
                     color = SnoozeYellow,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -495,8 +515,9 @@ private fun ringtoneSearchText(ringtone: RingtoneItem): String = buildString {
     if (ringtone.isSilent) append(" silent quiet")
 }
 
-private fun loadRingtones(context: Context): List<RingtoneItem> {
+private fun loadRingtones(context: Context): RingtoneLoadResult {
     val ringtones = mutableListOf<RingtoneItem>()
+    var enumerationFailed = false
 
     ringtones += RingtoneItem("Default Alarm", "", isDefault = true)
     ringtones += RingtoneItem("Silent", "", isSilent = true)
@@ -513,6 +534,9 @@ private fun loadRingtones(context: Context): List<RingtoneItem> {
             ringtones += RingtoneItem(title = title, uri = uri)
         }
     } catch (_: Exception) {
+        // The device's alarm-tone list couldn't be read — surface this so the
+        // sparse "Default + Silent only" list doesn't read as a broken picker.
+        enumerationFailed = true
     }
 
     val notificationManager = RingtoneManager(context).apply {
@@ -529,9 +553,10 @@ private fun loadRingtones(context: Context): List<RingtoneItem> {
             }
         }
     } catch (_: Exception) {
+        enumerationFailed = true
     }
 
-    return ringtones
+    return RingtoneLoadResult(items = ringtones, enumerationFailed = enumerationFailed)
 }
 
 // v1.7.1: The YouTube download dialog and its Hilt entry point moved to
