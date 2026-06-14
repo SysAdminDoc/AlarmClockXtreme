@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 84
-        versionName = "1.14.2"
+        versionCode = 85
+        versionName = "1.14.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -135,7 +135,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
-    implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.activity:activity-compose:1.13.0")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.5")
@@ -146,8 +146,8 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.53.1")
-    ksp("com.google.dagger:hilt-compiler:2.53.1")
+    implementation("com.google.dagger:hilt-android:2.56.2")
+    ksp("com.google.dagger:hilt-compiler:2.56.2")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
     // Hilt WorkManager integration (F5, F13, F15 workers)
     implementation("androidx.hilt:hilt-work:1.2.0")
@@ -171,8 +171,8 @@ dependencies {
     implementation("androidx.glance:glance-appwidget:1.1.1")
     implementation("androidx.glance:glance-material3:1.1.1")
 
-    // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    // Coroutines (unified with the :wear module on 1.11.0)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // YouTube alarm-sound download (play flavor only — bundles a native Python
     // interpreter that isn't F-Droid-compatible, so the f-droid flavor uses a
@@ -229,7 +229,7 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("androidx.test:core:1.6.1")
     testImplementation("io.mockk:mockk:1.13.17")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     testImplementation("org.robolectric:robolectric:4.14.1")
     // Drift guard: BackupManagerSettingsDriftTest reflects over AppSettings /
     // SettingsBackup constructor parameters so a new settings field can't ship
