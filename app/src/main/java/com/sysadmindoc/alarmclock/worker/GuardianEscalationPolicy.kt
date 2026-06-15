@@ -63,7 +63,7 @@ internal object GuardianEscalationPolicy {
     fun sanitisePhone(raw: String): String? {
         val cleaned = buildString {
             for (c in raw) {
-                if (c.isDigit() || c == '+' || c == '-' || c == '*' || c == '#') append(c)
+                if (c.isDigit() || c == '+' || c == '-') append(c)
             }
         }
         return if (cleaned.count { it.isDigit() } >= 3) cleaned else null

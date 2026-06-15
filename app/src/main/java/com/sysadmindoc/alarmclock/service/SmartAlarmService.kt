@@ -12,6 +12,7 @@ import android.hardware.SensorManager
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
+import java.util.concurrent.atomic.AtomicBoolean
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphyEpoch
 import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphySleepClassifier
@@ -62,7 +63,7 @@ class SmartAlarmService : Service(), SensorEventListener {
     private var windowMotionMax = 0f
     private var windowStartMs = 0L
     private var sessionStartMs = 0L
-    private var sessionClosed = false
+    private val sessionClosed = AtomicBoolean(false)
     private var latestDecision: SmartWakeDecisionResult? = null
     private val WINDOW_MS = 30_000L  // 30-second motion sampling windows
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -122,7 +123,7 @@ class SmartAlarmService : Service(), SensorEventListener {
         }
         windowStartMs = now
         sessionStartMs = now
-        sessionClosed = false
+        sessionClosed.set(false)
         latestDecision = null
         halfMinuteMotion.clear()
         actigraphyEpochs.clear()
@@ -199,8 +200,7 @@ class SmartAlarmService : Service(), SensorEventListener {
         launchAlarm: Boolean,
         decisionResult: SmartWakeDecisionResult? = null
     ) {
-        if (sessionClosed) return
-        sessionClosed = true
+        if (!sessionClosed.compareAndSet(false, true)) return
         sensorManager?.unregisterListener(this)
         val endedAt = System.currentTimeMillis()
         val epochs = actigraphyEpochs.toList()

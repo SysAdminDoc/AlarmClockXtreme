@@ -180,8 +180,7 @@ class AlarmService : Service() {
     // v1.5.1: Guard against re-entering startAudio() from the internet-radio
     // error path — if both the radio and the default fallback fail, we could
     // otherwise leak orphaned MediaPlayer instances.
-    @Volatile
-    private var audioStarting: Boolean = false
+    private val audioStarting = AtomicBoolean(false)
     private val runtimeStatePrefs by lazy {
         getSharedPreferences("alarm_runtime_state", MODE_PRIVATE)
     }
@@ -738,7 +737,7 @@ class AlarmService : Service() {
         // startAudio on serviceScope; without this, a transient failure
         // during the default-fallback path could recurse and leak
         // MediaPlayers. The guard is released when the method returns.
-        if (audioStarting) {
+        if (!audioStarting.compareAndSet(false, true)) {
             recordIncidentAsync(
                 type = AlarmIncidentEvent.TYPE_AUDIO,
                 status = AlarmIncidentEvent.STATUS_SKIPPED,
@@ -747,13 +746,7 @@ class AlarmService : Service() {
             )
             return
         }
-        audioStarting = true
         try {
-            // v1.4.0: Random pick from a ringtone pool (comma-separated URIs).
-            // Picking at this layer means the pool wins over a static ringtoneUri
-            // so the user doesn't habituate to a single sound. We copy the alarm
-            // to preserve the pool for future fires and let the rest of the method
-            // operate on a single resolved URI.
             val pooledAlarm = alarm.ringtonePool.split(",")
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
@@ -763,7 +756,7 @@ class AlarmService : Service() {
 
             startAudioInternal(pooledAlarm)
         } finally {
-            audioStarting = false
+            audioStarting.set(false)
         }
     }
 
@@ -1417,7 +1410,7 @@ class AlarmService : Service() {
             AlarmEvent(
                 alarmId = alarm.id,
                 alarmLabel = alarm.label,
-                scheduledTime = alarm.nextTriggerTime,
+                scheduledTime = currentScheduledAt,
                 firedAt = alarmFiredAt,
                 action = action,
                 actionAt = now,

@@ -263,7 +263,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun refreshBatteryStatus() {
+    fun refreshWakeReadiness() {
         val context = getApplication<Application>()
         _batteryState.value = BatteryState(
             isIgnoring = ManufacturerCompat.isIgnoringBatteryOptimizations(context),
