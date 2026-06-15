@@ -28,6 +28,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
@@ -850,16 +855,24 @@ private fun AlarmCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val alarmToggleLabel = alarm.label.ifBlank { formatAlarmTime(alarm, is24Hour) }
                     Box(
-                        modifier = Modifier.combinedClickable(
-                            onClick = { onToggle() },
-                            onLongClick = { if (alarm.isEnabled) onForceToggle() }
-                        )
+                        modifier = Modifier
+                            .combinedClickable(
+                                onClick = { onToggle() },
+                                onLongClick = { if (alarm.isEnabled) onForceToggle() }
+                            )
+                            .semantics {
+                                contentDescription = "$alarmToggleLabel alarm"
+                                stateDescription = if (alarm.isEnabled) "Enabled" else "Disabled"
+                                role = Role.Switch
+                            }
                     ) {
                         Switch(
                             checked = alarm.isEnabled,
                             onCheckedChange = null,
-                            colors = appSwitchColors()
+                            colors = appSwitchColors(),
+                            modifier = Modifier.clearAndSetSemantics {}
                         )
                     }
                     Box {
