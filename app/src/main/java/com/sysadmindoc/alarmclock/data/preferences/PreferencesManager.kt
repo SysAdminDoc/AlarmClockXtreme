@@ -139,7 +139,9 @@ data class AppSettings(
     // is tracked alongside (roadmap N13).
     val healthConnectEnabled: Boolean = false,
     val cancellationLockMinutes: Int = 0,
-    val firingControlMode: String = "hybrid"
+    val firingControlMode: String = "hybrid",
+    val challengeBypassEnabled: Boolean = false,
+    val challengeBypassDelaySeconds: Int = 30
 )
 
 private fun AppSettings.sanitized(): AppSettings {
@@ -207,7 +209,8 @@ private fun AppSettings.sanitized(): AppSettings {
         cancellationLockMinutes = cancellationLockMinutes.coerceIn(0, 120),
         firingControlMode = firingControlMode.takeIf {
             it in setOf("hybrid", "buttons", "swipe")
-        } ?: "hybrid"
+        } ?: "hybrid",
+        challengeBypassDelaySeconds = challengeBypassDelaySeconds.coerceIn(10, 120)
     )
 }
 
@@ -297,6 +300,8 @@ class PreferencesManager @Inject constructor(
         val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
         val CANCELLATION_LOCK_MINUTES = intPreferencesKey("cancellation_lock_minutes")
         val FIRING_CONTROL_MODE = stringPreferencesKey("firing_control_mode")
+        val CHALLENGE_BYPASS_ENABLED = booleanPreferencesKey("challenge_bypass_enabled")
+        val CHALLENGE_BYPASS_DELAY = intPreferencesKey("challenge_bypass_delay_seconds")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -408,6 +413,8 @@ class PreferencesManager @Inject constructor(
         healthConnectEnabled = this[Keys.HEALTH_CONNECT_ENABLED] ?: false,
         cancellationLockMinutes = this[Keys.CANCELLATION_LOCK_MINUTES] ?: 0,
         firingControlMode = this[Keys.FIRING_CONTROL_MODE] ?: "hybrid",
+        challengeBypassEnabled = this[Keys.CHALLENGE_BYPASS_ENABLED] ?: false,
+        challengeBypassDelaySeconds = this[Keys.CHALLENGE_BYPASS_DELAY] ?: 30,
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
@@ -475,5 +482,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.HEALTH_CONNECT_ENABLED] = s.healthConnectEnabled
         this[Keys.CANCELLATION_LOCK_MINUTES] = s.cancellationLockMinutes
         this[Keys.FIRING_CONTROL_MODE] = s.firingControlMode
+        this[Keys.CHALLENGE_BYPASS_ENABLED] = s.challengeBypassEnabled
+        this[Keys.CHALLENGE_BYPASS_DELAY] = s.challengeBypassDelaySeconds
     }
 }

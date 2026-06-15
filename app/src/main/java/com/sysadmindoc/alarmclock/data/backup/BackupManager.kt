@@ -175,7 +175,9 @@ data class SettingsBackup(
     val cancellationLockMinutes: Int = 0,
     val hueBridgeCertFingerprint: String = "",
     val hueLegacyHttpEnabled: Boolean = false,
-    val firingControlMode: String = "hybrid"
+    val firingControlMode: String = "hybrid",
+    val challengeBypassEnabled: Boolean = false,
+    val challengeBypassDelaySeconds: Int = 30
 )
 
 data class BackupExportWarning(
@@ -348,7 +350,9 @@ class BackupManager @Inject constructor(
                 cancellationLockMinutes = settings.cancellationLockMinutes,
                 hueBridgeCertFingerprint = settings.hueBridgeCertFingerprint,
                 hueLegacyHttpEnabled = settings.hueLegacyHttpEnabled,
-                firingControlMode = settings.firingControlMode
+                firingControlMode = settings.firingControlMode,
+                challengeBypassEnabled = settings.challengeBypassEnabled,
+                challengeBypassDelaySeconds = settings.challengeBypassDelaySeconds
             )
         )
 
@@ -513,7 +517,9 @@ class BackupManager @Inject constructor(
                         cancellationLockMinutes = s.cancellationLockMinutes,
                         hueBridgeCertFingerprint = s.hueBridgeCertFingerprint,
                         hueLegacyHttpEnabled = s.hueLegacyHttpEnabled,
-                        firingControlMode = s.firingControlMode
+                        firingControlMode = s.firingControlMode,
+                        challengeBypassEnabled = s.challengeBypassEnabled,
+                        challengeBypassDelaySeconds = s.challengeBypassDelaySeconds
                     )
                 }
             }

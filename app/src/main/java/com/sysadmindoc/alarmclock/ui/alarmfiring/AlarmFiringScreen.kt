@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AlarmOff
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Snooze
@@ -328,6 +329,13 @@ fun AlarmFiringScreen(
                         icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
                         color = if (state.canDismiss) DismissGreen else SnoozeYellow
                     )
+                    if (state.challengeBypassRemainingSeconds > 0 && !state.canDismiss) {
+                        AppStatusChip(
+                            label = "Bypass in ${state.challengeBypassRemainingSeconds}s",
+                            icon = Icons.Default.AccessTime,
+                            color = TextMuted
+                        )
+                    }
                 }
 
                 Row(
