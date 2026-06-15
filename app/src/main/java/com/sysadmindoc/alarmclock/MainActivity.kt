@@ -159,10 +159,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Onboarding keeps permission setup and skip actions visible on real phones.",
-            "Alarm enable switches now read as one labelled control with enabled state.",
-            "Settings and alarm-list dark-mode checks passed on a physical Samsung phone.",
-            "Release dialogs and sound icons now reflect the current polish pass."
+            "News feed errors now use plain recovery copy instead of raw technical text.",
+            "Headlines without links no longer behave like tappable dead ends.",
+            "Encrypted backup passphrases show inline mismatch feedback.",
+            "Feed refresh cancellation no longer leaves stale error states."
         )
     }
 }
