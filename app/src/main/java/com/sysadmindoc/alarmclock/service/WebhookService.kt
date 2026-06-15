@@ -1,6 +1,9 @@
 package com.sysadmindoc.alarmclock.service
 
+import android.content.Context
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,6 +48,7 @@ enum class WebhookEvent(val wireName: String) {
  */
 @Singleton
 class WebhookService @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val preferencesManager: PreferencesManager
 ) {
     private val client = OkHttpClient.Builder()
@@ -77,6 +81,11 @@ class WebhookService @Inject constructor(
                 val settings = preferencesManager.getCurrentSettings()
                 if (!settings.webhookEnabled || settings.webhookUrl.isBlank()) return@launch
                 if (!isAllowedUrl(settings.webhookUrl)) return@launch
+                if (LocalNetworkPermission.requiresPermissionForUrl(context, settings.webhookUrl) &&
+                    !LocalNetworkPermission.isGranted(context)
+                ) {
+                    return@launch
+                }
 
                 val body = buildPayloadJson(
                     event = event,
@@ -103,6 +112,11 @@ class WebhookService @Inject constructor(
     /** Send a test webhook with event = "test" */
     suspend fun test(url: String): Boolean {
         if (!isAllowedUrl(url)) return false
+        if (LocalNetworkPermission.requiresPermissionForUrl(context, url) &&
+            !LocalNetworkPermission.isGranted(context)
+        ) {
+            return false
+        }
         return try {
             val body = buildPayloadJson(
                 event = WebhookEvent.Test,

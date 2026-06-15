@@ -71,6 +71,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppLoadingCard
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
@@ -524,7 +525,7 @@ private fun StatsFilterCard(
                 }
             },
             colors = appOutlinedTextFieldColors(),
-            shape = RoundedCornerShape(12.dp),
+            shape = AppInputShape,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )

@@ -64,6 +64,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
+import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
@@ -454,6 +455,7 @@ fun TypingChallengeView(
             onValueChange = onInputChanged,
             placeholder = { Text("Type the phrase above…", color = TextMuted) },
             colors = appOutlinedTextFieldColors(),
+            shape = AppInputShape,
             modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onSubmit() })
@@ -664,6 +666,7 @@ fun BarcodeScanChallengeView(
                 label = { Text("Barcode or QR value") },
                 singleLine = true,
                 colors = appOutlinedTextFieldColors(),
+                shape = AppInputShape,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
                     onDone = {
@@ -1281,6 +1284,7 @@ fun DateBackwardsChallengeView(
             placeholder = { Text("Type the reversed date", color = TextMuted) },
             singleLine = true,
             colors = appOutlinedTextFieldColors(),
+            shape = AppInputShape,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onSubmit() }),
             modifier = Modifier.fillMaxWidth()
@@ -1612,6 +1616,7 @@ fun TypingSpeedChallengeView(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onSubmit() }),
             colors = appOutlinedTextFieldColors(),
+            shape = AppInputShape,
             singleLine = false,
             maxLines = 3
         )
@@ -1729,6 +1734,7 @@ fun WordleChallengeView(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { if (currentInput.length == 5) onSubmit() }),
                 colors = appOutlinedTextFieldColors(),
+                shape = AppInputShape,
                 singleLine = true
             )
             Button(

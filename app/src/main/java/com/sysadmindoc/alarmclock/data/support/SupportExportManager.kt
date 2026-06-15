@@ -17,6 +17,7 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
 import com.sysadmindoc.alarmclock.util.CrashLogger
+import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
 import com.sysadmindoc.alarmclock.worker.GuardianEscalationPolicy
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -73,6 +74,7 @@ class SupportExportManager @Inject constructor(
         val notificationPermission = hasNotificationPermission()
         val exactAlarms = canScheduleExactAlarms()
         val fsiAllowed = canUseFullScreenIntent()
+        val localNetworkAllowed = localNetworkPermissionGranted()
         val batteryIgnored = isIgnoringBatteryOptimizations()
         val standbyBucket = appStandbyBucketLabel()
         val sdkInt = Build.VERSION.SDK_INT
@@ -110,6 +112,7 @@ class SupportExportManager @Inject constructor(
                     notificationPermissionGranted = notificationPermission,
                     exactAlarmsAllowed = exactAlarms,
                     fullScreenIntentAllowed = fsiAllowed,
+                    localNetworkPermissionGranted = localNetworkAllowed,
                     ignoringBatteryOptimizations = batteryIgnored,
                     appStandbyBucket = standbyBucket,
                     sdkInt = sdkInt,
@@ -136,6 +139,7 @@ class SupportExportManager @Inject constructor(
                     notificationPermissionGranted = notificationPermission,
                     exactAlarmsAllowed = exactAlarms,
                     fullScreenIntentAllowed = fsiAllowed,
+                    localNetworkPermissionGranted = localNetworkAllowed,
                     ignoringBatteryOptimizations = batteryIgnored,
                     appStandbyBucket = standbyBucket,
                     guardianReadiness = guardianReadiness,
@@ -204,6 +208,11 @@ class SupportExportManager @Inject constructor(
             context.getSystemService(NotificationManager::class.java)
                 ?.canUseFullScreenIntent()
         }.getOrNull()
+    }
+
+    private fun localNetworkPermissionGranted(): Boolean? {
+        if (!LocalNetworkPermission.isRuntimeRequired()) return null
+        return LocalNetworkPermission.isGranted(context)
     }
 
     private fun isIgnoringBatteryOptimizations(): Boolean {

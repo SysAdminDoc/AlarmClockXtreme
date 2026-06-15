@@ -57,6 +57,29 @@ class SupportDiagnosticsFormatterTest {
     }
 
     @Test
+    fun `diagnostics expose local network readiness status`() {
+        val denied = diagnosticsText(
+            sdkInt = 37,
+            fullScreenIntentAllowed = true,
+            localNetworkPermissionGranted = false
+        )
+        val unknown = diagnosticsText(
+            sdkInt = 37,
+            fullScreenIntentAllowed = true,
+            localNetworkPermissionGranted = null
+        )
+        val notApplicable = diagnosticsText(
+            sdkInt = 36,
+            fullScreenIntentAllowed = true,
+            localNetworkPermissionGranted = null
+        )
+
+        assertTrue(denied.contains("- Local network access: denied"))
+        assertTrue(unknown.contains("- Local network access: unknown"))
+        assertTrue(notApplicable.contains("- Local network access: not_applicable"))
+    }
+
+    @Test
     fun `diagnostics expose guardian readiness status`() {
         val text = diagnosticsText(
             sdkInt = 35,
@@ -168,6 +191,7 @@ class SupportDiagnosticsFormatterTest {
             notificationPermissionGranted = true,
             exactAlarmsAllowed = true,
             fullScreenIntentAllowed = false,
+            localNetworkPermissionGranted = false,
             ignoringBatteryOptimizations = false,
             appStandbyBucket = "ACTIVE (10)",
             sdkInt = 35,
@@ -182,6 +206,7 @@ class SupportDiagnosticsFormatterTest {
         assertTrue(json.contains("\"notificationPermissionGranted\": true"))
         assertTrue(json.contains("\"exactAlarmsAllowed\": true"))
         assertTrue(json.contains("\"fullScreenIntentAllowed\": false"))
+        assertTrue(json.contains("\"localNetworkPermissionGranted\": false"))
         assertTrue(json.contains("\"batteryOptimizationsIgnored\": false"))
         assertTrue(json.contains("\"appStandbyBucket\": \"ACTIVE (10)\""))
         assertTrue(json.contains("\"sdkInt\": 35"))
@@ -197,6 +222,7 @@ class SupportDiagnosticsFormatterTest {
             notificationPermissionGranted = true,
             exactAlarmsAllowed = true,
             fullScreenIntentAllowed = null,
+            localNetworkPermissionGranted = null,
             ignoringBatteryOptimizations = true,
             appStandbyBucket = "ACTIVE (10)",
             sdkInt = 33,
@@ -211,6 +237,7 @@ class SupportDiagnosticsFormatterTest {
             notificationPermissionGranted = true,
             exactAlarmsAllowed = true,
             fullScreenIntentAllowed = null,
+            localNetworkPermissionGranted = null,
             ignoringBatteryOptimizations = true,
             appStandbyBucket = "RARE (40)",
             sdkInt = 34,
@@ -377,6 +404,7 @@ java.lang.NullPointerException: Attempt to invoke virtual method
         latestIncidentType: String? = null,
         latestIncidentStatus: String? = null,
         latestIncidentReason: String? = null,
+        localNetworkPermissionGranted: Boolean? = null,
         guardianReadiness: GuardianReadiness = defaultGuardianReadiness()
     ): String = SupportDiagnosticsFormatter.diagnosticsText(
         generatedAt = Instant.EPOCH,
@@ -392,6 +420,7 @@ java.lang.NullPointerException: Attempt to invoke virtual method
         notificationPermissionGranted = true,
         exactAlarmsAllowed = true,
         fullScreenIntentAllowed = fullScreenIntentAllowed,
+        localNetworkPermissionGranted = localNetworkPermissionGranted,
         ignoringBatteryOptimizations = true,
         appStandbyBucket = "ACTIVE (10)",
         guardianReadiness = guardianReadiness,

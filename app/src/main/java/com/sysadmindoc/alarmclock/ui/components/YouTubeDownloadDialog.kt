@@ -458,6 +458,7 @@ private fun PasteBody(
         singleLine = true,
         enabled = controlsEnabled,
         colors = appOutlinedTextFieldColors(),
+        shape = AppInputShape,
         modifier = Modifier.fillMaxWidth()
     )
     OutlinedTextField(
@@ -467,6 +468,7 @@ private fun PasteBody(
         singleLine = true,
         enabled = controlsEnabled,
         colors = appOutlinedTextFieldColors(),
+        shape = AppInputShape,
         modifier = Modifier.fillMaxWidth()
     )
     if (inFlight) DownloadingHint()
@@ -506,6 +508,7 @@ private fun SearchBody(
             }
         },
         colors = appOutlinedTextFieldColors(),
+        shape = AppInputShape,
         modifier = Modifier.fillMaxWidth()
     )
 

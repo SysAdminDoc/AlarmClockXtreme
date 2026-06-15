@@ -65,6 +65,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
@@ -322,7 +323,8 @@ fun RingtonePickerSheet(
                     Text("Search alarm sounds", color = TextMuted)
                 },
                 singleLine = true,
-                colors = appOutlinedTextFieldColors()
+                colors = appOutlinedTextFieldColors(),
+                shape = AppInputShape
             )
 
             if (filteredRingtones.isEmpty()) {

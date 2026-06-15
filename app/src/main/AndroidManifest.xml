@@ -9,8 +9,13 @@
     <!-- Network for weather API -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Android 17+: required for LAN access to Philips Hue bridges and
-         local webhook endpoints (Tasker HTTP server, Home Assistant). -->
-    <uses-permission android:name="android.permission.LOCAL_NETWORK" />
+         local webhook endpoints (Tasker HTTP server, Home Assistant). The app
+         still compiles against SDK 36, so suppress the API-37 permission
+         warning until the targetSdk 37 migration lands. -->
+    <uses-permission
+        android:name="android.permission.ACCESS_LOCAL_NETWORK"
+        tools:ignore="UnknownPermission"
+        tools:targetApi="37" />
 
     <!-- Calendar for My Day dashboard -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />

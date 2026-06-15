@@ -78,6 +78,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.WeatherSkyBackground
 import com.sysadmindoc.alarmclock.ui.components.WindyRadarCard
+import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
@@ -930,7 +931,7 @@ private fun LocationPickerDialog(
                     placeholder = { Text("City, region, or ZIP code") },
                     leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
