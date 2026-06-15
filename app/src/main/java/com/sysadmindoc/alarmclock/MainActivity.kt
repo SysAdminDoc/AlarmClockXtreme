@@ -16,6 +16,9 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
+import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.service.AlarmService
+import com.sysadmindoc.alarmclock.ui.alarmfiring.AlarmFiringActivity
 import com.sysadmindoc.alarmclock.ui.components.WhatsNewDialog
 import com.sysadmindoc.alarmclock.ui.navigation.AppNavigation
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
@@ -91,6 +94,18 @@ class MainActivity : ComponentActivity() {
                     Toast.LENGTH_SHORT
                 ).show()
             }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        val snapshot = AlarmService.activeAlarm.get() ?: return
+        val intent = Intent(this, AlarmFiringActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            putExtra(AlarmScheduler.EXTRA_ALARM_ID, snapshot.alarmId)
+            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, snapshot.scheduledAt)
+            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, snapshot.fireId)
+        }
+        startActivity(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
