@@ -152,19 +152,17 @@ class MainActivity : ComponentActivity() {
         private const val ROADMAP_URL = "https://github.com/SysAdminDoc/AlarmClockXtreme/blob/main/ROADMAP.md"
 
         /**
-         * Terse highlights for the "What's new" dialog — a half-dozen
+         * Terse highlights for the "What's new" dialog — four concise
          * bullets max, written for users (not devs). Full release notes
          * live in CHANGELOG.md. Refresh on every shipping release so a
          * returning user sees the actual changes since they last opened
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Android 17 local-network readiness for Hue and LAN webhook integrations.",
-            "Hue and webhook checks avoid false LAN prompts for public fc/fd hostnames.",
-            "Settings switches now read as a single accessible control.",
-            "Settings text fields commit and close cleanly from the keyboard Done action.",
-            "Support bundles include local-network permission state for troubleshooting.",
-            "Input fields now share the same compact app shape across secondary screens."
+            "Onboarding keeps permission setup and skip actions visible on real phones.",
+            "Alarm enable switches now read as one labelled control with enabled state.",
+            "Settings and alarm-list dark-mode checks passed on a physical Samsung phone.",
+            "Release dialogs and sound icons now reflect the current polish pass."
         )
     }
 }
