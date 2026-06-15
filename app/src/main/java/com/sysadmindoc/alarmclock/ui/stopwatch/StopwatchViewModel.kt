@@ -39,6 +39,18 @@ class StopwatchViewModel @Inject constructor() : ViewModel() {
     private var startTime: Long = 0
     private var accumulatedTime: Long = 0
 
+    init {
+        viewModelScope.launch {
+            _uiState.subscriptionCount.collect { count ->
+                if (count > 0 && _uiState.value.state == StopwatchState.RUNNING && tickerJob?.isActive != true) {
+                    startTicker()
+                } else if (count == 0 && tickerJob?.isActive == true) {
+                    tickerJob?.cancel()
+                }
+            }
+        }
+    }
+
     fun start() {
         // SystemClock.elapsedRealtime() is monotonic and unaffected by NTP, DST,
         // or user clock-set actions — wall time would let the stopwatch jump
