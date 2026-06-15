@@ -81,7 +81,7 @@ class WebhookService @Inject constructor(
                 val settings = preferencesManager.getCurrentSettings()
                 if (!settings.webhookEnabled || settings.webhookUrl.isBlank()) return@launch
                 if (!isAllowedUrl(settings.webhookUrl)) return@launch
-                if (LocalNetworkPermission.requiresPermissionForUrl(context, settings.webhookUrl) &&
+                if (LocalNetworkPermission.requiresPermissionForUrl(settings.webhookUrl) &&
                     !LocalNetworkPermission.isGranted(context)
                 ) {
                     return@launch
@@ -112,7 +112,7 @@ class WebhookService @Inject constructor(
     /** Send a test webhook with event = "test" */
     suspend fun test(url: String): Boolean {
         if (!isAllowedUrl(url)) return false
-        if (LocalNetworkPermission.requiresPermissionForUrl(context, url) &&
+        if (LocalNetworkPermission.requiresPermissionForUrl(url) &&
             !LocalNetworkPermission.isGranted(context)
         ) {
             return false

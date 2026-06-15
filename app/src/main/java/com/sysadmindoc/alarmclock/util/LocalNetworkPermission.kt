@@ -24,7 +24,7 @@ object LocalNetworkPermission {
             PackageManager.PERMISSION_GRANTED
     }
 
-    fun requiresPermissionForUrl(context: Context, url: String): Boolean =
+    fun requiresPermissionForUrl(url: String): Boolean =
         isRuntimeRequired() && isLikelyLocalEndpoint(url)
 
     fun isLikelyLocalEndpoint(url: String): Boolean {
@@ -38,7 +38,14 @@ object LocalNetworkPermission {
         if (host == "localhost" || host == "::1") return true
         if (host.endsWith(".local")) return true
         if (!host.contains('.') && !host.contains(':')) return true
-        if (host.startsWith("fe80:") || host.startsWith("fc") || host.startsWith("fd")) return true
+        if (host.contains(':') && (
+                host.startsWith("fe80:") ||
+                    host.startsWith("fc") ||
+                    host.startsWith("fd")
+            )
+        ) {
+            return true
+        }
 
         val octets = host.split('.').mapNotNull { it.toIntOrNull() }
         if (octets.size != 4 || octets.any { it !in 0..255 }) return false
