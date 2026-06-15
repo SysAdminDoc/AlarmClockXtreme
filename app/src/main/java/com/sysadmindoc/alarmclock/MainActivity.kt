@@ -159,10 +159,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "News feed errors now use plain recovery copy instead of raw technical text.",
-            "Headlines without links no longer behave like tappable dead ends.",
-            "Encrypted backup passphrases show inline mismatch feedback.",
-            "Feed refresh cancellation no longer leaves stale error states."
+            "YouTube downloader errors now use plain recovery copy instead of raw exception text.",
+            "Search, preview, update, and download failures now point to the right recovery action.",
+            "YouTube search now responds to the keyboard Search action.",
+            "Paste-mode sound naming now closes the keyboard cleanly from Done."
         )
     }
 }
