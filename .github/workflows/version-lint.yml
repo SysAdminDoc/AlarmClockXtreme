@@ -123,3 +123,46 @@ jobs:
             echo "then update the README badge, README adb-install snippet, and both metadata files."
             exit 1
           fi
+
+      - name: Assert Room DB version in README matches AlarmDatabase.kt
+        run: |
+          set -euo pipefail
+
+          db_version=$(grep -E 'version = [0-9]+' app/src/main/java/com/sysadmindoc/alarmclock/data/local/AlarmDatabase.kt \
+            | head -1 | sed -E 's/.*version = ([0-9]+).*/\1/')
+          readme_db=$(grep -oE 'Room DB v[0-9]+' README.md \
+            | head -1 | sed -E 's/Room DB v//')
+
+          if [ -z "$db_version" ]; then
+            echo "::error file=AlarmDatabase.kt::Could not extract DB version from AlarmDatabase.kt"
+            exit 1
+          fi
+          if [ -z "$readme_db" ]; then
+            echo "::error file=README.md::Could not find 'Room DB vN' in README.md"
+            exit 1
+          fi
+          if [ "$readme_db" != "$db_version" ]; then
+            echo "::error file=README.md::README says Room DB v${readme_db} but AlarmDatabase.kt is version ${db_version}"
+            exit 1
+          fi
+          echo "ok: Room DB version = v${db_version}"
+
+      - name: Assert no tag-only third-party GitHub Actions
+        run: |
+          set -euo pipefail
+
+          fail=0
+          for wf in .github/workflows/*.yml; do
+            while IFS= read -r line; do
+              action=$(echo "$line" | sed -E 's/.*uses: ([^[:space:]]+).*/\1/')
+              if echo "$action" | grep -qE '^[^/]+/[^@]+@v[0-9]'; then
+                echo "::error file=$wf::$action uses a mutable tag reference — pin to a full-length SHA"
+                fail=1
+              fi
+            done < <(grep -E '^\s*uses:' "$wf" | grep -v '^#')
+          done
+          if [ $fail -ne 0 ]; then
+            echo "All third-party actions must be pinned to immutable commit SHAs."
+            exit 1
+          fi
+          echo "ok: all workflow actions are SHA-pinned"
