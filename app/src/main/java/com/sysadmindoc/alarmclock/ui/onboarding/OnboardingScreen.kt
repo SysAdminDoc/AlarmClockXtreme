@@ -56,6 +56,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -230,9 +234,12 @@ fun OnboardingScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 28.dp),
+                    .padding(
+                        horizontal = 24.dp,
+                        vertical = if (isLastPage) 16.dp else 28.dp
+                    ),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(if (isLastPage) 10.dp else 16.dp)
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -266,7 +273,7 @@ fun OnboardingScreen(
                     AppSurfaceCard(
                         modifier = Modifier.fillMaxWidth(),
                         highlighted = true,
-                        contentPadding = PaddingValues(14.dp)
+                        contentPadding = PaddingValues(10.dp)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -371,7 +378,7 @@ fun OnboardingScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(58.dp),
+                        .height(if (isLastPage) 54.dp else 58.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = onboardingPages[pagerState.currentPage].accentColor),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -383,21 +390,28 @@ fun OnboardingScreen(
                 }
 
                 if (isLastPage) {
-                    TextButton(onClick = onComplete) {
+                    TextButton(
+                        onClick = onComplete,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .semantics {
+                                contentDescription = "Continue without permissions"
+                                role = Role.Button
+                            }
+                    ) {
                         Text("Continue without permissions", color = TextMuted)
                     }
                 }
 
-                Text(
-                    text = if (isLastPage) {
-                        "Use each Review action for platform settings that Android cannot grant inside the app."
-                    } else {
-                        "Step ${pagerState.currentPage + 1} of ${onboardingPages.size}"
-                    },
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.Center
-                )
+                if (!isLastPage) {
+                    Text(
+                        text = "Step ${pagerState.currentPage + 1} of ${onboardingPages.size}",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
@@ -408,7 +422,11 @@ private fun OnboardingPageContent(
     page: OnboardingPage,
     isLastPage: Boolean
 ) {
-    val compact = isLastPage
+    if (isLastPage) {
+        Spacer(modifier = Modifier.fillMaxSize())
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -419,75 +437,43 @@ private fun OnboardingPageContent(
         AppSurfaceCard(
             modifier = Modifier.fillMaxWidth(),
             highlighted = true,
-            contentPadding = PaddingValues(if (compact) 14.dp else 18.dp)
+            contentPadding = PaddingValues(18.dp)
         ) {
-            if (compact) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OnboardingIconTile(
-                        page = page,
-                        size = 72.dp,
-                        iconSize = 36.dp
-                    )
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text(
-                            text = page.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimary
-                        )
-                        Text(
-                            text = "Finish with the reliability switches that matter before an overnight alarm.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary
-                        )
-                    }
-                }
-            } else {
-                OnboardingIconTile(
-                    page = page,
-                    size = 112.dp,
-                    iconSize = 52.dp
+            OnboardingIconTile(
+                page = page,
+                size = 112.dp,
+                iconSize = 52.dp
+            )
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = page.title,
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = TextPrimary,
+                    textAlign = TextAlign.Center
                 )
+                Text(
+                    text = page.description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center
+                )
+            }
 
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = page.title,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = TextPrimary,
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = page.description,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = TextSecondary,
-                        textAlign = TextAlign.Center
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                page.highlights.forEach { highlight ->
+                    FeatureRow(
+                        text = highlight,
+                        accent = page.accentColor
                     )
                 }
             }
-
-            if (!compact) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    page.highlights.forEach { highlight ->
-                        FeatureRow(
-                            text = highlight,
-                            accent = page.accentColor
-                        )
-                    }
-                }
-            }
-
         }
     }
 }
