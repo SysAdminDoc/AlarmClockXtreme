@@ -15,6 +15,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -393,7 +394,7 @@ fun AlarmEditScreen(
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.VolumeOff,
+                            imageVector = Icons.AutoMirrored.Filled.VolumeOff,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
@@ -408,7 +409,7 @@ fun AlarmEditScreen(
                 if (hapticOnlyActive) {
                     AppStatusChip(
                         label = "Haptic-only profile active",
-                        icon = Icons.Default.VolumeOff,
+                        icon = Icons.AutoMirrored.Filled.VolumeOff,
                         color = AccentBlue,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
