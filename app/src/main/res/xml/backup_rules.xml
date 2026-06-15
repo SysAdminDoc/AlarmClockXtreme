@@ -2,13 +2,17 @@
 <!--
   Legacy Auto Backup rules for Android 8-11 (API 26-30).
 
-  Android 12+ uses data_extraction_rules.xml. Older devices ignore that file
-  and would otherwise back up every app-private file because allowBackup=true.
-  Keep the legacy cloud-backup surface intentionally narrow: DataStore
-  preferences only. Room history, crash logs, support exports, downloaded
-  media, and challenge reference files stay local unless the user explicitly
-  exports a JSON/AES backup.
+  Android 12+ uses data_extraction_rules.xml (which separates cloud-backup
+  from device-transfer). Older devices use this file for BOTH paths and
+  cannot distinguish them. DataStore is EXCLUDED because it stores webhook
+  URLs, Hue API keys, guardian contacts, custom typing phrases, and custom
+  feed URLs — secrets that must not traverse Google's cloud backup pipeline.
+  The Room alarm database (schedules, labels, challenge configs),
+  SharedPreferences (non-secret runtime state), and photo-match reference
+  photos are safe to back up.
 -->
 <full-backup-content>
-    <include domain="file" path="datastore/" />
+    <include domain="database" path="alarm_clock.db" />
+    <include domain="sharedpref" path="." />
+    <include domain="file" path="photo_match_" />
 </full-backup-content>
