@@ -160,8 +160,8 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // Retrofit + Moshi for Open-Meteo weather API and Nager.Date holidays
-    implementation("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation("com.squareup.retrofit2:converter-moshi:2.11.0")
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    implementation("com.squareup.retrofit2:converter-moshi:3.0.0")
     implementation("com.squareup.moshi:moshi:1.15.1")
     ksp("com.squareup.moshi:moshi-kotlin-codegen:1.15.1")
     // OkHttp (explicit — also used by WebhookService and HueSunriseWorker).
