@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
@@ -50,8 +52,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.YouTubeSearchHit
@@ -68,8 +73,19 @@ import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import javax.net.ssl.SSLException
 
 private enum class DownloadMode { Search, PasteUrl }
+
+internal enum class YouTubeDialogAction {
+    Preview,
+    Search,
+    Download,
+    EngineUpdate
+}
 
 /**
  * Reusable YouTube → alarm-sound download dialog. Two modes:
@@ -182,7 +198,7 @@ fun YouTubeDownloadDialog(
                 },
                 onFailure = { e ->
                     if (loadingPreviewUrl == hit.videoUrl) {
-                        setStatus(e.message ?: "Could not get a preview stream.", isError = true)
+                        setStatus(youTubeDialogErrorMessage(e, YouTubeDialogAction.Preview), isError = true)
                     }
                     loadingPreviewUrl = null
                 }
@@ -235,9 +251,7 @@ fun YouTubeDownloadDialog(
                                 },
                                 onFailure = { error ->
                                     setStatus(
-                                        error.message
-                                            ?.let { "Update failed. Your current engine was kept. $it" }
-                                            ?: "Update failed. Your current engine was kept.",
+                                        youTubeDialogErrorMessage(error, YouTubeDialogAction.EngineUpdate),
                                         isError = true
                                     )
                                 }
@@ -311,7 +325,7 @@ fun YouTubeDownloadDialog(
                                         }
                                     },
                                     onFailure = { e ->
-                                        setStatus(e.message ?: "Search failed.", isError = true)
+                                        setStatus(youTubeDialogErrorMessage(e, YouTubeDialogAction.Search), isError = true)
                                     }
                                 )
                             }
@@ -327,7 +341,7 @@ fun YouTubeDownloadDialog(
                                     onSuccess = onDownloaded,
                                     onFailure = { e ->
                                         setStatus("")
-                                        onError(e.message ?: "Download failed.")
+                                        onError(youTubeDialogErrorMessage(e, YouTubeDialogAction.Download))
                                     }
                                 )
                             }
@@ -359,7 +373,9 @@ fun YouTubeDownloadDialog(
                             inFlight = false
                             result.fold(
                                 onSuccess = onDownloaded,
-                                onFailure = { e -> onError(e.message ?: "Download failed.") }
+                                onFailure = { e ->
+                                    onError(youTubeDialogErrorMessage(e, YouTubeDialogAction.Download))
+                                }
                             )
                         }
                     },
@@ -446,6 +462,7 @@ private fun PasteBody(
     inFlight: Boolean,
     controlsEnabled: Boolean,
 ) {
+    val focusManager = LocalFocusManager.current
     Text(
         "Paste a YouTube URL. The audio is saved into your device's Alarms folder, so it appears wherever you pick alarm sounds.",
         color = TextSecondary,
@@ -457,6 +474,10 @@ private fun PasteBody(
         placeholder = { Text("https://youtube.com/watch?v=...") },
         singleLine = true,
         enabled = controlsEnabled,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Uri,
+            imeAction = ImeAction.Next
+        ),
         colors = appOutlinedTextFieldColors(),
         shape = AppInputShape,
         modifier = Modifier.fillMaxWidth()
@@ -467,6 +488,8 @@ private fun PasteBody(
         placeholder = { Text("Name this sound (optional)") },
         singleLine = true,
         enabled = controlsEnabled,
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
         colors = appOutlinedTextFieldColors(),
         shape = AppInputShape,
         modifier = Modifier.fillMaxWidth()
@@ -490,6 +513,7 @@ private fun SearchBody(
     onPick: (YouTubeSearchHit) -> Unit,
     inFlight: Boolean,
 ) {
+    val canSearch = canSubmit && !searching && query.isNotBlank()
     Text(
         "Try \"rooster crow\", \"piano bell\", or \"forest birds\". Preview first, then save the result that feels right.",
         color = TextSecondary,
@@ -503,10 +527,12 @@ private fun SearchBody(
         enabled = controlsEnabled && !searching,
         leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
         trailingIcon = {
-            TextButton(onClick = onSearch, enabled = canSubmit && !searching && query.isNotBlank()) {
+            TextButton(onClick = onSearch, enabled = canSearch) {
                 Text("Search", fontWeight = FontWeight.SemiBold)
             }
         },
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { if (canSearch) onSearch() }),
         colors = appOutlinedTextFieldColors(),
         shape = AppInputShape,
         modifier = Modifier.fillMaxWidth()
@@ -695,6 +721,46 @@ private fun formatDuration(seconds: Long): String {
     val m = seconds / 60
     val s = seconds % 60
     return "%d:%02d".format(m, s)
+}
+
+internal fun youTubeDialogErrorMessage(
+    error: Throwable,
+    action: YouTubeDialogAction
+): String {
+    val message = error.message.orEmpty()
+    return when {
+        message.contains("not available in this build", ignoreCase = true) ->
+            "YouTube downloads are not available in this build."
+        error is UnknownHostException ->
+            "Check your connection and try again."
+        error is SocketTimeoutException ->
+            "YouTube took too long to respond. Try again later."
+        error is SSLException ->
+            "Could not connect securely to YouTube. Try again later."
+        message.contains("HTTP 403") || message.contains("HTTP 429") ->
+            "YouTube is blocking this request right now. Try updating the downloader engine or try again later."
+        message.contains("HTTP", ignoreCase = true) ->
+            "YouTube did not return a usable audio stream. Try another result or try again later."
+        message.contains("extractor", ignoreCase = true) ||
+            message.contains("signature", ignoreCase = true) ||
+            message.contains("player response", ignoreCase = true) ->
+            "YouTube changed how this video is served. Update the downloader engine and try again."
+        message.contains("invalid", ignoreCase = true) ||
+            message.contains("unsupported", ignoreCase = true) ->
+            "Enter a valid YouTube link."
+        error is IOException ->
+            "The YouTube request could not be completed. Check your connection and try again."
+        else -> when (action) {
+            YouTubeDialogAction.Preview ->
+                "Could not get a preview stream. Try another result."
+            YouTubeDialogAction.Search ->
+                "Search failed. Try a shorter phrase or try again later."
+            YouTubeDialogAction.Download ->
+                "Download failed. Try another link or update the downloader engine."
+            YouTubeDialogAction.EngineUpdate ->
+                "Update failed. Your current engine was kept. Check your connection and try again."
+        }
+    }
 }
 
 /**
