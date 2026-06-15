@@ -1961,6 +1961,34 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
             style = MaterialTheme.typography.bodySmall
         )
 
+        SettingsToggle(
+            label = "Challenge accessibility bypass",
+            supportingText = "Allow dismissing after a timed delay without completing the challenge. Helps users who cannot perform physical challenges.",
+            checked = state.settings.challengeBypassEnabled,
+            onToggle = { viewModel.updateChallengeBypassEnabled(it) }
+        )
+        if (state.settings.challengeBypassEnabled) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Bypass delay", color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    listOf(10, 30, 60, 120).forEach { secs ->
+                        val selected = state.settings.challengeBypassDelaySeconds == secs
+                        AppFilterChip(
+                            selected = selected,
+                            onClick = { viewModel.updateChallengeBypassDelay(secs) },
+                            label = "${secs}s"
+                        )
+                    }
+                }
+            }
+        }
+
         // v1.4.0: Pre-sleep checklist items, shown on the Bedtime tab.
         BufferedSettingsTextField(
             value = state.settings.bedtimeChecklist,

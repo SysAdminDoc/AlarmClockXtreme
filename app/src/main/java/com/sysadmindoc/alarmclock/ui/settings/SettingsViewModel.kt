@@ -301,6 +301,10 @@ class SettingsViewModel @Inject constructor(
         updateSettings { it.copy(cancellationLockMinutes = minutes.coerceIn(0, 120)) }
     fun updateFiringControlMode(mode: String) =
         updateSettings { it.copy(firingControlMode = mode) }
+    fun updateChallengeBypassEnabled(enabled: Boolean) =
+        updateSettings { it.copy(challengeBypassEnabled = enabled) }
+    fun updateChallengeBypassDelay(seconds: Int) =
+        updateSettings { it.copy(challengeBypassDelaySeconds = seconds) }
     fun updateBedtimeChecklist(items: String) =
         updateSettings { it.copy(bedtimeChecklist = items) }
     fun updateSleepSoundTimer(minutes: Int) =

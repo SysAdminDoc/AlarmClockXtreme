@@ -80,6 +80,8 @@ data class FiringUiState(
     val pvtWaiting: Boolean = false,
     val pvtLastReaction: Long? = null,
     val pvtFailed: Boolean = false,
+    val challengeBypassAvailable: Boolean = false,
+    val challengeBypassRemainingSeconds: Int = -1,
     val weatherTemp: String? = null,
     val weatherDescription: String? = null,
     val firedEarlyForWeather: Boolean = false
@@ -88,7 +90,7 @@ data class FiringUiState(
         val type = alarm?.challengeType ?: "NONE"
         return challenge != null || alarm?.challengeChain?.isNotBlank() == true || type != "NONE"
     }
-    val canDismiss: Boolean get() = challengeSolved || challenge == null
+    val canDismiss: Boolean get() = challengeSolved || challenge == null || challengeBypassAvailable
 }
 
 @HiltViewModel
@@ -228,6 +230,26 @@ class AlarmFiringViewModel @Inject constructor(
             if (firstChallenge is Challenge.EmojiMemoryChallenge) {
                 startEmojiReveal(firstChallenge)
             }
+            if (firstChallenge != null) {
+                launchChallengeBypassTimer()
+            }
+        }
+    }
+
+    private fun launchChallengeBypassTimer() {
+        viewModelScope.launch {
+            val settings = preferencesManager.getCachedSettings()
+            if (!settings.challengeBypassEnabled) return@launch
+            val delaySec = settings.challengeBypassDelaySeconds
+            for (remaining in delaySec downTo 1) {
+                _uiState.value = _uiState.value.copy(challengeBypassRemainingSeconds = remaining)
+                kotlinx.coroutines.delay(1000)
+                if (_uiState.value.challengeSolved) return@launch
+            }
+            _uiState.value = _uiState.value.copy(
+                challengeBypassAvailable = true,
+                challengeBypassRemainingSeconds = 0
+            )
         }
     }
 
