@@ -159,12 +159,12 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "YouTube alarm-sound search now has clearer status, empty, retry, and download feedback.",
-            "Search results now separate preview from save so choosing a sound feels more deliberate.",
-            "Shared alarm imports now explain private-reference review and save received alarms inactive.",
-            "Settings accent colors and shortcut rows now have stronger touch targets and accessibility states.",
-            "Filter chips now expose selected state consistently across alarms, bedtime, news, and stats.",
-            "Release metadata and first-run copy were refreshed for this premium interaction polish pass."
+            "Sleep score and rolling sleep-debt tracking on the Statistics tab.",
+            "Physical-challenge readiness preflight prevents saving undismissable alarms.",
+            "OEM background-kill guidance now covers every aggressive manufacturer with dontkillmyapp links.",
+            "Smart-wake early fire no longer double-fires one-shot alarms.",
+            "Theme contrast improved to WCAG AA on card surfaces.",
+            "Legacy Auto Backup no longer leaks integration secrets on Android 8-11."
         )
     }
 }

@@ -186,7 +186,7 @@ cd AlarmClockXtreme
 |  Date-specific + holiday + vacation + solar-anchor logic |
 +---------------------------------------------------------+
 |                    Data Layer                            |
-|  Room DB v14 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
+|  Room DB v15 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
 |  HealthConnectSleepRepository (Play READ_SLEEP summaries) |
 |  50+ field Alarm entity | 35+ field AppSettings          |
 |  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |

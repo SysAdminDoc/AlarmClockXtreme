@@ -1,5 +1,5 @@
 #!/bin/bash
-# AlarmClockXtreme v0.5.0 - Reproducible Build Verification
+# AlarmClockXtreme - Reproducible Build Verification
 # Verifies that the build is reproducible for F-Droid submission.
 # Usage: ./scripts/verify-reproducible-build.sh
 
