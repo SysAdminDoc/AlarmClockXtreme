@@ -365,7 +365,7 @@ class SettingsViewModel @Inject constructor(
                 !webhookService.isAllowedUrl(url) && url.trim().startsWith("http://", ignoreCase = true) ->
                     "Webhook failed — use HTTPS; cleartext HTTP is blocked"
                 !webhookService.isAllowedUrl(url) -> "Webhook failed — enter a valid HTTPS URL"
-                LocalNetworkPermission.requiresPermissionForUrl(getApplication(), url) &&
+                LocalNetworkPermission.requiresPermissionForUrl(url) &&
                     !LocalNetworkPermission.isGranted(getApplication()) ->
                     "Webhook failed — allow local network access first"
                 webhookService.test(url) -> "Webhook OK"

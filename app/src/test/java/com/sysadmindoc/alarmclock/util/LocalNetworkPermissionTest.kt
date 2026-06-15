@@ -13,6 +13,8 @@ class LocalNetworkPermissionTest {
         assertTrue(LocalNetworkPermission.isLikelyLocalEndpoint("https://172.20.1.5/hook"))
         assertTrue(LocalNetworkPermission.isLikelyLocalEndpoint("https://169.254.1.2/hook"))
         assertTrue(LocalNetworkPermission.isLikelyLocalEndpoint("https://[fe80::1]/hook"))
+        assertTrue(LocalNetworkPermission.isLikelyLocalEndpoint("https://[fd00::1]/hook"))
+        assertTrue(LocalNetworkPermission.isLikelyLocalEndpoint("https://[fc00::1]/hook"))
     }
 
     @Test
@@ -25,6 +27,8 @@ class LocalNetworkPermissionTest {
     @Test
     fun `public endpoints and malformed urls are not local`() {
         assertFalse(LocalNetworkPermission.isLikelyLocalEndpoint("https://example.com/hook"))
+        assertFalse(LocalNetworkPermission.isLikelyLocalEndpoint("https://fc-example.com/hook"))
+        assertFalse(LocalNetworkPermission.isLikelyLocalEndpoint("https://fd.example.com/hook"))
         assertFalse(LocalNetworkPermission.isLikelyLocalEndpoint("https://8.8.8.8/hook"))
         assertFalse(LocalNetworkPermission.isLikelyLocalEndpoint("not a url"))
     }

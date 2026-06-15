@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -84,8 +85,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
@@ -94,6 +97,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1416,6 +1420,7 @@ private fun SettingsToggle(
             }
             Spacer(modifier = Modifier.size(12.dp))
             Switch(
+                modifier = Modifier.clearAndSetSemantics { },
                 checked = checked,
                 onCheckedChange = null,
                 enabled = enabled,
@@ -2563,8 +2568,14 @@ private fun BufferedSettingsTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     commitDelayMillis: Long = if (singleLine) 220 else 350
 ) {
+    val focusManager = LocalFocusManager.current
     var draft by rememberSaveable { mutableStateOf(value) }
     var isFocused by remember { mutableStateOf(false) }
+    val effectiveKeyboardOptions = if (singleLine && keyboardOptions.imeAction == ImeAction.Default) {
+        keyboardOptions.copy(imeAction = ImeAction.Done)
+    } else {
+        keyboardOptions
+    }
 
     LaunchedEffect(value, isFocused) {
         if (!isFocused && draft != value) {
@@ -2599,7 +2610,15 @@ private fun BufferedSettingsTextField(
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
-        keyboardOptions = keyboardOptions
+        keyboardOptions = effectiveKeyboardOptions,
+        keyboardActions = KeyboardActions(
+            onDone = {
+                if (draft != value) {
+                    onCommit(draft)
+                }
+                focusManager.clearFocus()
+            }
+        )
     )
 }
 
