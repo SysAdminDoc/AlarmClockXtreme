@@ -45,6 +45,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 
 /**
@@ -89,14 +90,22 @@ class AlarmService : Service() {
         const val DEFAULT_AUTO_SILENCE_MINUTES = 10L
         private const val TAG = "AlarmService"
 
+        data class ActiveAlarmSnapshot(
+            val alarmId: Long,
+            val scheduledAt: Long,
+            val fireId: String
+        )
+
         /**
-         * v1.5.1: Live-alarm flag surfaced to [MissedAlarmUnlockReceiver] so a
-         * replayed miss can't stack a second foreground service on top of an
-         * alarm that's currently firing. Volatile-safe; single-writer
-         * (AlarmService), many-readers (receivers).
+         * v1.5.1: Live-alarm state surfaced to [MissedAlarmUnlockReceiver] and
+         * [MainActivity] so they can detect a firing alarm. AtomicReference
+         * ensures readers always see a consistent triplet — the previous three
+         * separate @Volatile fields could tear across concurrent reads.
          */
-        @Volatile
-        internal var activeAlarmId: Long = -1L
+        @JvmField
+        internal val activeAlarm = AtomicReference<ActiveAlarmSnapshot?>(null)
+
+        internal val activeAlarmId: Long get() = activeAlarm.get()?.alarmId ?: -1L
 
         fun createNotificationChannels(context: Context) {
             val nm = context.getSystemService(NotificationManager::class.java)
@@ -247,7 +256,7 @@ class AlarmService : Service() {
                     currentAlarmId = alarmId
                     currentScheduledAt = scheduledAt
                     currentFireId = fireId
-                    activeAlarmId = alarmId
+                    activeAlarm.set(ActiveAlarmSnapshot(alarmId, scheduledAt, fireId))
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                     currentWakeConfirmRefireCount = intent.getIntExtra(
                         EXTRA_WAKE_CONFIRM_REFIRE_COUNT, 0
@@ -334,7 +343,7 @@ class AlarmService : Service() {
                 source = "AlarmService"
             )
             clearAlarmRuntimeState(alarmId)
-            activeAlarmId = -1L
+            activeAlarm.set(null)
             releaseAlarmMediaSession()
             stopSelf()
             return
@@ -459,13 +468,13 @@ class AlarmService : Service() {
                             .edit()
                             .putLong("last_missed_at", System.currentTimeMillis())
                             .putLong("last_missed_id", missedAlarm.id)
-                            .apply()
+                            .commit()
                     }
                 }
                 clearAlarmRuntimeState(alarmId)
                 currentSnoozeCount = 0
                 currentAlarmId = -1
-                activeAlarmId = -1L
+                activeAlarm.set(null)
                 alarmScheduler.handleAlarmFired(alarmId)
                 stopAlarmPlayback()
                 if (isForeground.compareAndSet(true, false)) {
@@ -1122,7 +1131,7 @@ class AlarmService : Service() {
                 clearAlarmRuntimeState(alarmId)
                 currentSnoozeCount = 0
                 currentAlarmId = -1
-                activeAlarmId = -1L
+                activeAlarm.set(null)
                 alarmScheduler.handleAlarmFired(alarmId)
                 webhookEvent = WebhookEvent.AlarmDismissed
             } else {
@@ -1162,7 +1171,7 @@ class AlarmService : Service() {
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
             currentAlarmId = -1
-            activeAlarmId = -1L
+            activeAlarm.set(null)
         }
         if (isForeground.compareAndSet(true, false)) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -1202,7 +1211,7 @@ class AlarmService : Service() {
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
             currentAlarmId = -1
-            activeAlarmId = -1L
+            activeAlarm.set(null)
 
             // F8: Webhook on dismiss (fire-and-forget on its own scope)
             webhookService.fireAsync(
@@ -1244,7 +1253,7 @@ class AlarmService : Service() {
             clearAlarmRuntimeState(alarmId)
             currentSnoozeCount = 0
             currentAlarmId = -1
-            activeAlarmId = -1L
+            activeAlarm.set(null)
         }
         alarmScheduler.handleAlarmFired(alarmId)
         wearNextAlarmBridge.publishAlarmIdle(alarmId)
@@ -1476,14 +1485,14 @@ class AlarmService : Service() {
         if (alarmId <= 0L) return
         runtimeStatePrefs.edit()
             .putInt(snoozeCountKey(alarmId), count.coerceAtLeast(0))
-            .apply()
+            .commit()
     }
 
     private fun clearAlarmRuntimeState(alarmId: Long) {
         if (alarmId <= 0L) return
         runtimeStatePrefs.edit()
             .remove(snoozeCountKey(alarmId))
-            .apply()
+            .commit()
     }
 
     private fun snoozeCountKey(alarmId: Long): String = "snooze_count_$alarmId"

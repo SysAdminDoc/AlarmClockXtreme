@@ -71,7 +71,7 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                         nowMs = System.currentTimeMillis()
                     )
                     if (decision.shouldClearState) {
-                        store.edit().clear().apply()
+                        store.edit().clear().commit()
                     }
                     if (!decision.shouldReplay) return@withTimeout
 
