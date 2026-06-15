@@ -633,30 +633,34 @@ private fun SearchResultRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Preview button — circular, primary-tinted, with a loading
-            // spinner overlay while the stream URL resolves.
             Box(
                 modifier = Modifier.size(40.dp),
                 contentAlignment = Alignment.Center
             ) {
-                IconButton(
-                    onClick = onTogglePreview,
-                    enabled = enabled,
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isPlayingPreview) Icons.Default.Stop else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlayingPreview) "Stop preview" else "Preview sound",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
                 if (isLoadingPreview) {
-                    CircularProgressIndicator(
-                        strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    )
+                    IconButton(
+                        onClick = onTogglePreview,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            strokeWidth = 3.dp,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                } else {
+                    IconButton(
+                        onClick = onTogglePreview,
+                        enabled = enabled,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isPlayingPreview) Icons.Default.Stop else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlayingPreview) "Stop preview" else "Preview sound",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
                 }
             }
 
@@ -697,7 +701,15 @@ private fun SearchResultRow(
                         color = TextMuted,
                         style = MaterialTheme.typography.bodySmall
                     )
-                    if (isPlayingPreview) {
+                    if (isLoadingPreview) {
+                        Text("-", color = TextMuted, style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Loading preview…",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    } else if (isPlayingPreview) {
                         Text("-", color = TextMuted, style = MaterialTheme.typography.bodySmall)
                         Text(
                             "Previewing",
