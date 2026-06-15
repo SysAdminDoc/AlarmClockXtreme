@@ -72,6 +72,14 @@ data class FiringUiState(
     val wordleGuesses: List<String> = emptyList(),
     val wordleCurrentInput: String = "",
     val wordleGameOver: Boolean = false,
+    // PVT challenge
+    val pvtTrialIndex: Int = 0,
+    val pvtReactionTimes: List<Long> = emptyList(),
+    val pvtStimulusShown: Boolean = false,
+    val pvtStimulusShownAt: Long = 0L,
+    val pvtWaiting: Boolean = false,
+    val pvtLastReaction: Long? = null,
+    val pvtFailed: Boolean = false,
     val weatherTemp: String? = null,
     val weatherDescription: String? = null,
     val firedEarlyForWeather: Boolean = false
@@ -279,7 +287,14 @@ class AlarmFiringViewModel @Inject constructor(
             typingSpeedStartTime = 0L,
             wordleGuesses = emptyList(),
             wordleCurrentInput = "",
-            wordleGameOver = false
+            wordleGameOver = false,
+            pvtTrialIndex = 0,
+            pvtReactionTimes = emptyList(),
+            pvtStimulusShown = false,
+            pvtStimulusShownAt = 0L,
+            pvtWaiting = false,
+            pvtLastReaction = null,
+            pvtFailed = false
         )
         // Kick off Simon playback whenever the new challenge is Simon-says.
         if (nextChallenge is Challenge.SimonSaysChallenge) {
@@ -771,6 +786,69 @@ class AlarmFiringViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(memoryPhase = MemoryPhase.SHOWING)
             }
         }
+    }
+
+    fun startPvtTrial() {
+        _uiState.value = _uiState.value.copy(pvtWaiting = true, pvtStimulusShown = false, pvtLastReaction = null)
+        viewModelScope.launch {
+            val delayMs = (2000L..8000L).random()
+            kotlinx.coroutines.delay(delayMs)
+            if (_uiState.value.pvtWaiting) {
+                _uiState.value = _uiState.value.copy(
+                    pvtStimulusShown = true,
+                    pvtStimulusShownAt = android.os.SystemClock.elapsedRealtime()
+                )
+            }
+        }
+    }
+
+    fun onPvtReaction() {
+        val state = _uiState.value
+        val challenge = state.challenge as? Challenge.PvtChallenge ?: return
+        if (!state.pvtStimulusShown) return
+        val reactionMs = android.os.SystemClock.elapsedRealtime() - state.pvtStimulusShownAt
+        val reactions = state.pvtReactionTimes + reactionMs
+        val trialIndex = state.pvtTrialIndex + 1
+        _uiState.value = state.copy(
+            pvtReactionTimes = reactions,
+            pvtTrialIndex = trialIndex,
+            pvtStimulusShown = false,
+            pvtWaiting = false,
+            pvtLastReaction = reactionMs
+        )
+        if (trialIndex >= challenge.totalTrials) {
+            val avg = reactions.average().toLong()
+            if (avg <= challenge.maxAverageMs) {
+                proceedToNextChallenge()
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    pvtFailed = true,
+                    wrongAttempts = _uiState.value.wrongAttempts + 1,
+                    totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
+                )
+                viewModelScope.launch {
+                    kotlinx.coroutines.delay(2500)
+                    _uiState.value = _uiState.value.copy(
+                        pvtTrialIndex = 0,
+                        pvtReactionTimes = emptyList(),
+                        pvtStimulusShown = false,
+                        pvtWaiting = false,
+                        pvtLastReaction = null,
+                        pvtFailed = false
+                    )
+                }
+            }
+        }
+    }
+
+    fun onPvtFalseStart() {
+        _uiState.value = _uiState.value.copy(
+            pvtWaiting = false,
+            pvtStimulusShown = false,
+            pvtLastReaction = -1L,
+            wrongAttempts = _uiState.value.wrongAttempts + 1,
+            totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
+        )
     }
 
     companion object {

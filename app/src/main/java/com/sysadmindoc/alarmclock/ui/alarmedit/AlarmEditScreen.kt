@@ -2024,6 +2024,7 @@ private fun String.toAlarmChallengeSummary(): String = when (this) {
     "EMOJI_MEMORY" -> "Emoji memory"
     "TYPING_SPEED" -> "Typing speed"
     "WORDLE" -> "Wordle"
+    "PVT" -> "Reaction test"
     else -> replace('_', ' ')
         .lowercase()
         .replaceFirstChar { it.uppercase() }
@@ -2048,6 +2049,7 @@ private fun String.toAlarmChallengeDescription(): String = when (this) {
     "EMOJI_MEMORY" -> "Memorise 8 pairs on a 4x4 grid, then find them all face-down."
     "TYPING_SPEED" -> "Type a short phrase at 15+ wpm with at most 2 word errors."
     "WORDLE" -> "Guess a hidden 5-letter word in up to 6 tries."
+    "PVT" -> "Tap a target 5 times as fast as you can. Average under 500 ms to dismiss."
     else -> "Dismissal requires this challenge before the alarm can stop."
 }
 

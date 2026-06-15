@@ -25,7 +25,8 @@ enum class ChallengeType {
     ROCK_PAPER_SCISSORS, // v1.6.0: Best-of-5 RPS against the computer (first to 3 wins)
     EMOJI_MEMORY,    // v1.6.0: Match 8 emoji pairs on a face-down 4x4 grid
     TYPING_SPEED,    // v1.6.0: Type a phrase at >= N wpm with <= maxErrors word mistakes
-    WORDLE           // v1.6.0: Guess the 5-letter target word in <= 6 attempts
+    WORDLE,          // v1.6.0: Guess the 5-letter target word in <= 6 attempts
+    PVT              // v1.14.10: Psychomotor vigilance — tap N times when the stimulus appears
 }
 
 sealed class Challenge {
@@ -170,6 +171,12 @@ sealed class Challenge {
         val target: String,
         val maxGuesses: Int = 6
     ) : Challenge()
+
+    data class PvtChallenge(
+        override val type: ChallengeType = ChallengeType.PVT,
+        val totalTrials: Int = 5,
+        val maxAverageMs: Int = 500
+    ) : Challenge()
 }
 
 private val TYPING_PHRASES = listOf(
@@ -270,6 +277,7 @@ object ChallengeGenerator {
         ChallengeType.WORDLE -> Challenge.WordleChallenge(
             target = WORDLE_WORDS.random()
         )
+        ChallengeType.PVT -> Challenge.PvtChallenge()
     }
 
     private fun generateMathEasy(): Challenge.MathChallenge {
