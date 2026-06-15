@@ -159,12 +159,12 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Sleep score and rolling sleep-debt tracking on the Statistics tab.",
-            "Physical-challenge readiness preflight prevents saving undismissable alarms.",
-            "OEM background-kill guidance now covers every aggressive manufacturer with dontkillmyapp links.",
-            "Smart-wake early fire no longer double-fires one-shot alarms.",
-            "Theme contrast improved to WCAG AA on card surfaces.",
-            "Legacy Auto Backup no longer leaks integration secrets on Android 8-11."
+            "Android 17 local-network readiness for Hue and LAN webhook integrations.",
+            "Hue and webhook tests now explain when LAN permission is needed.",
+            "Support bundles include local-network permission state for troubleshooting.",
+            "Input fields now share the same compact app shape across secondary screens.",
+            "F-Droid metadata now matches the current 23 challenge types.",
+            "Version and release-evidence drift checks cover the Android 17 LAN permission name."
         )
     }
 }

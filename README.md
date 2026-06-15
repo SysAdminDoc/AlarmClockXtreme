@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.14.10-blue)
+![Version](https://img.shields.io/badge/version-1.14.11-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -15,7 +15,7 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.14.10-play.apk
+adb install AlarmClockXtreme-v1.14.11-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, and optional Health Connect READ_SLEEP integration. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -180,7 +180,7 @@ cd AlarmClockXtreme
 +---------------------------------------------------------+
 |                    UI Layer (Compose)                     |
 |  Screens <- ViewModels <- StateFlow                      |
-|  22 challenge flows, 8 alarm edit sections               |
+|  23 challenge flows, 8 alarm edit sections               |
 +---------------------------------------------------------+
 |                   Domain Layer                           |
 |  AlarmScheduler | NextAlarmCalculator | SolarCalculator  |
@@ -226,7 +226,7 @@ verify signatures with `apksigner`, write `SHA256SUMS.txt` and
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.14.10-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.14.11-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in
@@ -269,7 +269,7 @@ before creating `keystore.properties` from repository secrets.
 | `VIBRATE` | Alarm vibration | Yes |
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Optional manufacturer/battery reliability flow | Optional |
 | `INTERNET` | Weather, holidays, radar, news, webhooks, radio, Hue, and Play-flavor YouTube downloads | Yes |
-| `LOCAL_NETWORK` | Android 17+: LAN access for Philips Hue bridge and local webhook endpoints | Optional |
+| `ACCESS_LOCAL_NETWORK` | Android 17+: LAN access for Philips Hue bridge and local webhook endpoints | Optional |
 | `ACCESS_COARSE_LOCATION` | Weather for your area | Optional |
 | `ACCESS_FINE_LOCATION` | Wi-Fi challenge matching on Android 12+ | Optional |
 | `READ_CALENDAR` | Dashboard events + auto-alarm | Optional |

@@ -28,6 +28,7 @@ import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.data.support.SupportExportManager
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.WebhookService
+import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
 import com.sysadmindoc.alarmclock.util.ManufacturerCompat
 import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
 import com.sysadmindoc.alarmclock.worker.GuardianEscalationPolicy
@@ -64,6 +65,7 @@ data class SettingsUiState(
     val hasNotificationPermission: Boolean = true,
     val canScheduleExactAlarms: Boolean = true,
     val canUseFullScreenIntent: Boolean? = null,
+    val hasLocalNetworkPermission: Boolean = true,
     val guardianReadiness: GuardianReadiness = GuardianReadiness(
         enabledAlarmCount = 0,
         smsPath = GuardianSmsPath.INACTIVE,
@@ -199,6 +201,7 @@ class SettingsViewModel @Inject constructor(
             hasNotificationPermission = wakeReadiness.hasNotificationPermission,
             canScheduleExactAlarms = wakeReadiness.canScheduleExactAlarms,
             canUseFullScreenIntent = wakeReadiness.canUseFullScreenIntent,
+            hasLocalNetworkPermission = wakeReadiness.hasLocalNetworkPermission,
             guardianReadiness = GuardianEscalationPolicy.readiness(
                 flavor = BuildConfig.FLAVOR,
                 enabledAlarmCount = auxiliary.guardianAlarmCount,
@@ -362,6 +365,9 @@ class SettingsViewModel @Inject constructor(
                 !webhookService.isAllowedUrl(url) && url.trim().startsWith("http://", ignoreCase = true) ->
                     "Webhook failed — use HTTPS; cleartext HTTP is blocked"
                 !webhookService.isAllowedUrl(url) -> "Webhook failed — enter a valid HTTPS URL"
+                LocalNetworkPermission.requiresPermissionForUrl(getApplication(), url) &&
+                    !LocalNetworkPermission.isGranted(getApplication()) ->
+                    "Webhook failed — allow local network access first"
                 webhookService.test(url) -> "Webhook OK"
                 else -> "Webhook failed — endpoint did not return 2xx"
             }
@@ -389,6 +395,17 @@ class SettingsViewModel @Inject constructor(
                 isRunning = true
             )
             val settings = preferencesManager.getCurrentSettings()
+            if (LocalNetworkPermission.isRuntimeRequired() &&
+                !LocalNetworkPermission.isGranted(getApplication())
+            ) {
+                val result = "Hue bridge not checked — allow local network access first"
+                _hueTestState.value = IntegrationTestState(message = result, isRunning = false)
+                kotlinx.coroutines.delay(4000)
+                if (_hueTestState.value.message == result) {
+                    _hueTestState.value = IntegrationTestState()
+                }
+                return@launch
+            }
             // v1.11.5 (roadmap N5): try Hue API v2 first (HTTPS + header auth).
             // The HueSunriseWorker caches the verdict — surfacing it here gives
             // the user instant feedback on whether their bridge is on a recent
@@ -699,6 +716,7 @@ class SettingsViewModel @Inject constructor(
         val hasNotificationPermission: Boolean,
         val canScheduleExactAlarms: Boolean,
         val canUseFullScreenIntent: Boolean?,
+        val hasLocalNetworkPermission: Boolean,
         val hasSendSmsPermission: Boolean,
         val hasCallPhonePermission: Boolean,
         val appStandbyBucket: Int
@@ -726,6 +744,7 @@ class SettingsViewModel @Inject constructor(
                 } else {
                     null
                 }
+                val localNetworkReady = LocalNetworkPermission.isGranted(context)
                 val sendSmsGranted = ContextCompat.checkSelfPermission(
                     context,
                     Manifest.permission.SEND_SMS
@@ -750,6 +769,7 @@ class SettingsViewModel @Inject constructor(
                     hasNotificationPermission = notificationsReady,
                     canScheduleExactAlarms = exactAlarmsReady,
                     canUseFullScreenIntent = fullScreenIntentReady,
+                    hasLocalNetworkPermission = localNetworkReady,
                     hasSendSmsPermission = sendSmsGranted,
                     hasCallPhonePermission = callPhoneGranted,
                     appStandbyBucket = bucket

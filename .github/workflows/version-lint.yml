@@ -147,6 +147,28 @@ jobs:
           fi
           echo "ok: Room DB version = v${db_version}"
 
+      - name: Assert Android 17 local-network permission name
+        run: |
+          set -euo pipefail
+
+          if ! grep -q 'android.permission.ACCESS_LOCAL_NETWORK' app/src/main/AndroidManifest.xml; then
+            echo "::error file=app/src/main/AndroidManifest.xml::Manifest must declare android.permission.ACCESS_LOCAL_NETWORK for Android 17 LAN access"
+            exit 1
+          fi
+          if grep -q 'android.permission.LOCAL_NETWORK' app/src/main/AndroidManifest.xml; then
+            echo "::error file=app/src/main/AndroidManifest.xml::android.permission.LOCAL_NETWORK is stale; use ACCESS_LOCAL_NETWORK"
+            exit 1
+          fi
+          if ! grep -q '`ACCESS_LOCAL_NETWORK`' README.md; then
+            echo "::error file=README.md::README permissions table must document ACCESS_LOCAL_NETWORK"
+            exit 1
+          fi
+          if grep -q '`LOCAL_NETWORK`' README.md; then
+            echo "::error file=README.md::README still documents stale LOCAL_NETWORK"
+            exit 1
+          fi
+          echo "ok: Android 17 local-network permission docs match manifest"
+
       - name: Assert no tag-only third-party GitHub Actions
         run: |
           set -euo pipefail

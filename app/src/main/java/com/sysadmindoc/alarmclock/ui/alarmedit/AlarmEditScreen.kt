@@ -36,6 +36,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
@@ -310,6 +311,7 @@ fun AlarmEditScreen(
                     onValueChange = viewModel::updateLabel,
                     placeholder = { Text("Alarm label", color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
+                    shape = AppInputShape,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
@@ -370,6 +372,7 @@ fun AlarmEditScreen(
                         onValueChange = viewModel::updateGroup,
                         label = { Text("Custom group name", color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
+                        shape = AppInputShape,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 4.dp),
@@ -735,6 +738,7 @@ fun AlarmEditScreen(
                         onValueChange = viewModel::updateNfcTagId,
                         label = { Text("NFC tag ID", color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
+                        shape = AppInputShape,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
                     )
@@ -753,6 +757,7 @@ fun AlarmEditScreen(
                         onValueChange = viewModel::updateBarcodeValue,
                         label = { Text("Barcode or QR value", color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
+                        shape = AppInputShape,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
                     )
@@ -771,6 +776,7 @@ fun AlarmEditScreen(
                         onValueChange = viewModel::updateWifiDismissSsid,
                         label = { Text("Wi-Fi network name (SSID)", color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
+                        shape = AppInputShape,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
                     )
@@ -990,6 +996,7 @@ fun AlarmEditScreen(
                     label = { Text("Spotify URI (e.g. spotify:track:...)", color = TextMuted) },
                     placeholder = { Text("Leave blank to use default ringtone", color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
+                    shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     singleLine = true
                 )
@@ -1073,6 +1080,7 @@ fun AlarmEditScreen(
                     label = { Text("Advanced chain override", color = TextMuted) },
                     placeholder = { Text("MATH_EASY,SHAKE,TYPING", color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
+                    shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
@@ -1204,6 +1212,7 @@ fun AlarmEditScreen(
                     label = { Text("Stream URL (http://...)", color = TextMuted) },
                     placeholder = { Text("Leave blank for default ringtone", color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
+                    shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     singleLine = true
                 )
@@ -1231,6 +1240,7 @@ fun AlarmEditScreen(
                         onValueChange = { viewModel.updateGuardian(true, phone = it) },
                         label = { Text("Emergency phone number", color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
+                        shape = AppInputShape,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
                     )
@@ -1278,6 +1288,7 @@ fun AlarmEditScreen(
                     label = { Text("Checklist items (one per line)", color = TextMuted) },
                     placeholder = { Text("Stretch\nDrink water\nBrush teeth", color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
+                    shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     minLines = 3, maxLines = 6
                 )
@@ -1295,6 +1306,7 @@ fun AlarmEditScreen(
                         onValueChange = viewModel::updateProfileName,
                         placeholder = { Text("e.g. Work, Travel, Weekend", color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
+                        shape = AppInputShape,
                         modifier = Modifier.width(180.dp),
                         singleLine = true
                     )
@@ -1304,6 +1316,7 @@ fun AlarmEditScreen(
                     onValueChange = viewModel::updateSpecificDate,
                     label = { Text("Specific date (YYYY-MM-DD, leave blank for repeat days)", color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
+                    shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
@@ -1356,6 +1369,7 @@ fun AlarmEditScreen(
                     onValueChange = viewModel::updateWifiDismissSsid,
                     label = { Text("Wi-Fi dismiss SSID (connect to this network to dismiss)", color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
+                    shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
@@ -1477,6 +1491,7 @@ fun AlarmEditScreen(
                                     placeholder = { Text("content://… or file://…", color = TextMuted) },
                                     singleLine = true,
                                     colors = appOutlinedTextFieldColors(),
+                                    shape = AppInputShape,
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }

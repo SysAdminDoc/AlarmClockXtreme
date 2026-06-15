@@ -105,6 +105,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
@@ -125,6 +126,7 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
+import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -179,6 +181,11 @@ fun SettingsScreen(
         viewModel.refreshBatteryStatus()
     }
     val guardianCallPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.refreshBatteryStatus()
+    }
+    val localNetworkPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
         viewModel.refreshBatteryStatus()
@@ -246,6 +253,9 @@ fun SettingsScreen(
                 },
                 onRequestExactAlarms = viewModel::requestExactAlarmAccess,
                 onRequestFullScreenAlarms = viewModel::requestFullScreenAlarmAccess,
+                onRequestLocalNetworkPermission = {
+                    localNetworkPermissionLauncher.launch(LocalNetworkPermission.ACCESS_LOCAL_NETWORK)
+                },
                 onRequestBatteryExemption = viewModel::requestBatteryExemption,
                 onRequestGuardianSmsPermission = {
                     guardianSmsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
@@ -696,10 +706,13 @@ private fun SettingsOverviewRow(state: SettingsUiState) {
         !AppStandbyBucket.isDegraded(state.appStandbyBucket)
     val fullScreenOk = Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
         state.canUseFullScreenIntent == true
+    val localNetworkOk = !requiresLocalNetworkAccess(state) ||
+        state.hasLocalNetworkPermission
     val reliabilityReady = state.isIgnoringBatteryOptimizations &&
         state.hasNotificationPermission &&
         state.canScheduleExactAlarms &&
         fullScreenOk &&
+        localNetworkOk &&
         standbyOk
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppSectionTitle(
@@ -790,6 +803,7 @@ private fun WakeReadinessSection(
     onRequestNotifications: () -> Unit,
     onRequestExactAlarms: () -> Unit,
     onRequestFullScreenAlarms: () -> Unit,
+    onRequestLocalNetworkPermission: () -> Unit,
     onRequestBatteryExemption: () -> Unit,
     onRequestGuardianSmsPermission: () -> Unit,
     onRequestGuardianCallPermission: () -> Unit,
@@ -806,11 +820,13 @@ private fun WakeReadinessSection(
     val standbyReady = standbyKnown && !standbyDegraded
     val standbyRowVisible = standbyKnown  // only show the row when we have a real value
     val fullScreenRowVisible = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+    val localNetworkRowVisible = requiresLocalNetworkAccess(state)
 
     val checks = buildList {
         add(state.canScheduleExactAlarms)
         add(state.hasNotificationPermission)
         if (fullScreenRowVisible) add(state.canUseFullScreenIntent == true)
+        if (localNetworkRowVisible) add(state.hasLocalNetworkPermission)
         add(state.isIgnoringBatteryOptimizations)
         if (standbyRowVisible) add(standbyReady)
         if (state.guardianReadiness.hasEnabledAlarms) {
@@ -874,6 +890,16 @@ private fun WakeReadinessSection(
                 ready = state.canUseFullScreenIntent == true,
                 actionLabel = "Open full-screen settings",
                 onAction = onRequestFullScreenAlarms
+            )
+        }
+        if (localNetworkRowVisible) {
+            WakeReadinessRow(
+                icon = Icons.Default.Link,
+                title = "Local network access",
+                description = "Allows Android 17+ Hue bridge checks and local webhook endpoints on your LAN.",
+                ready = state.hasLocalNetworkPermission,
+                actionLabel = "Allow local network",
+                onAction = onRequestLocalNetworkPermission
             )
         }
         WakeReadinessRow(
@@ -1515,11 +1541,22 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
         val urlLower = state.settings.webhookUrl.trim().lowercase()
         val plainHttpWarning = state.settings.webhookEnabled &&
                 urlLower.startsWith("http://")
+        val localWebhookPermissionMissing = state.settings.webhookEnabled &&
+            LocalNetworkPermission.isRuntimeRequired() &&
+            LocalNetworkPermission.isLikelyLocalEndpoint(state.settings.webhookUrl) &&
+            !state.hasLocalNetworkPermission
 
         if (plainHttpWarning) {
             Text(
                 text = "Plain HTTP webhooks are blocked. Use an HTTPS endpoint or a local HTTPS bridge for Home Assistant or Tasker.",
                 color = AccentRed,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        if (localWebhookPermissionMissing) {
+            Text(
+                text = "Android 17+ requires local network access before this LAN webhook can be tested or fired.",
+                color = SnoozeYellow,
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -1545,6 +1582,7 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
                 onClick = viewModel::testWebhook,
                 enabled = state.settings.webhookEnabled &&
                     state.settings.webhookUrl.isNotBlank() &&
+                    !localWebhookPermissionMissing &&
                     !state.isWebhookTesting,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -1608,6 +1646,9 @@ private fun HolidaysSection(state: SettingsUiState, viewModel: SettingsViewModel
 
 @Composable
 private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+    val localNetworkPermissionMissing = LocalNetworkPermission.isRuntimeRequired() &&
+        state.settings.hueBridgeIp.isNotBlank() &&
+        !state.hasLocalNetworkPermission
     SettingsGroup(
         title = "Philips Hue sunrise",
         description = "Wake the room up gradually before the alarm sound takes over."
@@ -1636,6 +1677,13 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
+        if (localNetworkPermissionMissing) {
+            Text(
+                text = "Android 17+ requires local network access before ACX can reach this Hue bridge.",
+                color = SnoozeYellow,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -1657,6 +1705,7 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
                 onClick = viewModel::testHue,
                 enabled = state.settings.hueBridgeIp.isNotBlank() &&
                     state.settings.hueApiKey.isNotBlank() &&
+                    !localNetworkPermissionMissing &&
                     !state.isHueTesting,
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -2202,7 +2251,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 colors = appOutlinedTextFieldColors(),
-                shape = RoundedCornerShape(10.dp)
+                shape = AppInputShape
             )
             OutlinedTextField(
                 value = encryptedPassphraseConfirm,
@@ -2214,7 +2263,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 colors = appOutlinedTextFieldColors(),
-                shape = RoundedCornerShape(10.dp)
+                shape = AppInputShape
             )
             if (encryptedPassphraseConfirm.isNotEmpty() && encryptedPassphraseConfirm != encryptedPassphrase) {
                 Text(
@@ -2464,6 +2513,9 @@ private fun wakeReadinessSummary(state: SettingsUiState): String {
         ) {
             add("full-screen alarm access")
         }
+        if (requiresLocalNetworkAccess(state) && !state.hasLocalNetworkPermission) {
+            add("local network access")
+        }
         if (!state.isIgnoringBatteryOptimizations) add("battery")
         // v1.11.3 (roadmap N3): include standby-bucket throttling in the
         // top-tile summary so the user sees it without expanding the section.
@@ -2474,14 +2526,26 @@ private fun wakeReadinessSummary(state: SettingsUiState): String {
         }
     }
     return if (missing.isEmpty()) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            "Exact alarms, alerts, full-screen access, battery, and standby are ready"
-        } else {
-            "Exact alarms, alerts, battery, and standby are ready"
-        }
+        val optionalChecks = buildList {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                add("full-screen access")
+            }
+            if (requiresLocalNetworkAccess(state)) {
+                add("LAN access")
+            }
+            add("battery")
+            add("standby")
+        }.joinToString(", ")
+        "Exact alarms, alerts, $optionalChecks are ready"
     } else {
         "Review ${missing.joinToString(", ")}"
     }
+}
+
+private fun requiresLocalNetworkAccess(state: SettingsUiState): Boolean {
+    if (!LocalNetworkPermission.isRuntimeRequired()) return false
+    return state.settings.hueBridgeIp.isNotBlank() ||
+        LocalNetworkPermission.isLikelyLocalEndpoint(state.settings.webhookUrl)
 }
 
 @Composable
@@ -2524,6 +2588,7 @@ private fun BufferedSettingsTextField(
         label = label,
         placeholder = placeholder,
         colors = appOutlinedTextFieldColors(),
+        shape = AppInputShape,
         modifier = modifier.onFocusChanged { focusState ->
             val lostFocus = isFocused && !focusState.isFocused
             isFocused = focusState.isFocused
@@ -2531,7 +2596,6 @@ private fun BufferedSettingsTextField(
                 onCommit(draft)
             }
         },
-        shape = RoundedCornerShape(10.dp),
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,

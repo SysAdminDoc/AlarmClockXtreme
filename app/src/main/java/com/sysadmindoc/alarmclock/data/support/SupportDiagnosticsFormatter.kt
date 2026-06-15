@@ -75,13 +75,14 @@ object CrashLogScrubber {
 }
 
 object SupportDiagnosticsFormatter {
-    const val SCHEMA_VERSION = 1
+    const val SCHEMA_VERSION = 2
     const val REDACTION_POLICY_VERSION = 1
 
     private val READINESS_FIELDS = listOf(
         "notificationPermissionGranted",
         "exactAlarmsAllowed",
         "fullScreenIntentAllowed",
+        "localNetworkPermissionGranted",
         "batteryOptimizationsIgnored",
         "appStandbyBucket"
     )
@@ -124,6 +125,7 @@ object SupportDiagnosticsFormatter {
         notificationPermissionGranted: Boolean,
         exactAlarmsAllowed: Boolean,
         fullScreenIntentAllowed: Boolean?,
+        localNetworkPermissionGranted: Boolean?,
         ignoringBatteryOptimizations: Boolean,
         appStandbyBucket: String,
         sdkInt: Int,
@@ -133,6 +135,7 @@ object SupportDiagnosticsFormatter {
         appendLine("""  "notificationPermissionGranted": $notificationPermissionGranted,""")
         appendLine("""  "exactAlarmsAllowed": $exactAlarmsAllowed,""")
         appendLine("""  "fullScreenIntentAllowed": ${formatFsiJson(fullScreenIntentAllowed, sdkInt)},""")
+        appendLine("""  "localNetworkPermissionGranted": ${formatLocalNetworkJson(localNetworkPermissionGranted, sdkInt)},""")
         appendLine("""  "batteryOptimizationsIgnored": $ignoringBatteryOptimizations,""")
         appendLine("""  "appStandbyBucket": "${jsonEscape(appStandbyBucket)}",""")
         appendLine("""  "sdkInt": $sdkInt,""")
@@ -266,6 +269,7 @@ object SupportDiagnosticsFormatter {
         notificationPermissionGranted: Boolean,
         exactAlarmsAllowed: Boolean,
         fullScreenIntentAllowed: Boolean?,
+        localNetworkPermissionGranted: Boolean?,
         ignoringBatteryOptimizations: Boolean,
         appStandbyBucket: String,
         guardianReadiness: GuardianReadiness,
@@ -303,6 +307,7 @@ object SupportDiagnosticsFormatter {
             appendLine("- Notifications granted: $notificationPermissionGranted")
             appendLine("- Exact alarms allowed: $exactAlarmsAllowed")
             appendLine("- Full-screen alarm access: ${formatFullScreenIntentStatus(fullScreenIntentAllowed, sdkInt)}")
+            appendLine("- Local network access: ${formatLocalNetworkStatus(localNetworkPermissionGranted, sdkInt)}")
             appendLine("- Ignoring battery optimizations: $ignoringBatteryOptimizations")
             appendLine("- App standby bucket: $appStandbyBucket")
             appendLine("- Guardian Angel alarms: ${guardianReadiness.enabledAlarmCount}")
@@ -377,6 +382,18 @@ object SupportDiagnosticsFormatter {
         true -> "true"
         false -> "false"
         null -> "\"${if (sdkInt >= 34) "unknown" else "not_applicable"}\""
+    }
+
+    private fun formatLocalNetworkStatus(value: Boolean?, sdkInt: Int): String = when (value) {
+        true -> "granted"
+        false -> "denied"
+        null -> if (sdkInt >= 37) "unknown" else "not_applicable"
+    }
+
+    private fun formatLocalNetworkJson(value: Boolean?, sdkInt: Int): String = when (value) {
+        true -> "true"
+        false -> "false"
+        null -> "\"${if (sdkInt >= 37) "unknown" else "not_applicable"}\""
     }
 
     private fun <T> formatDayMap(values: Map<DayOfWeek, T>): String {
