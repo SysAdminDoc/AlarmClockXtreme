@@ -232,11 +232,16 @@ private fun NewsCard(
     val cleanedDescription = remember(item.description) {
         if (item.description.isBlank()) "" else stripHtml(item.description).trim()
     }
+    val linkModifier = if (item.link.isNotBlank()) {
+        Modifier.clickable(role = Role.Button, onClick = onClick)
+    } else {
+        Modifier
+    }
 
     AppSurfaceCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
+            .then(linkModifier)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(

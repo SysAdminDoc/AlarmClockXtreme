@@ -12,6 +12,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.io.IOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+import javax.net.ssl.SSLException
 import javax.inject.Inject
 
 /**
@@ -144,9 +148,33 @@ class NewsViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         loading = false,
                         refreshing = false,
-                        errorMessage = error.message ?: "Couldn't load feed",
+                        errorMessage = newsLoadErrorMessage(error),
                     )
                 }
         }
+    }
+}
+
+internal fun newsLoadErrorMessage(error: Throwable): String {
+    val message = error.message.orEmpty()
+    return when {
+        error is UnknownHostException ->
+            "Check your connection and try again."
+        error is SocketTimeoutException ->
+            "This feed took too long to respond. Try again later."
+        error is SSLException ->
+            "This feed could not be loaded securely. Choose another source."
+        error is IllegalArgumentException ->
+            "This feed URL is not valid. Choose another source in Settings."
+        message.contains("HTTP 401") || message.contains("HTTP 403") ->
+            "This feed requires access the app does not have. Choose another source."
+        message.contains("HTTP", ignoreCase = true) ->
+            "This feed source is not responding. Try another source or refresh later."
+        message.contains("Empty response body", ignoreCase = true) ->
+            "This source returned no feed content."
+        error is IOException ->
+            "The feed could not be reached. Check your connection and try again."
+        else ->
+            "This feed could not be read. Try another source or refresh later."
     }
 }

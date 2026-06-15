@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.data.news
 
 import com.sysadmindoc.alarmclock.BuildConfig
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -27,7 +28,7 @@ class NewsRepository @Inject constructor(
 ) {
 
     suspend fun fetchFeed(url: String): Result<List<NewsItem>> = withContext(Dispatchers.IO) {
-        runCatching {
+        try {
             val request = Request.Builder()
                 .url(url)
                 // Some publishers return HTML when the User-Agent is blank;
@@ -38,7 +39,7 @@ class NewsRepository @Inject constructor(
                 .header("Accept", "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8")
                 .build()
 
-            httpClient.newCall(request).execute().use { response ->
+            val items = httpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     error("Feed returned HTTP ${response.code}")
                 }
@@ -48,6 +49,10 @@ class NewsRepository @Inject constructor(
                         .sortedByDescending { it.publishedAtMillis ?: 0L }
                 }
             }
+            Result.success(items)
+        } catch (error: Throwable) {
+            if (error is CancellationException) throw error
+            Result.failure(error)
         }
     }
 }

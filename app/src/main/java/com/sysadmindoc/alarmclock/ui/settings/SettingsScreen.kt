@@ -2148,10 +2148,13 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
     val backupBusy by viewModel.backupBusy.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
     var encryptedPassphrase by remember { mutableStateOf("") }
     var encryptedPassphraseConfirm by remember { mutableStateOf("") }
     var pendingExportWarning by remember { mutableStateOf<BackupExportWarning?>(null) }
     var pendingExportKind by remember { mutableStateOf<BackupExportKind?>(null) }
+    val passphraseMismatch = encryptedPassphraseConfirm.isNotEmpty() &&
+        encryptedPassphraseConfirm != encryptedPassphrase
     val encryptedExportEnabled = encryptedPassphrase.isNotBlank() &&
         encryptedPassphrase == encryptedPassphraseConfirm
     val encryptedImportEnabled = encryptedPassphrase.isNotBlank()
@@ -2254,7 +2257,10 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Next
+                ),
                 colors = appOutlinedTextFieldColors(),
                 shape = AppInputShape
             )
@@ -2265,18 +2271,24 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 placeholder = { Text("Required before encrypted export") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                isError = passphraseMismatch,
+                supportingText = if (passphraseMismatch) {
+                    {
+                        Text(
+                            "Passphrases do not match. Encrypted import uses only the first field.",
+                            color = AccentRed
+                        )
+                    }
+                } else null,
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 colors = appOutlinedTextFieldColors(),
                 shape = AppInputShape
             )
-            if (encryptedPassphraseConfirm.isNotEmpty() && encryptedPassphraseConfirm != encryptedPassphrase) {
-                Text(
-                    text = "Passphrases do not match. Encrypted import uses only the first field.",
-                    color = AccentRed,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
                     onClick = { requestBackupExport(BackupExportKind.Encrypted) },
