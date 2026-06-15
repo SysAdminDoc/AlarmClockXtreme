@@ -25,9 +25,9 @@ RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.14.17
-    versionCode: 99
-    commit: v1.14.17
+  - versionName: 1.14.18
+    versionCode: 100
+    commit: v1.14.18
     subdir: app
     gradle:
       - fdroid
@@ -40,5 +40,5 @@ AntiFeatures:
       api.weather.gov alerts, Windy radar, public RSS feeds, user-configured
       webhooks, internet radio streams, and a local Philips Hue bridge.
 
-CurrentVersion: 1.14.17
+CurrentVersion: 1.14.18
 CurrentVersionCode: 98
