@@ -149,7 +149,8 @@ data class Alarm(
             "ROCK_PAPER_SCISSORS",
             "EMOJI_MEMORY",
             "TYPING_SPEED",
-            "WORDLE"
+            "WORDLE",
+            "PVT"
         )
         private val VALID_VIBRATION_PATTERNS = setOf(
             "default",

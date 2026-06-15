@@ -106,6 +106,7 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.RockPaperScissorsCha
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.EmojiMemoryChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.TypingSpeedChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.WordleChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.PvtChallengeView
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -655,6 +656,20 @@ fun AlarmFiringScreen(
                                 onSubmit = viewModel::submitWordleGuess
                             )
                         }
+                        challenge is Challenge.PvtChallenge -> {
+                            PvtChallengeView(
+                                challenge = challenge,
+                                trialIndex = state.pvtTrialIndex,
+                                reactionTimes = state.pvtReactionTimes,
+                                stimulusShown = state.pvtStimulusShown,
+                                waiting = state.pvtWaiting,
+                                lastReaction = state.pvtLastReaction,
+                                failed = state.pvtFailed,
+                                onTap = viewModel::onPvtReaction,
+                                onFalseStart = viewModel::onPvtFalseStart,
+                                onStartTrial = viewModel::startPvtTrial
+                            )
+                        }
                     }
                 }
 
@@ -837,6 +852,7 @@ private fun Challenge?.headline(): String = when (this) {
     is Challenge.EmojiMemoryChallenge -> "Match the emoji pairs"
     is Challenge.TypingSpeedChallenge -> "Type at speed"
     is Challenge.WordleChallenge -> "Solve the Wordle"
+    is Challenge.PvtChallenge -> "React to the stimulus"
 }
 
 private fun Challenge?.supportingText(): String = when (this) {
@@ -861,6 +877,7 @@ private fun Challenge?.supportingText(): String = when (this) {
     is Challenge.EmojiMemoryChallenge -> "Memorise 8 pairs while they\u2019re face-up, then find them all."
     is Challenge.TypingSpeedChallenge -> "Groggy fingers slow you down \u2014 prove you can type at speed."
     is Challenge.WordleChallenge -> "Find the hidden 5-letter word in up to 6 guesses."
+    is Challenge.PvtChallenge -> "Tap fast when the target appears \u2014 average under 500 ms."
 }
 
 private fun Challenge?.statusDescription(): String = when (this) {
@@ -884,6 +901,7 @@ private fun Challenge?.statusDescription(): String = when (this) {
     is Challenge.EmojiMemoryChallenge -> "Flip pairs of matching emoji until all are found."
     is Challenge.TypingSpeedChallenge -> "Type the phrase fast and accurately to proceed."
     is Challenge.WordleChallenge -> "Enter a 5-letter guess and use the color clues."
+    is Challenge.PvtChallenge -> "Tap the green square as fast as you can."
     null -> "Swipe or tap dismiss when you're ready."
 }
 

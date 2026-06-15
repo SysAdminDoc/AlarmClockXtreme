@@ -1743,3 +1743,90 @@ fun WordleChallengeView(
         }
     }
 }
+
+@Composable
+fun PvtChallengeView(
+    challenge: Challenge.PvtChallenge,
+    trialIndex: Int,
+    reactionTimes: List<Long>,
+    stimulusShown: Boolean,
+    waiting: Boolean,
+    lastReaction: Long?,
+    failed: Boolean,
+    onTap: () -> Unit,
+    onFalseStart: () -> Unit,
+    onStartTrial: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            "Reaction Test",
+            style = MaterialTheme.typography.titleMedium,
+            color = TextPrimary,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "Trial ${trialIndex + 1} of ${challenge.totalTrials}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextSecondary
+        )
+        if (reactionTimes.isNotEmpty()) {
+            Text(
+                "Avg: ${reactionTimes.average().toLong()} ms",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(160.dp)
+                .background(
+                    color = when {
+                        failed -> Color(0xFFB00020)
+                        stimulusShown -> Color(0xFF4CAF50)
+                        waiting -> SurfaceCard
+                        else -> SurfaceCard
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .clickable {
+                    when {
+                        stimulusShown -> onTap()
+                        waiting -> onFalseStart()
+                        trialIndex < challenge.totalTrials && !failed -> onStartTrial()
+                    }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = when {
+                    failed -> "Too slow\nTry again"
+                    stimulusShown -> "TAP!"
+                    waiting -> "Wait..."
+                    lastReaction != null && lastReaction >= 0 -> "${lastReaction} ms"
+                    lastReaction != null && lastReaction < 0 -> "Too early!"
+                    else -> "Tap to start"
+                },
+                style = MaterialTheme.typography.headlineMedium,
+                color = when {
+                    stimulusShown -> Color.White
+                    failed -> Color.White
+                    else -> TextPrimary
+                },
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Text(
+            "Tap the green square as fast as you can",
+            style = MaterialTheme.typography.bodySmall,
+            color = TextMuted,
+            textAlign = TextAlign.Center
+        )
+    }
+}
