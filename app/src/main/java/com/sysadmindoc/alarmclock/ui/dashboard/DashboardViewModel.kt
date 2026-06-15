@@ -300,10 +300,12 @@ class DashboardViewModel @Inject constructor(
                     // alerts are bonus context, never the critical path.
                     viewModelScope.launch {
                         val flags = weatherAlertsRepository.fetch(lat, lon)
-                        _uiState.update { it.copy(
-                            tornadoAlertActive = flags.tornadoActive,
-                            severeWeatherHeadline = flags.headline,
-                        ) }
+                        if (_uiState.value.latitude == lat && _uiState.value.longitude == lon) {
+                            _uiState.update { it.copy(
+                                tornadoAlertActive = flags.tornadoActive,
+                                severeWeatherHeadline = flags.headline,
+                            ) }
+                        }
                     }
 
                     // Air quality is helpful dashboard context, but weather

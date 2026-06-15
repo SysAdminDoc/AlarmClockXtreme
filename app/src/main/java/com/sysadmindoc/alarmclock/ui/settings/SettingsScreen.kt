@@ -160,7 +160,7 @@ fun SettingsScreen(
     androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
-                viewModel.refreshBatteryStatus()
+                viewModel.refreshWakeReadiness()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -177,22 +177,22 @@ fun SettingsScreen(
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
-        viewModel.refreshBatteryStatus()
+        viewModel.refreshWakeReadiness()
     }
     val guardianSmsPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
-        viewModel.refreshBatteryStatus()
+        viewModel.refreshWakeReadiness()
     }
     val guardianCallPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
-        viewModel.refreshBatteryStatus()
+        viewModel.refreshWakeReadiness()
     }
     val localNetworkPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
-        viewModel.refreshBatteryStatus()
+        viewModel.refreshWakeReadiness()
     }
     val healthConnectPermissionContract = remember { viewModel.healthConnectPermissionContract() }
     val requestHealthConnectPermissions: (() -> Unit)? = if (healthConnectPermissionContract != null) {
