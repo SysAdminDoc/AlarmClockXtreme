@@ -6,7 +6,7 @@
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)
 
-> A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 22 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
+> A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 23 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
 
 <img width="772" height="568" alt="image" src="https://github.com/user-attachments/assets/01e2e354-3905-4dd2-bb86-112282ae1346" />
 
@@ -54,7 +54,7 @@ cd AlarmClockXtreme
 | Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
 | Wear OS Tile + Complication | Shows the next alarm on the watch tile and compatible watch faces; the tile also exposes skip controls before fire and snooze/dismiss controls while ringing and honors the public-label privacy setting |
 
-### Dismiss Challenges (22 Types)
+### Dismiss Challenges (23 Types)
 | Challenge | Description |
 |-----------|-------------|
 | Math (Easy/Medium/Hard) | Solve arithmetic problems with explicit operator precedence |
@@ -77,6 +77,7 @@ cd AlarmClockXtreme
 | Emoji Memory | Match 8 emoji pairs on a face-down 4x4 grid |
 | Typing Speed | Type a phrase at >= N wpm with limited word mistakes |
 | Wordle | Guess the 5-letter target word in <= 6 attempts |
+| Reaction Test (PVT) | Tap 5 times when a green stimulus appears; average under 500ms to dismiss |
 | Mission Chaining | Stack 2-5 challenges in sequence (e.g., Math + Shake + Typing) |
 | Adaptive Difficulty | Auto-escalates math difficulty based on snooze history |
 
