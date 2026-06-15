@@ -94,14 +94,17 @@ class WorldClockViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.settings.collectLatest { settings ->
                 is24Hour = settings.is24HourFormat
-                // Re-render after format toggle so existing rows update immediately.
                 updateTimes()
             }
         }
         viewModelScope.launch {
-            while (isActive) {
-                updateTimes()
-                delay(1000)
+            _uiState.subscriptionCount.collectLatest { count ->
+                if (count > 0) {
+                    while (true) {
+                        updateTimes()
+                        delay(1000)
+                    }
+                }
             }
         }
     }
