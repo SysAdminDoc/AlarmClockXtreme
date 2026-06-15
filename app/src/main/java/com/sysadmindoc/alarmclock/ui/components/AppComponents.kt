@@ -77,6 +77,7 @@ import com.sysadmindoc.alarmclock.ui.theme.ToggleTrackOff
 val AppCardShape = RoundedCornerShape(8.dp)
 val AppTileShape = RoundedCornerShape(8.dp)
 val AppChipShape = RoundedCornerShape(8.dp)
+val AppInputShape = RoundedCornerShape(8.dp)
 
 // ─── Icon size scale ───────────────────────────────────────────────────────
 // One scale, four steps. Replaces the 13 / 15 / 18 / 20 / 22 dp drift that
