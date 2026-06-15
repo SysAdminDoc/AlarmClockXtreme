@@ -8,6 +8,7 @@ import android.provider.MediaStore
 import android.util.Log
 import com.yausername.youtubedl_android.YoutubeDL
 import com.yausername.youtubedl_android.YoutubeDLRequest
+import org.json.JSONObject
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -92,10 +93,16 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                     "YouTube engine is still warming up. Try again in a moment."
                 }
                 val before = engineVersionName()
-                val status = YoutubeDL.getInstance().updateYoutubeDL(
-                    context,
-                    YoutubeDL.UpdateChannel._STABLE
-                )
+                val status = try {
+                    YoutubeDL.getInstance().updateYoutubeDL(
+                        context,
+                        YoutubeDL.UpdateChannel._STABLE
+                    )
+                } catch (libraryError: Exception) {
+                    if (libraryError is CancellationException) throw libraryError
+                    Log.d(TAG, "Library updater failed, trying manual OkHttp path", libraryError)
+                    manualUpdateViaOkHttp()
+                }
                 val after = engineVersionName()
                 when (status) {
                     YoutubeDL.UpdateStatus.DONE -> YouTubeEngineUpdateResult(
@@ -118,6 +125,63 @@ class PlayYouTubeAudioDownloader @Inject constructor(
         } finally {
             engineUpdateInFlight.set(false)
         }
+    }
+
+    /**
+     * The `youtubedl-android` library's built-in updater uses bare
+     * `java.net.URL.openStream()` to hit the GitHub API. GitHub rejects
+     * those requests (no Accept header, inadequate UA) with 403/504,
+     * surfaced as `FileNotFoundException` by Android's HttpURLConnection.
+     *
+     * This fallback downloads the `yt-dlp` release binary ourselves using
+     * OkHttp (which sets proper headers), writes it into the library's
+     * internal package directory, and returns [YoutubeDL.UpdateStatus.DONE].
+     */
+    private fun manualUpdateViaOkHttp(): YoutubeDL.UpdateStatus {
+        val apiReq = Request.Builder()
+            .url(GITHUB_RELEASES_LATEST)
+            .header("Accept", "application/vnd.github.v3+json")
+            .header("User-Agent", "AlarmClockXtreme/${com.sysadmindoc.alarmclock.BuildConfig.VERSION_NAME}")
+            .build()
+        val releaseJson = httpClient.newCall(apiReq).execute().use { resp ->
+            if (!resp.isSuccessful) throw IllegalStateException("GitHub API returned ${resp.code}")
+            resp.body?.string() ?: throw IllegalStateException("Empty GitHub API response")
+        }
+        val release = JSONObject(releaseJson)
+        val remoteTag = release.optString("tag_name", "")
+        val currentVersion = engineVersionName()
+        if (remoteTag.isNotBlank() && remoteTag == currentVersion) {
+            return YoutubeDL.UpdateStatus.ALREADY_UP_TO_DATE
+        }
+
+        val assets = release.getJSONArray("assets")
+        var downloadUrl: String? = null
+        for (i in 0 until assets.length()) {
+            val asset = assets.getJSONObject(i)
+            if (asset.getString("name") == "yt-dlp") {
+                downloadUrl = asset.getString("browser_download_url")
+                break
+            }
+        }
+        if (downloadUrl == null) throw IllegalStateException("No yt-dlp asset found in release $remoteTag")
+
+        val binaryReq = Request.Builder()
+            .url(downloadUrl)
+            .header("User-Agent", "AlarmClockXtreme/${com.sysadmindoc.alarmclock.BuildConfig.VERSION_NAME}")
+            .build()
+        val binaryBytes = httpClient.newCall(binaryReq).execute().use { resp ->
+            if (!resp.isSuccessful) throw IllegalStateException("Asset download failed: ${resp.code}")
+            resp.body?.bytes() ?: throw IllegalStateException("Empty asset body")
+        }
+
+        val packagesDir = java.io.File(context.getDir("youtubedl-android", Context.MODE_PRIVATE), "yt-dlp")
+        packagesDir.mkdirs()
+        val binaryFile = java.io.File(packagesDir, "yt-dlp")
+        binaryFile.writeBytes(binaryBytes)
+        binaryFile.setExecutable(true)
+
+        Log.i(TAG, "Manual yt-dlp update: $currentVersion -> $remoteTag (${binaryBytes.size / 1024} KB)")
+        return YoutubeDL.UpdateStatus.DONE
     }
 
     override suspend fun getPreviewStreamUrl(youtubeUrl: String): Result<String> = withContext(Dispatchers.IO) {
@@ -333,6 +397,8 @@ class PlayYouTubeAudioDownloader @Inject constructor(
 
         // Half of YouTube's typical 6-hour signed-URL TTL.
         private const val PREVIEW_TTL_MS = 3L * 60 * 60 * 1000
+        private const val GITHUB_RELEASES_LATEST =
+            "https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest"
 
         private val URL_REGEX = Regex(
             "^https?://(www\\.|m\\.|music\\.)?(youtube\\.com|youtu\\.be|youtube-nocookie\\.com)/\\S+",
