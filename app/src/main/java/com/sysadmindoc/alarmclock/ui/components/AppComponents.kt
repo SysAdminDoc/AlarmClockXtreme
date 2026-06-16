@@ -486,7 +486,7 @@ fun AppFeedbackCard(
 ) {
     val shapeTokens = LocalAppShapeTokens.current
     AppSurfaceCard(
-        modifier = modifier.semantics {
+        modifier = modifier.semantics(mergeDescendants = true) {
             liveRegion = LiveRegionMode.Polite
             contentDescription = listOfNotNull(title, message).joinToString(". ")
         },
