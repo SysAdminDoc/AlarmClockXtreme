@@ -42,6 +42,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
@@ -279,7 +281,11 @@ private fun WorldClockCard(
                     border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
                 ) {
                     IconButton(onClick = onRemove) {
-                        Icon(Icons.Default.Close, contentDescription = "Remove city", tint = TextMuted)
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "Remove ${entry.cityName}",
+                            tint = TextMuted
+                        )
                     }
                 }
             }
@@ -387,6 +393,10 @@ private fun AddTimeZoneDialog(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .semantics(mergeDescendants = true) {
+                                    contentDescription =
+                                        "Add ${entry.cityName}, ${entry.time}, ${entry.offsetLabel}"
+                                }
                                 .clickable(role = Role.Button) { onSelect(entry.zoneId) },
                             shape = RoundedCornerShape(12.dp),
                             color = SurfaceCard.copy(alpha = 0.82f),

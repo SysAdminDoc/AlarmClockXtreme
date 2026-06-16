@@ -32,9 +32,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BatteryAlert
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -68,6 +70,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
@@ -133,6 +136,13 @@ private val onboardingPages = listOf(
     )
 )
 
+private enum class TestAlarmNoticeTone {
+    Guidance,
+    Scheduled,
+    Success,
+    Error
+}
+
 @Composable
 fun OnboardingScreen(
     onComplete: () -> Unit
@@ -143,6 +153,7 @@ fun OnboardingScreen(
     val isLastPage = pagerState.currentPage == onboardingPages.lastIndex
     var readiness by remember { mutableStateOf(OnboardingReadiness.from(context)) }
     var testAlarmStatus by remember { mutableStateOf("") }
+    var testAlarmNoticeTone by remember { mutableStateOf(TestAlarmNoticeTone.Guidance) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -157,6 +168,7 @@ fun OnboardingScreen(
                 val updatedReadiness = OnboardingReadiness.from(context)
                 if (updatedReadiness.testAlarmReady && !readiness.testAlarmReady) {
                     testAlarmStatus = "Test alarm completed. Your device opened the alarm screen successfully."
+                    testAlarmNoticeTone = TestAlarmNoticeTone.Success
                 }
                 readiness = updatedReadiness
             }
@@ -294,22 +306,20 @@ fun OnboardingScreen(
                             icon = Icons.Default.Alarm,
                             title = "Exact alarm access",
                             ready = readiness.exactAlarmReady,
+                            actionLabel = "Open",
                             onAction = { context.openExactAlarmSettings() }
                         )
                         ReadinessMiniRow(
                             icon = Icons.Default.NotificationsActive,
                             title = "Alarm notifications",
                             ready = readiness.notificationsReady,
+                            actionLabel = "Enable",
                             onAction = {
-                                val perms = buildList {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        add(Manifest.permission.POST_NOTIFICATIONS)
-                                    }
-                                    add(Manifest.permission.READ_CALENDAR)
-                                    add(Manifest.permission.ACCESS_COARSE_LOCATION)
-                                }.toTypedArray()
+                                val perms = alarmNotificationPermissions()
                                 if (perms.isNotEmpty()) {
                                     permissionLauncher.launch(perms)
+                                } else {
+                                    readiness = OnboardingReadiness.from(context)
                                 }
                             }
                         )
@@ -318,6 +328,7 @@ fun OnboardingScreen(
                                 icon = Icons.Default.NotificationsActive,
                                 title = "Full-screen alarm access",
                                 ready = readiness.fullScreenReady == true,
+                                actionLabel = "Open",
                                 onAction = { context.openFullScreenAlarmSettings() }
                             )
                         }
@@ -325,6 +336,7 @@ fun OnboardingScreen(
                             icon = Icons.Default.BatteryAlert,
                             title = "Battery protection",
                             ready = readiness.batteryReady,
+                            actionLabel = "Open",
                             onAction = { ManufacturerCompat.requestBatteryOptimizationExemption(context) }
                         )
                         ReadinessMiniRow(
@@ -336,21 +348,38 @@ fun OnboardingScreen(
                                 OnboardingTestAlarm.schedule(context).fold(
                                     onSuccess = {
                                         testAlarmStatus = "Test alarm scheduled. It will ring in 10 seconds."
+                                        testAlarmNoticeTone = TestAlarmNoticeTone.Scheduled
                                         readiness = OnboardingReadiness.from(context)
                                     },
                                     onFailure = { error ->
                                         testAlarmStatus = error.message ?: "Could not schedule the test alarm."
+                                        testAlarmNoticeTone = TestAlarmNoticeTone.Error
                                     }
                                 )
                             }
                         )
-                        Text(
-                            text = testAlarmStatus.ifBlank {
-                                "Set these before relying on an overnight alarm. Calendar and weather permissions are optional and can be changed later."
+                        AppInlineNotice(
+                            title = when (testAlarmNoticeTone) {
+                                TestAlarmNoticeTone.Guidance -> "Before tonight"
+                                TestAlarmNoticeTone.Scheduled -> "Test alarm scheduled"
+                                TestAlarmNoticeTone.Success -> "Test alarm completed"
+                                TestAlarmNoticeTone.Error -> "Test alarm unavailable"
                             },
-                            color = TextSecondary,
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center
+                            message = testAlarmStatus.ifBlank {
+                                "Review exact alarms, notifications, battery access, and the test alarm before relying on an overnight wake-up."
+                            },
+                            icon = when (testAlarmNoticeTone) {
+                                TestAlarmNoticeTone.Guidance -> Icons.Default.Shield
+                                TestAlarmNoticeTone.Scheduled -> Icons.Default.Alarm
+                                TestAlarmNoticeTone.Success -> Icons.Default.CheckCircle
+                                TestAlarmNoticeTone.Error -> Icons.Default.Warning
+                            },
+                            color = when (testAlarmNoticeTone) {
+                                TestAlarmNoticeTone.Guidance -> MaterialTheme.colorScheme.primary
+                                TestAlarmNoticeTone.Scheduled -> MaterialTheme.colorScheme.primary
+                                TestAlarmNoticeTone.Success -> DismissGreen
+                                TestAlarmNoticeTone.Error -> AccentRed
+                            }
                         )
                     }
                 }
@@ -358,14 +387,8 @@ fun OnboardingScreen(
                 Button(
                     onClick = {
                         if (isLastPage) {
-                            val perms = buildList {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    add(Manifest.permission.POST_NOTIFICATIONS)
-                                }
-                                add(Manifest.permission.READ_CALENDAR)
-                                add(Manifest.permission.ACCESS_COARSE_LOCATION)
-                            }.toTypedArray()
-                            if (perms.isNotEmpty()) {
+                            val perms = alarmNotificationPermissions()
+                            if (!readiness.notificationsReady && perms.isNotEmpty()) {
                                 permissionLauncher.launch(perms)
                             } else {
                                 onComplete()
@@ -383,7 +406,11 @@ fun OnboardingScreen(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = if (isLastPage) "Enable alerts, calendar, and weather" else "Continue",
+                        text = when {
+                            !isLastPage -> "Continue"
+                            readiness.notificationsReady -> "Finish setup"
+                            else -> "Enable alarm alerts"
+                        },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -396,11 +423,18 @@ fun OnboardingScreen(
                             .fillMaxWidth()
                             .height(48.dp)
                             .semantics {
-                                contentDescription = "Continue without permissions"
+                                contentDescription = if (readiness.notificationsReady) {
+                                    "Finish setup without more changes"
+                                } else {
+                                    "Finish setup without enabling alarm alerts"
+                                }
                                 role = Role.Button
                             }
                     ) {
-                        Text("Continue without permissions", color = TextMuted)
+                        Text(
+                            if (readiness.notificationsReady) "Finish without more changes" else "Skip permissions",
+                            color = TextMuted
+                        )
                     }
                 }
 
@@ -416,6 +450,12 @@ fun OnboardingScreen(
         }
     }
 }
+
+private fun alarmNotificationPermissions(): Array<String> = buildList {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        add(Manifest.permission.POST_NOTIFICATIONS)
+    }
+}.toTypedArray()
 
 @Composable
 private fun OnboardingPageContent(
