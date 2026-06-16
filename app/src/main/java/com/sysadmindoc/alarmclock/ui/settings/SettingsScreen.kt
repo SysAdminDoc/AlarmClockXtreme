@@ -106,6 +106,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppFeedbackCard
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
+import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -1552,17 +1553,19 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
             !state.hasLocalNetworkPermission
 
         if (plainHttpWarning) {
-            Text(
-                text = "Plain HTTP webhooks are blocked. Use an HTTPS endpoint or a local HTTPS bridge for Home Assistant or Tasker.",
-                color = AccentRed,
-                style = MaterialTheme.typography.bodySmall
+            AppInlineNotice(
+                title = "Webhook blocked",
+                message = "Plain HTTP webhooks are blocked. Use an HTTPS endpoint or a local HTTPS bridge for Home Assistant or Tasker.",
+                icon = Icons.Default.Warning,
+                color = AccentRed
             )
         }
         if (localWebhookPermissionMissing) {
-            Text(
-                text = "Android 17+ requires local network access before this LAN webhook can be tested or fired.",
-                color = SnoozeYellow,
-                style = MaterialTheme.typography.bodySmall
+            AppInlineNotice(
+                title = "Local network access needed",
+                message = "Android 17+ requires local network access before this LAN webhook can be tested or fired.",
+                icon = Icons.Default.Link,
+                color = SnoozeYellow
             )
         }
 
@@ -1683,10 +1686,11 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
             singleLine = true
         )
         if (localNetworkPermissionMissing) {
-            Text(
-                text = "Android 17+ requires local network access before ACX can reach this Hue bridge.",
-                color = SnoozeYellow,
-                style = MaterialTheme.typography.bodySmall
+            AppInlineNotice(
+                title = "Local network access needed",
+                message = "Android 17+ requires local network access before ACX can reach this Hue bridge.",
+                icon = Icons.Default.Link,
+                color = SnoozeYellow
             )
         }
         Row(
@@ -1800,10 +1804,11 @@ private fun HealthConnectSection(
                 )
             }
             summary.errorMessage?.let { error ->
-                Text(
-                    text = "Health Connect needs attention: $error",
-                    color = SnoozeYellow,
-                    style = MaterialTheme.typography.bodySmall
+                AppInlineNotice(
+                    title = "Health Connect needs attention",
+                    message = error,
+                    icon = Icons.Default.Warning,
+                    color = SnoozeYellow
                 )
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -86,9 +86,9 @@ class GuardianEscalationPolicyTest {
     }
 
     @Test
-    fun sanitisePhoneKeepsTelUriSafeChars() {
+    fun sanitisePhoneStripsUssdControlChars() {
         assertEquals(
-            "+1555-*123#",
+            "+1555-123",
             GuardianEscalationPolicy.sanitisePhone("+1 (555) abc-*123#")
         )
     }

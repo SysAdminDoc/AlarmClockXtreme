@@ -72,6 +72,7 @@ import com.sysadmindoc.alarmclock.data.remote.GeocodingResult
 import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
+import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppLoadingCard
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -578,10 +579,11 @@ private fun AirQualityCard(summary: AirQualitySummary) {
         }
 
         if (!summary.hasPollenData) {
-            Text(
-                "Pollen is not reported by Open-Meteo for this location yet.",
-                color = TextMuted,
-                style = MaterialTheme.typography.bodySmall
+            AppInlineNotice(
+                title = "Pollen unavailable",
+                message = "Open-Meteo does not report pollen for this location yet.",
+                icon = Icons.Default.WaterDrop,
+                color = TextMuted
             )
         }
 

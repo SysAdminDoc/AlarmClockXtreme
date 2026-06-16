@@ -6,7 +6,6 @@ import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -31,6 +30,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.material.icons.Icons
@@ -54,7 +54,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -100,6 +100,7 @@ import com.sysadmindoc.alarmclock.ui.alarmlist.components.SwipeableAlarmCard
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
+import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -378,6 +379,7 @@ fun AlarmListScreen(
                         ) {
                             if (state.groups.any { it.isNotBlank() }) {
                                 GroupFilterRow(
+                                    title = "Groups",
                                     groups = state.groups.filter { it.isNotBlank() },
                                     selectedGroup = state.selectedGroup,
                                     onSelectGroup = viewModel::selectGroup
@@ -386,6 +388,7 @@ fun AlarmListScreen(
 
                             if (state.profiles.any { it.isNotBlank() }) {
                                 GroupFilterRow(
+                                    title = "Profiles",
                                     groups = state.profiles.filter { it.isNotBlank() },
                                     selectedGroup = state.selectedProfile,
                                     onSelectGroup = viewModel::selectProfile
@@ -459,8 +462,14 @@ fun AlarmListScreen(
                                         title = "No alarms match that search",
                                         description = "Try a different label or clear your filters to bring everything back.",
                                         footer = {
-                                            TextButton(onClick = { searchQuery = "" }) {
-                                                Text("Clear search", color = MaterialTheme.colorScheme.primary)
+                                            TextButton(
+                                                onClick = {
+                                                    searchQuery = ""
+                                                    viewModel.selectGroup(null)
+                                                    viewModel.selectProfile(null)
+                                                }
+                                            ) {
+                                                Text("Clear filters", color = MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                     )
@@ -519,11 +528,12 @@ fun AlarmListScreen(
                                     if (state.is24HourFormat) "%02d:%02d".format(h, m)
                                     else "%d:%02d %s".format(if (h % 12 == 0) 12 else h % 12, m, if (h < 12) "AM" else "PM")
                                 }
-                                Text(
-                                    text = "Multiple enabled alarms at $timeLabels",
+                                AppInlineNotice(
+                                    title = "Duplicate fire time",
+                                    message = "Multiple enabled alarms are set for $timeLabels. Review them if that was not intentional.",
+                                    icon = Icons.Default.Warning,
                                     color = SnoozeYellow,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                                 )
                             }
                         }
@@ -701,12 +711,13 @@ private fun AlarmHeader(
 
 @Composable
 private fun GroupFilterRow(
+    title: String,
     groups: List<String>,
     selectedGroup: String?,
     onSelectGroup: (String?) -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        AppSectionTitle(title = "Groups")
+        AppSectionTitle(title = title)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -781,8 +792,10 @@ private fun QuickAlarmRow(
             napOptions.forEach { minutes ->
                 val isDefault = minutes == napDefaultMinutes
                 AppFilterChip(
-                    label = if (isDefault) "$minutes min nap - default" else "$minutes min nap",
+                    label = "$minutes min",
                     selected = isDefault,
+                    leadingIcon = if (isDefault) Icons.Default.CheckCircle else null,
+                    selectionSemantics = false,
                     onClick = { onQuickAlarm(minutes) },
                 )
             }
@@ -1076,21 +1089,27 @@ private fun SelectableAlarmCard(
     isSelected: Boolean,
     onToggleSelect: () -> Unit
 ) {
+    val shapeTokens = LocalAppShapeTokens.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .combinedClickable(onClick = onToggleSelect)
-            .then(
-                if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp))
-                else Modifier
-            ),
-        shape = RoundedCornerShape(12.dp),
+            .semantics {
+                selected = isSelected
+                stateDescription = if (isSelected) "Selected" else "Not selected"
+            },
+        shape = shapeTokens.card,
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
                 MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
             } else {
                 SurfaceMedium
             }
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (isSelected) 2.dp else 1.dp,
+            color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.34f)
+            else com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
         )
     ) {
         Row(

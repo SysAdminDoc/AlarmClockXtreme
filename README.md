@@ -8,7 +8,9 @@
 
 > A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 23 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
 
-<img width="772" height="568" alt="image" src="https://github.com/user-attachments/assets/01e2e354-3905-4dd2-bb86-112282ae1346" />
+<p align="center">
+  <img src="assets/screenshots/alarm-list.png" width="360" alt="AlarmClockXtreme alarm list with next alarm, alarm cards, quick actions, and bottom navigation" />
+</p>
 
 ## Download
 

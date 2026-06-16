@@ -551,6 +551,68 @@ fun AppFeedbackCard(
 }
 
 @Composable
+fun AppInlineNotice(
+    message: String,
+    icon: ImageVector,
+    color: Color,
+    modifier: Modifier = Modifier,
+    title: String? = null,
+) {
+    val shapeTokens = LocalAppShapeTokens.current
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics(mergeDescendants = true) {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = listOfNotNull(title, message).joinToString(". ")
+            },
+        shape = shapeTokens.tile,
+        color = color.copy(alpha = 0.10f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.24f)),
+        tonalElevation = 0.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 13.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(shapeTokens.iconContainer)
+                    .background(color.copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(AppIconSize.sm),
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                if (!title.isNullOrBlank()) {
+                    Text(
+                        text = title,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Text(
+                    text = message,
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun AppLoadingCard(
     modifier: Modifier = Modifier,
     height: Dp = 148.dp
@@ -650,7 +712,7 @@ fun AppFilterChip(
     ) {
         Row(
             modifier = Modifier
-                .defaultMinSize(minHeight = 42.dp)
+                .defaultMinSize(minHeight = 44.dp)
                 .padding(horizontal = 13.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
