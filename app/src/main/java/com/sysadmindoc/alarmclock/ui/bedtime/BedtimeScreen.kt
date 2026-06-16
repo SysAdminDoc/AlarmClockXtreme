@@ -88,6 +88,7 @@ import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
+import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -722,10 +723,11 @@ private fun HealthConnectSleepSection(
             }
         }
         summary.errorMessage?.let { error ->
-            Text(
-                text = "Health Connect needs attention: $error",
-                color = SnoozeYellow,
-                style = MaterialTheme.typography.bodySmall
+            AppInlineNotice(
+                title = "Health Connect needs attention",
+                message = error,
+                icon = Icons.Default.Warning,
+                color = SnoozeYellow
             )
         }
     }
