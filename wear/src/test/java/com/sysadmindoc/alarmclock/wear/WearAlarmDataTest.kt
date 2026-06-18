@@ -21,8 +21,9 @@ class WearAlarmDataTest {
         label: String = "",
         timeLabel: String = "",
         triggerTime: Long = 0L,
-        isFiring: Boolean = false
-    ) = WearAlarmSnapshot(hasAlarm, alarmId, label, timeLabel, triggerTime, isFiring)
+        isFiring: Boolean = false,
+        updatedAt: Long = System.currentTimeMillis()
+    ) = WearAlarmSnapshot(hasAlarm, alarmId, label, timeLabel, triggerTime, isFiring, updatedAt)
 
     // --- WearAlarmText.formatRemaining ---
 
@@ -47,7 +48,7 @@ class WearAlarmDataTest {
 
     @Test
     fun secondaryLabelHonoursStatusFiringAndCountdown() {
-        assertEquals("Sent to phone", WearAlarmText.secondaryLabel(snapshot(), actionStatus = "Sent to phone"))
+        assertEquals("Queued for phone", WearAlarmText.secondaryLabel(snapshot(), actionStatus = "Queued for phone"))
         assertEquals("Waiting for phone sync", WearAlarmText.secondaryLabel(snapshot(hasAlarm = false)))
         assertEquals("Alarm is ringing", WearAlarmText.secondaryLabel(snapshot(isFiring = true)))
         assertEquals(
@@ -58,6 +59,20 @@ class WearAlarmDataTest {
             "10m",
             WearAlarmText.secondaryLabel(snapshot(label = "", triggerTime = base + 10 * 60_000L), now = base)
         )
+    }
+
+    @Test
+    fun secondaryLabelBlocksStalePhoneSnapshots() {
+        val stale = snapshot(
+            label = "Gym",
+            triggerTime = base + 5 * 60_000L,
+            updatedAt = base - WearAlarmText.STALE_AFTER_MS - 1L
+        )
+
+        assertEquals(true, WearAlarmText.isStale(stale, now = base))
+        assertEquals("Phone sync stale", WearAlarmText.secondaryLabel(stale, now = base))
+        assertEquals("Phone sync stale", WearAlarmText.complicationLongText(stale, now = base))
+        assertEquals("Sync", WearAlarmText.complicationShortText(stale))
     }
 
     // --- Complication text ---

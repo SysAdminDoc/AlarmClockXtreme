@@ -49,6 +49,7 @@ data class WearAlarmSnapshot(
  */
 object WearAlarmText {
     const val SHORT_TITLE_LIMIT = 12
+    const val STALE_AFTER_MS = 5 * 60_000L
 
     fun formatRemaining(triggerTime: Long, now: Long = System.currentTimeMillis()): String {
         val diff = triggerTime - now
@@ -64,6 +65,9 @@ object WearAlarmText {
         }
     }
 
+    fun isStale(snapshot: WearAlarmSnapshot, now: Long = System.currentTimeMillis()): Boolean =
+        snapshot.hasAlarm && (snapshot.updatedAt <= 0L || now - snapshot.updatedAt > STALE_AFTER_MS)
+
     fun mainTimeLabel(snapshot: WearAlarmSnapshot): String = when {
         !snapshot.hasAlarm -> "Open phone app"
         snapshot.timeLabel.isNotBlank() -> snapshot.timeLabel
@@ -77,6 +81,7 @@ object WearAlarmText {
     ): String {
         actionStatus?.let { return it }
         if (!snapshot.hasAlarm) return "Waiting for phone sync"
+        if (isStale(snapshot, now)) return "Phone sync stale"
         if (snapshot.isFiring) return "Alarm is ringing"
         val remaining = formatRemaining(snapshot.triggerTime, now)
         return listOf(snapshot.label, remaining)
@@ -86,12 +91,14 @@ object WearAlarmText {
     }
 
     fun contentDescription(snapshot: WearAlarmSnapshot): String = when {
+        isStale(snapshot) -> "AlarmClockXtreme phone alarm sync is stale"
         snapshot.isFiring -> "AlarmClockXtreme alarm is ringing"
         snapshot.hasAlarm -> "Next AlarmClockXtreme alarm ${snapshot.timeLabel.ifBlank { "scheduled" }}"
         else -> "No AlarmClockXtreme alarm synced from phone"
     }
 
     fun complicationShortText(snapshot: WearAlarmSnapshot): String = when {
+        isStale(snapshot) -> "Sync"
         snapshot.isFiring -> "Ringing"
         snapshot.hasAlarm && snapshot.timeLabel.isNotBlank() -> snapshot.timeLabel
         snapshot.hasAlarm -> "Alarm"
@@ -108,6 +115,7 @@ object WearAlarmText {
         snapshot: WearAlarmSnapshot,
         now: Long = System.currentTimeMillis()
     ): String = when {
+        isStale(snapshot, now) -> "Phone sync stale"
         snapshot.isFiring -> "Alarm is ringing"
         snapshot.hasAlarm -> listOf(
             snapshot.timeLabel.ifBlank { "Scheduled" },

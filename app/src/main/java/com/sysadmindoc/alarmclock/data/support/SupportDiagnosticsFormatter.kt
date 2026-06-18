@@ -4,6 +4,7 @@ import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
+import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import java.time.DayOfWeek
 import java.time.Instant
@@ -75,7 +76,7 @@ object CrashLogScrubber {
 }
 
 object SupportDiagnosticsFormatter {
-    const val SCHEMA_VERSION = 2
+    const val SCHEMA_VERSION = 3
     const val REDACTION_POLICY_VERSION = 1
 
     private val READINESS_FIELDS = listOf(
@@ -84,7 +85,16 @@ object SupportDiagnosticsFormatter {
         "fullScreenIntentAllowed",
         "localNetworkPermissionGranted",
         "batteryOptimizationsIgnored",
-        "appStandbyBucket"
+        "appStandbyBucket",
+        "testAlarmCompleted",
+        "testAlarmScheduledAt",
+        "testAlarmFiredAt",
+        "testAlarmCompletedAt",
+        "testAlarmLatencyMs",
+        "testAlarmNotificationPermissionGranted",
+        "testAlarmFullScreenIntentRequested",
+        "testAlarmActivityLaunchSucceeded",
+        "testAlarmLegacyCompleted"
     )
 
     private val ALARM_DIAGNOSTIC_FIELDS = listOf(
@@ -129,7 +139,8 @@ object SupportDiagnosticsFormatter {
         ignoringBatteryOptimizations: Boolean,
         appStandbyBucket: String,
         sdkInt: Int,
-        guardianReadiness: GuardianReadiness
+        guardianReadiness: GuardianReadiness,
+        testAlarmProof: TestAlarmProof = TestAlarmProof()
     ): String = buildString {
         appendLine("{")
         appendLine("""  "notificationPermissionGranted": $notificationPermissionGranted,""")
@@ -142,7 +153,16 @@ object SupportDiagnosticsFormatter {
         appendLine("""  "guardianAlarmCount": ${guardianReadiness.enabledAlarmCount},""")
         appendLine("""  "guardianSmsPath": "${guardianReadiness.smsPath.name}",""")
         appendLine("""  "guardianSendSmsGranted": ${guardianReadiness.hasSendSmsPermission},""")
-        appendLine("""  "guardianCallPhoneGranted": ${guardianReadiness.hasCallPhonePermission}""")
+        appendLine("""  "guardianCallPhoneGranted": ${guardianReadiness.hasCallPhonePermission},""")
+        appendLine("""  "testAlarmCompleted": ${testAlarmProof.hasDetailedCompletion},""")
+        appendLine("""  "testAlarmScheduledAt": ${jsonEpochMillisOrNull(testAlarmProof.scheduledAt)},""")
+        appendLine("""  "testAlarmFiredAt": ${jsonEpochMillisOrNull(testAlarmProof.firedAt)},""")
+        appendLine("""  "testAlarmCompletedAt": ${jsonEpochMillisOrNull(testAlarmProof.completedAt)},""")
+        appendLine("""  "testAlarmLatencyMs": ${testAlarmProof.latencyMs?.toString() ?: "null"},""")
+        appendLine("""  "testAlarmNotificationPermissionGranted": ${testAlarmProof.notificationPermissionGranted},""")
+        appendLine("""  "testAlarmFullScreenIntentRequested": ${testAlarmProof.fullScreenIntentRequested},""")
+        appendLine("""  "testAlarmActivityLaunchSucceeded": ${testAlarmProof.activityLaunchSucceeded},""")
+        appendLine("""  "testAlarmLegacyCompleted": ${testAlarmProof.legacyCompleted}""")
         appendLine("}")
     }
 
@@ -273,6 +293,7 @@ object SupportDiagnosticsFormatter {
         ignoringBatteryOptimizations: Boolean,
         appStandbyBucket: String,
         guardianReadiness: GuardianReadiness,
+        testAlarmProof: TestAlarmProof = TestAlarmProof(),
         totalAlarms: Int,
         enabledAlarms: Int,
         nextTriggerTime: Long?,
@@ -314,6 +335,15 @@ object SupportDiagnosticsFormatter {
             appendLine("- Guardian SMS path: ${guardianReadiness.smsPath.name}")
             appendLine("- Guardian SEND_SMS granted: ${guardianReadiness.hasSendSmsPermission}")
             appendLine("- Guardian CALL_PHONE granted: ${guardianReadiness.hasCallPhonePermission}")
+            appendLine("- Test alarm completed: ${testAlarmProof.hasDetailedCompletion}")
+            appendLine("- Test alarm scheduled: ${formatOptionalEpoch(testAlarmProof.scheduledAt)}")
+            appendLine("- Test alarm fired: ${formatOptionalEpoch(testAlarmProof.firedAt)}")
+            appendLine("- Test alarm dismissed: ${formatOptionalEpoch(testAlarmProof.completedAt)}")
+            appendLine("- Test alarm latency: ${testAlarmProof.latencyMs?.let(::formatLatencyMs) ?: "none"}")
+            appendLine("- Test alarm notification permission: ${testAlarmProof.notificationPermissionGranted}")
+            appendLine("- Test alarm full-screen requested: ${testAlarmProof.fullScreenIntentRequested}")
+            appendLine("- Test alarm direct activity launch: ${testAlarmProof.activityLaunchSucceeded}")
+            appendLine("- Test alarm legacy completion: ${testAlarmProof.legacyCompleted}")
             appendLine()
             appendLine("Alarm summary")
             appendLine("- Total alarms: $totalAlarms")
@@ -366,11 +396,23 @@ object SupportDiagnosticsFormatter {
     private fun jsonStringOrNull(value: String?): String =
         if (value != null) "\"${jsonEscape(value)}\"" else "null"
 
+    private fun jsonEpochMillisOrNull(value: Long): String =
+        value.takeIf { it > 0L }?.let { "\"${formatEpochMillis(it)}\"" } ?: "null"
+
+    private fun formatOptionalEpoch(value: Long): String =
+        value.takeIf { it > 0L }?.let(::formatEpochMillis) ?: "none"
+
+    private fun formatLatencyMs(value: Long): String =
+        if (value < 1_000L) "${value}ms" else "${(value / 1000.0).formatOneDecimal()}s"
+
     private fun formatEpochMillis(value: Long): String {
         return Instant.ofEpochMilli(value)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)
     }
+
+    private fun Double.formatOneDecimal(): String =
+        String.format(java.util.Locale.US, "%.1f", this)
 
     private fun formatFullScreenIntentStatus(value: Boolean?, sdkInt: Int): String = when (value) {
         true -> "allowed"

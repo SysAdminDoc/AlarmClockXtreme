@@ -22,6 +22,8 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
+import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProofStore
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
@@ -80,6 +82,7 @@ data class SettingsUiState(
     // means the API isn't available on this device or returned no data —
     // we surface a generic "Standby bucket unknown" in that case.
     val appStandbyBucket: Int = AppStandbyBucket.UNKNOWN,
+    val testAlarmProof: TestAlarmProof = TestAlarmProof(),
     val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary(),
     val incidentTimeline: SettingsIncidentTimelineState = SettingsIncidentTimelineState()
 )
@@ -209,6 +212,7 @@ class SettingsViewModel @Inject constructor(
                 hasCallPhonePermission = wakeReadiness.hasCallPhonePermission
             ),
             appStandbyBucket = wakeReadiness.appStandbyBucket,
+            testAlarmProof = wakeReadiness.testAlarmProof,
             healthConnectSleepSummary = auxiliary.healthConnectSleep,
             incidentTimeline = auxiliary.incidentTimeline
         )
@@ -719,7 +723,8 @@ class SettingsViewModel @Inject constructor(
         val hasLocalNetworkPermission: Boolean,
         val hasSendSmsPermission: Boolean,
         val hasCallPhonePermission: Boolean,
-        val appStandbyBucket: Int
+        val appStandbyBucket: Int,
+        val testAlarmProof: TestAlarmProof
     ) {
         companion object {
             fun from(context: Context): WakeReadinessState {
@@ -772,7 +777,8 @@ class SettingsViewModel @Inject constructor(
                     hasLocalNetworkPermission = localNetworkReady,
                     hasSendSmsPermission = sendSmsGranted,
                     hasCallPhonePermission = callPhoneGranted,
-                    appStandbyBucket = bucket
+                    appStandbyBucket = bucket,
+                    testAlarmProof = TestAlarmProofStore.lastProof(context)
                 )
             }
         }

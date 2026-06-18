@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.data.support
 import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
@@ -200,6 +201,15 @@ class SupportDiagnosticsFormatterTest {
                 smsPath = GuardianSmsPath.DIRECT_SMS,
                 hasSendSmsPermission = true,
                 hasCallPhonePermission = false
+            ),
+            testAlarmProof = TestAlarmProof(
+                scheduledAt = 1_700_000_000_000L,
+                firedAt = 1_700_000_002_500L,
+                completedAt = 1_700_000_010_000L,
+                notificationPermissionGranted = true,
+                fullScreenIntentRequested = true,
+                activityLaunchSucceeded = true,
+                legacyCompleted = false
             )
         )
 
@@ -214,6 +224,15 @@ class SupportDiagnosticsFormatterTest {
         assertTrue(json.contains("\"guardianSmsPath\": \"DIRECT_SMS\""))
         assertTrue(json.contains("\"guardianSendSmsGranted\": true"))
         assertTrue(json.contains("\"guardianCallPhoneGranted\": false"))
+        assertTrue(json.contains("\"testAlarmCompleted\": true"))
+        assertTrue(json.contains("\"testAlarmScheduledAt\": \""))
+        assertTrue(json.contains("\"testAlarmFiredAt\": \""))
+        assertTrue(json.contains("\"testAlarmCompletedAt\": \""))
+        assertTrue(json.contains("\"testAlarmLatencyMs\": 2500"))
+        assertTrue(json.contains("\"testAlarmNotificationPermissionGranted\": true"))
+        assertTrue(json.contains("\"testAlarmFullScreenIntentRequested\": true"))
+        assertTrue(json.contains("\"testAlarmActivityLaunchSucceeded\": true"))
+        assertTrue(json.contains("\"testAlarmLegacyCompleted\": false"))
     }
 
     @Test

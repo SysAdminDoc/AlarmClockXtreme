@@ -136,7 +136,7 @@ class NextAlarmTileService : TileService() {
     private fun MaterialScope.bottomControls(
         snapshot: WearAlarmSnapshot,
     ): LayoutElementBuilders.LayoutElement {
-        if (!snapshot.hasAlarm) {
+        if (!snapshot.hasAlarm || WearAlarmText.isStale(snapshot)) {
             return textButton(
                 shape = shapes.small,
                 labelContent = { text("Sync".layoutString) },
@@ -208,6 +208,7 @@ class NextAlarmTileService : TileService() {
     ): String? {
         val path = WearAlarmData.actionPathForClick(clickableId) ?: return null
         if (!snapshot.hasAlarm || snapshot.alarmId <= 0L) return "Phone sync needed"
+        if (WearAlarmText.isStale(snapshot)) return "Phone sync stale"
 
         val payload = DataMap().apply {
             putLong(WearAlarmData.KEY_ALARM_ID, snapshot.alarmId)
@@ -223,16 +224,29 @@ class NextAlarmTileService : TileService() {
         }.getOrDefault(emptyList())
 
         if (nodes.isEmpty()) return "Phone unavailable"
+        val messageClient = Wearable.getMessageClient(applicationContext)
+        var queuedNodes = 0
         nodes.forEach { node ->
-            Wearable.getMessageClient(applicationContext)
-                .sendMessage(node.id, path, payload)
+            val queued = runCatching {
+                Tasks.await(
+                    messageClient.sendMessage(node.id, path, payload),
+                    MESSAGE_TIMEOUT_MS,
+                    TimeUnit.MILLISECONDS
+                )
+            }.isSuccess
+            if (queued) queuedNodes += 1
         }
-        return "Sent to phone"
+        return when {
+            queuedNodes == nodes.size -> "Queued for phone"
+            queuedNodes > 0 -> "Queued for $queuedNodes/${nodes.size} phones"
+            else -> "Phone action failed"
+        }
     }
 
     companion object {
         private const val TAG = "WearNextAlarmTile"
         private const val RESOURCES_VERSION = "1"
         private const val CLICK_REFRESH = "refresh"
+        private const val MESSAGE_TIMEOUT_MS = 1_200L
     }
 }
