@@ -52,25 +52,42 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
+import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProofStore
 
 object OnboardingTestAlarm {
     const val ACTION_RING = "com.sysadmindoc.alarmclock.ONBOARDING_TEST_ALARM"
     const val EXTRA_TRIGGER_AT = "trigger_at"
     const val NOTIFICATION_ID = 1907
-    private const val PREFS = "onboarding_test_alarm"
-    private const val KEY_COMPLETED = "completed"
     private const val REQUEST_CODE = 1907
     private const val DELAY_MS = 10_000L
 
     fun isCompleted(context: Context): Boolean =
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getBoolean(KEY_COMPLETED, false)
+        TestAlarmProofStore.isCompleted(context)
+
+    fun lastProof(context: Context): TestAlarmProof =
+        TestAlarmProofStore.lastProof(context)
 
     fun markCompleted(context: Context) {
-        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean(KEY_COMPLETED, true)
-            .apply()
+        TestAlarmProofStore.markCompleted(context)
+    }
+
+    internal fun recordFired(
+        context: Context,
+        scheduledAt: Long,
+        firedAt: Long,
+        notificationPermissionGranted: Boolean,
+        fullScreenIntentRequested: Boolean,
+        activityLaunchSucceeded: Boolean
+    ) {
+        TestAlarmProofStore.recordFired(
+            context = context,
+            scheduledAt = scheduledAt,
+            firedAt = firedAt,
+            notificationPermissionGranted = notificationPermissionGranted,
+            fullScreenIntentRequested = fullScreenIntentRequested,
+            activityLaunchSucceeded = activityLaunchSucceeded
+        )
     }
 
     fun schedule(context: Context): Result<Unit> = runCatching {
@@ -96,6 +113,7 @@ object OnboardingTestAlarm {
         } else {
             alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
         }
+        TestAlarmProofStore.recordScheduled(context, triggerAt)
     }
 }
 
@@ -134,7 +152,15 @@ class OnboardingTestAlarmReceiver : BroadcastReceiver() {
             context.getSystemService(NotificationManager::class.java)
                 ?.notify(OnboardingTestAlarm.NOTIFICATION_ID, notification)
         }
-        runCatching { context.startActivity(activityIntent) }
+        val activityLaunchSucceeded = runCatching { context.startActivity(activityIntent) }.isSuccess
+        OnboardingTestAlarm.recordFired(
+            context = context,
+            scheduledAt = triggerAt,
+            firedAt = System.currentTimeMillis(),
+            notificationPermissionGranted = hasNotificationPermission,
+            fullScreenIntentRequested = true,
+            activityLaunchSucceeded = activityLaunchSucceeded
+        )
     }
 }
 

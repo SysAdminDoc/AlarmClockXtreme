@@ -116,6 +116,7 @@ import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
+import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
@@ -826,10 +827,12 @@ private fun WakeReadinessSection(
     val standbyRowVisible = standbyKnown  // only show the row when we have a real value
     val fullScreenRowVisible = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
     val localNetworkRowVisible = requiresLocalNetworkAccess(state)
+    val testAlarmProofReady = state.testAlarmProof.hasDetailedCompletion
 
     val checks = buildList {
         add(state.canScheduleExactAlarms)
         add(state.hasNotificationPermission)
+        add(testAlarmProofReady)
         if (fullScreenRowVisible) add(state.canUseFullScreenIntent == true)
         if (localNetworkRowVisible) add(state.hasLocalNetworkPermission)
         add(state.isIgnoringBatteryOptimizations)
@@ -867,6 +870,18 @@ private fun WakeReadinessSection(
             Text("Open setup checklist")
         }
 
+        WakeReadinessRow(
+            icon = Icons.Default.Alarm,
+            title = "Real test alarm",
+            description = testAlarmProofDescription(
+                proof = state.testAlarmProof,
+                is24HourFormat = state.settings.is24HourFormat
+            ),
+            ready = testAlarmProofReady,
+            statusLabel = testAlarmProofStatusLabel(state.testAlarmProof),
+            actionLabel = "Run setup checklist",
+            onAction = onOpenOnboardingChecklist
+        )
         WakeReadinessRow(
             icon = Icons.Default.Alarm,
             title = "Exact alarm access",
@@ -957,6 +972,66 @@ private fun standbyBucketDescription(bucket: Int): String = when (bucket) {
     40 -> "Rare — strong throttling; alarms may fire late or be skipped."
     45 -> "Restricted — Android caps you to one alarm per day. Open battery settings and exempt the app."
     else -> "Standby bucket $bucket — open battery settings to promote the app to Working set."
+}
+
+private fun testAlarmProofStatusLabel(proof: TestAlarmProof): String = when {
+    proof.hasDetailedCompletion -> "Verified"
+    proof.legacyCompleted -> "Refresh"
+    proof.firedAt > 0L -> "Dismiss test"
+    else -> "Run test"
+}
+
+private fun testAlarmProofDescription(
+    proof: TestAlarmProof,
+    is24HourFormat: Boolean
+): String {
+    if (proof.hasDetailedCompletion) {
+        val completed = formatTestAlarmProofTime(proof.completedAt, is24HourFormat)
+        val latency = proof.latencyMs?.let(::formatTestAlarmLatency)
+        val delivery = testAlarmDeliveryPath(proof)
+        return if (latency != null) {
+            "Last dismissed $completed; rang $latency via $delivery."
+        } else {
+            "Last dismissed $completed; delivery timing was not captured."
+        }
+    }
+    if (proof.legacyCompleted) {
+        return "Completed before detailed proof was added; run the setup test again to refresh timestamp and latency."
+    }
+    if (proof.firedAt > 0L) {
+        return "The last test rang at ${formatTestAlarmProofTime(proof.firedAt, is24HourFormat)} but was not dismissed in setup."
+    }
+    return "Run the setup test to prove this device can launch, alert, and dismiss a real alarm."
+}
+
+private fun formatTestAlarmProofTime(epochMillis: Long, is24HourFormat: Boolean): String {
+    if (epochMillis <= 0L) return "unknown time"
+    val pattern = if (is24HourFormat) "EEE HH:mm" else "EEE h:mm a"
+    return Instant.ofEpochMilli(epochMillis)
+        .atZone(ZoneId.systemDefault())
+        .format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
+}
+
+private fun formatTestAlarmLatency(latencyMs: Long): String {
+    if (latencyMs < 1_500L) return "on time"
+    val totalSeconds = ((latencyMs + 999L) / 1_000L).coerceAtLeast(1L)
+    if (totalSeconds < 60L) return "${totalSeconds}s after schedule"
+    val minutes = totalSeconds / 60L
+    val seconds = totalSeconds % 60L
+    return if (seconds == 0L) {
+        "${minutes}m after schedule"
+    } else {
+        "${minutes}m ${seconds}s after schedule"
+    }
+}
+
+private fun testAlarmDeliveryPath(proof: TestAlarmProof): String {
+    val parts = buildList {
+        if (proof.notificationPermissionGranted) add("notification")
+        if (proof.fullScreenIntentRequested) add("full-screen request")
+        if (proof.activityLaunchSucceeded) add("direct screen launch")
+    }
+    return parts.joinToString(" + ").ifBlank { "alarm screen" }
 }
 
 private fun guardianReadinessDescription(readiness: GuardianReadiness): String {

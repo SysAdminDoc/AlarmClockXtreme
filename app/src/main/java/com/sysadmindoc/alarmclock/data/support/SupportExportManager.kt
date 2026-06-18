@@ -12,6 +12,7 @@ import android.os.PowerManager
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.sysadmindoc.alarmclock.BuildConfig
+import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProofStore
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
@@ -77,6 +78,7 @@ class SupportExportManager @Inject constructor(
         val localNetworkAllowed = localNetworkPermissionGranted()
         val batteryIgnored = isIgnoringBatteryOptimizations()
         val standbyBucket = appStandbyBucketLabel()
+        val testAlarmProof = TestAlarmProofStore.lastProof(context)
         val sdkInt = Build.VERSION.SDK_INT
 
         val includedFiles = mutableListOf(
@@ -116,7 +118,8 @@ class SupportExportManager @Inject constructor(
                     ignoringBatteryOptimizations = batteryIgnored,
                     appStandbyBucket = standbyBucket,
                     sdkInt = sdkInt,
-                    guardianReadiness = guardianReadiness
+                    guardianReadiness = guardianReadiness,
+                    testAlarmProof = testAlarmProof
                 )
             )
             zip.writeTextEntry(
@@ -143,6 +146,7 @@ class SupportExportManager @Inject constructor(
                     ignoringBatteryOptimizations = batteryIgnored,
                     appStandbyBucket = standbyBucket,
                     guardianReadiness = guardianReadiness,
+                    testAlarmProof = testAlarmProof,
                     totalAlarms = alarms.size,
                     enabledAlarms = enabledCount,
                     nextTriggerTime = nextTrigger,

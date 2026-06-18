@@ -22,6 +22,10 @@ adb install AlarmClockXtreme-v1.14.18-play.apk
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, and optional Health Connect READ_SLEEP integration. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
 
+## Roadmap
+
+Current release-hardening work is focused on public F-Droid inclusion, signed-release automation, API 37 platform readiness, Wear action acknowledgement, alarm-fire smoke coverage, localization/pseudo-locale cleanup, and permission/store-declaration drift guards. Local planning details stay in the repository maintainer backlog; public release notes and issues track user-visible changes.
+
 ## Build From Source
 
 ```bash
@@ -164,7 +168,7 @@ cd AlarmClockXtreme
 ### Data & Reliability
 | Feature | Description |
 |---------|-------------|
-| Backup/Restore | JSON export/import of all 50+ alarm fields and 59 settings, with optional AES-256 passphrase encryption, custom news-feed round-trip, and pre-export disclosure for secrets/private references (v10 format) |
+| Backup/Restore | JSON export/import of all 50+ alarm fields and 59 settings, with optional AES-256 passphrase encryption, custom news-feed round-trip, and pre-export disclosure for secrets/private references (v11 format) |
 | Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link; received links are reviewed and saved disabled |
 | Boot Reschedule | All alarms re-registered after device reboot, with a Direct Boot fallback for the next alarm before first unlock |
 | Wake Readiness | Settings checks exact alarms, notifications, Android 14+ full-screen alarm access, battery optimization, and App Standby state before bedtime |
@@ -299,7 +303,7 @@ No analytics. No ads. No tracking. No accounts. No data leaves your device excep
 - Philips Hue commands to your configured bridge on your local network
 - YouTube search, preview, stream resolution, and download requests in the Play flavor only; F-Droid excludes this feature
 
-Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, including sleep/wake trend charts; they are not copied into Room/DataStore/backups and are never uploaded to the developer. Smart-alarm actigraphy stores only compact local motion-bucket summaries for 30 days; raw accelerometer samples are not retained and the buckets are not medical sleep-stage records. Support bundles are created only when you choose to export them and include redacted wake-readiness, aggregate smart-wake decision metadata, and recent alarm incident event codes, not labels or per-minute motion buckets. Crash logs stay in local app storage unless you export them. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, and Hue configuration.
+Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, including sleep/wake trend charts; they are not copied into Room/DataStore/backups and are never uploaded to the developer. Smart-alarm actigraphy stores only compact local motion-bucket summaries for 30 days; raw accelerometer samples are not retained and the buckets are not medical sleep-stage records. Support bundles are created only when you choose to export them and include redacted wake-readiness, test-alarm proof timing, aggregate smart-wake decision metadata, and recent alarm incident event codes, not labels or per-minute motion buckets. Crash logs stay in local app storage unless you export them. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, and Hue configuration.
 
 Settings can hide alarm labels on public surfaces. When enabled, alarm notifications, missed-alarm prompts, wake-confirm prompts, the home widget, the quick settings tile, and Play-flavor Wear next-alarm snapshots use neutral alarm text while labels remain visible inside the unlocked app.
 
