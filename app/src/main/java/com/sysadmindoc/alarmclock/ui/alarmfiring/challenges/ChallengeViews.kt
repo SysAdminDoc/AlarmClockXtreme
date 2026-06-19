@@ -1198,10 +1198,10 @@ fun SimonSaysChallengeView(
     onPadTap: (Int) -> Unit
 ) {
     val colors = listOf(
-        Color(0xFFEF4444), // Red
-        Color(0xFF22C55E), // Green
-        Color(0xFF3B82F6), // Blue
-        Color(0xFFFACC15)  // Yellow
+        AccentRed,
+        DismissGreen,
+        AccentBlue,
+        SnoozeYellow
     )
     val names = listOf("Red", "Green", "Blue", "Yellow")
 
@@ -1308,10 +1308,10 @@ fun StroopChallengeView(
     onPick: (Int) -> Unit
 ) {
     val palette = listOf(
-        Color(0xFFEF4444), // Red
-        Color(0xFF22C55E), // Green
-        Color(0xFF3B82F6), // Blue
-        Color(0xFFFACC15)  // Yellow
+        AccentRed,
+        DismissGreen,
+        AccentBlue,
+        SnoozeYellow
     )
     val names = listOf("Red", "Green", "Blue", "Yellow")
 
@@ -1793,8 +1793,8 @@ fun PvtChallengeView(
                 .size(160.dp)
                 .background(
                     color = when {
-                        failed -> Color(0xFFB00020)
-                        stimulusShown -> Color(0xFF4CAF50)
+                        failed -> AccentRed
+                        stimulusShown -> DismissGreen
                         waiting -> SurfaceCard
                         else -> SurfaceCard
                     },
