@@ -54,6 +54,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -295,8 +299,13 @@ fun YouTubeDownloadDialog(
                 when (mode) {
                     DownloadMode.Search -> SearchBody(
                         query = query,
-                        onQueryChange = {
-                            query = it
+                        onQueryChange = { value ->
+                            if (value != query) {
+                                stopPreview()
+                                hits = emptyList()
+                                if (statusIsError) setStatus("")
+                            }
+                            query = value
                             hasSearched = false
                         },
                         searching = searching,
@@ -340,8 +349,9 @@ fun YouTubeDownloadDialog(
                                 r.fold(
                                     onSuccess = onDownloaded,
                                     onFailure = { e ->
-                                        setStatus("")
-                                        onError(youTubeDialogErrorMessage(e, YouTubeDialogAction.Download))
+                                        val message = youTubeDialogErrorMessage(e, YouTubeDialogAction.Download)
+                                        setStatus(message, isError = true)
+                                        onError(message)
                                     }
                                 )
                             }
@@ -368,13 +378,16 @@ fun YouTubeDownloadDialog(
                         stopPreview()
                         inFlight = true
                         val labelGuess = name.ifBlank { url.substringAfter("v=").substringBefore('&').take(11) }
+                        setStatus("Downloading \"${labelGuess.ifBlank { "alarm sound" }}\"...")
                         scope.launch {
                             val result = downloader.downloadAsAlarm(url.trim(), labelGuess)
                             inFlight = false
                             result.fold(
                                 onSuccess = onDownloaded,
                                 onFailure = { e ->
-                                    onError(youTubeDialogErrorMessage(e, YouTubeDialogAction.Download))
+                                    val message = youTubeDialogErrorMessage(e, YouTubeDialogAction.Download)
+                                    setStatus(message, isError = true)
+                                    onError(message)
                                 }
                             )
                         }
@@ -820,7 +833,13 @@ private fun DownloadingHint() {
         label = "download-progress"
     )
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = Modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+            stateDescription = phases[phaseIndex]
+        },
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)

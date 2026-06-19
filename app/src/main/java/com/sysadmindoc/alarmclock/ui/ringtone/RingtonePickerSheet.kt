@@ -31,11 +31,9 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -60,8 +58,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
+import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -71,16 +69,10 @@ import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
-import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.launch
 
 data class RingtoneItem(
     val title: String,
@@ -129,6 +121,7 @@ fun RingtonePickerSheet(
     var previewError by remember { mutableStateOf("") }
     var showYouTubeDialog by remember { mutableStateOf(false) }
     var youTubeStatus by remember { mutableStateOf("") }
+    var youTubeStatusIsError by remember { mutableStateOf(false) }
     var lastDownloadedTitle by remember { mutableStateOf<String?>(null) }
 
     // The shared YouTubeDownloadDialog handles its own Hilt lookup — we just
@@ -163,11 +156,16 @@ fun RingtonePickerSheet(
             onDownloaded = { savedTitle ->
                 showYouTubeDialog = false
                 lastDownloadedTitle = savedTitle
+                youTubeStatusIsError = false
                 youTubeStatus = "Saved \"$savedTitle\" to your alarms."
                 // Refresh the picker list so the new file shows up immediately.
                 ringtoneLoad = loadRingtones(context)
             },
-            onError = { msg -> youTubeStatus = msg }
+            onError = { msg ->
+                lastDownloadedTitle = null
+                youTubeStatusIsError = true
+                youTubeStatus = msg
+            }
         )
     }
 
@@ -259,10 +257,11 @@ fun RingtonePickerSheet(
             )
 
             if (youTubeStatus.isNotBlank()) {
-                AppStatusChip(
-                    label = youTubeStatus,
-                    icon = Icons.Default.CloudDownload,
-                    color = if (lastDownloadedTitle != null) DismissGreen else SnoozeYellow
+                AppInlineNotice(
+                    title = if (youTubeStatusIsError) "Download needs attention" else "Sound saved",
+                    message = youTubeStatus,
+                    icon = if (youTubeStatusIsError) Icons.Default.Warning else Icons.Default.CheckCircle,
+                    color = if (youTubeStatusIsError) AccentRed else DismissGreen
                 )
             }
 
@@ -297,18 +296,20 @@ fun RingtonePickerSheet(
             }
 
             if (previewError.isNotBlank()) {
-                Text(
-                    text = previewError,
-                    color = SnoozeYellow,
-                    style = MaterialTheme.typography.bodySmall
+                AppInlineNotice(
+                    title = "Preview unavailable",
+                    message = previewError,
+                    icon = Icons.Default.Warning,
+                    color = SnoozeYellow
                 )
             }
 
             if (ringtoneLoad.enumerationFailed) {
-                Text(
-                    text = "Couldn't read this device's sound list. Default and Silent are still available, or add a sound from YouTube.",
-                    color = SnoozeYellow,
-                    style = MaterialTheme.typography.bodySmall
+                AppInlineNotice(
+                    title = "Sound list limited",
+                    message = ringtoneEnumerationWarning(youTubeAvailable),
+                    icon = Icons.Default.Warning,
+                    color = SnoozeYellow
                 )
             }
 
@@ -516,6 +517,13 @@ private fun ringtoneSearchText(ringtone: RingtoneItem): String = buildString {
     if (ringtone.isDefault) append(" default recommended")
     if (ringtone.isSilent) append(" silent quiet")
 }
+
+internal fun ringtoneEnumerationWarning(youTubeAvailable: Boolean): String =
+    if (youTubeAvailable) {
+        "Couldn't read this device's sound list. Default and Silent are still available, and you can add a new sound from YouTube."
+    } else {
+        "Couldn't read this device's sound list. Default and Silent are still available."
+    }
 
 private fun loadRingtones(context: Context): RingtoneLoadResult {
     val ringtones = mutableListOf<RingtoneItem>()
