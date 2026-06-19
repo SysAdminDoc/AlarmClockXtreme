@@ -15,6 +15,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Settings "Connections and data" transparency panel lists each optional
   network provider with enabled/disabled state, domain, data sent, and offline
   fallback. Support diagnostics include a redacted "Connections" summary.
+- Alarm edit progressive disclosure: "Dismiss and wake" and "Extras and
+  integrations" sections are now collapsible groups with animated expand/collapse.
+  Core alarm fields (time, label, group, sound, vibration, snooze) stay visible.
+  Groups auto-expand when they contain active configuration.
 
 ### Fixed
 
