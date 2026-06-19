@@ -778,6 +778,84 @@ fun SquatChallengeView(
 }
 
 @Composable
+fun PushUpChallengeView(
+    challenge: Challenge.PushUpChallenge,
+    currentPushUps: Int
+) {
+    val progress = (currentPushUps.toFloat() / challenge.requiredPushUps).coerceIn(0f, 1f)
+    val remaining = (challenge.requiredPushUps - currentPushUps).coerceAtLeast(0)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
+    ) {
+        ChallengeSupportText("Place the phone face-down on the floor and do push-ups over it.")
+
+        ChallengeProgressHero(
+            icon = Icons.Default.FitnessCenter,
+            accent = AccentRed,
+            progress = progress,
+            statusLabel = "$currentPushUps / ${challenge.requiredPushUps} push-ups",
+            summary = if (currentPushUps == 0) "Start your first push-up." else "$remaining push-ups remaining."
+        )
+    }
+}
+
+@Composable
+fun PlankHoldChallengeView(
+    challenge: Challenge.PlankHoldChallenge,
+    heldSeconds: Int,
+    isActive: Boolean,
+    onStart: () -> Unit,
+    onBreak: () -> Unit
+) {
+    val progress = (heldSeconds.toFloat() / challenge.requiredSeconds).coerceIn(0f, 1f)
+    val remaining = (challenge.requiredSeconds - heldSeconds).coerceAtLeast(0)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
+    ) {
+        ChallengeSupportText("Hold the phone level and face-down in a plank position.")
+
+        ChallengeProgressHero(
+            icon = Icons.Default.FitnessCenter,
+            accent = AccentBlue,
+            progress = progress,
+            statusLabel = "$heldSeconds / ${challenge.requiredSeconds} seconds",
+            summary = if (heldSeconds == 0) "Tap Start and hold position." else "$remaining seconds remaining."
+        )
+
+        if (!isActive) {
+            Button(
+                onClick = onStart,
+                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
+            ) {
+                Text("Start plank")
+            }
+        } else {
+            OutlinedButton(
+                onClick = onBreak,
+                border = BorderStroke(1.dp, AccentRed)
+            ) {
+                Text("I broke form", color = AccentRed)
+            }
+            Text(
+                text = "Timer is running. Hold steady.",
+                color = AccentBlue,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
 fun MazeChallengeView(
     challenge: Challenge.MazeChallenge,
     currentPos: Int,

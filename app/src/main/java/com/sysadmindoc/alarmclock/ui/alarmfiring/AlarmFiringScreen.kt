@@ -96,6 +96,8 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.PhotoMatchChallengeV
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.SequenceChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.ShakeChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.SquatChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.PushUpChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.PlankHoldChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.TypingChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.WalkChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.CountSheepChallengeView
@@ -570,6 +572,23 @@ fun AlarmFiringScreen(
                             )
                         }
 
+                        challenge is Challenge.PushUpChallenge -> {
+                            PushUpChallengeView(
+                                challenge = challenge,
+                                currentPushUps = state.pushUpCount
+                            )
+                        }
+
+                        challenge is Challenge.PlankHoldChallenge -> {
+                            PlankHoldChallengeView(
+                                challenge = challenge,
+                                heldSeconds = state.plankHoldSeconds,
+                                isActive = state.plankHoldActive,
+                                onStart = viewModel::onPlankHoldStart,
+                                onBreak = viewModel::onPlankHoldBreak
+                            )
+                        }
+
                         challenge is Challenge.MazeChallenge -> {
                             MazeChallengeView(
                                 challenge = challenge,
@@ -850,6 +869,8 @@ private fun Challenge?.headline(): String = when (this) {
     is Challenge.BarcodeChallenge -> "Scan the registered code"
     is Challenge.PhotoMatchChallenge -> "Match the reference photo"
     is Challenge.SquatChallenge -> "Complete the movement check"
+    is Challenge.PushUpChallenge -> "Do the push-ups"
+    is Challenge.PlankHoldChallenge -> "Hold the plank"
     is Challenge.MazeChallenge -> "Navigate out of the maze"
     is Challenge.WifiChallenge -> "Connect to the right network"
     is Challenge.CountSheepChallenge -> "Count the sheep"
@@ -875,6 +896,8 @@ private fun Challenge?.supportingText(): String = when (this) {
     is Challenge.BarcodeChallenge -> "Scan the code you linked to this wake-up routine."
     is Challenge.PhotoMatchChallenge -> "Take a fresh photo that closely matches the saved reference."
     is Challenge.SquatChallenge -> "A short movement challenge helps you actually get moving."
+    is Challenge.PushUpChallenge -> "Push-ups force upper-body engagement that resets sleepiness."
+    is Challenge.PlankHoldChallenge -> "A sustained hold proves you are awake and in control."
     is Challenge.MazeChallenge -> "Stay focused and reach the exit."
     is Challenge.WifiChallenge -> "This alarm clears once you reconnect where you planned."
     is Challenge.CountSheepChallenge -> "A light-focus wake-up \u2014 tap only the sheep."
@@ -899,6 +922,8 @@ private fun Challenge?.statusDescription(): String = when (this) {
     is Challenge.BarcodeChallenge -> "Scan the saved barcode or QR code."
     is Challenge.PhotoMatchChallenge -> "Take a matching photo to finish this wake-up step."
     is Challenge.SquatChallenge -> "Complete the required number of squats."
+    is Challenge.PushUpChallenge -> "Complete the required push-ups with the phone on the floor."
+    is Challenge.PlankHoldChallenge -> "Hold the phone level for the full duration."
     is Challenge.MazeChallenge -> "Find the exit without hitting walls."
     is Challenge.WifiChallenge -> "Reconnect to the required Wi-Fi network."
     is Challenge.CountSheepChallenge -> "Tap every sheep; avoid the goats."

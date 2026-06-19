@@ -161,7 +161,9 @@ data class Alarm(
             "EMOJI_MEMORY",
             "TYPING_SPEED",
             "WORDLE",
-            "PVT"
+            "PVT",
+            "PUSH_UP",
+            "PLANK_HOLD"
         )
         private val VALID_VIBRATION_PATTERNS = setOf(
             "default",
