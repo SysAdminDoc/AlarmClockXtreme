@@ -545,7 +545,7 @@ class BackupManager @Inject constructor(
                 } catch (e: Exception) {
                     android.util.Log.w(
                         "BackupManager",
-                        "Skipped one alarm during import: ${alarm.label}",
+                        "Skipped one alarm during import",
                         e
                     )
                 }

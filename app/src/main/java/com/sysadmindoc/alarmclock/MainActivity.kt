@@ -32,14 +32,14 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var preferencesManager: PreferencesManager
 
-    private var lastHandledShareToken: String? = null
+    private var lastHandledShareTokenKey: String? = null
     private var pendingSharedAlarmToken: String? = null
     private var pendingSharedAlarmDraft by mutableStateOf<Alarm?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        lastHandledShareToken = savedInstanceState?.getString(KEY_LAST_HANDLED_SHARE_TOKEN)
+        lastHandledShareTokenKey = savedInstanceState?.getString(KEY_LAST_HANDLED_SHARE_TOKEN_KEY)
         pendingSharedAlarmToken = savedInstanceState?.getString(KEY_PENDING_SHARE_TOKEN)
         pendingSharedAlarmToken?.let { restorePendingSharedAlarm(it) } ?: handleSharedAlarmIntent(intent)
 
@@ -115,7 +115,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString(KEY_LAST_HANDLED_SHARE_TOKEN, lastHandledShareToken)
+        outState.putString(KEY_LAST_HANDLED_SHARE_TOKEN_KEY, lastHandledShareTokenKey)
         outState.putString(KEY_PENDING_SHARE_TOKEN, pendingSharedAlarmToken)
         super.onSaveInstanceState(outState)
     }
@@ -125,8 +125,10 @@ class MainActivity : ComponentActivity() {
         if (uri.scheme != AlarmShareCodec.SCHEME || uri.host != AlarmShareCodec.HOST) return
 
         val token = uri.getQueryParameter(AlarmShareCodec.DATA_PARAM).orEmpty()
-        if (token.isBlank() || token == lastHandledShareToken) return
-        lastHandledShareToken = token
+        if (token.isBlank()) return
+        val tokenKey = AlarmShareCodec.tokenStorageKey(token)
+        if (tokenKey == lastHandledShareTokenKey) return
+        lastHandledShareTokenKey = tokenKey
 
         queueSharedAlarmDraft(token, showReadyToast = true)
     }
@@ -162,7 +164,7 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        private const val KEY_LAST_HANDLED_SHARE_TOKEN = "last_handled_share_token"
+        private const val KEY_LAST_HANDLED_SHARE_TOKEN_KEY = "last_handled_share_token_key"
         private const val KEY_PENDING_SHARE_TOKEN = "pending_share_token"
         private const val ROADMAP_URL = "https://github.com/SysAdminDoc/AlarmClockXtreme#roadmap"
 

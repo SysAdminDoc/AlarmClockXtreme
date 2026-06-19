@@ -86,6 +86,31 @@ class WebhookUrlTest {
     }
 
     @Test
+    fun `test payload respects label sharing setting`() {
+        val withLabel = payloadAdapter.fromJson(
+            WebhookService.buildTestPayloadJson(
+                includeLabel = true,
+                occurredAtMillis = 1_700_000_000_000L,
+                eventId = "test-1"
+            )
+        )!!
+        val withoutLabel = payloadAdapter.fromJson(
+            WebhookService.buildTestPayloadJson(
+                includeLabel = false,
+                occurredAtMillis = 1_700_000_000_000L,
+                eventId = "test-2"
+            )
+        )!!
+
+        assertEquals("test", withLabel["event"])
+        assertEquals(true, withLabel["labelIncluded"])
+        assertEquals("Test Alarm", withLabel["label"])
+        assertEquals("test", withoutLabel["event"])
+        assertEquals(false, withoutLabel["labelIncluded"])
+        assertFalse(withoutLabel.containsKey("label"))
+    }
+
+    @Test
     fun `event enum exposes documented event names`() {
         assertEquals("alarm_fired", WebhookEvent.AlarmFired.wireName)
         assertEquals("alarm_snoozed", WebhookEvent.AlarmSnoozed.wireName)

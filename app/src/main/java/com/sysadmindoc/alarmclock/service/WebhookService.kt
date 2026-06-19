@@ -110,7 +110,7 @@ class WebhookService @Inject constructor(
     }
 
     /** Send a test webhook with event = "test" */
-    suspend fun test(url: String): Boolean {
+    suspend fun test(url: String, includeLabel: Boolean = true): Boolean {
         if (!isAllowedUrl(url)) return false
         if (LocalNetworkPermission.requiresPermissionForUrl(url) &&
             !LocalNetworkPermission.isGranted(context)
@@ -118,15 +118,7 @@ class WebhookService @Inject constructor(
             return false
         }
         return try {
-            val body = buildPayloadJson(
-                event = WebhookEvent.Test,
-                alarmId = 0,
-                label = "Test Alarm",
-                displayTime = "12:00 PM",
-                includeLabel = true,
-                scheduledForMillis = null,
-                fireId = null
-            )
+            val body = buildTestPayloadJson(includeLabel = includeLabel)
             val request = Request.Builder()
                 .url(url)
                 .post(body.toRequestBody(JSON))
@@ -196,6 +188,24 @@ class WebhookService @Inject constructor(
                 }
             }
             return payloadJsonAdapter.toJson(payload)
+        }
+
+        internal fun buildTestPayloadJson(
+            includeLabel: Boolean,
+            occurredAtMillis: Long = System.currentTimeMillis(),
+            eventId: String = UUID.randomUUID().toString()
+        ): String {
+            return buildPayloadJson(
+                event = WebhookEvent.Test,
+                alarmId = 0,
+                label = "Test Alarm",
+                displayTime = "12:00 PM",
+                includeLabel = includeLabel,
+                scheduledForMillis = null,
+                fireId = null,
+                occurredAtMillis = occurredAtMillis,
+                eventId = eventId
+            )
         }
     }
 }
