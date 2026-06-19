@@ -27,6 +27,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 - Blocked roadmap items separated into `Roadmap_Blocked.md` for clarity.
 - CI version-lint now fails if app source links to gitignored markdown files.
+- CI version-lint now fails if any manifest permission lacks a README row.
+- Added missing `ACCESS_WIFI_STATE` permission to README table.
 
 ## [1.14.18] - 2026-06-15
 

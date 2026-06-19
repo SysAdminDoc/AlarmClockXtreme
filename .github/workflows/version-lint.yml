@@ -219,3 +219,30 @@ jobs:
             exit 1
           fi
           echo "ok: all workflow actions are SHA-pinned"
+
+      - name: Assert manifest permissions are documented in README
+        run: |
+          set -euo pipefail
+
+          fail=0
+          # Extract permission names from all manifests.
+          for manifest in app/src/main/AndroidManifest.xml app/src/play/AndroidManifest.xml app/src/fdroid/AndroidManifest.xml; do
+            [ -f "$manifest" ] || continue
+            while IFS= read -r perm; do
+              # Normalize: strip android.permission. prefix for README matching.
+              short=$(echo "$perm" | sed 's/android\.permission\.//')
+              if ! grep -qF "$short" README.md; then
+                echo "::error file=$manifest::Permission '$perm' declared in $manifest but not documented in README.md permissions table"
+                fail=1
+              fi
+            done < <(grep -oE 'android:name="([^"]+)"' "$manifest" \
+              | sed -E 's/android:name="(.*)"/\1/' \
+              | grep -E '^android\.permission' \
+              | sort -u)
+          done
+
+          if [ $fail -ne 0 ]; then
+            echo "Every declared permission must have a row in the README permissions table."
+            exit 1
+          fi
+          echo "ok: all manifest permissions are documented in README"
