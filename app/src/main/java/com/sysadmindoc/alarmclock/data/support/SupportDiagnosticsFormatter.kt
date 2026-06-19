@@ -313,7 +313,14 @@ object SupportDiagnosticsFormatter {
         ytEngineLastUpdateMs: Long = 0,
         ytEngineLastUpdateStatus: String = "",
         ytEngineLastUpdateSource: String = "",
-        ytEngineLastFailureReason: String = ""
+        ytEngineLastFailureReason: String = "",
+        showWeatherOnDashboard: Boolean = false,
+        holidayAutoSkipEnabled: Boolean = false,
+        showRadarEmbed: Boolean = false,
+        showNewsTab: Boolean = false,
+        webhookEnabled: Boolean = false,
+        hueBridgeConfigured: Boolean = false,
+        healthConnectEnabled: Boolean = false
     ): String {
         val nextTrigger = nextTriggerTime?.takeIf { it > 0L }?.let(::formatEpochMillis) ?: "none"
         return buildString {
@@ -393,6 +400,15 @@ object SupportDiagnosticsFormatter {
             if (ytEngineLastFailureReason.isNotBlank()) {
                 appendLine("- Last failure: $ytEngineLastFailureReason")
             }
+            appendLine()
+            appendLine("Connections")
+            appendLine("- Weather (Open-Meteo): ${if (showWeatherOnDashboard) "active" else "off"}")
+            appendLine("- Public holidays (Nager.Date): ${if (holidayAutoSkipEnabled) "active" else "off"}")
+            appendLine("- Radar (Windy embed): ${if (showRadarEmbed) "active" else "off"}")
+            appendLine("- News feed: ${if (showNewsTab) "active" else "off"}")
+            appendLine("- Webhook: ${if (webhookEnabled) "active" else "off"}")
+            appendLine("- Hue bridge: ${if (hueBridgeConfigured) "configured" else "off"}")
+            appendLine("- Health Connect: ${if (healthConnectEnabled) "active" else "off"}")
             appendLine()
             appendLine("Crash logs")
             appendLine("- Included files: $crashLogCount")

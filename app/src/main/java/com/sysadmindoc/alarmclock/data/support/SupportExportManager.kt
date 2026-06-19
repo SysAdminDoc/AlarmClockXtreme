@@ -168,7 +168,14 @@ class SupportExportManager @Inject constructor(
                     ytEngineLastUpdateMs = appSettings.ytEngineLastUpdateMs,
                     ytEngineLastUpdateStatus = appSettings.ytEngineLastUpdateStatus,
                     ytEngineLastUpdateSource = appSettings.ytEngineLastUpdateSource,
-                    ytEngineLastFailureReason = appSettings.ytEngineLastFailureReason
+                    ytEngineLastFailureReason = appSettings.ytEngineLastFailureReason,
+                    showWeatherOnDashboard = appSettings.showWeatherOnDashboard,
+                    holidayAutoSkipEnabled = appSettings.holidayAutoSkipEnabled,
+                    showRadarEmbed = appSettings.showRadarEmbed,
+                    showNewsTab = appSettings.showNewsTab,
+                    webhookEnabled = appSettings.webhookEnabled,
+                    hueBridgeConfigured = appSettings.hueBridgeIp.isNotBlank(),
+                    healthConnectEnabled = appSettings.healthConnectEnabled
                 )
             )
             zip.writeTextEntry("alarms_redacted.csv", SupportDiagnosticsFormatter.alarmCsv(alarms))
