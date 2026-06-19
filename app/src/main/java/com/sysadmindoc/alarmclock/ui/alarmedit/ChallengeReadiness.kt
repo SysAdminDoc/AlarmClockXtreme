@@ -85,6 +85,8 @@ fun evaluateChallengeReadiness(
 ): ChallengeReadiness? = when (challengeType) {
     "SHAKE" -> motionReadiness(capabilities, "shake")
     "SQUAT" -> motionReadiness(capabilities, "squat")
+    "PUSH_UP" -> motionReadiness(capabilities, "push-up")
+    "PLANK_HOLD" -> motionReadiness(capabilities, "plank hold")
     "WALK_STEPS" -> when {
         !capabilities.hasStepCounter -> hardware("This device has no step-counter sensor for the walk challenge.")
         !capabilities.activityRecognitionGranted ->

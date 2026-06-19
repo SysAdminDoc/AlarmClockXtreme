@@ -26,7 +26,9 @@ enum class ChallengeType {
     EMOJI_MEMORY,    // v1.6.0: Match 8 emoji pairs on a face-down 4x4 grid
     TYPING_SPEED,    // v1.6.0: Type a phrase at >= N wpm with <= maxErrors word mistakes
     WORDLE,          // v1.6.0: Guess the 5-letter target word in <= 6 attempts
-    PVT              // v1.14.10: Psychomotor vigilance — tap N times when the stimulus appears
+    PVT,             // v1.14.10: Psychomotor vigilance — tap N times when the stimulus appears
+    PUSH_UP,         // v1.15.0: Push-up challenge — accelerometer-based push-up detection
+    PLANK_HOLD       // v1.15.0: Plank hold challenge — hold the phone level for N seconds
 }
 
 sealed class Challenge {
@@ -177,6 +179,20 @@ sealed class Challenge {
         val totalTrials: Int = 5,
         val maxAverageMs: Int = 500
     ) : Challenge()
+
+    // v1.15.0: Push-up challenge — accelerometer-based push-up detection.
+    // Reuses the same pattern as SquatChallenge with a PushUpDetector.
+    data class PushUpChallenge(
+        override val type: ChallengeType = ChallengeType.PUSH_UP,
+        val requiredPushUps: Int = 10
+    ) : Challenge()
+
+    // v1.15.0: Plank hold — hold the phone level (face-down) for N seconds.
+    // The accelerometer verifies the phone stays roughly horizontal.
+    data class PlankHoldChallenge(
+        override val type: ChallengeType = ChallengeType.PLANK_HOLD,
+        val requiredSeconds: Int = 30
+    ) : Challenge()
 }
 
 private val TYPING_PHRASES = listOf(
@@ -278,6 +294,8 @@ object ChallengeGenerator {
             target = WORDLE_WORDS.random()
         )
         ChallengeType.PVT -> Challenge.PvtChallenge()
+        ChallengeType.PUSH_UP -> Challenge.PushUpChallenge(requiredPushUps = 10)
+        ChallengeType.PLANK_HOLD -> Challenge.PlankHoldChallenge(requiredSeconds = 30)
     }
 
     private fun generateMathEasy(): Challenge.MathChallenge {

@@ -80,6 +80,11 @@ data class FiringUiState(
     val pvtWaiting: Boolean = false,
     val pvtLastReaction: Long? = null,
     val pvtFailed: Boolean = false,
+    // v1.15.0: Push-up challenge
+    val pushUpCount: Int = 0,
+    // v1.15.0: Plank hold challenge
+    val plankHoldSeconds: Int = 0,
+    val plankHoldActive: Boolean = false,
     val challengeBypassAvailable: Boolean = false,
     val challengeBypassRemainingSeconds: Int = -1,
     val weatherTemp: String? = null,
@@ -260,6 +265,8 @@ class AlarmFiringViewModel @Inject constructor(
         ChallengeType.BARCODE_SCAN -> Challenge.BarcodeChallenge(registeredValue = alarm.barcodeValue)
         ChallengeType.PHOTO_MATCH -> Challenge.PhotoMatchChallenge(referencePhotoUri = alarm.photoMatchUri)
         ChallengeType.SQUAT -> Challenge.SquatChallenge(requiredSquats = alarm.requiredSquats)
+        ChallengeType.PUSH_UP -> Challenge.PushUpChallenge(requiredPushUps = 10)
+        ChallengeType.PLANK_HOLD -> Challenge.PlankHoldChallenge(requiredSeconds = 30)
         else -> ChallengeGenerator.generate(type)
     }
 
@@ -278,6 +285,9 @@ class AlarmFiringViewModel @Inject constructor(
             challengeSolved = false,
             shakeCount = 0,
             squatCount = 0,
+            pushUpCount = 0,
+            plankHoldSeconds = 0,
+            plankHoldActive = false,
             currentSteps = 0,
             walkStatus = "",
             walkFallbackAllowed = false,
@@ -507,6 +517,44 @@ class AlarmFiringViewModel @Inject constructor(
         if (count >= challenge.requiredSquats) {
             proceedToNextChallenge()
         }
+    }
+
+    // v1.15.0: Push-up challenge
+    fun updatePushUpCount(count: Int) {
+        val challenge = _uiState.value.challenge as? Challenge.PushUpChallenge ?: return
+        _uiState.value = _uiState.value.copy(pushUpCount = count)
+        if (count >= challenge.requiredPushUps) {
+            proceedToNextChallenge()
+        }
+    }
+
+    // v1.15.0: Plank hold challenge — accumulate seconds while the phone is held level
+    private var plankJob: kotlinx.coroutines.Job? = null
+
+    fun onPlankHoldStart() {
+        if (_uiState.value.challenge !is Challenge.PlankHoldChallenge) return
+        if (_uiState.value.plankHoldActive) return
+        _uiState.value = _uiState.value.copy(plankHoldActive = true)
+        plankJob?.cancel()
+        plankJob = viewModelScope.launch {
+            val challenge = _uiState.value.challenge as? Challenge.PlankHoldChallenge ?: return@launch
+            var elapsed = _uiState.value.plankHoldSeconds
+            while (elapsed < challenge.requiredSeconds) {
+                kotlinx.coroutines.delay(1000)
+                if (!_uiState.value.plankHoldActive) return@launch
+                elapsed++
+                _uiState.value = _uiState.value.copy(plankHoldSeconds = elapsed)
+                if (elapsed >= challenge.requiredSeconds) {
+                    proceedToNextChallenge()
+                    return@launch
+                }
+            }
+        }
+    }
+
+    fun onPlankHoldBreak() {
+        plankJob?.cancel()
+        _uiState.value = _uiState.value.copy(plankHoldActive = false)
     }
 
     // v1.5.0: Simon-says — play the sequence then accept taps

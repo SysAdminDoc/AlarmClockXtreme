@@ -11,7 +11,7 @@ AutoName: AlarmClockXtreme
 Summary: Feature-rich alarm clock with challenges, weather, and bedtime tools
 Description: |-
   AlarmClockXtreme is an open-source alarm clock with exact scheduling,
-  23 dismiss challenges, smart wake features, timers, stopwatch, weather,
+  25 dismiss challenges, smart wake features, timers, stopwatch, weather,
   public-holiday skips, calendar-assisted alarms, bedtime tools, widgets,
   local statistics, and full backup/restore.
 
@@ -23,9 +23,9 @@ RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.14.19
-    versionCode: 101
-    commit: v1.14.19
+  - versionName: 1.15.0
+    versionCode: 102
+    commit: v1.15.0
     subdir: app
     gradle:
       - fdroid
@@ -40,5 +40,5 @@ AntiFeatures:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.14.19
+CurrentVersion: 1.15.0
 CurrentVersionCode: 101

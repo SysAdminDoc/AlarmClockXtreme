@@ -2,6 +2,20 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.0] - 2026-06-19
+
+### Added
+
+- Push-up dismiss challenge: accelerometer-based push-up detection with the
+  phone placed face-down on the floor. Uses Z-axis motion pattern to count
+  reps. Shares the same readiness/fallback pattern as the existing squat
+  challenge.
+- Plank hold dismiss challenge: hold the phone level and face-down for 30
+  seconds. Timer counts up while position is held; tap "I broke form" to
+  pause and resume. No accelerometer validation in this first version -- the
+  timer is honor-system-based with a manual break button.
+- Challenge roster now 25 user-facing types.
+
 ## [1.14.19] - 2026-06-19
 
 ### Added

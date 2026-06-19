@@ -29,6 +29,7 @@ import com.sysadmindoc.alarmclock.util.PhotoMatcher
 import com.sysadmindoc.alarmclock.util.ProximityCoverDetector
 import com.sysadmindoc.alarmclock.util.ShakeDetector
 import com.sysadmindoc.alarmclock.util.SquatDetector
+import com.sysadmindoc.alarmclock.util.PushUpDetector
 import com.sysadmindoc.alarmclock.util.StepCounterListener
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,7 @@ class AlarmFiringActivity : ComponentActivity() {
     private val viewModel: AlarmFiringViewModel by viewModels()
     private var shakeDetector: ShakeDetector? = null
     private var squatDetector: SquatDetector? = null
+    private var pushUpDetector: PushUpDetector? = null
     private var stepCounterListener: StepCounterListener? = null
     private var flipDetector: FlipDetector? = null
     private var coverDetector: ProximityCoverDetector? = null
@@ -177,6 +179,10 @@ class AlarmFiringActivity : ComponentActivity() {
                 when {
                     challenge is Challenge.SquatChallenge && !state.challengeSolved -> startSquatDetection()
                     else -> stopSquatDetection()
+                }
+                when {
+                    challenge is Challenge.PushUpChallenge && !state.challengeSolved -> startPushUpDetection()
+                    else -> stopPushUpDetection()
                 }
                 when {
                     challenge is Challenge.WifiChallenge && !state.challengeSolved -> startWifiPolling()
@@ -383,6 +389,18 @@ class AlarmFiringActivity : ComponentActivity() {
     private fun stopSquatDetection() {
         squatDetector?.stop()
         squatDetector = null
+    }
+
+    private fun startPushUpDetection() {
+        if (pushUpDetector != null) return
+        pushUpDetector = PushUpDetector(this) { count ->
+            viewModel.updatePushUpCount(count)
+        }.also { it.start() }
+    }
+
+    private fun stopPushUpDetection() {
+        pushUpDetector?.stop()
+        pushUpDetector = null
     }
 
     private fun startWifiPolling() {
@@ -610,6 +628,7 @@ class AlarmFiringActivity : ComponentActivity() {
         sunriseJob?.cancel()
         stopShakeDetection()
         stopSquatDetection()
+        stopPushUpDetection()
         stopWalkSteps()
         stopWifiPolling()
         stopFlipDetector()
