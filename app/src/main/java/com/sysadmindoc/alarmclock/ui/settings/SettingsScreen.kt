@@ -502,6 +502,7 @@ fun SettingsScreen(
                 viewModel = viewModel,
                 onRequestPermissions = requestHealthConnectPermissions
             )
+            ConnectionsSection(state)
             PersonalizationSection(state, viewModel)
             BackupRestoreSection(viewModel)
 
@@ -1947,6 +1948,143 @@ private fun formatSleepMinutes(minutes: Long?): String {
  * `customTypingPhrases`) lived in DataStore + the backup payload but had no
  * UI surface — users couldn't change them.
  */
+@Composable
+private fun ConnectionsSection(state: SettingsUiState) {
+    data class ConnectionInfo(
+        val name: String,
+        val enabled: Boolean,
+        val domain: String,
+        val dataSent: String,
+        val offlineFallback: String
+    )
+
+    val connections = buildList {
+        add(ConnectionInfo(
+            name = "Weather",
+            enabled = state.settings.showWeatherOnDashboard,
+            domain = "api.open-meteo.com",
+            dataSent = "Latitude, longitude",
+            offlineFallback = "Last cached forecast"
+        ))
+        add(ConnectionInfo(
+            name = "Air quality",
+            enabled = state.settings.showWeatherOnDashboard,
+            domain = "air-quality-api.open-meteo.com",
+            dataSent = "Latitude, longitude",
+            offlineFallback = "Hidden when unavailable"
+        ))
+        add(ConnectionInfo(
+            name = "NWS weather alerts",
+            enabled = state.settings.showWeatherOnDashboard,
+            domain = "api.weather.gov",
+            dataSent = "Latitude, longitude (US only)",
+            offlineFallback = "No alerts shown"
+        ))
+        add(ConnectionInfo(
+            name = "Public holidays",
+            enabled = state.settings.holidayAutoSkipEnabled,
+            domain = "date.nager.at",
+            dataSent = "Country code",
+            offlineFallback = "Cached holidays; skip disabled"
+        ))
+        add(ConnectionInfo(
+            name = "Live radar",
+            enabled = state.settings.showRadarEmbed,
+            domain = "embed.windy.com",
+            dataSent = "Latitude, longitude (via embed URL)",
+            offlineFallback = "Radar card hidden"
+        ))
+        add(ConnectionInfo(
+            name = "News feed",
+            enabled = state.settings.showNewsTab,
+            domain = state.settings.newsFeedUrl
+                .removePrefix("https://").removePrefix("http://")
+                .substringBefore("/").ifBlank { "user-configured" },
+            dataSent = "Feed URL fetch only",
+            offlineFallback = "Empty feed"
+        ))
+        if (state.settings.webhookEnabled) {
+            add(ConnectionInfo(
+                name = "Webhook",
+                enabled = true,
+                domain = state.settings.webhookUrl
+                    .removePrefix("https://").removePrefix("http://")
+                    .substringBefore("/").ifBlank { "not configured" },
+                dataSent = "Alarm event, time, optional label",
+                offlineFallback = "Events silently dropped"
+            ))
+        }
+        if (state.settings.hueBridgeIp.isNotBlank()) {
+            add(ConnectionInfo(
+                name = "Philips Hue",
+                enabled = true,
+                domain = "${state.settings.hueBridgeIp} (LAN)",
+                dataSent = "Light on/brightness/color commands",
+                offlineFallback = "Sunrise simulation skipped"
+            ))
+        }
+        add(ConnectionInfo(
+            name = "Health Connect",
+            enabled = state.settings.healthConnectEnabled,
+            domain = "On-device (no network)",
+            dataSent = "None — reads local sleep sessions",
+            offlineFallback = "Always local"
+        ))
+    }
+
+    SettingsGroup(
+        title = "Connections and data",
+        description = "Optional network services and what they send. Nothing leaves the device unless you enable it."
+    ) {
+        connections.forEach { conn ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp, horizontal = 4.dp),
+                shape = RoundedCornerShape(10.dp),
+                color = if (conn.enabled) SurfaceLight.copy(alpha = 0.58f)
+                    else SurfaceLight.copy(alpha = 0.28f)
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = conn.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = if (conn.enabled) TextPrimary else TextMuted
+                        )
+                        AppStatusChip(
+                            label = if (conn.enabled) "Active" else "Off",
+                            color = if (conn.enabled) DismissGreen else TextMuted
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = conn.domain,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Sends: ${conn.dataSent}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted
+                    )
+                    Text(
+                        text = "Offline: ${conn.offlineFallback}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsViewModel) {
     SettingsGroup(

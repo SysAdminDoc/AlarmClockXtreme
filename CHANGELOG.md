@@ -12,6 +12,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - YouTube engine provenance tracking: bundled version, active version, last
   update time/status/source, and last failure reason are persisted to DataStore
   and surfaced in support diagnostics. Engine can be reset to bundled version.
+- Settings "Connections and data" transparency panel lists each optional
+  network provider with enabled/disabled state, domain, data sent, and offline
+  fallback. Support diagnostics include a redacted "Connections" summary.
 
 ### Fixed
 
