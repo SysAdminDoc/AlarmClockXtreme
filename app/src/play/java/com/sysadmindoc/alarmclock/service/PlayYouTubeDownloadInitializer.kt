@@ -20,20 +20,27 @@ import javax.inject.Singleton
 class PlayYouTubeDownloadInitializer @Inject constructor(
     @ApplicationContext private val context: Context,
     private val downloader: PlayYouTubeAudioDownloader,
+    private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager,
 ) : YouTubeDownloadInitializer {
 
     override suspend fun initialize() {
         try {
             YoutubeDL.getInstance().init(context)
-            // NewPipe drives the in-dialog YouTube search. Init failure here
-            // doesn't disable downloads — the URL-paste path still works
-            // because it goes through yt-dlp directly. Just log + continue.
             try {
                 org.schabi.newpipe.extractor.NewPipe.init(NewPipeDownloader)
             } catch (e: Exception) {
                 Log.w("YtDlpInit", "NewPipe init failed; search will be unavailable", e)
             }
             downloader.markInitialized()
+            val version = downloader.engineVersionName() ?: ""
+            preferencesManager.update { current ->
+                val bundled = if (current.ytEngineBundledVersion.isBlank()) version
+                    else current.ytEngineBundledVersion
+                current.copy(
+                    ytEngineBundledVersion = bundled,
+                    ytEngineActiveVersion = version
+                )
+            }
         } catch (e: Throwable) {
             Log.w("YtDlpInit", "yt-dlp init failed; YouTube downloads will be disabled", e)
         }

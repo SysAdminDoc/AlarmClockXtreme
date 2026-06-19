@@ -307,7 +307,13 @@ object SupportDiagnosticsFormatter {
         latestIncidentType: String?,
         latestIncidentStatus: String?,
         latestIncidentReason: String?,
-        stats: AlarmStats
+        stats: AlarmStats,
+        ytEngineBundledVersion: String = "",
+        ytEngineActiveVersion: String = "",
+        ytEngineLastUpdateMs: Long = 0,
+        ytEngineLastUpdateStatus: String = "",
+        ytEngineLastUpdateSource: String = "",
+        ytEngineLastFailureReason: String = ""
     ): String {
         val nextTrigger = nextTriggerTime?.takeIf { it > 0L }?.let(::formatEpochMillis) ?: "none"
         return buildString {
@@ -375,6 +381,18 @@ object SupportDiagnosticsFormatter {
             appendLine("- Alarms this week: ${stats.alarmsThisWeek}")
             appendLine("- Day counts: ${formatDayMap(stats.dayOfWeekCounts)}")
             appendLine("- Day average response seconds: ${formatDayMap(stats.dayOfWeekAvgResponseSec)}")
+            appendLine()
+            appendLine("YouTube engine")
+            appendLine("- Bundled version: ${ytEngineBundledVersion.ifBlank { "unknown" }}")
+            appendLine("- Active version: ${ytEngineActiveVersion.ifBlank { "unknown" }}")
+            if (ytEngineLastUpdateMs > 0) {
+                appendLine("- Last update: ${java.time.Instant.ofEpochMilli(ytEngineLastUpdateMs)}")
+                appendLine("- Last update status: $ytEngineLastUpdateStatus")
+                appendLine("- Last update source: $ytEngineLastUpdateSource")
+            }
+            if (ytEngineLastFailureReason.isNotBlank()) {
+                appendLine("- Last failure: $ytEngineLastFailureReason")
+            }
             appendLine()
             appendLine("Crash logs")
             appendLine("- Included files: $crashLogCount")

@@ -9,6 +9,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Per-alarm squat challenge count: the squat dismiss challenge is now
   configurable (5/10/15/20/30/50) instead of hardcoded to 10 reps.
   DB v15 → v16 with `MIGRATION_15_16`.
+- YouTube engine provenance tracking: bundled version, active version, last
+  update time/status/source, and last failure reason are persisted to DataStore
+  and surfaced in support diagnostics. Engine can be reset to bundled version.
 
 ### Fixed
 

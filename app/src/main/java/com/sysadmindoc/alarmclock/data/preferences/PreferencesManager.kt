@@ -141,7 +141,14 @@ data class AppSettings(
     val cancellationLockMinutes: Int = 0,
     val firingControlMode: String = "hybrid",
     val challengeBypassEnabled: Boolean = false,
-    val challengeBypassDelaySeconds: Int = 30
+    val challengeBypassDelaySeconds: Int = 30,
+    // v1.14.19: YouTube engine provenance (Play flavor only; F-Droid ignores).
+    val ytEngineBundledVersion: String = "",
+    val ytEngineActiveVersion: String = "",
+    val ytEngineLastUpdateMs: Long = 0,
+    val ytEngineLastUpdateStatus: String = "",
+    val ytEngineLastUpdateSource: String = "",
+    val ytEngineLastFailureReason: String = ""
 )
 
 private fun AppSettings.sanitized(): AppSettings {
@@ -210,7 +217,8 @@ private fun AppSettings.sanitized(): AppSettings {
         firingControlMode = firingControlMode.takeIf {
             it in setOf("hybrid", "buttons", "swipe")
         } ?: "hybrid",
-        challengeBypassDelaySeconds = challengeBypassDelaySeconds.coerceIn(10, 120)
+        challengeBypassDelaySeconds = challengeBypassDelaySeconds.coerceIn(10, 120),
+        ytEngineLastFailureReason = ytEngineLastFailureReason.take(200)
     )
 }
 
@@ -302,6 +310,12 @@ class PreferencesManager @Inject constructor(
         val FIRING_CONTROL_MODE = stringPreferencesKey("firing_control_mode")
         val CHALLENGE_BYPASS_ENABLED = booleanPreferencesKey("challenge_bypass_enabled")
         val CHALLENGE_BYPASS_DELAY = intPreferencesKey("challenge_bypass_delay_seconds")
+        val YT_ENGINE_BUNDLED_VERSION = stringPreferencesKey("yt_engine_bundled_version")
+        val YT_ENGINE_ACTIVE_VERSION = stringPreferencesKey("yt_engine_active_version")
+        val YT_ENGINE_LAST_UPDATE_MS = longPreferencesKey("yt_engine_last_update_ms")
+        val YT_ENGINE_LAST_UPDATE_STATUS = stringPreferencesKey("yt_engine_last_update_status")
+        val YT_ENGINE_LAST_UPDATE_SOURCE = stringPreferencesKey("yt_engine_last_update_source")
+        val YT_ENGINE_LAST_FAILURE_REASON = stringPreferencesKey("yt_engine_last_failure_reason")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -415,6 +429,12 @@ class PreferencesManager @Inject constructor(
         firingControlMode = this[Keys.FIRING_CONTROL_MODE] ?: "hybrid",
         challengeBypassEnabled = this[Keys.CHALLENGE_BYPASS_ENABLED] ?: false,
         challengeBypassDelaySeconds = this[Keys.CHALLENGE_BYPASS_DELAY] ?: 30,
+        ytEngineBundledVersion = this[Keys.YT_ENGINE_BUNDLED_VERSION] ?: "",
+        ytEngineActiveVersion = this[Keys.YT_ENGINE_ACTIVE_VERSION] ?: "",
+        ytEngineLastUpdateMs = this[Keys.YT_ENGINE_LAST_UPDATE_MS] ?: 0L,
+        ytEngineLastUpdateStatus = this[Keys.YT_ENGINE_LAST_UPDATE_STATUS] ?: "",
+        ytEngineLastUpdateSource = this[Keys.YT_ENGINE_LAST_UPDATE_SOURCE] ?: "",
+        ytEngineLastFailureReason = this[Keys.YT_ENGINE_LAST_FAILURE_REASON] ?: "",
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
@@ -484,5 +504,11 @@ class PreferencesManager @Inject constructor(
         this[Keys.FIRING_CONTROL_MODE] = s.firingControlMode
         this[Keys.CHALLENGE_BYPASS_ENABLED] = s.challengeBypassEnabled
         this[Keys.CHALLENGE_BYPASS_DELAY] = s.challengeBypassDelaySeconds
+        this[Keys.YT_ENGINE_BUNDLED_VERSION] = s.ytEngineBundledVersion
+        this[Keys.YT_ENGINE_ACTIVE_VERSION] = s.ytEngineActiveVersion
+        this[Keys.YT_ENGINE_LAST_UPDATE_MS] = s.ytEngineLastUpdateMs
+        this[Keys.YT_ENGINE_LAST_UPDATE_STATUS] = s.ytEngineLastUpdateStatus
+        this[Keys.YT_ENGINE_LAST_UPDATE_SOURCE] = s.ytEngineLastUpdateSource
+        this[Keys.YT_ENGINE_LAST_FAILURE_REASON] = s.ytEngineLastFailureReason
     }
 }

@@ -43,7 +43,8 @@ class SupportExportManager @Inject constructor(
     private val alarmRepository: AlarmRepository,
     private val alarmEventRepository: AlarmEventRepository,
     private val actigraphyRepository: ActigraphyRepository,
-    private val alarmIncidentRepository: AlarmIncidentRepository
+    private val alarmIncidentRepository: AlarmIncidentRepository,
+    private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 ) {
     suspend fun createSupportExport(): SupportExportFile {
         val generatedAt = Instant.now()
@@ -80,6 +81,7 @@ class SupportExportManager @Inject constructor(
         val standbyBucket = appStandbyBucketLabel()
         val testAlarmProof = TestAlarmProofStore.lastProof(context)
         val sdkInt = Build.VERSION.SDK_INT
+        val appSettings = preferencesManager.getCachedSettings()
 
         val includedFiles = mutableListOf(
             "support_manifest.json",
@@ -160,7 +162,13 @@ class SupportExportManager @Inject constructor(
                     latestIncidentType = latestIncident?.type,
                     latestIncidentStatus = latestIncident?.status,
                     latestIncidentReason = latestIncident?.reasonCode,
-                    stats = stats
+                    stats = stats,
+                    ytEngineBundledVersion = appSettings.ytEngineBundledVersion,
+                    ytEngineActiveVersion = appSettings.ytEngineActiveVersion,
+                    ytEngineLastUpdateMs = appSettings.ytEngineLastUpdateMs,
+                    ytEngineLastUpdateStatus = appSettings.ytEngineLastUpdateStatus,
+                    ytEngineLastUpdateSource = appSettings.ytEngineLastUpdateSource,
+                    ytEngineLastFailureReason = appSettings.ytEngineLastFailureReason
                 )
             )
             zip.writeTextEntry("alarms_redacted.csv", SupportDiagnosticsFormatter.alarmCsv(alarms))
