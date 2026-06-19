@@ -20,6 +20,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   async message; the tile now waits for the Wear Data Layer send task, reports
   queued/failed status honestly, and blocks alarm controls when phone sync is
   stale.
+- YouTube alarm-sound download failures now remain visible inside the active
+  dialog instead of being reported only behind the modal.
+- The ringtone picker no longer colors a failed YouTube download as a success
+  after a previous save, and its limited-device-sound warning no longer points
+  F-Droid users toward unavailable YouTube downloads.
 
 ### Changed
 
@@ -33,6 +38,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   screen-reader users.
 - Added a tracked public Roadmap section to README and corrected the documented
   backup/restore format to v11.
+- Ringtone preview, YouTube save, and device-sound-list warnings now use the
+  shared inline notice treatment instead of isolated status text.
 - Bumped app, Wear, README, and F-Droid metadata to `versionName = "1.14.18"`,
   `versionCode = 100`.
 
