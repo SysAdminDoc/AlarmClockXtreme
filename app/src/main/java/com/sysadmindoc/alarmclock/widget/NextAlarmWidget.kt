@@ -7,8 +7,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.*
+import androidx.glance.action.ActionParameters
+import androidx.glance.action.actionParametersOf
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.*
+import androidx.glance.appwidget.action.ActionCallback
+import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.provideContent
 import androidx.glance.layout.*
@@ -68,6 +72,8 @@ class NextAlarmWidget : GlanceAppWidget() {
                 val dayStr = localTime.format(DateTimeFormatter.ofPattern("EEE"))
 
                 WidgetAlarmData(
+                    alarmId = alarm.id,
+                    triggerTimeMs = alarm.nextTriggerTime,
                     timeFormatted = timeStr,
                     dayFormatted = dayStr,
                     remaining = remaining,
@@ -81,11 +87,39 @@ class NextAlarmWidget : GlanceAppWidget() {
 }
 
 data class WidgetAlarmData(
+    val alarmId: Long,
+    val triggerTimeMs: Long,
     val timeFormatted: String,
     val dayFormatted: String,
     val remaining: String,
     val label: String
-)
+) {
+    val isWithin24Hours: Boolean
+        get() = triggerTimeMs - System.currentTimeMillis() in 1..24 * 60 * 60 * 1000L
+}
+
+private val AdjustMinutesKey = ActionParameters.Key<Int>("adjust_minutes")
+
+class AdjustAlarmAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val minutes = parameters[AdjustMinutesKey] ?: return
+        val deltaMs = minutes * 60_000L
+        try {
+            val ep = EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                AlarmClockApp.AppEntryPoint::class.java
+            )
+            val alarm = ep.alarmRepository().getNextAlarm() ?: return
+            if (alarm.nextTriggerTime <= System.currentTimeMillis()) return
+            val newTrigger = alarm.nextTriggerTime + deltaMs
+            if (newTrigger <= System.currentTimeMillis()) return
+            ep.alarmScheduler().scheduleAt(alarm, newTrigger)
+        } catch (_: Exception) {
+            // Non-fatal — widget tap should never crash
+        }
+        NextAlarmWidget().update(context, glanceId)
+    }
+}
 
 // Widget color constants (Glance uses its own color system)
 private val WidgetBg = Color(0xFF0D1B2A)
@@ -151,6 +185,43 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?) {
                         fontSize = 11.sp
                     )
                 )
+
+                if (data.isWithin24Hours) {
+                    Spacer(modifier = GlanceModifier.height(6.dp))
+                    Row(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = " -10m ",
+                            style = TextStyle(
+                                color = ColorProvider(WidgetAccent),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = GlanceModifier
+                                .background(WidgetCardBg)
+                                .cornerRadius(6.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .clickable(actionRunCallback<AdjustAlarmAction>(
+                                    actionParametersOf(AdjustMinutesKey to -10)
+                                ))
+                        )
+                        Spacer(modifier = GlanceModifier.width(8.dp))
+                        Text(
+                            text = " +10m ",
+                            style = TextStyle(
+                                color = ColorProvider(WidgetAccent),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = GlanceModifier
+                                .background(WidgetCardBg)
+                                .cornerRadius(6.dp)
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .clickable(actionRunCallback<AdjustAlarmAction>(
+                                    actionParametersOf(AdjustMinutesKey to 10)
+                                ))
+                        )
+                    }
+                }
             }
         } else {
             Column(

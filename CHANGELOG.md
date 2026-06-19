@@ -19,6 +19,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   integrations" sections are now collapsible groups with animated expand/collapse.
   Core alarm fields (time, label, group, sound, vibration, snooze) stay visible.
   Groups auto-expand when they contain active configuration.
+- Widget quick-adjust: the home screen Glance widget shows "-10m" and "+10m"
+  buttons when the next alarm is within 24 hours. Tapping adjusts the fire
+  time without opening the app. Bounds-checked to prevent adjusting into the
+  past.
 
 ### Fixed
 
