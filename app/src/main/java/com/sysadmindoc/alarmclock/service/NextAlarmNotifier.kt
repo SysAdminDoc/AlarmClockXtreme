@@ -198,7 +198,7 @@ class NextAlarmNotifier @Inject constructor(
     ): Notification {
         return NotificationCompat.Builder(context, CHANNEL_PERSISTENT)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Next: $timeStr")
+            .setContentTitle(context.getString(R.string.notif_next_alarm_title, timeStr))
             .setContentText("$title - $remaining remaining")
             .setOngoing(true)
             .setAutoCancel(false)
@@ -209,7 +209,7 @@ class NextAlarmNotifier @Inject constructor(
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(pendingIntent)
-            .addAction(R.drawable.ic_alarm, "Skip this alarm", skipPi)
+            .addAction(R.drawable.ic_alarm, context.getString(R.string.notif_skip_action), skipPi)
             .build()
     }
 
@@ -237,7 +237,7 @@ class NextAlarmNotifier @Inject constructor(
 
         val notification = Notification.Builder(context, CHANNEL_PERSISTENT)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Next: $timeStr")
+            .setContentTitle(context.getString(R.string.notif_next_alarm_title, timeStr))
             .setContentText("$title - $remaining remaining")
             .setSubText("Alarm countdown")
             .setOngoing(true)
@@ -254,7 +254,7 @@ class NextAlarmNotifier @Inject constructor(
             .addAction(
                 Notification.Action.Builder(
                     Icon.createWithResource(context, R.drawable.ic_alarm),
-                    "Skip this alarm",
+                    context.getString(R.string.notif_skip_action),
                     skipPi
                 ).build()
             )

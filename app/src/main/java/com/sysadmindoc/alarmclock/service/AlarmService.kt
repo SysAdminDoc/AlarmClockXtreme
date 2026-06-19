@@ -549,8 +549,8 @@ class AlarmService : Service() {
         try {
             val placeholder = NotificationCompat.Builder(this, CHANNEL_ALARM)
                 .setSmallIcon(R.drawable.ic_alarm)
-                .setContentTitle("Alarm")
-                .setContentText("Alarm ringing")
+                .setContentTitle(getString(R.string.notif_alarm_title))
+                .setContentText(getString(R.string.notif_alarm_ringing))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -619,7 +619,7 @@ class AlarmService : Service() {
 
         return NotificationCompat.Builder(this, CHANNEL_ALARM)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Alarm")
+            .setContentTitle(getString(R.string.notif_alarm_title))
             .setContentText(
                 AlarmPublicText.firingNotificationText(
                     label = alarm.label,
@@ -631,16 +631,11 @@ class AlarmService : Service() {
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setFullScreenIntent(fullScreenPi, true)
-            // Tapping the collapsed notification body should also open the
-            // firing screen — without setContentIntent, only the action
-            // buttons or the auto-launched full-screen intent are reachable,
-            // which is a confusing dead-end if the FSI was suppressed (e.g.
-            // user is mid-call) or already dismissed.
             .setContentIntent(fullScreenPi)
             .setOngoing(true)
             .setAutoCancel(false)
-            .addAction(R.drawable.ic_alarm, "Snooze ${alarm.snoozeDurationMinutes}m", snoozePi)
-            .addAction(R.drawable.ic_alarm, "Dismiss", dismissPi)
+            .addAction(R.drawable.ic_alarm, getString(R.string.notif_snooze_action, alarm.snoozeDurationMinutes), snoozePi)
+            .addAction(R.drawable.ic_alarm, getString(R.string.notif_dismiss_action), dismissPi)
             .build()
     }
 
@@ -1508,7 +1503,7 @@ class AlarmService : Service() {
 
         val notification = NotificationCompat.Builder(this, CHANNEL_MISSED)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Missed Alarm")
+            .setContentTitle(getString(R.string.notif_missed_title))
             .setContentText("$label at $timeStr was auto-silenced after $autoSilenceMinutes minutes")
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

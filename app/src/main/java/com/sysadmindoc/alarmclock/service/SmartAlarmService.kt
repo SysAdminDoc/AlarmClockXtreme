@@ -97,8 +97,8 @@ class SmartAlarmService : Service(), SensorEventListener {
 
         val notification = NotificationCompat.Builder(this, CHANNEL_SMART)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Smart Alarm Active")
-            .setContentText("Monitoring sleep quality…")
+            .setContentTitle(getString(R.string.notif_smart_alarm_title))
+            .setContentText(getString(R.string.notif_smart_alarm_text))
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
