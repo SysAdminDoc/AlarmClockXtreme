@@ -2,6 +2,26 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.14.19] - 2026-06-19
+
+### Fixed
+
+- WakeConfirmWorker now checks `isStopped` during its polling loop so a
+  cancelled worker stops promptly and records a diagnostic incident instead of
+  spinning until its 60-second deadline.
+- Bedtime DND toggle now reverts the persisted preference when the system denies
+  notification-policy access, preventing a stuck "on" state on next launch.
+- Hue TOFU cert pinning uses `@Volatile` on the observed fingerprint and a
+  first-writer-wins DataStore update so concurrent workers cannot overwrite each
+  other's pin.
+- Onboarding completion key is now versioned (`onboarding_complete_v1`) so a
+  future onboarding redesign can re-show the flow to existing users.
+
+### Changed
+
+- Blocked roadmap items separated into `Roadmap_Blocked.md` for clarity.
+- CI version-lint now fails if app source links to gitignored markdown files.
+
 ## [1.14.18] - 2026-06-15
 
 ### Fixed
