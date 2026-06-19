@@ -79,6 +79,7 @@ import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
@@ -475,7 +476,7 @@ fun StatsScreen(
                     color = TextSecondary
                 )
             },
-            containerColor = SurfaceDark,
+            containerColor = SurfaceMedium,
             shape = RoundedCornerShape(12.dp)
         )
     }

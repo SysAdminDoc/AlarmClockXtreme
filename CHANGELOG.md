@@ -22,6 +22,12 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Challenge views (Simon Says, Stroop, PVT) now use theme color tokens
+  (`AccentRed`, `DismissGreen`, `AccentBlue`, `SnoozeYellow`) instead of raw
+  hex values, so they respond correctly to custom accent color and dynamic color.
+- AlertDialog surface color in BedtimeScreen and StatsScreen corrected from
+  `SurfaceDark` (app background) to `SurfaceMedium` (dialog convention), matching
+  YouTubeDownloadDialog and RingtonePickerSheet.
 - WakeConfirmWorker now checks `isStopped` during its polling loop so a
   cancelled worker stops promptly and records a diagnostic incident instead of
   spinning until its 60-second deadline.
