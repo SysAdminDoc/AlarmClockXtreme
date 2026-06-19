@@ -96,4 +96,51 @@
     <string name="shortcut_timer_long">Start a timer</string>
     <string name="shortcut_bedtime">Bedtime</string>
     <string name="shortcut_bedtime_long">Open bedtime tracker</string>
+
+    <!-- Notification text (system surfaces — highest i18n priority) -->
+    <string name="notif_alarm_title">Alarm</string>
+    <string name="notif_alarm_ringing">Alarm ringing</string>
+    <string name="notif_snooze_action">Snooze %1$dm</string>
+    <string name="notif_dismiss_action">Dismiss</string>
+    <string name="notif_skip_action">Skip this alarm</string>
+    <string name="notif_next_alarm_title">Next: %1$s</string>
+    <string name="notif_missed_title">Missed Alarm</string>
+    <string name="notif_smart_alarm_title">Smart Alarm Active</string>
+    <string name="notif_smart_alarm_text">Monitoring sleep quality…</string>
+    <string name="notif_sonar_title">Sleep tracking active</string>
+    <string name="notif_sonar_text">Sonar monitoring in progress</string>
+
+    <!-- Wake confirmation -->
+    <string name="wake_confirm_title">Wake confirmation</string>
+    <string name="wake_confirm_question">Are you actually up?</string>
+    <string name="wake_confirm_yes">Yes, I\'m up</string>
+    <string name="wake_confirm_not_yet">Not yet — keep checking</string>
+    <string name="wake_confirm_confirm_label">Confirm to stop re-checks</string>
+    <string name="wake_confirm_final_label">Final check — no more re-fires</string>
+
+    <!-- Alarm firing screen -->
+    <string name="firing_ready_to_dismiss">Alarm ready to dismiss</string>
+    <string name="firing_controls_title">Alarm controls</string>
+    <string name="firing_snooze_hint">Long-press Snooze for exact minutes. Your saved default stays unchanged.</string>
+    <string name="firing_exact_snooze">Exact snooze</string>
+    <string name="firing_exact_snooze_hint">Applies once to this alarm.</string>
+    <string name="firing_flip_to_snooze">Flip to snooze</string>
+    <string name="firing_hold_dismiss">Hold dismiss 1.5s</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_app_title">Alarm Clock Xtreme</string>
+    <string name="onboarding_tagline">Dependable mornings with less friction</string>
+    <string name="onboarding_welcome">Welcome</string>
+    <string name="onboarding_page_reliable">Reliable wake-ups</string>
+    <string name="onboarding_page_wake">Wake up for real</string>
+    <string name="onboarding_page_informed">Start the day informed</string>
+    <string name="onboarding_page_privacy">Private by default</string>
+    <string name="onboarding_recommended">Recommended setup</string>
+    <string name="onboarding_optional">Optional</string>
+    <string name="onboarding_exact_alarm">Exact alarm access</string>
+    <string name="onboarding_notifications">Alarm notifications</string>
+    <string name="onboarding_fullscreen">Full-screen alarm access</string>
+    <string name="onboarding_battery">Battery protection</string>
+    <string name="onboarding_test_alarm">Test alarm</string>
+    <string name="onboarding_step_of">Step %1$d of %2$d</string>
 </resources>

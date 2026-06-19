@@ -32,6 +32,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -232,7 +234,7 @@ private fun WakeConfirmScreen(
                         )
                     }
                     Text(
-                        text = "Are you actually up?",
+                        text = stringResource(R.string.wake_confirm_question),
                         color = TextPrimary,
                         style = MaterialTheme.typography.headlineSmall
                     )
@@ -249,7 +251,7 @@ private fun WakeConfirmScreen(
                 }
 
                 AppSectionTitle(
-                    title = "Wake confirmation",
+                    title = stringResource(R.string.wake_confirm_title),
                     description = "A quick second check for alarms that need extra accountability."
                 )
 
@@ -258,7 +260,7 @@ private fun WakeConfirmScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AppStatusChip(
-                        label = "Confirm to stop re-checks",
+                        label = stringResource(R.string.wake_confirm_confirm_label),
                         icon = Icons.Default.CheckCircle,
                         color = DismissGreen
                     )
@@ -270,7 +272,7 @@ private fun WakeConfirmScreen(
                         )
                     } else {
                         AppStatusChip(
-                            label = "Final check — no more re-fires",
+                            label = stringResource(R.string.wake_confirm_final_label),
                             icon = Icons.Default.WarningAmber,
                             color = AccentRed
                         )
@@ -284,7 +286,7 @@ private fun WakeConfirmScreen(
                     shape = MaterialTheme.shapes.large
                 ) {
                     Text(
-                        text = "Yes, I'm up",
+                        text = stringResource(R.string.wake_confirm_yes),
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -302,7 +304,7 @@ private fun WakeConfirmScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Not yet — keep checking"
+                        text = stringResource(R.string.wake_confirm_not_yet)
                     )
                 }
 

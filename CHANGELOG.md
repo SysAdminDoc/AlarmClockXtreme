@@ -24,6 +24,13 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   time without opening the app. Bounds-checked to prevent adjusting into the
   past.
 
+### Changed
+
+- First pass of string-resource extraction: notification titles, action labels,
+  and wake-confirmation UI text moved to `strings.xml` (45 new entries). System
+  surfaces (lock screen, status bar, notification shade) are now translatable.
+  Remaining ~350 hardcoded strings are tracked for future i18n passes.
+
 ### Fixed
 
 - Challenge views (Simon Says, Stroop, PVT) now use theme color tokens
