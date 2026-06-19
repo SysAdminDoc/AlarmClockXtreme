@@ -61,6 +61,9 @@ interface YouTubeAudioDownloader {
      */
     suspend fun updateEngine(): Result<YouTubeEngineUpdateResult>
 
+    suspend fun resetEngine(): Result<Unit> =
+        Result.failure(UnsupportedOperationException("Not available in this build"))
+
     /**
      * Download the best-quality audio track from a YouTube URL and save it as
      * an alarm in MediaStore. Returns success with the new file's name (which

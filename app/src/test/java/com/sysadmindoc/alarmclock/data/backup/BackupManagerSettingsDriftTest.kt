@@ -22,7 +22,14 @@ class BackupManagerSettingsDriftTest {
      * Keep this list justified — an entry here means "resetting to the
      * default on restore is the correct behavior", not "we forgot".
      */
-    private val intentionallyNotBackedUp = emptySet<String>()
+    private val intentionallyNotBackedUp = setOf(
+        "ytEngineBundledVersion",
+        "ytEngineActiveVersion",
+        "ytEngineLastUpdateMs",
+        "ytEngineLastUpdateStatus",
+        "ytEngineLastUpdateSource",
+        "ytEngineLastFailureReason",
+    )
 
     @Test
     fun `every AppSettings field round-trips through SettingsBackup`() {

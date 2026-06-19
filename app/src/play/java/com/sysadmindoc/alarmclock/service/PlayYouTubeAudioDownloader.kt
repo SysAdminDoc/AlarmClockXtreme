@@ -36,6 +36,7 @@ import javax.inject.Singleton
 @Singleton
 class PlayYouTubeAudioDownloader @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager,
 ) : YouTubeAudioDownloader {
 
     private val initialized = AtomicBoolean(false)
@@ -93,6 +94,7 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                     "YouTube engine is still warming up. Try again in a moment."
                 }
                 val before = engineVersionName()
+                var updateSource = "library"
                 val status = try {
                     YoutubeDL.getInstance().updateYoutubeDL(
                         context,
@@ -101,10 +103,11 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                 } catch (libraryError: Exception) {
                     if (libraryError is CancellationException) throw libraryError
                     Log.d(TAG, "Library updater failed, trying manual OkHttp path", libraryError)
+                    updateSource = "manual_okhttp"
                     manualUpdateViaOkHttp()
                 }
                 val after = engineVersionName()
-                when (status) {
+                val result = when (status) {
                     YoutubeDL.UpdateStatus.DONE -> YouTubeEngineUpdateResult(
                         state = YouTubeEngineUpdateState.Updated,
                         beforeVersionName = before,
@@ -117,13 +120,50 @@ class PlayYouTubeAudioDownloader @Inject constructor(
                     )
                     else -> throw IllegalStateException("Unexpected yt-dlp update status: $status")
                 }
+                preferencesManager.update {
+                    it.copy(
+                        ytEngineActiveVersion = after ?: before ?: "",
+                        ytEngineLastUpdateMs = System.currentTimeMillis(),
+                        ytEngineLastUpdateStatus = result.state.name.lowercase(),
+                        ytEngineLastUpdateSource = updateSource,
+                        ytEngineLastFailureReason = ""
+                    )
+                }
+                result
             }.recoverCatching { e ->
                 if (e is CancellationException) throw e
                 Log.w(TAG, "yt-dlp engine update failed", e)
+                preferencesManager.update {
+                    it.copy(
+                        ytEngineLastUpdateMs = System.currentTimeMillis(),
+                        ytEngineLastUpdateStatus = "failed",
+                        ytEngineLastFailureReason = (e.message ?: e.javaClass.simpleName).take(200)
+                    )
+                }
                 throw e
             }
         } finally {
             engineUpdateInFlight.set(false)
+        }
+    }
+
+    override suspend fun resetEngine(): Result<Unit> = withContext(Dispatchers.IO) {
+        runCatching {
+            require(isAvailable()) { "YouTube engine is still warming up." }
+            val packagesDir = java.io.File(context.getDir("youtubedl-android", Context.MODE_PRIVATE), "yt-dlp")
+            val binaryFile = java.io.File(packagesDir, "yt-dlp")
+            if (binaryFile.exists()) binaryFile.delete()
+            YoutubeDL.getInstance().init(context)
+            val version = engineVersionName() ?: ""
+            preferencesManager.update {
+                it.copy(
+                    ytEngineActiveVersion = version,
+                    ytEngineLastUpdateMs = System.currentTimeMillis(),
+                    ytEngineLastUpdateStatus = "reset",
+                    ytEngineLastUpdateSource = "reset_to_bundled",
+                    ytEngineLastFailureReason = ""
+                )
+            }
         }
     }
 
