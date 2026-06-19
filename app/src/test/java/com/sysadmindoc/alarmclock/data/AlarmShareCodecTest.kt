@@ -157,4 +157,17 @@ class AlarmShareCodecTest {
             msg.contains("maximum size", ignoreCase = true)
         )
     }
+
+    @Test
+    fun tokenStorageKeyIsStableAndDoesNotExposeRawToken() {
+        val token = AlarmShareCodec.encodeToken(Alarm(label = "Private appointment"))
+
+        val key = AlarmShareCodec.tokenStorageKey(token)
+
+        assertEquals(key, AlarmShareCodec.tokenStorageKey(token))
+        assertFalse(key.contains(token))
+        assertTrue(key.startsWith("${token.length}:"))
+        assertTrue(key.length < 80)
+        assertFalse(key == AlarmShareCodec.tokenStorageKey("${token}x"))
+    }
 }

@@ -363,7 +363,8 @@ class SettingsViewModel @Inject constructor(
                 message = "Checking webhook endpoint...",
                 isRunning = true
             )
-            val url = preferencesManager.getCurrentSettings().webhookUrl
+            val settings = preferencesManager.getCurrentSettings()
+            val url = settings.webhookUrl
             val result = when {
                 url.isBlank() -> "Webhook failed — add an HTTPS URL first"
                 !webhookService.isAllowedUrl(url) && url.trim().startsWith("http://", ignoreCase = true) ->
@@ -372,7 +373,7 @@ class SettingsViewModel @Inject constructor(
                 LocalNetworkPermission.requiresPermissionForUrl(url) &&
                     !LocalNetworkPermission.isGranted(getApplication()) ->
                     "Webhook failed — allow local network access first"
-                webhookService.test(url) -> "Webhook OK"
+                webhookService.test(url, includeLabel = settings.webhookIncludeLabel) -> "Webhook OK"
                 else -> "Webhook failed — endpoint did not return 2xx"
             }
             _webhookTestState.value = IntegrationTestState(message = result, isRunning = false)

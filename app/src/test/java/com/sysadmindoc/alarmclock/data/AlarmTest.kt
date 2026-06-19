@@ -92,14 +92,22 @@ class AlarmTest {
             smartAlarmWindowMinutes = 999,
             specificDate = "not-a-date",
             profileName = "  Daily  ",
+            ringtoneUri = " content://tone/" + "r".repeat(3_000),
+            nfcTagId = " n".repeat(200),
+            barcodeValue = " b".repeat(600),
+            spotifyUri = " spotify:track:" + "s".repeat(3_000),
+            photoMatchUri = " content://photo/" + "p".repeat(3_000),
+            guardianPhone = " +1555" + "9".repeat(80),
             guardianDelaySec = 1,
             locationDismissRadius = 1,
+            wifiDismissSsid = " WiFi-" + "x".repeat(120),
+            internetRadioUrl = " https://radio.example/" + "i".repeat(3_000),
             challengeType = "not-real",
             vibrationPattern = "buzzstorm",
             challengeChain = "MATH_EASY, ,NOT_REAL,STROOP,NONE",
-            morningRoutine = " hydrate \n \n stretch ",
+            morningRoutine = (1..20).joinToString("\n") { " step-$it " + "m".repeat(120) },
             hardwareButtonAction = "volume-up",
-            ringtonePool = " tone://1, tone://1 , tone://2 ",
+            ringtonePool = (1..25).joinToString(",") { " tone://$it " } + ",tone://1",
             solarOffsetMinutes = 9999,
             solarAnchor = "dusk"
         )
@@ -122,11 +130,24 @@ class AlarmTest {
         assertEquals("MATH_EASY,STROOP", sanitized.challengeChain)
         assertEquals("", sanitized.specificDate)
         assertEquals("Daily", sanitized.profileName)
+        assertTrue(sanitized.ringtoneUri.startsWith("content://tone/"))
+        assertTrue(sanitized.ringtoneUri.length <= 2_048)
+        assertTrue(sanitized.nfcTagId.length <= 128)
+        assertTrue(sanitized.barcodeValue.length <= 512)
+        assertTrue(sanitized.spotifyUri.length <= 2_048)
+        assertTrue(sanitized.photoMatchUri.length <= 2_048)
+        assertEquals(40, sanitized.guardianPhone.length)
         assertEquals(30, sanitized.guardianDelaySec)
         assertEquals(25, sanitized.locationDismissRadius)
-        assertEquals("hydrate\nstretch", sanitized.morningRoutine)
+        assertTrue(sanitized.wifiDismissSsid.length <= 64)
+        assertTrue(sanitized.internetRadioUrl.startsWith("https://radio.example/"))
+        assertTrue(sanitized.internetRadioUrl.length <= 2_048)
+        val routineItems = sanitized.morningRoutine.lines()
+        assertEquals(12, routineItems.size)
+        assertTrue(routineItems.all { it.length <= 80 })
         assertEquals("NONE", sanitized.hardwareButtonAction)
-        assertEquals("tone://1,tone://2", sanitized.ringtonePool)
+        assertEquals(20, sanitized.ringtonePool.split(",").size)
+        assertEquals("tone://1", sanitized.ringtonePool.substringBefore(","))
         assertEquals(720, sanitized.solarOffsetMinutes)
         assertEquals("SUNRISE", sanitized.solarAnchor)
     }

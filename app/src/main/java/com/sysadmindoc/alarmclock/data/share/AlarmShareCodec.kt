@@ -7,6 +7,7 @@ import com.sysadmindoc.alarmclock.data.backup.toAlarmOrNull
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
+import java.security.MessageDigest
 import java.util.Base64
 import java.util.Locale
 
@@ -69,6 +70,17 @@ object AlarmShareCodec {
             payload.alarm.toAlarmOrNull()
                 ?: throw IllegalArgumentException("Shared alarm payload is not usable")
         }
+    }
+
+    internal fun tokenStorageKey(token: String): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+            .digest(token.toByteArray(Charsets.UTF_8))
+        val hash = buildString(digest.size * 2) {
+            digest.forEach { byte ->
+                append("%02x".format(Locale.US, byte.toInt() and 0xff))
+            }
+        }
+        return "${token.length}:$hash"
     }
 
     fun prepareImportedAlarm(alarm: Alarm, nowMillis: Long = System.currentTimeMillis()): Alarm {

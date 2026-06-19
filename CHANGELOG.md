@@ -25,6 +25,15 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The ringtone picker no longer colors a failed YouTube download as a success
   after a previous save, and its limited-device-sound warning no longer points
   F-Droid users toward unavailable YouTube downloads.
+- Alarm restore and shared-link imports now bound private-reference fields
+  before they reach Room, preventing malformed imports from persisting
+  oversized contact strings, URIs, routines, Wi-Fi names, or ringtone pools.
+- Shared-alarm deep links no longer store the raw token as Activity duplicate
+  state, avoiding oversized saved-state payloads from hostile or malformed
+  links.
+- Webhook test payloads now respect the "Include alarm labels" setting instead
+  of always sending a sample label.
+- Backup import failure logs no longer include the skipped alarm's label.
 
 ### Changed
 

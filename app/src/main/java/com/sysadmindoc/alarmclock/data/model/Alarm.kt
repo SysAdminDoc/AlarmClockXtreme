@@ -119,6 +119,16 @@ data class Alarm(
 ) {
     companion object {
         const val MAX_SMART_ALARM_WINDOW_MINUTES = 60
+        private const val MAX_LABEL_CHARS = 120
+        private const val MAX_GROUP_CHARS = 40
+        private const val MAX_PHONE_CHARS = 40
+        private const val MAX_SHORT_REFERENCE_CHARS = 128
+        private const val MAX_BARCODE_CHARS = 512
+        private const val MAX_URI_CHARS = 2_048
+        private const val MAX_WIFI_SSID_CHARS = 64
+        private const val MAX_ROUTINE_ITEMS = 12
+        private const val MAX_ROUTINE_ITEM_CHARS = 80
+        private const val MAX_RINGTONE_POOL_ITEMS = 20
 
         // Must stay in lockstep with ChallengeType (see ChallengeGenerator.kt).
         // Adding a new ChallengeType without listing it here causes sanitized()
@@ -183,7 +193,9 @@ data class Alarm(
         val normalizedPool = ringtonePool.split(",")
             .map { it.trim() }
             .filter { it.isNotEmpty() }
+            .map { it.take(MAX_URI_CHARS) }
             .distinct()
+            .take(MAX_RINGTONE_POOL_ITEMS)
             .joinToString(",")
         val normalizedSpecificDate = specificDate.trim().takeIf {
             it.isNotBlank() && runCatching { LocalDate.parse(it) }.isSuccess
@@ -207,37 +219,40 @@ data class Alarm(
         return copy(
             hour = hour.coerceIn(0, 23),
             minute = minute.coerceIn(0, 59),
-            label = label.trim().take(120),
+            label = label.trim().take(MAX_LABEL_CHARS),
+            ringtoneUri = ringtoneUri.trim().take(MAX_URI_CHARS),
             vibrationIntensity = vibrationIntensity.coerceIn(0, 2),
             volume = volume.coerceIn(0, 100),
             gradualVolumeSeconds = gradualVolumeSeconds.coerceIn(0, 300),
             snoozeDurationMinutes = snoozeDurationMinutes.coerceIn(1, 180),
             maxSnoozeCount = maxSnoozeCount.coerceIn(0, 20),
             challengeType = normalizedChallengeType,
-            group = group.trim().take(40),
+            group = group.trim().take(MAX_GROUP_CHARS),
             vibrationPattern = normalizedVibrationPattern,
             walkStepsRequired = walkStepsRequired.coerceIn(1, 10_000),
             wakeConfirmDelayMinutes = wakeConfirmDelayMinutes.coerceIn(1, 180),
             smartAlarmWindowMinutes = smartAlarmWindowMinutes.coerceIn(0, MAX_SMART_ALARM_WINDOW_MINUTES),
-            nfcTagId = nfcTagId.trim(),
-            barcodeValue = barcodeValue.trim(),
-            spotifyUri = spotifyUri.trim(),
+            nfcTagId = nfcTagId.trim().take(MAX_SHORT_REFERENCE_CHARS),
+            barcodeValue = barcodeValue.trim().take(MAX_BARCODE_CHARS),
+            spotifyUri = spotifyUri.trim().take(MAX_URI_CHARS),
             huePreWakeMinutes = huePreWakeMinutes.coerceIn(0, 180),
-            photoMatchUri = photoMatchUri.trim(),
+            photoMatchUri = photoMatchUri.trim().take(MAX_URI_CHARS),
             challengeChain = normalizedChallengeChain,
             backupSoundDelaySec = backupSoundDelaySec.coerceIn(5, 900),
             sunriseMinutes = sunriseMinutes.coerceIn(0, 120),
             specificDate = normalizedSpecificDate,
-            profileName = profileName.trim().take(40),
+            profileName = profileName.trim().take(MAX_GROUP_CHARS),
             earlyDismissMinutes = earlyDismissMinutes.coerceIn(0, 180),
-            guardianPhone = guardianPhone.trim(),
+            guardianPhone = guardianPhone.trim().take(MAX_PHONE_CHARS),
             guardianDelaySec = guardianDelaySec.coerceIn(30, 3600),
             locationDismissRadius = locationDismissRadius.coerceIn(25, 5_000),
-            wifiDismissSsid = wifiDismissSsid.trim(),
-            internetRadioUrl = internetRadioUrl.trim(),
+            wifiDismissSsid = wifiDismissSsid.trim().take(MAX_WIFI_SSID_CHARS),
+            internetRadioUrl = internetRadioUrl.trim().take(MAX_URI_CHARS),
             morningRoutine = morningRoutine.lines()
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
+                .map { it.take(MAX_ROUTINE_ITEM_CHARS) }
+                .take(MAX_ROUTINE_ITEMS)
                 .joinToString("\n"),
             hardwareButtonAction = when (hardwareButtonAction.uppercase(Locale.US)) {
                 "SNOOZE", "DISMISS" -> hardwareButtonAction.uppercase(Locale.US)
