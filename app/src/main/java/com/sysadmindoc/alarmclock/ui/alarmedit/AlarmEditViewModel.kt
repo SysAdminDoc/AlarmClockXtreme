@@ -45,6 +45,8 @@ data class AlarmEditUiState(
     val ttsEnabled: Boolean = false,
     // F4: Walk-steps challenge
     val walkStepsRequired: Int = 30,
+    // Squat challenge
+    val requiredSquats: Int = 10,
     // F5: Wake confirmation
     val wakeConfirmEnabled: Boolean = false,
     val wakeConfirmDelayMinutes: Int = 10,
@@ -155,6 +157,7 @@ class AlarmEditViewModel @Inject constructor(
                         is24HourFormat = is24h,
                         ttsEnabled = alarm.ttsEnabled,
                         walkStepsRequired = alarm.walkStepsRequired,
+                        requiredSquats = alarm.requiredSquats,
                         wakeConfirmEnabled = alarm.wakeConfirmEnabled,
                         wakeConfirmDelayMinutes = alarm.wakeConfirmDelayMinutes,
                         smartAlarmEnabled = alarm.smartAlarmEnabled,
@@ -295,6 +298,10 @@ class AlarmEditViewModel @Inject constructor(
 
     fun updateWalkSteps(steps: Int) {
         _uiState.value = _uiState.value.copy(walkStepsRequired = steps)
+    }
+
+    fun updateRequiredSquats(count: Int) {
+        _uiState.value = _uiState.value.copy(requiredSquats = count)
     }
 
     fun updateWakeConfirm(enabled: Boolean, delayMinutes: Int? = null) {
@@ -507,6 +514,7 @@ class AlarmEditViewModel @Inject constructor(
                 createdAt = if (s.isEditing && s.createdAt > 0) s.createdAt else System.currentTimeMillis(),
                 ttsEnabled = s.ttsEnabled,
                 walkStepsRequired = s.walkStepsRequired,
+                requiredSquats = s.requiredSquats,
                 wakeConfirmEnabled = s.wakeConfirmEnabled,
                 wakeConfirmDelayMinutes = s.wakeConfirmDelayMinutes,
                 smartAlarmEnabled = s.smartAlarmEnabled,
