@@ -306,6 +306,10 @@ class BedtimeViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.update { it.copy(bedtimeDndEnabled = enabled) }
             syncBedtimeDndRule()
+            val finalEnabled = _uiState.value.bedtimeDndEnabled
+            if (finalEnabled != enabled) {
+                preferencesManager.update { it.copy(bedtimeDndEnabled = finalEnabled) }
+            }
         }
     }
 

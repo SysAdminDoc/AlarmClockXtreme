@@ -115,8 +115,12 @@ class HueSunriseWorker @AssistedInject constructor(
         if (useV2 && tofuTm != null && pinnedFingerprint.isBlank()) {
             val observed = tofuTm.observedFingerprint
             if (observed != null) {
-                preferencesManager.update {
-                    it.copy(hueBridgeCertFingerprint = observed)
+                preferencesManager.update { current ->
+                    if (current.hueBridgeCertFingerprint.isBlank()) {
+                        current.copy(hueBridgeCertFingerprint = observed)
+                    } else {
+                        current
+                    }
                 }
             }
         }
@@ -237,6 +241,7 @@ class HueSunriseWorker @AssistedInject constructor(
      * If [pinnedFingerprint] is set, rejects certs whose SHA-256 doesn't match.
      */
     class TofuTrustManager(private val pinnedFingerprint: String) : X509TrustManager {
+        @Volatile
         var observedFingerprint: String? = null
             private set
 

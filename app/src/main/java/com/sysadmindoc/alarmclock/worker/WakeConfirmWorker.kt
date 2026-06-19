@@ -125,6 +125,18 @@ class WakeConfirmWorker @AssistedInject constructor(
         // Poll for confirmation up to CONFIRM_WAIT_MS.
         val deadline = System.currentTimeMillis() + CONFIRM_WAIT_MS
         while (System.currentTimeMillis() < deadline) {
+            if (isStopped) {
+                cancelPrompt(alarmId)
+                prefs.edit().remove("confirmed_$alarmId").apply()
+                recordIncident(
+                    alarmId = alarmId,
+                    fireId = fireId,
+                    scheduledAt = scheduledAt,
+                    status = AlarmIncidentEvent.STATUS_FAILED,
+                    reasonCode = "WAKE_CONFIRM_WORKER_CANCELLED"
+                )
+                return Result.failure()
+            }
             if (prefs.getBoolean("confirmed_$alarmId", false)) {
                 prefs.edit().remove("confirmed_$alarmId").apply()
                 cancelPrompt(alarmId)

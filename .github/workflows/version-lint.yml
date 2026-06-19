@@ -169,6 +169,37 @@ jobs:
           fi
           echo "ok: Android 17 local-network permission docs match manifest"
 
+      - name: Assert app code does not link to ignored markdown
+        run: |
+          set -euo pipefail
+
+          # Build the set of tracked .md files (only README.md by default).
+          tracked_md=$(git ls-files -- '*.md' | sort)
+
+          fail=0
+          # Scan Kotlin/Java source for markdown file references.
+          while IFS= read -r match; do
+            file=$(echo "$match" | cut -d: -f1)
+            line=$(echo "$match" | cut -d: -f2)
+            content=$(echo "$match" | cut -d: -f3-)
+            # Extract the referenced .md filename.
+            ref=$(echo "$content" | grep -oE '[A-Za-z0-9_/-]+\.md' | head -1)
+            if [ -z "$ref" ]; then continue; fi
+            basename_ref=$(basename "$ref")
+            # Check if the referenced file is tracked in git.
+            if ! echo "$tracked_md" | grep -qF "$basename_ref"; then
+              echo "::error file=$file,line=$line::$file:$line links to '$ref' which is gitignored — use README.md anchors for public links"
+              fail=1
+            fi
+          done < <(grep -rnE '\.(md|MD)["'"'"')\]]' app/src/main/java/ --include='*.kt' --include='*.java' 2>/dev/null || true)
+
+          if [ $fail -ne 0 ]; then
+            echo "App source must not link to ignored markdown files."
+            echo "Use README.md anchors or in-app copy for public-facing links."
+            exit 1
+          fi
+          echo "ok: no app-code links to ignored markdown"
+
       - name: Assert no tag-only third-party GitHub Actions
         run: |
           set -euo pipefail

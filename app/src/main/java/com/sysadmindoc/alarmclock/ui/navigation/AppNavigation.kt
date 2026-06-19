@@ -112,6 +112,9 @@ private fun visibleBottomNavItems(
     }
 }
 
+private const val ONBOARDING_VERSION = 1
+private const val ONBOARDING_DONE_KEY = "onboarding_complete_v$ONBOARDING_VERSION"
+
 @OptIn(androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun AppNavigation(
@@ -135,9 +138,10 @@ fun AppNavigation(
     } ?: WindowWidthSizeClass.Compact
     val useNavigationRail = windowWidth != WindowWidthSizeClass.Compact
 
-    // First-launch check
+    // First-launch check — suffix the key so a future onboarding redesign
+    // can re-show the flow to existing users by bumping the version.
     val prefs = remember { context.getSharedPreferences("app_prefs", 0) }
-    val hasCompletedOnboarding = remember { prefs.getBoolean("onboarding_complete", false) }
+    val hasCompletedOnboarding = remember { prefs.getBoolean(ONBOARDING_DONE_KEY, false) }
     val startDest = if (hasCompletedOnboarding) Screen.AlarmList.route else Screen.Onboarding.route
 
     // v1.7.1: User-controlled tab visibility. We grab the cached snapshot
@@ -366,7 +370,7 @@ private fun AppNavHost(
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
                 onComplete = {
-                    prefs.edit().putBoolean("onboarding_complete", true).apply()
+                    prefs.edit().putBoolean(ONBOARDING_DONE_KEY, true).apply()
                     navController.navigate(Screen.AlarmList.route) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }
                     }
