@@ -4,6 +4,9 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -641,6 +644,16 @@ fun AlarmEditScreen(
                 }
             }
 
+            CollapsibleGroup(
+                title = "Dismiss and wake",
+                subtitle = buildList {
+                    if (state.challengeType != "NONE") add(state.challengeType.lowercase()
+                        .replaceFirstChar { it.uppercase() }.replace("_", " "))
+                    if (state.wakeConfirmEnabled) add("Wake confirm")
+                    if (state.smartAlarmEnabled) add("Smart alarm")
+                }.joinToString(", ").ifEmpty { null },
+                initiallyExpanded = state.challengeType != "NONE" || state.wakeConfirmEnabled || state.smartAlarmEnabled
+            ) {
             // Dismiss Challenge
             SettingsSection("Dismiss challenge") {
                 val challengeOptions = alarmChallengeOptions()
@@ -994,7 +1007,17 @@ fun AlarmEditScreen(
                     )
                 }
             }
+            }
 
+            CollapsibleGroup(
+                title = "Extras and integrations",
+                subtitle = buildList {
+                    if (state.skipOnHolidays) add("Holiday skip")
+                    if (state.hueEnabled) add("Hue")
+                    if (state.guardianEnabled) add("Guardian")
+                    if (state.progressiveSnooze) add("Progressive snooze")
+                }.joinToString(", ").ifEmpty { null }
+            ) {
             // Holiday Skip
             SettingsSection("Holidays") {
                 SettingsRow(
@@ -1321,6 +1344,7 @@ fun AlarmEditScreen(
                     "Shown as a checklist after dismissal on the morning briefing screen.",
                     tone = HintTone.Neutral
                 )
+            }
             }
 
             // v1.2.0: Advanced
@@ -1724,6 +1748,66 @@ private fun SettingsSection(title: String, content: @Composable ColumnScope.() -
         )
         AppSurfaceCard(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
             content()
+        }
+    }
+}
+
+@Composable
+private fun CollapsibleGroup(
+    title: String,
+    subtitle: String? = null,
+    initiallyExpanded: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Surface(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { expanded = !expanded },
+            shape = RoundedCornerShape(12.dp),
+            color = SurfaceLight.copy(alpha = 0.42f),
+            border = BorderStroke(1.dp, BorderSubtle)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextPrimary
+                    )
+                    if (subtitle != null) {
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = TextMuted
+                )
+            }
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(),
+            exit = shrinkVertically()
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                content()
+            }
         }
     }
 }
