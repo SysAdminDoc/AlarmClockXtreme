@@ -732,6 +732,30 @@ fun AlarmEditScreen(
                     }
                 }
 
+                // SQUAT: squat count config
+                if (state.challengeType == "SQUAT") {
+                    var showSquatsMenu by remember { mutableStateOf(false) }
+                    SettingsRow(label = "Squats required") {
+                        Box {
+                            SettingsValueButton(
+                                label = "${state.requiredSquats} squats",
+                                onClick = { showSquatsMenu = true }
+                            )
+                            DropdownMenu(
+                                expanded = showSquatsMenu,
+                                onDismissRequest = { showSquatsMenu = false }
+                            ) {
+                                listOf(5, 10, 15, 20, 30, 50).forEach { count ->
+                                    DropdownMenuItem(
+                                        text = { Text("$count squats", color = if (count == state.requiredSquats) AccentBlue else TextPrimary) },
+                                        onClick = { viewModel.updateRequiredSquats(count); showSquatsMenu = false }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // NFC_SCAN: tag registration field
                 if (state.challengeType == "NFC_SCAN") {
                     OutlinedTextField(

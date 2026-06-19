@@ -64,7 +64,8 @@ fun Alarm.toAlarmBackup(): AlarmBackup {
         solarAnchor = solarAnchor,
         holdToDismissEnabled = holdToDismissEnabled,
         vibrationDelaySeconds = vibrationDelaySeconds,
-        weatherEarlyMinutes = weatherEarlyMinutes
+        weatherEarlyMinutes = weatherEarlyMinutes,
+        requiredSquats = requiredSquats
     )
 }
 
@@ -131,7 +132,8 @@ fun AlarmBackup.toAlarmOrNull(): Alarm? {
             solarAnchor = solarAnchor,
             holdToDismissEnabled = holdToDismissEnabled,
             vibrationDelaySeconds = vibrationDelaySeconds,
-            weatherEarlyMinutes = weatherEarlyMinutes
+            weatherEarlyMinutes = weatherEarlyMinutes,
+            requiredSquats = requiredSquats
         ).sanitized()
     }.getOrNull()
 }

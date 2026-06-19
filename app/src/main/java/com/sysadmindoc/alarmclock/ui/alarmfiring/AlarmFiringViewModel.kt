@@ -259,7 +259,7 @@ class AlarmFiringViewModel @Inject constructor(
         ChallengeType.NFC_SCAN -> Challenge.NfcChallenge(registeredTagId = alarm.nfcTagId)
         ChallengeType.BARCODE_SCAN -> Challenge.BarcodeChallenge(registeredValue = alarm.barcodeValue)
         ChallengeType.PHOTO_MATCH -> Challenge.PhotoMatchChallenge(referencePhotoUri = alarm.photoMatchUri)
-        ChallengeType.SQUAT -> Challenge.SquatChallenge(requiredSquats = 10)
+        ChallengeType.SQUAT -> Challenge.SquatChallenge(requiredSquats = alarm.requiredSquats)
         else -> ChallengeGenerator.generate(type)
     }
 

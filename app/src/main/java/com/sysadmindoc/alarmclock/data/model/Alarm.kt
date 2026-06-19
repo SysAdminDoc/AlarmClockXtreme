@@ -115,7 +115,8 @@ data class Alarm(
     // adds haptic intensity after a configurable window. 0 = vibrate as
     // soon as the alarm fires (preserves prior behaviour).
     val vibrationDelaySeconds: Int = 0,
-    val weatherEarlyMinutes: Int = 0
+    val weatherEarlyMinutes: Int = 0,
+    val requiredSquats: Int = 10
 ) {
     companion object {
         const val MAX_SMART_ALARM_WINDOW_MINUTES = 60
@@ -264,7 +265,8 @@ data class Alarm(
             // v1.12.0 (roadmap N7): 0..600 s (10 min hard cap matches the
             // ceiling on gradualVolumeSeconds so the two can pair cleanly).
             vibrationDelaySeconds = vibrationDelaySeconds.coerceIn(0, 600),
-            weatherEarlyMinutes = weatherEarlyMinutes.coerceIn(0, 60)
+            weatherEarlyMinutes = weatherEarlyMinutes.coerceIn(0, 60),
+            requiredSquats = requiredSquats.coerceIn(1, 100)
         )
     }
 }

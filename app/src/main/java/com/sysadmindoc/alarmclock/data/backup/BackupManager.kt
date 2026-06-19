@@ -82,7 +82,9 @@ data class AlarmBackup(
     val holdToDismissEnabled: Boolean = false,
     // v1.12.0 fields (roadmap N7): per-alarm pre-vibration delay (seconds).
     val vibrationDelaySeconds: Int = 0,
-    val weatherEarlyMinutes: Int = 0
+    val weatherEarlyMinutes: Int = 0,
+    // v1.14.19: configurable squat challenge count.
+    val requiredSquats: Int = 10
 )
 
 @JsonClass(generateAdapter = true)
