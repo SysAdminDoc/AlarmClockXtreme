@@ -212,7 +212,7 @@ dependencies {
         "playImplementation"("org.apache.commons:commons-compress:1.28.0") {
             because("OSV reports multiple advisories against the youtubedl-android transitive 1.12")
         }
-        "playImplementation"("commons-io:commons-io:2.20.0") {
+        "playImplementation"("commons-io:commons-io:2.22.0") {
             because("OSV reports advisories against the youtubedl-android transitive 2.5")
         }
         "playImplementation"("org.mozilla:rhino:1.8.1") {
