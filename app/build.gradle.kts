@@ -215,10 +215,10 @@ dependencies {
         "playImplementation"("commons-io:commons-io:2.20.0") {
             because("OSV reports advisories against the youtubedl-android transitive 2.5")
         }
-        "playImplementation"("org.mozilla:rhino:1.8.1") {
+        "playImplementation"("org.mozilla:rhino:1.9.1") {
             because("OSV GHSA-3w8q-xq97-5j7x fixes the NewPipe transitive 1.8.0 in 1.8.1")
         }
-        "playImplementation"("org.mozilla:rhino-engine:1.8.1") {
+        "playImplementation"("org.mozilla:rhino-engine:1.9.1") {
             because("Keep Rhino engine aligned with constrained Rhino runtime")
         }
         "playImplementation"("com.google.guava:guava:33.6.0-android") {
