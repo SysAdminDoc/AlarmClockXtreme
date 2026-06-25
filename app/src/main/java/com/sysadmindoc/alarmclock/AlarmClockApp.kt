@@ -17,6 +17,7 @@ import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.service.NextAlarmNotifier
 import com.sysadmindoc.alarmclock.service.YouTubeDownloadInitializer
 import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
+import com.sysadmindoc.alarmclock.worker.AlarmHealthWorker
 import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
 import com.sysadmindoc.alarmclock.worker.HolidaySyncWorker
 import kotlinx.coroutines.CoroutineScope
@@ -95,6 +96,16 @@ class AlarmClockApp : Application(), Configuration.Provider {
             "holiday_sync",
             ExistingPeriodicWorkPolicy.KEEP,
             holidaySync
+        )
+
+        // Proactive alarm-health check: detect when battery optimization or
+        // permissions are re-enabled after Android updates and warn the user
+        // before their next alarm silently fails.
+        val healthCheck = PeriodicWorkRequestBuilder<AlarmHealthWorker>(6, TimeUnit.HOURS).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "alarm_health_check",
+            ExistingPeriodicWorkPolicy.KEEP,
+            healthCheck
         )
 
         // v1.10.6: Keep the first-meeting auto-alarm responsive without
