@@ -392,6 +392,9 @@ object SupportDiagnosticsFormatter {
             appendLine("YouTube engine")
             appendLine("- Bundled version: ${ytEngineBundledVersion.ifBlank { "unknown" }}")
             appendLine("- Active version: ${ytEngineActiveVersion.ifBlank { "unknown" }}")
+            if (ytEngineActiveVersion.isNotBlank() && ytEngineActiveVersion < com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader.MIN_SAFE_VERSION) {
+                appendLine("- WARNING: engine is below minimum safe version ${com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader.MIN_SAFE_VERSION}")
+            }
             if (ytEngineLastUpdateMs > 0) {
                 appendLine("- Last update: ${java.time.Instant.ofEpochMilli(ytEngineLastUpdateMs)}")
                 appendLine("- Last update status: $ytEngineLastUpdateStatus")

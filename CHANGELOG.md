@@ -2,6 +2,30 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.1] - 2026-06-25
+
+### Fixed
+
+- Jackson-databind Play-only constraint bumped from 2.18.6 to 2.18.8 to
+  address CVE-2026-54512 (PolymorphicTypeValidator bypass), CVE-2026-54513
+  (array type validation bypass), and CVE-2026-54514 (SSRF via
+  InetSocketAddress deserialization).
+- yt-dlp engine minimum safe version gate added (`2026.06.09`). The
+  bundled yt-dlp binary in youtubedl-android 0.18.1 predates fixes for
+  CVE-2026-50574, CVE-2026-50023, CVE-2026-50019, and CVE-2026-26331.
+  ACX mitigates all four CVEs at the application level (`--get-url` only,
+  no file-write/aria2c/netrc/curl paths), but the engine version is now
+  flagged in support diagnostics and users are encouraged to update.
+- Backup settings drift test updated for `bedtimeStayUpLateUntilMillis`
+  (transient field, intentionally excluded from backup round-trip).
+
+### Changed
+
+- Updated RESEARCH.md with 2026-06-25 exhaustive research pass findings
+  (4 research agents: competitors, platform, security, community/UX).
+- Added 13 new ROADMAP items from the research pass (2 P0 supply-chain,
+  4 P1 reliability/security, 5 P2 product, 2 P3 accessibility/polish).
+
 ## [1.15.0] - 2026-06-19
 
 ### Added
