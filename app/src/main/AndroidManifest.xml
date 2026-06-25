@@ -136,6 +136,23 @@
                 <action android:name="android.intent.action.SHOW_ALARMS" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <!-- Voice assistant / Gemini: create an alarm via SET_ALARM -->
+            <intent-filter>
+                <action android:name="android.intent.action.SET_ALARM" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.DISMISS_ALARM" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SNOOZE_ALARM" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SET_TIMER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
             <!-- v1.5.x: Import a single shared alarm without importing a full backup. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
