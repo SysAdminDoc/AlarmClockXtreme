@@ -437,6 +437,11 @@ class AlarmService : Service() {
             scheduledForMillis = currentScheduledAt.takeIf { it > 0L },
             fireId = currentFireId
         )
+        AlarmBroadcastContract.send(
+            this, AlarmBroadcastContract.ACTION_ALARM_FIRED,
+            alarmId = alarm.id, label = alarm.label,
+            displayTime = formatAlarmTime(alarm), fireId = currentFireId
+        )
 
         // Auto-silence after timeout - records as missed
         val settings = preferencesManager.getCurrentSettings()
@@ -460,6 +465,11 @@ class AlarmService : Service() {
                         timeFormatted = formatAlarmTime(missedAlarm),
                         scheduledForMillis = currentScheduledAt.takeIf { it > 0L },
                         fireId = currentFireId
+                    )
+                    AlarmBroadcastContract.send(
+                        this@AlarmService, AlarmBroadcastContract.ACTION_ALARM_MISSED,
+                        alarmId = missedAlarm.id, label = missedAlarm.label,
+                        displayTime = formatAlarmTime(missedAlarm), fireId = currentFireId
                     )
                     showMissedNotification(missedAlarm, autoSilenceMinutes)
                     // v1.4.0: Repeat missed alarms — record the alarm id / timestamp
@@ -1156,6 +1166,11 @@ class AlarmService : Service() {
                 scheduledForMillis = webhookScheduledAt.takeIf { it > 0L },
                 fireId = webhookFireId
             )
+            AlarmBroadcastContract.send(
+                this, AlarmBroadcastContract.ACTION_ALARM_SNOOZED,
+                alarmId = alarm.id, label = alarm.label,
+                displayTime = formatAlarmTime(alarm), fireId = webhookFireId
+            )
             wearNextAlarmBridge.publishAlarmIdle(alarm.id)
         } else {
             recordIncident(
@@ -1218,6 +1233,11 @@ class AlarmService : Service() {
                 timeFormatted = formatAlarmTime(alarm),
                 scheduledForMillis = wakeConfirmScheduledAt.takeIf { it > 0L },
                 fireId = wakeConfirmFireId
+            )
+            AlarmBroadcastContract.send(
+                this, AlarmBroadcastContract.ACTION_ALARM_DISMISSED,
+                alarmId = alarm.id, label = alarm.label,
+                displayTime = formatAlarmTime(alarm), fireId = wakeConfirmFireId
             )
 
             // v1.15.1: Per-alarm dismiss action (AlarmKit pattern)
