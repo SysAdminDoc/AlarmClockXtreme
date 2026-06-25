@@ -101,8 +101,9 @@ data class AppSettings(
     val showMotivationalQuotes: Boolean = true,
     // v1.4.0: Use Android 12+ Material You dynamic color palette (overrides accent)
     val dynamicColorEnabled: Boolean = false,
-    // v1.10.9: Opt-in bolder shape rhythm and expressive accent semantics.
-    val expressiveModeEnabled: Boolean = false,
+    // v1.10.9: M3 Expressive shape rhythm and accent semantics. Default-on
+    // since Compose BOM 2026.06+ ships stable M3 1.4.x without opt-in.
+    val expressiveModeEnabled: Boolean = true,
     // v1.4.0: Proximity-sensor "cover phone to snooze" (global toggle, pairs with flip-to-snooze)
     val coverToSnoozeEnabled: Boolean = false,
     // v1.4.0: Pre-sleep bedtime checklist (newline-separated items; shown on Bedtime tab)
