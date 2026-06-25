@@ -200,13 +200,13 @@ dependencies {
         // still resolve stale parser/archive transitives. Keep these as
         // constraints, not direct feature dependencies, so F-Droid remains free
         // of the Play-only downloader graph.
-        "playImplementation"("com.fasterxml.jackson.core:jackson-databind:2.18.8") {
+        "playImplementation"("com.fasterxml.jackson.core:jackson-databind:2.22") {
             because("CVE-2026-54512 PTV bypass, CVE-2026-54513 array bypass, CVE-2026-54514 SSRF")
         }
-        "playImplementation"("com.fasterxml.jackson.core:jackson-core:2.18.8") {
+        "playImplementation"("com.fasterxml.jackson.core:jackson-core:2.22") {
             because("Keep Jackson modules aligned with constrained jackson-databind")
         }
-        "playImplementation"("com.fasterxml.jackson.core:jackson-annotations:2.18.8") {
+        "playImplementation"("com.fasterxml.jackson.core:jackson-annotations:2.22") {
             because("Keep Jackson modules aligned with constrained jackson-databind")
         }
         "playImplementation"("org.apache.commons:commons-compress:1.28.0") {
