@@ -344,6 +344,73 @@ fun BedtimeScreen(
             }
         }
 
+        if (state.isEnabled) {
+            item {
+                AppSurfaceCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    highlighted = state.stayUpLateActive
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AlarmOff,
+                                    contentDescription = null,
+                                    tint = if (state.stayUpLateActive) SnoozeYellow else TextMuted,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = if (state.stayUpLateActive)
+                                        "Staying up late until ${state.stayUpLateLabel}"
+                                    else "Stay up late tonight",
+                                    color = TextPrimary,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                            if (!state.stayUpLateActive) {
+                                Text(
+                                    text = "Delay tonight's bedtime reminder",
+                                    color = TextSecondary,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(start = 28.dp)
+                                )
+                            }
+                        }
+                        if (state.stayUpLateActive) {
+                            TextButton(onClick = { viewModel.clearStayUpLate() }) {
+                                Text("Cancel")
+                            }
+                        }
+                    }
+                    if (!state.stayUpLateActive) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(1, 2, 3).forEach { hours ->
+                                AppFilterChip(
+                                    selected = false,
+                                    onClick = { viewModel.stayUpLate(hours) },
+                                    label = "+${hours}h"
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         item {
             AppSurfaceCard(
                 modifier = Modifier
@@ -669,6 +736,8 @@ private val SLEEP_SOUNDS = listOf(
     SleepSound("Brown Noise", Icons.Default.GraphicEq, SleepNoisePreset.BROWN),
     SleepSound("Ocean", Icons.Default.Sailing, SleepNoisePreset.OCEAN),
     SleepSound("Fan", Icons.Default.Air, SleepNoisePreset.FAN),
+    SleepSound("Pink Noise", Icons.Default.GraphicEq, SleepNoisePreset.PINK),
+    SleepSound("Violet Noise", Icons.Default.Waves, SleepNoisePreset.VIOLET),
 )
 
 @Composable

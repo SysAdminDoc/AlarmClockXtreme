@@ -8,7 +8,9 @@ enum class SleepNoisePreset(val key: String) {
     RAIN("sleep_rain"),
     BROWN("sleep_brown_noise"),
     OCEAN("sleep_ocean"),
-    FAN("sleep_fan");
+    FAN("sleep_fan"),
+    PINK("sleep_pink_noise"),
+    VIOLET("sleep_violet_noise");
 
     companion object {
         fun fromKey(key: String): SleepNoisePreset =
@@ -28,6 +30,7 @@ class NoiseSynth(
     private var brown = 0.0
     private var fanLow = 0.0
     private var phase = 0.0
+    private var violetPrev = 0.0
 
     fun fill(buffer: ShortArray, gain: Float = 1f) {
         val clampedGain = gain.coerceIn(0f, 1f).toDouble()
@@ -38,6 +41,8 @@ class NoiseSynth(
                 SleepNoisePreset.BROWN -> brownNoise()
                 SleepNoisePreset.OCEAN -> ocean()
                 SleepNoisePreset.FAN -> fan()
+                SleepNoisePreset.PINK -> pink() * 1.8
+                SleepNoisePreset.VIOLET -> violet()
             }
             buffer[index] = (sample.coerceIn(-1.0, 1.0) * clampedGain * Short.MAX_VALUE).toInt().toShort()
         }
@@ -77,6 +82,13 @@ class NoiseSynth(
         pinkB1 = 0.96300 * pinkB1 + white * 0.2965164
         pinkB2 = 0.57000 * pinkB2 + white * 1.0526913
         return (pinkB0 + pinkB1 + pinkB2 + white * 0.1848) * 0.08
+    }
+
+    private fun violet(): Double {
+        val w = white()
+        val v = (w - violetPrev) * 0.38
+        violetPrev = w
+        return v
     }
 
     private fun white(): Double = nextUnit() * 2.0 - 1.0
