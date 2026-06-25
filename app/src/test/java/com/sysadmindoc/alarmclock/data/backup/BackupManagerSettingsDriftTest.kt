@@ -29,6 +29,7 @@ class BackupManagerSettingsDriftTest {
         "ytEngineLastUpdateStatus",
         "ytEngineLastUpdateSource",
         "ytEngineLastFailureReason",
+        "bedtimeStayUpLateUntilMillis",
     )
 
     @Test

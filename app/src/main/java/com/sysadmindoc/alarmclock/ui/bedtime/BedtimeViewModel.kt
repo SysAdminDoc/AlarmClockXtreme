@@ -54,7 +54,11 @@ data class BedtimeUiState(
     val bedtimeDndStatus: String = "Off",
     val bedtimeDndError: String? = null,
     val healthConnectEnabled: Boolean = false,
-    val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary()
+    val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary(),
+    // v1.15.0: "Stay up late tonight" — shows how long the override is active.
+    val stayUpLateUntilMillis: Long = 0,
+    val stayUpLateActive: Boolean = false,
+    val stayUpLateLabel: String = ""
 )
 
 @HiltViewModel
@@ -96,7 +100,10 @@ class BedtimeViewModel @Inject constructor(
                 sleepSoundFadeSeconds = settings.sleepSoundFadeSeconds.coerceIn(5, 600),
                 bedtimeChecklist = checklistItems,
                 bedtimeDndEnabled = settings.bedtimeDndEnabled,
-                healthConnectEnabled = settings.healthConnectEnabled
+                healthConnectEnabled = settings.healthConnectEnabled,
+                stayUpLateUntilMillis = settings.bedtimeStayUpLateUntilMillis,
+                stayUpLateActive = settings.bedtimeStayUpLateUntilMillis > System.currentTimeMillis(),
+                stayUpLateLabel = formatStayUpLateLabel(settings.bedtimeStayUpLateUntilMillis, settings.is24HourFormat)
             )
             refreshAlarmInfo()
             refreshHealthConnectSleep()
@@ -240,6 +247,19 @@ class BedtimeViewModel @Inject constructor(
             bedtime = bedtime.plusDays(1)
         }
 
+        // v1.15.0: If a "stay up late" override is active and the computed
+        // reminder time falls before the override deadline, push the reminder
+        // to the override deadline. This effectively delays tonight's bedtime
+        // reminder without changing the configured bedtime permanently.
+        val stayUpUntil = state.stayUpLateUntilMillis
+        if (stayUpUntil > 0) {
+            val bedtimeMillis = bedtime.toInstant().toEpochMilli()
+            if (bedtimeMillis < stayUpUntil) {
+                bedtime = java.time.Instant.ofEpochMilli(stayUpUntil)
+                    .atZone(ZoneId.systemDefault())
+            }
+        }
+
         val intent = Intent("com.sysadmindoc.alarmclock.BEDTIME_REMINDER")
         intent.setPackage(context.packageName)
         val pendingIntent = PendingIntent.getBroadcast(
@@ -348,6 +368,45 @@ class BedtimeViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(bedtimeChecklistDone = emptySet())
     }
 
+    /**
+     * v1.15.0: Delay tonight's bedtime reminder by [hours] hours from now.
+     * The override is stored as an epoch-millis deadline; once it expires
+     * the next reminder fires at the normal configured time.
+     */
+    fun stayUpLate(hours: Int) {
+        val until = System.currentTimeMillis() + hours * 3_600_000L
+        _uiState.update {
+            it.copy(
+                stayUpLateUntilMillis = until,
+                stayUpLateActive = true,
+                stayUpLateLabel = formatStayUpLateLabel(until, it.is24HourFormat)
+            )
+        }
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(bedtimeStayUpLateUntilMillis = until) }
+            if (_uiState.value.isEnabled) {
+                scheduleBedtimeReminder()
+            }
+        }
+    }
+
+    /** Clear the stay-up-late override and re-arm at the normal time. */
+    fun clearStayUpLate() {
+        _uiState.update {
+            it.copy(
+                stayUpLateUntilMillis = 0,
+                stayUpLateActive = false,
+                stayUpLateLabel = ""
+            )
+        }
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(bedtimeStayUpLateUntilMillis = 0) }
+            if (_uiState.value.isEnabled) {
+                scheduleBedtimeReminder()
+            }
+        }
+    }
+
     override fun onCleared() {
         sleepSoundPlayer.release()
         super.onCleared()
@@ -361,6 +420,13 @@ class BedtimeViewModel @Inject constructor(
             val amPm = if (hour < 12) "AM" else "PM"
             "$h:${String.format("%02d", minute)} $amPm"
         }
+    }
+
+    private fun formatStayUpLateLabel(untilMillis: Long, is24h: Boolean): String {
+        if (untilMillis <= System.currentTimeMillis()) return ""
+        val time = java.time.Instant.ofEpochMilli(untilMillis)
+            .atZone(ZoneId.systemDefault()).toLocalTime()
+        return "Delayed until ${formatTime(time.hour, time.minute, is24h)}"
     }
 
     private suspend fun syncBedtimeDndRule(nextAlarmTriggerMillis: Long? = null) {

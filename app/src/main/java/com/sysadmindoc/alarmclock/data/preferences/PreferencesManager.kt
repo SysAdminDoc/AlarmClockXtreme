@@ -63,6 +63,11 @@ data class AppSettings(
     val bedtimeReminderMinutes: Int = 30,
     // v1.10.5: Own an app-created alarms-only DND rule for the sleep window.
     val bedtimeDndEnabled: Boolean = false,
+    // v1.15.0: "Stay up late tonight" — delay tonight's bedtime reminder
+    // by N hours. Stored as an epoch-millis deadline; once System.currentTimeMillis()
+    // exceeds this value the field is treated as expired and the next reminder
+    // fires at the normal time. 0 = no override active.
+    val bedtimeStayUpLateUntilMillis: Long = 0,
     // F2: Flip-to-snooze (global toggle)
     val flipToSnoozeEnabled: Boolean = false,
     // F11: Webhook integrations
@@ -305,6 +310,7 @@ class PreferencesManager @Inject constructor(
         val SHOW_RADAR_EMBED = booleanPreferencesKey("show_radar_embed")
         val NEWS_FEED_URL = stringPreferencesKey("news_feed_url")
         val PAUSE_UNTIL = longPreferencesKey("pause_until_millis")
+        val BEDTIME_STAY_UP_LATE_UNTIL = longPreferencesKey("bedtime_stay_up_late_until_millis")
         val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
         val CANCELLATION_LOCK_MINUTES = intPreferencesKey("cancellation_lock_minutes")
         val FIRING_CONTROL_MODE = stringPreferencesKey("firing_control_mode")
@@ -389,6 +395,7 @@ class PreferencesManager @Inject constructor(
         sleepGoalMinutes = this[Keys.SLEEP_GOAL_MINUTES] ?: 0,
         bedtimeReminderMinutes = this[Keys.BEDTIME_REMINDER_MINUTES] ?: 30,
         bedtimeDndEnabled = this[Keys.BEDTIME_DND_ENABLED] ?: false,
+        bedtimeStayUpLateUntilMillis = this[Keys.BEDTIME_STAY_UP_LATE_UNTIL] ?: 0L,
         flipToSnoozeEnabled = this[Keys.FLIP_TO_SNOOZE] ?: false,
         webhookEnabled = this[Keys.WEBHOOK_ENABLED] ?: false,
         webhookUrl = this[Keys.WEBHOOK_URL] ?: "",
@@ -464,6 +471,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.SLEEP_GOAL_MINUTES] = s.sleepGoalMinutes
         this[Keys.BEDTIME_REMINDER_MINUTES] = s.bedtimeReminderMinutes
         this[Keys.BEDTIME_DND_ENABLED] = s.bedtimeDndEnabled
+        this[Keys.BEDTIME_STAY_UP_LATE_UNTIL] = s.bedtimeStayUpLateUntilMillis
         this[Keys.FLIP_TO_SNOOZE] = s.flipToSnoozeEnabled
         this[Keys.WEBHOOK_ENABLED] = s.webhookEnabled
         this[Keys.WEBHOOK_URL] = s.webhookUrl

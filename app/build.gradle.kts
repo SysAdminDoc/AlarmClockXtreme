@@ -1,7 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// AlarmClockXtreme v1.15.0
+// AlarmClockXtreme v1.15.1
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 102
-        versionName = "1.15.0"
+        versionCode = 103
+        versionName = "1.15.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -200,13 +200,13 @@ dependencies {
         // still resolve stale parser/archive transitives. Keep these as
         // constraints, not direct feature dependencies, so F-Droid remains free
         // of the Play-only downloader graph.
-        "playImplementation"("com.fasterxml.jackson.core:jackson-databind:2.18.6") {
-            because("OSV reports advisories against the youtubedl-android transitive 2.11.1")
+        "playImplementation"("com.fasterxml.jackson.core:jackson-databind:2.18.8") {
+            because("CVE-2026-54512 PTV bypass, CVE-2026-54513 array bypass, CVE-2026-54514 SSRF")
         }
-        "playImplementation"("com.fasterxml.jackson.core:jackson-core:2.18.6") {
+        "playImplementation"("com.fasterxml.jackson.core:jackson-core:2.18.8") {
             because("Keep Jackson modules aligned with constrained jackson-databind")
         }
-        "playImplementation"("com.fasterxml.jackson.core:jackson-annotations:2.18.6") {
+        "playImplementation"("com.fasterxml.jackson.core:jackson-annotations:2.18.8") {
             because("Keep Jackson modules aligned with constrained jackson-databind")
         }
         "playImplementation"("org.apache.commons:commons-compress:1.28.0") {
