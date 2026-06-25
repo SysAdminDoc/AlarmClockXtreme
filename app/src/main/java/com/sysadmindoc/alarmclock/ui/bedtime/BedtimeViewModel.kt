@@ -58,7 +58,9 @@ data class BedtimeUiState(
     // v1.15.0: "Stay up late tonight" — shows how long the override is active.
     val stayUpLateUntilMillis: Long = 0,
     val stayUpLateActive: Boolean = false,
-    val stayUpLateLabel: String = ""
+    val stayUpLateLabel: String = "",
+    val batteryPercent: Int = -1,
+    val batteryLow: Boolean = false
 )
 
 @HiltViewModel
@@ -103,7 +105,9 @@ class BedtimeViewModel @Inject constructor(
                 healthConnectEnabled = settings.healthConnectEnabled,
                 stayUpLateUntilMillis = settings.bedtimeStayUpLateUntilMillis,
                 stayUpLateActive = settings.bedtimeStayUpLateUntilMillis > System.currentTimeMillis(),
-                stayUpLateLabel = formatStayUpLateLabel(settings.bedtimeStayUpLateUntilMillis, settings.is24HourFormat)
+                stayUpLateLabel = formatStayUpLateLabel(settings.bedtimeStayUpLateUntilMillis, settings.is24HourFormat),
+                batteryPercent = getBatteryPercent(),
+                batteryLow = getBatteryPercent() in 1..15
             )
             refreshAlarmInfo()
             refreshHealthConnectSleep()
@@ -420,6 +424,12 @@ class BedtimeViewModel @Inject constructor(
             val amPm = if (hour < 12) "AM" else "PM"
             "$h:${String.format("%02d", minute)} $amPm"
         }
+    }
+
+    private fun getBatteryPercent(): Int {
+        val bm = context.getSystemService(Context.BATTERY_SERVICE) as? android.os.BatteryManager
+            ?: return -1
+        return bm.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY)
     }
 
     private fun formatStayUpLateLabel(untilMillis: Long, is24h: Boolean): String {

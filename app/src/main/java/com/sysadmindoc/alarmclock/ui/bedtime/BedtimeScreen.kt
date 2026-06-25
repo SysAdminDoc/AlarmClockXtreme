@@ -344,6 +344,34 @@ fun BedtimeScreen(
             }
         }
 
+        if (state.batteryLow && state.isEnabled) {
+            item {
+                AppSurfaceCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    highlighted = true
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = SnoozeYellow,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Battery at ${state.batteryPercent}% — plug in before sleep to avoid alarm failure",
+                            color = SnoozeYellow,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+        }
+
         if (state.isEnabled) {
             item {
                 AppSurfaceCard(
