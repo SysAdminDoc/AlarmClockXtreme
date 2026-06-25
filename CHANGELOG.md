@@ -31,6 +31,21 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   detects when battery optimization, notification permission, or exact
   alarm permission has been revoked and warns the user before the next
   alarm silently fails.
+- Stay-up-late bedtime override: +1h/+2h/+3h chips on the Bedtime tab
+  delay tonight's bedtime reminder. Auto-reverts when the deadline expires.
+- Pink noise and violet noise sleep sound presets join the existing
+  white/rain/brown/ocean/fan library.
+- Bedtime battery warning: yellow banner on the Bedtime tab when battery
+  is at 15% or below and bedtime is enabled.
+- Lockscreen widget: the next-alarm Glance widget now supports the
+  `keyguard` widget category for Android lockscreen placement.
+- Broadcast intents for alarm lifecycle events: documented action strings
+  for ALARM_FIRED, ALARM_SNOOZED, ALARM_DISMISSED, ALARM_MISSED enable
+  local automation via Tasker, Home Assistant Companion, and MacroDroid
+  without network overhead.
+- Google Assistant alarm intent provider: ACX now handles SET_ALARM,
+  DISMISS_ALARM, SNOOZE_ALARM, SET_TIMER, and SHOW_ALARMS intents so
+  voice commands route to the app when set as default clock.
 
 ### Changed
 

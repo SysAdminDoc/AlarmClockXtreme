@@ -12,6 +12,6 @@
     android:targetCellWidth="3"
     android:targetCellHeight="1"
     android:updatePeriodMillis="1800000"
-    android:widgetCategory="home_screen"
+    android:widgetCategory="home_screen|keyguard"
     android:previewImage="@drawable/ic_alarm"
     android:description="@string/widget_description" />
