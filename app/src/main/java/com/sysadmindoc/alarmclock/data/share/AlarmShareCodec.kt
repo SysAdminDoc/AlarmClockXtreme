@@ -120,7 +120,9 @@ object AlarmShareCodec {
                 .filter {
                     it.isNotEmpty() && it.uppercase(Locale.US) !in REFERENCE_BACKED_CHALLENGES
                 }
-                .joinToString(",")
+                .joinToString(","),
+            dismissActionType = "NONE",
+            dismissActionPayload = ""
         ).sanitized()
     }
 }

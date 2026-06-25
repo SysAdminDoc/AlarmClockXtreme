@@ -19,6 +19,19 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Backup settings drift test updated for `bedtimeStayUpLateUntilMillis`
   (transient field, intentionally excluded from backup round-trip).
 
+### Added
+
+- Per-alarm dismiss action: configurable webhook call, Hue scene, or
+  broadcast that fires on successful alarm dismissal. New
+  `dismissActionType` and `dismissActionPayload` fields on the Alarm
+  entity. DB v16 to v17 migration. Shared-alarm imports strip dismiss
+  actions for safety. Inspired by AlarmKit (iOS 26) custom dismiss
+  actions pattern.
+- Proactive alarm-health monitoring: periodic 6-hour WorkManager check
+  detects when battery optimization, notification permission, or exact
+  alarm permission has been revoked and warns the user before the next
+  alarm silently fails.
+
 ### Changed
 
 - Updated RESEARCH.md with 2026-06-25 exhaustive research pass findings

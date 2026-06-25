@@ -65,7 +65,9 @@ fun Alarm.toAlarmBackup(): AlarmBackup {
         holdToDismissEnabled = holdToDismissEnabled,
         vibrationDelaySeconds = vibrationDelaySeconds,
         weatherEarlyMinutes = weatherEarlyMinutes,
-        requiredSquats = requiredSquats
+        requiredSquats = requiredSquats,
+        dismissActionType = dismissActionType,
+        dismissActionPayload = dismissActionPayload
     )
 }
 
@@ -133,7 +135,9 @@ fun AlarmBackup.toAlarmOrNull(): Alarm? {
             holdToDismissEnabled = holdToDismissEnabled,
             vibrationDelaySeconds = vibrationDelaySeconds,
             weatherEarlyMinutes = weatherEarlyMinutes,
-            requiredSquats = requiredSquats
+            requiredSquats = requiredSquats,
+            dismissActionType = dismissActionType,
+            dismissActionPayload = dismissActionPayload
         ).sanitized()
     }.getOrNull()
 }

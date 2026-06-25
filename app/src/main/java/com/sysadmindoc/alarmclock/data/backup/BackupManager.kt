@@ -84,7 +84,10 @@ data class AlarmBackup(
     val vibrationDelaySeconds: Int = 0,
     val weatherEarlyMinutes: Int = 0,
     // v1.14.19: configurable squat challenge count.
-    val requiredSquats: Int = 10
+    val requiredSquats: Int = 10,
+    // v1.15.1: per-alarm dismiss action.
+    val dismissActionType: String = "NONE",
+    val dismissActionPayload: String = ""
 )
 
 @JsonClass(generateAdapter = true)

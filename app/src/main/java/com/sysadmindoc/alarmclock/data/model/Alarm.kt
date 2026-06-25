@@ -116,7 +116,14 @@ data class Alarm(
     // soon as the alarm fires (preserves prior behaviour).
     val vibrationDelaySeconds: Int = 0,
     val weatherEarlyMinutes: Int = 0,
-    val requiredSquats: Int = 10
+    val requiredSquats: Int = 10,
+    // v1.15.1: Per-alarm dismiss action — fires a webhook, Hue scene, or
+    // broadcast on successful dismiss. Inspired by AlarmKit (iOS 26).
+    // "NONE" / "WEBHOOK" / "HUE_SCENE" / "BROADCAST"
+    val dismissActionType: String = "NONE",
+    // Payload for the dismiss action: URL for webhook, scene name for Hue,
+    // or action string for broadcast. Empty when dismissActionType is NONE.
+    val dismissActionPayload: String = ""
 ) {
     companion object {
         const val MAX_SMART_ALARM_WINDOW_MINUTES = 60
@@ -268,7 +275,12 @@ data class Alarm(
             // ceiling on gradualVolumeSeconds so the two can pair cleanly).
             vibrationDelaySeconds = vibrationDelaySeconds.coerceIn(0, 600),
             weatherEarlyMinutes = weatherEarlyMinutes.coerceIn(0, 60),
-            requiredSquats = requiredSquats.coerceIn(1, 100)
+            requiredSquats = requiredSquats.coerceIn(1, 100),
+            dismissActionType = when (dismissActionType.uppercase(Locale.US)) {
+                "WEBHOOK", "HUE_SCENE", "BROADCAST" -> dismissActionType.uppercase(Locale.US)
+                else -> "NONE"
+            },
+            dismissActionPayload = dismissActionPayload.trim().take(MAX_URI_CHARS)
         )
     }
 }
