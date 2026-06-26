@@ -193,7 +193,7 @@ dependencies {
     "playImplementation"("androidx.health.connect:connect-client:1.1.0")
     // Commons Compress 1.28.0 references XZ stream classes during release
     // shrinking; keep the support library Play-only with the downloader graph.
-    "playImplementation"("org.tukaani:xz:1.10")
+    "playImplementation"("org.tukaani:xz:1.12")
 
     constraints {
         // v1.13.2+ (R5): youtubedl-android 0.18.1 and NewPipeExtractor 0.26.x
