@@ -25,6 +25,9 @@ data class FiringUiState(
     val challengeStartedAtMillis: Long = 0L,
     // F3: Typing challenge
     val typingInput: String = "",
+    // Voice phrase challenge
+    val voiceTranscript: String = "",
+    val voiceStatus: String = "",
     // F4: Walk-steps challenge
     val currentSteps: Int = 0,
     val walkStatus: String = "",
@@ -295,6 +298,8 @@ class AlarmFiringViewModel @Inject constructor(
             memoryPhase = MemoryPhase.SHOWING,
             memoryTappedIndices = emptySet(),
             typingInput = "",
+            voiceTranscript = "",
+            voiceStatus = "",
             wrongAttempts = 0,
             nfcScanStatus = "",
             barcodeScanStatus = "",
@@ -394,6 +399,29 @@ class AlarmFiringViewModel @Inject constructor(
             proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
+            )
+        }
+    }
+
+    fun submitVoicePhrase(recognizedText: String) {
+        val challenge = _uiState.value.challenge as? Challenge.VoicePhraseChallenge ?: return
+        val cleanTranscript = recognizedText.trim()
+        if (VoicePhraseMatcher.matches(challenge.phrase, cleanTranscript)) {
+            _uiState.value = _uiState.value.copy(
+                voiceTranscript = cleanTranscript,
+                voiceStatus = "Voice phrase matched."
+            )
+            proceedToNextChallenge()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                voiceTranscript = cleanTranscript,
+                voiceStatus = if (cleanTranscript.isBlank()) {
+                    "No phrase was detected. Try again or use the typed fallback."
+                } else {
+                    "Heard \"$cleanTranscript\". Say the phrase shown below."
+                },
                 wrongAttempts = _uiState.value.wrongAttempts + 1,
                 totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )

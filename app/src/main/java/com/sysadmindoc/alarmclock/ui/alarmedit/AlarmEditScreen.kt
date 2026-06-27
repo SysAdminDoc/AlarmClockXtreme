@@ -2137,6 +2137,7 @@ private fun String.toAlarmChallengeSummary(): String = when (this) {
     "SEQUENCE" -> "Number sequence"
     "MEMORY_PATTERN" -> "Memory pattern"
     "TYPING" -> "Type phrase"
+    "VOICE_PHRASE" -> "Voice phrase"
     "WALK_STEPS" -> "Walk steps"
     "NFC_SCAN" -> "NFC scan"
     "BARCODE_SCAN" -> "Barcode scan"
@@ -2164,6 +2165,7 @@ private fun String.toAlarmChallengeDescription(): String = when (this) {
     "SEQUENCE" -> "Tap numbers in ascending order without missing a step."
     "MEMORY_PATTERN" -> "Memorize and recreate a short visual pattern."
     "TYPING" -> "Type a wake-up phrase accurately before dismissal."
+    "VOICE_PHRASE" -> "Say a wake-up phrase with Android speech recognition, with typed fallback."
     "WALK_STEPS" -> "Walk a set number of steps to get fully upright."
     "NFC_SCAN" -> "Scan a specific NFC tag placed somewhere away from bed."
     "BARCODE_SCAN" -> "Scan a saved barcode to finish the challenge."
@@ -2225,6 +2227,7 @@ private fun alarmChallengeOptions(): List<Pair<String, String>> = listOf(
     "SEQUENCE" to "Number Sequence",
     "MEMORY_PATTERN" to "Memory Pattern",
     "TYPING" to "Type a Phrase",
+    "VOICE_PHRASE" to "Voice Phrase",
     "WALK_STEPS" to "Walk Steps",
     "NFC_SCAN" to "NFC Tag Scan",
     "BARCODE_SCAN" to "Barcode Scan",
@@ -2239,7 +2242,10 @@ private fun alarmChallengeOptions(): List<Pair<String, String>> = listOf(
     "ROCK_PAPER_SCISSORS" to "Rock Paper Scissors",
     "EMOJI_MEMORY" to "Emoji Memory",
     "TYPING_SPEED" to "Typing Speed",
-    "WORDLE" to "Wordle"
+    "WORDLE" to "Wordle",
+    "PVT" to "Reaction Test",
+    "PUSH_UP" to "Push-ups",
+    "PLANK_HOLD" to "Plank Hold"
 )
 
 private fun String.toChallengeChainList(): List<String> = split(",")

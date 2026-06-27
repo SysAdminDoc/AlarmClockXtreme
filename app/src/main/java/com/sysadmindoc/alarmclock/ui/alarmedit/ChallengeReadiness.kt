@@ -7,6 +7,7 @@ import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.nfc.NfcAdapter
 import android.os.Build
+import android.speech.SpeechRecognizer
 import androidx.core.content.ContextCompat
 
 /**
@@ -58,8 +59,10 @@ data class DeviceChallengeCapabilities(
     val nfcEnabled: Boolean = true,
     val hasCamera: Boolean = true,
     val hasWifi: Boolean = true,
+    val speechRecognitionAvailable: Boolean = true,
     val activityRecognitionGranted: Boolean = true,
     val cameraGranted: Boolean = true,
+    val recordAudioGranted: Boolean = true,
     val locationGranted: Boolean = true
 )
 
@@ -91,6 +94,13 @@ fun evaluateChallengeReadiness(
         !capabilities.hasStepCounter -> hardware("This device has no step-counter sensor for the walk challenge.")
         !capabilities.activityRecognitionGranted ->
             permission("Grant physical-activity permission so steps can be counted.")
+        else -> ready()
+    }
+    "VOICE_PHRASE" -> when {
+        !capabilities.speechRecognitionAvailable ->
+            permission("Android speech recognition is unavailable; typed fallback remains available.")
+        !capabilities.recordAudioGranted ->
+            permission("Grant microphone permission so the phrase can be recognized.")
         else -> ready()
     }
     "NFC_SCAN" -> when {
@@ -187,8 +197,11 @@ fun deviceChallengeCapabilities(context: Context): DeviceChallengeCapabilities {
         nfcEnabled = nfcAdapter?.isEnabled == true,
         hasCamera = pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY),
         hasWifi = pm.hasSystemFeature(PackageManager.FEATURE_WIFI),
+        speechRecognitionAvailable = SpeechRecognizer.isRecognitionAvailable(context),
         activityRecognitionGranted = activityRecognitionGranted,
         cameraGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+            PackageManager.PERMISSION_GRANTED,
+        recordAudioGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED,
         locationGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED

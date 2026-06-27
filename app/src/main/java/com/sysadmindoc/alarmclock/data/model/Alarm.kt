@@ -153,6 +153,7 @@ data class Alarm(
             "SEQUENCE",
             "MEMORY_PATTERN",
             "TYPING",
+            "VOICE_PHRASE",
             "WALK_STEPS",
             "NFC_SCAN",
             "BARCODE_SCAN",

@@ -11,6 +11,7 @@ enum class ChallengeType {
     SEQUENCE,        // Tap numbers in ascending order
     MEMORY_PATTERN,  // Remember and tap a pattern of tiles
     TYPING,          // Type a displayed phrase exactly
+    VOICE_PHRASE,    // Speak a displayed phrase with offline SpeechRecognizer
     WALK_STEPS,      // Walk N steps (uses step counter sensor)
     NFC_SCAN,        // Tap a registered NFC tag
     BARCODE_SCAN,    // Scan a registered barcode/QR code
@@ -65,6 +66,11 @@ sealed class Challenge {
     // F3: Typing challenge — must type the displayed phrase exactly
     data class TypingChallenge(
         override val type: ChallengeType = ChallengeType.TYPING,
+        val phrase: String
+    ) : Challenge()
+
+    data class VoicePhraseChallenge(
+        override val type: ChallengeType = ChallengeType.VOICE_PHRASE,
         val phrase: String
     ) : Challenge()
 
@@ -250,6 +256,13 @@ object ChallengeGenerator {
                 allPhrases.addAll(customPhrases.split("\n").filter { it.isNotBlank() })
             }
             Challenge.TypingChallenge(phrase = allPhrases.random())
+        }
+        ChallengeType.VOICE_PHRASE -> {
+            val allPhrases = TYPING_PHRASES.toMutableList()
+            if (customPhrases.isNotBlank()) {
+                allPhrases.addAll(customPhrases.split("\n").filter { it.isNotBlank() })
+            }
+            Challenge.VoicePhraseChallenge(phrase = allPhrases.random())
         }
         // WALK_STEPS, NFC_SCAN, BARCODE_SCAN, PHOTO_MATCH require alarm-level data;
         // constructed directly in AlarmFiringViewModel using alarm fields

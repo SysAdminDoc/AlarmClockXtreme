@@ -12,7 +12,7 @@ Summary: Feature-rich alarm clock with challenges, weather, and bedtime tools
 
 Description: |-
   AlarmClockXtreme is a privacy-first, open-source alarm clock designed to
-  actually get you out of bed. Features include 25 dismiss challenges,
+  actually get you out of bed. Features include 26 dismiss challenges,
   exact alarms, weather and public-holiday context, calendar-assisted alarms,
   bedtime tools, timer, stopwatch, widgets, local statistics, and full
   backup/restore.
@@ -25,9 +25,9 @@ RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.15.2
-    versionCode: 104
-    commit: v1.15.2
+  - versionName: 1.15.3
+    versionCode: 105
+    commit: v1.15.3
     subdir: app
     gradle:
       - fdroid
@@ -40,5 +40,5 @@ AntiFeatures:
       api.weather.gov alerts, Windy radar, public RSS feeds, user-configured
       webhooks, internet radio streams, and a local Philips Hue bridge.
 
-CurrentVersion: 1.15.2
-CurrentVersionCode: 104
+CurrentVersion: 1.15.3
+CurrentVersionCode: 105

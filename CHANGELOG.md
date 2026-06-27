@@ -2,6 +2,23 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.3] - 2026-06-27
+
+### Added
+
+- Voice phrase dismiss challenge: users say the displayed phrase using Android
+  SpeechRecognizer with offline preference, microphone permission recovery,
+  and a typed fallback so denied-permission or no-recognizer devices stay
+  dismissable.
+
+### Fixed
+
+- Alarm edit now exposes the existing PVT, push-up, and plank-hold dismiss
+  challenges in the challenge picker instead of leaving them firing-engine-only.
+- Wear release signing now resolves the shared `keystore.properties` storeFile
+  path the same way the app module does, so the local release artifact build can
+  sign `:wear:assembleRelease`.
+
 ## [1.15.2] - 2026-06-27
 
 ### Added

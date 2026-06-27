@@ -99,6 +99,7 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.SquatChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.PushUpChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.PlankHoldChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.TypingChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.VoicePhraseChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.WalkChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.CountSheepChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.DateBackwardsChallengeView
@@ -532,6 +533,16 @@ fun AlarmFiringScreen(
                             )
                         }
 
+                        challenge is Challenge.VoicePhraseChallenge -> {
+                            VoicePhraseChallengeView(
+                                challenge = challenge,
+                                transcript = state.voiceTranscript,
+                                status = state.voiceStatus,
+                                wrongAttempts = state.wrongAttempts,
+                                onRecognized = viewModel::submitVoicePhrase
+                            )
+                        }
+
                         challenge is Challenge.WalkChallenge -> {
                             WalkChallengeView(
                                 challenge = challenge,
@@ -864,6 +875,7 @@ private fun Challenge?.headline(): String = when (this) {
     is Challenge.SequenceChallenge -> "Finish the number sequence"
     is Challenge.MemoryPatternChallenge -> "Repeat the pattern"
     is Challenge.TypingChallenge -> "Type the wake-up phrase"
+    is Challenge.VoicePhraseChallenge -> "Say the wake-up phrase"
     is Challenge.WalkChallenge -> "Walk it off"
     is Challenge.NfcChallenge -> "Tap the registered NFC tag"
     is Challenge.BarcodeChallenge -> "Scan the registered code"
@@ -891,6 +903,7 @@ private fun Challenge?.supportingText(): String = when (this) {
     is Challenge.SequenceChallenge -> "Tap in order without losing your place."
     is Challenge.MemoryPatternChallenge -> "Watch the tiles, then repeat them exactly."
     is Challenge.TypingChallenge -> "Typing the phrase confirms you are alert enough to finish."
+    is Challenge.VoicePhraseChallenge -> "Speaking the phrase adds a hands-free wake-up check."
     is Challenge.WalkChallenge -> "A few steps create enough movement to wake up properly."
     is Challenge.NfcChallenge -> "Use the tag you saved for this alarm."
     is Challenge.BarcodeChallenge -> "Scan the code you linked to this wake-up routine."
@@ -917,6 +930,7 @@ private fun Challenge?.statusDescription(): String = when (this) {
     is Challenge.SequenceChallenge -> "Tap the numbers in ascending order."
     is Challenge.MemoryPatternChallenge -> "Memorize first, then repeat the pattern."
     is Challenge.TypingChallenge -> "Type the full phrase exactly as shown."
+    is Challenge.VoicePhraseChallenge -> "Say the phrase shown below, or use the typed fallback."
     is Challenge.WalkChallenge -> "Walk enough steps to prove you are up."
     is Challenge.NfcChallenge -> "Tap the saved NFC tag to continue."
     is Challenge.BarcodeChallenge -> "Scan the saved barcode or QR code."

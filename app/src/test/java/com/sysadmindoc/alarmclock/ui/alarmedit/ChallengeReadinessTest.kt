@@ -25,7 +25,18 @@ class ChallengeReadinessTest {
 
     @Test
     fun fullyConfiguredPhysicalChallengesAreReady() {
-        listOf("SHAKE", "SQUAT", "WALK_STEPS", "NFC_SCAN", "BARCODE_SCAN", "PHOTO_MATCH", "WIFI_CONNECT")
+        listOf(
+            "SHAKE",
+            "SQUAT",
+            "PUSH_UP",
+            "PLANK_HOLD",
+            "WALK_STEPS",
+            "VOICE_PHRASE",
+            "NFC_SCAN",
+            "BARCODE_SCAN",
+            "PHOTO_MATCH",
+            "WIFI_CONNECT"
+        )
             .forEach { type ->
                 val verdict = evaluateChallengeReadiness(type, allReady, refs)!!
                 assertEquals("$type should be ready", ChallengeReadinessStatus.READY, verdict.status)
@@ -103,6 +114,25 @@ class ChallengeReadinessTest {
     }
 
     @Test
+    fun voicePhrasePermissionAndRecognizerOnlyWarn() {
+        val missingMic = evaluateChallengeReadiness(
+            "VOICE_PHRASE",
+            allReady.copy(recordAudioGranted = false),
+            refs
+        )!!
+        assertEquals(ChallengeReadinessStatus.NEEDS_PERMISSION, missingMic.status)
+        assertFalse(missingMic.blocksSave)
+
+        val missingRecognizer = evaluateChallengeReadiness(
+            "VOICE_PHRASE",
+            allReady.copy(speechRecognitionAvailable = false),
+            refs
+        )!!
+        assertEquals(ChallengeReadinessStatus.NEEDS_PERMISSION, missingRecognizer.status)
+        assertFalse(missingRecognizer.blocksSave)
+    }
+
+    @Test
     fun wifiAndLocationGatesForWifiChallenge() {
         val missingSsid = evaluateChallengeReadiness("WIFI_CONNECT", allReady, refs.copy(wifiDismissSsid = ""))!!
         assertEquals(ChallengeReadinessStatus.NEEDS_REFERENCE, missingSsid.status)
@@ -121,6 +151,8 @@ class ChallengeReadinessTest {
         val noAccel = allReady.copy(hasAccelerometer = false)
         assertEquals(ChallengeReadinessStatus.NEEDS_HARDWARE, evaluateChallengeReadiness("SHAKE", noAccel, refs)!!.status)
         assertEquals(ChallengeReadinessStatus.NEEDS_HARDWARE, evaluateChallengeReadiness("SQUAT", noAccel, refs)!!.status)
+        assertEquals(ChallengeReadinessStatus.NEEDS_HARDWARE, evaluateChallengeReadiness("PUSH_UP", noAccel, refs)!!.status)
+        assertEquals(ChallengeReadinessStatus.NEEDS_HARDWARE, evaluateChallengeReadiness("PLANK_HOLD", noAccel, refs)!!.status)
     }
 
     @Test

@@ -1,5 +1,14 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring.challenges
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -45,10 +54,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,6 +74,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
@@ -481,6 +493,245 @@ fun TypingChallengeView(
             Text("Check phrase", fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
     }
+}
+
+@Composable
+fun VoicePhraseChallengeView(
+    challenge: Challenge.VoicePhraseChallenge,
+    transcript: String,
+    status: String,
+    wrongAttempts: Int,
+    onRecognized: (String) -> Unit
+) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val speechAvailable = remember(context) { SpeechRecognizer.isRecognitionAvailable(context) }
+    var hasRecordPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
+        )
+    }
+    var isListening by remember { mutableStateOf(false) }
+    var localStatus by remember(challenge.phrase) { mutableStateOf("") }
+    var typedFallback by remember(challenge.phrase) { mutableStateOf("") }
+    var wrongFlash by remember { mutableStateOf(false) }
+    val latestOnRecognized by rememberUpdatedState(onRecognized)
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasRecordPermission = granted
+        localStatus = if (granted) {
+            "Microphone ready. Start listening again."
+        } else {
+            "Microphone permission was denied. Type the phrase below to finish."
+        }
+    }
+
+    val speechRecognizer = remember(speechAvailable) {
+        if (speechAvailable) SpeechRecognizer.createSpeechRecognizer(context) else null
+    }
+    val listenIntent = remember(challenge.phrase) {
+        Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(RecognizerIntent.EXTRA_PROMPT, challenge.phrase)
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        }
+    }
+
+    DisposableEffect(speechRecognizer, listenIntent) {
+        val listener = object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {
+                localStatus = "Listening. Say the phrase shown below."
+            }
+
+            override fun onBeginningOfSpeech() {
+                localStatus = "Speech detected."
+            }
+
+            override fun onRmsChanged(rmsdB: Float) = Unit
+            override fun onBufferReceived(buffer: ByteArray?) = Unit
+
+            override fun onEndOfSpeech() {
+                localStatus = "Checking what was heard..."
+            }
+
+            override fun onError(error: Int) {
+                isListening = false
+                localStatus = speechErrorMessage(error)
+            }
+
+            override fun onResults(results: Bundle?) {
+                isListening = false
+                val recognized = results
+                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull()
+                    .orEmpty()
+                latestOnRecognized(recognized)
+            }
+
+            override fun onPartialResults(partialResults: Bundle?) {
+                val partial = partialResults
+                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull()
+                    .orEmpty()
+                if (partial.isNotBlank()) {
+                    localStatus = "Hearing: $partial"
+                }
+            }
+
+            override fun onEvent(eventType: Int, params: Bundle?) = Unit
+        }
+        speechRecognizer?.setRecognitionListener(listener)
+        onDispose {
+            runCatching { speechRecognizer?.cancel() }
+            runCatching { speechRecognizer?.destroy() }
+        }
+    }
+
+    LaunchedEffect(wrongAttempts) {
+        if (wrongAttempts > 0) {
+            wrongFlash = true
+            delay(400)
+            wrongFlash = false
+        }
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
+    ) {
+        ChallengeSupportText(
+            "Say the phrase clearly. Offline recognition is preferred when Android provides it."
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (wrongFlash) AccentRed.copy(alpha = 0.15f) else SurfaceCard
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = challenge.phrase,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(18.dp)
+            )
+        }
+
+        Button(
+            onClick = {
+                when {
+                    !speechAvailable -> {
+                        localStatus = "Android speech recognition is unavailable here. Type the phrase below."
+                    }
+                    !hasRecordPermission -> permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    else -> {
+                        runCatching {
+                            isListening = true
+                            localStatus = "Starting microphone..."
+                            speechRecognizer?.startListening(listenIntent)
+                        }.onFailure {
+                            isListening = false
+                            localStatus = "Could not start speech recognition. Type the phrase below."
+                        }
+                    }
+                }
+            },
+            enabled = !isListening,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Text(
+                text = if (isListening) "Listening..." else "Start listening",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        if (isListening) {
+            OutlinedButton(
+                onClick = {
+                    runCatching { speechRecognizer?.stopListening() }
+                    isListening = false
+                    localStatus = "Stopped listening."
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Stop listening")
+            }
+        }
+
+        val visibleStatus = status.ifBlank { localStatus }
+        if (visibleStatus.isNotBlank()) {
+            ChallengeNotice(
+                text = visibleStatus,
+                accent = if (status.startsWith("Heard") || status.startsWith("No phrase")) {
+                    AccentRed
+                } else {
+                    SnoozeYellow
+                },
+                icon = Icons.Default.WarningAmber
+            )
+        } else if (transcript.isNotBlank()) {
+            ChallengeNotice(
+                text = "Heard: $transcript",
+                accent = TextSecondary,
+                icon = Icons.Default.PhoneAndroid
+            )
+        }
+
+        OutlinedTextField(
+            value = typedFallback,
+            onValueChange = { typedFallback = it },
+            placeholder = { Text("Typed fallback phrase", color = TextMuted) },
+            colors = appOutlinedTextFieldColors(),
+            shape = AppInputShape,
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = {
+                if (typedFallback.isNotBlank()) onRecognized(typedFallback)
+            })
+        )
+
+        OutlinedButton(
+            onClick = { onRecognized(typedFallback) },
+            enabled = typedFallback.isNotBlank(),
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Text("Check typed phrase")
+        }
+    }
+}
+
+private fun speechErrorMessage(error: Int): String = when (error) {
+    SpeechRecognizer.ERROR_AUDIO -> "The microphone had an audio error. Try again or type the phrase."
+    SpeechRecognizer.ERROR_CLIENT -> "Speech recognition stopped. Try again or type the phrase."
+    SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
+        "Microphone permission is missing. Grant it or type the phrase."
+    SpeechRecognizer.ERROR_NETWORK -> "Speech recognition network error. Offline fallback may be unavailable."
+    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Speech recognition timed out. Try again or type the phrase."
+    SpeechRecognizer.ERROR_NO_MATCH -> "No matching speech was detected. Say the phrase again."
+    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Speech recognition is busy. Wait a moment and retry."
+    SpeechRecognizer.ERROR_SERVER -> "Speech service error. Type the phrase if it keeps happening."
+    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech was heard. Try again or type the phrase."
+    else -> "Speech recognition failed. Try again or type the phrase."
 }
 
 @Composable

@@ -1189,6 +1189,7 @@ private fun challengeTypeLabel(type: String): String = when (type) {
     "SEQUENCE"       -> "Number Sequence"
     "MEMORY_PATTERN" -> "Memory Pattern"
     "TYPING"         -> "Type a Phrase"
+    "VOICE_PHRASE"   -> "Voice Phrase"
     "WALK_STEPS"     -> "Walk Steps"
     "NFC_SCAN"       -> "NFC Tag Scan"
     "BARCODE_SCAN"   -> "Barcode Scan"
@@ -1200,6 +1201,13 @@ private fun challengeTypeLabel(type: String): String = when (type) {
     "SIMON_SAYS"     -> "Simon Says"
     "DATE_BACKWARDS" -> "Type Date Backwards"
     "STROOP"         -> "Stroop Color Test"
+    "ROCK_PAPER_SCISSORS" -> "Rock Paper Scissors"
+    "EMOJI_MEMORY"   -> "Emoji Memory"
+    "TYPING_SPEED"   -> "Typing Speed"
+    "WORDLE"         -> "Wordle"
+    "PVT"            -> "Reaction Test"
+    "PUSH_UP"        -> "Push-ups"
+    "PLANK_HOLD"     -> "Plank Hold"
     else             -> type.lowercase().replace("_", " ").replaceFirstChar { it.uppercase() }
 }
 
