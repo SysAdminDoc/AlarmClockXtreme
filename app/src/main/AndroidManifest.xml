@@ -265,6 +265,16 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
 
+        <activity
+            android:name=".directboot.DirectBootAlarmActivity"
+            android:directBootAware="true"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.AlarmClockXtreme" />
+
         <!-- F6: Smart Alarm motion-monitoring service -->
         <service
             android:name=".service.SmartAlarmService"

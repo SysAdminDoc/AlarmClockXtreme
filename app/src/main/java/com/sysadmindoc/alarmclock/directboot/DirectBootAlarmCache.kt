@@ -3,7 +3,6 @@ package com.sysadmindoc.alarmclock.directboot
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
-import android.content.Intent
 import android.text.format.DateFormat
 import android.util.Log
 import com.sysadmindoc.alarmclock.data.model.Alarm
@@ -209,11 +208,12 @@ object DirectBootAlarmCache {
     }
 
     private fun showIntent(context: Context): PendingIntent {
-        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            ?: Intent().setClassName(
-                context.packageName,
-                "com.sysadmindoc.alarmclock.MainActivity"
-            ).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+        val snapshot = read(context)
+        val launch = DirectBootAlarmActivity.intent(
+            context = context,
+            alarmId = snapshot?.alarmId ?: -1L,
+            timeLabel = snapshot?.timeLabel.orEmpty()
+        )
         return PendingIntent.getActivity(
             context,
             DIRECT_BOOT_SHOW_REQUEST_CODE,

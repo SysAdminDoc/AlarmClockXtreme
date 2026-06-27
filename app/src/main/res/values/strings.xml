@@ -14,6 +14,9 @@
     <!-- Widget -->
     <string name="widget_description">Shows the next scheduled alarm time and countdown</string>
     <string name="widget_no_alarm">No alarm set</string>
+    <string name="direct_boot_alarm_title">Alarm</string>
+    <string name="direct_boot_alarm_message">Device is still locked after reboot. Stop this fallback alarm, then unlock to restore full alarm controls.</string>
+    <string name="direct_boot_alarm_stop">Stop alarm</string>
 
     <!-- Navigation -->
     <string name="nav_my_day">My Day</string>

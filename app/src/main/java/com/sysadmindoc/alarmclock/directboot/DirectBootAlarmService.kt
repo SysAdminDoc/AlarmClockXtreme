@@ -112,7 +112,12 @@ class DirectBootAlarmService : Service() {
             else -> "Alarm"
         }
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val fullScreenIntent = DirectBootAlarmActivity.fullScreenIntent(
+            context = this,
+            alarmId = currentAlarmId,
+            timeLabel = timeLabel
+        )
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle("Alarm")
             .setContentText(text)
@@ -121,8 +126,10 @@ class DirectBootAlarmService : Service() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
+            .setContentIntent(fullScreenIntent)
+            .setFullScreenIntent(fullScreenIntent, true)
             .addAction(R.drawable.ic_alarm, "Stop", stopPendingIntent)
-            .build()
+        return builder.build()
     }
 
     private fun startDefaultAlarmSound() {

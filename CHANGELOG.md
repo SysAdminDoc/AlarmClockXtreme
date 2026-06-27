@@ -2,6 +2,19 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.2] - 2026-06-27
+
+### Added
+
+- Direct Boot fallback alarms now launch a direct-boot-aware full-screen stop
+  UI before first unlock after reboot. The fallback notification also uses
+  that activity as its full-screen and content intent.
+
+### Changed
+
+- ROADMAP.md now drops completed local actigraphy, smart-wake, lockscreen
+  widget, and Direct Boot full-screen entries so it stays actionable-only.
+
 ## [1.15.1] - 2026-06-25
 
 ### Fixed

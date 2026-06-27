@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.1-blue)
+![Version](https://img.shields.io/badge/version-1.15.2-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -17,7 +17,7 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.15.1-play.apk
+adb install AlarmClockXtreme-v1.15.2-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, and optional Health Connect READ_SLEEP integration. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -45,7 +45,7 @@ cd AlarmClockXtreme
 | Feature | Description |
 |---------|-------------|
 | Reliable Scheduling | `setAlarmClock()` for maximum reliability, survives Doze mode |
-| Direct Boot Fallback | Re-registers a minimal default-sound/vibration alarm from device-encrypted storage before first unlock after reboot |
+| Direct Boot Fallback | Re-registers a default-sound/vibration alarm from device-encrypted storage before first unlock after reboot, with a full-screen stop UI |
 | Solar-Relative Firing | Fire relative to sunrise/sunset with a configurable offset (NOAA approximation) |
 | Alarm Groups | Tag alarms (Work, School, Gym), filter with chips |
 | Alarm Profiles | Named configurations (Work, Travel, Weekend) for quick switching |
@@ -195,7 +195,7 @@ cd AlarmClockXtreme
 |  Date-specific + holiday + vacation + solar-anchor logic |
 +---------------------------------------------------------+
 |                    Data Layer                            |
-|  Room DB v16 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
+|  Room DB v17 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
 |  HealthConnectSleepRepository (Play READ_SLEEP summaries) |
 |  50+ field Alarm entity | 35+ field AppSettings          |
 |  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |
@@ -234,7 +234,7 @@ verify signatures with `apksigner`, write `SHA256SUMS.txt` and
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.1-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.2-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in
