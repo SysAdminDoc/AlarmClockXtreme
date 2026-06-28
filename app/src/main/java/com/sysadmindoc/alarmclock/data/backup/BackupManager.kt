@@ -530,7 +530,7 @@ class BackupManager @Inject constructor(
             }
 
             // v1.6.3: Make import per-alarm-resilient. The previous loop had
-            // no per-alarm try/catch despite the comment in CLAUDE.md
+            // no per-alarm try/catch despite the original specification
             // claiming "individual alarm failures don't abort the batch."
             // A single corrupt alarm row (e.g. an `Uri.parse`-hostile
             // ringtone URI from a much older backup) would now fail the
