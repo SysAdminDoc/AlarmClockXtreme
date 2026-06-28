@@ -1029,8 +1029,7 @@ R1-R6 + X1).
   vulnerable transitives: Jackson 2.18.6, Commons Compress 1.28.0, Commons IO
   2.20.0, Rhino 1.8.1, Guava 33.6.0-android, and XZ 1.10 support for release
   shrinking.
-- Tracked `PROJECT_CONTEXT.md` is the canonical project context when ignored
-  local `AGENTS.md` / `CLAUDE.md` notes conflict with source evidence.
+- Tracked `PROJECT_CONTEXT.md` is the canonical project context.
 
 ### Internal
 
@@ -1319,7 +1318,7 @@ changes; documentation + source comments only.
   cumulative held time and break monitoring early.
 - `SonarSleepService` holds no wake lock; it stays alive via the
   `microphone` FGS.
-- Audit results recorded in CLAUDE.md as a "Wake-Lock Budget" table.
+- Audit results recorded as a "Wake-Lock Budget" table.
 
 ### Internal
 
@@ -1428,7 +1427,7 @@ changes.
 
 - README's "Dismiss Challenges" table now lists 22 user-facing challenges
   (was 18 visible + 4 hidden) and the section header reads "(22 Types)".
-- CLAUDE.md's challenge-types crib now lists all 22 + `NONE` and documents
+- Challenge-types crib now lists all 22 + `NONE` and documents
   the whitelist invariant.
 
 ### Internal
@@ -1788,7 +1787,7 @@ Exact-alarm permission recovery release. No schema changes.
 ### Internal
 
 - Bumped to `versionName = "1.9.3"`, `versionCode = 40`. README badge,
-  install command, roadmap snapshot, and CLAUDE.md current-version line synced.
+  install command, and roadmap snapshot synced.
 
 ## [1.9.2] - 2026-05-13
 
@@ -1826,7 +1825,7 @@ Premium-polish pass across the Compose UI. No schema changes.
 ### Internal
 
 - Bumped to `versionName = "1.9.2"`, `versionCode = 39`. README badge,
-  install command, and CLAUDE.md current-version line synced.
+  install command synced.
 - Replaced the YouTube downloader availability probe with an explicit
   `remember`/`LaunchedEffect` state loop so Compose lint passes cleanly.
 
@@ -1895,7 +1894,7 @@ identity, and the preferences-store error path.
 ### Internal
 
 - Bumped to `versionName = "1.9.1"`, `versionCode = 38`. README badge,
-  install command, and CLAUDE.md current-version line synced.
+  install command synced.
 
 ## [1.9.0] - 2026-04-29
 
