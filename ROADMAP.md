@@ -198,7 +198,7 @@ items. New entries from this pass are tagged **NEW**.
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-DOC1 | Document the VMware-shared-folder MAX_PATH build gotcha in CONTRIBUTING.md (already in CLAUDE.md). **NEW.** | local: [CLAUDE.md:184](CLAUDE.md) | S |
+| L-DOC1 | Document the VMware-shared-folder MAX_PATH build gotcha in CONTRIBUTING.md. **NEW.** | local | S |
 | L-DOC2 | F-Droid anti-feature flag for crash-log writes — document explicitly that crash logs stay local and are never uploaded. **NEW.** | local: [util/CrashLogger.kt](app/src/main/java/com/sysadmindoc/alarmclock/util/CrashLogger.kt); [metadata/com.sysadmindoc.alarmclock.yml](metadata/com.sysadmindoc.alarmclock.yml) | S |
 
 ---
@@ -283,7 +283,7 @@ Items that need scoping or platform readiness before they earn a tier.
 
 ### Documentation
 
-- README, CHANGELOG, ROADMAP, CLAUDE.md, and the version badge must all match on every release. **N10 makes this enforced in CI instead of manual.**
+- README, CHANGELOG, ROADMAP, and the version badge must all match on every release. **N10 makes this enforced in CI instead of manual.**
 - Add a CONTRIBUTING.md (currently absent) — covers the VMware MAX_PATH gotcha (L-DOC1) and the new contributor's first PR loop.
 
 ### Plugin ecosystem
