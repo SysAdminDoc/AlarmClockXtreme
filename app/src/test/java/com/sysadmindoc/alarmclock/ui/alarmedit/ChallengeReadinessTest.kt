@@ -32,6 +32,7 @@ class ChallengeReadinessTest {
             "PLANK_HOLD",
             "WALK_STEPS",
             "VOICE_PHRASE",
+            "HANDWRITING",
             "NFC_SCAN",
             "BARCODE_SCAN",
             "PHOTO_MATCH",
@@ -130,6 +131,17 @@ class ChallengeReadinessTest {
         )!!
         assertEquals(ChallengeReadinessStatus.NEEDS_PERMISSION, missingRecognizer.status)
         assertFalse(missingRecognizer.blocksSave)
+    }
+
+    @Test
+    fun handwritingRecognitionAvailabilityOnlyWarns() {
+        val verdict = evaluateChallengeReadiness(
+            "HANDWRITING",
+            allReady.copy(digitalInkRecognitionAvailable = false),
+            refs
+        )!!
+        assertEquals(ChallengeReadinessStatus.NEEDS_PERMISSION, verdict.status)
+        assertFalse(verdict.blocksSave)
     }
 
     @Test

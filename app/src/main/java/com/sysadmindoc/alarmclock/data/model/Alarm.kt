@@ -154,6 +154,7 @@ data class Alarm(
             "MEMORY_PATTERN",
             "TYPING",
             "VOICE_PHRASE",
+            "HANDWRITING",
             "WALK_STEPS",
             "NFC_SCAN",
             "BARCODE_SCAN",

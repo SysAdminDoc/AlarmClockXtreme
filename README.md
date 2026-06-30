@@ -1,12 +1,12 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.3-blue)
+![Version](https://img.shields.io/badge/version-1.15.4-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)
 
-> A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 26 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
+> A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 27 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
 
 <p align="center">
   <img src="assets/screenshots/alarm-list.png" width="360" alt="AlarmClockXtreme alarm list with next alarm, alarm cards, quick actions, and bottom navigation" />
@@ -17,10 +17,10 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.15.3-play.apk
+adb install AlarmClockXtreme-v1.15.4-play.apk
 ```
 
-The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, and optional Health Connect READ_SLEEP integration. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
+The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, optional Health Connect READ_SLEEP integration, and ML Kit Digital Ink handwriting recognition. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
 
 ## Roadmap
 
@@ -60,7 +60,7 @@ cd AlarmClockXtreme
 | Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
 | Wear OS Tile + Complication | Shows the next alarm on the watch tile and compatible watch faces; the tile also exposes skip controls before fire and snooze/dismiss controls while ringing and honors the public-label privacy setting |
 
-### Dismiss Challenges (26 Types)
+### Dismiss Challenges (27 Types)
 | Challenge | Description |
 |-----------|-------------|
 | Math (Easy/Medium/Hard) | Solve arithmetic problems with explicit operator precedence |
@@ -69,6 +69,7 @@ cd AlarmClockXtreme
 | Memory Pattern | Memorize and recreate a tile pattern on 3x3 grid |
 | Type a Phrase | Type a displayed phrase exactly (custom phrases supported) |
 | Voice Phrase | Say the displayed phrase with Android speech recognition; typed fallback protects denied-permission and no-recognizer devices |
+| Handwriting | Draw a displayed wake word with Play-flavor ML Kit Digital Ink; typed fallback keeps F-Droid and offline-missing-model devices dismissable |
 | Walk Steps | Walk N steps using step counter sensor |
 | NFC Tag Scan | Tap a pre-registered NFC tag |
 | Barcode/QR Scan | Scan a pre-registered barcode |
@@ -138,6 +139,7 @@ cd AlarmClockXtreme
 | Local Actigraphy Buckets | Smart-alarm windows store compact awake-motion, light-motion, and still-motion summaries for 30 days; raw accelerometer samples are not retained |
 | Philips Hue Sunrise | Gradually ramp smart lights before alarm fires |
 | Webhook / Tasker | POST HTTPS JSON on `alarm_fired`, `alarm_snoozed`, `alarm_dismissed`, `alarm_missed`, and `alarm_skipped` events |
+| Dismiss Actions | Trigger a validated webhook, package-scoped broadcast, or configured Philips Hue scene after a successful dismiss |
 | Flip-to-Snooze | Place phone face-down to snooze |
 
 ### Dashboard & Utilities
@@ -189,7 +191,7 @@ cd AlarmClockXtreme
 +---------------------------------------------------------+
 |                    UI Layer (Compose)                     |
 |  Screens <- ViewModels <- StateFlow                      |
-|  26 challenge flows, 8 alarm edit sections               |
+|  27 challenge flows, 8 alarm edit sections               |
 +---------------------------------------------------------+
 |                   Domain Layer                           |
 |  AlarmScheduler | NextAlarmCalculator | SolarCalculator  |
@@ -207,7 +209,7 @@ cd AlarmClockXtreme
 +---------------------------------------------------------+
 ```
 
-**Tech stack:** Kotlin 2.1, Jetpack Compose (Material 3), Room, Hilt, Retrofit + Moshi (codegen), DataStore, Glance widgets, OkHttp, Coroutines/Flow, WorkManager, Wear Tiles/Protolayout/Complications, Health Connect client (Play flavor), yt-dlp, NewPipe Extractor (Play flavor)
+**Tech stack:** Kotlin 2.1, Jetpack Compose (Material 3), Room, Hilt, Retrofit + Moshi (codegen), DataStore, Glance widgets, OkHttp, Coroutines/Flow, WorkManager, Wear Tiles/Protolayout/Complications, Health Connect client (Play flavor), ML Kit Digital Ink (Play flavor), yt-dlp, NewPipe Extractor (Play flavor)
 
 ## Configuration
 
@@ -235,7 +237,7 @@ verify signatures with `apksigner`, write `SHA256SUMS.txt` and
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.3-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.4-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in
@@ -305,6 +307,7 @@ No analytics. No ads. No tracking. No accounts. No data leaves your device excep
 - Webhook calls to your configured HTTPS URL, including alarm event metadata. Payloads include `schemaVersion`, `event`, `eventId`, `occurredAt`, `alarmId`, `scheduledFor`, `displayTime`, and `labelIncluded`; alarm labels are included only when the Settings toggle is on.
 - Internet radio streaming to your configured station
 - Philips Hue commands to your configured bridge on your local network
+- ML Kit Digital Ink model download in the Play flavor when you first use handwriting recognition; recognition runs on-device after the model is available
 - YouTube search, preview, stream resolution, and download requests in the Play flavor only; F-Droid excludes this feature
 
 Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, including sleep/wake trend charts; they are not copied into Room/DataStore/backups and are never uploaded to the developer. Smart-alarm actigraphy stores only compact local motion-bucket summaries for 30 days; raw accelerometer samples are not retained and the buckets are not medical sleep-stage records. Support bundles are created only when you choose to export them and include redacted wake-readiness, test-alarm proof timing, aggregate smart-wake decision metadata, and recent alarm incident event codes, not labels or per-minute motion buckets. Crash logs stay in local app storage unless you export them. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, and Hue configuration.
@@ -401,7 +404,7 @@ These manufacturers aggressively kill background apps. The app shows a manufactu
 Check Settings > Dashboard > Temperature unit. The app defaults to Fahrenheit. You can also set a manual location if GPS isn't available.
 
 **Can I use this without Google Play Services?**
-Yes. Core alarm features do not require Google Play Services. Weather uses Open-Meteo, Nager.Date, and api.weather.gov depending on enabled features. The F-Droid build variant excludes Play-specific code, including the YouTube downloader, Wear OS Data Layer bridge, and Health Connect SDK path.
+Yes. Core alarm features do not require Google Play Services. Weather uses Open-Meteo, Nager.Date, and api.weather.gov depending on enabled features. The F-Droid build variant excludes Play-specific code, including the YouTube downloader, Wear OS Data Layer bridge, Health Connect SDK path, and ML Kit handwriting recognizer; the handwriting challenge still has a typed fallback.
 
 **How does Mission Chaining work?**
 In alarm edit, set the "Challenge chain" field to a comma-separated list of challenge types (e.g., `MATH_EASY,SHAKE,TYPING`). The alarm will require you to solve each challenge in order before dismissing.

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.SystemClock
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -14,9 +15,11 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -24,6 +27,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -65,13 +69,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -732,6 +743,207 @@ private fun speechErrorMessage(error: Int): String = when (error) {
     SpeechRecognizer.ERROR_SERVER -> "Speech service error. Type the phrase if it keeps happening."
     SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech was heard. Try again or type the phrase."
     else -> "Speech recognition failed. Try again or type the phrase."
+}
+
+@Composable
+fun HandwritingChallengeView(
+    challenge: Challenge.HandwritingChallenge,
+    status: String,
+    busy: Boolean,
+    wrongAttempts: Int,
+    onRecognize: (List<InkStroke>, Float, Float) -> Unit,
+    onTypedFallback: (String) -> Unit
+) {
+    var strokes by remember(challenge.targetText) { mutableStateOf<List<InkStroke>>(emptyList()) }
+    var currentStroke by remember(challenge.targetText) { mutableStateOf<List<InkPoint>>(emptyList()) }
+    var typedFallback by remember(challenge.targetText) { mutableStateOf("") }
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
+    var wrongFlash by remember { mutableStateOf(false) }
+
+    LaunchedEffect(wrongAttempts) {
+        if (wrongAttempts > 0) {
+            wrongFlash = true
+            delay(400)
+            wrongFlash = false
+        }
+    }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 12.dp)
+    ) {
+        ChallengeSupportText(
+            "Draw the word in the box. Recognition runs on-device after the handwriting model is available."
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = if (wrongFlash) AccentRed.copy(alpha = 0.15f) else SurfaceCard
+            ),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = challenge.targetText,
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                color = TextPrimary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(18.dp)
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(SurfaceDark.copy(alpha = 0.78f))
+                .semantics {
+                    contentDescription = "Drawing pad for ${challenge.targetText}"
+                }
+        ) {
+            Canvas(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onSizeChanged { canvasSize = it }
+                    .pointerInput(challenge.targetText, busy) {
+                        if (busy) return@pointerInput
+                        detectDragGestures(
+                            onDragStart = { offset ->
+                                currentStroke = listOf(
+                                    InkPoint(offset.x, offset.y, SystemClock.uptimeMillis())
+                                )
+                            },
+                            onDragEnd = {
+                                if (currentStroke.size >= 2) {
+                                    strokes = strokes + InkStroke(currentStroke)
+                                }
+                                currentStroke = emptyList()
+                            },
+                            onDragCancel = { currentStroke = emptyList() },
+                            onDrag = { change, _ ->
+                                change.consume()
+                                currentStroke = currentStroke + InkPoint(
+                                    x = change.position.x,
+                                    y = change.position.y,
+                                    timestampMillis = SystemClock.uptimeMillis()
+                                )
+                            }
+                        )
+                    }
+            ) {
+                fun drawInk(stroke: InkStroke, alpha: Float) {
+                    val points = stroke.points
+                    if (points.size < 2) return
+                    val path = Path().apply {
+                        moveTo(points.first().x, points.first().y)
+                        points.drop(1).forEach { point -> lineTo(point.x, point.y) }
+                    }
+                    drawPath(
+                        path = path,
+                        color = AccentBlue.copy(alpha = alpha),
+                        style = Stroke(
+                            width = 8.dp.toPx(),
+                            cap = StrokeCap.Round,
+                            join = StrokeJoin.Round
+                        )
+                    )
+                }
+
+                strokes.forEach { drawInk(it, alpha = 0.95f) }
+                if (currentStroke.isNotEmpty()) {
+                    drawInk(InkStroke(currentStroke), alpha = 0.72f)
+                }
+            }
+
+            if (strokes.isEmpty() && currentStroke.isEmpty()) {
+                Text(
+                    text = "Write ${challenge.targetText}",
+                    color = TextMuted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(16.dp)
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = {
+                    strokes = emptyList()
+                    currentStroke = emptyList()
+                },
+                enabled = !busy && (strokes.isNotEmpty() || currentStroke.isNotEmpty()),
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Clear")
+            }
+            Button(
+                onClick = {
+                    onRecognize(
+                        strokes,
+                        canvasSize.width.toFloat(),
+                        canvasSize.height.toFloat()
+                    )
+                },
+                enabled = !busy && strokes.isNotEmpty() && canvasSize != IntSize.Zero,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text(if (busy) "Checking..." else "Check drawing")
+            }
+        }
+
+        if (busy) {
+            CircularProgressIndicator(color = AccentBlue)
+        }
+
+        if (status.isNotBlank()) {
+            ChallengeNotice(
+                text = status,
+                accent = when {
+                    status.endsWith("matched.") -> DismissGreen
+                    status.startsWith("Checking") -> SnoozeYellow
+                    else -> AccentRed
+                },
+                icon = Icons.Default.WarningAmber
+            )
+        }
+
+        OutlinedTextField(
+            value = typedFallback,
+            onValueChange = { typedFallback = it },
+            placeholder = { Text("Typed fallback word", color = TextMuted) },
+            colors = appOutlinedTextFieldColors(),
+            shape = AppInputShape,
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = {
+                if (typedFallback.isNotBlank()) onTypedFallback(typedFallback)
+            })
+        )
+
+        OutlinedButton(
+            onClick = { onTypedFallback(typedFallback) },
+            enabled = typedFallback.isNotBlank() && !busy,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Text("Check typed word")
+        }
+    }
 }
 
 @Composable

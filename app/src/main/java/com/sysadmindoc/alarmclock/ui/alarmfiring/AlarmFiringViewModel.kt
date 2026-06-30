@@ -28,6 +28,9 @@ data class FiringUiState(
     // Voice phrase challenge
     val voiceTranscript: String = "",
     val voiceStatus: String = "",
+    // Handwriting challenge
+    val handwritingStatus: String = "",
+    val handwritingBusy: Boolean = false,
     // F4: Walk-steps challenge
     val currentSteps: Int = 0,
     val walkStatus: String = "",
@@ -107,7 +110,8 @@ class AlarmFiringViewModel @Inject constructor(
     private val repository: AlarmRepository,
     private val eventRepository: com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository,
     private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager,
-    private val weatherRepository: com.sysadmindoc.alarmclock.data.repository.WeatherRepository
+    private val weatherRepository: com.sysadmindoc.alarmclock.data.repository.WeatherRepository,
+    private val digitalInkChallengeRecognizer: DigitalInkChallengeRecognizer
 ) : ViewModel() {
 
     private val alarmId: Long = savedStateHandle.get<Long>(AlarmScheduler.EXTRA_ALARM_ID) ?: -1
@@ -300,6 +304,8 @@ class AlarmFiringViewModel @Inject constructor(
             typingInput = "",
             voiceTranscript = "",
             voiceStatus = "",
+            handwritingStatus = "",
+            handwritingBusy = false,
             wrongAttempts = 0,
             nfcScanStatus = "",
             barcodeScanStatus = "",
@@ -426,6 +432,74 @@ class AlarmFiringViewModel @Inject constructor(
                 totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
+    }
+
+    fun submitHandwriting(strokes: List<InkStroke>, width: Float, height: Float) {
+        val challenge = _uiState.value.challenge as? Challenge.HandwritingChallenge ?: return
+        if (strokes.none { it.points.size >= 2 }) {
+            markHandwritingWrong("Draw the word before checking it.")
+            return
+        }
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                handwritingBusy = true,
+                handwritingStatus = "Checking handwriting..."
+            )
+            val result = digitalInkChallengeRecognizer.recognize(
+                DigitalInkRecognitionRequest(
+                    strokes = strokes,
+                    canvasWidth = width,
+                    canvasHeight = height,
+                    expectedText = challenge.targetText
+                )
+            )
+            when {
+                !result.isAvailable -> _uiState.value = _uiState.value.copy(
+                    handwritingBusy = false,
+                    handwritingStatus = result.unavailableReason
+                        ?: "Handwriting recognition is unavailable. Type the word instead."
+                )
+                HandwritingChallengeMatcher.matches(challenge.targetText, result.candidates) -> {
+                    _uiState.value = _uiState.value.copy(
+                        handwritingBusy = false,
+                        handwritingStatus = "Handwriting matched."
+                    )
+                    proceedToNextChallenge()
+                }
+                else -> markHandwritingWrong(
+                    message = result.candidates.firstOrNull()?.let { candidate ->
+                        "Recognized \"$candidate\". Draw ${challenge.targetText} again."
+                    } ?: "No handwriting match. Draw ${challenge.targetText} again."
+                )
+            }
+        }
+    }
+
+    fun submitHandwritingFallback(text: String) {
+        val challenge = _uiState.value.challenge as? Challenge.HandwritingChallenge ?: return
+        val cleanText = text.trim()
+        if (HandwritingChallengeMatcher.matches(challenge.targetText, listOf(cleanText))) {
+            _uiState.value = _uiState.value.copy(handwritingStatus = "Typed word matched.")
+            proceedToNextChallenge()
+        } else {
+            markHandwritingWrong(
+                if (cleanText.isBlank()) {
+                    "Type the displayed word or draw it again."
+                } else {
+                    "Typed \"$cleanText\". Match ${challenge.targetText} exactly."
+                }
+            )
+        }
+    }
+
+    private fun markHandwritingWrong(message: String) {
+        if (_uiState.value.challenge !is Challenge.HandwritingChallenge) return
+        _uiState.value = _uiState.value.copy(
+            handwritingBusy = false,
+            handwritingStatus = message,
+            wrongAttempts = _uiState.value.wrongAttempts + 1,
+            totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
+        )
     }
 
     // F4: Walk-steps challenge

@@ -1,7 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// AlarmClockXtreme v1.15.3
+// AlarmClockXtreme v1.15.4
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 105
-        versionName = "1.15.3"
+        versionCode = 106
+        versionName = "1.15.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -191,6 +191,9 @@ dependencies {
     // Health Connect sleep-session reads (play flavor only). F-Droid keeps
     // this out of its dependency graph and binds a no-op repository.
     "playImplementation"("androidx.health.connect:connect-client:1.1.0")
+    // ML Kit Digital Ink handwriting recognition (play flavor only). The
+    // f-droid flavor binds a no-op recognizer and keeps the typed fallback.
+    "playImplementation"("com.google.mlkit:digital-ink-recognition:19.0.0")
     // Commons Compress 1.28.0 references XZ stream classes during release
     // shrinking; keep the support library Play-only with the downloader graph.
     "playImplementation"("org.tukaani:xz:1.10")

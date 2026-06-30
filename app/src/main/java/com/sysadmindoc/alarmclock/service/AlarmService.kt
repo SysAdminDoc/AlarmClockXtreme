@@ -39,8 +39,6 @@ import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -67,6 +65,7 @@ class AlarmService : Service() {
     @Inject lateinit var preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
     @Inject lateinit var webhookService: WebhookService
     @Inject lateinit var wearNextAlarmBridge: WearNextAlarmBridge
+    @Inject lateinit var dismissActionExecutor: DismissActionExecutor
 
     companion object {
         const val ACTION_START_ALARM = "com.sysadmindoc.alarmclock.START_ALARM"
@@ -1241,7 +1240,7 @@ class AlarmService : Service() {
             )
 
             // v1.15.1: Per-alarm dismiss action (AlarmKit pattern)
-            fireDismissAction(alarm)
+            dismissActionExecutor.executeAsync(alarm)
 
             // F11: TTS morning announcement
             if (alarm.ttsEnabled) {
@@ -1689,47 +1688,4 @@ class AlarmService : Service() {
         super.onDestroy()
     }
 
-    private fun fireDismissAction(alarm: com.sysadmindoc.alarmclock.data.model.Alarm) {
-        val type = alarm.dismissActionType
-        val payload = alarm.dismissActionPayload
-        if (type == "NONE" || payload.isBlank()) return
-
-        serviceScope.launch {
-            try {
-                when (type) {
-                    "WEBHOOK" -> {
-                        val client = okhttp3.OkHttpClient.Builder()
-                            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-                            .build()
-                        val body = org.json.JSONObject().apply {
-                            put("event", "dismiss_action")
-                            put("alarmId", alarm.id)
-                            put("label", alarm.label)
-                            put("timestamp", System.currentTimeMillis())
-                        }.toString()
-                        val request = okhttp3.Request.Builder()
-                            .url(payload)
-                            .post(body.toRequestBody("application/json".toMediaType()))
-                            .build()
-                        client.newCall(request).execute().close()
-                    }
-                    "BROADCAST" -> {
-                        val intent = android.content.Intent(payload).apply {
-                            putExtra("alarmId", alarm.id)
-                            putExtra("label", alarm.label)
-                            setPackage(applicationContext.packageName)
-                        }
-                        applicationContext.sendBroadcast(intent)
-                    }
-                    "HUE_SCENE" -> {
-                        android.util.Log.i(TAG, "Dismiss action: Hue scene '$payload' (stub)")
-                    }
-                }
-            } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) throw e
-                android.util.Log.w(TAG, "Dismiss action failed: $type", e)
-            }
-        }
-    }
 }

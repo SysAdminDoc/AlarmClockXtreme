@@ -2138,6 +2138,7 @@ private fun String.toAlarmChallengeSummary(): String = when (this) {
     "MEMORY_PATTERN" -> "Memory pattern"
     "TYPING" -> "Type phrase"
     "VOICE_PHRASE" -> "Voice phrase"
+    "HANDWRITING" -> "Handwriting"
     "WALK_STEPS" -> "Walk steps"
     "NFC_SCAN" -> "NFC scan"
     "BARCODE_SCAN" -> "Barcode scan"
@@ -2166,6 +2167,7 @@ private fun String.toAlarmChallengeDescription(): String = when (this) {
     "MEMORY_PATTERN" -> "Memorize and recreate a short visual pattern."
     "TYPING" -> "Type a wake-up phrase accurately before dismissal."
     "VOICE_PHRASE" -> "Say a wake-up phrase with Android speech recognition, with typed fallback."
+    "HANDWRITING" -> "Draw a wake-up word with on-device handwriting recognition and typed fallback."
     "WALK_STEPS" -> "Walk a set number of steps to get fully upright."
     "NFC_SCAN" -> "Scan a specific NFC tag placed somewhere away from bed."
     "BARCODE_SCAN" -> "Scan a saved barcode to finish the challenge."
@@ -2228,6 +2230,7 @@ private fun alarmChallengeOptions(): List<Pair<String, String>> = listOf(
     "MEMORY_PATTERN" to "Memory Pattern",
     "TYPING" to "Type a Phrase",
     "VOICE_PHRASE" to "Voice Phrase",
+    "HANDWRITING" to "Handwriting",
     "WALK_STEPS" to "Walk Steps",
     "NFC_SCAN" to "NFC Tag Scan",
     "BARCODE_SCAN" to "Barcode Scan",

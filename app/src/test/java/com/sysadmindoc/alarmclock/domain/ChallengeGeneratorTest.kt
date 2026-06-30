@@ -82,4 +82,15 @@ class ChallengeGeneratorTest {
         assertTrue(challenge is Challenge.MathChallenge)
         assertEquals(ChallengeType.NONE, challenge.type)
     }
+
+    @Test
+    fun `handwriting challenge generates wake word`() {
+        repeat(20) {
+            val challenge = ChallengeGenerator.generate(ChallengeType.HANDWRITING)
+                as Challenge.HandwritingChallenge
+            assertEquals(ChallengeType.HANDWRITING, challenge.type)
+            assertTrue(challenge.targetText.length in 4..8)
+            assertTrue(challenge.targetText.all { it.isLetter() && it.isUpperCase() })
+        }
+    }
 }

@@ -6,6 +6,8 @@ import com.sysadmindoc.alarmclock.service.PlayYouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.PlayYouTubeDownloadInitializer
 import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
 import com.sysadmindoc.alarmclock.service.YouTubeDownloadInitializer
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.DigitalInkChallengeRecognizer
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.PlayDigitalInkChallengeRecognizer
 import com.sysadmindoc.alarmclock.wear.PlayWearNextAlarmBridge
 import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
 import dagger.Binds
@@ -42,4 +44,10 @@ abstract class PlayFlavorBindings {
     abstract fun bindHealthConnectSleepRepository(
         impl: PlayHealthConnectSleepRepository
     ): HealthConnectSleepRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDigitalInkChallengeRecognizer(
+        impl: PlayDigitalInkChallengeRecognizer
+    ): DigitalInkChallengeRecognizer
 }

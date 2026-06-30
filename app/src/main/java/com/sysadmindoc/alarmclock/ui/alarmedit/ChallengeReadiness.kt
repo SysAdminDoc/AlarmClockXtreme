@@ -9,6 +9,7 @@ import android.nfc.NfcAdapter
 import android.os.Build
 import android.speech.SpeechRecognizer
 import androidx.core.content.ContextCompat
+import com.sysadmindoc.alarmclock.BuildConfig
 
 /**
  * Physical-challenge readiness preflight.
@@ -60,6 +61,7 @@ data class DeviceChallengeCapabilities(
     val hasCamera: Boolean = true,
     val hasWifi: Boolean = true,
     val speechRecognitionAvailable: Boolean = true,
+    val digitalInkRecognitionAvailable: Boolean = true,
     val activityRecognitionGranted: Boolean = true,
     val cameraGranted: Boolean = true,
     val recordAudioGranted: Boolean = true,
@@ -101,6 +103,11 @@ fun evaluateChallengeReadiness(
             permission("Android speech recognition is unavailable; typed fallback remains available.")
         !capabilities.recordAudioGranted ->
             permission("Grant microphone permission so the phrase can be recognized.")
+        else -> ready()
+    }
+    "HANDWRITING" -> when {
+        !capabilities.digitalInkRecognitionAvailable ->
+            permission("Handwriting recognition is unavailable in this build; typed fallback remains available.")
         else -> ready()
     }
     "NFC_SCAN" -> when {
@@ -198,6 +205,7 @@ fun deviceChallengeCapabilities(context: Context): DeviceChallengeCapabilities {
         hasCamera = pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY),
         hasWifi = pm.hasSystemFeature(PackageManager.FEATURE_WIFI),
         speechRecognitionAvailable = SpeechRecognizer.isRecognitionAvailable(context),
+        digitalInkRecognitionAvailable = BuildConfig.FLAVOR == "play",
         activityRecognitionGranted = activityRecognitionGranted,
         cameraGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED,

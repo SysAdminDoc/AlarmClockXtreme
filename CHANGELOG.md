@@ -2,6 +2,22 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.4] - 2026-06-27
+
+### Added
+
+- Handwriting dismiss challenge: users draw a displayed wake word on a Compose
+  drawing pad. Play builds use ML Kit Digital Ink recognition with on-demand
+  English model download; F-Droid builds keep a typed fallback so alarms remain
+  dismissable without proprietary ML Kit dependencies.
+
+### Fixed
+
+- Per-alarm Hue dismiss actions now recall the configured Hue scene instead of
+  logging a stub. Dismiss webhooks, broadcasts, and Hue scenes now execute
+  through a testable executor with URL, action, local-network, and Hue payload
+  validation.
+
 ## [1.15.3] - 2026-06-27
 
 ### Added

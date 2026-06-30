@@ -12,6 +12,7 @@ enum class ChallengeType {
     MEMORY_PATTERN,  // Remember and tap a pattern of tiles
     TYPING,          // Type a displayed phrase exactly
     VOICE_PHRASE,    // Speak a displayed phrase with offline SpeechRecognizer
+    HANDWRITING,     // Draw a displayed wake word with Digital Ink recognition
     WALK_STEPS,      // Walk N steps (uses step counter sensor)
     NFC_SCAN,        // Tap a registered NFC tag
     BARCODE_SCAN,    // Scan a registered barcode/QR code
@@ -72,6 +73,11 @@ sealed class Challenge {
     data class VoicePhraseChallenge(
         override val type: ChallengeType = ChallengeType.VOICE_PHRASE,
         val phrase: String
+    ) : Challenge()
+
+    data class HandwritingChallenge(
+        override val type: ChallengeType = ChallengeType.HANDWRITING,
+        val targetText: String
     ) : Challenge()
 
     // F4: Walk-steps challenge — step counter sensor must accumulate N steps
@@ -240,6 +246,19 @@ internal val WORDLE_WORDS = listOf(
     "POISE", "TRUST", "SIREN", "EMBER", "FLINT", "CLOUD", "STORM", "PRIME", "RAISE", "EAGLE"
 )
 
+private val HANDWRITING_WORDS = listOf(
+    "AWAKE",
+    "ALARM",
+    "RISE",
+    "LIGHT",
+    "READY",
+    "FOCUS",
+    "START",
+    "WATER",
+    "MORNING",
+    "SUNRISE"
+)
+
 object ChallengeGenerator {
 
     fun generate(type: ChallengeType, customPhrases: String = ""): Challenge = when (type) {
@@ -264,6 +283,9 @@ object ChallengeGenerator {
             }
             Challenge.VoicePhraseChallenge(phrase = allPhrases.random())
         }
+        ChallengeType.HANDWRITING -> Challenge.HandwritingChallenge(
+            targetText = HANDWRITING_WORDS.random()
+        )
         // WALK_STEPS, NFC_SCAN, BARCODE_SCAN, PHOTO_MATCH require alarm-level data;
         // constructed directly in AlarmFiringViewModel using alarm fields
         ChallengeType.WALK_STEPS -> Challenge.WalkChallenge(requiredSteps = 30)

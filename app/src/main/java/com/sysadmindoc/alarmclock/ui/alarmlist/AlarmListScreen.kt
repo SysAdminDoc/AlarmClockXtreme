@@ -1190,6 +1190,7 @@ private fun challengeTypeLabel(type: String): String = when (type) {
     "MEMORY_PATTERN" -> "Memory Pattern"
     "TYPING"         -> "Type a Phrase"
     "VOICE_PHRASE"   -> "Voice Phrase"
+    "HANDWRITING"    -> "Handwriting"
     "WALK_STEPS"     -> "Walk Steps"
     "NFC_SCAN"       -> "NFC Tag Scan"
     "BARCODE_SCAN"   -> "Barcode Scan"

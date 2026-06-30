@@ -454,13 +454,6 @@ Deduplicated against all existing ROADMAP.md and Roadmap_Blocked.md items.
 
 ### P0
 
-- [ ] P0 - Replace the Hue dismiss-action stub with real execution or remove the option
-  Why: `HUE_SCENE` is exposed as a per-alarm dismiss action, but successful dismiss currently only logs a stub line.
-  Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/service/AlarmService.kt`, `app/src/main/java/com/sysadmindoc/alarmclock/data/model/Alarm.kt`, Apple AlarmKit dismiss-action pattern.
-  Touches: `AlarmService.kt`, `AlarmEditScreen.kt`, `HueSunriseWorker.kt`, `SettingsViewModel.kt`, dismiss-action tests.
-  Acceptance: A configured Hue scene is recalled on dismiss with a visible failure path, or the Hue scene action is hidden until selectable/executable.
-  Complexity: M
-
 - [ ] P0 - Decide and enforce the Sonar sleep-tracking product path
   Why: The app declares a microphone foreground service and advertises sonar sleep tracking, but the service has no UI entry, bound consumer, or persisted result path.
   Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/service/SonarSleepService.kt`, `app/src/main/AndroidManifest.xml`, README Smart Features and Privacy sections, Sleep as Android sound-detection references.
@@ -492,10 +485,3 @@ Deduplicated against all existing ROADMAP.md and Roadmap_Blocked.md items.
   Complexity: M
 
 ### P2
-
-- [ ] P2 - Extract custom dismiss actions behind a testable executor
-  Why: Webhook, broadcast, and Hue dismiss actions currently live inside `AlarmService`, making payload validation and failure behavior hard to test without service lifecycle noise.
-  Evidence: `AlarmService.kt`, `Alarm.kt`, Home Assistant/Tasker automation references.
-  Touches: new dismiss-action executor class, `AlarmService.kt`, `AlarmEditViewModel.kt`, unit tests.
-  Acceptance: Unit tests cover `NONE`, `WEBHOOK`, `BROADCAST`, invalid payloads, cancellation, and execution failure messages without instantiating `AlarmService`.
-  Complexity: M
