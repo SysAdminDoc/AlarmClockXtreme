@@ -1,8 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.bedtime
 
 import android.Manifest
-import android.app.AlarmManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -15,6 +13,7 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
+import com.sysadmindoc.alarmclock.receiver.BedtimeReceiver
 import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
 import com.sysadmindoc.alarmclock.service.SonarSleepSnapshot
 import com.sysadmindoc.alarmclock.service.SonarSleepService
@@ -251,7 +250,6 @@ class BedtimeViewModel @Inject constructor(
 
     private fun scheduleBedtimeReminder() {
         val state = _uiState.value
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
         val now = ZonedDateTime.now()
         var bedtime = now.with(LocalTime.of(state.bedtimeHour, state.bedtimeMinute))
@@ -274,33 +272,11 @@ class BedtimeViewModel @Inject constructor(
             }
         }
 
-        val intent = Intent("com.sysadmindoc.alarmclock.BEDTIME_REMINDER")
-        intent.setPackage(context.packageName)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context, 9999, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
-            return
-        }
-
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            bedtime.toInstant().toEpochMilli(),
-            pendingIntent
-        )
+        BedtimeReceiver.schedule(context, bedtime.toInstant().toEpochMilli())
     }
 
     private fun cancelBedtimeReminder() {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent("com.sysadmindoc.alarmclock.BEDTIME_REMINDER")
-        intent.setPackage(context.packageName)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context, 9999, intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        alarmManager.cancel(pendingIntent)
+        BedtimeReceiver.cancelScheduled(context)
     }
 
     // F10: Sleep sound controls. v1.4.0 — honours the fade-duration setting

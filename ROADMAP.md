@@ -16,7 +16,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.14)
+## Current snapshot (v1.15.15)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v19, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
@@ -27,8 +27,8 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 116`, `versionName 1.15.14`.
-- **Surface area:** 165 Kotlin files in `:app` + 4 in `:wear`, two phone
+  `versionCode 117`, `versionName 1.15.15`.
+- **Surface area:** 168 Kotlin files in `:app` + 4 in `:wear`, two phone
   flavors (`play`, `fdroid`), **30 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
   AppSettings fields, 6 phone tabs (Today, Alarms, Bedtime, Timer, World,
@@ -41,12 +41,6 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   backup) is best-in-class for FOSS Android.
 
 ---
-
-## NEXT — v1.13 candidates
-
-| # | Item | Source | Effort | Rationale |
-|---|------|--------|--------|-----------|
-| X18 | [ ] Bedtime countdown `Notification.ProgressStyle` Live Update (mirrors v1.10.10 next-alarm Live Update during the final hour before bedtime reminder fires). | [Android 16 ProgressStyle](https://developer.android.com/about/versions/16/features/progress-centric-notifications) | S | Reuses next-alarm Live Update plumbing. Was UC; promote with Android 16 install base ~21% of devices per [Wikipedia Android 16 share, March 2026](https://en.wikipedia.org/wiki/Android_16). |
 
 ## LATER — kept on the list
 

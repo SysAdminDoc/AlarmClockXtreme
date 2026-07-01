@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.14-blue)
+![Version](https://img.shields.io/badge/version-1.15.15-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -17,7 +17,7 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.15.14-play.apk
+adb install AlarmClockXtreme-v1.15.15-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, optional Health Connect READ_SLEEP integration, and ML Kit Digital Ink handwriting recognition. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -163,7 +163,7 @@ cd AlarmClockXtreme
 | World Clock | Live time zones with UTC offset, 24h format support, persistent saved cities |
 | Multiple Timers | Run several countdown timers concurrently (monotonic clock) |
 | Stopwatch | Lap tracking with best/worst marking |
-| Bedtime Tracking | Sleep goal, sleep cycle calculator, bedtime reminders, sleep sounds |
+| Bedtime Tracking | Sleep goal, sleep cycle calculator, bedtime reminders, sleep sounds, and Android 16 final-hour bedtime countdown Live Updates |
 | Bedtime DND | App-owned alarms-only Do Not Disturb rule for the sleep window, with clear access/status feedback |
 | Health Connect Sleep | Play flavor only: opt-in READ_SLEEP summaries and local sleep/wake trend charts in Bedtime and Statistics |
 | Statistics | Wake-streak flame badge, snooze rate, day-of-week breakdown, response times, searchable alarm history |
@@ -246,7 +246,7 @@ signatures with `apksigner`, write `SHA256SUMS.txt` and
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.14-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.15-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in

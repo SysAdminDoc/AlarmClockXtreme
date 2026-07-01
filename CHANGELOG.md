@@ -2,6 +2,24 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.15] - 2026-07-01
+
+### Added
+
+- Added Android 16 `Notification.ProgressStyle` Live Updates for the final
+  hour before the bedtime reminder fires, using a low-importance countdown
+  notification channel and promoted ongoing request metadata.
+- Added bedtime countdown timing tests for final-hour gating, progress math,
+  refresh cadence, and daily reschedule rollover.
+
+### Changed
+
+- Bedtime reminder scheduling now pairs the terminal reminder PendingIntent
+  with its countdown PendingIntent and cancels both together when bedtime is
+  disabled.
+- Bumped app, Wear, README, roadmap, release verifier, and F-Droid metadata to
+  `versionName = "1.15.15"`, `versionCode = 117`.
+
 ## [1.15.14] - 2026-07-01
 
 ### Added

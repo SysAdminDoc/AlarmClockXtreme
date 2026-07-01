@@ -245,6 +245,7 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="com.sysadmindoc.alarmclock.BEDTIME_REMINDER" />
+                <action android:name="com.sysadmindoc.alarmclock.BEDTIME_COUNTDOWN_UPDATE" />
             </intent-filter>
         </receiver>
 

@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
-import android.os.Bundle
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.MainActivity
@@ -49,7 +48,6 @@ class NextAlarmNotifier @Inject constructor(
         const val CHANNEL_PERSISTENT = "persistent_alarm_channel"
         const val NOTIFICATION_ID_PERSISTENT = 2004
         private const val ANDROID_16_API = 36
-        private const val EXTRA_REQUEST_PROMOTED_ONGOING = "android.requestPromotedOngoing"
     }
 
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
@@ -259,19 +257,8 @@ class NextAlarmNotifier @Inject constructor(
                 ).build()
             )
 
-        requestPromotedOngoing(notification)
+        PromotedOngoingNotification.request(notification)
         return notification.build()
-    }
-
-    private fun requestPromotedOngoing(builder: Notification.Builder) {
-        builder.addExtras(Bundle().apply {
-            putBoolean(EXTRA_REQUEST_PROMOTED_ONGOING, true)
-        })
-        runCatching {
-            Notification.Builder::class.java
-                .getMethod("setRequestPromotedOngoing", Boolean::class.javaPrimitiveType)
-                .invoke(builder, true)
-        }
     }
 
     fun dismiss() {
