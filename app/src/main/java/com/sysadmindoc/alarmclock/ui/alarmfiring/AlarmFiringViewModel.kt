@@ -1023,6 +1023,42 @@ class AlarmFiringViewModel @Inject constructor(
         )
     }
 
+    fun onSpotDifferencePick(index: Int) {
+        val challenge = _uiState.value.challenge as? Challenge.SpotDifferenceChallenge ?: return
+        if (index == challenge.changedIndex) {
+            proceedToNextChallenge()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
+            )
+        }
+    }
+
+    fun onChessMateMovePick(move: String) {
+        val challenge = _uiState.value.challenge as? Challenge.ChessMateChallenge ?: return
+        if (move == challenge.puzzle.answer) {
+            proceedToNextChallenge()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
+            )
+        }
+    }
+
+    fun onRsvpReadingChoice(choice: String) {
+        val challenge = _uiState.value.challenge as? Challenge.RsvpReadingChallenge ?: return
+        if (choice.equals(challenge.answer, ignoreCase = true)) {
+            proceedToNextChallenge()
+        } else {
+            _uiState.value = _uiState.value.copy(
+                wrongAttempts = _uiState.value.wrongAttempts + 1,
+                totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
+            )
+        }
+    }
+
     companion object {
         private val MOTIVATIONAL_QUOTES = listOf(
             "The secret of getting ahead is getting started.",

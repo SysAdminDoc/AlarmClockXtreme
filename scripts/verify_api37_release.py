@@ -14,6 +14,8 @@ from pathlib import Path
 
 
 PACKAGE = "com.sysadmindoc.alarmclock"
+EXPECTED_VERSION_CODE = "111"
+EXPECTED_VERSION_NAME = "1.15.9"
 DEFAULT_APKS = (
     Path("app/build/outputs/apk/play/release/app-play-release.apk"),
     Path("app/build/outputs/apk/fdroid/release/app-fdroid-release.apk"),
@@ -142,8 +144,8 @@ def device_smoke(adb_path: str, serial: str, play_apk: Path, fresh_install: bool
         adb(adb_path, serial, "shell", "pm", "grant", PACKAGE, permission)
 
     dump = adb(adb_path, serial, "shell", "dumpsys", "package", PACKAGE)
-    require_contains(dump, "versionCode=110", "installed versionCode")
-    require_contains(dump, "versionName=1.15.8", "installed versionName")
+    require_contains(dump, f"versionCode={EXPECTED_VERSION_CODE}", "installed versionCode")
+    require_contains(dump, f"versionName={EXPECTED_VERSION_NAME}", "installed versionName")
     for permission in READY_PERMISSIONS:
         pattern = re.compile(rf"{re.escape(permission)}: granted=true")
         if not pattern.search(dump):

@@ -171,6 +171,9 @@ data class Alarm(
             "TYPING_SPEED",
             "WORDLE",
             "PVT",
+            "SPOT_DIFFERENCE",
+            "CHESS_MATE",
+            "RSVP_READING",
             "PUSH_UP",
             "PLANK_HOLD"
         )

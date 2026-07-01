@@ -1,12 +1,12 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.8-blue)
+![Version](https://img.shields.io/badge/version-1.15.9-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
 ![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)
 
-> A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 27 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
+> A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 30 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
 
 <p align="center">
   <img src="assets/screenshots/alarm-list.png" width="360" alt="AlarmClockXtreme alarm list with next alarm, alarm cards, quick actions, and bottom navigation" />
@@ -17,7 +17,7 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.15.8-play.apk
+adb install AlarmClockXtreme-v1.15.9-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, optional Health Connect READ_SLEEP integration, and ML Kit Digital Ink handwriting recognition. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -60,7 +60,7 @@ cd AlarmClockXtreme
 | Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
 | Wear OS Tile + Complication | Shows the next alarm on the watch tile and compatible watch faces; the tile also exposes skip controls before fire and snooze/dismiss controls while ringing and honors the public-label privacy setting |
 
-### Dismiss Challenges (27 Types)
+### Dismiss Challenges (30 Types)
 | Challenge | Description |
 |-----------|-------------|
 | Math (Easy/Medium/Hard) | Solve arithmetic problems with explicit operator precedence |
@@ -86,6 +86,9 @@ cd AlarmClockXtreme
 | Typing Speed | Type a phrase at >= N wpm with limited word mistakes |
 | Wordle | Guess the 5-letter target word in <= 6 attempts |
 | Reaction Test (PVT) | Tap 5 times when a green stimulus appears; average under 500ms to dismiss |
+| Spot the Difference | Compare two color grids and tap the single changed tile |
+| Chess Mate in 1 | Pick the checkmate move from a compact board position |
+| RSVP Speed Reading | Read a rapid word stream, then identify a word that appeared |
 | Push-ups | Accelerometer-based push-up detection with the phone face-down on the floor |
 | Plank Hold | Hold the phone level in a plank position for 30 seconds |
 | Mission Chaining | Stack 2-5 challenges in sequence (e.g., Math + Shake + Typing) |
@@ -191,7 +194,7 @@ cd AlarmClockXtreme
 +---------------------------------------------------------+
 |                    UI Layer (Compose)                     |
 |  Screens <- ViewModels <- StateFlow                      |
-|  27 challenge flows, 8 alarm edit sections               |
+|  30 challenge flows, 8 alarm edit sections               |
 +---------------------------------------------------------+
 |                   Domain Layer                           |
 |  AlarmScheduler | NextAlarmCalculator | SolarCalculator  |
@@ -238,7 +241,7 @@ signatures with `apksigner`, write `SHA256SUMS.txt` and
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.8-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.9-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in

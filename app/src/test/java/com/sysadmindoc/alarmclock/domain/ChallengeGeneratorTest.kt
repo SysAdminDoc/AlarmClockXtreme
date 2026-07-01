@@ -93,4 +93,42 @@ class ChallengeGeneratorTest {
             assertTrue(challenge.targetText.all { it.isLetter() && it.isUpperCase() })
         }
     }
+
+    @Test
+    fun `spot difference challenge has exactly one changed tile`() {
+        repeat(20) {
+            val challenge = ChallengeGenerator.generate(ChallengeType.SPOT_DIFFERENCE)
+                as Challenge.SpotDifferenceChallenge
+            assertEquals(ChallengeType.SPOT_DIFFERENCE, challenge.type)
+            assertEquals(4, challenge.gridSize)
+            assertEquals(16, challenge.baseTiles.size)
+            assertTrue(challenge.changedIndex in challenge.baseTiles.indices)
+            assertNotEquals(challenge.baseTiles[challenge.changedIndex], challenge.changedTile)
+        }
+    }
+
+    @Test
+    fun `chess mate challenge has a selectable answer`() {
+        repeat(20) {
+            val challenge = ChallengeGenerator.generate(ChallengeType.CHESS_MATE)
+                as Challenge.ChessMateChallenge
+            assertEquals(ChallengeType.CHESS_MATE, challenge.type)
+            assertEquals(64, challenge.puzzle.board.size)
+            assertTrue(challenge.puzzle.answer in challenge.puzzle.choices)
+            assertTrue(challenge.puzzle.answer.endsWith("#"))
+        }
+    }
+
+    @Test
+    fun `rsvp reading challenge asks about a shown word`() {
+        repeat(20) {
+            val challenge = ChallengeGenerator.generate(ChallengeType.RSVP_READING)
+                as Challenge.RsvpReadingChallenge
+            assertEquals(ChallengeType.RSVP_READING, challenge.type)
+            assertTrue(challenge.words.size >= 6)
+            assertTrue(challenge.answer in challenge.words)
+            assertTrue(challenge.answer in challenge.choices)
+            assertEquals(4, challenge.choices.toSet().size)
+        }
+    }
 }

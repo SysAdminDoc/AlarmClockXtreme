@@ -2153,6 +2153,9 @@ private fun String.toAlarmChallengeSummary(): String = when (this) {
     "TYPING_SPEED" -> "Typing speed"
     "WORDLE" -> "Wordle"
     "PVT" -> "Reaction test"
+    "SPOT_DIFFERENCE" -> "Spot difference"
+    "CHESS_MATE" -> "Mate in one"
+    "RSVP_READING" -> "RSVP reading"
     else -> replace('_', ' ')
         .lowercase()
         .replaceFirstChar { it.uppercase() }
@@ -2182,6 +2185,9 @@ private fun String.toAlarmChallengeDescription(): String = when (this) {
     "TYPING_SPEED" -> "Type a short phrase at 15+ wpm with at most 2 word errors."
     "WORDLE" -> "Guess a hidden 5-letter word in up to 6 tries."
     "PVT" -> "Tap a target 5 times as fast as you can. Average under 500 ms to dismiss."
+    "SPOT_DIFFERENCE" -> "Compare two color grids and tap the single changed tile."
+    "CHESS_MATE" -> "Pick the mate-in-1 move from a small chess position."
+    "RSVP_READING" -> "Read a rapid word stream, then identify a word that appeared."
     else -> "Dismissal requires this challenge before the alarm can stop."
 }
 
@@ -2247,6 +2253,9 @@ private fun alarmChallengeOptions(): List<Pair<String, String>> = listOf(
     "TYPING_SPEED" to "Typing Speed",
     "WORDLE" to "Wordle",
     "PVT" to "Reaction Test",
+    "SPOT_DIFFERENCE" to "Spot the Difference",
+    "CHESS_MATE" to "Chess Mate in 1",
+    "RSVP_READING" to "RSVP Speed Reading",
     "PUSH_UP" to "Push-ups",
     "PLANK_HOLD" to "Plank Hold"
 )

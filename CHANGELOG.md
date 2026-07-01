@@ -2,6 +2,19 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.9] - 2026-07-01
+
+### Added
+
+- Added three permission-free dismiss challenges: Spot the Difference, Chess
+  Mate in 1, and RSVP Speed Reading. They are selectable in the alarm editor,
+  work in mission chains, and survive backup/share sanitizer round-trips.
+
+### Changed
+
+- Bumped app, Wear, README, roadmap, and F-Droid metadata to
+  `versionName = "1.15.9"`, `versionCode = 111`.
+
 ## [1.15.8] - 2026-07-01
 
 ### Added

@@ -29,6 +29,9 @@ enum class ChallengeType {
     TYPING_SPEED,    // v1.6.0: Type a phrase at >= N wpm with <= maxErrors word mistakes
     WORDLE,          // v1.6.0: Guess the 5-letter target word in <= 6 attempts
     PVT,             // v1.14.10: Psychomotor vigilance — tap N times when the stimulus appears
+    SPOT_DIFFERENCE, // v1.15.9: Find the one changed tile between two grids
+    CHESS_MATE,      // v1.15.9: Pick the mate-in-1 move from a small puzzle
+    RSVP_READING,    // v1.15.9: Rapid serial visual presentation reading check
     PUSH_UP,         // v1.15.0: Push-up challenge — accelerometer-based push-up detection
     PLANK_HOLD       // v1.15.0: Plank hold challenge — hold the phone level for N seconds
 }
@@ -192,6 +195,27 @@ sealed class Challenge {
         val maxAverageMs: Int = 500
     ) : Challenge()
 
+    data class SpotDifferenceChallenge(
+        override val type: ChallengeType = ChallengeType.SPOT_DIFFERENCE,
+        val gridSize: Int = 4,
+        val baseTiles: List<Int>,
+        val changedIndex: Int,
+        val changedTile: Int
+    ) : Challenge()
+
+    data class ChessMateChallenge(
+        override val type: ChallengeType = ChallengeType.CHESS_MATE,
+        val puzzle: ChessMatePuzzle
+    ) : Challenge()
+
+    data class RsvpReadingChallenge(
+        override val type: ChallengeType = ChallengeType.RSVP_READING,
+        val words: List<String>,
+        val answer: String,
+        val choices: List<String>,
+        val wordIntervalMs: Long = 260
+    ) : Challenge()
+
     // v1.15.0: Push-up challenge — accelerometer-based push-up detection.
     // Reuses the same pattern as SquatChallenge with a PushUpDetector.
     data class PushUpChallenge(
@@ -206,6 +230,15 @@ sealed class Challenge {
         val requiredSeconds: Int = 30
     ) : Challenge()
 }
+
+data class ChessMatePuzzle(
+    val title: String,
+    val board: List<String>,
+    val sideToMove: String,
+    val choices: List<String>,
+    val answer: String,
+    val explanation: String
+)
 
 private val TYPING_PHRASES = listOf(
     "The early bird catches the worm",
@@ -244,6 +277,67 @@ internal val WORDLE_WORDS = listOf(
     "GRACE", "BLOOM", "SWIFT", "BRAVE", "FRESH", "CRISP", "START", "SOLAR", "VIGOR", "VITAL",
     "SUNNY", "PROUD", "QUICK", "LEMON", "GLEAM", "SPARK", "BOUND", "CREST", "FLAME", "PLUCK",
     "POISE", "TRUST", "SIREN", "EMBER", "FLINT", "CLOUD", "STORM", "PRIME", "RAISE", "EAGLE"
+)
+
+private val CHESS_MATE_PUZZLES = listOf(
+    ChessMatePuzzle(
+        title = "Back-rank net",
+        board = listOf(
+            ".", ".", ".", ".", ".", "r", "k", ".",
+            ".", ".", ".", ".", ".", "p", "p", "p",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", "Q", "P", "P",
+            ".", ".", ".", ".", ".", "R", "K", "."
+        ),
+        sideToMove = "White",
+        choices = listOf("Qxf8#", "Qg8#", "Qe8+", "Rf8+"),
+        answer = "Qxf8#",
+        explanation = "The queen removes the guard and the rook seals the back rank."
+    ),
+    ChessMatePuzzle(
+        title = "Corner squeeze",
+        board = listOf(
+            "k", ".", ".", ".", ".", ".", ".", ".",
+            "p", "p", "Q", ".", ".", ".", ".", ".",
+            "K", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", ".", ".", "."
+        ),
+        sideToMove = "White",
+        choices = listOf("Qb7#", "Qc8#", "Qxa7+", "Kb5"),
+        answer = "Qb7#",
+        explanation = "Qb7 covers the escape squares while the king traps the corner."
+    ),
+    ChessMatePuzzle(
+        title = "Battery finish",
+        board = listOf(
+            ".", ".", ".", ".", "r", ".", "k", ".",
+            ".", ".", ".", ".", ".", "p", "p", "p",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", "B", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", ".", ".", ".",
+            ".", ".", ".", ".", ".", "Q", "P", "P",
+            ".", ".", ".", ".", ".", ".", "K", "."
+        ),
+        sideToMove = "White",
+        choices = listOf("Qxf7#", "Bxf7+", "Qe8+", "Qg8+"),
+        answer = "Qxf7#",
+        explanation = "The queen lands on f7 with bishop support and no king escape."
+    )
+)
+
+private val RSVP_SENTENCES = listOf(
+    listOf("Stand", "up", "open", "the", "curtains", "and", "drink", "water"),
+    listOf("Today", "starts", "when", "your", "feet", "touch", "the", "floor"),
+    listOf("Breathe", "deeply", "stretch", "once", "then", "begin", "the", "day"),
+    listOf("Light", "movement", "beats", "another", "minute", "under", "the", "blanket")
 )
 
 private val HANDWRITING_WORDS = listOf(
@@ -329,6 +423,11 @@ object ChallengeGenerator {
             target = WORDLE_WORDS.random()
         )
         ChallengeType.PVT -> Challenge.PvtChallenge()
+        ChallengeType.SPOT_DIFFERENCE -> generateSpotDifference()
+        ChallengeType.CHESS_MATE -> Challenge.ChessMateChallenge(
+            puzzle = CHESS_MATE_PUZZLES.random()
+        )
+        ChallengeType.RSVP_READING -> generateRsvpReading()
         ChallengeType.PUSH_UP -> Challenge.PushUpChallenge(requiredPushUps = 10)
         ChallengeType.PLANK_HOLD -> Challenge.PlankHoldChallenge(requiredSeconds = 30)
     }
@@ -471,5 +570,34 @@ object ChallengeGenerator {
     private fun generateEmojiMemory(): Challenge.EmojiMemoryChallenge {
         val cards = (List(8) { it } + List(8) { it }).shuffled()
         return Challenge.EmojiMemoryChallenge(cards = cards)
+    }
+
+    private fun generateSpotDifference(): Challenge.SpotDifferenceChallenge {
+        val gridSize = 4
+        val paletteSize = 6
+        val baseTiles = List(gridSize * gridSize) { Random.nextInt(0, paletteSize) }
+        val changedIndex = baseTiles.indices.random()
+        val changedTile = ((baseTiles[changedIndex] + Random.nextInt(1, paletteSize)) % paletteSize)
+        return Challenge.SpotDifferenceChallenge(
+            gridSize = gridSize,
+            baseTiles = baseTiles,
+            changedIndex = changedIndex,
+            changedTile = changedTile
+        )
+    }
+
+    private fun generateRsvpReading(): Challenge.RsvpReadingChallenge {
+        val words = RSVP_SENTENCES.random()
+        val answer = words.filter { it.length >= 5 }.random()
+        val distractors = RSVP_SENTENCES.flatten()
+            .filter { it != answer && it.length >= 5 }
+            .distinct()
+            .shuffled()
+            .take(3)
+        return Challenge.RsvpReadingChallenge(
+            words = words,
+            answer = answer,
+            choices = (distractors + answer).shuffled()
+        )
     }
 }

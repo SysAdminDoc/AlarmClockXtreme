@@ -112,6 +112,9 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.EmojiMemoryChallenge
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.TypingSpeedChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.WordleChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.PvtChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.SpotDifferenceChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.ChessMateChallengeView
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.RsvpReadingChallengeView
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -720,6 +723,30 @@ fun AlarmFiringScreen(
                                 onStartTrial = viewModel::startPvtTrial
                             )
                         }
+
+                        challenge is Challenge.SpotDifferenceChallenge -> {
+                            SpotDifferenceChallengeView(
+                                challenge = challenge,
+                                wrongAttempts = state.wrongAttempts,
+                                onPick = viewModel::onSpotDifferencePick
+                            )
+                        }
+
+                        challenge is Challenge.ChessMateChallenge -> {
+                            ChessMateChallengeView(
+                                challenge = challenge,
+                                wrongAttempts = state.wrongAttempts,
+                                onPick = viewModel::onChessMateMovePick
+                            )
+                        }
+
+                        challenge is Challenge.RsvpReadingChallenge -> {
+                            RsvpReadingChallengeView(
+                                challenge = challenge,
+                                wrongAttempts = state.wrongAttempts,
+                                onPick = viewModel::onRsvpReadingChoice
+                            )
+                        }
                     }
                 }
 
@@ -907,6 +934,9 @@ private fun Challenge?.headline(): String = when (this) {
     is Challenge.TypingSpeedChallenge -> "Type at speed"
     is Challenge.WordleChallenge -> "Solve the Wordle"
     is Challenge.PvtChallenge -> "React to the stimulus"
+    is Challenge.SpotDifferenceChallenge -> "Spot the difference"
+    is Challenge.ChessMateChallenge -> "Find mate in one"
+    is Challenge.RsvpReadingChallenge -> "Read at speed"
 }
 
 private fun Challenge?.supportingText(): String = when (this) {
@@ -936,6 +966,9 @@ private fun Challenge?.supportingText(): String = when (this) {
     is Challenge.TypingSpeedChallenge -> "Groggy fingers slow you down \u2014 prove you can type at speed."
     is Challenge.WordleChallenge -> "Find the hidden 5-letter word in up to 6 guesses."
     is Challenge.PvtChallenge -> "Tap fast when the target appears \u2014 average under 500 ms."
+    is Challenge.SpotDifferenceChallenge -> "Compare both grids and tap the one tile that changed."
+    is Challenge.ChessMateChallenge -> "Pick the checkmate move from a small board position."
+    is Challenge.RsvpReadingChallenge -> "Read a rapid word stream, then identify a word you saw."
 }
 
 private fun Challenge?.statusDescription(): String = when (this) {
@@ -964,6 +997,9 @@ private fun Challenge?.statusDescription(): String = when (this) {
     is Challenge.TypingSpeedChallenge -> "Type the phrase fast and accurately to proceed."
     is Challenge.WordleChallenge -> "Enter a 5-letter guess and use the color clues."
     is Challenge.PvtChallenge -> "Tap the green square as fast as you can."
+    is Challenge.SpotDifferenceChallenge -> "Tap the changed tile in the right-hand grid."
+    is Challenge.ChessMateChallenge -> "Choose the mate-in-1 move."
+    is Challenge.RsvpReadingChallenge -> "Watch the words, then pick the remembered word."
     null -> "Swipe or tap dismiss when you're ready."
 }
 

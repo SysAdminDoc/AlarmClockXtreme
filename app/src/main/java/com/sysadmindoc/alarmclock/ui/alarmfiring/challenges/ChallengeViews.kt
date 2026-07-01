@@ -2377,3 +2377,300 @@ fun PvtChallengeView(
         )
     }
 }
+
+@Composable
+fun SpotDifferenceChallengeView(
+    challenge: Challenge.SpotDifferenceChallenge,
+    wrongAttempts: Int,
+    onPick: (Int) -> Unit
+) {
+    val palette = listOf(
+        AccentBlue,
+        DismissGreen,
+        SnoozeYellow,
+        AccentRed,
+        MaterialTheme.colorScheme.primary,
+        TextSecondary
+    )
+    val changedTiles = remember(challenge) {
+        challenge.baseTiles.toMutableList().also { it[challenge.changedIndex] = challenge.changedTile }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        ChallengeSupportText("Find the one tile that changed on the right grid.")
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            DifferenceGrid(
+                title = "Original",
+                modifier = Modifier.weight(1f),
+                gridSize = challenge.gridSize,
+                tiles = challenge.baseTiles,
+                palette = palette,
+                enabled = false,
+                onPick = {}
+            )
+            DifferenceGrid(
+                title = "Changed",
+                modifier = Modifier.weight(1f),
+                gridSize = challenge.gridSize,
+                tiles = changedTiles,
+                palette = palette,
+                enabled = true,
+                onPick = onPick
+            )
+        }
+
+        if (wrongAttempts > 0) {
+            ChallengeNotice(
+                text = "That tile matches. Look for the single color swap.",
+                accent = AccentRed,
+                icon = Icons.Default.WarningAmber
+            )
+        }
+    }
+}
+
+@Composable
+private fun DifferenceGrid(
+    title: String,
+    modifier: Modifier = Modifier,
+    gridSize: Int,
+    tiles: List<Int>,
+    palette: List<Color>,
+    enabled: Boolean,
+    onPick: (Int) -> Unit
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(title, color = TextSecondary, style = MaterialTheme.typography.labelMedium)
+        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            tiles.chunked(gridSize).forEachIndexed { rowIndex, row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    row.forEachIndexed { columnIndex, tile ->
+                        val index = rowIndex * gridSize + columnIndex
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(34.dp)
+                                .clip(RoundedCornerShape(7.dp))
+                                .background(palette[tile % palette.size].copy(alpha = 0.9f))
+                                .clickable(enabled = enabled) { onPick(index) }
+                                .semantics {
+                                    contentDescription = if (enabled) {
+                                        "Changed grid tile ${index + 1}"
+                                    } else {
+                                        "Original grid tile ${index + 1}"
+                                    }
+                                }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ChessMateChallengeView(
+    challenge: Challenge.ChessMateChallenge,
+    wrongAttempts: Int,
+    onPick: (String) -> Unit
+) {
+    val puzzle = challenge.puzzle
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        AppStatusChip(label = "${puzzle.sideToMove} to move", color = AccentBlue)
+        Text(
+            puzzle.title,
+            style = MaterialTheme.typography.titleMedium,
+            color = TextPrimary,
+            fontWeight = FontWeight.Bold
+        )
+        ChessBoard(puzzle.board)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            puzzle.choices.chunked(2).forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    row.forEach { move ->
+                        OutlinedButton(
+                            onClick = { onPick(move) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = SurfaceCard.copy(alpha = 0.84f),
+                                contentColor = TextPrimary
+                            )
+                        ) {
+                            Text(move, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+        if (wrongAttempts > 0) {
+            ChallengeNotice(
+                text = "Not mate yet. Find the move marked with checkmate.",
+                accent = AccentRed,
+                icon = Icons.Default.WarningAmber
+            )
+        } else {
+            Text(
+                puzzle.explanation,
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChessBoard(board: List<String>) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(SurfaceDark)
+            .padding(4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        board.chunked(8).forEachIndexed { rowIndex, row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                row.forEachIndexed { columnIndex, piece ->
+                    val light = (rowIndex + columnIndex) % 2 == 0
+                    Box(
+                        modifier = Modifier
+                            .size(31.dp)
+                            .background(
+                                if (light) SurfaceCard else SurfaceCard.copy(alpha = 0.52f),
+                                RoundedCornerShape(4.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (piece == ".") "" else piece,
+                            color = if (piece.firstOrNull()?.isUpperCase() == true) TextPrimary else AccentRed,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RsvpReadingChallengeView(
+    challenge: Challenge.RsvpReadingChallenge,
+    wrongAttempts: Int,
+    onPick: (String) -> Unit
+) {
+    var wordIndex by remember(challenge) { mutableStateOf(-1) }
+    var showChoices by remember(challenge) { mutableStateOf(false) }
+
+    LaunchedEffect(challenge) {
+        showChoices = false
+        wordIndex = -1
+        delay(500)
+        challenge.words.indices.forEach { index ->
+            wordIndex = index
+            delay(challenge.wordIntervalMs)
+        }
+        wordIndex = -1
+        showChoices = true
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        ChallengeSupportText("Read the rapid word stream, then pick the word you saw.")
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(112.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(SurfaceCard),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = when {
+                    showChoices -> "Which word appeared?"
+                    wordIndex >= 0 -> challenge.words[wordIndex]
+                    else -> "Get ready"
+                },
+                color = TextPrimary,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        if (showChoices) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                challenge.choices.chunked(2).forEach { row ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        row.forEach { choice ->
+                            OutlinedButton(
+                                onClick = { onPick(choice) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(54.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = SurfaceCard.copy(alpha = 0.84f),
+                                    contentColor = TextPrimary
+                                )
+                            ) {
+                                Text(choice, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            AppStatusChip(label = "Rapid reading", color = SnoozeYellow)
+        }
+
+        if (wrongAttempts > 0) {
+            ChallengeNotice(
+                text = "That word was not in this stream. Pick the word you remember seeing.",
+                accent = AccentRed,
+                icon = Icons.Default.WarningAmber
+            )
+        }
+    }
+}

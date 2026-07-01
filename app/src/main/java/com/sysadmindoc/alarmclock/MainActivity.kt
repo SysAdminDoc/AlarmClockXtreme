@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Release checks now verify Android 17 and 16 KB-device readiness.",
-            "The setup test alarm was verified on an API 37 16 KB emulator.",
-            "Dependency audits now cover Play, F-Droid, and Wear runtime graphs.",
-            "F-Droid installs no longer require telephony hardware."
+            "Spot the Difference adds a quick visual comparison challenge.",
+            "Chess Mate in 1 adds a compact board puzzle to dismiss flows.",
+            "RSVP Speed Reading flashes words, then checks recall.",
+            "The alarm editor and mission chains now support 30 challenges."
         )
     }
 }
