@@ -5,5 +5,6 @@
          after explicit user opt-in. The Play flavor uses a prefilled composer
          to comply with Google Play restricted SMS permission policy. -->
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
 </manifest>

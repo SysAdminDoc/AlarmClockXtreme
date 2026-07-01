@@ -16,7 +16,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.6)
+## Current snapshot (v1.15.7)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v17, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
@@ -27,7 +27,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 108`, `versionName 1.15.6`.
+  `versionCode 109`, `versionName 1.15.7`.
 - **Surface area:** 123 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **27 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -453,13 +453,6 @@ Deduplicated against all existing ROADMAP.md and Roadmap_Blocked.md items.
 ## Research-Driven Additions
 
 ### P1
-
-- [ ] P1 - Make OSV dependency auditing a release gate for every runtime graph
-  Why: The repo already has `scripts/osv_gradle_audit.py`, but release proof should cover Play runtime, F-Droid runtime, and Wear before publishing signed APKs.
-  Evidence: `scripts/osv_gradle_audit.py`, `app/build.gradle.kts` Play-only dependency constraints, OSV advisory feed.
-  Touches: `scripts/osv_gradle_audit.py`, release checklist/docs, Gradle dependency configurations.
-  Acceptance: Release checklist runs OSV against `playReleaseRuntimeClasspath`, `fdroidReleaseRuntimeClasspath`, and `:wear:releaseRuntimeClasspath` and fails on unresolved advisories.
-  Complexity: S
 
 - [ ] P1 - Add 16 KB page-size and API 37 release verification
   Why: Competitors now advertise 16 KB readiness and ACX already declares Android 17-facing permissions without target/compile 37 validation.

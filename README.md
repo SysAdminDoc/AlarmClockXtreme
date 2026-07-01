@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.6-blue)
+![Version](https://img.shields.io/badge/version-1.15.7-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -17,7 +17,7 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.15.6-play.apk
+adb install AlarmClockXtreme-v1.15.7-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, optional Health Connect READ_SLEEP integration, and ML Kit Digital Ink handwriting recognition. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -220,8 +220,9 @@ cd AlarmClockXtreme
 3. Fill in your keystore path and credentials
 4. Build: `./gradlew :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease`
 
-GitHub tag releases require repository secrets. Use either the preferred
-`ANDROID_*` names or the legacy short names:
+Local release builds use `keystore.properties`. If you mirror this setup in
+another environment, use either the preferred `ANDROID_*` names or the legacy
+short names for the same values:
 
 | Preferred secret | Legacy alias | Purpose |
 |------------------|--------------|---------|
@@ -230,28 +231,30 @@ GitHub tag releases require repository secrets. Use either the preferred
 | `ANDROID_KEY_ALIAS` | `KEY_ALIAS` | Signing key alias |
 | `ANDROID_KEY_PASSWORD` | `KEY_PASSWORD` | Signing key password |
 
-Tag pushes like `v1.13.16` build signed Play, F-Droid, and Wear release APKs,
-verify signatures with `apksigner`, write `SHA256SUMS.txt` and
-`APK-CERT-FINGERPRINTS.txt`, and attach all artifacts to the GitHub Release.
+Release builds produce signed Play, F-Droid, and Wear APKs locally. Verify
+signatures with `apksigner`, write `SHA256SUMS.txt` and
+`APK-CERT-FINGERPRINTS.txt`, and attach the artifacts to the GitHub Release.
 
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.6-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.7-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in
 the release's `APK-CERT-FINGERPRINTS.txt`.
 
-Before a local or CI release, run:
+Before a local release, run:
 
 ```bash
 bash scripts/check-signing-hygiene.sh
+python scripts/osv_gradle_audit.py
 ```
 
-The check fails if keystore files or `keystore.properties` are tracked/staged,
-or if common signing-material paths are not ignored. CI runs the same preflight
-before creating `keystore.properties` from repository secrets.
+The signing check fails if keystore files or `keystore.properties` are
+tracked/staged, or if common signing-material paths are not ignored. The OSV
+gate resolves Play, F-Droid, and Wear release runtime classpaths and exits
+non-zero on reported vulnerabilities.
 
 ### Build Variants
 

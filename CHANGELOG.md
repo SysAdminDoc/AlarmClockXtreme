@@ -2,6 +2,28 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.7] - 2026-07-01
+
+### Changed
+
+- OSV dependency auditing is now a release gate across the Play, F-Droid, and
+  Wear release runtime classpaths by default. Findings identify every affected
+  runtime graph and fail the release check unless explicitly run with
+  `--no-fail`.
+- The OSV gate has a narrow resolved-advisory override for
+  GHSA-5jmj-h7xm-6q6v when Jackson is on an upstream-patched release line,
+  because OSV currently reports the advisory even after 2.18.9.
+- Local release documentation now runs signing hygiene and the OSV runtime
+  graph audit before publishing signed APKs.
+- The new gate exposes GHSA-5jmj-h7xm-6q6v / CVE-2026-54515 as an unresolved
+  Play-runtime blocker until Maven Central publishes a compatible patched
+  Jackson 2.x artifact or the Play-only downloader graph changes.
+
+### Fixed
+
+- The F-Droid manifest now declares telephony hardware optional alongside its
+  SMS permission, keeping ChromeOS and large-screen installs eligible.
+
 ## [1.15.6] - 2026-07-01
 
 ### Added
