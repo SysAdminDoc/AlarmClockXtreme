@@ -62,6 +62,7 @@ class AlarmTest {
         assertEquals(10, alarm.snoozeDurationMinutes)
         assertEquals("NONE", alarm.challengeType)
         assertFalse(alarm.holdToDismissEnabled)
+        assertEquals(0, alarm.sortOrder)
     }
 
     @Test
@@ -111,7 +112,8 @@ class AlarmTest {
             hardwareButtonAction = "volume-up",
             ringtonePool = (1..25).joinToString(",") { " tone://$it " } + ",tone://1",
             solarOffsetMinutes = 9999,
-            solarAnchor = "dusk"
+            solarAnchor = "dusk",
+            sortOrder = -42
         )
 
         val sanitized = alarm.sanitized()
@@ -155,6 +157,7 @@ class AlarmTest {
         assertEquals("tone://1", sanitized.ringtonePool.substringBefore(","))
         assertEquals(720, sanitized.solarOffsetMinutes)
         assertEquals("SUNRISE", sanitized.solarAnchor)
+        assertEquals(0, sanitized.sortOrder)
     }
 
     @Test

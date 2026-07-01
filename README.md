@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.12-blue)
+![Version](https://img.shields.io/badge/version-1.15.13-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -17,7 +17,7 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.15.12-play.apk
+adb install AlarmClockXtreme-v1.15.13-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, optional Health Connect READ_SLEEP integration, and ML Kit Digital Ink handwriting recognition. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -59,6 +59,7 @@ cd AlarmClockXtreme
 | Early Dismiss | Skip upcoming alarm from the persistent notification |
 | Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
 | Commute-Aware Auto-Alarm | Optional event-location commute buffer uses Google Routes transit ETA when you supply a key, and falls back to no-key bad-weather buffers |
+| Manual Alarm Order | Drag alarms into a custom list order that persists across app restarts, backup, and restore |
 | Wear OS Tile + Complication | Shows the next alarm on the watch tile and compatible watch faces; the tile also exposes skip controls before fire and snooze/dismiss controls while ringing and honors the public-label privacy setting |
 
 ### Dismiss Challenges (30 Types)
@@ -179,7 +180,7 @@ cd AlarmClockXtreme
 ### Data & Reliability
 | Feature | Description |
 |---------|-------------|
-| Backup/Restore | JSON export/import of all 50+ alarm fields and 59 settings, with optional AES-256 passphrase encryption, custom news-feed/background-image round-trip, and pre-export disclosure for secrets/private references (v12 format) |
+| Backup/Restore | JSON export/import of all 50+ alarm fields and 59 settings, with optional AES-256 passphrase encryption, custom news-feed/background-image/manual-order round-trip, and pre-export disclosure for secrets/private references (v13 format) |
 | Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link; received links are reviewed and saved disabled |
 | Boot Reschedule | All alarms re-registered after device reboot, with a Direct Boot fallback for the next alarm before first unlock |
 | Wake Readiness | Settings checks exact alarms, notifications, Android 14+ full-screen alarm access, battery optimization, and App Standby state before bedtime |
@@ -204,7 +205,7 @@ cd AlarmClockXtreme
 |  Date-specific + holiday + vacation + solar-anchor logic |
 +---------------------------------------------------------+
 |                    Data Layer                            |
-|  Room DB v18 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
+|  Room DB v19 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
 |  HealthConnectSleepRepository (Play READ_SLEEP summaries) |
 |  50+ field Alarm entity | 35+ field AppSettings          |
 |  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |
@@ -244,7 +245,7 @@ signatures with `apksigner`, write `SHA256SUMS.txt` and
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.12-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.13-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in

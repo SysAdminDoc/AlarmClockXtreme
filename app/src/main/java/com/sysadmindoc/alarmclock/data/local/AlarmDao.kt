@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AlarmDao {
 
-    @Query("SELECT * FROM alarms ORDER BY hour ASC, minute ASC")
+    @Query("SELECT * FROM alarms ORDER BY sortOrder ASC, hour ASC, minute ASC, id ASC")
     fun observeAll(): Flow<List<Alarm>>
 
     @Query("SELECT * FROM alarms WHERE isEnabled = 1 ORDER BY nextTriggerTime ASC")
@@ -19,7 +19,7 @@ interface AlarmDao {
     @Query("SELECT * FROM alarms WHERE isEnabled = 1")
     suspend fun getEnabled(): List<Alarm>
 
-    @Query("SELECT * FROM alarms ORDER BY hour ASC, minute ASC")
+    @Query("SELECT * FROM alarms ORDER BY sortOrder ASC, hour ASC, minute ASC, id ASC")
     suspend fun getAll(): List<Alarm>
 
     // Only consider alarms with a real future trigger so the "next alarm" surface
@@ -48,4 +48,21 @@ interface AlarmDao {
 
     @Query("UPDATE alarms SET nextTriggerTime = :nextTrigger WHERE id = :id")
     suspend fun updateNextTrigger(id: Long, nextTrigger: Long)
+
+    @Query("SELECT COALESCE(MAX(sortOrder), 0) FROM alarms")
+    suspend fun maxSortOrder(): Int
+
+    @Query("UPDATE alarms SET sortOrder = :sortOrder WHERE id = :id")
+    suspend fun updateSortOrder(id: Long, sortOrder: Int)
+
+    @Transaction
+    suspend fun updateSortOrders(idsInOrder: List<Long>) {
+        idsInOrder.forEachIndexed { index, id ->
+            updateSortOrder(id, (index + 1) * SORT_ORDER_STEP)
+        }
+    }
+
+    companion object {
+        const val SORT_ORDER_STEP = 1_000
+    }
 }

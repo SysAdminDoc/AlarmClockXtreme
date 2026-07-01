@@ -2,6 +2,23 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.13] - 2026-07-01
+
+### Added
+
+- Added Manual order mode for the alarms list with drag handles and persisted
+  `Alarm.sortOrder` values.
+- Added Room v19 migration, backup v13 round-trip coverage, and deterministic
+  reorder helper tests for manual alarm ordering.
+
+### Changed
+
+- New and duplicated alarms are placed at the end of the manual list.
+- API 37 release verification now retries transient UI hierarchy dumps while
+  driving the onboarding test alarm.
+- Bumped app, Wear, README, roadmap, release verifier, and F-Droid metadata to
+  `versionName = "1.15.13"`, `versionCode = 115`.
+
 ## [1.15.12] - 2026-07-01
 
 ### Added

@@ -27,7 +27,8 @@ class AlarmBackupMappersTest {
             volume = 80,
             firingBackgroundImageEnabled = true,
             firingBackgroundImageUri = "content://media/backgrounds/wake.jpg",
-            firingBackgroundBlurEnabled = false
+            firingBackgroundBlurEnabled = false,
+            sortOrder = 4_000
         ).sanitized()
 
         val restored = alarm.toAlarmBackup().toAlarmOrNull()
@@ -43,6 +44,7 @@ class AlarmBackupMappersTest {
         assertEquals(true, restored.firingBackgroundImageEnabled)
         assertEquals("content://media/backgrounds/wake.jpg", restored.firingBackgroundImageUri)
         assertEquals(false, restored.firingBackgroundBlurEnabled)
+        assertEquals(4_000, restored.sortOrder)
     }
 
     @Test

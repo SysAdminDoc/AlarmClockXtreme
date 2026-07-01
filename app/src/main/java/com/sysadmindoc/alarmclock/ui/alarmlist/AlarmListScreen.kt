@@ -8,6 +8,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,9 +24,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -45,6 +49,7 @@ import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
@@ -85,6 +90,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,6 +98,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.model.Alarm
@@ -190,6 +197,9 @@ fun AlarmListScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val snackbarScope = androidx.compose.runtime.rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    var draggingAlarmId by remember { mutableStateOf<Long?>(null) }
+    var dragOffsetPx by remember { mutableStateOf(0f) }
 
     if (showYouTubeDialog) {
         com.sysadmindoc.alarmclock.ui.components.YouTubeDownloadDialog(
@@ -248,6 +258,9 @@ fun AlarmListScreen(
                 }
             }
     }
+    val visibleAlarmIds = filteredAlarms.map { it.id }
+    val currentVisibleAlarmIds by rememberUpdatedState(visibleAlarmIds)
+    val canReorderAlarms = !state.isSelectionMode && filteredAlarms.size > 1
 
     if (showBulkDeleteConfirmation) {
         AlertDialog(
@@ -332,6 +345,7 @@ fun AlarmListScreen(
             }
 
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
@@ -349,6 +363,7 @@ fun AlarmListScreen(
                         vacationActive = state.vacationActive,
                         sortLabel = when (state.sortOrder) {
                             AlarmSortOrder.TIME -> "Sort by time"
+                            AlarmSortOrder.MANUAL -> "Manual order"
                             AlarmSortOrder.CREATED -> "Newest first"
                             AlarmSortOrder.ENABLED_FIRST -> "Active first"
                         },
@@ -538,9 +553,70 @@ fun AlarmListScreen(
                             }
                         }
                         items(filteredAlarms, key = { it.id }) { alarm ->
-                            Box(modifier = Modifier
-                                .padding(horizontal = 16.dp)
-                                .animateItem()) {
+                            val isDragging = draggingAlarmId == alarm.id
+                            Row(
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp)
+                                    .graphicsLayer {
+                                        translationY = if (isDragging) dragOffsetPx else 0f
+                                        alpha = if (isDragging) 0.94f else 1f
+                                        scaleX = if (isDragging) 1.01f else 1f
+                                        scaleY = if (isDragging) 1.01f else 1f
+                                    }
+                                    .zIndex(if (isDragging) 1f else 0f)
+                                    .animateItem(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (canReorderAlarms) {
+                                    AlarmReorderHandle(
+                                        enabled = canReorderAlarms,
+                                        alarmLabel = alarm.label.ifBlank { formatAlarmTime(alarm, state.is24HourFormat) },
+                                        modifier = Modifier.pointerInput(canReorderAlarms, alarm.id) {
+                                            if (canReorderAlarms) {
+                                                detectDragGesturesAfterLongPress(
+                                                    onDragStart = {
+                                                        draggingAlarmId = alarm.id
+                                                        dragOffsetPx = 0f
+                                                    },
+                                                    onDragEnd = {
+                                                        draggingAlarmId = null
+                                                        dragOffsetPx = 0f
+                                                    },
+                                                    onDragCancel = {
+                                                        draggingAlarmId = null
+                                                        dragOffsetPx = 0f
+                                                    },
+                                                    onDrag = { change, dragAmount ->
+                                                        change.consume()
+                                                        dragOffsetPx += dragAmount.y
+                                                        val draggedInfo = listState.layoutInfo.visibleItemsInfo
+                                                            .firstOrNull { it.key == alarm.id }
+                                                        val targetInfo = draggedInfo?.let { dragged ->
+                                                            val draggedCenter = dragged.offset + (dragged.size / 2) + dragOffsetPx
+                                                            listState.layoutInfo.visibleItemsInfo.firstOrNull { candidate ->
+                                                                candidate.key is Long &&
+                                                                    candidate.key != alarm.id &&
+                                                                    draggedCenter >= candidate.offset &&
+                                                                    draggedCenter <= candidate.offset + candidate.size
+                                                            }
+                                                        }
+                                                        val targetAlarmId = targetInfo?.key as? Long
+                                                        if (targetAlarmId != null) {
+                                                            viewModel.moveAlarm(
+                                                                movedAlarmId = alarm.id,
+                                                                targetAlarmId = targetAlarmId,
+                                                                visibleAlarmIds = currentVisibleAlarmIds
+                                                            )
+                                                            dragOffsetPx = 0f
+                                                        }
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+                                Box(modifier = Modifier.weight(1f)) {
                                 val isSelected = alarm.id in state.selectedIds
                                 if (state.isSelectionMode) {
                                     SelectableAlarmCard(
@@ -577,6 +653,7 @@ fun AlarmListScreen(
                                             onLongClick = { viewModel.toggleSelection(alarm.id) }
                                         )
                                     }
+                                }
                                 }
                             }
                         }
@@ -739,6 +816,41 @@ private fun GroupFilterRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AlarmReorderHandle(
+    enabled: Boolean,
+    alarmLabel: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(44.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (enabled) {
+                    SurfaceMedium
+                } else {
+                    SurfaceMedium.copy(alpha = 0.42f)
+                }
+            )
+            .semantics {
+                contentDescription = if (enabled) {
+                    "Drag handle for $alarmLabel"
+                } else {
+                    "Drag handle unavailable"
+                }
+                stateDescription = if (enabled) "Ready" else "Disabled"
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.DragIndicator,
+            contentDescription = null,
+            tint = if (enabled) MaterialTheme.colorScheme.primary else TextMuted
+        )
     }
 }
 

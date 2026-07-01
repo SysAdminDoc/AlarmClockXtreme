@@ -48,6 +48,7 @@ class AlarmDatabaseMigrationTest {
         assertEquals(0, db.queryLong("SELECT firingBackgroundImageEnabled FROM alarms LIMIT 1"))
         assertEquals("", db.queryString("SELECT firingBackgroundImageUri FROM alarms LIMIT 1"))
         assertEquals(1, db.queryLong("SELECT firingBackgroundBlurEnabled FROM alarms LIMIT 1"))
+        assertEquals(1000, db.queryLong("SELECT sortOrder FROM alarms LIMIT 1"))
         db.close()
     }
 
@@ -174,6 +175,27 @@ class AlarmDatabaseMigrationTest {
     }
 
     @Test
+    fun migrationEighteenToNineteenAddsManualSortOrderByTime() {
+        var db = helper.createDatabase("migration-18-to-19.db", 18)
+        insertSyntheticAlarm(db, hour = 9, minute = 15, label = "Late")
+        insertSyntheticAlarm(db, hour = 6, minute = 30, label = "Early")
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-18-to-19.db",
+            19,
+            true,
+            AlarmDatabase.MIGRATION_18_19,
+        )
+
+        assertEquals(2, db.queryLong("SELECT COUNT(*) FROM alarms"))
+        assertEquals("Early", db.queryString("SELECT label FROM alarms ORDER BY sortOrder ASC LIMIT 1"))
+        assertEquals(1000, db.queryLong("SELECT sortOrder FROM alarms WHERE label = 'Early'"))
+        assertEquals(2000, db.queryLong("SELECT sortOrder FROM alarms WHERE label = 'Late'"))
+        db.close()
+    }
+
+    @Test
     fun freshInstallVersionMatchesLatestExportedSchema() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val exportedLatest = latestExportedSchemaVersion()
@@ -195,12 +217,17 @@ class AlarmDatabaseMigrationTest {
         assertEquals(LATEST_SCHEMA_VERSION, migrations.last().endVersion)
     }
 
-    private fun insertSyntheticAlarm(db: SupportSQLiteDatabase) {
+    private fun insertSyntheticAlarm(
+        db: SupportSQLiteDatabase,
+        hour: Int = 6,
+        minute: Int = 30,
+        label: String = "Migration alarm"
+    ) {
         val columns = tableColumns(db, "alarms")
             .filterNot { it.primaryKeyPosition > 0 && it.name == "id" }
         val columnSql = columns.joinToString(", ") { "`${it.name}`" }
         val placeholders = columns.joinToString(", ") { "?" }
-        val values = columns.map { syntheticValueFor(it) }.toTypedArray()
+        val values = columns.map { syntheticValueFor(it, hour, minute, label) }.toTypedArray()
 
         db.execSQL(
             "INSERT INTO alarms ($columnSql) VALUES ($placeholders)",
@@ -291,11 +318,16 @@ class AlarmDatabaseMigrationTest {
         }
     }
 
-    private fun syntheticValueFor(column: TableColumn): Any {
+    private fun syntheticValueFor(
+        column: TableColumn,
+        hour: Int,
+        minute: Int,
+        label: String
+    ): Any {
         return when (column.name) {
-            "hour" -> 6
-            "minute" -> 30
-            "label" -> "Migration alarm"
+            "hour" -> hour
+            "minute" -> minute
+            "label" -> label
             "isEnabled", "vibrationEnabled", "showOnLockScreen" -> 1
             "createdAt", "nextTriggerTime" -> 1_700_000_000_000L
             "repeatDays" -> "MONDAY,TUESDAY,WEDNESDAY"
@@ -355,6 +387,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 18
+        const val LATEST_SCHEMA_VERSION = 19
     }
 }

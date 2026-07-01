@@ -14,8 +14,8 @@ from pathlib import Path
 
 
 PACKAGE = "com.sysadmindoc.alarmclock"
-EXPECTED_VERSION_CODE = "114"
-EXPECTED_VERSION_NAME = "1.15.12"
+EXPECTED_VERSION_CODE = "115"
+EXPECTED_VERSION_NAME = "1.15.13"
 DEFAULT_APKS = (
     Path("app/build/outputs/apk/play/release/app-play-release.apk"),
     Path("app/build/outputs/apk/fdroid/release/app-fdroid-release.apk"),
@@ -169,9 +169,20 @@ def node_bounds(node: ET.Element) -> tuple[int, int]:
     return ((x1 + x2) // 2, (y1 + y2) // 2)
 
 
-def dump_ui(adb_path: str, serial: str) -> ET.Element:
-    raw = adb(adb_path, serial, "exec-out", "uiautomator", "dump", "/dev/tty")
-    return xml_from_dump(raw)
+def dump_ui(adb_path: str, serial: str, attempts: int = 6) -> ET.Element:
+    last_error: RuntimeError | None = None
+    for attempt in range(attempts):
+        try:
+            raw = adb(adb_path, serial, "exec-out", "uiautomator", "dump", "/dev/tty")
+            return xml_from_dump(raw)
+        except RuntimeError as exc:
+            last_error = exc
+            if attempt == attempts - 1:
+                break
+            time.sleep(1 + (attempt * 0.5))
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("Unable to parse UI hierarchy: no dump attempts were made.")
 
 
 def nodes_with_text(root: ET.Element, text: str) -> list[ET.Element]:

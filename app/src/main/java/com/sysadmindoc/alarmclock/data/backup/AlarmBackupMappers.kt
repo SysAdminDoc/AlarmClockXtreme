@@ -70,7 +70,8 @@ fun Alarm.toAlarmBackup(): AlarmBackup {
         dismissActionPayload = dismissActionPayload,
         firingBackgroundImageEnabled = firingBackgroundImageEnabled,
         firingBackgroundImageUri = firingBackgroundImageUri,
-        firingBackgroundBlurEnabled = firingBackgroundBlurEnabled
+        firingBackgroundBlurEnabled = firingBackgroundBlurEnabled,
+        sortOrder = sortOrder
     )
 }
 
@@ -143,7 +144,8 @@ fun AlarmBackup.toAlarmOrNull(): Alarm? {
             dismissActionPayload = dismissActionPayload,
             firingBackgroundImageEnabled = firingBackgroundImageEnabled,
             firingBackgroundImageUri = firingBackgroundImageUri,
-            firingBackgroundBlurEnabled = firingBackgroundBlurEnabled
+            firingBackgroundBlurEnabled = firingBackgroundBlurEnabled,
+            sortOrder = sortOrder
         ).sanitized()
     }.getOrNull()
 }

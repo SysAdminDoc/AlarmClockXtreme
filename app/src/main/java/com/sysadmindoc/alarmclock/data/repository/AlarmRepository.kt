@@ -19,7 +19,15 @@ class AlarmRepository @Inject constructor(
     suspend fun getNextAlarm(): Alarm? = dao.getNextAlarm()
     suspend fun getAll(): List<Alarm> = dao.getAll()
 
-    suspend fun save(alarm: Alarm): Long = dao.insert(alarm.sanitized())
+    suspend fun save(alarm: Alarm): Long {
+        val sanitized = alarm.sanitized()
+        val ordered = if (sanitized.id == 0L && sanitized.sortOrder == 0) {
+            sanitized.copy(sortOrder = nextSortOrder())
+        } else {
+            sanitized
+        }
+        return dao.insert(ordered)
+    }
     suspend fun update(alarm: Alarm) = dao.update(alarm.sanitized())
     suspend fun delete(alarm: Alarm) = dao.delete(alarm)
     suspend fun deleteById(id: Long) = dao.deleteById(id)
@@ -29,4 +37,9 @@ class AlarmRepository @Inject constructor(
 
     suspend fun updateNextTrigger(id: Long, nextTrigger: Long) =
         dao.updateNextTrigger(id, nextTrigger)
+
+    suspend fun nextSortOrder(): Int = dao.maxSortOrder() + AlarmDao.SORT_ORDER_STEP
+
+    suspend fun updateSortOrders(idsInOrder: List<Long>) =
+        dao.updateSortOrders(idsInOrder)
 }

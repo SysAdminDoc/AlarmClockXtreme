@@ -55,7 +55,8 @@ class BackupManagerExportImportTest {
                 vibrationDelaySeconds = 45,
                 firingBackgroundImageEnabled = true,
                 firingBackgroundImageUri = "content://media/backgrounds/workday.jpg",
-                firingBackgroundBlurEnabled = false
+                firingBackgroundBlurEnabled = false,
+                sortOrder = 7_000
             )
         )
         coEvery { preferencesManager.getCurrentSettings() } returns premiumSettings()
@@ -76,6 +77,7 @@ class BackupManagerExportImportTest {
         assertEquals(true, alarm.firingBackgroundImageEnabled)
         assertEquals("content://media/backgrounds/workday.jpg", alarm.firingBackgroundImageUri)
         assertEquals(false, alarm.firingBackgroundBlurEnabled)
+        assertEquals(7_000, alarm.sortOrder)
 
         val settings = backup.settings!!
         assertTrue(settings.is24HourFormat)
@@ -99,7 +101,8 @@ class BackupManagerExportImportTest {
                     morningAlarm().copy(
                         firingBackgroundImageEnabled = true,
                         firingBackgroundImageUri = "content://media/backgrounds/workday.jpg",
-                        firingBackgroundBlurEnabled = false
+                        firingBackgroundBlurEnabled = false,
+                        sortOrder = 7_000
                     ).toAlarmBackup()
                 ),
                 settings = SettingsBackup(
@@ -155,6 +158,7 @@ class BackupManagerExportImportTest {
                         it.firingBackgroundImageEnabled &&
                         it.firingBackgroundImageUri == "content://media/backgrounds/workday.jpg" &&
                         !it.firingBackgroundBlurEnabled &&
+                        it.sortOrder == 7_000 &&
                         it.nextTriggerTime == 0L
                 }
             )

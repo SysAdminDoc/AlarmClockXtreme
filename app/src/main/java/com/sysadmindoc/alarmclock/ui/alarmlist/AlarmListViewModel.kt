@@ -19,7 +19,40 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
-enum class AlarmSortOrder { TIME, CREATED, ENABLED_FIRST }
+enum class AlarmSortOrder { TIME, MANUAL, CREATED, ENABLED_FIRST }
+
+internal fun sortAlarmsForList(alarms: List<Alarm>, sort: AlarmSortOrder): List<Alarm> {
+    return when (sort) {
+        AlarmSortOrder.TIME -> alarms.sortedBy { it.hour * 60 + it.minute }
+        AlarmSortOrder.MANUAL -> alarms.sortedWith(
+            compareBy<Alarm> { it.sortOrder }
+                .thenBy { it.hour * 60 + it.minute }
+                .thenBy { it.id }
+        )
+        AlarmSortOrder.CREATED -> alarms.sortedByDescending { it.id }
+        AlarmSortOrder.ENABLED_FIRST -> alarms.sortedWith(
+            compareByDescending<Alarm> { it.isEnabled }
+                .thenBy { it.hour * 60 + it.minute }
+                .thenBy { it.id }
+        )
+    }
+}
+
+internal fun reorderAlarmIds(
+    visibleIds: List<Long>,
+    movedId: Long,
+    targetId: Long
+): List<Long> {
+    val fromIndex = visibleIds.indexOf(movedId)
+    val targetIndex = visibleIds.indexOf(targetId)
+    if (fromIndex == -1 || targetIndex == -1 || fromIndex == targetIndex) {
+        return visibleIds
+    }
+    return visibleIds.toMutableList().apply {
+        val moved = removeAt(fromIndex)
+        add(targetIndex, moved)
+    }
+}
 
 private data class SelectionSnapshot(
     val selectedIds: Set<Long>,
@@ -72,6 +105,7 @@ class AlarmListViewModel @Inject constructor(
     private val _undoAlarm = MutableStateFlow<Alarm?>(null)
     private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
     private val _isSelectionMode = MutableStateFlow(false)
+    private var lastSortCycleMillis = 0L
 
     // Ticker emits every 30s so the remaining-time countdown stays fresh
     private val ticker = flow {
@@ -98,13 +132,7 @@ class AlarmListViewModel @Inject constructor(
             filtered = filtered.filter { it.profileName == snap.selectedProfile }
         }
 
-        val sorted = when (sort) {
-            AlarmSortOrder.TIME -> filtered.sortedBy { it.hour * 60 + it.minute }
-            AlarmSortOrder.CREATED -> filtered.sortedByDescending { it.id }
-            AlarmSortOrder.ENABLED_FIRST -> filtered.sortedWith(
-                compareByDescending<Alarm> { it.isEnabled }.thenBy { it.hour * 60 + it.minute }
-            )
-        }
+        val sorted = sortAlarmsForList(filtered, sort)
 
         // Extract unique groups from all alarms (not filtered), hiding the
         // empty/default group so the chip row never gets a blank filter.
@@ -169,10 +197,28 @@ class AlarmListViewModel @Inject constructor(
     }
 
     fun cycleSortOrder() {
+        val now = System.currentTimeMillis()
+        if (now - lastSortCycleMillis < 1_200L) return
+        lastSortCycleMillis = now
         _sortOrder.value = when (_sortOrder.value) {
-            AlarmSortOrder.TIME -> AlarmSortOrder.CREATED
+            AlarmSortOrder.TIME -> AlarmSortOrder.MANUAL
+            AlarmSortOrder.MANUAL -> AlarmSortOrder.CREATED
             AlarmSortOrder.CREATED -> AlarmSortOrder.ENABLED_FIRST
             AlarmSortOrder.ENABLED_FIRST -> AlarmSortOrder.TIME
+        }
+    }
+
+    fun moveAlarm(
+        movedAlarmId: Long,
+        targetAlarmId: Long,
+        visibleAlarmIds: List<Long>
+    ) {
+        val reorderedIds = reorderAlarmIds(visibleAlarmIds, movedAlarmId, targetAlarmId)
+        if (reorderedIds == visibleAlarmIds) return
+        _sortOrder.value = AlarmSortOrder.MANUAL
+        viewModelScope.launch {
+            repository.updateSortOrders(reorderedIds)
+            emitFeedback("Manual alarm order saved")
         }
     }
 
@@ -362,7 +408,8 @@ class AlarmListViewModel @Inject constructor(
                 label = if (alarm.label.isBlank()) "Copy" else "${alarm.label} (copy)",
                 isEnabled = true,
                 createdAt = System.currentTimeMillis(),
-                nextTriggerTime = 0
+                nextTriggerTime = 0,
+                sortOrder = 0
             )
             val id = repository.save(duplicate)
             val saved = duplicate.copy(id = id)

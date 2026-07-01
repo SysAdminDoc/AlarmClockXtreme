@@ -12,7 +12,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 
 @Database(
     entities = [Alarm::class, AlarmEvent::class, ActigraphySession::class, AlarmIncidentEvent::class],
-    version = 18,
+    version = 19,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -258,6 +258,28 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE alarms ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0")
+                db.execSQL(
+                    """
+                    UPDATE alarms
+                    SET sortOrder = (
+                        SELECT COUNT(*) * 1000
+                        FROM alarms AS ranked
+                        WHERE ranked.hour < alarms.hour
+                            OR (ranked.hour = alarms.hour AND ranked.minute < alarms.minute)
+                            OR (
+                                ranked.hour = alarms.hour
+                                    AND ranked.minute = alarms.minute
+                                    AND ranked.id <= alarms.id
+                            )
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -276,6 +298,7 @@ abstract class AlarmDatabase : RoomDatabase() {
             MIGRATION_15_16,
             MIGRATION_16_17,
             MIGRATION_17_18,
+            MIGRATION_18_19,
         )
     }
 }

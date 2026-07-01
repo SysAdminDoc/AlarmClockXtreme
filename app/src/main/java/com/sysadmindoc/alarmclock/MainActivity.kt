@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Each alarm can use its own ringing-screen background image.",
-            "Android 12+ can blur selected alarm backgrounds.",
-            "Background image choices round-trip through backup and sharing.",
-            "Existing alarms keep the standard ringing gradient by default."
+            "The alarms list now has a Manual order sort mode.",
+            "Use the drag handles in Manual order to rearrange alarms.",
+            "Manual order survives app restarts, backup, and restore.",
+            "New and duplicated alarms are placed at the end of the manual list."
         )
     }
 }

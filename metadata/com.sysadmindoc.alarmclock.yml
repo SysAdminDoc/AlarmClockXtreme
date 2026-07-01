@@ -23,9 +23,9 @@ RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.15.12
-    versionCode: 114
-    commit: v1.15.12
+  - versionName: 1.15.13
+    versionCode: 115
+    commit: v1.15.13
     subdir: app
     gradle:
       - fdroid
@@ -40,5 +40,5 @@ AntiFeatures:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.15.12
-CurrentVersionCode: 114
+CurrentVersion: 1.15.13
+CurrentVersionCode: 115

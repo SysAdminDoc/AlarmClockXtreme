@@ -129,7 +129,9 @@ data class Alarm(
     val firingBackgroundImageEnabled: Boolean = false,
     val firingBackgroundImageUri: String = "",
     // Blur is applied only on Android 12+ where RenderEffect is available.
-    val firingBackgroundBlurEnabled: Boolean = true
+    val firingBackgroundBlurEnabled: Boolean = true,
+    // v1.15.13: User-defined alarm list order. 0 means "not assigned yet".
+    val sortOrder: Int = 0
 ) {
     companion object {
         const val MAX_SMART_ALARM_WINDOW_MINUTES = 60
@@ -295,7 +297,8 @@ data class Alarm(
             dismissActionPayload = dismissActionPayload.trim().take(MAX_URI_CHARS),
             firingBackgroundImageEnabled = firingBackgroundImageEnabled &&
                 normalizedFiringBackgroundImageUri.isNotBlank(),
-            firingBackgroundImageUri = normalizedFiringBackgroundImageUri
+            firingBackgroundImageUri = normalizedFiringBackgroundImageUri,
+            sortOrder = sortOrder.coerceIn(0, Int.MAX_VALUE)
         )
     }
 }
