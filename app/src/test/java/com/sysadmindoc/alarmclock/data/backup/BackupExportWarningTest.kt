@@ -61,6 +61,7 @@ class BackupExportWarningTest {
                     ringtoneUri = "content://media/external/audio/media/42",
                     ringtonePool = "android.resource://system/alarm,C:\\Music\\local.mp3",
                     photoMatchUri = "file:///storage/emulated/0/Pictures/wake.jpg",
+                    firingBackgroundImageUri = "content://media/external/images/media/77",
                     internetRadioUrl = "https://example.com/stream.m3u8?token=abc",
                     wifiDismissSsid = "Home WiFi",
                     guardianPhone = "+15551234567",
@@ -75,7 +76,7 @@ class BackupExportWarningTest {
 
         assertTrue(warning.shouldWarn)
         assertTrue(warning.categories.contains("Internet radio stream URLs"))
-        assertTrue(warning.categories.contains("Device-local ringtone or photo URIs"))
+        assertTrue(warning.categories.contains("Device-local ringtone or image URIs"))
         assertTrue(warning.categories.contains("Wi-Fi, location, or guardian contact details"))
         assertTrue(warning.categories.contains("NFC or barcode challenge values"))
     }

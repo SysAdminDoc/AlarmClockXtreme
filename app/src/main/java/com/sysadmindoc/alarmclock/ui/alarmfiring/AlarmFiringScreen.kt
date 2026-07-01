@@ -1,6 +1,10 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.os.Build
 import android.text.format.DateFormat
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
@@ -10,6 +14,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -70,9 +75,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -127,6 +136,8 @@ import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -208,6 +219,15 @@ fun AlarmFiringScreen(
     var customSnoozeMinutes by remember(defaultSnoozeMinutes) {
         mutableIntStateOf(defaultSnoozeMinutes.coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES))
     }
+    val firingBackgroundUri = state.alarm
+        ?.takeIf { it.firingBackgroundImageEnabled && it.firingBackgroundImageUri.isNotBlank() }
+        ?.firingBackgroundImageUri
+    val firingBackgroundBlurEnabled = state.alarm?.firingBackgroundBlurEnabled == true
+    val firingBackgroundImage by produceState<ImageBitmap?>(initialValue = null, firingBackgroundUri) {
+        value = null
+        val uri = firingBackgroundUri ?: return@produceState
+        value = loadFiringBackgroundImage(context, uri)
+    }
 
     val timePattern = if (is24Hour) "HH:mm" else "h:mm"
     val timeText = currentTime.format(DateTimeFormatter.ofPattern(timePattern))
@@ -283,6 +303,35 @@ fun AlarmFiringScreen(
             }
             }
     ) {
+        if (firingBackgroundImage != null) {
+            Image(
+                bitmap = requireNotNull(firingBackgroundImage),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (firingBackgroundBlurEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            Modifier.blur(24.dp)
+                        } else {
+                            Modifier
+                        }
+                    )
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                SurfaceDark.copy(alpha = 0.52f),
+                                SurfaceDark.copy(alpha = 0.88f)
+                            )
+                        )
+                    )
+            )
+        }
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -1001,6 +1050,37 @@ private fun Challenge?.statusDescription(): String = when (this) {
     is Challenge.ChessMateChallenge -> "Choose the mate-in-1 move."
     is Challenge.RsvpReadingChallenge -> "Watch the words, then pick the remembered word."
     null -> "Swipe or tap dismiss when you're ready."
+}
+
+private suspend fun loadFiringBackgroundImage(
+    context: Context,
+    uriString: String,
+    maxSide: Int = 1600
+): ImageBitmap? = withContext(Dispatchers.IO) {
+    runCatching {
+        val uri = Uri.parse(uriString)
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            BitmapFactory.decodeStream(input, null, bounds)
+        }
+        val sampleSize = calculateSampleSize(bounds.outWidth, bounds.outHeight, maxSide)
+        val options = BitmapFactory.Options().apply {
+            inSampleSize = sampleSize
+            inPreferredConfig = Bitmap.Config.ARGB_8888
+        }
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            BitmapFactory.decodeStream(input, null, options)?.asImageBitmap()
+        }
+    }.getOrNull()
+}
+
+private fun calculateSampleSize(width: Int, height: Int, maxSide: Int): Int {
+    if (width <= 0 || height <= 0) return 1
+    var sampleSize = 1
+    while (width / sampleSize > maxSide || height / sampleSize > maxSide) {
+        sampleSize *= 2
+    }
+    return sampleSize
 }
 
 private val EaseInOutCubic = CubicBezierEasing(0.65f, 0f, 0.35f, 1f)

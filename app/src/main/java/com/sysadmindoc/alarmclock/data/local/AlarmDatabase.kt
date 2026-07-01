@@ -12,7 +12,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 
 @Database(
     entities = [Alarm::class, AlarmEvent::class, ActigraphySession::class, AlarmIncidentEvent::class],
-    version = 17,
+    version = 18,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -250,6 +250,14 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE alarms ADD COLUMN firingBackgroundImageEnabled INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE alarms ADD COLUMN firingBackgroundImageUri TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE alarms ADD COLUMN firingBackgroundBlurEnabled INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -267,6 +275,7 @@ abstract class AlarmDatabase : RoomDatabase() {
             MIGRATION_14_15,
             MIGRATION_15_16,
             MIGRATION_16_17,
+            MIGRATION_17_18,
         )
     }
 }

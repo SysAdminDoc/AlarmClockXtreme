@@ -45,6 +45,9 @@ class AlarmDatabaseMigrationTest {
             db.queryString("SELECT label FROM alarms LIMIT 1"),
         )
         assertEquals(0, db.queryLong("SELECT vibrationDelaySeconds FROM alarms LIMIT 1"))
+        assertEquals(0, db.queryLong("SELECT firingBackgroundImageEnabled FROM alarms LIMIT 1"))
+        assertEquals("", db.queryString("SELECT firingBackgroundImageUri FROM alarms LIMIT 1"))
+        assertEquals(1, db.queryLong("SELECT firingBackgroundBlurEnabled FROM alarms LIMIT 1"))
         db.close()
     }
 
@@ -147,6 +150,26 @@ class AlarmDatabaseMigrationTest {
         assertTrue(columns.contains("reasonCode"))
         assertTrue(columns.contains("fullScreenIntentAllowed"))
         assertTrue(columns.contains("batteryOptimizationsIgnored"))
+        db.close()
+    }
+
+    @Test
+    fun migrationSeventeenToEighteenAddsFiringBackgroundDefaults() {
+        var db = helper.createDatabase("migration-17-to-18.db", 17)
+        insertSyntheticAlarm(db)
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-17-to-18.db",
+            18,
+            true,
+            AlarmDatabase.MIGRATION_17_18,
+        )
+
+        assertEquals(1, db.queryLong("SELECT COUNT(*) FROM alarms"))
+        assertEquals(0, db.queryLong("SELECT firingBackgroundImageEnabled FROM alarms LIMIT 1"))
+        assertEquals("", db.queryString("SELECT firingBackgroundImageUri FROM alarms LIMIT 1"))
+        assertEquals(1, db.queryLong("SELECT firingBackgroundBlurEnabled FROM alarms LIMIT 1"))
         db.close()
     }
 
@@ -332,6 +355,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 14
+        const val LATEST_SCHEMA_VERSION = 18
     }
 }

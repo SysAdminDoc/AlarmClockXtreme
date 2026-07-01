@@ -24,7 +24,10 @@ class AlarmBackupMappersTest {
             label = "Work",
             repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY),
             challengeType = "MATH_EASY",
-            volume = 80
+            volume = 80,
+            firingBackgroundImageEnabled = true,
+            firingBackgroundImageUri = "content://media/backgrounds/wake.jpg",
+            firingBackgroundBlurEnabled = false
         ).sanitized()
 
         val restored = alarm.toAlarmBackup().toAlarmOrNull()
@@ -37,6 +40,9 @@ class AlarmBackupMappersTest {
         assertEquals(setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY), restored.repeatDays)
         assertEquals("MATH_EASY", restored.challengeType)
         assertEquals(80, restored.volume)
+        assertEquals(true, restored.firingBackgroundImageEnabled)
+        assertEquals("content://media/backgrounds/wake.jpg", restored.firingBackgroundImageUri)
+        assertEquals(false, restored.firingBackgroundBlurEnabled)
     }
 
     @Test

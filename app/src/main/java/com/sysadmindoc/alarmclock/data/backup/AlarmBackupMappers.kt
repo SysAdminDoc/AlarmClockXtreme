@@ -67,7 +67,10 @@ fun Alarm.toAlarmBackup(): AlarmBackup {
         weatherEarlyMinutes = weatherEarlyMinutes,
         requiredSquats = requiredSquats,
         dismissActionType = dismissActionType,
-        dismissActionPayload = dismissActionPayload
+        dismissActionPayload = dismissActionPayload,
+        firingBackgroundImageEnabled = firingBackgroundImageEnabled,
+        firingBackgroundImageUri = firingBackgroundImageUri,
+        firingBackgroundBlurEnabled = firingBackgroundBlurEnabled
     )
 }
 
@@ -137,7 +140,10 @@ fun AlarmBackup.toAlarmOrNull(): Alarm? {
             weatherEarlyMinutes = weatherEarlyMinutes,
             requiredSquats = requiredSquats,
             dismissActionType = dismissActionType,
-            dismissActionPayload = dismissActionPayload
+            dismissActionPayload = dismissActionPayload,
+            firingBackgroundImageEnabled = firingBackgroundImageEnabled,
+            firingBackgroundImageUri = firingBackgroundImageUri,
+            firingBackgroundBlurEnabled = firingBackgroundBlurEnabled
         ).sanitized()
     }.getOrNull()
 }

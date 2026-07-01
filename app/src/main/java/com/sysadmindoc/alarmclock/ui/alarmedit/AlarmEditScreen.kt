@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -63,6 +64,7 @@ fun AlarmEditScreen(
     var showRingtonePicker by remember { mutableStateOf(false) }
     var showChainPicker by remember { mutableStateOf(false) }
     var photoReferenceStatus by remember { mutableStateOf("") }
+    var firingBackgroundStatus by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.saveError) {
@@ -111,6 +113,26 @@ fun AlarmEditScreen(
             photoReferenceLauncher.launch(null)
         } else {
             photoPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+    val firingBackgroundImageLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) {
+            firingBackgroundStatus = "No background image selected."
+            return@rememberLauncherForActivityResult
+        }
+        val persisted = runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }.isSuccess
+        viewModel.updateFiringBackgroundImage(uri.toString())
+        firingBackgroundStatus = if (persisted) {
+            "Background image selected."
+        } else {
+            "Background image selected. Re-select it if Android revokes access."
         }
     }
 
@@ -908,6 +930,63 @@ fun AlarmEditScreen(
                     "Gradually increases screen brightness alongside volume",
                     tone = HintTone.Neutral
                 )
+
+                SettingsRow(
+                    label = "Firing background image",
+                    trailing = {
+                        SettingsValueButton(
+                            label = if (state.firingBackgroundImageUri.isBlank()) "Choose" else "Replace",
+                            onClick = { firingBackgroundImageLauncher.launch(arrayOf("image/*")) }
+                        )
+                    }
+                )
+                if (state.firingBackgroundImageUri.isBlank()) {
+                    SettingsHint(
+                        "Optional. The ringing screen keeps the standard gradient until you choose an image.",
+                        tone = HintTone.Neutral
+                    )
+                } else {
+                    SettingsRow(
+                        label = "Show image while ringing",
+                        trailing = {
+                            Switch(
+                                checked = state.firingBackgroundImageEnabled,
+                                onCheckedChange = viewModel::updateFiringBackgroundImageEnabled,
+                                colors = appSwitchColors()
+                            )
+                        }
+                    )
+                    SettingsRow(
+                        label = "Blur image on Android 12+",
+                        trailing = {
+                            Switch(
+                                checked = state.firingBackgroundBlurEnabled,
+                                enabled = state.firingBackgroundImageEnabled,
+                                onCheckedChange = viewModel::updateFiringBackgroundBlur,
+                                colors = appSwitchColors()
+                            )
+                        }
+                    )
+                    OutlinedButton(
+                        onClick = viewModel::clearFiringBackgroundImage,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                    ) {
+                        Text("Clear background image")
+                    }
+                    SettingsHint(
+                        if (state.firingBackgroundImageEnabled) {
+                            "Ringing screen image is enabled for this alarm."
+                        } else {
+                            "Image is saved for this alarm but the ringing screen still uses the standard gradient."
+                        },
+                        tone = HintTone.Neutral
+                    )
+                }
+                if (firingBackgroundStatus.isNotBlank()) {
+                    SettingsHint(firingBackgroundStatus, tone = HintTone.Neutral)
+                }
             }
 
             // Morning Announcement (TTS)

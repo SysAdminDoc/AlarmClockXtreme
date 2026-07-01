@@ -103,6 +103,9 @@ data class AlarmEditUiState(
     // gradualVolumeSeconds for a "gentle wake" preset).
     val vibrationDelaySeconds: Int = 0,
     val weatherEarlyMinutes: Int = 0,
+    val firingBackgroundImageEnabled: Boolean = false,
+    val firingBackgroundImageUri: String = "",
+    val firingBackgroundBlurEnabled: Boolean = true,
     val forecastDates: List<ForecastEntry> = emptyList()
 )
 
@@ -196,7 +199,10 @@ class AlarmEditViewModel @Inject constructor(
                         solarOffsetMinutes = alarm.solarOffsetMinutes,
                         solarAnchor = alarm.solarAnchor,
                         vibrationDelaySeconds = alarm.vibrationDelaySeconds,
-                        weatherEarlyMinutes = alarm.weatherEarlyMinutes
+                        weatherEarlyMinutes = alarm.weatherEarlyMinutes,
+                        firingBackgroundImageEnabled = alarm.firingBackgroundImageEnabled,
+                        firingBackgroundImageUri = alarm.firingBackgroundImageUri,
+                        firingBackgroundBlurEnabled = alarm.firingBackgroundBlurEnabled
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(notFound = true, is24HourFormat = is24h)
@@ -353,6 +359,28 @@ class AlarmEditViewModel @Inject constructor(
     }
     fun updateSunriseSimulation(enabled: Boolean, minutes: Int? = null) {
         _uiState.value = _uiState.value.copy(sunriseSimulation = enabled, sunriseMinutes = minutes ?: _uiState.value.sunriseMinutes)
+    }
+    fun updateFiringBackgroundImage(uri: String) {
+        val trimmed = uri.trim()
+        _uiState.value = _uiState.value.copy(
+            firingBackgroundImageUri = trimmed,
+            firingBackgroundImageEnabled = trimmed.isNotBlank()
+        )
+    }
+    fun updateFiringBackgroundImageEnabled(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(
+            firingBackgroundImageEnabled = enabled && _uiState.value.firingBackgroundImageUri.isNotBlank()
+        )
+    }
+    fun updateFiringBackgroundBlur(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(firingBackgroundBlurEnabled = enabled)
+    }
+    fun clearFiringBackgroundImage() {
+        _uiState.value = _uiState.value.copy(
+            firingBackgroundImageEnabled = false,
+            firingBackgroundImageUri = "",
+            firingBackgroundBlurEnabled = true
+        )
     }
     fun updateSpecificDate(date: String) { _uiState.value = _uiState.value.copy(specificDate = date) }
     fun updateProfileName(name: String) { _uiState.value = _uiState.value.copy(profileName = name) }
@@ -553,7 +581,10 @@ class AlarmEditViewModel @Inject constructor(
                 solarOffsetMinutes = s.solarOffsetMinutes,
                 solarAnchor = s.solarAnchor,
                 vibrationDelaySeconds = s.vibrationDelaySeconds,
-                weatherEarlyMinutes = s.weatherEarlyMinutes
+                weatherEarlyMinutes = s.weatherEarlyMinutes,
+                firingBackgroundImageEnabled = s.firingBackgroundImageEnabled,
+                firingBackgroundImageUri = s.firingBackgroundImageUri,
+                firingBackgroundBlurEnabled = s.firingBackgroundBlurEnabled
             )
 
             try {

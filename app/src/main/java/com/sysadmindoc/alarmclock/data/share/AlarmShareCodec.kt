@@ -111,6 +111,9 @@ object AlarmShareCodec {
             internetRadioUrl = "",
             morningRoutine = "",
             ringtonePool = "",
+            firingBackgroundImageEnabled = false,
+            firingBackgroundImageUri = "",
+            firingBackgroundBlurEnabled = true,
             challengeType = alarm.challengeType
                 .takeUnless { it.uppercase(Locale.US) in REFERENCE_BACKED_CHALLENGES }
                 ?: "NONE",

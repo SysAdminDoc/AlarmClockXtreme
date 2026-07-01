@@ -123,7 +123,13 @@ data class Alarm(
     val dismissActionType: String = "NONE",
     // Payload for the dismiss action: URL for webhook, scene name for Hue,
     // or action string for broadcast. Empty when dismissActionType is NONE.
-    val dismissActionPayload: String = ""
+    val dismissActionPayload: String = "",
+    // v1.15.12: Optional per-alarm firing-screen image. Disabled by default
+    // and ignored unless a persisted image URI is present.
+    val firingBackgroundImageEnabled: Boolean = false,
+    val firingBackgroundImageUri: String = "",
+    // Blur is applied only on Android 12+ where RenderEffect is available.
+    val firingBackgroundBlurEnabled: Boolean = true
 ) {
     companion object {
         const val MAX_SMART_ALARM_WINDOW_MINUTES = 60
@@ -230,6 +236,7 @@ data class Alarm(
             .lowercase(Locale.US)
             .takeIf { it in VALID_VIBRATION_PATTERNS }
             ?: "default"
+        val normalizedFiringBackgroundImageUri = firingBackgroundImageUri.trim().take(MAX_URI_CHARS)
 
         return copy(
             hour = hour.coerceIn(0, 23),
@@ -285,7 +292,10 @@ data class Alarm(
                 "WEBHOOK", "HUE_SCENE", "BROADCAST" -> dismissActionType.uppercase(Locale.US)
                 else -> "NONE"
             },
-            dismissActionPayload = dismissActionPayload.trim().take(MAX_URI_CHARS)
+            dismissActionPayload = dismissActionPayload.trim().take(MAX_URI_CHARS),
+            firingBackgroundImageEnabled = firingBackgroundImageEnabled &&
+                normalizedFiringBackgroundImageUri.isNotBlank(),
+            firingBackgroundImageUri = normalizedFiringBackgroundImageUri
         )
     }
 }

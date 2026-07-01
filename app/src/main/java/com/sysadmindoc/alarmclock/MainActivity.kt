@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Calendar auto-alarms can add commute-aware lead time.",
-            "Transit ETA uses Google Routes only when you provide a key.",
-            "Events with locations still get no-key bad-weather buffers.",
-            "Settings and backups now round-trip commute alarm controls."
+            "Each alarm can use its own ringing-screen background image.",
+            "Android 12+ can blur selected alarm backgrounds.",
+            "Background image choices round-trip through backup and sharing.",
+            "Existing alarms keep the standard ringing gradient by default."
         )
     }
 }

@@ -52,7 +52,10 @@ class BackupManagerExportImportTest {
             morningAlarm().copy(
                 id = 12L,
                 internetRadioUrl = "https://radio.example/stream",
-                vibrationDelaySeconds = 45
+                vibrationDelaySeconds = 45,
+                firingBackgroundImageEnabled = true,
+                firingBackgroundImageUri = "content://media/backgrounds/workday.jpg",
+                firingBackgroundBlurEnabled = false
             )
         )
         coEvery { preferencesManager.getCurrentSettings() } returns premiumSettings()
@@ -70,6 +73,9 @@ class BackupManagerExportImportTest {
         assertEquals(setOf("MONDAY", "WEDNESDAY", "FRIDAY"), alarm.repeatDays.toSet())
         assertEquals("https://radio.example/stream", alarm.internetRadioUrl)
         assertEquals(45, alarm.vibrationDelaySeconds)
+        assertEquals(true, alarm.firingBackgroundImageEnabled)
+        assertEquals("content://media/backgrounds/workday.jpg", alarm.firingBackgroundImageUri)
+        assertEquals(false, alarm.firingBackgroundBlurEnabled)
 
         val settings = backup.settings!!
         assertTrue(settings.is24HourFormat)
@@ -89,7 +95,13 @@ class BackupManagerExportImportTest {
     fun importFromUriRestoresSettingsAndSchedulesEnabledAlarms() = runTest {
         val backupJson = backupAdapter.toJson(
             BackupData(
-                alarms = listOf(morningAlarm().toAlarmBackup()),
+                alarms = listOf(
+                    morningAlarm().copy(
+                        firingBackgroundImageEnabled = true,
+                        firingBackgroundImageUri = "content://media/backgrounds/workday.jpg",
+                        firingBackgroundBlurEnabled = false
+                    ).toAlarmBackup()
+                ),
                 settings = SettingsBackup(
                     is24HourFormat = true,
                     defaultSnoozeDuration = 25,
@@ -140,6 +152,9 @@ class BackupManagerExportImportTest {
                 match {
                     it.label == "Weekday lift" &&
                         it.repeatDays == setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY) &&
+                        it.firingBackgroundImageEnabled &&
+                        it.firingBackgroundImageUri == "content://media/backgrounds/workday.jpg" &&
+                        !it.firingBackgroundBlurEnabled &&
                         it.nextTriggerTime == 0L
                 }
             )

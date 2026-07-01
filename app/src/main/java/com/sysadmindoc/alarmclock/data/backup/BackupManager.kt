@@ -87,12 +87,16 @@ data class AlarmBackup(
     val requiredSquats: Int = 10,
     // v1.15.1: per-alarm dismiss action.
     val dismissActionType: String = "NONE",
-    val dismissActionPayload: String = ""
+    val dismissActionPayload: String = "",
+    // v1.15.12: optional firing-screen background image.
+    val firingBackgroundImageEnabled: Boolean = false,
+    val firingBackgroundImageUri: String = "",
+    val firingBackgroundBlurEnabled: Boolean = true
 )
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 11,
+    val version: Int = 12,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -209,7 +213,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 11
+        const val MAX_SUPPORTED_BACKUP_VERSION = 12
 
         fun assessExportWarning(
             settings: AppSettings,
@@ -244,7 +248,7 @@ class BackupManager @Inject constructor(
                     add("Internet radio stream URLs")
                 }
                 if (alarms.any { it.hasDeviceLocalUris() }) {
-                    add("Device-local ringtone or photo URIs")
+                    add("Device-local ringtone or image URIs")
                 }
                 if (alarms.any { it.hasPrivateAlarmDetails() }) {
                     add("Wi-Fi, location, or guardian contact details")
@@ -267,6 +271,7 @@ class BackupManager @Inject constructor(
                 .any { it.hasDeviceLocalUriScheme() }
             return ringtoneUri.hasDeviceLocalUriScheme() ||
                 photoMatchUri.hasDeviceLocalUriScheme() ||
+                firingBackgroundImageUri.hasDeviceLocalUriScheme() ||
                 poolHasLocalUri
         }
 

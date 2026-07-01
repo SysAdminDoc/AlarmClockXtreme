@@ -2,6 +2,21 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.12] - 2026-07-01
+
+### Added
+
+- Added optional per-alarm ringing-screen background images with persisted
+  document access, Android 12+ blur, and default-off behavior for existing
+  alarms.
+- Added Room v18 migration, backup/share round-trip coverage, import stripping,
+  and export-warning disclosure for selected background image URIs.
+
+### Changed
+
+- Bumped app, Wear, README, roadmap, release verifier, and F-Droid metadata to
+  `versionName = "1.15.12"`, `versionCode = 114`.
+
 ## [1.15.11] - 2026-07-01
 
 ### Added

@@ -97,6 +97,8 @@ class AlarmTest {
             barcodeValue = " b".repeat(600),
             spotifyUri = " spotify:track:" + "s".repeat(3_000),
             photoMatchUri = " content://photo/" + "p".repeat(3_000),
+            firingBackgroundImageEnabled = true,
+            firingBackgroundImageUri = " content://background/" + "g".repeat(3_000),
             guardianPhone = " +1555" + "9".repeat(80),
             guardianDelaySec = 1,
             locationDismissRadius = 1,
@@ -136,6 +138,9 @@ class AlarmTest {
         assertTrue(sanitized.barcodeValue.length <= 512)
         assertTrue(sanitized.spotifyUri.length <= 2_048)
         assertTrue(sanitized.photoMatchUri.length <= 2_048)
+        assertTrue(sanitized.firingBackgroundImageEnabled)
+        assertTrue(sanitized.firingBackgroundImageUri.startsWith("content://background/"))
+        assertTrue(sanitized.firingBackgroundImageUri.length <= 2_048)
         assertEquals(40, sanitized.guardianPhone.length)
         assertEquals(30, sanitized.guardianDelaySec)
         assertEquals(25, sanitized.locationDismissRadius)
@@ -182,6 +187,17 @@ class AlarmTest {
         assertEquals(0, Alarm(weatherEarlyMinutes = -5).sanitized().weatherEarlyMinutes)
         assertEquals(15, Alarm(weatherEarlyMinutes = 15).sanitized().weatherEarlyMinutes)
         assertEquals(60, Alarm(weatherEarlyMinutes = 120).sanitized().weatherEarlyMinutes)
+    }
+
+    @Test
+    fun `blank firing background uri disables image toggle`() {
+        val sanitized = Alarm(
+            firingBackgroundImageEnabled = true,
+            firingBackgroundImageUri = "   "
+        ).sanitized()
+
+        assertFalse(sanitized.firingBackgroundImageEnabled)
+        assertEquals("", sanitized.firingBackgroundImageUri)
     }
 
     @Test
