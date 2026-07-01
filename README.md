@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.10-blue)
+![Version](https://img.shields.io/badge/version-1.15.11-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -17,7 +17,7 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.15.10-play.apk
+adb install AlarmClockXtreme-v1.15.11-play.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, optional Health Connect READ_SLEEP integration, and ML Kit Digital Ink handwriting recognition. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -58,6 +58,7 @@ cd AlarmClockXtreme
 | Shareable Alarms | Share a single alarm as an `acx://alarm?data=` link; imports open a review screen, stay disabled, and can strip private references before saving |
 | Early Dismiss | Skip upcoming alarm from the persistent notification |
 | Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
+| Commute-Aware Auto-Alarm | Optional event-location commute buffer uses Google Routes transit ETA when you supply a key, and falls back to no-key bad-weather buffers |
 | Wear OS Tile + Complication | Shows the next alarm on the watch tile and compatible watch faces; the tile also exposes skip controls before fire and snooze/dismiss controls while ringing and honors the public-label privacy setting |
 
 ### Dismiss Challenges (30 Types)
@@ -242,7 +243,7 @@ signatures with `apksigner`, write `SHA256SUMS.txt` and
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.10-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.11-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in
@@ -317,6 +318,7 @@ No analytics. No ads. No tracking. No accounts. No data leaves your device excep
 - Live radar embed from Windy.com on the Weather tab; Windy's privacy policy applies inside the embed
 - News RSS calls to your configured feed source, including Google News, BBC, NPR, Hacker News, or a custom URL
 - Webhook calls to your configured HTTPS URL, including alarm event metadata. Payloads include `schemaVersion`, `event`, `eventId`, `occurredAt`, `alarmId`, `scheduledFor`, `displayTime`, and `labelIncluded`; alarm labels are included only when the Settings toggle is on.
+- Google Routes transit ETA calls for commute-aware calendar auto-alarms only when you enable the feature and provide your own Routes API key; event locations and saved origin coordinates are sent for that lookup.
 - Internet radio streaming to your configured station
 - Philips Hue commands to your configured bridge on your local network
 - ML Kit Digital Ink model download in the Play flavor when you first use handwriting recognition; recognition runs on-device after the model is available

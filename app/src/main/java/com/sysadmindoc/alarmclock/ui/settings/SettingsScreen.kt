@@ -99,6 +99,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -174,6 +175,8 @@ fun SettingsScreen(
     var showAutoSilenceMenu by remember { mutableStateOf(false) }
     var showTemperatureMenu by remember { mutableStateOf(false) }
     var showCalendarLeadMenu by remember { mutableStateOf(false) }
+    var showCommuteBaselineMenu by remember { mutableStateOf(false) }
+    var showCommuteWeatherMenu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val screenScope = rememberCoroutineScope()
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -433,6 +436,77 @@ fun SettingsScreen(
                             }
                         )
                     }
+                }
+                SettingsToggle(
+                    label = "Commute-aware auto-alarm",
+                    checked = state.settings.calendarCommuteAwareEnabled,
+                    supportingText = "For first meetings with a location, add transit/weather buffer before the calendar lead time.",
+                    enabled = state.settings.calendarAutoAlarmEnabled,
+                    onToggle = viewModel::toggleCalendarCommuteAware
+                )
+                SettingsActionRow(
+                    label = "Normal commute",
+                    value = if (state.settings.calendarCommuteBaselineMinutes == 0) {
+                        "Use lead time"
+                    } else {
+                        "${state.settings.calendarCommuteBaselineMinutes} min"
+                    },
+                    supportingText = "Route estimates above this baseline shift the auto-alarm earlier.",
+                    onClick = { showCommuteBaselineMenu = true },
+                    enabled = state.settings.calendarCommuteAwareEnabled
+                )
+                DropdownMenu(
+                    expanded = showCommuteBaselineMenu,
+                    onDismissRequest = { showCommuteBaselineMenu = false }
+                ) {
+                    listOf(0, 15, 30, 45, 60, 90, 120).forEach { minutes ->
+                        DropdownMenuItem(
+                            text = { Text(if (minutes == 0) "Use meeting lead time" else "$minutes minutes") },
+                            onClick = {
+                                viewModel.updateCalendarCommuteBaselineMinutes(minutes)
+                                showCommuteBaselineMenu = false
+                            }
+                        )
+                    }
+                }
+                SettingsActionRow(
+                    label = "Bad-weather buffer",
+                    value = "${state.settings.calendarCommuteWeatherExtraMinutes} min",
+                    supportingText = "Added when the event day forecast has snow, ice, storms, or heavy precipitation.",
+                    onClick = { showCommuteWeatherMenu = true },
+                    enabled = state.settings.calendarCommuteAwareEnabled
+                )
+                DropdownMenu(
+                    expanded = showCommuteWeatherMenu,
+                    onDismissRequest = { showCommuteWeatherMenu = false }
+                ) {
+                    listOf(0, 10, 15, 20, 30, 45, 60).forEach { minutes ->
+                        DropdownMenuItem(
+                            text = { Text(if (minutes == 0) "No weather buffer" else "$minutes minutes") },
+                            onClick = {
+                                viewModel.updateCalendarCommuteWeatherExtraMinutes(minutes)
+                                showCommuteWeatherMenu = false
+                            }
+                        )
+                    }
+                }
+                BufferedSettingsTextField(
+                    value = state.settings.googleRoutesApiKey,
+                    onCommit = viewModel::updateGoogleRoutesApiKey,
+                    label = { Text("Google Routes API key") },
+                    placeholder = { Text("Optional for transit ETA") },
+                    enabled = state.settings.calendarCommuteAwareEnabled,
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation()
+                )
+                if (state.settings.calendarCommuteAwareEnabled && state.settings.googleRoutesApiKey.isBlank()) {
+                    AppInlineNotice(
+                        title = "Weather-only commute mode",
+                        message = "Transit ETA is skipped without a Routes key. Events with locations still get the bad-weather buffer when the forecast degrades.",
+                        icon = Icons.Default.Cloud,
+                        color = AccentBlue
+                    )
                 }
                 SettingsActionRow(
                     label = "Temperature unit",
@@ -1512,16 +1586,17 @@ private fun SettingsActionRow(
     label: String,
     value: String,
     supportingText: String? = null,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         shape = RoundedCornerShape(10.dp),
-        color = SurfaceLight.copy(alpha = 0.58f),
-        border = BorderStroke(1.dp, BorderSubtle)
+        color = if (enabled) SurfaceLight.copy(alpha = 0.58f) else SurfaceLight.copy(alpha = 0.34f),
+        border = BorderStroke(1.dp, if (enabled) BorderSubtle else BorderSubtle.copy(alpha = 0.55f))
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
@@ -1534,7 +1609,7 @@ private fun SettingsActionRow(
             ) {
                 Text(
                     label,
-                    color = TextPrimary,
+                    color = if (enabled) TextPrimary else TextMuted,
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.weight(1f),
                     maxLines = 2,
@@ -1542,7 +1617,11 @@ private fun SettingsActionRow(
                 )
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    color = if (enabled) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    } else {
+                        TextMuted.copy(alpha = 0.10f)
+                    }
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
@@ -1551,17 +1630,25 @@ private fun SettingsActionRow(
                     ) {
                         Text(
                             value,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = if (enabled) MaterialTheme.colorScheme.primary else TextMuted,
                             style = MaterialTheme.typography.labelLarge,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Icon(Icons.Default.ChevronRight, null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            null,
+                            tint = if (enabled) MaterialTheme.colorScheme.primary else TextMuted
+                        )
                     }
                 }
             }
             if (!supportingText.isNullOrBlank()) {
-                Text(supportingText, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    supportingText,
+                    color = if (enabled) TextSecondary else TextMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }
@@ -2796,6 +2883,7 @@ private fun BufferedSettingsTextField(
     minLines: Int = 1,
     maxLines: Int = Int.MAX_VALUE,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
     commitDelayMillis: Long = if (singleLine) 220 else 350
 ) {
     val focusManager = LocalFocusManager.current
@@ -2840,6 +2928,7 @@ private fun BufferedSettingsTextField(
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
+        visualTransformation = visualTransformation,
         keyboardOptions = effectiveKeyboardOptions,
         keyboardActions = KeyboardActions(
             onDone = {

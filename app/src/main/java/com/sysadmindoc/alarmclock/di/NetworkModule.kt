@@ -2,6 +2,7 @@ package com.sysadmindoc.alarmclock.di
 
 import com.sysadmindoc.alarmclock.data.remote.AirQualityApi
 import com.sysadmindoc.alarmclock.data.remote.GeocodingApi
+import com.sysadmindoc.alarmclock.data.remote.GoogleRoutesApi
 import com.sysadmindoc.alarmclock.data.remote.HolidayApi
 import com.sysadmindoc.alarmclock.data.remote.WeatherAlertsApi
 import com.sysadmindoc.alarmclock.data.remote.WeatherApi
@@ -63,6 +64,17 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(GeocodingApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGoogleRoutesApi(moshi: Moshi, client: OkHttpClient): GoogleRoutesApi {
+        return Retrofit.Builder()
+            .baseUrl("https://routes.googleapis.com/")
+            .client(client)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+            .create(GoogleRoutesApi::class.java)
     }
 
     @Provides

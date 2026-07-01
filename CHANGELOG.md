@@ -2,6 +2,22 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.11] - 2026-07-01
+
+### Added
+
+- Added commute-aware first-meeting auto-alarms. Calendar events with a location
+  can now shift earlier from transit ETA when a user supplies a Google Routes API
+  key, while the no-key path still adds a bad-weather buffer for snow, ice,
+  storms, or heavy precipitation.
+- Added Settings controls, backup round-trip coverage, and unit tests for the
+  commute lead-time policy.
+
+### Changed
+
+- Bumped app, Wear, README, roadmap, release verifier, and F-Droid metadata to
+  `versionName = "1.15.11"`, `versionCode = 113`.
+
 ## [1.15.10] - 2026-07-01
 
 ### Changed

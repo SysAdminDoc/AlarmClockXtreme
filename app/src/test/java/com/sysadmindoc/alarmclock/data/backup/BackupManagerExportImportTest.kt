@@ -79,6 +79,10 @@ class BackupManagerExportImportTest {
         assertEquals(false, settings.showTimerTab)
         assertEquals("https://feeds.example/private.xml", settings.newsFeedUrl)
         assertEquals(true, settings.hideAlarmLabelsOnPublicSurfaces)
+        assertEquals(true, settings.calendarCommuteAwareEnabled)
+        assertEquals(35, settings.calendarCommuteBaselineMinutes)
+        assertEquals(20, settings.calendarCommuteWeatherExtraMinutes)
+        assertEquals("routes-test-key", settings.googleRoutesApiKey)
     }
 
     @Test
@@ -102,7 +106,11 @@ class BackupManagerExportImportTest {
                     locationName = "Portland, Oregon",
                     useManualLocation = true,
                     showTimerTab = false,
-                    newsFeedUrl = "https://feeds.example/private.xml"
+                    newsFeedUrl = "https://feeds.example/private.xml",
+                    calendarCommuteAwareEnabled = true,
+                    calendarCommuteBaselineMinutes = 35,
+                    calendarCommuteWeatherExtraMinutes = 20,
+                    googleRoutesApiKey = "routes-test-key"
                 )
             )
         )
@@ -123,6 +131,10 @@ class BackupManagerExportImportTest {
         assertEquals(false, restoredSettings!!.showTimerTab)
         assertEquals("https://feeds.example/private.xml", restoredSettings!!.newsFeedUrl)
         assertEquals(true, restoredSettings!!.hideAlarmLabelsOnPublicSurfaces)
+        assertEquals(true, restoredSettings!!.calendarCommuteAwareEnabled)
+        assertEquals(35, restoredSettings!!.calendarCommuteBaselineMinutes)
+        assertEquals(20, restoredSettings!!.calendarCommuteWeatherExtraMinutes)
+        assertEquals("routes-test-key", restoredSettings!!.googleRoutesApiKey)
         coVerify {
             repository.save(
                 match {
@@ -172,6 +184,10 @@ class BackupManagerExportImportTest {
         locationName = "Portland, Oregon",
         useManualLocation = true,
         showTimerTab = false,
-        newsFeedUrl = "https://feeds.example/private.xml"
+        newsFeedUrl = "https://feeds.example/private.xml",
+        calendarCommuteAwareEnabled = true,
+        calendarCommuteBaselineMinutes = 35,
+        calendarCommuteWeatherExtraMinutes = 20,
+        googleRoutesApiKey = "routes-test-key"
     )
 }

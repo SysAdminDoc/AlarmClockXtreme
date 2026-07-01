@@ -90,6 +90,10 @@ data class AppSettings(
     // v1.2.0: Calendar auto-alarm
     val calendarAutoAlarmEnabled: Boolean = false,
     val calendarAutoAlarmMinutesBefore: Int = 60,
+    val calendarCommuteAwareEnabled: Boolean = false,
+    val calendarCommuteBaselineMinutes: Int = 0,
+    val calendarCommuteWeatherExtraMinutes: Int = 15,
+    val googleRoutesApiKey: String = "",
     // v1.2.0: Guardian defaults
     val guardianContactName: String = "",
     val guardianContactPhone: String = "",
@@ -183,6 +187,7 @@ private fun AppSettings.sanitized(): AppSettings {
         .filter { it.isNotEmpty() }
         .joinToString("\n")
     val normalizedLocationName = locationName.trim().take(120)
+    val normalizedGoogleRoutesApiKey = googleRoutesApiKey.trim().take(200)
 
     val normalizedPauseUntil = pauseUntilMillis.coerceAtLeast(0)
     return copy(
@@ -211,6 +216,9 @@ private fun AppSettings.sanitized(): AppSettings {
         hueBridgeCertFingerprint = hueBridgeCertFingerprint.trim(),
         accentColor = normalizedAccent,
         calendarAutoAlarmMinutesBefore = calendarAutoAlarmMinutesBefore.coerceIn(0, 720),
+        calendarCommuteBaselineMinutes = calendarCommuteBaselineMinutes.coerceIn(0, 240),
+        calendarCommuteWeatherExtraMinutes = calendarCommuteWeatherExtraMinutes.coerceIn(0, 120),
+        googleRoutesApiKey = normalizedGoogleRoutesApiKey,
         guardianContactName = guardianContactName.trim().take(80),
         guardianContactPhone = guardianContactPhone.trim().take(40),
         customTypingPhrases = normalizedCustomTypingPhrases,
@@ -291,6 +299,10 @@ class PreferencesManager @Inject constructor(
         val ADAPTIVE_DIFFICULTY = booleanPreferencesKey("adaptive_difficulty")
         val CALENDAR_AUTO_ALARM = booleanPreferencesKey("calendar_auto_alarm")
         val CALENDAR_AUTO_ALARM_MINUTES = intPreferencesKey("calendar_auto_alarm_minutes")
+        val CALENDAR_COMMUTE_AWARE = booleanPreferencesKey("calendar_commute_aware")
+        val CALENDAR_COMMUTE_BASELINE_MINUTES = intPreferencesKey("calendar_commute_baseline_minutes")
+        val CALENDAR_COMMUTE_WEATHER_EXTRA_MINUTES = intPreferencesKey("calendar_commute_weather_extra_minutes")
+        val GOOGLE_ROUTES_API_KEY = stringPreferencesKey("google_routes_api_key")
         val GUARDIAN_CONTACT_NAME = stringPreferencesKey("guardian_contact_name")
         val GUARDIAN_CONTACT_PHONE = stringPreferencesKey("guardian_contact_phone")
         val CUSTOM_TYPING_PHRASES = stringPreferencesKey("custom_typing_phrases")
@@ -412,6 +424,10 @@ class PreferencesManager @Inject constructor(
         adaptiveDifficultyEnabled = this[Keys.ADAPTIVE_DIFFICULTY] ?: false,
         calendarAutoAlarmEnabled = this[Keys.CALENDAR_AUTO_ALARM] ?: false,
         calendarAutoAlarmMinutesBefore = this[Keys.CALENDAR_AUTO_ALARM_MINUTES] ?: 60,
+        calendarCommuteAwareEnabled = this[Keys.CALENDAR_COMMUTE_AWARE] ?: false,
+        calendarCommuteBaselineMinutes = this[Keys.CALENDAR_COMMUTE_BASELINE_MINUTES] ?: 0,
+        calendarCommuteWeatherExtraMinutes = this[Keys.CALENDAR_COMMUTE_WEATHER_EXTRA_MINUTES] ?: 15,
+        googleRoutesApiKey = this[Keys.GOOGLE_ROUTES_API_KEY] ?: "",
         guardianContactName = this[Keys.GUARDIAN_CONTACT_NAME] ?: "",
         guardianContactPhone = this[Keys.GUARDIAN_CONTACT_PHONE] ?: "",
         customTypingPhrases = this[Keys.CUSTOM_TYPING_PHRASES] ?: "",
@@ -488,6 +504,10 @@ class PreferencesManager @Inject constructor(
         this[Keys.ADAPTIVE_DIFFICULTY] = s.adaptiveDifficultyEnabled
         this[Keys.CALENDAR_AUTO_ALARM] = s.calendarAutoAlarmEnabled
         this[Keys.CALENDAR_AUTO_ALARM_MINUTES] = s.calendarAutoAlarmMinutesBefore
+        this[Keys.CALENDAR_COMMUTE_AWARE] = s.calendarCommuteAwareEnabled
+        this[Keys.CALENDAR_COMMUTE_BASELINE_MINUTES] = s.calendarCommuteBaselineMinutes
+        this[Keys.CALENDAR_COMMUTE_WEATHER_EXTRA_MINUTES] = s.calendarCommuteWeatherExtraMinutes
+        this[Keys.GOOGLE_ROUTES_API_KEY] = s.googleRoutesApiKey
         this[Keys.GUARDIAN_CONTACT_NAME] = s.guardianContactName
         this[Keys.GUARDIAN_CONTACT_PHONE] = s.guardianContactPhone
         this[Keys.CUSTOM_TYPING_PHRASES] = s.customTypingPhrases

@@ -135,6 +135,10 @@ data class SettingsBackup(
     val adaptiveDifficultyEnabled: Boolean = false,
     val calendarAutoAlarmEnabled: Boolean = false,
     val calendarAutoAlarmMinutesBefore: Int = 60,
+    val calendarCommuteAwareEnabled: Boolean = false,
+    val calendarCommuteBaselineMinutes: Int = 0,
+    val calendarCommuteWeatherExtraMinutes: Int = 15,
+    val googleRoutesApiKey: String = "",
     val guardianContactName: String = "",
     val guardianContactPhone: String = "",
     val customTypingPhrases: String = "",
@@ -224,6 +228,9 @@ class BackupManager @Inject constructor(
                 }
                 if (settings.newsFeedUrl.isCustomFeedUrl()) {
                     add("Custom news feed URL")
+                }
+                if (settings.googleRoutesApiKey.isNotBlank()) {
+                    add("Google Routes API key")
                 }
                 // Backup v9+ carries the saved weather location; surface it the
                 // same way the per-alarm location-dismiss coordinates are.
@@ -324,6 +331,10 @@ class BackupManager @Inject constructor(
                 adaptiveDifficultyEnabled = settings.adaptiveDifficultyEnabled,
                 calendarAutoAlarmEnabled = settings.calendarAutoAlarmEnabled,
                 calendarAutoAlarmMinutesBefore = settings.calendarAutoAlarmMinutesBefore,
+                calendarCommuteAwareEnabled = settings.calendarCommuteAwareEnabled,
+                calendarCommuteBaselineMinutes = settings.calendarCommuteBaselineMinutes,
+                calendarCommuteWeatherExtraMinutes = settings.calendarCommuteWeatherExtraMinutes,
+                googleRoutesApiKey = settings.googleRoutesApiKey,
                 guardianContactName = settings.guardianContactName,
                 guardianContactPhone = settings.guardianContactPhone,
                 customTypingPhrases = settings.customTypingPhrases,
@@ -491,6 +502,10 @@ class BackupManager @Inject constructor(
                         adaptiveDifficultyEnabled = s.adaptiveDifficultyEnabled,
                         calendarAutoAlarmEnabled = s.calendarAutoAlarmEnabled,
                         calendarAutoAlarmMinutesBefore = s.calendarAutoAlarmMinutesBefore,
+                        calendarCommuteAwareEnabled = s.calendarCommuteAwareEnabled,
+                        calendarCommuteBaselineMinutes = s.calendarCommuteBaselineMinutes,
+                        calendarCommuteWeatherExtraMinutes = s.calendarCommuteWeatherExtraMinutes,
+                        googleRoutesApiKey = s.googleRoutesApiKey,
                         guardianContactName = s.guardianContactName,
                         guardianContactPhone = s.guardianContactPhone,
                         customTypingPhrases = s.customTypingPhrases,

@@ -347,6 +347,18 @@ class SettingsViewModel @Inject constructor(
     fun updateCalendarAutoAlarmMinutes(minutes: Int) = updateCalendarAutoAlarmSettings {
         it.copy(calendarAutoAlarmMinutesBefore = minutes.coerceIn(0, 720))
     }
+    fun toggleCalendarCommuteAware(enabled: Boolean) = updateCalendarAutoAlarmSettings {
+        it.copy(calendarCommuteAwareEnabled = enabled)
+    }
+    fun updateCalendarCommuteBaselineMinutes(minutes: Int) = updateCalendarAutoAlarmSettings {
+        it.copy(calendarCommuteBaselineMinutes = minutes.coerceIn(0, 240))
+    }
+    fun updateCalendarCommuteWeatherExtraMinutes(minutes: Int) = updateCalendarAutoAlarmSettings {
+        it.copy(calendarCommuteWeatherExtraMinutes = minutes.coerceIn(0, 120))
+    }
+    fun updateGoogleRoutesApiKey(key: String) = updateCalendarAutoAlarmSettings {
+        it.copy(googleRoutesApiKey = key.trim())
+    }
     fun updateAutoSilence(minutes: Int) = updateSettings { it.copy(autoSilenceMinutes = minutes) }
     fun toggleTemperatureUnit() = updateSettings {
         it.copy(temperatureUnit = if (it.temperatureUnit == "fahrenheit") "celsius" else "fahrenheit")

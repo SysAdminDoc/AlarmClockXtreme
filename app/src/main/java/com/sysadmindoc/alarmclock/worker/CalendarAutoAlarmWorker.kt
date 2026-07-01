@@ -15,9 +15,13 @@ import androidx.work.WorkerParameters
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.data.repository.CommuteRouteRepository
+import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.domain.CommuteAlarmPolicy
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.time.Instant
@@ -55,7 +59,9 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
     @Assisted workerParams: WorkerParameters,
     private val preferencesManager: PreferencesManager,
     private val repository: AlarmRepository,
-    private val scheduler: AlarmScheduler
+    private val scheduler: AlarmScheduler,
+    private val weatherRepository: WeatherRepository,
+    private val commuteRouteRepository: CommuteRouteRepository
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
@@ -138,7 +144,8 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
             return Result.success()
         }
 
-        val alarmInstant = Instant.ofEpochMilli(firstEvent.startMs - minutesBefore * 60_000L)
+        val commuteAdjustment = resolveCommuteAdjustment(settings, firstEvent, minutesBefore)
+        val alarmInstant = Instant.ofEpochMilli(firstEvent.startMs - commuteAdjustment.totalLeadMinutes * 60_000L)
         val alarmZdt = alarmInstant.atZone(ZoneId.systemDefault())
         val alarmDate = alarmZdt.toLocalDate()
 
@@ -170,13 +177,59 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
         return repository.getAll().firstOrNull { it.profileName == AUTO_PROFILE }
     }
 
-    private data class CalEvent(val startMs: Long, val title: String)
+    private suspend fun resolveCommuteAdjustment(
+        settings: AppSettings,
+        event: CalEvent,
+        baseLeadMinutes: Int
+    ) = if (!settings.calendarCommuteAwareEnabled || event.location.isBlank()) {
+        CommuteAlarmPolicy.adjustLeadMinutes(
+            baseLeadMinutes = baseLeadMinutes,
+            routeDurationMinutes = null,
+            baselineCommuteMinutes = settings.calendarCommuteBaselineMinutes,
+            weatherExtraMinutes = 0,
+            forecastDate = Instant.ofEpochMilli(event.startMs).atZone(ZoneId.systemDefault()).toLocalDate(),
+            weather = null
+        )
+    } else {
+        val eventDate = Instant.ofEpochMilli(event.startMs).atZone(ZoneId.systemDefault()).toLocalDate()
+        val weather = loadWeather(settings)
+        val routeDurationMinutes = commuteRouteRepository.estimateTransitMinutes(
+            apiKey = settings.googleRoutesApiKey,
+            originLatitude = settings.lastKnownLatitude,
+            originLongitude = settings.lastKnownLongitude,
+            destinationQuery = event.location,
+            arrivalTime = Instant.ofEpochMilli(event.startMs)
+        ).getOrNull()
+        CommuteAlarmPolicy.adjustLeadMinutes(
+            baseLeadMinutes = baseLeadMinutes,
+            routeDurationMinutes = routeDurationMinutes,
+            baselineCommuteMinutes = settings.calendarCommuteBaselineMinutes,
+            weatherExtraMinutes = settings.calendarCommuteWeatherExtraMinutes,
+            forecastDate = eventDate,
+            weather = weather
+        )
+    }
+
+    private suspend fun loadWeather(settings: AppSettings) =
+        weatherRepository.getCachedWeather()
+            ?: if (settings.lastKnownLatitude != 0.0 || settings.lastKnownLongitude != 0.0) {
+                weatherRepository.getWeather(
+                    settings.lastKnownLatitude,
+                    settings.lastKnownLongitude,
+                    settings.temperatureUnit
+                ).getOrNull()
+            } else {
+                null
+            }
+
+    private data class CalEvent(val startMs: Long, val title: String, val location: String)
 
     private fun queryFirstEventBetween(startMs: Long, endMs: Long): CalEvent? {
         val projection = arrayOf(
             CalendarContract.Instances.BEGIN,
             CalendarContract.Instances.TITLE,
-            CalendarContract.Instances.ALL_DAY
+            CalendarContract.Instances.ALL_DAY,
+            CalendarContract.Instances.EVENT_LOCATION
         )
         val selection = "${CalendarContract.Instances.BEGIN} >= ? AND ${CalendarContract.Instances.BEGIN} < ?"
         val selectionArgs = arrayOf(startMs.toString(), endMs.toString())
@@ -193,11 +246,13 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
             val beginIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.BEGIN)
             val titleIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.TITLE)
             val allDayIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.ALL_DAY)
+            val locationIndex = cursor.getColumnIndexOrThrow(CalendarContract.Instances.EVENT_LOCATION)
             while (cursor.moveToNext()) {
                 if (cursor.getInt(allDayIndex) == 1) continue
                 return CalEvent(
                     startMs = cursor.getLong(beginIndex),
-                    title = cursor.getString(titleIndex)?.takeIf { it.isNotBlank() } ?: "Calendar Event"
+                    title = cursor.getString(titleIndex)?.takeIf { it.isNotBlank() } ?: "Calendar Event",
+                    location = cursor.getString(locationIndex)?.trim().orEmpty()
                 )
             }
         }

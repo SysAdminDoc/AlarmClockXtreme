@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Alarm playback now uses one shared system-alarm routing policy.",
-            "Hearing-aid and speaker routing stays under Android's alarm controls.",
-            "Direct Boot, setup test alarms, previews, and timers use alarm routing.",
-            "Regression tests now guard alarm audio attributes."
+            "Calendar auto-alarms can add commute-aware lead time.",
+            "Transit ETA uses Google Routes only when you provide a key.",
+            "Events with locations still get no-key bad-weather buffers.",
+            "Settings and backups now round-trip commute alarm controls."
         )
     }
 }
