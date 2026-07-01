@@ -1,10 +1,13 @@
 package com.sysadmindoc.alarmclock.ui.bedtime
 
+import android.Manifest
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
@@ -13,9 +16,12 @@ import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
 import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
+import com.sysadmindoc.alarmclock.service.SonarSleepSnapshot
+import com.sysadmindoc.alarmclock.service.SonarSleepService
 import com.sysadmindoc.alarmclock.service.SleepSoundPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.time.LocalTime
@@ -60,7 +66,10 @@ data class BedtimeUiState(
     val stayUpLateActive: Boolean = false,
     val stayUpLateLabel: String = "",
     val batteryPercent: Int = -1,
-    val batteryLow: Boolean = false
+    val batteryLow: Boolean = false,
+    val sonarTrackingActive: Boolean = false,
+    val sonarTrackingStatus: String = "Ready to monitor local movement during sleep.",
+    val sonarLastSessionLabel: String = ""
 )
 
 @HiltViewModel
@@ -109,6 +118,7 @@ class BedtimeViewModel @Inject constructor(
                 batteryPercent = getBatteryPercent(),
                 batteryLow = getBatteryPercent() in 1..15
             )
+            refreshSonarTrackingStatus()
             refreshAlarmInfo()
             refreshHealthConnectSleep()
         }
@@ -341,6 +351,7 @@ class BedtimeViewModel @Inject constructor(
         viewModelScope.launch {
             syncBedtimeDndRule()
             refreshHealthConnectSleep()
+            refreshSonarTrackingStatus()
         }
     }
 
@@ -357,6 +368,98 @@ class BedtimeViewModel @Inject constructor(
                     healthConnectEnabled = settings.healthConnectEnabled,
                     healthConnectSleepSummary = summary
                 )
+            }
+        }
+    }
+
+    fun startSonarTracking() {
+        if (!hasRecordAudioPermission()) {
+            _uiState.update {
+                it.copy(
+                    sonarTrackingActive = false,
+                    sonarTrackingStatus = "Grant microphone permission to use local sonar sleep tracking."
+                )
+            }
+            return
+        }
+
+        val intent = Intent(context, SonarSleepService::class.java)
+            .setAction(SonarSleepService.ACTION_START)
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }.onSuccess {
+            _uiState.update {
+                it.copy(
+                    sonarTrackingActive = true,
+                    sonarTrackingStatus = "Monitoring with ultrasonic reflection. No raw audio is recorded."
+                )
+            }
+        }.onFailure { error ->
+            _uiState.update {
+                it.copy(
+                    sonarTrackingActive = false,
+                    sonarTrackingStatus = "Sonar could not start: ${error.message ?: "service unavailable"}"
+                )
+            }
+        }
+    }
+
+    fun stopSonarTracking() {
+        val intent = Intent(context, SonarSleepService::class.java)
+            .setAction(SonarSleepService.ACTION_STOP)
+        runCatching { context.startService(intent) }
+            .onSuccess {
+                _uiState.update {
+                    it.copy(
+                        sonarTrackingActive = false,
+                        sonarTrackingStatus = "Stopping sonar tracking and saving a local summary."
+                    )
+                }
+                refreshSonarTrackingStatusAfterStop()
+            }
+            .onFailure { error ->
+                _uiState.update {
+                    it.copy(
+                        sonarTrackingStatus = "Sonar could not stop cleanly: ${error.message ?: "service unavailable"}"
+                    )
+                }
+            }
+    }
+
+    fun noteSonarPermissionDenied() {
+        _uiState.update {
+            it.copy(
+                sonarTrackingActive = false,
+                sonarTrackingStatus = "Microphone permission was denied. Sonar stays off."
+            )
+        }
+    }
+
+    fun refreshSonarTrackingStatus() {
+        val snapshot = SonarSleepService.readSnapshot(context)
+        _uiState.update {
+            it.copy(
+                sonarTrackingActive = snapshot.active,
+                sonarTrackingStatus = when {
+                    snapshot.active -> "Monitoring with ultrasonic reflection. No raw audio is recorded."
+                    snapshot.lastEndedAt > 0L -> "Last sonar session saved locally."
+                    else -> "Ready to monitor local movement during sleep."
+                },
+                sonarLastSessionLabel = sonarLastSessionLabel(snapshot)
+            )
+        }
+    }
+
+    private fun refreshSonarTrackingStatusAfterStop() {
+        viewModelScope.launch {
+            repeat(3) {
+                delay(1_000L)
+                refreshSonarTrackingStatus()
+                if (!_uiState.value.sonarTrackingStatus.startsWith("Stopping sonar")) return@launch
             }
         }
     }
@@ -437,6 +540,19 @@ class BedtimeViewModel @Inject constructor(
         val time = java.time.Instant.ofEpochMilli(untilMillis)
             .atZone(ZoneId.systemDefault()).toLocalTime()
         return "Delayed until ${formatTime(time.hour, time.minute, is24h)}"
+    }
+
+    private fun hasRecordAudioPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun sonarLastSessionLabel(snapshot: SonarSleepSnapshot): String {
+        if (snapshot.lastEndedAt <= 0L || snapshot.lastTotalMinutes <= 0) return ""
+        return "Last session: ${snapshot.lastTotalMinutes}m, " +
+            "${snapshot.lastAwakeMinutes}m movement, " +
+            "${snapshot.lastLightMinutes}m restless, " +
+            "${snapshot.lastDeepMinutes}m still"
     }
 
     private suspend fun syncBedtimeDndRule(nextAlarmTriggerMillis: Long? = null) {

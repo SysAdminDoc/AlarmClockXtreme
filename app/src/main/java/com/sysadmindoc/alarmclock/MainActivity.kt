@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "YouTube downloader errors now use plain recovery copy instead of raw exception text.",
-            "Search, preview, update, and download failures now point to the right recovery action.",
-            "YouTube search now responds to the keyboard Search action.",
-            "Paste-mode sound naming now closes the keyboard cleanly from Done."
+            "Sonar sleep tracking now starts and stops from the Bedtime tab.",
+            "Sonar sessions save compact local movement summaries for Statistics.",
+            "Statistics now labels Sonar buckets separately from smart-wake motion.",
+            "No raw Sonar audio is retained or exported."
         )
     }
 }

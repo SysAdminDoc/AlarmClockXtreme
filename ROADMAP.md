@@ -16,7 +16,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.4)
+## Current snapshot (v1.15.5)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v17, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
@@ -27,8 +27,8 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 106`, `versionName 1.15.4`.
-- **Surface area:** 121 Kotlin files in `:app` + 3 in `:wear`, two phone
+  `versionCode 107`, `versionName 1.15.5`.
+- **Surface area:** 122 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **27 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
   AppSettings fields, 6 phone tabs (Today, Alarms, Bedtime, Timer, World,
@@ -451,15 +451,6 @@ Deduplicated against all existing ROADMAP.md and Roadmap_Blocked.md items.
 ### P3 — Low
 
 ## Research-Driven Additions
-
-### P0
-
-- [ ] P0 - Decide and enforce the Sonar sleep-tracking product path
-  Why: The app declares a microphone foreground service and advertises sonar sleep tracking, but the service has no UI entry, bound consumer, or persisted result path.
-  Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/service/SonarSleepService.kt`, `app/src/main/AndroidManifest.xml`, README Smart Features and Privacy sections, Sleep as Android sound-detection references.
-  Touches: `SonarSleepService.kt`, `BedtimeScreen.kt`, `StatsScreen.kt`, `AndroidManifest.xml`, `README.md`, `PRIVACY_POLICY.html`.
-  Acceptance: Either Bedtime can start/stop sonar and Statistics shows labeled local summaries, or the service/permission/docs are removed.
-  Complexity: L
 
 ### P1
 

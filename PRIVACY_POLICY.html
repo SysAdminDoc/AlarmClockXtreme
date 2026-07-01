@@ -16,7 +16,7 @@
 </head>
 <body>
     <h1>AlarmClockXtreme Privacy Policy</h1>
-    <p class="date">Effective date: June 11, 2026</p>
+    <p class="date">Effective date: July 1, 2026</p>
 
     <h2>Overview</h2>
     <p>AlarmClockXtreme is an open-source alarm clock application. The developer does not operate a backend service for this app, does not receive your alarm data, and does not collect analytics, advertising, or account data. Some optional features make direct network requests from your device to third-party services or to endpoints you configure.</p>
@@ -47,7 +47,7 @@
         <li><strong>Calendar (READ_CALENDAR)</strong> &mdash; Optional. Used only to display today's events on the dashboard. Calendar data is read locally and never transmitted.</li>
         <li><strong>NFC</strong> &mdash; Optional. Used for the NFC dismiss challenge.</li>
         <li><strong>Camera</strong> &mdash; Optional. Used for barcode/QR and photo-match dismiss challenges.</li>
-        <li><strong>Microphone</strong> &mdash; Optional. Used for experimental sonar sleep tracking when enabled.</li>
+        <li><strong>Microphone</strong> &mdash; Optional. Used for voice phrase dismiss and experimental sonar sleep tracking only while those features are active.</li>
         <li><strong>Health Connect sleep permission (android.permission.health.READ_SLEEP)</strong> &mdash; Optional and Play flavor only. Used only after you opt in and grant Health Connect access so Bedtime and Statistics can read recent sleep-session summaries.</li>
         <li><strong>Activity Recognition</strong> &mdash; Optional. Used for step and smart-alarm features.</li>
         <li><strong>SMS and Phone</strong> &mdash; Optional. Used only for the Guardian Angel emergency contact feature.</li>
@@ -78,7 +78,7 @@
         <li>Preferences are stored in Android DataStore / app-private local storage</li>
         <li>Crash logs are written to app-private local files and are not uploaded automatically</li>
         <li>Health Connect sleep sessions are read on demand for local Bedtime and Statistics summaries only. Sleep-session records are not copied into the app database or uploaded to the developer.</li>
-        <li>Smart-alarm actigraphy stores compact motion-bucket summaries locally for up to 30 days. The app does not retain raw accelerometer samples, and these buckets are not medical sleep-stage records.</li>
+        <li>Smart-alarm actigraphy and manually started Sonar sleep tracking store compact motion-bucket summaries locally for up to 30 days. The app does not retain raw accelerometer samples or raw microphone audio, and these buckets are not medical sleep-stage records.</li>
         <li>Support bundles are created only when you choose to export one. They can include redacted wake-readiness diagnostics, aggregate smart-wake counts and decision reasons, recent alarm incident event codes, and local crash logs if present.</li>
         <li>Downloaded alarm sounds are stored in device media storage when you choose to save them</li>
         <li>Backup/restore exports data to a JSON file at a location you choose. Plain JSON backups may include alarms, labels, schedules, settings, integration URLs, Hue bridge details, webhook URLs, and other configuration values. Encrypted backups use your passphrase.</li>
@@ -86,10 +86,10 @@
     </ul>
 
     <h2>Local Actigraphy Buckets</h2>
-    <p>When smart-alarm monitoring is enabled, the app can summarize phone motion during the smart wake window into local awake-motion, light-motion, and still-motion buckets. These summaries are stored in the app database for up to 30 days so Statistics can explain recent smart-wake behavior. Raw accelerometer samples are not retained, the summaries are not exported in normal backups, and they are not uploaded to the developer.</p>
+    <p>When smart-alarm monitoring is enabled, the app can summarize phone motion during the smart wake window into local awake-motion, light-motion, and still-motion buckets. When Sonar sleep tracking is manually started from Bedtime, the app can summarize microphone-reflection variance into local movement, restless, and still buckets while its foreground notification is active. These summaries are stored in the app database for up to 30 days so Statistics can explain recent sleep-motion behavior. Raw accelerometer samples and raw microphone audio are not retained, the summaries are not exported in normal backups, and they are not uploaded to the developer.</p>
 
     <h2>Support Bundles</h2>
-    <p>When you tap the support export action, the app creates a local ZIP file and hands it to Android's share sheet. The ZIP can include version/build/device details, wake-readiness status, aggregate smart-wake session counts and last decision reason, recent alarm incident event codes, redacted alarm diagnostics, and local crash logs if present. It omits alarm labels, custom media URIs, integration secrets, Health Connect records, and per-minute local actigraphy motion buckets. The app does not upload the ZIP automatically.</p>
+    <p>When you tap the support export action, the app creates a local ZIP file and hands it to Android's share sheet. The ZIP can include version/build/device details, wake-readiness status, aggregate sleep-motion session counts and last decision reason, recent alarm incident event codes, redacted alarm diagnostics, and local crash logs if present. It omits alarm labels, custom media URIs, integration secrets, Health Connect records, raw audio, and per-minute local motion buckets. The app does not upload the ZIP automatically.</p>
 
     <h2>Third-Party Services</h2>
     <p>The app does not integrate with third-party analytics, advertising, or tracking services. Optional features may contact the third-party services listed above. Those services receive the request data needed for the feature and are governed by their own policies.</p>

@@ -111,12 +111,12 @@ class SupportDiagnosticsFormatterTest {
             smartWakeMode = "CONSERVATIVE"
         )
 
-        assertTrue(text.contains("Smart wake summary"))
+        assertTrue(text.contains("Sleep motion summary"))
         assertTrue(text.contains("- Recent sessions: 3"))
-        assertTrue(text.contains("- Fired early sessions: 1"))
+        assertTrue(text.contains("- Smart-wake fired early sessions: 1"))
         assertTrue(text.contains("- Last decision reason: WAIT_TOO_ACTIVE"))
         assertTrue(text.contains("- Last observed minutes: 12"))
-        assertTrue(text.contains("per-minute local actigraphy motion buckets"))
+        assertTrue(text.contains("per-minute local motion buckets"))
     }
 
     @Test

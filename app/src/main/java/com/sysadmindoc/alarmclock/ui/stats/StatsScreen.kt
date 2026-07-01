@@ -1036,11 +1036,14 @@ private fun ActigraphyBucketsCard(
     modifier: Modifier = Modifier
 ) {
     val latest = sessions.firstOrNull()
+    val latestIsSonar = latest?.isSonarSession() == true
     AppSurfaceCard(modifier = modifier, highlighted = latest?.firedEarly == true) {
         AppSectionTitle(
-            title = "Phone-motion buckets",
+            title = "Sleep motion buckets",
             description = if (latest == null) {
-                "Smart alarm windows will save compact awake-motion, light-motion, and still-motion buckets here."
+                "Smart alarm and Sonar sessions will save compact local movement buckets here."
+            } else if (latestIsSonar) {
+                "Experimental Sonar buckets come from microphone reflection analysis. No raw audio is retained."
             } else {
                 "Experimental phone-motion buckets from smart alarm monitoring. They are not medical sleep stages."
             }
@@ -1049,8 +1052,8 @@ private fun ActigraphyBucketsCard(
         if (latest == null) {
             AppEmptyState(
                 icon = Icons.Default.BarChart,
-                title = "No phone-motion sessions yet",
-                description = "Enable a smart alarm window on an alarm to collect compact local sleep-motion summaries."
+                title = "No sleep-motion sessions yet",
+                description = "Enable a smart alarm window or start Sonar from Bedtime to collect compact local summaries."
             )
             return@AppSurfaceCard
         }
@@ -1065,19 +1068,31 @@ private fun ActigraphyBucketsCard(
                 color = MaterialTheme.colorScheme.primary
             )
             AppStatusChip(
-                label = if (latest.firedEarly) "Fired early" else "Reached target",
+                label = when {
+                    latestIsSonar -> "Sonar session"
+                    latest.firedEarly -> "Fired early"
+                    else -> "Reached target"
+                },
                 icon = Icons.Default.CheckCircle,
-                color = if (latest.firedEarly) DismissGreen else TextMuted
+                color = when {
+                    latestIsSonar -> MaterialTheme.colorScheme.primary
+                    latest.firedEarly -> DismissGreen
+                    else -> TextMuted
+                }
             )
             AppStatusChip(
-                label = "Motion index ${"%.2f".format(latest.averageSleepIndex)}",
+                label = "${if (latestIsSonar) "Movement" else "Motion"} index ${"%.2f".format(latest.averageSleepIndex)}",
                 icon = Icons.Default.BarChart,
                 color = TextMuted
             )
             AppStatusChip(
-                label = "Decision ${smartWakeDecisionLabel(latest.decisionReason)}",
+                label = if (latestIsSonar) {
+                    smartWakeDecisionLabel(latest.decisionReason)
+                } else {
+                    "Decision ${smartWakeDecisionLabel(latest.decisionReason)}"
+                },
                 icon = Icons.Default.Search,
-                color = if (latest.firedEarly) DismissGreen else TextMuted
+                color = if (latest.firedEarly || latestIsSonar) DismissGreen else TextMuted
             )
         }
 
@@ -1095,6 +1110,7 @@ private fun ActigraphyBucketsCard(
 @Composable
 private fun StageDistributionBar(session: ActigraphySession) {
     val total = session.totalMinutes.coerceAtLeast(1)
+    val sonar = session.isSonarSession()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier
@@ -1110,9 +1126,9 @@ private fun StageDistributionBar(session: ActigraphySession) {
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            ChartLegend("Awake motion ${session.awakeMinutes}m", AccentRed)
-            ChartLegend("Light motion ${session.lightMinutes}m", SnoozeYellow)
-            ChartLegend("Still motion ${session.deepMinutes}m", DismissGreen)
+            ChartLegend("${if (sonar) "Movement" else "Awake motion"} ${session.awakeMinutes}m", AccentRed)
+            ChartLegend("${if (sonar) "Restless" else "Light motion"} ${session.lightMinutes}m", SnoozeYellow)
+            ChartLegend("${if (sonar) "Still" else "Still motion"} ${session.deepMinutes}m", DismissGreen)
         }
     }
 }
@@ -1130,6 +1146,7 @@ private fun RowScope.StageSegment(minutes: Int, total: Int, color: Color) {
 
 @Composable
 private fun ActigraphySessionRow(session: ActigraphySession) {
+    val sonar = session.isSonarSession()
     val ended = remember(session.endedAt) {
         Instant.ofEpochMilli(session.endedAt)
             .atZone(ZoneId.systemDefault())
@@ -1145,8 +1162,12 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
         Icon(
             imageVector = Icons.Default.BarChart,
             // Outcome is otherwise conveyed by tint alone on this row.
-            contentDescription = if (session.firedEarly) "Fired early" else "Reached target",
-            tint = if (session.firedEarly) DismissGreen else TextMuted,
+            contentDescription = when {
+                sonar -> "Sonar session"
+                session.firedEarly -> "Fired early"
+                else -> "Reached target"
+            },
+            tint = if (session.firedEarly || sonar) DismissGreen else TextMuted,
             modifier = Modifier.size(20.dp)
         )
         Column(modifier = Modifier.weight(1f)) {
@@ -1155,11 +1176,19 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleSmall
             )
+            if (sonar) {
+                Text(
+                    text = "${session.awakeMinutes}m movement · ${session.lightMinutes}m restless · ${session.deepMinutes}m still",
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            } else {
             Text(
                 text = "${session.awakeMinutes}m awake motion · ${session.lightMinutes}m light motion · ${session.deepMinutes}m still motion",
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )
+            }
             Text(
                 text = smartWakeDecisionDetail(session),
                 color = TextMuted,
@@ -1171,6 +1200,9 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
 
 private fun smartWakeDecisionDetail(session: ActigraphySession): String {
     val observed = session.observedMinutesBeforeDecision.coerceAtLeast(0)
+    if (session.isSonarSession()) {
+        return "Source: sonar RMS after ${observed}m observed; no raw audio retained"
+    }
     return "Decision: ${smartWakeDecisionLabel(session.decisionReason)} after ${observed}m observed (${session.smartWakeMode.lowercase()})"
 }
 
@@ -1182,10 +1214,14 @@ private fun smartWakeDecisionLabel(reason: String): String = when (reason) {
     "WAIT_LIGHT_NOT_STABLE" -> "unstable light motion"
     "WAIT_FINAL_MINUTE" -> "final minute"
     "WAIT_SERVICE_TIMEOUT" -> "service timeout"
+    "SONAR_STOPPED" -> "session stopped"
+    "SONAR_START_FAILED" -> "start failed"
     "REACHED_TARGET" -> "target time"
     "UNKNOWN" -> "unknown"
     else -> reason.lowercase().replace('_', ' ')
 }
+
+private fun ActigraphySession.isSonarSession(): Boolean = smartWakeMode == "SONAR"
 
 @Composable
 private fun BreakdownRow(label: String, count: Int, color: Color) {

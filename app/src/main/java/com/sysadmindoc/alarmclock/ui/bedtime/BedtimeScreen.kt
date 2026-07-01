@@ -2,8 +2,12 @@
 
 package com.sysadmindoc.alarmclock.ui.bedtime
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -77,6 +81,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -116,6 +121,27 @@ fun BedtimeScreen(
     var showTimePicker by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val sonarPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.startSonarTracking()
+        } else {
+            viewModel.noteSonarPermissionDenied()
+        }
+    }
+    val toggleSonarTracking = {
+        if (state.sonarTrackingActive) {
+            viewModel.stopSonarTracking()
+        } else if (
+            ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            viewModel.startSonarTracking()
+        } else {
+            sonarPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -573,6 +599,16 @@ fun BedtimeScreen(
         }
 
         item {
+            SonarSleepTrackingSection(
+                state = state,
+                onToggle = toggleSonarTracking,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
+
+        item {
             AppSurfaceCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -767,6 +803,73 @@ private val SLEEP_SOUNDS = listOf(
     SleepSound("Pink Noise", Icons.Default.GraphicEq, SleepNoisePreset.PINK),
     SleepSound("Violet Noise", Icons.Default.Waves, SleepNoisePreset.VIOLET),
 )
+
+@Composable
+private fun SonarSleepTrackingSection(
+    state: BedtimeUiState,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AppSurfaceCard(
+        modifier = modifier,
+        highlighted = state.sonarTrackingActive
+    ) {
+        AppSectionTitle(
+            title = "Sonar sleep tracking",
+            description = if (state.sonarTrackingActive) {
+                "Experimental overnight movement monitoring is running locally."
+            } else {
+                "Start a local ultrasonic movement session from Bedtime when you want extra context."
+            }
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    AppStatusChip(
+                        label = if (state.sonarTrackingActive) "Active" else "Off",
+                        icon = if (state.sonarTrackingActive) Icons.Default.CheckCircle else Icons.Default.GraphicEq,
+                        color = if (state.sonarTrackingActive) DismissGreen else TextMuted
+                    )
+                    AppStatusChip(
+                        label = "No audio saved",
+                        icon = Icons.Default.NightsStay,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                Text(
+                    text = state.sonarTrackingStatus,
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                if (state.sonarLastSessionLabel.isNotBlank()) {
+                    Text(
+                        text = state.sonarLastSessionLabel,
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            AppFilterChip(
+                label = if (state.sonarTrackingActive) "Stop" else "Start",
+                selected = state.sonarTrackingActive,
+                onClick = onToggle,
+                selectionSemantics = false
+            )
+        }
+    }
+}
 
 @Composable
 private fun HealthConnectSleepSection(

@@ -5,6 +5,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioFormat
@@ -15,10 +16,14 @@ import android.media.MediaRecorder
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphySessionSummary
+import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
+import com.sysadmindoc.alarmclock.data.sonar.SonarSleepSessionSummarizer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlin.math.abs
 import kotlin.math.sqrt
+import javax.inject.Inject
 
 /**
  * F17: Experimental sonar-based sleep tracking.
@@ -52,11 +57,39 @@ class SonarSleepService : Service() {
         private const val WINDOW_MS = 50L
         private const val DEEP_SLEEP_THRESHOLD = 0.004f  // RMS variance below this = deep sleep
         private const val DEEP_SLEEP_WINDOWS = 6          // 6 × 50ms = 300ms of stillness
+        private const val PREFS_NAME = "sonar_sleep_state"
+        private const val KEY_ACTIVE = "active"
+        private const val KEY_STARTED_AT = "started_at"
+        private const val KEY_LAST_ENDED_AT = "last_ended_at"
+        private const val KEY_LAST_TOTAL_MINUTES = "last_total_minutes"
+        private const val KEY_LAST_AWAKE_MINUTES = "last_awake_minutes"
+        private const val KEY_LAST_LIGHT_MINUTES = "last_light_minutes"
+        private const val KEY_LAST_DEEP_MINUTES = "last_deep_minutes"
+
+        fun readSnapshot(context: Context): SonarSleepSnapshot {
+            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            return SonarSleepSnapshot(
+                active = prefs.getBoolean(KEY_ACTIVE, false),
+                startedAt = prefs.getLong(KEY_STARTED_AT, 0L),
+                lastEndedAt = prefs.getLong(KEY_LAST_ENDED_AT, 0L),
+                lastTotalMinutes = prefs.getInt(KEY_LAST_TOTAL_MINUTES, 0),
+                lastAwakeMinutes = prefs.getInt(KEY_LAST_AWAKE_MINUTES, 0),
+                lastLightMinutes = prefs.getInt(KEY_LAST_LIGHT_MINUTES, 0),
+                lastDeepMinutes = prefs.getInt(KEY_LAST_DEEP_MINUTES, 0)
+            )
+        }
     }
+
+    @Inject lateinit var actigraphyRepository: ActigraphyRepository
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var audioTrack: AudioTrack? = null
     private var audioRecord: AudioRecord? = null
+    private val sessionLock = Any()
+    private var sessionStartedAt = 0L
+    private var stillWindows = 0
+    private var movementWindows = 0
+    private var sessionRecorded = false
 
     // Callbacks: set by binding consumer or broadcast receivers
     var onMovementCallback: (() -> Unit)? = null
@@ -79,19 +112,29 @@ class SonarSleepService : Service() {
     }
 
     override fun onDestroy() {
-        scope.cancel()
         stopSonarHardware()
+        markInactive()
+        scope.cancel()
         super.onDestroy()
     }
 
     // ── Sonar engine ──────────────────────────────────────────────────────────
 
     private fun startSonar() {
+        synchronized(sessionLock) {
+            if (sessionStartedAt > 0L) return
+            sessionStartedAt = System.currentTimeMillis()
+            stillWindows = 0
+            movementWindows = 0
+            sessionRecorded = false
+        }
+        markActive(sessionStartedAt)
         scope.launch {
             try {
                 startToneEmitter()
                 startReflectionAnalyzer()
             } catch (_: Exception) {
+                recordSession("SONAR_START_FAILED")
                 stopSonarHardware()
                 stopSelf()
             }
@@ -178,8 +221,10 @@ class SonarSleepService : Service() {
             if (recentRms.size > DEEP_SLEEP_WINDOWS) recentRms.removeFirst()
 
             val variance = variance(recentRms)
+            val still = variance < DEEP_SLEEP_THRESHOLD
+            recordSonarWindow(still)
 
-            if (variance < DEEP_SLEEP_THRESHOLD) {
+            if (still) {
                 deepSleepCount++
                 if (deepSleepCount >= DEEP_SLEEP_WINDOWS) {
                     onDeepSleepCallback?.invoke()
@@ -207,8 +252,11 @@ class SonarSleepService : Service() {
     }
 
     private fun stopSonarAndSelf() {
-        stopSonarHardware()
-        stopSelf()
+        scope.launch {
+            stopSonarHardware()
+            recordSession("SONAR_STOPPED")
+            stopSelf()
+        }
     }
 
     private fun stopSonarHardware() {
@@ -229,6 +277,82 @@ class SonarSleepService : Service() {
             try { record.release() } catch (_: Exception) {}
         }
         audioRecord = null
+    }
+
+    private fun recordSonarWindow(still: Boolean) {
+        synchronized(sessionLock) {
+            if (still) stillWindows++ else movementWindows++
+        }
+    }
+
+    private suspend fun recordSession(decisionReason: String) {
+        val endedAt = System.currentTimeMillis()
+        val startedAt: Long
+        val still: Int
+        val movement: Int
+        synchronized(sessionLock) {
+            if (sessionStartedAt == 0L || sessionRecorded) return
+            sessionRecorded = true
+            startedAt = sessionStartedAt
+            still = stillWindows
+            movement = movementWindows
+        }
+
+        val summary = SonarSleepSessionSummarizer.summarize(
+            startedAt = startedAt,
+            endedAt = endedAt,
+            stillWindows = still,
+            movementWindows = movement
+        )
+
+        runCatching {
+            actigraphyRepository.record(
+                alarmId = 0L,
+                startedAt = startedAt,
+                endedAt = endedAt,
+                targetTime = endedAt,
+                firedEarly = false,
+                summary = summary,
+                decisionReason = decisionReason,
+                observedMinutesBeforeDecision = summary.totalMinutes,
+                smartWakeMode = "SONAR"
+            )
+        }
+        persistLastSession(endedAt, summary)
+        synchronized(sessionLock) {
+            sessionStartedAt = 0L
+            stillWindows = 0
+            movementWindows = 0
+        }
+    }
+
+    private fun markActive(startedAt: Long) {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_ACTIVE, true)
+            .putLong(KEY_STARTED_AT, startedAt)
+            .apply()
+    }
+
+    private fun markInactive() {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_ACTIVE, false)
+            .putLong(KEY_STARTED_AT, 0L)
+            .apply()
+    }
+
+    private fun persistLastSession(endedAt: Long, summary: ActigraphySessionSummary) {
+        getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_ACTIVE, false)
+            .putLong(KEY_STARTED_AT, 0L)
+            .putLong(KEY_LAST_ENDED_AT, endedAt)
+            .putInt(KEY_LAST_TOTAL_MINUTES, summary.totalMinutes)
+            .putInt(KEY_LAST_AWAKE_MINUTES, summary.awakeMinutes)
+            .putInt(KEY_LAST_LIGHT_MINUTES, summary.lightMinutes)
+            .putInt(KEY_LAST_DEEP_MINUTES, summary.deepMinutes)
+            .apply()
     }
 
     // ── Notification ──────────────────────────────────────────────────────────
@@ -252,3 +376,13 @@ class SonarSleepService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 }
+
+data class SonarSleepSnapshot(
+    val active: Boolean,
+    val startedAt: Long,
+    val lastEndedAt: Long,
+    val lastTotalMinutes: Int,
+    val lastAwakeMinutes: Int,
+    val lastLightMinutes: Int,
+    val lastDeepMinutes: Int
+)

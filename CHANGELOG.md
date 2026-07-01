@@ -2,6 +2,21 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.5] - 2026-07-01
+
+### Added
+
+- Sonar sleep tracking now has a real Bedtime control path: users can start or
+  stop the experimental foreground microphone session from the Bedtime tab with
+  microphone-permission recovery.
+- Sonar sessions save compact local movement/restless/still summaries into the
+  existing Statistics sleep-motion view. No raw microphone audio is retained.
+
+### Changed
+
+- Statistics now labels Sonar sleep-motion sessions separately from smart-wake
+  phone-actigraphy sessions so the source and privacy posture are clear.
+
 ## [1.15.4] - 2026-06-27
 
 ### Added
