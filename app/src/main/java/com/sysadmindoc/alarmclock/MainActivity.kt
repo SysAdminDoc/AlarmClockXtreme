@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Alarm fire and dismiss intents now share one local contract.",
-            "Release tests now cover fire, launch, dismiss, event write, and cleanup.",
-            "Alarm incident proof now includes firing-screen launch and user dismiss steps.",
-            "Signed Play, F-Droid, and Wear APKs stay version-aligned."
+            "Release checks now verify Android 17 and 16 KB-device readiness.",
+            "The setup test alarm was verified on an API 37 16 KB emulator.",
+            "Dependency audits now cover Play, F-Droid, and Wear runtime graphs.",
+            "F-Droid installs no longer require telephony hardware."
         )
     }
 }

@@ -2,6 +2,23 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.8] - 2026-07-01
+
+### Added
+
+- Added `scripts/verify_api37_release.py`, a local release verifier for 16 KB
+  APK zip alignment and API 37 device smoke checks. With an API 37 16 KB device
+  serial, it installs the Play release, verifies exact-alarm,
+  promoted-notification, notification, and local-network permission state, and
+  can drive the built-in test alarm to completion.
+
+### Changed
+
+- Release instructions now include the Android 17 / 16 KB verifier alongside
+  signing hygiene and OSV runtime graph auditing.
+- The in-app release highlights now describe the current release-hardening work
+  instead of the older alarm-fire harness copy.
+
 ## [1.15.7] - 2026-07-01
 
 ### Changed

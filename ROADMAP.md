@@ -16,7 +16,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.7)
+## Current snapshot (v1.15.8)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v17, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
@@ -27,7 +27,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 109`, `versionName 1.15.7`.
+  `versionCode 110`, `versionName 1.15.8`.
 - **Surface area:** 123 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **27 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -453,12 +453,5 @@ Deduplicated against all existing ROADMAP.md and Roadmap_Blocked.md items.
 ## Research-Driven Additions
 
 ### P1
-
-- [ ] P1 - Add 16 KB page-size and API 37 release verification
-  Why: Competitors now advertise 16 KB readiness and ACX already declares Android 17-facing permissions without target/compile 37 validation.
-  Evidence: Android 17 docs, `app/src/main/AndroidManifest.xml`, `app/build.gradle.kts`, Turbo Alarm Play listing signal.
-  Touches: release scripts, Gradle config, APK verification docs, emulator/device smoke notes.
-  Acceptance: Local release verification records 16 KB compatibility for Play/F-Droid/Wear APKs and an API 37 emulator smoke pass for alarm fire, notifications, local-network permission, and promoted notification behavior.
-  Complexity: M
 
 ### P2
