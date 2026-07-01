@@ -2,6 +2,8 @@ package com.sysadmindoc.alarmclock.service
 
 import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
+import androidx.media3.common.C
+import androidx.media3.common.AudioAttributes as Media3AudioAttributes
 
 /**
  * Alarm playback must be classified as system alarm audio, not media audio.
@@ -18,6 +20,16 @@ object AlarmAudioRouting {
     fun alarmSonificationAttributes(): AudioAttributes = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_ALARM)
         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+        .build()
+
+    fun media3AlarmMusicAttributes(): Media3AudioAttributes = Media3AudioAttributes.Builder()
+        .setUsage(C.USAGE_ALARM)
+        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+        .build()
+
+    fun media3AlarmSonificationAttributes(): Media3AudioAttributes = Media3AudioAttributes.Builder()
+        .setUsage(C.USAGE_ALARM)
+        .setContentType(C.AUDIO_CONTENT_TYPE_SONIFICATION)
         .build()
 
     fun isSystemManagedHearingAidLikeType(type: Int): Boolean = when (type) {

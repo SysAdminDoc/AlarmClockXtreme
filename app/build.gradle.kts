@@ -1,7 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// AlarmClockXtreme v1.15.13
+// AlarmClockXtreme v1.15.14
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -18,8 +18,9 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 115
-        versionName = "1.15.13"
+        versionCode = 116
+        versionName = "1.15.14"
+        buildConfigField("boolean", "USE_MEDIA3_ALARM_PLAYER", "true")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -174,6 +175,9 @@ dependencies {
 
     // Coroutines (unified with the :wear module on 1.11.0)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    // Media3 / ExoPlayer alarm backend. Kept behind USE_MEDIA3_ALARM_PLAYER
+    // for one release so the service can fall back to the legacy MediaPlayer path.
+    implementation("androidx.media3:media3-exoplayer:1.10.1")
 
     // YouTube alarm-sound download (play flavor only — bundles a native Python
     // interpreter that isn't F-Droid-compatible, so the f-droid flavor uses a

@@ -2,6 +2,8 @@ package com.sysadmindoc.alarmclock.service
 
 import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
+import androidx.media3.common.C
+import com.sysadmindoc.alarmclock.BuildConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -28,6 +30,28 @@ class AlarmAudioRoutingTest {
 
         assertEquals(AudioAttributes.USAGE_ALARM, attributes.usage)
         assertEquals(AudioAttributes.CONTENT_TYPE_SONIFICATION, attributes.contentType)
+    }
+
+    @Test
+    fun media3AlarmAttributesUseAlarmRouting() {
+        val musicAttributes = AlarmAudioRouting.media3AlarmMusicAttributes()
+        val sonificationAttributes = AlarmAudioRouting.media3AlarmSonificationAttributes()
+
+        assertEquals(C.USAGE_ALARM, musicAttributes.usage)
+        assertEquals(C.AUDIO_CONTENT_TYPE_MUSIC, musicAttributes.contentType)
+        assertEquals(C.USAGE_ALARM, sonificationAttributes.usage)
+        assertEquals(C.AUDIO_CONTENT_TYPE_SONIFICATION, sonificationAttributes.contentType)
+    }
+
+    @Test
+    fun playbackBackendFollowsBuildFlag() {
+        assertEquals(AlarmPlaybackBackend.MEDIA3, AlarmPlaybackBackend.fromBuildFlag(true))
+        assertEquals(AlarmPlaybackBackend.MEDIA_PLAYER, AlarmPlaybackBackend.fromBuildFlag(false))
+    }
+
+    @Test
+    fun media3PlaybackGateIsEnabledForCurrentRelease() {
+        assertTrue(BuildConfig.USE_MEDIA3_ALARM_PLAYER)
     }
 
     @Test

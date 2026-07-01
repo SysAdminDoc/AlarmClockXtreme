@@ -16,18 +16,18 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.13)
+## Current snapshot (v1.15.14)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v19, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
   DataStore 1.1.1, Glance 1.1.1, OkHttp 5.4.0, WorkManager 2.9.1, Wear Tiles
   1.6.0 / protolayout 1.4.0, Wear Data Layer, Wear Watchface complications
   data-source 1.3.0, Health Connect client 1.1.0 (Play flavor), ML Kit Digital
-  Ink 19.0.0 (Play flavor), Direct Boot minimum alarm fallback, yt-dlp
-  (`youtubedl-android` 0.18.1) + NewPipe Extractor
+  Ink 19.0.0 (Play flavor), Media3 1.10.1, Direct Boot minimum alarm fallback,
+  yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 115`, `versionName 1.15.13`.
+  `versionCode 116`, `versionName 1.15.14`.
 - **Surface area:** 165 Kotlin files in `:app` + 4 in `:wear`, two phone
   flavors (`play`, `fdroid`), **30 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -35,7 +35,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   News) + Settings.
 - **What's missing vs. competitors:** standalone-watch story is still thin
   beyond the tile/complication pair; no on-device sleep-stage classifier; no AI sleep coach; no
-  foldable/tablet adaptive layout; no full Direct-Boot custom-ringtone/challenge alarm; no ExoPlayer audio path; no
+  foldable/tablet adaptive layout; no full Direct-Boot custom-ringtone/challenge alarm; no
   on-device snore detection. The good news: the alarm-clock core
   (scheduling, reliability, challenges, weather, bedtime DND, encrypted
   backup) is best-in-class for FOSS Android.
@@ -46,7 +46,6 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| X16 | [ ] Migrate alarm audio playback from `MediaPlayer` to ExoPlayer / Media3. Improves LE Audio routing, gapless internet-radio, error handling. | [BlackyHawky Clock 2.22](https://github.com/BlackyHawky/Clock/releases) — proven precedent in the FOSS space | M | Carries regression risk — gate behind a build flag for one release. Builds on the completed alarm-routing hardening. |
 | X18 | [ ] Bedtime countdown `Notification.ProgressStyle` Live Update (mirrors v1.10.10 next-alarm Live Update during the final hour before bedtime reminder fires). | [Android 16 ProgressStyle](https://developer.android.com/about/versions/16/features/progress-centric-notifications) | S | Reuses next-alarm Live Update plumbing. Was UC; promote with Android 16 install base ~21% of devices per [Wikipedia Android 16 share, March 2026](https://en.wikipedia.org/wiki/Android_16). |
 
 ## LATER — kept on the list

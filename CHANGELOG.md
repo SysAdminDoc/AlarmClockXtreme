@@ -2,6 +2,25 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.14] - 2026-07-01
+
+### Added
+
+- Added a Media3/ExoPlayer alarm playback backend for app-owned alarm tones and
+  internet radio, gated by `USE_MEDIA3_ALARM_PLAYER` with the legacy MediaPlayer
+  path kept available for platform ringtone-provider fallbacks this release.
+- Added Media3 alarm-audio routing tests and build-flag coverage so alarm
+  playback continues to use Android's system alarm channel.
+
+### Changed
+
+- Alarm audio startup now records Media3-specific success, legacy-handoff, and
+  failure incident reasons for better support diagnostics.
+- Raised the Gradle daemon heap to 4 GiB so local release R8 packaging completes
+  reliably with the Media3 dependency graph.
+- Bumped app, Wear, README, roadmap, release verifier, and F-Droid metadata to
+  `versionName = "1.15.14"`, `versionCode = 116`.
+
 ## [1.15.13] - 2026-07-01
 
 ### Added

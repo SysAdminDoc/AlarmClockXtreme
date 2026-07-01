@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "The alarms list now has a Manual order sort mode.",
-            "Use the drag handles in Manual order to rearrange alarms.",
-            "Manual order survives app restarts, backup, and restore.",
-            "New and duplicated alarms are placed at the end of the manual list."
+            "Alarm audio now uses a Media3 playback path with platform-ringtone fallback.",
+            "Audio startup records clearer success and fallback diagnostics.",
+            "The legacy MediaPlayer path remains build-flagged for this release.",
+            "Alarm routing still uses Android's system alarm audio channel."
         )
     }
 }
