@@ -443,3 +443,44 @@ Deduplicated against all existing ROADMAP.md and Roadmap_Blocked.md items.
 ### P1
 
 ### P2
+
+## Research-Driven Additions
+
+### P1 — High
+
+- [ ] P1 — Webhook signing and delivery status
+  Why: ACX sends versioned HTTPS webhook payloads, but bodies are unsigned and failures are currently invisible to users troubleshooting automations.
+  Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/service/WebhookService.kt`; Home Assistant webhook docs; webhook security guidance.
+  Touches: `PreferencesManager.kt`, `BackupManager.kt`, `WebhookService.kt`, `SettingsViewModel.kt`, `SettingsScreen.kt`, `WebhookUrlTest.kt`, README webhook recipes.
+  Acceptance: Optional signing secret adds timestamp plus `X-ACX-Signature: v1=<hmac-sha256>` over the raw JSON; webhook test and recent delivery status show success/failure without blocking alarms; tests verify signature bytes, timestamp skew handling, label-off payloads, and backup/export warnings.
+  Complexity: M
+
+- [ ] P1 — Backup restore preview and conflict-safe import
+  Why: Import currently mutates settings and saves alarms immediately after parse/version validation; users need counts, risks, and append/replace choices before writes.
+  Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/data/backup/BackupManager.kt`; README backup privacy copy; Android Auto Backup restore guidance.
+  Touches: `BackupManager.kt`, `SettingsViewModel.kt`, `SettingsScreen.kt`, `BackupManagerExportImportTest.kt`, `BackupExportWarningTest.kt`.
+  Acceptance: Import first returns a preview with format version, app version, alarm counts, enabled counts, private-data categories, and compatibility status; no Room/DataStore writes occur until confirm; user can append, replace, or import enabled alarms as disabled; tests prove preview is side-effect-free.
+  Complexity: M
+
+### P2 — Medium
+
+- [ ] P2 — Persistent stale-state cache for weather and news
+  Why: Holidays keep a stale disk cache, but weather is memory-only and news intentionally refetches; offline morning use should show last-good data with honest timestamps.
+  Evidence: `WeatherRepository.kt`, `HolidayRepository.kt`, `NewsRepository.kt`, `NewsViewModel.kt`; Open-Meteo/RSS surfaces in README.
+  Touches: `WeatherRepository.kt`, `NewsRepository.kt`, dashboard/news ViewModels and screens, backup/support export exclusions, repository tests.
+  Acceptance: Successful weather/news fetches persist compact last-good data; offline launch renders a stale banner with last-updated time and retry action; cached data is excluded from backup/support sensitive payloads; tests cover stale, empty, and failed-refresh states.
+  Complexity: M
+
+- [ ] P2 — Two-pane adaptive layouts beyond the navigation rail
+  Why: AppNavigation already switches to a rail on wider windows, but key workflows remain long single-pane phone layouts on tablets, foldables, Chromebooks, and DeX.
+  Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/ui/navigation/AppNavigation.kt`; `AlarmListScreen.kt`; `SettingsScreen.kt`; Material 3 adaptive guidance.
+  Touches: `AppNavigation.kt`, `AlarmListScreen.kt`, `AlarmEditScreen.kt`, `SettingsScreen.kt`, `BedtimeScreen.kt`, Compose screenshot/semantics tests.
+  Acceptance: Expanded-width alarms use list/detail or equivalent pane behavior, Settings uses group/detail panes, Bedtime preserves current compact flow, phone layout remains unchanged, and visual/semantics QA covers compact and expanded widths.
+  Complexity: L
+
+- [ ] P2 — Continue AlarmService controller extraction
+  Why: `AlarmService.kt` remains a 1,823-line wake-critical coordinator even after playback and dismiss-action extraction, making vibration/flashlight/TTS/morning/wake-confirm behavior harder to unit-test.
+  Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/service/AlarmService.kt`; `AlarmPlaybackPlayer.kt`; `DismissActionExecutor.kt`; existing service tests.
+  Touches: `service/AlarmService.kt`, new service controllers under `service/`, `AlarmServiceMedia3SmokeTest.kt`, alarm fire/dismiss smoke tests.
+  Acceptance: Extracted controller-sized units handle vibration/flashlight/TTS/morning/wake-confirm decisions with no public behavior change; unit tests cover each controller; existing alarm fire, snooze, dismiss, webhook, and Media3 smoke paths still pass.
+  Complexity: M
