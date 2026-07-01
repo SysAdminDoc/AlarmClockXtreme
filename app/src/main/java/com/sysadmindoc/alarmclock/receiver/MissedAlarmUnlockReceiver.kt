@@ -6,7 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
-import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.service.AlarmFireDismissContract
 import com.sysadmindoc.alarmclock.service.AlarmService
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
@@ -66,8 +66,7 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                         repeatMissedEnabled = settings.repeatMissedAlarms,
                         lastMissedAtMs = at,
                         lastMissedId = id,
-                        alarmCurrentlyFiringId =
-                            com.sysadmindoc.alarmclock.service.AlarmService.activeAlarmId,
+                        alarmCurrentlyFiringId = AlarmService.activeAlarmId,
                         nowMs = System.currentTimeMillis()
                     )
                     if (decision.shouldClearState) {
@@ -80,17 +79,13 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                     // silently drop the replay.
                     val alarm = ep.alarmRepository().getById(id) ?: return@withTimeout
 
-                    val fireIntent = Intent(context, AlarmService::class.java).apply {
-                        action = AlarmService.ACTION_START_ALARM
-                        putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
-                        putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, at)
-                        putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, AlarmIncidentEvent.fireIdFor(alarm.id, at))
-                    }
+                    val fireId = AlarmFireDismissContract.fireId(alarm.id, at)
+                    val fireIntent = AlarmFireDismissContract.startServiceIntent(context, alarm.id, at, fireId)
                     try {
                         context.startForegroundService(fireIntent)
                         ep.alarmIncidentRepository().record(
                             alarmId = alarm.id,
-                            fireId = AlarmIncidentEvent.fireIdFor(alarm.id, at),
+                            fireId = fireId,
                             scheduledAt = at,
                             type = AlarmIncidentEvent.TYPE_BROADCAST,
                             status = AlarmIncidentEvent.STATUS_REQUESTED,
@@ -102,7 +97,7 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                             "startForegroundService failed for replay alarm ${alarm.id}", e)
                         ep.alarmIncidentRepository().record(
                             alarmId = alarm.id,
-                            fireId = AlarmIncidentEvent.fireIdFor(alarm.id, at),
+                            fireId = fireId,
                             scheduledAt = at,
                             type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
                             status = AlarmIncidentEvent.STATUS_FAILED,

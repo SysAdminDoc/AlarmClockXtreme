@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-AlarmClockXtreme is a mature Android alarm suite for heavy sleepers and privacy-focused users: exact `setAlarmClock()` scheduling, Direct Boot fallback, Play/F-Droid flavors, Wear tile/complication support, 27 dismiss challenges, encrypted backup, local diagnostics, webhooks, Hue, weather/news, Health Connect sleep summaries, Sonar sleep-motion summaries, and a deep dark Compose UI. The current working tree is v1.15.5 / versionCode 107 / DB v17 / backup format v11. Highest-value work now is not adding another broad feature bucket; it is closing trust gaps around alarm-fire verification, release/security gates, and platform readiness that currently need stronger proof. Top opportunities: add a local alarm-fire smoke harness, make dependency/advisory audits part of release proof, verify 16 KB and API 37 readiness, and keep Wear support ahead of the first-party Wear Clock gap.
+AlarmClockXtreme is a mature Android alarm suite for heavy sleepers and privacy-focused users: exact `setAlarmClock()` scheduling, Direct Boot fallback, Play/F-Droid flavors, Wear tile/complication support, 27 dismiss challenges, encrypted backup, local diagnostics, webhooks, Hue, weather/news, Health Connect sleep summaries, Sonar sleep-motion summaries, and a deep dark Compose UI. The current working tree is v1.15.6 / versionCode 108 / DB v17 / backup format v11. Highest-value work now is not adding another broad feature bucket; it is closing trust gaps around release/security gates, platform readiness, and device-level alarm-fire proof that currently need stronger verification. Top opportunities: make dependency/advisory audits part of release proof, verify 16 KB and API 37 readiness, keep Wear support ahead of the first-party Wear Clock gap, and add a lock-screen device smoke on top of the local fire-to-dismiss harness.
 
 ## Product Map
 
@@ -62,7 +62,7 @@ AlarmClockXtreme is a mature Android alarm suite for heavy sleepers and privacy-
 - Module boundaries are mostly healthy: scheduling in `domain/AlarmScheduler.kt`, calculations in `domain/NextAlarmCalculator.kt`, persistence in Room/DataStore, recovery via WorkManager/receivers, and UI in Compose screens/ViewModels.
 - Refactor candidates: `AlarmService.kt` still owns alarm playback, vibration, TTS, flashlight, dismiss actions, incidents, and morning flow; custom dismiss actions should move behind a small executor interface so Hue/webhook/broadcast behavior can be tested without a service instance.
 - Refactor candidates: `SonarSleepService.kt` now has the Bedtime/Statistics path; future Sonar work should focus on better data-quality labels and device-specific reliability proof.
-- Test gaps: no local alarm-fire-to-dismiss smoke harness; no Direct Boot locked-boot device proof; no release-gate invocation of OSV audit across all runtime graphs; no device-level Sonar audio-path smoke beyond unit-tested local summary math.
+- Test gaps: no Direct Boot locked-boot device proof; no release-gate invocation of OSV audit across all runtime graphs; no lock-screen device alarm-fire smoke beyond the local fire-to-dismiss Robolectric harness; no device-level Sonar audio-path smoke beyond unit-tested local summary math.
 - Documentation gaps: release workflow needs a pre-push check that planning files and public version strings agree even though most markdown is gitignored.
 
 ## Rejected Ideas

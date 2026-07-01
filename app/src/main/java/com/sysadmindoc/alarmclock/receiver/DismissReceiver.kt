@@ -6,7 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
-import com.sysadmindoc.alarmclock.service.AlarmService
+import com.sysadmindoc.alarmclock.service.AlarmFireDismissContract
 
 /**
  * Handles dismiss action from notification button.
@@ -19,12 +19,7 @@ class DismissReceiver : BroadcastReceiver() {
         val fireId = intent.getStringExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID)
             ?: AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt)
 
-        val serviceIntent = Intent(context, AlarmService::class.java).apply {
-            action = AlarmService.ACTION_DISMISS
-            putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, scheduledAt)
-            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
-        }
+        val serviceIntent = AlarmFireDismissContract.dismissServiceIntent(context, alarmId, scheduledAt, fireId)
         try {
             context.startForegroundService(serviceIntent)
             recordAlarmIncidentsAsync(

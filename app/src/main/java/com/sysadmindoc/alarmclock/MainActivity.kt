@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Sonar sleep tracking now starts and stops from the Bedtime tab.",
-            "Sonar sessions save compact local movement summaries for Statistics.",
-            "Statistics now labels Sonar buckets separately from smart-wake motion.",
-            "No raw Sonar audio is retained or exported."
+            "Alarm fire and dismiss intents now share one local contract.",
+            "Release tests now cover fire, launch, dismiss, event write, and cleanup.",
+            "Alarm incident proof now includes firing-screen launch and user dismiss steps.",
+            "Signed Play, F-Droid, and Wear APKs stay version-aligned."
         )
     }
 }

@@ -16,7 +16,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.5)
+## Current snapshot (v1.15.6)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v17, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
@@ -27,8 +27,8 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 107`, `versionName 1.15.5`.
-- **Surface area:** 122 Kotlin files in `:app` + 3 in `:wear`, two phone
+  `versionCode 108`, `versionName 1.15.6`.
+- **Surface area:** 123 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **27 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
   AppSettings fields, 6 phone tabs (Today, Alarms, Bedtime, Timer, World,
@@ -278,7 +278,7 @@ Items that need scoping or platform readiness before they earn a tier.
 
 - Unit tests cover: `NextAlarmCalculator`, `VacationAlarmPolicy`, `MissedAlarmReplayPolicy`, `ProximityCoverDetector`, `AlarmShareCodec`, `EncryptedBackupCodec`, `WakeStreakCalculator`, `WebhookUrl`, `ChallengeGenerator` + maze solver, `StatsFilters`, `NextAlarmNotificationTiming`. **Each new dismiss challenge must come with a unit-tested "valid input" + "invalid input" suite.**
 - Room migration tests: every schema bump requires a migration test path in `AlarmDatabaseMigrationTest`; CI also runs `git diff --exit-code -- app/schemas` after debug builds to catch uncommitted exports (whakaara discipline — [ahudson20/whakaara](https://github.com/ahudson20/whakaara)).
-- Add an instrumented smoke test that fires an alarm via test broadcast and asserts the firing activity launches with `FLAG_SHOW_WHEN_LOCKED`. **S, not yet tiered.**
+- Remaining alarm-fire proof gap: add a device/emulator smoke that fires through AlarmManager/test broadcast and asserts the firing window shows over lock screen. **S, not yet tiered.**
 - Add a `sanitized()` round-trip property test that asserts every value in `ChallengeType.entries.map(Enum::name)` is preserved through `Alarm.sanitized()`. Directly prevents the N1 class of regression in the future.
 
 ### Documentation
@@ -453,13 +453,6 @@ Deduplicated against all existing ROADMAP.md and Roadmap_Blocked.md items.
 ## Research-Driven Additions
 
 ### P1
-
-- [ ] P1 - Add a local alarm-fire-to-dismiss smoke harness
-  Why: The project has strong unit coverage but no repeatable proof that an alarm fires, opens the firing surface, handles challenge-free dismiss, records the event, and tears down service state.
-  Evidence: `AlarmService.kt`, `AlarmFiringActivity.kt`, `AlarmReceiver.kt`, existing unit-test coverage list in `RESEARCH.md`.
-  Touches: `app/src/androidTest/`, `AlarmService.kt`, `AlarmFiringActivity.kt`, `AlarmIncidentRepository.kt`, test manifest utilities.
-  Acceptance: A local instrumented or Robolectric-compatible smoke test triggers a test alarm path and asserts firing UI launch, dismiss action, incident/event write, and service cleanup.
-  Complexity: M
 
 - [ ] P1 - Make OSV dependency auditing a release gate for every runtime graph
   Why: The repo already has `scripts/osv_gradle_audit.py`, but release proof should cover Play runtime, F-Droid runtime, and Wear before publishing signed APKs.

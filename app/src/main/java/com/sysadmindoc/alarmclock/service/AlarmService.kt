@@ -32,7 +32,6 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.receiver.DismissReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeReceiver
-import com.sysadmindoc.alarmclock.ui.alarmfiring.AlarmFiringActivity
 import com.sysadmindoc.alarmclock.ui.alarmfiring.MorningBriefingActivity
 import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
@@ -380,14 +379,12 @@ class AlarmService : Service() {
             )
         }
 
-        val firingIntent = Intent(this, AlarmFiringActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS)
-            putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
-            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, currentFireId)
-        }
+        val firingIntent = AlarmFireDismissContract.firingActivityIntent(
+            context = this,
+            alarmId = alarmId,
+            scheduledAt = currentScheduledAt,
+            fireId = currentFireId
+        )
         try {
             startActivity(firingIntent)
             recordIncident(
@@ -593,12 +590,12 @@ class AlarmService : Service() {
     }
 
     private fun buildAlarmNotification(alarm: Alarm): Notification {
-        val fullScreenIntent = Intent(this, AlarmFiringActivity::class.java).apply {
-            putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
-            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, currentFireId)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        }
+        val fullScreenIntent = AlarmFireDismissContract.firingActivityIntent(
+            context = this,
+            alarmId = alarm.id,
+            scheduledAt = currentScheduledAt,
+            fireId = currentFireId
+        )
         val fullScreenPi = PendingIntent.getActivity(
             this, alarm.id.toInt(), fullScreenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
@@ -1430,23 +1427,16 @@ class AlarmService : Service() {
         challengeRetryCount: Int = 0,
         challengeSolveTimeMs: Long = 0L
     ) {
-        val now = System.currentTimeMillis()
-        val dayOfWeek = java.time.Instant.ofEpochMilli(now)
-            .atZone(java.time.ZoneId.systemDefault())
-            .dayOfWeek.value
         eventRepository.record(
-            AlarmEvent(
-                alarmId = alarm.id,
-                alarmLabel = alarm.label,
-                scheduledTime = currentScheduledAt,
+            AlarmFireDismissContract.alarmEvent(
+                alarm = alarm,
+                scheduledAt = currentScheduledAt,
                 firedAt = alarmFiredAt,
                 action = action,
-                actionAt = now,
-                challengeType = alarm.challengeType,
-                challengeSolveTimeMs = challengeSolveTimeMs.coerceAtLeast(0L),
-                challengeRetryCount = challengeRetryCount.coerceAtLeast(0),
-                snoozeCount = currentSnoozeCount.coerceAtLeast(0),
-                dayOfWeek = dayOfWeek
+                actionAt = System.currentTimeMillis(),
+                challengeRetryCount = challengeRetryCount,
+                challengeSolveTimeMs = challengeSolveTimeMs,
+                snoozeCount = currentSnoozeCount
             )
         )
     }

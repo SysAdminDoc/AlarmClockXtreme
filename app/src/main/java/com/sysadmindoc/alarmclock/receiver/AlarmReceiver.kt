@@ -6,7 +6,7 @@ import android.content.Intent
 import android.util.Log
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
-import com.sysadmindoc.alarmclock.service.AlarmService
+import com.sysadmindoc.alarmclock.service.AlarmFireDismissContract
 
 /**
  * Receives the alarm broadcast from AlarmManager and starts the foreground
@@ -33,12 +33,7 @@ class AlarmReceiver : BroadcastReceiver() {
             )
         )
 
-        val serviceIntent = Intent(context, AlarmService::class.java).apply {
-            action = AlarmService.ACTION_START_ALARM
-            putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, scheduledAt)
-            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
-        }
+        val serviceIntent = AlarmFireDismissContract.startServiceIntent(context, alarmId, scheduledAt, fireId)
         try {
             context.startForegroundService(serviceIntent)
             incidents += ReceiverAlarmIncident(

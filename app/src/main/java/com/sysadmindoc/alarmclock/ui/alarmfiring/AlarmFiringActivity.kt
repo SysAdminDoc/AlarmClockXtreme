@@ -21,7 +21,7 @@ import androidx.lifecycle.lifecycleScope
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
-import com.sysadmindoc.alarmclock.service.AlarmService
+import com.sysadmindoc.alarmclock.service.AlarmFireDismissContract
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.Challenge
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
 import com.sysadmindoc.alarmclock.util.FlipDetector
@@ -521,15 +521,13 @@ class AlarmFiringActivity : ComponentActivity() {
     }
 
     private fun snooze(customMinutes: Int? = null) {
-        val intent = Intent(this, AlarmService::class.java).apply {
-            action = AlarmService.ACTION_SNOOZE
-            putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, scheduledAt)
-            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
-            if (customMinutes != null) {
-                putExtra(AlarmService.EXTRA_CUSTOM_SNOOZE_MINUTES, customMinutes)
-            }
-        }
+        val intent = AlarmFireDismissContract.snoozeServiceIntent(
+            context = this,
+            alarmId = alarmId,
+            scheduledAt = scheduledAt,
+            fireId = fireId,
+            customMinutes = customMinutes
+        )
         try {
             startForegroundService(intent)
             recordIncidentAsync(
@@ -554,14 +552,14 @@ class AlarmFiringActivity : ComponentActivity() {
             .takeIf { it > 0L && state.requiresChallenge }
             ?.let { (System.currentTimeMillis() - it).coerceAtLeast(0L) }
             ?: 0L
-        val intent = Intent(this, AlarmService::class.java).apply {
-            action = AlarmService.ACTION_DISMISS
-            putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, scheduledAt)
-            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
-            putExtra(AlarmService.EXTRA_CHALLENGE_RETRY_COUNT, state.totalWrongAttempts.coerceAtLeast(0))
-            putExtra(AlarmService.EXTRA_CHALLENGE_SOLVE_TIME_MS, challengeSolveTimeMs)
-        }
+        val intent = AlarmFireDismissContract.dismissServiceIntent(
+            context = this,
+            alarmId = alarmId,
+            scheduledAt = scheduledAt,
+            fireId = fireId,
+            challengeRetryCount = state.totalWrongAttempts,
+            challengeSolveTimeMs = challengeSolveTimeMs
+        )
         try {
             startForegroundService(intent)
             recordIncidentAsync(

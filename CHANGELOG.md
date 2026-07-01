@@ -2,6 +2,20 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.6] - 2026-07-01
+
+### Added
+
+- Added a Robolectric alarm fire-to-dismiss smoke harness that verifies the
+  local fire intent contract, firing activity launch intent, dismiss action,
+  alarm event write, incident records, and active-service cleanup.
+
+### Changed
+
+- Centralized alarm fire, snooze, dismiss, firing-activity, and event payload
+  construction through a shared `AlarmFireDismissContract` used by receivers,
+  the firing UI, and `AlarmService`.
+
 ## [1.15.5] - 2026-07-01
 
 ### Added
