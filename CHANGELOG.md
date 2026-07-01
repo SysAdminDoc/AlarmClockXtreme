@@ -2,6 +2,18 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.10] - 2026-07-01
+
+### Changed
+
+- Centralized alarm audio routing attributes so alarm tones, internet radio
+  alarm streams, fallback tones, Direct Boot alarms, setup test alarms, ringtone
+  previews, and timer-finished tones all use system alarm routing. This keeps
+  Android's hearing-aid/speaker alarm route choice in the platform path instead
+  of forcing media routing from app code.
+- Bumped app, Wear, README, roadmap, release verifier, and F-Droid metadata to
+  `versionName = "1.15.10"`, `versionCode = 112`.
+
 ## [1.15.9] - 2026-07-01
 
 ### Added

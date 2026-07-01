@@ -7,7 +7,6 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Handler
@@ -21,6 +20,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.service.AlarmAudioRouting
 
 class DirectBootAlarmService : Service() {
     private val handler = Handler(Looper.getMainLooper())
@@ -138,12 +138,7 @@ class DirectBootAlarmService : Service() {
             ?: return
         try {
             mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
+                setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
                 setDataSource(applicationContext, uri)
                 isLooping = true
                 prepare()
@@ -174,10 +169,7 @@ class DirectBootAlarmService : Service() {
             intArrayOf(0, 255, 0, 255, 0),
             0
         )
-        val attributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ALARM)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
+        val attributes = AlarmAudioRouting.alarmSonificationAttributes()
         @Suppress("DEPRECATION")
         vibrator?.vibrate(effect, attributes)
     }

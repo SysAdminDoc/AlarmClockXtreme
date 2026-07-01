@@ -819,11 +819,7 @@ class AlarmService : Service() {
         if (radioUrl.isNotBlank() && (radioUrl.startsWith("http://", true) || radioUrl.startsWith("https://", true))) {
             try {
                 mediaPlayer = MediaPlayer().apply {
-                    setAudioAttributes(AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ALARM)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                        .build()
-                    )
+                    setAudioAttributes(AlarmAudioRouting.alarmMusicAttributes())
                     setDataSource(radioUrl)
                     isLooping = false  // Streams don't loop
                     setOnPreparedListener { mp ->
@@ -907,11 +903,7 @@ class AlarmService : Service() {
         try {
             val fadeInMs = alarm.gradualVolumeSeconds * 1000L
             mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-                )
+                setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
                 setDataSource(applicationContext, uri)
                 // v1.4.0: "Dismiss at ringtone end" — honour a song/ringtone's
                 // natural length by disabling the loop and auto-dismissing
@@ -981,11 +973,7 @@ class AlarmService : Service() {
                     ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 if (fallbackUri != null) {
                     mediaPlayer = MediaPlayer().apply {
-                        setAudioAttributes(AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_ALARM)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .build()
-                        )
+                        setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
                         setDataSource(applicationContext, fallbackUri)
                         isLooping = true
                         prepare()
@@ -1083,10 +1071,7 @@ class AlarmService : Service() {
     }
 
     private fun alarmVibrationAttributes(): AudioAttributes {
-        return AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ALARM)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
+        return AlarmAudioRouting.alarmSonificationAttributes()
     }
 
     private fun Alarm.usesMutedAlarmAudio(): Boolean {

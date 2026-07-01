@@ -8,7 +8,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.AudioAttributes
 import android.media.Ringtone
 import android.media.RingtoneManager
 import android.os.Build
@@ -22,6 +21,7 @@ import androidx.activity.compose.setContent
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.service.AlarmAudioRouting
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
@@ -201,10 +201,7 @@ class OnboardingTestAlarmActivity : ComponentActivity() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 isLooping = true
             }
-            audioAttributes = AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ALARM)
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .build()
+            audioAttributes = AlarmAudioRouting.alarmSonificationAttributes()
             play()
         }
         vibrateForTest()
@@ -217,10 +214,7 @@ class OnboardingTestAlarmActivity : ComponentActivity() {
             @Suppress("DEPRECATION")
             getSystemService(Vibrator::class.java)
         } ?: return
-        val attributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ALARM)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
+        val attributes = AlarmAudioRouting.alarmSonificationAttributes()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(VibrationEffect.createOneShot(1_200L, VibrationEffect.DEFAULT_AMPLITUDE), attributes)
         } else {

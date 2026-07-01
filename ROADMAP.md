@@ -16,7 +16,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.9)
+## Current snapshot (v1.15.10)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v17, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
@@ -27,7 +27,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 111`, `versionName 1.15.9`.
+  `versionCode 112`, `versionName 1.15.10`.
 - **Surface area:** 123 Kotlin files in `:app` + 3 in `:wear`, two phone
   flavors (`play`, `fdroid`), **30 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -46,11 +46,10 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 | # | Item | Source | Effort | Rationale |
 |---|------|--------|--------|-----------|
-| X12 | [ ] LE Audio hearing-aid routing (`AudioAttributes.USAGE_ALARM` + `MediaRouter2`). Android 17 adds [system-level granular hearing-aid routing](https://www.androidpolice.com/android-15-hearing-aid-support-le-audio/) — verify ACX honors it. | [Android Bluetooth LE Audio overview](https://developer.android.com/develop/connectivity/bluetooth/ble-audio/overview); [Hearing aid audio support via Bluetooth LE](https://source.android.com/docs/core/connect/bluetooth/asha) | M | Underserved accessibility surface; LE Audio hearing aids ignore most alarm streams today. |
 | X13 | [ ] Public-transit-aware alarm (shift earlier when commute time grows or weather degrades). | open routing — Google Maps Distance Matrix or [OpenRouteService](https://openrouteservice.org/) | L | Listed Later previously — promote now that the weather/calendar plumbing can chain a routing call. Falls back gracefully without a key. |
 | X14 | [ ] Per-alarm background image with Android-12+ blur — drop-in to `AlarmFiringActivity`. Behind a per-alarm toggle, default off. | [BlackyHawky Clock 2.28](https://github.com/BlackyHawky/Clock/releases) | M | UX-only; no permissions; opt-in. |
 | X15 | [ ] Manual drag-to-reorder of alarms list (currently sorted by time / next-fire). Persists order via `Alarm.sortOrder: Int`. | [BlackyHawky Clock 2.29](https://github.com/BlackyHawky/Clock/releases) | M | Future DB v13 + backup v9 schema bump. Use Reorderable-Compose patterns. |
-| X16 | [ ] Migrate alarm audio playback from `MediaPlayer` to ExoPlayer / Media3. Improves LE Audio routing, gapless internet-radio, error handling. | [BlackyHawky Clock 2.22](https://github.com/BlackyHawky/Clock/releases) — proven precedent in the FOSS space | M | Carries regression risk — gate behind a build flag for one release. Pairs with X12 (LE Audio). |
+| X16 | [ ] Migrate alarm audio playback from `MediaPlayer` to ExoPlayer / Media3. Improves LE Audio routing, gapless internet-radio, error handling. | [BlackyHawky Clock 2.22](https://github.com/BlackyHawky/Clock/releases) — proven precedent in the FOSS space | M | Carries regression risk — gate behind a build flag for one release. Builds on the completed alarm-routing hardening. |
 | X18 | [ ] Bedtime countdown `Notification.ProgressStyle` Live Update (mirrors v1.10.10 next-alarm Live Update during the final hour before bedtime reminder fires). | [Android 16 ProgressStyle](https://developer.android.com/about/versions/16/features/progress-centric-notifications) | S | Reuses next-alarm Live Update plumbing. Was UC; promote with Android 16 install base ~21% of devices per [Wikipedia Android 16 share, March 2026](https://en.wikipedia.org/wiki/Android_16). |
 
 ## LATER — kept on the list

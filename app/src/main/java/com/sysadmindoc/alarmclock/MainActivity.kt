@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Spot the Difference adds a quick visual comparison challenge.",
-            "Chess Mate in 1 adds a compact board puzzle to dismiss flows.",
-            "RSVP Speed Reading flashes words, then checks recall.",
-            "The alarm editor and mission chains now support 30 challenges."
+            "Alarm playback now uses one shared system-alarm routing policy.",
+            "Hearing-aid and speaker routing stays under Android's alarm controls.",
+            "Direct Boot, setup test alarms, previews, and timers use alarm routing.",
+            "Regression tests now guard alarm audio attributes."
         )
     }
 }

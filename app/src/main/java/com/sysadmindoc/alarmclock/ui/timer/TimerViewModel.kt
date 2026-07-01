@@ -1,13 +1,13 @@
 package com.sysadmindoc.alarmclock.ui.timer
 
 import android.app.Application
-import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.*
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sysadmindoc.alarmclock.service.AlarmAudioRouting
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -315,11 +315,7 @@ class TimerViewModel @Inject constructor(
                 ?: return
 
             mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ALARM)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-                )
+                setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
                 setDataSource(context, uri)
                 isLooping = true
                 prepare()
