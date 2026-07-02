@@ -4,6 +4,18 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.17] - 2026-07-02
+
+### Changed
+
+- Polished backup and restore recovery copy, loading announcements, and
+  restore-preview decisions so failure and data-safety states read clearly.
+- Clarified world-clock search, dismiss-challenge actions, timer keypad
+  semantics, quick alarm chips, sleep tracking controls, and ringtone-pool
+  validation for stronger accessibility and recovery.
+- Bumped app, Wear, README, release verifier, and F-Droid metadata to
+  `versionName = "1.15.17"`, `versionCode = 119`.
+
 ## [1.15.16] - 2026-07-02
 
 ### Added
