@@ -14,10 +14,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,6 +27,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
@@ -115,6 +118,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
+import com.sysadmindoc.alarmclock.ui.adaptive.shouldUseTwoPaneLayout
 import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.backup.BackupImportMode
 import com.sysadmindoc.alarmclock.data.backup.BackupImportOptions
@@ -145,6 +149,52 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private data class SettingsPaneCategory(
+    val id: String,
+    val title: String,
+    val description: String,
+    val icon: ImageVector
+)
+
+private val settingsPaneCategories = listOf(
+    SettingsPaneCategory(
+        id = "readiness",
+        title = "Readiness",
+        description = "Permissions, diagnostics, battery, vacation, and pause controls.",
+        icon = Icons.Default.Security
+    ),
+    SettingsPaneCategory(
+        id = "defaults",
+        title = "Defaults",
+        description = "New-alarm behavior, dashboard content, and navigation tabs.",
+        icon = Icons.Default.Alarm
+    ),
+    SettingsPaneCategory(
+        id = "integrations",
+        title = "Integrations",
+        description = "Webhook, holidays, Hue, Health Connect, and connection status.",
+        icon = Icons.Default.Link
+    ),
+    SettingsPaneCategory(
+        id = "personalization",
+        title = "Personalization",
+        description = "Theme, challenge difficulty, privacy, and firing-screen behavior.",
+        icon = Icons.Default.AutoAwesome
+    ),
+    SettingsPaneCategory(
+        id = "backup",
+        title = "Backup",
+        description = "Encrypted export, restore preview, and conflict-safe import.",
+        icon = Icons.Default.Backup
+    ),
+    SettingsPaneCategory(
+        id = "utilities",
+        title = "Utilities",
+        description = "Companion tools, support bundle export, app version, and license.",
+        icon = Icons.Default.Speed
+    )
+)
 
 @Composable
 fun SettingsScreen(
@@ -232,32 +282,44 @@ fun SettingsScreen(
         }
     }
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(SurfaceDark)
-            .verticalScroll(rememberScrollState())
     ) {
-        AlarmClockHeroHeader(
-            title = "Settings",
-            subtitle = "Tune the app once and it stays out of your way. Changes save immediately.",
-            badge = {
-                AppStatusChip(
-                    label = if (state.isIgnoringBatteryOptimizations) "Battery protected" else "Needs battery setup",
-                    icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
-                    color = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow
-                )
-                AppStatusChip(
-                    label = state.appVersion,
-                    icon = Icons.Default.AutoAwesome
-                )
-            }
-        )
+        val useTwoPane = shouldUseTwoPaneLayout(maxWidth.value)
+        var selectedPaneId by rememberSaveable { mutableStateOf(settingsPaneCategories.first().id) }
+        val selectedPane = settingsPaneCategories.firstOrNull { it.id == selectedPaneId }
+            ?: settingsPaneCategories.first()
+        val showAllSettings = !useTwoPane
 
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
+        val settingsContent: @Composable (Modifier) -> Unit = { contentModifier ->
+            Column(modifier = contentModifier) {
+                if (useTwoPane) {
+                    SettingsPaneHeader(selectedPane, state)
+                } else {
+                    AlarmClockHeroHeader(
+                        title = "Settings",
+                        subtitle = "Tune the app once and it stays out of your way. Changes save immediately.",
+                        badge = {
+                            AppStatusChip(
+                                label = if (state.isIgnoringBatteryOptimizations) "Battery protected" else "Needs battery setup",
+                                icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
+                                color = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow
+                            )
+                            AppStatusChip(
+                                label = state.appVersion,
+                                icon = Icons.Default.AutoAwesome
+                            )
+                        }
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp)
+                ) {
+            if (showAllSettings || selectedPane.id == "readiness") {
             WakeReadinessSection(
                 state = state,
                 onRequestNotifications = {
@@ -294,7 +356,9 @@ fun SettingsScreen(
             PauseAlarmsSection(state, viewModel)
 
             VacationModeSection(state, viewModel)
+            }
 
+            if (showAllSettings || selectedPane.id == "defaults") {
             SettingsGroup(
                 title = "Alarm defaults",
                 description = "Set the behavior new alarms start with so setup feels faster and more predictable."
@@ -572,7 +636,9 @@ fun SettingsScreen(
                     onToggle = viewModel::toggleShowRadarEmbed
                 )
             }
+            }
 
+            if (showAllSettings || selectedPane.id == "integrations") {
             IntegrationsSection(state, viewModel)
             HolidaysSection(state, viewModel)
             PhilipsHueSection(state, viewModel)
@@ -582,9 +648,15 @@ fun SettingsScreen(
                 onRequestPermissions = requestHealthConnectPermissions
             )
             ConnectionsSection(state)
+            }
+            if (showAllSettings || selectedPane.id == "personalization") {
             PersonalizationSection(state, viewModel)
+            }
+            if (showAllSettings || selectedPane.id == "backup") {
             BackupRestoreSection(viewModel)
+            }
 
+            if (showAllSettings || selectedPane.id == "utilities") {
             SettingsGroup(
                 title = "Utilities",
                 description = "Quick access to companion tools that round out the app."
@@ -684,8 +756,189 @@ fun SettingsScreen(
                 SettingsInfo("License", "Apache License 2.0")
                 SettingsInfo("Source", "github.com/SysAdminDoc/AlarmClockXtreme")
             }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
+                }
+            }
+        }
+
+        if (useTwoPane) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                SettingsPaneRail(
+                    categories = settingsPaneCategories,
+                    selectedId = selectedPane.id,
+                    onSelect = { selectedPaneId = it },
+                    state = state,
+                    modifier = Modifier
+                        .widthIn(min = 248.dp, max = 304.dp)
+                        .fillMaxHeight()
+                )
+                settingsContent(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState())
+                )
+            }
+        } else {
+            settingsContent(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsPaneHeader(
+    category: SettingsPaneCategory,
+    state: SettingsUiState
+) {
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        AppSectionTitle(
+            title = category.title,
+            description = category.description,
+            action = {
+                AppStatusChip(
+                    label = state.appVersion,
+                    icon = Icons.Default.AutoAwesome
+                )
+            }
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AppStatusChip(
+                label = if (state.isIgnoringBatteryOptimizations) "Battery protected" else "Needs battery setup",
+                icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
+                color = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow
+            )
+            AppStatusChip(
+                label = category.title,
+                icon = category.icon,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsPaneRail(
+    categories: List<SettingsPaneCategory>,
+    selectedId: String,
+    onSelect: (String) -> Unit,
+    state: SettingsUiState,
+    modifier: Modifier = Modifier
+) {
+    AppSurfaceCard(
+        modifier = modifier.semantics {
+            contentDescription = "Settings categories"
+        },
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Settings",
+                color = TextPrimary,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Choose a group to keep wide screens focused.",
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AppStatusChip(
+                    label = if (state.isIgnoringBatteryOptimizations) "Protected" else "Setup needed",
+                    icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
+                    color = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow
+                )
+                AppStatusChip(
+                    label = state.appVersion,
+                    icon = Icons.Default.AutoAwesome
+                )
+            }
+
+            HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
+
+            categories.forEach { category ->
+                val selected = category.id == selectedId
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button) { onSelect(category.id) }
+                        .semantics {
+                            this.selected = selected
+                            stateDescription = if (selected) "Selected" else "Not selected"
+                        },
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                    } else {
+                        SurfaceLight.copy(alpha = 0.52f)
+                    },
+                    border = BorderStroke(
+                        width = if (selected) 2.dp else 1.dp,
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                        } else {
+                            BorderSubtle
+                        }
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = category.icon,
+                            contentDescription = null,
+                            tint = if (selected) MaterialTheme.colorScheme.primary else TextSecondary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(
+                                text = category.title,
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+                            )
+                            Text(
+                                text = category.description,
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

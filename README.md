@@ -172,6 +172,7 @@ cd AlarmClockXtreme
 | Persistent Notification | Always-visible next alarm countdown in shade, with Android 16 Live Update progress during the final two hours and optional public-label hiding |
 | Quick Settings Tile | Skip the next alarm from the system shade with one tap; subtitles can use neutral next-alarm text |
 | Tab Visibility Toggles | Hide Weather / Timer / World / News tabs from the bottom nav (Alarms + Settings always visible) |
+| Adaptive Wide Layouts | Tablets, foldables, Chromebooks, and DeX use a navigation rail plus Alarms list/detail and Settings category/detail panes while phones keep the compact bottom-nav flow |
 | Accent Color | Customizable accent color within dark theme |
 | Material You | Opt-in dynamic color from wallpaper palette (Android 12+) |
 | Expressive Surfaces | Opt-in Material 3 Expressive shape rhythm and accent semantics across shared cards, chips, loading states, and navigation |

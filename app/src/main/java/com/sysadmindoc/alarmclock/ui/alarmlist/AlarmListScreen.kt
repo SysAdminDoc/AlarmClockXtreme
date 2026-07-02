@@ -17,12 +17,16 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -91,6 +95,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -103,6 +108,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
+import com.sysadmindoc.alarmclock.ui.adaptive.shouldUseTwoPaneLayout
 import com.sysadmindoc.alarmclock.ui.alarmlist.components.SwipeableAlarmCard
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
@@ -200,6 +206,7 @@ fun AlarmListScreen(
     val listState = rememberLazyListState()
     var draggingAlarmId by remember { mutableStateOf<Long?>(null) }
     var dragOffsetPx by remember { mutableStateOf(0f) }
+    var selectedAlarmId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     if (showYouTubeDialog) {
         com.sysadmindoc.alarmclock.ui.components.YouTubeDownloadDialog(
@@ -344,17 +351,23 @@ fun AlarmListScreen(
                 )
             }
 
-            LazyColumn(
-                state = listState,
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                // v1.7.1: dropped from 120dp → 24dp. The outer AppNavigation
-                // Scaffold already pads NavHost with the bottom-nav inset, so
-                // the prior 120dp was a redundant gap above the floating nav.
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .weight(1f)
             ) {
+                val useTwoPane = !state.isSelectionMode && shouldUseTwoPaneLayout(maxWidth.value)
+                val selectedAlarm = filteredAlarms.firstOrNull { it.id == selectedAlarmId }
+
+                LaunchedEffect(useTwoPane, filteredAlarms) {
+                    if (!useTwoPane || filteredAlarms.isEmpty()) {
+                        selectedAlarmId = null
+                    } else if (filteredAlarms.none { it.id == selectedAlarmId }) {
+                        selectedAlarmId = filteredAlarms.first().id
+                    }
+                }
+
+                val alarmListContent: LazyListScope.() -> Unit = {
                 item {
                     AlarmHeader(
                         remainingTime = state.remainingTime,
@@ -639,9 +652,16 @@ fun AlarmListScreen(
                                             alarm = alarm,
                                             is24Hour = state.is24HourFormat,
                                             suppressedByVacation = suppressedByVacation,
+                                            isActivePaneSelection = useTwoPane && selectedAlarmId == alarm.id,
                                             onToggle = { viewModel.toggleAlarm(alarm) },
                                             onForceToggle = { viewModel.forceDisableAlarm(alarm) },
-                                            onClick = { onEditAlarm(alarm.id) },
+                                            onClick = {
+                                                if (useTwoPane) {
+                                                    selectedAlarmId = alarm.id
+                                                } else {
+                                                    onEditAlarm(alarm.id)
+                                                }
+                                            },
                                             onDelete = { viewModel.deleteAlarm(alarm) },
                                             onSkipNext = { viewModel.skipNextOccurrence(alarm) },
                                             onDuplicate = { viewModel.duplicateAlarm(alarm) },
@@ -668,9 +688,63 @@ fun AlarmListScreen(
                         )
                     }
                 }
-            }
+                }
+
+                val alarmListPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)
+                if (useTwoPane) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .widthIn(min = 360.dp, max = 520.dp)
+                                .fillMaxHeight(),
+                            contentPadding = alarmListPadding,
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            content = alarmListContent
+                        )
+                        AlarmDetailPane(
+                            alarm = selectedAlarm,
+                            is24Hour = state.is24HourFormat,
+                            suppressedByVacation = selectedAlarm?.let { alarm ->
+                                alarm.isEnabled &&
+                                    state.vacationStartMillis > 0L &&
+                                    state.vacationEndMillis > state.vacationStartMillis &&
+                                    alarm.nextTriggerTime in state.vacationStartMillis..state.vacationEndMillis
+                            } == true,
+                            onEdit = { alarm -> onEditAlarm(alarm.id) },
+                            onToggle = { alarm -> viewModel.toggleAlarm(alarm) },
+                            onForceToggle = { alarm -> viewModel.forceDisableAlarm(alarm) },
+                            onDelete = { alarm -> viewModel.deleteAlarm(alarm) },
+                            onSkipNext = { alarm -> viewModel.skipNextOccurrence(alarm) },
+                            onDuplicate = { alarm -> viewModel.duplicateAlarm(alarm) },
+                            onShare = { alarm -> shareAlarm(context, alarm, state.is24HourFormat) },
+                            onShowHistory = { alarm ->
+                                statsAlarmLabel = alarm.label.ifBlank { "%d:%02d".format(alarm.hour, alarm.minute) }
+                                viewModel.loadAlarmStats(alarm.id)
+                            },
+                            onAddAlarm = onAddAlarm,
+                            onBrowseTemplates = { showTemplates = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(end = 18.dp, top = 12.dp, bottom = 24.dp)
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = alarmListPadding,
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        content = alarmListContent
+                    )
+                }
         }
     }
+}
 }
 
 @Composable
@@ -721,6 +795,218 @@ private fun AlarmListEmptyActions(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("Browse templates")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AlarmDetailPane(
+    alarm: Alarm?,
+    is24Hour: Boolean,
+    suppressedByVacation: Boolean,
+    onEdit: (Alarm) -> Unit,
+    onToggle: (Alarm) -> Unit,
+    onForceToggle: (Alarm) -> Unit,
+    onDelete: (Alarm) -> Unit,
+    onSkipNext: (Alarm) -> Unit,
+    onDuplicate: (Alarm) -> Unit,
+    onShare: (Alarm) -> Unit,
+    onShowHistory: (Alarm) -> Unit,
+    onAddAlarm: () -> Unit,
+    onBrowseTemplates: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AppSurfaceCard(
+        modifier = modifier.semantics {
+            contentDescription = if (alarm == null) {
+                "Alarm detail pane"
+            } else {
+                "Alarm detail pane for ${alarm.label.ifBlank { formatAlarmTime(alarm, is24Hour) }}"
+            }
+        },
+        highlighted = alarm?.isEnabled == true
+    ) {
+        if (alarm == null) {
+            AppEmptyState(
+                icon = Icons.Default.AlarmAdd,
+                title = "Select an alarm",
+                description = "Choose an alarm from the list to review its next fire time and actions.",
+                footer = {
+                    AlarmListEmptyActions(
+                        onAddAlarm = onAddAlarm,
+                        onBrowseTemplates = onBrowseTemplates
+                    )
+                }
+            )
+            return@AppSurfaceCard
+        }
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            AppSectionTitle(
+                title = alarm.label.ifBlank { "Alarm details" },
+                description = if (suppressedByVacation) {
+                    "Paused until vacation ends"
+                } else {
+                    nextOccurrenceLabel(alarm, is24Hour)
+                },
+                action = {
+                    AppStatusChip(
+                        label = if (alarm.isEnabled) "Enabled" else "Paused",
+                        icon = if (alarm.isEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
+                        color = if (alarm.isEnabled) DismissGreen else TextMuted
+                    )
+                }
+            )
+
+            Text(
+                text = formatAlarmTime(alarm, is24Hour),
+                color = if (alarm.isEnabled) TextPrimary else TextMuted,
+                style = ClockTimeSmall
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (suppressedByVacation) {
+                    AppStatusChip(
+                        label = "Paused by vacation",
+                        icon = Icons.Default.BeachAccess,
+                        color = SnoozeYellow
+                    )
+                }
+                if (alarm.repeatLabel.isNotBlank()) {
+                    AppStatusChip(
+                        label = alarm.repeatLabel,
+                        icon = Icons.Default.CheckCircle,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                if (alarm.group.isNotBlank()) {
+                    AppStatusChip(label = alarm.group)
+                }
+                if (alarm.challengeType != "NONE") {
+                    AppStatusChip(
+                        label = challengeTypeLabel(alarm.challengeType),
+                        color = SnoozeYellow
+                    )
+                }
+                if (alarm.ringtoneUri == "silent") {
+                    AppStatusChip(label = "Silent", color = TextMuted)
+                }
+            }
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp)
+                    .combinedClickable(
+                        onClick = { onToggle(alarm) },
+                        onLongClick = { if (alarm.isEnabled) onForceToggle(alarm) }
+                    )
+                    .semantics {
+                        contentDescription = "${alarm.label.ifBlank { formatAlarmTime(alarm, is24Hour) }} alarm"
+                        stateDescription = if (alarm.isEnabled) "Enabled" else "Disabled"
+                        role = Role.Switch
+                    },
+                shape = RoundedCornerShape(10.dp),
+                color = SurfaceMedium,
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Alarm state", color = TextPrimary, style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            if (alarm.isEnabled) "Tap to pause. Long-press to force-pause." else "Tap to enable this alarm.",
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Switch(
+                        checked = alarm.isEnabled,
+                        onCheckedChange = null,
+                        colors = appSwitchColors(),
+                        modifier = Modifier.clearAndSetSemantics {}
+                    )
+                }
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = { onEdit(alarm) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Edit alarm")
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { onDuplicate(alarm) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Duplicate")
+                    }
+                    OutlinedButton(
+                        onClick = { onShare(alarm) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Share")
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { onShowHistory(alarm) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("History")
+                    }
+                    OutlinedButton(
+                        onClick = { onDelete(alarm) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
+                    ) {
+                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Delete")
+                    }
+                }
+                if (alarm.isEnabled && alarm.repeatDays.isNotEmpty()) {
+                    OutlinedButton(
+                        onClick = { onSkipNext(alarm) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Skip next occurrence")
+                    }
                 }
             }
         }
@@ -921,6 +1207,7 @@ private fun AlarmCard(
     alarm: Alarm,
     is24Hour: Boolean,
     suppressedByVacation: Boolean = false,
+    isActivePaneSelection: Boolean = false,
     onToggle: () -> Unit,
     onForceToggle: () -> Unit = {},
     onClick: () -> Unit,
@@ -937,14 +1224,22 @@ private fun AlarmCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .semantics {
+                if (isActivePaneSelection) {
+                    selected = true
+                    stateDescription = "Selected"
+                }
+            },
         shape = shapeTokens.card,
         colors = CardDefaults.cardColors(
             containerColor = if (alarm.isEnabled) SurfaceCard else SurfaceCard.copy(alpha = 0.55f)
         ),
         border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = if (alarm.isEnabled) {
+            width = if (isActivePaneSelection) 2.dp else 1.dp,
+            color = if (isActivePaneSelection) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.58f)
+            } else if (alarm.isEnabled) {
                 com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
             } else {
                 com.sysadmindoc.alarmclock.ui.theme.BorderSubtle.copy(alpha = 0.5f)

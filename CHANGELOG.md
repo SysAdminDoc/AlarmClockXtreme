@@ -14,6 +14,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   Room or DataStore writes occur.
 - Added last-good weather and news caches with stale-state banners and retry
   affordances when refresh fails offline.
+- Added expanded-width Alarms list/detail and Settings category/detail panes
+  for tablets, foldables, Chromebooks, and DeX while preserving the existing
+  compact phone flow.
 
 ## [1.15.15] - 2026-07-01
 
