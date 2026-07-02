@@ -4,6 +4,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.16] - 2026-07-02
+
 ### Added
 
 - Added optional webhook HMAC signing with `X-ACX-Timestamp` and
@@ -17,6 +19,14 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Added expanded-width Alarms list/detail and Settings category/detail panes
   for tablets, foldables, Chromebooks, and DeX while preserving the existing
   compact phone flow.
+
+### Changed
+
+- Extracted AlarmService haptic, flashlight, and post-dismiss TTS, briefing,
+  and wake-confirm decisions into controller-sized units with focused tests;
+  no alarm firing behavior change intended.
+- Bumped app, Wear, README, release verifier, and F-Droid metadata to
+  `versionName = "1.15.16"`, `versionCode = 118`.
 
 ## [1.15.15] - 2026-07-01
 

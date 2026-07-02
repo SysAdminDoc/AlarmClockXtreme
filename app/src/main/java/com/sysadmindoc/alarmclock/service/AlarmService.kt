@@ -45,9 +45,6 @@ import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -83,7 +80,6 @@ class AlarmService : Service() {
         const val EXTRA_WAKE_CONFIRM_REFIRE_COUNT = "wake_confirm_refire_count"
         private const val MIN_CUSTOM_SNOOZE_MINUTES = 1
         private const val MAX_CUSTOM_SNOOZE_MINUTES = 120
-        private const val HAPTIC_ONLY_COMPOSITION_INTERVAL_MS = 1_450L
 
         const val CHANNEL_ALARM = "alarm_channel"
         const val CHANNEL_UPCOMING = "upcoming_alarm_channel"
@@ -411,7 +407,7 @@ class AlarmService : Service() {
 
         startAudio(alarm)
 
-        if (alarm.vibrationEnabled) {
+        AlarmHapticController.vibrationDelayMillis(alarm)?.let { delayMillis ->
             // v1.12.0 (roadmap N7): optional pre-vibration delay. Defers haptic
             // onset for `vibrationDelaySeconds` so it can pair with a long
             // gradualVolumeSeconds fade-in ("audio first, vibration when the
@@ -419,9 +415,9 @@ class AlarmService : Service() {
             // volumeJob's parent scope — snooze / dismiss / auto-silence all
             // cancel serviceScope, so a queued vibration never fires after the
             // alarm is gone.
-            if (alarm.vibrationDelaySeconds > 0) {
+            if (delayMillis > 0) {
                 serviceScope.launch {
-                    kotlinx.coroutines.delay(alarm.vibrationDelaySeconds * 1000L)
+                    kotlinx.coroutines.delay(delayMillis)
                     // Re-check the live alarm id — service-restart races could
                     // otherwise vibrate for an alarm the user already dismissed.
                     if (currentAlarmId == alarmId) startVibration(alarm)
@@ -500,7 +496,7 @@ class AlarmService : Service() {
         }
 
         // v1.2.0: Backup sound escalation
-        if (alarm.backupSoundEnabled && !alarm.usesMutedAlarmAudio()) {
+        if (alarm.backupSoundEnabled && !AlarmHapticController.usesMutedAlarmAudio(alarm)) {
             backupSoundJob = serviceScope.launch {
                 delay(alarm.backupSoundDelaySec * 1000L)
                 // Escalate: set volume to max and switch to system alarm tone.
@@ -524,8 +520,8 @@ class AlarmService : Service() {
         }
 
         // v1.2.0: Flashlight strobe
-        if (alarm.flashlightStrobe) {
-            startFlashlightStrobe()
+        AlarmFlashlightController.strobePlan(alarm)?.let { plan ->
+            startFlashlightStrobe(plan)
         }
 
         // v1.2.0: Guardian Angel — schedule emergency contact call if not dismissed.
@@ -735,7 +731,7 @@ class AlarmService : Service() {
 
     private fun startAudio(alarm: Alarm) {
         // Silent mode - skip audio entirely
-        if (alarm.ringtoneUri == "silent" || alarm.usesMutedAlarmAudio()) {
+        if (alarm.ringtoneUri == "silent" || AlarmHapticController.usesMutedAlarmAudio(alarm)) {
             recordIncidentAsync(
                 type = AlarmIncidentEvent.TYPE_AUDIO,
                 status = AlarmIncidentEvent.STATUS_SKIPPED,
@@ -1275,35 +1271,20 @@ class AlarmService : Service() {
         // Devices without a vibrator (some tablets, Wear shells, emulators) — skip silently.
         if (vibrator == null || vibrator?.hasVibrator() != true) return
 
-        if (alarm.usesHapticOnlyProfile() && startHapticOnlyCompositionLoop()) {
+        if (AlarmHapticController.usesHapticOnlyProfile(alarm) && startHapticOnlyCompositionLoop()) {
             return
         }
 
-        val (pattern, amplitudes) = when (alarm.vibrationPattern) {
-            "gentle" -> longArrayOf(0, 200, 1200, 200, 1200) to intArrayOf(0, 60, 0, 60, 0)
-            "heartbeat" -> longArrayOf(0, 150, 100, 150, 800) to intArrayOf(0, 200, 0, 255, 0)
-            "escalating" -> longArrayOf(0, 200, 600, 300, 500, 400, 400, 500, 300) to
-                intArrayOf(0, 60, 0, 120, 0, 180, 0, 255, 0)
-            "sos" -> longArrayOf(0, 150, 100, 150, 100, 150, 300, 400, 100, 400, 100, 400, 300, 150, 100, 150, 100, 150, 600) to
-                intArrayOf(0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0)
-            else -> { // "default"
-                if (alarm.usesHapticOnlyProfile()) {
-                    longArrayOf(0, 90, 140, 140, 720, 180, 1300) to
-                        intArrayOf(0, 95, 0, 140, 0, 185, 0)
-                } else {
-                    when (alarm.vibrationIntensity) {
-                        1 -> longArrayOf(0, 200, 1000, 200, 1000) to intArrayOf(0, 80, 0, 80, 0)
-                        else -> longArrayOf(0, 500, 500, 500, 500) to intArrayOf(0, 255, 0, 255, 0)
-                    }
-                }
-            }
-        }
+        val waveform = AlarmHapticController.waveform(alarm)
 
         val vibrationAttributes = alarmVibrationAttributes()
         if (vibrator?.hasAmplitudeControl() == true) {
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, amplitudes, 0), vibrationAttributes)
+            vibrator?.vibrate(
+                VibrationEffect.createWaveform(waveform.pattern, waveform.amplitudes, 0),
+                vibrationAttributes
+            )
         } else {
-            vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0), vibrationAttributes)
+            vibrator?.vibrate(VibrationEffect.createWaveform(waveform.pattern, 0), vibrationAttributes)
         }
     }
 
@@ -1328,7 +1309,7 @@ class AlarmService : Service() {
                     .addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, 0.78f, 620)
                     .compose()
                 activeVibrator.vibrate(effect, vibrationAttributes)
-                delay(HAPTIC_ONLY_COMPOSITION_INTERVAL_MS)
+                delay(AlarmHapticController.HAPTIC_ONLY_COMPOSITION_INTERVAL_MS)
             }
         }
         return true
@@ -1336,14 +1317,6 @@ class AlarmService : Service() {
 
     private fun alarmVibrationAttributes(): AudioAttributes {
         return AlarmAudioRouting.alarmSonificationAttributes()
-    }
-
-    private fun Alarm.usesMutedAlarmAudio(): Boolean {
-        return overrideSystemVolume && volume <= 0
-    }
-
-    private fun Alarm.usesHapticOnlyProfile(): Boolean {
-        return usesMutedAlarmAudio() && vibrationEnabled
     }
 
     private suspend fun snoozeAlarm(alarmId: Long, customMinutes: Int? = null) {
@@ -1489,15 +1462,15 @@ class AlarmService : Service() {
             dismissActionExecutor.executeAsync(alarm)
 
             // F11: TTS morning announcement
-            if (alarm.ttsEnabled) {
-                speakMorningAnnouncement(alarm)
+            if (AlarmPostDismissController.shouldSpeakMorningAnnouncement(alarm)) {
+                speakMorningAnnouncement()
             }
 
             // F12: Morning briefing screen
             showMorningBriefing(alarm)
 
             // F5: Post-alarm wake confirmation
-            if (alarm.wakeConfirmEnabled) {
+            if (AlarmPostDismissController.shouldScheduleWakeConfirmation(alarm)) {
                 scheduleWakeConfirmation(
                     alarm = alarm,
                     fireId = wakeConfirmFireId,
@@ -1540,19 +1513,8 @@ class AlarmService : Service() {
     // Hard 30 s safety net is scheduled via the AppContext-bound
     // ScheduledExecutorService below (independent of serviceScope) so a
     // pathological TTS backend never holds the engine forever.
-    private fun speakMorningAnnouncement(alarm: Alarm) {
-        val now = LocalTime.now()
-        val h = if (now.hour % 12 == 0) 12 else now.hour % 12
-        val minStr = when {
-            now.minute == 0 -> "o'clock"
-            now.minute < 10 -> "oh ${now.minute}"
-            else -> "${now.minute}"
-        }
-        val amPm = if (now.hour < 12) "A.M." else "P.M."
-        val today = LocalDate.now()
-        val dayName = today.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
-        val monthName = today.month.name.lowercase().replaceFirstChar { it.uppercase() }
-        val text = "It is $h $minStr $amPm. Today is $dayName, $monthName ${today.dayOfMonth}."
+    private fun speakMorningAnnouncement() {
+        val text = AlarmPostDismissController.morningAnnouncementText()
 
         val ttsRef = java.util.concurrent.atomic.AtomicReference<TextToSpeech?>()
         val safetyCancel = java.util.concurrent.atomic.AtomicReference<java.util.concurrent.ScheduledFuture<*>?>()
@@ -1602,17 +1564,15 @@ class AlarmService : Service() {
 
     // F12: Launch morning briefing Activity
     private fun showMorningBriefing(alarm: Alarm) {
-        val now = LocalTime.now()
-        val timeStr = "${if (now.hour % 12 == 0) 12 else now.hour % 12}:${String.format("%02d", now.minute)} ${if (now.hour < 12) "AM" else "PM"}"
-        val dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
+        val payload = AlarmPostDismissController.morningBriefingPayload(alarm)
 
         val intent = Intent(this, MorningBriefingActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra(MorningBriefingActivity.EXTRA_TIME, timeStr)
-            putExtra(MorningBriefingActivity.EXTRA_DATE, dateStr)
-            putExtra(MorningBriefingActivity.EXTRA_WEATHER, "")  // Weather cached separately
-            putExtra(MorningBriefingActivity.EXTRA_NEXT_EVENT, "")
-            putExtra(MorningBriefingActivity.EXTRA_ROUTINE, alarm.morningRoutine)
+            putExtra(MorningBriefingActivity.EXTRA_TIME, payload.time)
+            putExtra(MorningBriefingActivity.EXTRA_DATE, payload.date)
+            putExtra(MorningBriefingActivity.EXTRA_WEATHER, payload.weather)  // Weather cached separately
+            putExtra(MorningBriefingActivity.EXTRA_NEXT_EVENT, payload.nextEvent)
+            putExtra(MorningBriefingActivity.EXTRA_ROUTINE, payload.routine)
         }
         startActivity(intent)
     }
@@ -1628,21 +1588,20 @@ class AlarmService : Service() {
         scheduledAt: Long,
         refireCount: Int = currentWakeConfirmRefireCount
     ) {
-        val delayMinutes = alarm.wakeConfirmDelayMinutes.coerceAtLeast(1).toLong()
-        val data = workDataOf(
-            WakeConfirmWorker.KEY_ALARM_ID to alarm.id,
-            WakeConfirmWorker.KEY_ALARM_FIRE_ID to fireId,
-            WakeConfirmWorker.KEY_SCHEDULED_AT to scheduledAt,
-            WakeConfirmWorker.KEY_REFIRE_COUNT to refireCount
+        val plan = AlarmPostDismissController.wakeConfirmationPlan(
+            alarm = alarm,
+            fireId = fireId,
+            scheduledAt = scheduledAt,
+            refireCount = refireCount
         )
         val request = OneTimeWorkRequestBuilder<WakeConfirmWorker>()
-            .setInitialDelay(delayMinutes, TimeUnit.MINUTES)
-            .setInputData(data)
-            .addTag("wake_confirm_${alarm.id}")
+            .setInitialDelay(plan.delayMinutes, TimeUnit.MINUTES)
+            .setInputData(plan.inputData)
+            .addTag(plan.tag)
             .build()
         WorkManager.getInstance(applicationContext)
             .enqueueUniqueWork(
-                "wake_confirm_${alarm.id}",
+                plan.uniqueWorkName,
                 ExistingWorkPolicy.REPLACE,
                 request
             )
@@ -1775,7 +1734,7 @@ class AlarmService : Service() {
         nm.notify(MISSED_NOTIFICATION_ID, notification)
     }
 
-    private fun startFlashlightStrobe() {
+    private fun startFlashlightStrobe(plan: AlarmFlashlightStrobePlan) {
         try {
             val cameraManager = getSystemService(Context.CAMERA_SERVICE) as android.hardware.camera2.CameraManager
             val cameraId = cameraManager.cameraIdList.firstOrNull() ?: return
@@ -1784,9 +1743,9 @@ class AlarmService : Service() {
                     while (isActive) {
                         try {
                             cameraManager.setTorchMode(cameraId, true)
-                            delay(200)
+                            delay(plan.onMillis)
                             cameraManager.setTorchMode(cameraId, false)
-                            delay(300)
+                            delay(plan.offMillis)
                         } catch (_: Exception) {
                             // Sensor access revoked mid-strobe (rare but possible
                             // when the user opens the Camera app during an alarm).
