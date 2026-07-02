@@ -55,10 +55,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -414,6 +416,11 @@ private fun NumPad(
                 row.forEach { key ->
                     val interactionSource = remember { MutableInteractionSource() }
                     val pressed by interactionSource.collectIsPressedAsState()
+                    val keyLabel = when (key) {
+                        -1 -> "Delete digit"
+                        -2 -> "Add double zero"
+                        else -> "Enter $key"
+                    }
                     val pressScale by animateFloatAsState(
                         targetValue = if (pressed) 0.97f else 1f,
                         animationSpec = tween(durationMillis = 90, easing = FastOutSlowInEasing),
@@ -428,6 +435,7 @@ private fun NumPad(
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1.12f)
+                            .semantics { contentDescription = keyLabel }
                             .graphicsLayer {
                                 scaleX = pressScale
                                 scaleY = pressScale
@@ -460,7 +468,7 @@ private fun NumPad(
                             contentAlignment = Alignment.Center
                         ) {
                             when (key) {
-                                -1 -> Icon(Icons.AutoMirrored.Filled.Backspace, "Delete digit", tint = accent)
+                                -1 -> Icon(Icons.AutoMirrored.Filled.Backspace, contentDescription = null, tint = accent)
                                 -2 -> Text("00", color = accent, fontSize = 22.sp, fontWeight = FontWeight.Medium)
                                 else -> Text(key.toString(), color = TextPrimary, fontSize = 24.sp, textAlign = TextAlign.Center)
                             }

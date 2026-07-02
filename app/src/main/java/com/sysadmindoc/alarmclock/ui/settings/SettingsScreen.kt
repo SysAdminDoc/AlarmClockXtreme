@@ -3056,9 +3056,14 @@ private fun BackupImportPreviewDialog(
                 tint = if (preview.canImport) MaterialTheme.colorScheme.primary else AccentRed
             )
         },
-        title = { Text("Preview restore") },
+        title = { Text("Review backup before restore") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Nothing changes until you choose how to restore this backup.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextPrimary
+                )
                 Text(
                     text = preview.compatibilityStatus,
                     style = MaterialTheme.typography.bodyMedium,
@@ -3128,7 +3133,7 @@ private fun BackupImportPreviewDialog(
                             colors = appSwitchColors()
                         )
                         Text(
-                            text = "Import enabled alarms as disabled",
+                            text = "Keep restored alarms disabled until I review them",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary,
                             modifier = Modifier.weight(1f)
@@ -3141,10 +3146,10 @@ private fun BackupImportPreviewDialog(
             if (preview.canImport) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { onImport(BackupImportMode.Append) }) {
-                        Text("Append")
+                        Text("Append alarms")
                     }
                     TextButton(onClick = { onImport(BackupImportMode.Replace) }) {
-                        Text("Replace")
+                        Text("Replace alarms")
                     }
                 }
             }
@@ -3216,7 +3221,7 @@ private fun BackupExportWarningDialog(
         },
         confirmButton = {
             TextButton(onClick = onContinue) {
-                Text("Continue export")
+                Text(if (encrypted) "Export encrypted backup" else "Export plain backup")
             }
         },
         dismissButton = {

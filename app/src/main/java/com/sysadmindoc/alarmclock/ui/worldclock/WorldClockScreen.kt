@@ -316,7 +316,7 @@ private fun AddTimeZoneDialog(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Add a city", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "Search by city name or time-zone region, then tap a result to add it.",
+                    "Search by city, country, or time-zone region, then tap a result to add it.",
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -327,7 +327,7 @@ private fun AddTimeZoneDialog(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = onQueryChange,
-                    placeholder = { Text("Search city or region") },
+                    placeholder = { Text("Search city, country, or region") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
@@ -365,14 +365,14 @@ private fun AddTimeZoneDialog(
                                     tint = if (showNoResults) TextMuted else MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = if (showNoResults) "No matching cities yet" else "Search for a city",
+                                    text = if (showNoResults) "No city matches that search" else "Search for a city",
                                     color = TextPrimary,
                                     style = MaterialTheme.typography.titleSmall
                                 )
                             }
                             Text(
                                 text = if (showNoResults) {
-                                    "Try a broader city name or search by a time-zone region like Europe or America."
+                                    "Try a broader city name, or search a region such as Europe or America."
                                 } else {
                                     "Type at least two characters to search the available time zones."
                                 },

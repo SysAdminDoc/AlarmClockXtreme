@@ -2143,7 +2143,7 @@ fun TypingSpeedChallengeView(
 
         if (wrongAttempts > 0) {
             ChallengeNotice(
-                text = "Too slow or too many errors \u2014 try again!",
+                text = "Too slow or too many word errors. Reset your pace and try again.",
                 accent = if (wrongFlash) AccentRed else AccentRed.copy(alpha = 0.75f),
                 icon = Icons.Default.WarningAmber
             )
@@ -2153,7 +2153,7 @@ fun TypingSpeedChallengeView(
             value = currentInput,
             onValueChange = onInputChanged,
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Type here\u2026") },
+            label = { Text("Type the phrase") },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { onSubmit() }),
             colors = appOutlinedTextFieldColors(),
@@ -2169,7 +2169,7 @@ fun TypingSpeedChallengeView(
             shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
         ) {
-            Text("Submit", color = TextPrimary, fontWeight = FontWeight.Bold)
+            Text("Check speed", color = TextPrimary, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -2285,7 +2285,7 @@ fun WordleChallengeView(
                 shape = RoundedCornerShape(10.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
             ) {
-                Text("Guess", color = TextPrimary, fontWeight = FontWeight.Bold)
+                Text("Submit guess", color = TextPrimary, fontWeight = FontWeight.Bold)
             }
         }
     }
