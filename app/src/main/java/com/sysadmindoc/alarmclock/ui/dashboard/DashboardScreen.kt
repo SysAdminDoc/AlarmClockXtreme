@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.NightsStay
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Thermostat
@@ -93,6 +94,7 @@ import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import java.time.LocalTime
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun DashboardScreen(
@@ -137,7 +139,8 @@ fun DashboardScreen(
                 if (state.showWeather) {
                     WeatherSection(
                         state = state,
-                        onChangeLocation = viewModel::showLocationPicker
+                        onChangeLocation = viewModel::showLocationPicker,
+                        onRetryWeather = viewModel::loadWeather
                     )
                 }
 
@@ -226,7 +229,8 @@ private fun DashboardHeader(state: DashboardUiState) {
 @Composable
 private fun WeatherSection(
     state: DashboardUiState,
-    onChangeLocation: () -> Unit
+    onChangeLocation: () -> Unit,
+    onRetryWeather: () -> Unit
 ) {
     // v1.7.4: dropped the "Weather / Current conditions and a short forecast"
     // section title — the icon + temp + description below already self-narrate
@@ -261,6 +265,26 @@ private fun WeatherSection(
             }
 
             else -> {
+                if (state.weatherStale && state.weatherLastUpdatedMillis != null) {
+                    AppInlineNotice(
+                        title = "Showing saved forecast",
+                        message = buildWeatherStaleMessage(state),
+                        icon = Icons.Default.CloudOff,
+                        color = SnoozeYellow
+                    )
+                    OutlinedButton(
+                        onClick = onRetryWeather,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text("Retry weather")
+                    }
+                }
+
                 // v1.7.4: Centered hero — location chip, big icon, big temp,
                 // condition description, all stacked and centered. ZeusWatch's
                 // CurrentConditionsHeader inspired the layout.
@@ -481,6 +505,23 @@ private fun WeatherMetric(
         accent = accent,
         modifier = modifier
     )
+}
+
+private fun buildWeatherStaleMessage(state: DashboardUiState): String {
+    val updated = state.weatherLastUpdatedMillis?.let(::formatRelativeAge) ?: "earlier"
+    val reason = state.weatherStaleMessage ?: "Showing the last saved forecast."
+    return "$reason Last updated $updated."
+}
+
+private fun formatRelativeAge(epochMs: Long): String {
+    val deltaMs = (System.currentTimeMillis() - epochMs).coerceAtLeast(0)
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(deltaMs)
+    return when {
+        seconds < 60 -> "just now"
+        seconds < 3600 -> "${TimeUnit.SECONDS.toMinutes(seconds)}m ago"
+        seconds < 86_400 -> "${TimeUnit.SECONDS.toHours(seconds)}h ago"
+        else -> "${TimeUnit.SECONDS.toDays(seconds)}d ago"
+    }
 }
 
 @Composable

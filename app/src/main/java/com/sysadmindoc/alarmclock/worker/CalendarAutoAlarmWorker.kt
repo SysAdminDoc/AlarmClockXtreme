@@ -217,7 +217,7 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
                     settings.lastKnownLatitude,
                     settings.lastKnownLongitude,
                     settings.temperatureUnit
-                ).getOrNull()
+                ).getOrNull()?.response
             } else {
                 null
             }

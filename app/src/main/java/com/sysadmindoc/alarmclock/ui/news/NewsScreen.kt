@@ -45,10 +45,12 @@ import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppIconSize
+import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppSkeletonBlock
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
@@ -126,6 +128,24 @@ fun NewsScreen(
                                 selected = feed.key == state.activeFeedKey,
                                 onClick = { viewModel.selectFeed(feed.key) },
                                 selectionSemantics = true,
+                            )
+                        }
+                    }
+                }
+
+                if (state.isStale && !state.staleMessage.isNullOrBlank()) {
+                    item {
+                        Box(
+                            modifier = Modifier.padding(
+                                horizontal = 16.dp,
+                                vertical = 8.dp,
+                            )
+                        ) {
+                            AppInlineNotice(
+                                title = "Showing saved headlines",
+                                message = state.staleMessage.orEmpty(),
+                                icon = Icons.Default.Refresh,
+                                color = SnoozeYellow
                             )
                         }
                     }

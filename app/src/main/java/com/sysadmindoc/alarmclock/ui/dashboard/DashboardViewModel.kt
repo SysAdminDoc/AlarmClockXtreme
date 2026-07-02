@@ -75,6 +75,9 @@ data class DashboardUiState(
     val calendarPermissionNeeded: Boolean = false,
     // Forecast
     val forecast: List<ForecastDay> = emptyList(),
+    val weatherLastUpdatedMillis: Long? = null,
+    val weatherStale: Boolean = false,
+    val weatherStaleMessage: String? = null,
     // Location search
     val showLocationPicker: Boolean = false,
     val locationSearchResults: List<GeocodingResult> = emptyList(),
@@ -182,6 +185,9 @@ class DashboardViewModel @Inject constructor(
                     weatherLoading = false,
                     weatherError = null,
                     forecast = emptyList(),
+                    weatherLastUpdatedMillis = null,
+                    weatherStale = false,
+                    weatherStaleMessage = null,
                     airQuality = null
                 ) }
             }
@@ -223,7 +229,10 @@ class DashboardViewModel @Inject constructor(
                 val context = getApplication<Application>()
                 val location = LocationHelper.getLastKnownLocation(context)
 
-                if (location == null) {
+                if (location == null &&
+                    settings.lastKnownLatitude == 0.0 &&
+                    settings.lastKnownLongitude == 0.0
+                ) {
                     _uiState.update { it.copy(
                         weatherLoading = false,
                         hasLocation = false,
@@ -238,14 +247,23 @@ class DashboardViewModel @Inject constructor(
                         lowTemp = "",
                         precipChance = "",
                         forecast = emptyList(),
+                        weatherLastUpdatedMillis = null,
+                        weatherStale = false,
+                        weatherStaleMessage = null,
                         airQuality = null,
                         weatherError = "Tap the location icon to set your city"
                     ) }
                     return@launch
                 }
-                lat = location.latitude
-                lon = location.longitude
-                locName = "Current Location"
+                if (location != null) {
+                    lat = location.latitude
+                    lon = location.longitude
+                    locName = "Current Location"
+                } else {
+                    lat = settings.lastKnownLatitude
+                    lon = settings.lastKnownLongitude
+                    locName = settings.locationName.ifBlank { "Last Location" }
+                }
 
                 val shouldRescheduleSolarAlarms = shouldRescheduleSolarAlarms(
                     previous = settings,
@@ -263,7 +281,8 @@ class DashboardViewModel @Inject constructor(
             }
 
             weatherRepository.getWeather(lat, lon, apiTempUnit, apiWindUnit)
-                .onSuccess { response ->
+                .onSuccess { snapshot ->
+                    val response = snapshot.response
                     val current = response.current
                     val daily = response.daily
                     val hourly = response.hourly
@@ -293,7 +312,15 @@ class DashboardViewModel @Inject constructor(
                         uvIndex = formatUv(current?.uvIndex ?: daily?.uvIndexMax?.firstOrNull()),
                         hourly = buildHourly(hourly),
                         airQuality = null,
-                        forecast = buildForecast(daily)
+                        forecast = buildForecast(daily),
+                        weatherLastUpdatedMillis = snapshot.fetchedAtMillis,
+                        weatherStale = snapshot.isStale,
+                        weatherStaleMessage = if (snapshot.isStale) {
+                            "Refresh failed; showing the last saved forecast."
+                        } else {
+                            null
+                        },
+                        weatherError = null
                     ) }
 
                     // Fire-and-forget NWS alerts fetch. Failure is silent —
@@ -340,6 +367,9 @@ class DashboardViewModel @Inject constructor(
                         uvIndex = "",
                         hourly = emptyList(),
                         forecast = emptyList(),
+                        weatherLastUpdatedMillis = null,
+                        weatherStale = false,
+                        weatherStaleMessage = null,
                         airQuality = null,
                         weatherError = "Weather unavailable"
                     ) }

@@ -12,6 +12,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Added backup import preview with compatibility, alarm counts, private-value
   disclosure, and append/replace/import-disabled restore choices before any
   Room or DataStore writes occur.
+- Added last-good weather and news caches with stale-state banners and retry
+  affordances when refresh fails offline.
 
 ## [1.15.15] - 2026-07-01
 

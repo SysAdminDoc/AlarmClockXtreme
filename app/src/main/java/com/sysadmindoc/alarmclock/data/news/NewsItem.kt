@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.data.news
 
+import com.squareup.moshi.JsonClass
+
 /**
  * One parsed RSS/Atom item, normalized down to what the News tab actually
  * renders. We deliberately keep the model thin — anything fancier (categories,
@@ -11,6 +13,7 @@ package com.sysadmindoc.alarmclock.data.news
  *  - [publishedAtMillis] epoch ms or null if the source omitted pubDate. Used
  *    for sorting and the relative-time chip ("3h ago").
  */
+@JsonClass(generateAdapter = true)
 data class NewsItem(
     val id: String,
     val title: String,

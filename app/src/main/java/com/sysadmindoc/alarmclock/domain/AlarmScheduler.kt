@@ -150,7 +150,9 @@ class AlarmScheduler @Inject constructor(
                 val lat = settings.lastKnownLatitude
                 val lng = settings.lastKnownLongitude
                 if (lat != 0.0 || lng != 0.0) {
-                    weather = weatherRepository.getWeather(lat, lng, settings.temperatureUnit).getOrNull()
+                    weather = weatherRepository.getWeather(lat, lng, settings.temperatureUnit)
+                        .getOrNull()
+                        ?.response
                 }
             }
             if (weather != null) {

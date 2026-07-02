@@ -72,6 +72,8 @@ data class NewsUiState(
     val refreshing: Boolean = false,
     val errorMessage: String? = null,
     val lastUpdatedMillis: Long? = null,
+    val isStale: Boolean = false,
+    val staleMessage: String? = null,
 )
 
 @HiltViewModel
@@ -117,6 +119,8 @@ class NewsViewModel @Inject constructor(
             activeFeedUrl = feed.url,
             items = emptyList(),
             errorMessage = null,
+            isStale = false,
+            staleMessage = null,
         )
         viewModelScope.launch {
             preferencesManager.update { it.copy(newsFeedUrl = feed.url) }
@@ -135,13 +139,19 @@ class NewsViewModel @Inject constructor(
             )
             val url = _uiState.value.activeFeedUrl
             repository.fetchFeed(url)
-                .onSuccess { items ->
+                .onSuccess { snapshot ->
                     _uiState.value = _uiState.value.copy(
                         loading = false,
                         refreshing = false,
-                        items = items,
+                        items = snapshot.items,
                         errorMessage = null,
-                        lastUpdatedMillis = System.currentTimeMillis(),
+                        lastUpdatedMillis = snapshot.fetchedAtMillis,
+                        isStale = snapshot.isStale,
+                        staleMessage = if (snapshot.isStale) {
+                            buildNewsStaleMessage(snapshot.refreshError)
+                        } else {
+                            null
+                        },
                     )
                 }
                 .onFailure { error ->
@@ -149,10 +159,18 @@ class NewsViewModel @Inject constructor(
                         loading = false,
                         refreshing = false,
                         errorMessage = newsLoadErrorMessage(error),
+                        isStale = false,
+                        staleMessage = null,
                     )
                 }
         }
     }
+}
+
+private fun buildNewsStaleMessage(error: Throwable?): String {
+    val reason = error?.let(::newsLoadErrorMessage)
+        ?: "The feed could not be refreshed."
+    return "Showing saved headlines. Use Refresh to try again. $reason"
 }
 
 internal fun newsLoadErrorMessage(error: Throwable): String {
