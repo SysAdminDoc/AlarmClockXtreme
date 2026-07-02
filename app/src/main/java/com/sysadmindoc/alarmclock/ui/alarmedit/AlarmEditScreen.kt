@@ -1579,10 +1579,13 @@ fun AlarmEditScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         ringtonePoolEntries.forEach { uri ->
+                            val shortName = ringtoneShortName(uri)
                             AppFilterChip(
-                                label = ringtoneShortName(uri),
+                                label = shortName,
                                 selected = true,
+                                leadingIcon = Icons.Default.Close,
                                 selectionSemantics = false,
+                                accessibilityLabel = "Remove $shortName from ringtone pool",
                                 onClick = {
                                     val next = ringtonePoolEntries.filterNot { it == uri }.joinToString(",")
                                     viewModel.updateRingtonePool(next)
@@ -1590,8 +1593,9 @@ fun AlarmEditScreen(
                             )
                         }
                         AppFilterChip(
-                            label = "Add",
+                            label = "Add ringtone",
                             selected = false,
+                            accessibilityLabel = "Add ringtone to pool",
                             onClick = { showAddRingtoneDialog = true }
                         )
                     }
@@ -1602,39 +1606,47 @@ fun AlarmEditScreen(
                 )
                 if (showAddRingtoneDialog) {
                     var newUri by remember { mutableStateOf("") }
+                    val trimmedUri = newUri.trim()
+                    val duplicateUri = trimmedUri in ringtonePoolEntries
+                    val canAddRingtone = trimmedUri.isNotEmpty() && !duplicateUri
                     AlertDialog(
                         onDismissRequest = { showAddRingtoneDialog = false },
                         title = { Text("Add ringtone to pool") },
                         text = {
-                            Column {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
-                                    "Paste a content:// URI or file:// path. The current single Ringtone setting is overridden whenever the pool is non-empty.",
+                                    "Paste a content:// URI or file:// path. A random pool entry plays each time this alarm fires.",
                                     color = TextSecondary,
                                     style = MaterialTheme.typography.bodySmall
                                 )
-                                Spacer(Modifier.height(8.dp))
                                 OutlinedTextField(
                                     value = newUri,
                                     onValueChange = { newUri = it },
-                                    placeholder = { Text("content://… or file://…", color = TextMuted) },
+                                    label = { Text("Ringtone URI") },
+                                    placeholder = { Text("content://... or file://...", color = TextMuted) },
                                     singleLine = true,
                                     colors = appOutlinedTextFieldColors(),
                                     shape = AppInputShape,
                                     modifier = Modifier.fillMaxWidth()
                                 )
+                                if (duplicateUri) {
+                                    Text(
+                                        text = "That ringtone is already in the pool.",
+                                        color = AccentRed,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
                             }
                         },
                         confirmButton = {
                             TextButton(
+                                enabled = canAddRingtone,
                                 onClick = {
-                                    val trimmed = newUri.trim()
-                                    if (trimmed.isNotEmpty() && trimmed !in ringtonePoolEntries) {
-                                        val next = (ringtonePoolEntries + trimmed).joinToString(",")
-                                        viewModel.updateRingtonePool(next)
-                                    }
+                                    val next = (ringtonePoolEntries + trimmedUri).joinToString(",")
+                                    viewModel.updateRingtonePool(next)
                                     showAddRingtoneDialog = false
                                 }
-                            ) { Text("Add") }
+                            ) { Text("Add ringtone") }
                         },
                         dismissButton = {
                             TextButton(onClick = { showAddRingtoneDialog = false }) { Text("Cancel") }

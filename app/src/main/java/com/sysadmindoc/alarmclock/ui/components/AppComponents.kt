@@ -691,6 +691,7 @@ fun AppFilterChip(
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
     selectionSemantics: Boolean = selected,
+    accessibilityLabel: String? = null,
 ) {
     val isSelected = selected
     val shapeTokens = LocalAppShapeTokens.current
@@ -704,6 +705,9 @@ fun AppFilterChip(
             .minimumInteractiveComponentSize()
             .semantics {
                 role = Role.Button
+                if (!accessibilityLabel.isNullOrBlank()) {
+                    contentDescription = accessibilityLabel
+                }
                 if (selectionSemantics) {
                     this.selected = isSelected
                     stateDescription = if (isSelected) "Selected" else "Not selected"

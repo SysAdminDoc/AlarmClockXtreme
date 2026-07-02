@@ -865,7 +865,12 @@ private fun SonarSleepTrackingSection(
                 label = if (state.sonarTrackingActive) "Stop" else "Start",
                 selected = state.sonarTrackingActive,
                 onClick = onToggle,
-                selectionSemantics = false
+                selectionSemantics = false,
+                accessibilityLabel = if (state.sonarTrackingActive) {
+                    "Stop sleep-motion tracking"
+                } else {
+                    "Start sleep-motion tracking"
+                }
             )
         }
     }

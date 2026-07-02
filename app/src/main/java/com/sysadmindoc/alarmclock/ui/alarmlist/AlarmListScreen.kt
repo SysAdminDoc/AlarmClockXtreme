@@ -1160,6 +1160,7 @@ private fun QuickAlarmRow(
                 AppFilterChip(
                     label = label,
                     selected = false,
+                    accessibilityLabel = "Set quick alarm for $label",
                     onClick = { onQuickAlarm(minutes) },
                 )
             }
@@ -1194,6 +1195,7 @@ private fun QuickAlarmRow(
                     selected = isDefault,
                     leadingIcon = if (isDefault) Icons.Default.CheckCircle else null,
                     selectionSemantics = false,
+                    accessibilityLabel = "Set $minutes-minute power nap${if (isDefault) ", default length" else ""}",
                     onClick = { onQuickAlarm(minutes) },
                 )
             }
