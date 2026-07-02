@@ -19,8 +19,11 @@ import com.squareup.moshi.Types
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.abs
 
 enum class WebhookEvent(val wireName: String) {
     AlarmFired("alarm_fired"),
@@ -96,21 +99,42 @@ class WebhookService @Inject constructor(
                     scheduledForMillis = scheduledForMillis,
                     fireId = fireId
                 )
-                val request = Request.Builder()
+                val requestBuilder = Request.Builder()
                     .url(settings.webhookUrl)
                     .post(body.toRequestBody(JSON))
                     .header("Content-Type", "application/json")
-                    .build()
+                applySignatureHeaders(
+                    builder = requestBuilder,
+                    signingSecret = settings.webhookSigningSecret,
+                    body = body
+                )
 
-                client.newCall(request).execute().use { /* consume and close */ }
-            } catch (_: Exception) {
+                client.newCall(requestBuilder.build()).execute().use { response ->
+                    recordDeliveryStatus(
+                        event = event,
+                        successful = response.isSuccessful,
+                        code = response.code,
+                        failure = null
+                    )
+                }
+            } catch (e: Exception) {
+                recordDeliveryStatus(
+                    event = event,
+                    successful = false,
+                    code = null,
+                    failure = e
+                )
                 // Never propagate — webhook failures must not affect alarm flow
             }
         }
     }
 
     /** Send a test webhook with event = "test" */
-    suspend fun test(url: String, includeLabel: Boolean = true): Boolean {
+    suspend fun test(
+        url: String,
+        includeLabel: Boolean = true,
+        signingSecret: String = ""
+    ): Boolean {
         if (!isAllowedUrl(url)) return false
         if (LocalNetworkPermission.requiresPermissionForUrl(url) &&
             !LocalNetworkPermission.isGranted(context)
@@ -119,21 +143,77 @@ class WebhookService @Inject constructor(
         }
         return try {
             val body = buildTestPayloadJson(includeLabel = includeLabel)
-            val request = Request.Builder()
+            val requestBuilder = Request.Builder()
                 .url(url)
                 .post(body.toRequestBody(JSON))
                 .header("Content-Type", "application/json")
-                .build()
+            applySignatureHeaders(
+                builder = requestBuilder,
+                signingSecret = signingSecret,
+                body = body
+            )
             withContext(Dispatchers.IO) {
-                client.newCall(request).execute().use { it.isSuccessful }
+                client.newCall(requestBuilder.build()).execute().use { response ->
+                    recordDeliveryStatus(
+                        event = WebhookEvent.Test,
+                        successful = response.isSuccessful,
+                        code = response.code,
+                        failure = null
+                    )
+                    response.isSuccessful
+                }
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            recordDeliveryStatus(
+                event = WebhookEvent.Test,
+                successful = false,
+                code = null,
+                failure = e
+            )
             false
         }
     }
 
     /** Instance-level alias retained for callers that already use the singleton. */
     fun isAllowedUrl(url: String): Boolean = isAllowedWebhookUrl(url)
+
+    private fun applySignatureHeaders(
+        builder: Request.Builder,
+        signingSecret: String,
+        body: String,
+        timestampEpochSeconds: Long = System.currentTimeMillis() / 1000
+    ) {
+        buildSignatureHeaders(
+            signingSecret = signingSecret,
+            timestampEpochSeconds = timestampEpochSeconds,
+            body = body
+        )?.let { headers ->
+            builder.header("X-ACX-Timestamp", headers.timestamp)
+            builder.header("X-ACX-Signature", headers.signature)
+        }
+    }
+
+    private suspend fun recordDeliveryStatus(
+        event: WebhookEvent,
+        successful: Boolean,
+        code: Int?,
+        failure: Exception?
+    ) {
+        val status = buildDeliveryStatus(
+            event = event,
+            successful = successful,
+            code = code,
+            failure = failure
+        )
+        runCatching {
+            preferencesManager.update {
+                it.copy(
+                    webhookLastDeliveryStatus = status,
+                    webhookLastDeliveryAtMillis = System.currentTimeMillis()
+                )
+            }
+        }
+    }
 
     companion object {
         /**
@@ -151,6 +231,13 @@ class WebhookService @Inject constructor(
         }
 
         const val PAYLOAD_SCHEMA_VERSION = 1
+        const val SIGNATURE_VERSION = "v1"
+        const val SIGNATURE_MAX_SKEW_SECONDS = 5 * 60L
+
+        data class WebhookSignatureHeaders(
+            val timestamp: String,
+            val signature: String
+        )
 
         private val payloadJsonAdapter = Moshi.Builder()
             .build()
@@ -188,6 +275,59 @@ class WebhookService @Inject constructor(
                 }
             }
             return payloadJsonAdapter.toJson(payload)
+        }
+
+        internal fun buildSignatureHeaders(
+            signingSecret: String,
+            timestampEpochSeconds: Long,
+            body: String
+        ): WebhookSignatureHeaders? {
+            val secret = signingSecret.trim()
+            if (secret.isBlank()) return null
+            val signedPayload = "$timestampEpochSeconds.$body"
+            val mac = Mac.getInstance("HmacSHA256")
+            mac.init(SecretKeySpec(secret.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+            val digest = mac.doFinal(signedPayload.toByteArray(Charsets.UTF_8)).toLowerHex()
+            return WebhookSignatureHeaders(
+                timestamp = timestampEpochSeconds.toString(),
+                signature = "$SIGNATURE_VERSION=$digest"
+            )
+        }
+
+        private fun ByteArray.toLowerHex(): String = buildString(size * 2) {
+            for (byte in this@toLowerHex) {
+                val value = byte.toInt() and 0xff
+                append("0123456789abcdef"[value ushr 4])
+                append("0123456789abcdef"[value and 0x0f])
+            }
+        }
+
+        internal fun isSignatureTimestampFresh(
+            timestampEpochSeconds: Long,
+            nowMillis: Long,
+            maxSkewSeconds: Long = SIGNATURE_MAX_SKEW_SECONDS
+        ): Boolean {
+            if (timestampEpochSeconds <= 0 || maxSkewSeconds < 0) return false
+            val nowEpochSeconds = nowMillis / 1000
+            return abs(nowEpochSeconds - timestampEpochSeconds) <= maxSkewSeconds
+        }
+
+        internal fun buildDeliveryStatus(
+            event: WebhookEvent,
+            successful: Boolean,
+            code: Int?,
+            failure: Exception?
+        ): String {
+            val codeText = code?.let { " ($it)" }.orEmpty()
+            return if (successful) {
+                "${event.wireName} OK$codeText"
+            } else {
+                val reason = failure?.javaClass?.simpleName
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { ": $it" }
+                    .orEmpty()
+                "${event.wireName} failed$codeText$reason"
+            }
         }
 
         internal fun buildTestPayloadJson(

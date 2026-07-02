@@ -34,6 +34,67 @@ class WebhookUrlTest {
     @Test fun `rejects garbage`() = assertFalse(ok("not a url"))
 
     @Test
+    fun `signature headers use timestamped HMAC over raw body`() {
+        val headers = WebhookService.buildSignatureHeaders(
+            signingSecret = " secret ",
+            timestampEpochSeconds = 1_700_000_000L,
+            body = """{"event":"test"}"""
+        )
+
+        assertEquals("1700000000", headers!!.timestamp)
+        assertEquals(
+            "v1=e6a22eb66e93669c75e7a035a110d9a2ccfa7cdef62d0ecb361671b92718ee9f",
+            headers.signature
+        )
+    }
+
+    @Test
+    fun `blank signing secret omits signature headers`() {
+        assertEquals(
+            null,
+            WebhookService.buildSignatureHeaders(
+                signingSecret = "  ",
+                timestampEpochSeconds = 1_700_000_000L,
+                body = """{"event":"test"}"""
+            )
+        )
+    }
+
+    @Test
+    fun `signature timestamp freshness allows five minute skew only`() {
+        val now = 1_700_000_000_000L
+
+        assertTrue(WebhookService.isSignatureTimestampFresh(1_700_000_000L, now))
+        assertTrue(WebhookService.isSignatureTimestampFresh(1_699_999_700L, now))
+        assertTrue(WebhookService.isSignatureTimestampFresh(1_700_000_300L, now))
+        assertFalse(WebhookService.isSignatureTimestampFresh(1_699_999_699L, now))
+        assertFalse(WebhookService.isSignatureTimestampFresh(1_700_000_301L, now))
+        assertFalse(WebhookService.isSignatureTimestampFresh(0L, now))
+    }
+
+    @Test
+    fun `delivery status redacts endpoint and labels`() {
+        assertEquals(
+            "alarm_fired OK (204)",
+            WebhookService.buildDeliveryStatus(
+                event = WebhookEvent.AlarmFired,
+                successful = true,
+                code = 204,
+                failure = null
+            )
+        )
+        assertEquals(
+            "alarm_missed failed: IllegalStateException",
+            WebhookService.buildDeliveryStatus(
+                event = WebhookEvent.AlarmMissed,
+                successful = false,
+                code = null,
+                failure = IllegalStateException("https://example.com/secret")
+            )
+        )
+    }
+
+    @Test
     fun `payload includes stable schema fields`() {
         val payload = payloadAdapter.fromJson(
             WebhookService.buildPayloadJson(

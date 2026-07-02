@@ -23,6 +23,7 @@ class BackupExportWarningTest {
         val warning = BackupManager.assessExportWarning(
             settings = AppSettings(
                 webhookUrl = "https://example.com/hook?token=abc",
+                webhookSigningSecret = "hmac-secret",
                 hueBridgeIp = "192.168.1.50",
                 hueApiKey = "bridge-secret",
                 hueLightIds = "1,2",
@@ -33,6 +34,7 @@ class BackupExportWarningTest {
 
         assertTrue(warning.shouldWarn)
         assertTrue(warning.categories.contains("Webhook endpoint URL"))
+        assertTrue(warning.categories.contains("Webhook signing secret"))
         assertTrue(warning.categories.contains("Philips Hue bridge details and API key"))
         assertTrue(warning.categories.contains("Custom news feed URL"))
     }

@@ -74,6 +74,9 @@ data class AppSettings(
     val webhookEnabled: Boolean = false,
     val webhookUrl: String = "",
     val webhookIncludeLabel: Boolean = true,
+    val webhookSigningSecret: String = "",
+    val webhookLastDeliveryStatus: String = "",
+    val webhookLastDeliveryAtMillis: Long = 0,
     // F13: Public holiday auto-skip
     val holidayAutoSkipEnabled: Boolean = false,
     val holidayCountryCode: String = "",  // ISO 3166-1 alpha-2 (e.g. "US", "GB")
@@ -188,6 +191,7 @@ private fun AppSettings.sanitized(): AppSettings {
         .joinToString("\n")
     val normalizedLocationName = locationName.trim().take(120)
     val normalizedGoogleRoutesApiKey = googleRoutesApiKey.trim().take(200)
+    val normalizedWebhookStatus = webhookLastDeliveryStatus.trim().take(160)
 
     val normalizedPauseUntil = pauseUntilMillis.coerceAtLeast(0)
     return copy(
@@ -209,6 +213,9 @@ private fun AppSettings.sanitized(): AppSettings {
         sleepGoalMinutes = sleepGoalMinutes.coerceIn(0, 59),
         bedtimeReminderMinutes = bedtimeReminderMinutes.coerceIn(0, 180),
         webhookUrl = webhookUrl.trim(),
+        webhookSigningSecret = webhookSigningSecret.trim().take(256),
+        webhookLastDeliveryStatus = normalizedWebhookStatus,
+        webhookLastDeliveryAtMillis = webhookLastDeliveryAtMillis.coerceAtLeast(0),
         holidayCountryCode = normalizedHolidayCountryCode,
         hueBridgeIp = hueBridgeIp.trim(),
         hueApiKey = hueApiKey.trim(),
@@ -288,6 +295,9 @@ class PreferencesManager @Inject constructor(
         val WEBHOOK_ENABLED = booleanPreferencesKey("webhook_enabled")
         val WEBHOOK_URL = stringPreferencesKey("webhook_url")
         val WEBHOOK_INCLUDE_LABEL = booleanPreferencesKey("webhook_include_label")
+        val WEBHOOK_SIGNING_SECRET = stringPreferencesKey("webhook_signing_secret")
+        val WEBHOOK_LAST_DELIVERY_STATUS = stringPreferencesKey("webhook_last_delivery_status")
+        val WEBHOOK_LAST_DELIVERY_AT = longPreferencesKey("webhook_last_delivery_at")
         val HOLIDAY_AUTO_SKIP = booleanPreferencesKey("holiday_auto_skip")
         val HOLIDAY_COUNTRY_CODE = stringPreferencesKey("holiday_country_code")
         val HUE_BRIDGE_IP = stringPreferencesKey("hue_bridge_ip")
@@ -413,6 +423,9 @@ class PreferencesManager @Inject constructor(
         webhookEnabled = this[Keys.WEBHOOK_ENABLED] ?: false,
         webhookUrl = this[Keys.WEBHOOK_URL] ?: "",
         webhookIncludeLabel = this[Keys.WEBHOOK_INCLUDE_LABEL] ?: true,
+        webhookSigningSecret = this[Keys.WEBHOOK_SIGNING_SECRET] ?: "",
+        webhookLastDeliveryStatus = this[Keys.WEBHOOK_LAST_DELIVERY_STATUS] ?: "",
+        webhookLastDeliveryAtMillis = this[Keys.WEBHOOK_LAST_DELIVERY_AT] ?: 0L,
         holidayAutoSkipEnabled = this[Keys.HOLIDAY_AUTO_SKIP] ?: false,
         holidayCountryCode = this[Keys.HOLIDAY_COUNTRY_CODE] ?: "",
         hueBridgeIp = this[Keys.HUE_BRIDGE_IP] ?: "",
@@ -493,6 +506,9 @@ class PreferencesManager @Inject constructor(
         this[Keys.WEBHOOK_ENABLED] = s.webhookEnabled
         this[Keys.WEBHOOK_URL] = s.webhookUrl
         this[Keys.WEBHOOK_INCLUDE_LABEL] = s.webhookIncludeLabel
+        this[Keys.WEBHOOK_SIGNING_SECRET] = s.webhookSigningSecret
+        this[Keys.WEBHOOK_LAST_DELIVERY_STATUS] = s.webhookLastDeliveryStatus
+        this[Keys.WEBHOOK_LAST_DELIVERY_AT] = s.webhookLastDeliveryAtMillis
         this[Keys.HOLIDAY_AUTO_SKIP] = s.holidayAutoSkipEnabled
         this[Keys.HOLIDAY_COUNTRY_CODE] = s.holidayCountryCode
         this[Keys.HUE_BRIDGE_IP] = s.hueBridgeIp

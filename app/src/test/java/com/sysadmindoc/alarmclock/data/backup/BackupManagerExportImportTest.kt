@@ -91,6 +91,7 @@ class BackupManagerExportImportTest {
         assertEquals(35, settings.calendarCommuteBaselineMinutes)
         assertEquals(20, settings.calendarCommuteWeatherExtraMinutes)
         assertEquals("routes-test-key", settings.googleRoutesApiKey)
+        assertEquals("webhook-signing-secret", settings.webhookSigningSecret)
     }
 
     @Test
@@ -122,6 +123,7 @@ class BackupManagerExportImportTest {
                     useManualLocation = true,
                     showTimerTab = false,
                     newsFeedUrl = "https://feeds.example/private.xml",
+                    webhookSigningSecret = "webhook-signing-secret",
                     calendarCommuteAwareEnabled = true,
                     calendarCommuteBaselineMinutes = 35,
                     calendarCommuteWeatherExtraMinutes = 20,
@@ -150,6 +152,7 @@ class BackupManagerExportImportTest {
         assertEquals(35, restoredSettings!!.calendarCommuteBaselineMinutes)
         assertEquals(20, restoredSettings!!.calendarCommuteWeatherExtraMinutes)
         assertEquals("routes-test-key", restoredSettings!!.googleRoutesApiKey)
+        assertEquals("webhook-signing-secret", restoredSettings!!.webhookSigningSecret)
         coVerify {
             repository.save(
                 match {
@@ -204,6 +207,7 @@ class BackupManagerExportImportTest {
         useManualLocation = true,
         showTimerTab = false,
         newsFeedUrl = "https://feeds.example/private.xml",
+        webhookSigningSecret = "webhook-signing-secret",
         calendarCommuteAwareEnabled = true,
         calendarCommuteBaselineMinutes = 35,
         calendarCommuteWeatherExtraMinutes = 20,

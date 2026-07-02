@@ -181,7 +181,7 @@ cd AlarmClockXtreme
 ### Data & Reliability
 | Feature | Description |
 |---------|-------------|
-| Backup/Restore | JSON export/import of all 50+ alarm fields and 59 settings, with optional AES-256 passphrase encryption, custom news-feed/background-image/manual-order round-trip, and pre-export disclosure for secrets/private references (v13 format) |
+| Backup/Restore | JSON export/import of all 50+ alarm fields and 60 settings, with optional AES-256 passphrase encryption, custom news-feed/background-image/manual-order/webhook-signing round-trip, and pre-export disclosure for secrets/private references (v14 format) |
 | Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link; received links are reviewed and saved disabled |
 | Boot Reschedule | All alarms re-registered after device reboot, with a Direct Boot fallback for the next alarm before first unlock |
 | Wake Readiness | Settings checks exact alarms, notifications, Android 14+ full-screen alarm access, battery optimization, and App Standby state before bedtime |
@@ -357,6 +357,13 @@ ACX sends an HTTPS POST with a JSON payload on alarm lifecycle events. Enable we
 ```
 
 Events: `alarm_fired`, `alarm_snoozed`, `alarm_dismissed`, `alarm_missed`, `alarm_skipped`, `test`. The `label` field is present only when `labelIncluded` is `true` (controlled by Settings > Webhooks > Include alarm labels). `fireId` is present when available.
+
+When Settings > Webhooks > Signing secret is set, ACX adds:
+
+- `X-ACX-Timestamp`: Unix epoch seconds at send time.
+- `X-ACX-Signature`: `v1=<hmac-sha256>` over `timestamp + "." + raw_json_body`.
+
+Reject signed payloads whose timestamp differs from receiver time by more than five minutes. Settings also shows the most recent webhook delivery result so failed automations can be diagnosed without blocking alarm dismissal.
 
 ### Home Assistant
 

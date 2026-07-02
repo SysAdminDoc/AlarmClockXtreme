@@ -369,6 +369,9 @@ class SettingsViewModel @Inject constructor(
     fun toggleWebhook(enabled: Boolean) = updateSettings { it.copy(webhookEnabled = enabled) }
     fun updateWebhookUrl(url: String) = updateSettings { it.copy(webhookUrl = url) }
     fun toggleWebhookLabelSharing(enabled: Boolean) = updateSettings { it.copy(webhookIncludeLabel = enabled) }
+    fun updateWebhookSigningSecret(secret: String) = updateSettings {
+        it.copy(webhookSigningSecret = secret.trim())
+    }
     fun testWebhook() {
         viewModelScope.launch(Dispatchers.IO) {
             _webhookTestState.value = IntegrationTestState(
@@ -385,7 +388,11 @@ class SettingsViewModel @Inject constructor(
                 LocalNetworkPermission.requiresPermissionForUrl(url) &&
                     !LocalNetworkPermission.isGranted(getApplication()) ->
                     "Webhook failed — allow local network access first"
-                webhookService.test(url, includeLabel = settings.webhookIncludeLabel) -> "Webhook OK"
+                webhookService.test(
+                    url = url,
+                    includeLabel = settings.webhookIncludeLabel,
+                    signingSecret = settings.webhookSigningSecret
+                ) -> "Webhook OK"
                 else -> "Webhook failed — endpoint did not return 2xx"
             }
             _webhookTestState.value = IntegrationTestState(message = result, isRunning = false)

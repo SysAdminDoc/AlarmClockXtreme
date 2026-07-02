@@ -117,6 +117,7 @@ import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
+import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
@@ -1704,6 +1705,18 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
             onToggle = viewModel::toggleWebhookLabelSharing
         )
 
+        BufferedSettingsTextField(
+            value = state.settings.webhookSigningSecret,
+            onCommit = viewModel::updateWebhookSigningSecret,
+            label = { Text("Signing secret") },
+            placeholder = { Text("Optional HMAC secret") },
+            enabled = state.settings.webhookEnabled,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+        )
+
         // Warn if the user pasted a plain-http endpoint. ACX intentionally
         // keeps app-wide cleartext traffic disabled, so these endpoints cannot
         // be treated as reliable on current Android.
@@ -1732,16 +1745,21 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
             )
         }
 
+        val lastDeliveryStatus = formatWebhookDeliveryStatus(state.settings)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = state.webhookTestResult ?: "Payloads include schemaVersion, eventId, occurredAt, scheduledFor, displayTime, and labelIncluded.",
+                text = state.webhookTestResult
+                    ?: lastDeliveryStatus
+                    ?: "Payloads include schemaVersion, eventId, occurredAt, scheduledFor, displayTime, and labelIncluded.",
                 color = when {
                     state.isWebhookTesting -> MaterialTheme.colorScheme.primary
                     state.webhookTestResult?.contains("OK") == true -> DismissGreen
+                    state.webhookTestResult == null && lastDeliveryStatus?.contains("OK") == true -> DismissGreen
+                    state.webhookTestResult == null && lastDeliveryStatus != null -> AccentRed
                     state.webhookTestResult != null -> AccentRed
                     else -> TextMuted
                 },
@@ -2868,6 +2886,17 @@ private fun requiresLocalNetworkAccess(state: SettingsUiState): Boolean {
     if (!LocalNetworkPermission.isRuntimeRequired()) return false
     return state.settings.hueBridgeIp.isNotBlank() ||
         LocalNetworkPermission.isLikelyLocalEndpoint(state.settings.webhookUrl)
+}
+
+private fun formatWebhookDeliveryStatus(settings: AppSettings): String? {
+    val status = settings.webhookLastDeliveryStatus.takeIf { it.isNotBlank() } ?: return null
+    val timestamp = settings.webhookLastDeliveryAtMillis.takeIf { it > 0 }
+        ?.let {
+            Instant.ofEpochMilli(it)
+                .atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.US))
+        } ?: "recently"
+    return "Last delivery $timestamp: $status"
 }
 
 @Composable

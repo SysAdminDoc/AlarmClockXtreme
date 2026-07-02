@@ -30,6 +30,8 @@ class BackupManagerSettingsDriftTest {
         "ytEngineLastUpdateSource",
         "ytEngineLastFailureReason",
         "bedtimeStayUpLateUntilMillis",
+        "webhookLastDeliveryStatus",
+        "webhookLastDeliveryAtMillis",
     )
 
     @Test

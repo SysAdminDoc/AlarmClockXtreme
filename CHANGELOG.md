@@ -2,6 +2,14 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Added optional webhook HMAC signing with `X-ACX-Timestamp` and
+  `X-ACX-Signature` headers, recent delivery status in Settings, and backup
+  v14 round-trip/export-warning coverage for the signing secret.
+
 ## [1.15.15] - 2026-07-01
 
 ### Added

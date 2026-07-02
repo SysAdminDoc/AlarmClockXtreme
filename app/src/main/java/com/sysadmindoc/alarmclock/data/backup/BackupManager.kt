@@ -98,7 +98,7 @@ data class AlarmBackup(
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 13,
+    val version: Int = 14,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -131,6 +131,7 @@ data class SettingsBackup(
     val webhookEnabled: Boolean = false,
     val webhookUrl: String = "",
     val webhookIncludeLabel: Boolean = true,
+    val webhookSigningSecret: String = "",
     val holidayAutoSkipEnabled: Boolean = false,
     val holidayCountryCode: String = "",
     val hueBridgeIp: String = "",
@@ -215,7 +216,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 13
+        const val MAX_SUPPORTED_BACKUP_VERSION = 14
 
         fun assessExportWarning(
             settings: AppSettings,
@@ -224,6 +225,9 @@ class BackupManager @Inject constructor(
             val categories = buildList {
                 if (settings.webhookUrl.isNotBlank()) {
                     add("Webhook endpoint URL")
+                }
+                if (settings.webhookSigningSecret.isNotBlank()) {
+                    add("Webhook signing secret")
                 }
                 if (
                     settings.hueBridgeIp.isNotBlank() ||
@@ -329,6 +333,7 @@ class BackupManager @Inject constructor(
                 webhookEnabled = settings.webhookEnabled,
                 webhookUrl = settings.webhookUrl,
                 webhookIncludeLabel = settings.webhookIncludeLabel,
+                webhookSigningSecret = settings.webhookSigningSecret,
                 holidayAutoSkipEnabled = settings.holidayAutoSkipEnabled,
                 holidayCountryCode = settings.holidayCountryCode,
                 hueBridgeIp = settings.hueBridgeIp,
@@ -500,6 +505,7 @@ class BackupManager @Inject constructor(
                         webhookEnabled = s.webhookEnabled,
                         webhookUrl = s.webhookUrl,
                         webhookIncludeLabel = s.webhookIncludeLabel,
+                        webhookSigningSecret = s.webhookSigningSecret,
                         holidayAutoSkipEnabled = s.holidayAutoSkipEnabled,
                         holidayCountryCode = s.holidayCountryCode,
                         hueBridgeIp = s.hueBridgeIp,
