@@ -627,10 +627,10 @@ class SettingsViewModel @Inject constructor(
             _backupBusy.value = true
             try {
                 backupManager.exportToUri(uri)
-                    .onSuccess { count -> setBackupResult("Exported $count alarms") }
-                    .onFailure { setBackupResult("Export failed: ${it.message}") }
+                    .onSuccess { count -> setBackupResult(backupSuccessMessage(BackupStatusKind.PlainExport, count)) }
+                    .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.PlainExport, it)) }
             } catch (e: Exception) {
-                setBackupResult("Export failed: ${e.message ?: "unexpected error"}")
+                setBackupResult(backupFailureMessage(BackupStatusKind.PlainExport, e))
             } finally {
                 _backupBusy.value = false
             }
@@ -642,10 +642,10 @@ class SettingsViewModel @Inject constructor(
             _backupBusy.value = true
             try {
                 backupManager.exportEncryptedToUri(uri, passphrase)
-                    .onSuccess { count -> setBackupResult("Exported encrypted backup with $count alarms") }
-                    .onFailure { setBackupResult("Encrypted export failed: ${it.message}") }
+                    .onSuccess { count -> setBackupResult(backupSuccessMessage(BackupStatusKind.EncryptedExport, count)) }
+                    .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedExport, it)) }
             } catch (e: Exception) {
-                setBackupResult("Encrypted export failed: ${e.message ?: "unexpected error"}")
+                setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedExport, e))
             } finally {
                 _backupBusy.value = false
             }
@@ -660,10 +660,10 @@ class SettingsViewModel @Inject constructor(
             _backupBusy.value = true
             try {
                 backupManager.importFromUri(uri, options)
-                    .onSuccess { count -> setBackupResult("Imported $count alarms") }
-                    .onFailure { setBackupResult("Import failed: ${it.message}") }
+                    .onSuccess { count -> setBackupResult(backupSuccessMessage(BackupStatusKind.PlainImport, count)) }
+                    .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.PlainImport, it)) }
             } catch (e: Exception) {
-                setBackupResult("Import failed: ${e.message ?: "unexpected error"}")
+                setBackupResult(backupFailureMessage(BackupStatusKind.PlainImport, e))
             } finally {
                 _backupBusy.value = false
             }
@@ -679,10 +679,10 @@ class SettingsViewModel @Inject constructor(
             _backupBusy.value = true
             try {
                 backupManager.importEncryptedFromUri(uri, passphrase, options)
-                    .onSuccess { count -> setBackupResult("Imported encrypted backup with $count alarms") }
-                    .onFailure { setBackupResult("Encrypted import failed: ${it.message}") }
+                    .onSuccess { count -> setBackupResult(backupSuccessMessage(BackupStatusKind.EncryptedImport, count)) }
+                    .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedImport, it)) }
             } catch (e: Exception) {
-                setBackupResult("Encrypted import failed: ${e.message ?: "unexpected error"}")
+                setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedImport, e))
             } finally {
                 _backupBusy.value = false
             }
@@ -714,7 +714,7 @@ class SettingsViewModel @Inject constructor(
             setSupportExportResult("Support bundle ready to share")
             Result.success(export)
         } catch (e: Exception) {
-            val message = "Support export failed: ${e.message ?: "unexpected error"}"
+            val message = backupFailureMessage(BackupStatusKind.SupportExport, e)
             setSupportExportResult(message)
             Result.failure(e)
         } finally {

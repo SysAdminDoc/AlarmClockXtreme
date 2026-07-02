@@ -159,7 +159,8 @@ fun StatsScreen(
             items(3) {
                 AppLoadingCard(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                    height = 150.dp
+                    height = 150.dp,
+                    label = "Loading alarm statistics"
                 )
             }
         } else {

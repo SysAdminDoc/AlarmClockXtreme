@@ -615,7 +615,8 @@ fun AppInlineNotice(
 @Composable
 fun AppLoadingCard(
     modifier: Modifier = Modifier,
-    height: Dp = 148.dp
+    height: Dp = 148.dp,
+    label: String = "Loading content"
 ) {
     val shapeTokens = LocalAppShapeTokens.current
     val transition = rememberInfiniteTransition(label = "loading-card")
@@ -633,6 +634,10 @@ fun AppLoadingCard(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
+            .semantics {
+                liveRegion = LiveRegionMode.Polite
+                contentDescription = label
+            }
     ) {
         Spacer(
             modifier = Modifier

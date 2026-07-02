@@ -238,7 +238,7 @@ private fun WeatherSection(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when {
             state.weatherLoading -> {
-                AppLoadingCard()
+                AppLoadingCard(label = "Loading current weather")
             }
 
             state.weatherError != null -> {
@@ -994,7 +994,10 @@ private fun LocationPickerDialog(
 
                 when {
                     isSearching -> {
-                        AppLoadingCard(height = 180.dp)
+                        AppLoadingCard(
+                            height = 180.dp,
+                            label = "Searching locations"
+                        )
                     }
 
                     results.isNotEmpty() -> {

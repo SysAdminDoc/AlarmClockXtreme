@@ -736,7 +736,7 @@ fun SettingsScreen(
             }
 
             supportExportResult?.let { message ->
-                val failed = message.contains("failed", ignoreCase = true)
+                val failed = isFailureStatusMessage(message)
                 AppFeedbackCard(
                     title = if (failed) "Support export failed" else "Support bundle ready",
                     message = message,
@@ -2765,12 +2765,18 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                     }
                     .onFailure { error ->
                         viewModel.showBackupResult(
-                            "Import preview failed: ${error.message ?: "unexpected error"}"
+                            backupFailureMessage(
+                                if (encrypted) BackupStatusKind.EncryptedImportPreview else BackupStatusKind.ImportPreview,
+                                error
+                            )
                         )
                     }
             } catch (error: Exception) {
                 viewModel.showBackupResult(
-                    "Import preview failed: ${error.message ?: "unexpected error"}"
+                    backupFailureMessage(
+                        if (encrypted) BackupStatusKind.EncryptedImportPreview else BackupStatusKind.ImportPreview,
+                        error
+                    )
                 )
             } finally {
                 importPreviewBusy = false
@@ -3009,7 +3015,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     }
 
     backupResult?.let { message ->
-        val failed = message.contains("failed", ignoreCase = true)
+        val failed = isFailureStatusMessage(message)
         AppFeedbackCard(
             title = if (failed) "Backup needs attention" else "Backup complete",
             message = message,
