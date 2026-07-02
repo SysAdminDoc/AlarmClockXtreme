@@ -203,6 +203,29 @@ data class BackupExportWarning(
         get() = categories.isNotEmpty()
 }
 
+enum class BackupImportMode {
+    Append,
+    Replace
+}
+
+data class BackupImportOptions(
+    val mode: BackupImportMode = BackupImportMode.Append,
+    val importEnabledAsDisabled: Boolean = false
+)
+
+data class BackupImportPreview(
+    val version: Int,
+    val appVersion: String,
+    val exportedAt: Long,
+    val alarmCount: Int,
+    val enabledAlarmCount: Int,
+    val invalidAlarmCount: Int,
+    val settingsIncluded: Boolean,
+    val privateDataCategories: List<String>,
+    val compatibilityStatus: String,
+    val canImport: Boolean
+)
+
 @Singleton
 class BackupManager @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -424,41 +447,186 @@ class BackupManager @Inject constructor(
         }
     }
 
-    suspend fun importFromUri(uri: Uri): Result<Int> {
+    suspend fun inspectImportFromUri(uri: Uri): Result<BackupImportPreview> {
         return try {
-            val json = context.contentResolver.openInputStream(uri)?.use { stream ->
-                stream.bufferedReader().readText()
-            } ?: return Result.failure(Exception("Unable to read file"))
-
-            importFromJson(json)
+            inspectImportJson(readJsonFromUri(uri))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun importEncryptedFromUri(uri: Uri, passphrase: String): Result<Int> {
+    suspend fun inspectEncryptedImportFromUri(
+        uri: Uri,
+        passphrase: String
+    ): Result<BackupImportPreview> {
         if (passphrase.isBlank()) {
             return Result.failure(IllegalArgumentException("Backup passphrase is required"))
         }
 
         return try {
-            val encryptedJson = context.contentResolver.openInputStream(uri)?.use { stream ->
-                stream.bufferedReader().readText()
-            } ?: return Result.failure(Exception("Unable to read file"))
-
-            val json = runCatching {
-                EncryptedBackupCodec.decrypt(encryptedJson, passphrase)
-            }.getOrElse {
-                return Result.failure(Exception("Unable to decrypt backup. Check the passphrase."))
-            }
-
-            importFromJson(json)
+            val json = decryptJson(readJsonFromUri(uri), passphrase)
+            inspectImportJson(json)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    private suspend fun importFromJson(json: String): Result<Int> {
+    suspend fun importFromUri(
+        uri: Uri,
+        options: BackupImportOptions = BackupImportOptions()
+    ): Result<Int> {
+        return try {
+            importFromJson(readJsonFromUri(uri), options)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun importEncryptedFromUri(
+        uri: Uri,
+        passphrase: String,
+        options: BackupImportOptions = BackupImportOptions()
+    ): Result<Int> {
+        if (passphrase.isBlank()) {
+            return Result.failure(IllegalArgumentException("Backup passphrase is required"))
+        }
+
+        return try {
+            val json = decryptJson(readJsonFromUri(uri), passphrase)
+            importFromJson(json, options)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun readJsonFromUri(uri: Uri): String =
+        context.contentResolver.openInputStream(uri)?.use { stream ->
+            stream.bufferedReader().readText()
+        } ?: throw Exception("Unable to read file")
+
+    private fun decryptJson(encryptedJson: String, passphrase: String): String =
+        runCatching {
+            EncryptedBackupCodec.decrypt(encryptedJson, passphrase)
+        }.getOrElse {
+            throw Exception("Unable to decrypt backup. Check the passphrase.")
+        }
+
+    private fun inspectImportJson(json: String): Result<BackupImportPreview> {
+        return try {
+            val backup = adapter.fromJson(json)
+                ?: return Result.failure(Exception("Invalid backup format"))
+
+            Result.success(buildImportPreview(backup))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun buildImportPreview(backup: BackupData): BackupImportPreview {
+        val importedAlarms = backup.alarms.mapNotNull { it.toAlarmOrNull() }
+        val settings = backup.settings?.let { AppSettings().applyBackup(it) } ?: AppSettings()
+        val privateCategories = assessExportWarning(settings, importedAlarms).categories
+        val canImport = backup.version in 1..MAX_SUPPORTED_BACKUP_VERSION
+        val compatibility = when {
+            backup.version < 1 -> "Unsupported backup version ${backup.version}."
+            backup.version > MAX_SUPPORTED_BACKUP_VERSION ->
+                "Unsupported backup version ${backup.version}; this app understands 1-$MAX_SUPPORTED_BACKUP_VERSION."
+            backup.version < MAX_SUPPORTED_BACKUP_VERSION ->
+                "Compatible older backup v${backup.version}; missing newer fields import with safe defaults."
+            else -> "Compatible backup v${backup.version}."
+        }
+        return BackupImportPreview(
+            version = backup.version,
+            appVersion = backup.appVersion,
+            exportedAt = backup.exportedAt,
+            alarmCount = importedAlarms.size,
+            enabledAlarmCount = importedAlarms.count { it.isEnabled },
+            invalidAlarmCount = backup.alarms.size - importedAlarms.size,
+            settingsIncluded = backup.settings != null,
+            privateDataCategories = privateCategories,
+            compatibilityStatus = compatibility,
+            canImport = canImport
+        )
+    }
+
+    private fun AppSettings.applyBackup(s: SettingsBackup): AppSettings = copy(
+        is24HourFormat = s.is24HourFormat,
+        defaultSnoozeDuration = s.defaultSnoozeDuration,
+        defaultGradualVolume = s.defaultGradualVolume,
+        usePhoneSpeakers = s.usePhoneSpeakers,
+        showOnLockScreen = s.showOnLockScreen,
+        hideAlarmLabelsOnPublicSurfaces = s.hideAlarmLabelsOnPublicSurfaces,
+        vacationModeEnabled = s.vacationModeEnabled,
+        vacationStartMillis = s.vacationStartMillis,
+        vacationEndMillis = s.vacationEndMillis,
+        showWeatherOnDashboard = s.showWeatherOnDashboard,
+        showCalendarOnDashboard = s.showCalendarOnDashboard,
+        temperatureUnit = s.temperatureUnit,
+        bedtimeEnabled = s.bedtimeEnabled,
+        bedtimeHour = s.bedtimeHour,
+        bedtimeMinute = s.bedtimeMinute,
+        sleepGoalHours = s.sleepGoalHours,
+        sleepGoalMinutes = s.sleepGoalMinutes,
+        bedtimeReminderMinutes = s.bedtimeReminderMinutes,
+        bedtimeDndEnabled = s.bedtimeDndEnabled,
+        flipToSnoozeEnabled = s.flipToSnoozeEnabled,
+        webhookEnabled = s.webhookEnabled,
+        webhookUrl = s.webhookUrl,
+        webhookIncludeLabel = s.webhookIncludeLabel,
+        webhookSigningSecret = s.webhookSigningSecret,
+        holidayAutoSkipEnabled = s.holidayAutoSkipEnabled,
+        holidayCountryCode = s.holidayCountryCode,
+        hueBridgeIp = s.hueBridgeIp,
+        hueApiKey = s.hueApiKey,
+        hueLightIds = s.hueLightIds,
+        accentColor = s.accentColor,
+        adaptiveDifficultyEnabled = s.adaptiveDifficultyEnabled,
+        calendarAutoAlarmEnabled = s.calendarAutoAlarmEnabled,
+        calendarAutoAlarmMinutesBefore = s.calendarAutoAlarmMinutesBefore,
+        calendarCommuteAwareEnabled = s.calendarCommuteAwareEnabled,
+        calendarCommuteBaselineMinutes = s.calendarCommuteBaselineMinutes,
+        calendarCommuteWeatherExtraMinutes = s.calendarCommuteWeatherExtraMinutes,
+        googleRoutesApiKey = s.googleRoutesApiKey,
+        guardianContactName = s.guardianContactName,
+        guardianContactPhone = s.guardianContactPhone,
+        customTypingPhrases = s.customTypingPhrases,
+        nightClockEnabled = s.nightClockEnabled,
+        showMotivationalQuotes = s.showMotivationalQuotes,
+        dynamicColorEnabled = s.dynamicColorEnabled,
+        expressiveModeEnabled = s.expressiveModeEnabled,
+        coverToSnoozeEnabled = s.coverToSnoozeEnabled,
+        bedtimeChecklist = s.bedtimeChecklist,
+        sleepSoundTimerMinutes = s.sleepSoundTimerMinutes,
+        sleepSoundFadeSeconds = s.sleepSoundFadeSeconds,
+        repeatMissedAlarms = s.repeatMissedAlarms,
+        napDefaultMinutes = s.napDefaultMinutes,
+        pauseUntilMillis = s.pauseUntilMillis,
+        healthConnectEnabled = s.healthConnectEnabled,
+        newsFeedUrl = s.newsFeedUrl,
+        upcomingAlarmMinutes = s.upcomingAlarmMinutes,
+        showNoAlarmsWarning = s.showNoAlarmsWarning,
+        autoSilenceMinutes = s.autoSilenceMinutes,
+        locationName = s.locationName,
+        useManualLocation = s.useManualLocation,
+        lastKnownLatitude = s.lastKnownLatitude,
+        lastKnownLongitude = s.lastKnownLongitude,
+        showDashboardTab = s.showDashboardTab,
+        showTimerTab = s.showTimerTab,
+        showWorldClockTab = s.showWorldClockTab,
+        showNewsTab = s.showNewsTab,
+        showRadarEmbed = s.showRadarEmbed,
+        cancellationLockMinutes = s.cancellationLockMinutes,
+        hueBridgeCertFingerprint = s.hueBridgeCertFingerprint,
+        hueLegacyHttpEnabled = s.hueLegacyHttpEnabled,
+        firingControlMode = s.firingControlMode,
+        challengeBypassEnabled = s.challengeBypassEnabled,
+        challengeBypassDelaySeconds = s.challengeBypassDelaySeconds
+    )
+
+    private suspend fun importFromJson(
+        json: String,
+        options: BackupImportOptions = BackupImportOptions()
+    ): Result<Int> {
         return try {
             val backup = adapter.fromJson(json)
                 ?: return Result.failure(Exception("Invalid backup format"))
@@ -478,82 +646,14 @@ class BackupManager @Inject constructor(
 
             val importedAlarms = backup.alarms.mapNotNull { it.toAlarmOrNull() }
 
+            if (options.mode == BackupImportMode.Replace) {
+                replaceExistingAlarms()
+            }
+
             // Import settings
             backup.settings?.let { s ->
                 preferencesManager.update {
-                    it.copy(
-                        is24HourFormat = s.is24HourFormat,
-                        defaultSnoozeDuration = s.defaultSnoozeDuration,
-                        defaultGradualVolume = s.defaultGradualVolume,
-                        usePhoneSpeakers = s.usePhoneSpeakers,
-                        showOnLockScreen = s.showOnLockScreen,
-                        hideAlarmLabelsOnPublicSurfaces = s.hideAlarmLabelsOnPublicSurfaces,
-                        vacationModeEnabled = s.vacationModeEnabled,
-                        vacationStartMillis = s.vacationStartMillis,
-                        vacationEndMillis = s.vacationEndMillis,
-                        showWeatherOnDashboard = s.showWeatherOnDashboard,
-                        showCalendarOnDashboard = s.showCalendarOnDashboard,
-                        temperatureUnit = s.temperatureUnit,
-                        bedtimeEnabled = s.bedtimeEnabled,
-                        bedtimeHour = s.bedtimeHour,
-                        bedtimeMinute = s.bedtimeMinute,
-                        sleepGoalHours = s.sleepGoalHours,
-                        sleepGoalMinutes = s.sleepGoalMinutes,
-                        bedtimeReminderMinutes = s.bedtimeReminderMinutes,
-                        bedtimeDndEnabled = s.bedtimeDndEnabled,
-                        flipToSnoozeEnabled = s.flipToSnoozeEnabled,
-                        webhookEnabled = s.webhookEnabled,
-                        webhookUrl = s.webhookUrl,
-                        webhookIncludeLabel = s.webhookIncludeLabel,
-                        webhookSigningSecret = s.webhookSigningSecret,
-                        holidayAutoSkipEnabled = s.holidayAutoSkipEnabled,
-                        holidayCountryCode = s.holidayCountryCode,
-                        hueBridgeIp = s.hueBridgeIp,
-                        hueApiKey = s.hueApiKey,
-                        hueLightIds = s.hueLightIds,
-                        accentColor = s.accentColor,
-                        adaptiveDifficultyEnabled = s.adaptiveDifficultyEnabled,
-                        calendarAutoAlarmEnabled = s.calendarAutoAlarmEnabled,
-                        calendarAutoAlarmMinutesBefore = s.calendarAutoAlarmMinutesBefore,
-                        calendarCommuteAwareEnabled = s.calendarCommuteAwareEnabled,
-                        calendarCommuteBaselineMinutes = s.calendarCommuteBaselineMinutes,
-                        calendarCommuteWeatherExtraMinutes = s.calendarCommuteWeatherExtraMinutes,
-                        googleRoutesApiKey = s.googleRoutesApiKey,
-                        guardianContactName = s.guardianContactName,
-                        guardianContactPhone = s.guardianContactPhone,
-                        customTypingPhrases = s.customTypingPhrases,
-                        nightClockEnabled = s.nightClockEnabled,
-                        showMotivationalQuotes = s.showMotivationalQuotes,
-                        dynamicColorEnabled = s.dynamicColorEnabled,
-                        expressiveModeEnabled = s.expressiveModeEnabled,
-                        coverToSnoozeEnabled = s.coverToSnoozeEnabled,
-                        bedtimeChecklist = s.bedtimeChecklist,
-                        sleepSoundTimerMinutes = s.sleepSoundTimerMinutes,
-                        sleepSoundFadeSeconds = s.sleepSoundFadeSeconds,
-                        repeatMissedAlarms = s.repeatMissedAlarms,
-                        napDefaultMinutes = s.napDefaultMinutes,
-                        pauseUntilMillis = s.pauseUntilMillis,
-                        healthConnectEnabled = s.healthConnectEnabled,
-                        newsFeedUrl = s.newsFeedUrl,
-                        upcomingAlarmMinutes = s.upcomingAlarmMinutes,
-                        showNoAlarmsWarning = s.showNoAlarmsWarning,
-                        autoSilenceMinutes = s.autoSilenceMinutes,
-                        locationName = s.locationName,
-                        useManualLocation = s.useManualLocation,
-                        lastKnownLatitude = s.lastKnownLatitude,
-                        lastKnownLongitude = s.lastKnownLongitude,
-                        showDashboardTab = s.showDashboardTab,
-                        showTimerTab = s.showTimerTab,
-                        showWorldClockTab = s.showWorldClockTab,
-                        showNewsTab = s.showNewsTab,
-                        showRadarEmbed = s.showRadarEmbed,
-                        cancellationLockMinutes = s.cancellationLockMinutes,
-                        hueBridgeCertFingerprint = s.hueBridgeCertFingerprint,
-                        hueLegacyHttpEnabled = s.hueLegacyHttpEnabled,
-                        firingControlMode = s.firingControlMode,
-                        challengeBypassEnabled = s.challengeBypassEnabled,
-                        challengeBypassDelaySeconds = s.challengeBypassDelaySeconds
-                    )
+                    it.applyBackup(s)
                 }
             }
 
@@ -569,8 +669,9 @@ class BackupManager @Inject constructor(
             val alarmsToSchedule = mutableListOf<Alarm>()
             for (alarm in importedAlarms) {
                 try {
-                    val savedId = repository.save(alarm.copy(nextTriggerTime = 0))
-                    val savedAlarm = alarm.copy(id = savedId, nextTriggerTime = 0)
+                    val alarmToSave = alarm.prepareForImport(options)
+                    val savedId = repository.save(alarmToSave)
+                    val savedAlarm = alarmToSave.copy(id = savedId)
                     if (savedAlarm.isEnabled) {
                         alarmsToSchedule += savedAlarm
                     }
@@ -601,6 +702,25 @@ class BackupManager @Inject constructor(
             Result.success(count)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private suspend fun replaceExistingAlarms() {
+        repository.getAll().forEach { alarm ->
+            scheduler.cancel(alarm.id)
+            repository.delete(alarm)
+        }
+    }
+
+    private fun Alarm.prepareForImport(options: BackupImportOptions): Alarm {
+        val imported = copy(
+            id = if (options.mode == BackupImportMode.Append) 0L else id,
+            nextTriggerTime = 0L
+        )
+        return if (options.importEnabledAsDisabled) {
+            imported.copy(isEnabled = false)
+        } else {
+            imported
         }
     }
 }

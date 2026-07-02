@@ -14,6 +14,8 @@ import android.provider.Settings
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.sysadmindoc.alarmclock.data.backup.BackupImportOptions
+import com.sysadmindoc.alarmclock.data.backup.BackupImportPreview
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.backup.BackupManager
@@ -612,6 +614,14 @@ class SettingsViewModel @Inject constructor(
     suspend fun inspectBackupExportWarning(): BackupExportWarning =
         backupManager.inspectExportWarning()
 
+    suspend fun inspectBackupImport(uri: Uri): Result<BackupImportPreview> =
+        backupManager.inspectImportFromUri(uri)
+
+    suspend fun inspectEncryptedBackupImport(
+        uri: Uri,
+        passphrase: String
+    ): Result<BackupImportPreview> = backupManager.inspectEncryptedImportFromUri(uri, passphrase)
+
     fun exportBackup(uri: Uri) {
         viewModelScope.launch {
             _backupBusy.value = true
@@ -642,11 +652,14 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun importBackup(uri: Uri) {
+    fun importBackup(
+        uri: Uri,
+        options: BackupImportOptions = BackupImportOptions()
+    ) {
         viewModelScope.launch {
             _backupBusy.value = true
             try {
-                backupManager.importFromUri(uri)
+                backupManager.importFromUri(uri, options)
                     .onSuccess { count -> setBackupResult("Imported $count alarms") }
                     .onFailure { setBackupResult("Import failed: ${it.message}") }
             } catch (e: Exception) {
@@ -657,11 +670,15 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun importEncryptedBackup(uri: Uri, passphrase: String) {
+    fun importEncryptedBackup(
+        uri: Uri,
+        passphrase: String,
+        options: BackupImportOptions = BackupImportOptions()
+    ) {
         viewModelScope.launch {
             _backupBusy.value = true
             try {
-                backupManager.importEncryptedFromUri(uri, passphrase)
+                backupManager.importEncryptedFromUri(uri, passphrase, options)
                     .onSuccess { count -> setBackupResult("Imported encrypted backup with $count alarms") }
                     .onFailure { setBackupResult("Encrypted import failed: ${it.message}") }
             } catch (e: Exception) {
@@ -670,6 +687,10 @@ class SettingsViewModel @Inject constructor(
                 _backupBusy.value = false
             }
         }
+    }
+
+    fun showBackupResult(message: String) {
+        setBackupResult(message)
     }
 
     private fun setBackupResult(message: String) {

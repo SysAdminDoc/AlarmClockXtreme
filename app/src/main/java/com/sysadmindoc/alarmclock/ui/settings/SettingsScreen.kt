@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
@@ -115,6 +116,9 @@ import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
+import com.sysadmindoc.alarmclock.data.backup.BackupImportMode
+import com.sysadmindoc.alarmclock.data.backup.BackupImportOptions
+import com.sysadmindoc.alarmclock.data.backup.BackupImportPreview
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
@@ -2476,11 +2480,64 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     var encryptedPassphraseConfirm by remember { mutableStateOf("") }
     var pendingExportWarning by remember { mutableStateOf<BackupExportWarning?>(null) }
     var pendingExportKind by remember { mutableStateOf<BackupExportKind?>(null) }
+    var pendingImport by remember { mutableStateOf<PendingBackupImport?>(null) }
+    var importEnabledAsDisabled by remember { mutableStateOf(false) }
+    var importPreviewBusy by remember { mutableStateOf(false) }
     val passphraseMismatch = encryptedPassphraseConfirm.isNotEmpty() &&
         encryptedPassphraseConfirm != encryptedPassphrase
     val encryptedExportEnabled = encryptedPassphrase.isNotBlank() &&
         encryptedPassphrase == encryptedPassphraseConfirm
     val encryptedImportEnabled = encryptedPassphrase.isNotBlank()
+    val operationBusy = backupBusy || importPreviewBusy
+
+    fun requestBackupImport(uri: Uri, encrypted: Boolean) {
+        scope.launch {
+            importPreviewBusy = true
+            val passphrase = if (encrypted) encryptedPassphrase else ""
+            try {
+                val result = if (encrypted) {
+                    viewModel.inspectEncryptedBackupImport(uri, passphrase)
+                } else {
+                    viewModel.inspectBackupImport(uri)
+                }
+                result
+                    .onSuccess { preview ->
+                        importEnabledAsDisabled = false
+                        pendingImport = PendingBackupImport(
+                            uri = uri,
+                            encrypted = encrypted,
+                            passphrase = passphrase,
+                            preview = preview
+                        )
+                    }
+                    .onFailure { error ->
+                        viewModel.showBackupResult(
+                            "Import preview failed: ${error.message ?: "unexpected error"}"
+                        )
+                    }
+            } catch (error: Exception) {
+                viewModel.showBackupResult(
+                    "Import preview failed: ${error.message ?: "unexpected error"}"
+                )
+            } finally {
+                importPreviewBusy = false
+            }
+        }
+    }
+
+    fun confirmBackupImport(mode: BackupImportMode) {
+        val pending = pendingImport ?: return
+        val options = BackupImportOptions(
+            mode = mode,
+            importEnabledAsDisabled = importEnabledAsDisabled
+        )
+        pendingImport = null
+        if (pending.encrypted) {
+            viewModel.importEncryptedBackup(pending.uri, pending.passphrase, options)
+        } else {
+            viewModel.importBackup(pending.uri, options)
+        }
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -2488,7 +2545,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
 
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
-    ) { uri -> uri?.let { viewModel.importBackup(it) } }
+    ) { uri -> uri?.let { requestBackupImport(it, encrypted = false) } }
 
     val encryptedExportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -2496,7 +2553,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
 
     val encryptedImportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
-    ) { uri -> uri?.let { viewModel.importEncryptedBackup(it, encryptedPassphrase) } }
+    ) { uri -> uri?.let { requestBackupImport(it, encrypted = true) } }
 
     fun launchBackupExport(kind: BackupExportKind) {
         when (kind) {
@@ -2530,7 +2587,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(
                 onClick = { requestBackupExport(BackupExportKind.Plain) },
-                enabled = !backupBusy,
+                enabled = !operationBusy,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -2541,7 +2598,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
             }
             OutlinedButton(
                 onClick = { importLauncher.launch(arrayOf("application/json")) },
-                enabled = !backupBusy,
+                enabled = !operationBusy,
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -2615,7 +2672,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedButton(
                     onClick = { requestBackupExport(BackupExportKind.Encrypted) },
-                    enabled = encryptedExportEnabled && !backupBusy,
+                    enabled = encryptedExportEnabled && !operationBusy,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -2626,7 +2683,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 }
                 OutlinedButton(
                     onClick = { encryptedImportLauncher.launch(arrayOf("application/json", "*/*")) },
-                    enabled = encryptedImportEnabled && !backupBusy,
+                    enabled = encryptedImportEnabled && !operationBusy,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
@@ -2656,7 +2713,17 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
         )
     }
 
-    if (backupBusy) {
+    pendingImport?.let { import ->
+        BackupImportPreviewDialog(
+            pendingImport = import,
+            importEnabledAsDisabled = importEnabledAsDisabled,
+            onImportEnabledAsDisabledChange = { importEnabledAsDisabled = it },
+            onDismiss = { pendingImport = null },
+            onImport = ::confirmBackupImport
+        )
+    }
+
+    if (operationBusy) {
         AppSurfaceCard(highlighted = true) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2670,12 +2737,16 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = "Backup operation in progress",
+                        text = if (importPreviewBusy) "Inspecting backup" else "Backup operation in progress",
                         color = TextPrimary,
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(
-                        text = "Backup buttons stay locked until the result appears.",
+                        text = if (importPreviewBusy) {
+                            "Restore choices appear after the file is checked."
+                        } else {
+                            "Backup buttons stay locked until the result appears."
+                        },
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -2699,6 +2770,143 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
 private enum class BackupExportKind {
     Plain,
     Encrypted
+}
+
+private data class PendingBackupImport(
+    val uri: Uri,
+    val encrypted: Boolean,
+    val passphrase: String,
+    val preview: BackupImportPreview
+)
+
+@Composable
+private fun BackupImportPreviewDialog(
+    pendingImport: PendingBackupImport,
+    importEnabledAsDisabled: Boolean,
+    onImportEnabledAsDisabledChange: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+    onImport: (BackupImportMode) -> Unit
+) {
+    val preview = pendingImport.preview
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = if (preview.canImport) Icons.Default.Backup else Icons.Default.Warning,
+                contentDescription = null,
+                tint = if (preview.canImport) MaterialTheme.colorScheme.primary else AccentRed
+            )
+        },
+        title = { Text("Preview restore") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = preview.compatibilityStatus,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (preview.canImport) TextPrimary else AccentRed
+                )
+                Text(
+                    text = "Backup v${preview.version} from app ${preview.appVersion.ifBlank { "unknown" }}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+                Text(
+                    text = formatBackupExportedAt(preview.exportedAt),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+                Text(
+                    text = "${preview.alarmCount} alarms, ${preview.enabledAlarmCount} enabled",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+                if (preview.invalidAlarmCount > 0) {
+                    Text(
+                        text = "${preview.invalidAlarmCount} alarm rows could not be read and will be skipped.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = SnoozeYellow
+                    )
+                }
+                Text(
+                    text = if (preview.settingsIncluded) {
+                        "Global settings will be restored."
+                    } else {
+                        "This backup does not include global settings."
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+                if (preview.privateDataCategories.isNotEmpty()) {
+                    Text(
+                        text = "Private values detected:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    preview.privateDataCategories.forEach { category ->
+                        Text(
+                            text = "- $category",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+                }
+                if (preview.canImport) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .toggleable(
+                                value = importEnabledAsDisabled,
+                                role = Role.Switch,
+                                onValueChange = onImportEnabledAsDisabledChange
+                            ),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Switch(
+                            checked = importEnabledAsDisabled,
+                            onCheckedChange = null,
+                            colors = appSwitchColors()
+                        )
+                        Text(
+                            text = "Import enabled alarms as disabled",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (preview.canImport) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { onImport(BackupImportMode.Append) }) {
+                        Text("Append")
+                    }
+                    TextButton(onClick = { onImport(BackupImportMode.Replace) }) {
+                        Text("Replace")
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(if (preview.canImport) "Cancel" else "Close")
+            }
+        }
+    )
+}
+
+private fun formatBackupExportedAt(exportedAt: Long): String {
+    if (exportedAt <= 0L) return "Export time unknown"
+    return runCatching {
+        "Exported " + DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a", Locale.US)
+            .withZone(ZoneId.systemDefault())
+            .format(Instant.ofEpochMilli(exportedAt))
+    }.getOrElse {
+        "Export time unknown"
+    }
 }
 
 @Composable

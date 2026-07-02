@@ -12,6 +12,7 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import java.io.File
 import java.time.DayOfWeek
 import kotlinx.coroutines.test.runTest
@@ -171,6 +172,89 @@ class BackupManagerExportImportTest {
                 match { it.id == 99L && it.label == "Weekday lift" && it.isEnabled }
             )
         }
+    }
+
+    @Test
+    fun inspectImportFromUriPreviewsBackupWithoutWriting() = runTest {
+        val backupJson = backupAdapter.toJson(
+            BackupData(
+                appVersion = "1.15.15",
+                exportedAt = 1_700_000_000_000L,
+                alarms = listOf(morningAlarm().toAlarmBackup()),
+                settings = SettingsBackup(
+                    is24HourFormat = true,
+                    defaultSnoozeDuration = 25,
+                    defaultGradualVolume = 90,
+                    usePhoneSpeakers = true,
+                    showOnLockScreen = false,
+                    hideAlarmLabelsOnPublicSurfaces = true,
+                    vacationModeEnabled = false,
+                    vacationStartMillis = 0,
+                    vacationEndMillis = 0,
+                    showWeatherOnDashboard = false,
+                    showCalendarOnDashboard = true,
+                    webhookSigningSecret = "webhook-signing-secret"
+                )
+            )
+        )
+        val backupFile = File(context.cacheDir, "backup-manager-preview-test.json")
+            .apply { writeText(backupJson) }
+
+        val result = backupManager.inspectImportFromUri(Uri.fromFile(backupFile))
+
+        assertTrue(result.isSuccess)
+        val preview = result.getOrThrow()
+        assertEquals(BackupManager.MAX_SUPPORTED_BACKUP_VERSION, preview.version)
+        assertEquals("1.15.15", preview.appVersion)
+        assertEquals(1, preview.alarmCount)
+        assertEquals(1, preview.enabledAlarmCount)
+        assertEquals(0, preview.invalidAlarmCount)
+        assertTrue(preview.settingsIncluded)
+        assertTrue(preview.canImport)
+        assertTrue(preview.privateDataCategories.contains("Webhook signing secret"))
+        coVerify(exactly = 0) { repository.save(any()) }
+        coVerify(exactly = 0) { preferencesManager.update(any()) }
+        coVerify(exactly = 0) { scheduler.schedule(any()) }
+        verify(exactly = 0) { scheduler.cancel(any()) }
+    }
+
+    @Test
+    fun importFromUriCanReplaceExistingAlarmsAndDisableImportedAlarms() = runTest {
+        val existing = morningAlarm().copy(id = 44L, label = "Old alarm")
+        val backupJson = backupAdapter.toJson(
+            BackupData(
+                alarms = listOf(morningAlarm().toAlarmBackup()),
+                settings = null
+            )
+        )
+        val backupFile = File(context.cacheDir, "backup-manager-replace-test.json")
+            .apply { writeText(backupJson) }
+        coEvery { repository.getAll() } returns listOf(existing)
+        coEvery { repository.save(any()) } returns 101L
+
+        val result = backupManager.importFromUri(
+            Uri.fromFile(backupFile),
+            BackupImportOptions(
+                mode = BackupImportMode.Replace,
+                importEnabledAsDisabled = true
+            )
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, result.getOrThrow())
+        verify { scheduler.cancel(44L) }
+        coVerify { repository.delete(existing) }
+        coVerify {
+            repository.save(
+                match {
+                    it.label == "Weekday lift" &&
+                        it.id == 0L &&
+                        !it.isEnabled &&
+                        it.nextTriggerTime == 0L
+                }
+            )
+        }
+        coVerify(exactly = 0) { scheduler.schedule(any()) }
     }
 
     private fun morningAlarm(): Alarm = Alarm(
