@@ -69,7 +69,6 @@ items. New entries from this pass are tagged **NEW**.
 | L-W2 | Bed-exit auto-dismiss via watch motion >60 s. | [Withings](https://www.withings.com/), [Garmin Connect](https://connect.garmin.com/) | M |
 | L-W3 | HRV-aware smart wake (watch HRV dip > phone accel for light-sleep detection). | [Sleep as Android wear-data](https://docs.sleep.urbandroid.org/sleep/wearable_devices.html) | L |
 | L-W4 | Standalone Wear OS app (alarm fires without phone). | [Pixel Watch 3 alarms](https://support.google.com/wearos/answer/6300982?hl=en); [1Smart WakeUp](https://play.google.com/store/apps/details?id=com.onesmart.wakeup) | L |
-| L-W5 | Migrate Wear tile from `protolayout-material3` to `androidx.glance:glance-wear-tiles` once stable. **NEW (tech-debt).** | [Glance Wear](https://developer.android.com/jetpack/androidx/releases/glance-wear) — currently 1.0.0-alpha07 | M |
 
 ### Workplace / shift worker
 
@@ -99,7 +98,6 @@ items. New entries from this pass are tagged **NEW**.
 | L-R3 | Mood selfie + emoji tag. | [Daylio](https://daylio.net/) | S |
 | L-R4 | Obsidian / Notion / Markdown daily-note append. | [TaskForge.md](https://taskforge.md/android/); [Notelert Obsidian forum](https://forum.obsidian.md/t/notelert-native-android-notification-and-reminders-for-obsidian/109310) | M |
 | L-R5 | Health Connect weight / BP / mood quick-entry. | [Health Connect data types](https://developer.android.com/health-and-fitness/health-connect/data-types) | S |
-| L-R6 | Tasker / MacroDroid / Home Assistant recipe library — bundle 5-10 ready-made flows under `docs/integrations/`. | [HA Sleep as Android integration](https://www.home-assistant.io/integrations/sleep_as_android/); [IATkachenko/HA-SleepAsAndroid](https://github.com/IATkachenko/HA-SleepAsAndroid) | S |
 | L-R7 | Badge set: "5 AM club", "no-snooze week", "DDNNO survivor". | [Habitica](https://habitica.com/) | S |
 | L-R8 | Share-card screenshot generator (local — no social-feed; matches REJECTED stance). | [Strava](https://www.strava.com/) | S |
 
@@ -134,7 +132,6 @@ items. New entries from this pass are tagged **NEW**.
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-P1 | Power-off alarm (Qualcomm / Samsung / Xiaomi HAL). | OEM | L — privileged partner programs only; likely never indie-achievable |
 | L-P3 | Emergency-escalation call tree (SMS → call → partner → siren). | [Twilio](https://www.twilio.com/) / native | M |
 | L-P4 | Location-based escalation (still at home after dismiss → siren). | FusedLocation; partial in code via `locationDismissEnabled` fields | M |
 | L-P5 | Car-mode suppression (Android Auto `CarConnection` API; receive Google's new in-car alarm pop-up). | [Android Auto](https://developer.android.com/training/cars); [Android Auto in-car alarm controls 16.8](https://www.autoevolution.com/news/android-auto-is-getting-the-feature-users-first-asked-for-10-years-ago-269408.html) | S |
@@ -154,7 +151,6 @@ items. New entries from this pass are tagged **NEW**.
 | # | Item | Source | Effort |
 |---|------|--------|--------|
 | L-SH1 | Matter 1.6 Dynamic Lighting (DLE) cross-brand sunrise — extends Hue path to any Matter bulb without per-brand workarounds. **NEW.** | [Matter 1.6 DLE 2026](https://mattressmiracle.ca/blogs/mattress-miracle-blog/matter-1-6-dynamic-lighting-sunrise-gradient-bedroom); [Matter Innovations CES 2026](https://matter-smarthome.de/en/products/the-matter-innovations-at-ces-2026/); [Google Home Matter dev docs](https://developers.home.google.com/matter) | L |
-| L-SH2 | Home Assistant blueprint kit — 5-10 ready-made flows in `docs/integrations/`. | [HA Sleep as Android integration](https://www.home-assistant.io/integrations/sleep_as_android/); [HA-SleepAsAndroid](https://github.com/IATkachenko/HA-SleepAsAndroid) | S |
 
 ### UX polish
 
@@ -182,7 +178,6 @@ items. New entries from this pass are tagged **NEW**.
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-DOC1 | Document the VMware-shared-folder MAX_PATH build gotcha in CONTRIBUTING.md. **NEW.** | local | S |
 | L-DOC2 | F-Droid anti-feature flag for crash-log writes — document explicitly that crash logs stay local and are never uploaded. **NEW.** | local: [util/CrashLogger.kt](app/src/main/java/com/sysadmindoc/alarmclock/util/CrashLogger.kt); [metadata/com.sysadmindoc.alarmclock.yml](metadata/com.sysadmindoc.alarmclock.yml) | S |
 
 ---
@@ -215,7 +210,7 @@ Items that need scoping or platform readiness before they earn a tier.
 | Anti-uninstall accessibility-service trick (Alarmy "prevent turn off") | Abuse of AccessibilityService; Play policy violation; antithetical to user control. **NEW.** ([Alarmy review on JustUseApp](https://justuseapp.com/en/app/1163786766/alarmy-morning-alarm-clock/reviews)) |
 | YouTube alarm-source as a generic feature in F-Droid flavor | Licensing grey zone — `play` flavor only. F-Droid build keeps the strip-out for unencumbered distribution. |
 | Cloud LLM for sleep insights | Same privacy stance; only on-device models considered (and only if they fit the APK budget). |
-| Power-off alarm without OEM cooperation | Requires privileged partner programs unavailable to indie apps. (L-P1 stays Later as the formal "you'd need OEM" entry — reaffirmed Rejected for any non-OEM workaround.) |
+| Power-off alarm without OEM cooperation | Requires privileged partner programs unavailable to indie apps. L-P1 is blocked in `Roadmap_Blocked.md`; non-OEM workarounds remain rejected. |
 
 ---
 
@@ -268,12 +263,12 @@ Items that need scoping or platform readiness before they earn a tier.
 ### Documentation
 
 - README, CHANGELOG, ROADMAP, and the version badge must all match on every release. **N10 makes this enforced in CI instead of manual.**
-- Add a CONTRIBUTING.md (currently absent) — covers the VMware MAX_PATH gotcha (L-DOC1) and the new contributor's first PR loop.
+- Add a CONTRIBUTING.md (currently absent) — blocked by current markdown hygiene until the repository permits that file.
 
 ### Plugin ecosystem
 
 - Webhooks (Tasker / MacroDroid / Home Assistant) cover the integration surface we want to expose. A "real" plugin SDK is rejected (UC) until webhook gaps are documented.
-- Recipe library (L-R6 + L-SH2) — bundle 5-10 ready-made Tasker / Home Assistant flows in `docs/integrations/`.
+- Recipe library (L-R6 + L-SH2) — blocked by current markdown hygiene until the repository permits integration docs.
 
 ---
 
