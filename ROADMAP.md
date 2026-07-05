@@ -16,7 +16,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.15)
+## Current snapshot (v1.15.19)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v19, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
@@ -27,7 +27,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 117`, `versionName 1.15.15`.
+  `versionCode 121`, `versionName 1.15.19`.
 - **Surface area:** 168 Kotlin files in `:app` + 4 in `:wear`, two phone
   flavors (`play`, `fdroid`), **30 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -60,8 +60,6 @@ items. New entries from this pass are tagged **NEW**.
 | L-S7 | Apnea event flagging (mic onset detection — explicit "screening, not diagnosis" disclaimer; `play` flavor only). | [Apneal app smartphone OSA paper 2025](https://link.springer.com/article/10.1007/s11325-025-03441-w); [Springer 2025 IMU OSA](https://link.springer.com/article/10.1007/s11325-025-03255-w); [Samsung × Stanford 2025](https://www.samsungmobilepress.com/articles/samsung-announces-collaboration-with-stanford-medicine-to-advance-sleep-apnea-detection-and-beyond) | L |
 | L-S8 | Chronotype quiz (Munich MEQ / Horne-Östberg) → ideal bedtime / wake calc. | [Roenneberg MEQ](https://www.thewep.org/documentations/mctq); [Horne-Östberg MEQ calculator](https://qxmd.com/calculate/calculator_829/morningness-eveningness-questionnaire-meq) | S |
 | L-S9 | "AI sleep coach" — small on-device LLM summarising trends and surfacing one suggestion per day. **Strict privacy: model + inference local only.** | [Sleep as Android AI assistant beta](https://sleep.urbandroid.org/documentation/release-notes/); [Rise](https://www.risescience.com/) | L |
-| L-S10 | Pre-sleep guided 4-7-8 / box breathing timer on the Bedtime tab. **NEW.** | [Headspace breathing techniques](https://www.headspace.com/) | S |
-| L-S11 | "Stay-up-late-tonight" override — single-tap delay tonight's bedtime reminder by 1/2/3h with auto-revert. **NEW.** | [Pixel Bedtime mode](https://support.google.com/pixelphone/answer/9887159) | S |
 
 ### Wear OS / wearable depth (beyond X1)
 
@@ -143,7 +141,6 @@ items. New entries from this pass are tagged **NEW**.
 | L-P6 | Companion-watch autonomous fire if phone battery dies. | — | M |
 | L-P7 | Charging-only alarm variant. | — | S |
 | L-P8 | Charge-disconnect missed-alarm re-fire (proxy for "user picked up phone"). **NEW.** | adjacent to MissedAlarmUnlockReceiver | S |
-| L-P9 | Bedtime battery-state warning ("phone is at 14% — plug in to avoid alarm failure"). **NEW.** | [dontkillmyapp.com strategies](https://dontkillmyapp.com/) | S |
 | L-P10 | "Anti-Sleepyhead Security" — alarm only dismissable when GPS confirms you've left a configured geofence. **NEW.** Fields already in DB (`locationDismissEnabled`, `locationDismissRadius`); finish UI. | [Turbo Alarm](https://play.google.com/store/apps/details?id=com.turbo.alarm) | S |
 
 ### Cloud / sync
@@ -446,41 +443,4 @@ Deduplicated against all existing ROADMAP.md and Roadmap_Blocked.md items.
 
 ## Research-Driven Additions
 
-### P1 — High
-
-- [ ] P1 — Webhook signing and delivery status
-  Why: ACX sends versioned HTTPS webhook payloads, but bodies are unsigned and failures are currently invisible to users troubleshooting automations.
-  Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/service/WebhookService.kt`; Home Assistant webhook docs; webhook security guidance.
-  Touches: `PreferencesManager.kt`, `BackupManager.kt`, `WebhookService.kt`, `SettingsViewModel.kt`, `SettingsScreen.kt`, `WebhookUrlTest.kt`, README webhook recipes.
-  Acceptance: Optional signing secret adds timestamp plus `X-ACX-Signature: v1=<hmac-sha256>` over the raw JSON; webhook test and recent delivery status show success/failure without blocking alarms; tests verify signature bytes, timestamp skew handling, label-off payloads, and backup/export warnings.
-  Complexity: M
-
-- [ ] P1 — Backup restore preview and conflict-safe import
-  Why: Import currently mutates settings and saves alarms immediately after parse/version validation; users need counts, risks, and append/replace choices before writes.
-  Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/data/backup/BackupManager.kt`; README backup privacy copy; Android Auto Backup restore guidance.
-  Touches: `BackupManager.kt`, `SettingsViewModel.kt`, `SettingsScreen.kt`, `BackupManagerExportImportTest.kt`, `BackupExportWarningTest.kt`.
-  Acceptance: Import first returns a preview with format version, app version, alarm counts, enabled counts, private-data categories, and compatibility status; no Room/DataStore writes occur until confirm; user can append, replace, or import enabled alarms as disabled; tests prove preview is side-effect-free.
-  Complexity: M
-
 ### P2 — Medium
-
-- [ ] P2 — Persistent stale-state cache for weather and news
-  Why: Holidays keep a stale disk cache, but weather is memory-only and news intentionally refetches; offline morning use should show last-good data with honest timestamps.
-  Evidence: `WeatherRepository.kt`, `HolidayRepository.kt`, `NewsRepository.kt`, `NewsViewModel.kt`; Open-Meteo/RSS surfaces in README.
-  Touches: `WeatherRepository.kt`, `NewsRepository.kt`, dashboard/news ViewModels and screens, backup/support export exclusions, repository tests.
-  Acceptance: Successful weather/news fetches persist compact last-good data; offline launch renders a stale banner with last-updated time and retry action; cached data is excluded from backup/support sensitive payloads; tests cover stale, empty, and failed-refresh states.
-  Complexity: M
-
-- [ ] P2 — Two-pane adaptive layouts beyond the navigation rail
-  Why: AppNavigation already switches to a rail on wider windows, but key workflows remain long single-pane phone layouts on tablets, foldables, Chromebooks, and DeX.
-  Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/ui/navigation/AppNavigation.kt`; `AlarmListScreen.kt`; `SettingsScreen.kt`; Material 3 adaptive guidance.
-  Touches: `AppNavigation.kt`, `AlarmListScreen.kt`, `AlarmEditScreen.kt`, `SettingsScreen.kt`, `BedtimeScreen.kt`, Compose screenshot/semantics tests.
-  Acceptance: Expanded-width alarms use list/detail or equivalent pane behavior, Settings uses group/detail panes, Bedtime preserves current compact flow, phone layout remains unchanged, and visual/semantics QA covers compact and expanded widths.
-  Complexity: L
-
-- [ ] P2 — Continue AlarmService controller extraction
-  Why: `AlarmService.kt` remains a 1,823-line wake-critical coordinator even after playback and dismiss-action extraction, making vibration/flashlight/TTS/morning/wake-confirm behavior harder to unit-test.
-  Evidence: `app/src/main/java/com/sysadmindoc/alarmclock/service/AlarmService.kt`; `AlarmPlaybackPlayer.kt`; `DismissActionExecutor.kt`; existing service tests.
-  Touches: `service/AlarmService.kt`, new service controllers under `service/`, `AlarmServiceMedia3SmokeTest.kt`, alarm fire/dismiss smoke tests.
-  Acceptance: Extracted controller-sized units handle vibration/flashlight/TTS/morning/wake-confirm decisions with no public behavior change; unit tests cover each controller; existing alarm fire, snooze, dismiss, webhook, and Media3 smoke paths still pass.
-  Complexity: M

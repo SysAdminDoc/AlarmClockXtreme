@@ -4,6 +4,18 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.19] - 2026-07-05
+
+### Added
+
+- Added a guided Bedtime breathing timer with 4-7-8 and box-breathing modes,
+  per-phase countdown cues, and local-only in-screen timing.
+
+### Changed
+
+- Bumped app, Wear, README, release verifier, and F-Droid metadata to
+  `versionName = "1.15.19"`, `versionCode = 121`.
+
 ## [1.15.18] - 2026-07-05
 
 ### Changed

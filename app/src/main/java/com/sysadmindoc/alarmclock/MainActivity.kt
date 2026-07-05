@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Bedtime reminders now show a final-hour Live Update countdown on Android 16.",
-            "The countdown uses a quiet channel while the bedtime reminder stays noticeable.",
-            "Turning bedtime off cancels both reminder and countdown alarms together.",
-            "Alarm audio still uses the Media3 path with platform-ringtone fallback."
+            "Bedtime now includes guided 4-7-8 and box-breathing timers.",
+            "The breathing guide shows each inhale, hold, and exhale count in place.",
+            "Start, pause, restart, and reset controls stay local to the Bedtime screen.",
+            "The session timer shows how much wind-down time is left before sleep."
         )
     }
 }
