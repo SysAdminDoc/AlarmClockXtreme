@@ -51,7 +51,6 @@ items. New entries from this pass are tagged **NEW**.
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-S1 | TFLite REM-stage classifier (extends local actigraphy buckets). | [Pillow](https://www.pillow.app/), SleepWatch, [SlumberNet 2024](https://www.nature.com/articles/s41598-024-54727-0) | L |
 | L-S2 | Snore recording + timeline (mic ring buffer, save >60 dB bursts). | [Sleep as Android sound detection](https://sleep.urbandroid.org/new-sleep-sound-detection/); [britig/SnoreDetection](https://github.com/britig/SnoreDetection) | M |
 | L-S3 | On-device ML snore/sound-detection (cough / sleep-talk / baby) via TFLite micro. **NEW.** | [Edge Impulse snoring on smartphone](https://github.com/edgeimpulse/expert-projects/blob/main/audio-projects/snoring-detection-on-smartphone.md); [Sleep as Android sound detection blog](https://sleep.urbandroid.org/new-sleep-sound-detection/) | L |
 | L-S4 | Pre-sleep tag tiles (caffeine / exercise / alcohol / stress) + correlation chart. | Sleep as Android | M |
@@ -186,7 +185,6 @@ Items that need scoping or platform readiness before they earn a tier.
 |------|---------------------------|
 | Android Auto in-car alarm pop-up handler | Wait for Android Auto 16.8 stable release + AAOS API documentation. Currently leaked only via beta teardowns. ([autoevolution](https://www.autoevolution.com/news/android-auto-is-getting-the-feature-users-first-asked-for-10-years-ago-269408.html)) |
 | iOS-26 AlarmKit UX pattern adoption (full-screen snooze/stop visuals, App-Intent secondary action) | Study-only — App Intents are iOS-only; port the platform-neutral visual + interaction patterns to ACX firing screen. ([Apple AlarmKit](https://developer.apple.com/documentation/AlarmKit)) |
-| TensorFlow Lite REM-stage classifier (L-S1) | Model footprint vs. APK-size budget; F-Droid users expect <40 MB. Need a downloadable-model strategy that doesn't break offline-first. |
 | Tasker / MacroDroid plugin (true plugin, not just webhook) | Adds API surface to maintain; webhook covers most users. ([Tasker plugin intro](https://tasker.joaoapps.com/plugins-intro.html)) |
 | Wear OS standalone app (L-W4) | Build-time, signing, separate Play track; revisit after X1 (complication) proves demand. |
 | Cloud LLM sleep-coach | Out of bounds — privacy stance forbids. Local LLM (L-S9) only. |
