@@ -178,7 +178,7 @@ class BackupManagerExportImportTest {
     fun inspectImportFromUriPreviewsBackupWithoutWriting() = runTest {
         val backupJson = backupAdapter.toJson(
             BackupData(
-                appVersion = "1.15.17",
+                appVersion = "1.15.18",
                 exportedAt = 1_700_000_000_000L,
                 alarms = listOf(morningAlarm().toAlarmBackup()),
                 settings = SettingsBackup(
@@ -205,7 +205,7 @@ class BackupManagerExportImportTest {
         assertTrue(result.isSuccess)
         val preview = result.getOrThrow()
         assertEquals(BackupManager.MAX_SUPPORTED_BACKUP_VERSION, preview.version)
-        assertEquals("1.15.17", preview.appVersion)
+        assertEquals("1.15.18", preview.appVersion)
         assertEquals(1, preview.alarmCount)
         assertEquals(1, preview.enabledAlarmCount)
         assertEquals(0, preview.invalidAlarmCount)

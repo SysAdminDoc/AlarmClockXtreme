@@ -1,6 +1,5 @@
 package com.sysadmindoc.alarmclock.ui.news
 
-import android.text.Html
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -339,11 +338,58 @@ private fun NewsCardSkeleton() {
     }
 }
 
-private fun stripHtml(raw: String): String {
-    return runCatching {
-        Html.fromHtml(raw, Html.FROM_HTML_MODE_COMPACT).toString()
-    }.getOrDefault(raw)
+private val textBeforeTagBoundaryRegex = Regex("(?<=[\\p{L}\\p{N}\\p{Punct}])\\s*(?=<[A-Za-z][^>]*>)")
+private val adjacentTagBoundaryRegex = Regex("(?<=>)\\s*(?=<[A-Za-z][^>]*>)")
+private val tagBeforeTextBoundaryRegex = Regex("(?<=>)\\s*(?=[\\p{L}\\p{N}])")
+private val htmlTagRegex = Regex("<[^>]+>")
+private val htmlEntityRegex = Regex("&(#x?[0-9A-Fa-f]+|[A-Za-z][A-Za-z0-9]+);")
+private val whitespaceRegex = Regex("\\s+")
+private val namedHtmlEntities = mapOf(
+    "amp" to "&",
+    "apos" to "'",
+    "gt" to ">",
+    "hellip" to "...",
+    "laquo" to "\"",
+    "ldquo" to "\"",
+    "lsquo" to "'",
+    "lt" to "<",
+    "mdash" to "-",
+    "nbsp" to " ",
+    "ndash" to "-",
+    "quot" to "\"",
+    "raquo" to "\"",
+    "rdquo" to "\"",
+    "rsquo" to "'",
+)
+
+internal fun stripHtml(raw: String): String {
+    val textWithBoundaries = raw
+        .replace(textBeforeTagBoundaryRegex, " ")
+        .replace(adjacentTagBoundaryRegex, " ")
+        .replace(tagBeforeTextBoundaryRegex, " ")
+        .replace(htmlTagRegex, " ")
+    return decodeHtmlEntities(textWithBoundaries)
+        .replace('\u00A0', ' ')
+        .replace(whitespaceRegex, " ")
+        .trim()
 }
+
+private fun decodeHtmlEntities(raw: String): String =
+    htmlEntityRegex.replace(raw) { match ->
+        val entity = match.groupValues[1]
+        when {
+            entity.startsWith("#x", ignoreCase = true) ->
+                entity.drop(2).toIntOrNull(16)?.toCodePointString()
+
+            entity.startsWith("#") ->
+                entity.drop(1).toIntOrNull()?.toCodePointString()
+
+            else -> namedHtmlEntities[entity.lowercase()]
+        } ?: match.value
+    }
+
+private fun Int.toCodePointString(): String? =
+    takeIf { Character.isValidCodePoint(it) }?.let { String(Character.toChars(it)) }
 
 private fun formatRelativeShort(epochMs: Long): String {
     val deltaMs = (System.currentTimeMillis() - epochMs).coerceAtLeast(0)

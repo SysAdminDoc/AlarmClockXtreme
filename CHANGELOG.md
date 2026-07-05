@@ -4,6 +4,17 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.18] - 2026-07-05
+
+### Changed
+
+- Wrapped Timer preset chips into a compact multi-row layout so compact phones
+  no longer clip the final preset.
+- Cleaned News summary text after feed markup removal so adjacent links and HTML
+  entities keep readable word spacing.
+- Bumped app, Wear, README, release verifier, and F-Droid metadata to
+  `versionName = "1.15.18"`, `versionCode = 120`.
+
 ## [1.15.17] - 2026-07-02
 
 ### Changed
