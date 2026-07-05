@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -93,15 +94,26 @@ data class FiringUiState(
     val plankHoldActive: Boolean = false,
     val challengeBypassAvailable: Boolean = false,
     val challengeBypassRemainingSeconds: Int = -1,
+    val locationDismissReady: Boolean = false,
+    val locationDismissDistanceMeters: Float? = null,
+    val locationDismissStatus: String = "",
     val weatherTemp: String? = null,
     val weatherDescription: String? = null,
     val firedEarlyForWeather: Boolean = false
 ) {
+    val requiresLocationDismiss: Boolean get() = alarm?.locationDismissEnabled == true
     val requiresChallenge: Boolean get() {
         val type = alarm?.challengeType ?: "NONE"
-        return challenge != null || alarm?.challengeChain?.isNotBlank() == true || type != "NONE"
+        return challenge != null ||
+            alarm?.challengeChain?.isNotBlank() == true ||
+            type != "NONE" ||
+            requiresLocationDismiss
     }
-    val canDismiss: Boolean get() = challengeSolved || challenge == null || challengeBypassAvailable
+    val wakeChallengeReady: Boolean get() = challengeSolved || challenge == null || challengeBypassAvailable
+    val canDismiss: Boolean get() {
+        val locationReady = !requiresLocationDismiss || locationDismissReady || challengeBypassAvailable
+        return wakeChallengeReady && locationReady
+    }
 }
 
 @HiltViewModel
@@ -206,6 +218,11 @@ class AlarmFiringViewModel @Inject constructor(
             } else {
                 null
             }
+            val hasLocationDismissTarget = LocationDismissPolicy.hasTarget(
+                alarm.locationDismissLat,
+                alarm.locationDismissLng
+            )
+            val locationDismissActive = alarm.locationDismissEnabled && hasLocationDismissTarget
 
             val quote = MOTIVATIONAL_QUOTES.random()
 
@@ -227,6 +244,12 @@ class AlarmFiringViewModel @Inject constructor(
                 currentChallengeIndex = 0,
                 motivationalQuote = quote,
                 mazeCurrentPos = (firstChallenge as? Challenge.MazeChallenge)?.startPos ?: 0,
+                locationDismissReady = !locationDismissActive,
+                locationDismissStatus = when {
+                    !alarm.locationDismissEnabled -> ""
+                    !hasLocationDismissTarget -> "No saved place is set, so location dismissal is not locked."
+                    else -> "Waiting for a location fix. Leave the saved ${LocationDismissPolicy.coerceRadius(alarm.locationDismissRadius)} m area to unlock dismiss."
+                },
                 weatherTemp = weatherTemp,
                 weatherDescription = weatherDesc,
                 firedEarlyForWeather = alarm.weatherEarlyMinutes > 0 && weatherDesc != null &&
@@ -244,6 +267,8 @@ class AlarmFiringViewModel @Inject constructor(
             }
             if (firstChallenge != null) {
                 launchChallengeBypassTimer()
+            } else if (locationDismissActive) {
+                launchChallengeBypassTimer()
             }
         }
     }
@@ -256,7 +281,7 @@ class AlarmFiringViewModel @Inject constructor(
             for (remaining in delaySec downTo 1) {
                 _uiState.value = _uiState.value.copy(challengeBypassRemainingSeconds = remaining)
                 kotlinx.coroutines.delay(1000)
-                if (_uiState.value.challengeSolved) return@launch
+                if (_uiState.value.canDismiss) return@launch
             }
             _uiState.value = _uiState.value.copy(
                 challengeBypassAvailable = true,
@@ -610,6 +635,47 @@ class AlarmFiringViewModel @Inject constructor(
         if (_uiState.value.challenge !is Challenge.WifiChallenge) return
         if (!_uiState.value.wifiFallbackAllowed) return
         proceedToNextChallenge()
+    }
+
+    fun onLocationDismissLocation(latitude: Double, longitude: Double) {
+        val alarm = currentAlarm ?: _uiState.value.alarm ?: return
+        if (!alarm.locationDismissEnabled) return
+        val result = LocationDismissPolicy.check(
+            targetLatitude = alarm.locationDismissLat,
+            targetLongitude = alarm.locationDismissLng,
+            radiusMeters = alarm.locationDismissRadius,
+            currentLatitude = latitude,
+            currentLongitude = longitude
+        )
+        if (result == null) {
+            _uiState.value = _uiState.value.copy(
+                locationDismissReady = true,
+                locationDismissDistanceMeters = null,
+                locationDismissStatus = "No saved place is set, so location dismissal is not locked."
+            )
+            return
+        }
+
+        val distance = result.distanceMeters.toInt()
+        val remaining = (result.radiusMeters - distance).coerceAtLeast(0)
+        _uiState.value = _uiState.value.copy(
+            locationDismissReady = result.outsideFence,
+            locationDismissDistanceMeters = result.distanceMeters,
+            locationDismissStatus = if (result.outsideFence) {
+                "Location confirmed: ${distance} m from the saved place. Dismiss is unlocked."
+            } else {
+                "Still inside the saved area: ${distance} m away. Move about ${remaining} m farther to unlock dismiss."
+            }
+        )
+    }
+
+    fun onLocationDismissUnavailable(message: String) {
+        val alarm = currentAlarm ?: _uiState.value.alarm ?: return
+        if (!alarm.locationDismissEnabled) return
+        _uiState.value = _uiState.value.copy(
+            locationDismissReady = false,
+            locationDismissStatus = message
+        )
     }
 
     // v1.2.0: Squat challenge

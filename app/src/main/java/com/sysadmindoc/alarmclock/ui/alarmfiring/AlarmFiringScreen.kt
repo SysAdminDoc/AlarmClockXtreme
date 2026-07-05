@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.AlarmOff
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.TaskAlt
@@ -203,6 +204,13 @@ fun AlarmFiringScreen(
     )
 
     val challenge = state.challenge
+    val locationDismissActive = state.alarm?.locationDismissEnabled == true &&
+        !state.locationDismissReady &&
+        !state.challengeBypassAvailable
+    val locationDismissDistanceMeters = state.locationDismissDistanceMeters
+    val locationDismissMessage = state.locationDismissStatus.ifBlank {
+        "Leave the saved area to unlock dismissal. Snooze remains available."
+    }
     if (challenge is Challenge.MemoryPatternChallenge && state.memoryPhase == MemoryPhase.SHOWING) {
         LaunchedEffect(state.memoryPhase, state.wrongAttempts, state.currentChallengeIndex) {
             delay(challenge.showDurationMs)
@@ -243,6 +251,7 @@ fun AlarmFiringScreen(
         state.canDismiss && holdToDismissEnabled ->
             "Wake-up steps are complete. Hold Dismiss for 1.5 seconds, or right-swipe to snooze."
         state.canDismiss -> "Wake-up steps are complete. Swipe left to dismiss, or right to snooze."
+        locationDismissActive && state.wakeChallengeReady -> locationDismissMessage
         challenge == null && holdToDismissEnabled -> "Hold Dismiss for 1.5 seconds to stop the alarm."
         challenge == null -> "Swipe left or tap dismiss to stop the alarm."
         else -> challenge.statusDescription()
@@ -380,9 +389,14 @@ fun AlarmFiringScreen(
                         label = when {
                             state.canDismiss && holdToDismissEnabled -> "Hold required"
                             state.canDismiss -> "Dismiss ready"
+                            locationDismissActive && state.wakeChallengeReady -> "Location locked"
                             else -> "Dismiss locked"
                         },
-                        icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
+                        icon = when {
+                            state.canDismiss -> Icons.Default.CheckCircle
+                            locationDismissActive && state.wakeChallengeReady -> Icons.Default.LocationOn
+                            else -> Icons.Default.WarningAmber
+                        },
                         color = if (state.canDismiss) DismissGreen else SnoozeYellow
                     )
                     if (state.challengeBypassRemainingSeconds > 0 && !state.canDismiss) {
@@ -452,6 +466,18 @@ fun AlarmFiringScreen(
                         icon = Icons.Default.TaskAlt,
                         color = MaterialTheme.colorScheme.primary
                     )
+                    if (state.alarm?.locationDismissEnabled == true) {
+                        AppStatusChip(
+                            label = when {
+                                state.locationDismissReady -> "Left saved place"
+                                locationDismissDistanceMeters != null ->
+                                    "${locationDismissDistanceMeters.toInt()} m from place"
+                                else -> "Location lock"
+                            },
+                            icon = Icons.Default.LocationOn,
+                            color = if (state.locationDismissReady) DismissGreen else SnoozeYellow
+                        )
+                    }
                     if (state.wrongAttempts > 0) {
                         AppStatusChip(
                             label = "${state.wrongAttempts} retry${if (state.wrongAttempts == 1) "" else "ies"}",
@@ -502,8 +528,16 @@ fun AlarmFiringScreen(
                 highlighted = !state.canDismiss
             ) {
                 AppSectionTitle(
-                    title = challenge.headline(),
-                    description = challenge.supportingText()
+                    title = if (locationDismissActive && state.wakeChallengeReady) {
+                        "Leave the saved place"
+                    } else {
+                        challenge.headline()
+                    },
+                    description = if (locationDismissActive && state.wakeChallengeReady) {
+                        locationDismissMessage
+                    } else {
+                        challenge.supportingText()
+                    }
                 )
 
                 Box(
@@ -513,7 +547,7 @@ fun AlarmFiringScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     when {
-                        state.canDismiss || challenge == null -> {
+                        state.canDismiss -> {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -537,6 +571,34 @@ fun AlarmFiringScreen(
                                     } else {
                                         "You’ve cleared every required step. Dismiss now or snooze if you need a short buffer."
                                     },
+                                    color = TextSecondary,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+
+                        locationDismissActive && state.wakeChallengeReady -> {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = SnoozeYellow.copy(alpha = pulseAlpha),
+                                    modifier = Modifier
+                                        .size(92.dp)
+                                        .scale(pulseScale)
+                                )
+                                Text(
+                                    text = "Move outside the saved area",
+                                    color = TextPrimary,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    textAlign = TextAlign.Center
+                                )
+                                Text(
+                                    text = locationDismissMessage,
                                     color = TextSecondary,
                                     style = MaterialTheme.typography.bodyMedium,
                                     textAlign = TextAlign.Center
@@ -814,6 +876,8 @@ fun AlarmFiringScreen(
                                 } else {
                                     "Swipe left to dismiss or right to snooze."
                                 }
+                            } else if (locationDismissActive && state.wakeChallengeReady) {
+                                "Swipe right to snooze if you need a short reset. Dismiss unlocks after you leave the saved place."
                             } else {
                                 "Swipe right to snooze if you need a short reset. Dismiss unlocks once the wake-up task is complete."
                             }
@@ -841,6 +905,8 @@ fun AlarmFiringScreen(
                         } else {
                             "Choose the cleanest exit for this alarm now that the wake-up work is done."
                         }
+                    } else if (locationDismissActive && state.wakeChallengeReady) {
+                        "Snooze remains available. Dismiss unlocks when location confirms you left the saved area."
                     } else {
                         "Snooze is always available. Dismiss unlocks as soon as the current wake-up step is complete."
                     }
@@ -857,6 +923,7 @@ fun AlarmFiringScreen(
                             state.canDismiss && holdToDismissEnabled -> "Hold Dismiss to finish"
                             state.canDismiss && showSwipeControls -> "Swipe left to dismiss"
                             state.canDismiss -> "Tap to dismiss"
+                            locationDismissActive && state.wakeChallengeReady -> "Dismiss unlocks after location"
                             else -> "Dismiss unlocks after challenge"
                         },
                         icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
@@ -890,7 +957,11 @@ fun AlarmFiringScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = if (state.canDismiss) "Dismiss alarm" else "Finish wake-up challenge",
+                                text = when {
+                                    state.canDismiss -> "Dismiss alarm"
+                                    locationDismissActive && state.wakeChallengeReady -> "Leave saved place to dismiss"
+                                    else -> "Finish wake-up challenge"
+                                },
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 16.sp
                             )

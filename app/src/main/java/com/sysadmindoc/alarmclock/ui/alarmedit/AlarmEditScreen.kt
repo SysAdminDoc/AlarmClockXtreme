@@ -37,6 +37,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.BuildConfig
+import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -46,11 +47,13 @@ import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.*
+import com.sysadmindoc.alarmclock.util.LocationHelper
 import com.sysadmindoc.alarmclock.util.PhotoMatcher
 import com.sysadmindoc.alarmclock.worker.GuardianEscalationPolicy
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.DayOfWeek
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,6 +68,7 @@ fun AlarmEditScreen(
     var showChainPicker by remember { mutableStateOf(false) }
     var photoReferenceStatus by remember { mutableStateOf("") }
     var firingBackgroundStatus by remember { mutableStateOf("") }
+    var locationDismissStatus by remember { mutableStateOf("") }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(state.saveError) {
@@ -133,6 +137,31 @@ fun AlarmEditScreen(
             "Background image selected."
         } else {
             "Background image selected. Re-select it if Android revokes access."
+        }
+    }
+    val captureLocationDismissTarget = {
+        val location = LocationHelper.getLastKnownLocation(context)
+        if (location != null) {
+            viewModel.updateLocationDismissTarget(location.latitude, location.longitude)
+            locationDismissStatus = "Saved current place for location dismissal."
+        } else {
+            locationDismissStatus = "Could not get a location fix. Turn on Location and try again."
+        }
+    }
+    val locationDismissPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            captureLocationDismissTarget()
+        } else {
+            locationDismissStatus = "Location permission is required to save this dismissal lock."
+        }
+    }
+    val requestLocationDismissTarget = {
+        if (LocationHelper.hasLocationPermission(context)) {
+            captureLocationDismissTarget()
+        } else {
+            locationDismissPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
 
@@ -671,10 +700,14 @@ fun AlarmEditScreen(
                 subtitle = buildList {
                     if (state.challengeType != "NONE") add(state.challengeType.lowercase()
                         .replaceFirstChar { it.uppercase() }.replace("_", " "))
+                    if (state.locationDismissEnabled) add("Location lock")
                     if (state.wakeConfirmEnabled) add("Wake confirm")
                     if (state.smartAlarmEnabled) add("Smart alarm")
                 }.joinToString(", ").ifEmpty { null },
-                initiallyExpanded = state.challengeType != "NONE" || state.wakeConfirmEnabled || state.smartAlarmEnabled
+                initiallyExpanded = state.challengeType != "NONE" ||
+                    state.locationDismissEnabled ||
+                    state.wakeConfirmEnabled ||
+                    state.smartAlarmEnabled
             ) {
             // Dismiss Challenge
             SettingsSection("Dismiss challenge") {
@@ -879,6 +912,102 @@ fun AlarmEditScreen(
                             tone = if (state.photoMatchUri.isBlank()) HintTone.Warning else HintTone.Neutral
                         )
                     }
+                }
+            }
+
+            SettingsSection("Location dismissal lock") {
+                val hasLocationTarget = LocationDismissPolicy.hasTarget(
+                    state.locationDismissLat,
+                    state.locationDismissLng
+                )
+                SettingsRow(
+                    label = "Require leaving saved place",
+                    trailing = {
+                        Switch(
+                            checked = state.locationDismissEnabled,
+                            onCheckedChange = { enabled ->
+                                viewModel.updateLocationDismiss(enabled)
+                                if (enabled && !hasLocationTarget) requestLocationDismissTarget()
+                            },
+                            colors = appSwitchColors()
+                        )
+                    }
+                )
+                if (state.locationDismissEnabled) {
+                    var showRadiusMenu by remember { mutableStateOf(false) }
+                    SettingsRow(label = "Saved place") {
+                        SettingsValueButton(
+                            label = if (hasLocationTarget) {
+                                formatLocationDismissTarget(
+                                    state.locationDismissLat,
+                                    state.locationDismissLng
+                                )
+                            } else {
+                                "Not saved"
+                            },
+                            onClick = requestLocationDismissTarget
+                        )
+                    }
+                    SettingsRow(label = "Unlock radius") {
+                        Box {
+                            SettingsValueButton(
+                                label = "${state.locationDismissRadius} m",
+                                onClick = { showRadiusMenu = true }
+                            )
+                            DropdownMenu(
+                                expanded = showRadiusMenu,
+                                onDismissRequest = { showRadiusMenu = false }
+                            ) {
+                                listOf(50, 100, 150, 250, 500, 1_000).forEach { radius ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                "$radius meters",
+                                                color = if (radius == state.locationDismissRadius) AccentBlue else TextPrimary
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.updateLocationDismissRadius(radius)
+                                            showRadiusMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = requestLocationDismissTarget,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (hasLocationTarget) "Update saved place" else "Save current place")
+                    }
+                    SettingsHint(
+                        text = if (hasLocationTarget) {
+                            "Dismiss stays locked until the phone is outside the saved ${state.locationDismissRadius} m radius. Snooze remains available."
+                        } else {
+                            "Save the place where the alarm starts before enabling this lock."
+                        },
+                        tone = if (hasLocationTarget) HintTone.Neutral else HintTone.Warning
+                    )
+                    if (locationDismissStatus.isNotBlank()) {
+                        SettingsHint(
+                            locationDismissStatus,
+                            tone = if (hasLocationTarget) HintTone.Neutral else HintTone.Warning
+                        )
+                    }
+                } else {
+                    SettingsHint(
+                        "Optional Anti-Sleepyhead mode: dismiss unlocks only after location confirms you left the saved area.",
+                        tone = HintTone.Neutral
+                    )
                 }
             }
 
@@ -2282,6 +2411,9 @@ private fun String.toAlarmChallengeDescription(): String = when (this) {
     else -> "Dismissal requires this challenge before the alarm can stop."
 }
 
+private fun formatLocationDismissTarget(latitude: Double, longitude: Double): String =
+    String.format(Locale.US, "%.5f, %.5f", latitude, longitude)
+
 private fun AlarmEditUiState.challengeSummary(): String {
     if (challengeChain.isNotBlank()) {
         val count = challengeChain.split(",")
@@ -2372,6 +2504,7 @@ private fun alarmEditSectionDescription(title: String): String = when (title) {
     "Vibration" -> "Control how physical feedback supports the ring pattern."
     "Snooze" -> "Decide how much room this alarm gives you to delay getting up."
     "Dismiss challenge" -> "Add a wake-up task so dismissing the alarm takes real intent."
+    "Location dismissal lock" -> "Keep Dismiss locked until the phone leaves the saved area."
     "Wake effects" -> "Layer in extra visual or physical cues to make waking up harder to ignore."
     "Morning announcement" -> "Let the alarm speak useful context once you are up."
     "Wake confirmation" -> "Require a second check-in if this alarm needs extra accountability."

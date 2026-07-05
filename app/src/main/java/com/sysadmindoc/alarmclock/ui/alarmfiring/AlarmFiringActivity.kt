@@ -4,6 +4,9 @@ import android.Manifest
 import android.app.KeyguardManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.os.Build
@@ -68,6 +71,8 @@ class AlarmFiringActivity : ComponentActivity() {
     private var wifiPollingJob: kotlinx.coroutines.Job? = null
     private var walkPermissionRequestInFlight = false
     private var wifiPermissionRequestInFlight = false
+    private var locationDismissPermissionRequestInFlight = false
+    private var locationDismissListener: LocationListener? = null
 
     // F16: Camera launcher for photo-match challenge
     private val photoLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
@@ -111,6 +116,17 @@ class AlarmFiringActivity : ComponentActivity() {
             startWifiPolling()
         } else {
             viewModel.onWifiChallengeUnavailable("Location permission is required for Android to reveal the current Wi-Fi network name.")
+        }
+    }
+
+    private val locationDismissPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        locationDismissPermissionRequestInFlight = false
+        if (granted) {
+            startLocationDismissMonitoring()
+        } else {
+            viewModel.onLocationDismissUnavailable("Location permission is required before dismiss can unlock.")
         }
     }
 
@@ -187,6 +203,10 @@ class AlarmFiringActivity : ComponentActivity() {
                 when {
                     challenge is Challenge.WifiChallenge && !state.challengeSolved -> startWifiPolling()
                     else -> stopWifiPolling()
+                }
+                when {
+                    state.alarm?.locationDismissEnabled == true && !state.locationDismissReady -> startLocationDismissMonitoring()
+                    else -> stopLocationDismissMonitoring()
                 }
                 when {
                     challenge is Challenge.NfcChallenge && !state.challengeSolved -> enableNfcForegroundDispatch()
@@ -463,6 +483,75 @@ class AlarmFiringActivity : ComponentActivity() {
         wifiPollingJob = null
     }
 
+    private fun startLocationDismissMonitoring() {
+        if (locationDismissListener != null) return
+        val alarm = viewModel.uiState.value.alarm ?: return
+        if (!alarm.locationDismissEnabled || viewModel.uiState.value.locationDismissReady) return
+        if (
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            if (!locationDismissPermissionRequestInFlight) {
+                locationDismissPermissionRequestInFlight = true
+                locationDismissPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            }
+            return
+        }
+
+        val locationManager = getSystemService(LocationManager::class.java)
+        if (locationManager == null) {
+            viewModel.onLocationDismissUnavailable("This device does not expose a location service.")
+            return
+        }
+
+        val listener = LocationListener { location: Location ->
+            viewModel.onLocationDismissLocation(location.latitude, location.longitude)
+        }
+        locationDismissListener = listener
+
+        val providers = listOf(
+            LocationManager.GPS_PROVIDER,
+            LocationManager.NETWORK_PROVIDER,
+            LocationManager.PASSIVE_PROVIDER
+        )
+        var requestedProvider = false
+        try {
+            providers.forEach { provider ->
+                if (!locationManager.isProviderEnabled(provider)) return@forEach
+                requestedProvider = true
+                @Suppress("MissingPermission")
+                locationManager.requestLocationUpdates(provider, 5_000L, 10f, listener)
+                @Suppress("MissingPermission")
+                locationManager.getLastKnownLocation(provider)?.let { lastKnown ->
+                    viewModel.onLocationDismissLocation(lastKnown.latitude, lastKnown.longitude)
+                }
+            }
+        } catch (_: SecurityException) {
+            stopLocationDismissMonitoring()
+            viewModel.onLocationDismissUnavailable("Android blocked location access during alarm firing.")
+            return
+        } catch (_: IllegalArgumentException) {
+            stopLocationDismissMonitoring()
+            viewModel.onLocationDismissUnavailable("No usable location provider is available.")
+            return
+        }
+
+        if (!requestedProvider) {
+            stopLocationDismissMonitoring()
+            viewModel.onLocationDismissUnavailable("Turn on device Location to unlock dismissal after leaving the saved place.")
+        }
+    }
+
+    private fun stopLocationDismissMonitoring() {
+        val listener = locationDismissListener ?: return
+        runCatching {
+            getSystemService(LocationManager::class.java)?.removeUpdates(listener)
+        }
+        locationDismissListener = null
+    }
+
     private fun startFlipDetector() {
         if (flipDetector != null) return
         flipDetector = FlipDetector(
@@ -629,6 +718,7 @@ class AlarmFiringActivity : ComponentActivity() {
         stopPushUpDetection()
         stopWalkSteps()
         stopWifiPolling()
+        stopLocationDismissMonitoring()
         stopFlipDetector()
         stopCoverDetector()
         super.onDestroy()

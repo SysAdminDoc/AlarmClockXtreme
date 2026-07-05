@@ -4,6 +4,21 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.21] - 2026-07-05
+
+### Added
+
+- Added Anti-Sleepyhead location dismissal locks: each alarm can save a place
+  and radius, then keep Dismiss disabled until the phone leaves that area.
+- The firing screen now shows a dedicated location-lock state while Snooze
+  remains available, including distance/status feedback from platform
+  LocationManager providers.
+
+### Changed
+
+- Bumped app, Wear, README, release verifier, and F-Droid metadata to
+  `versionName = "1.15.21"`, `versionCode = 123`.
+
 ## [1.15.20] - 2026-07-05
 
 ### Changed

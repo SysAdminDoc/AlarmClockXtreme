@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -393,6 +394,19 @@ class AlarmEditViewModel @Inject constructor(
         )
     }
     fun updateLocationDismiss(enabled: Boolean) { _uiState.value = _uiState.value.copy(locationDismissEnabled = enabled) }
+    fun updateLocationDismissTarget(latitude: Double, longitude: Double) {
+        if (!LocationDismissPolicy.hasTarget(latitude, longitude)) return
+        _uiState.value = _uiState.value.copy(
+            locationDismissEnabled = true,
+            locationDismissLat = latitude,
+            locationDismissLng = longitude
+        )
+    }
+    fun updateLocationDismissRadius(radiusMeters: Int) {
+        _uiState.value = _uiState.value.copy(
+            locationDismissRadius = LocationDismissPolicy.coerceRadius(radiusMeters)
+        )
+    }
     fun updateWifiDismissSsid(ssid: String) { _uiState.value = _uiState.value.copy(wifiDismissSsid = ssid) }
     fun updateInternetRadioUrl(url: String) { _uiState.value = _uiState.value.copy(internetRadioUrl = url) }
     fun updateFlashlightStrobe(enabled: Boolean) { _uiState.value = _uiState.value.copy(flashlightStrobe = enabled) }
@@ -515,6 +529,16 @@ class AlarmEditViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
                     saveError = "Finish the challenge setup first: missing $labels."
+                )
+                return@launch
+            }
+            if (
+                s.locationDismissEnabled &&
+                !LocationDismissPolicy.hasTarget(s.locationDismissLat, s.locationDismissLng)
+            ) {
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    saveError = "Save your current place before enabling location dismissal."
                 )
                 return@launch
             }

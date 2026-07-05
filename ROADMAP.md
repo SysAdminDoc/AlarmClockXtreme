@@ -16,7 +16,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.20)
+## Current snapshot (v1.15.21)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v19, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
@@ -27,7 +27,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 122`, `versionName 1.15.20`.
+  `versionCode 123`, `versionName 1.15.21`.
 - **Surface area:** 168 Kotlin files in `:app` + 4 in `:wear`, two phone
   flavors (`play`, `fdroid`), **30 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -137,7 +137,6 @@ items. New entries from this pass are tagged **NEW**.
 | L-P5 | Car-mode suppression (Android Auto `CarConnection` API; receive Google's new in-car alarm pop-up). | [Android Auto](https://developer.android.com/training/cars); [Android Auto in-car alarm controls 16.8](https://www.autoevolution.com/news/android-auto-is-getting-the-feature-users-first-asked-for-10-years-ago-269408.html) | S |
 | L-P6 | Companion-watch autonomous fire if phone battery dies. | — | M |
 | L-P7 | Charging-only alarm variant. | — | S |
-| L-P10 | "Anti-Sleepyhead Security" — alarm only dismissable when GPS confirms you've left a configured geofence. **NEW.** Fields already in DB (`locationDismissEnabled`, `locationDismissRadius`); finish UI. | [Turbo Alarm](https://play.google.com/store/apps/details?id=com.turbo.alarm) | S |
 
 ### Cloud / sync
 

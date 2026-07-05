@@ -17,6 +17,16 @@ object LocationHelper {
     data class LatLng(val latitude: Double, val longitude: Double)
 
     fun hasLocationPermission(context: Context): Boolean {
+        return hasFineLocationPermission(context) || hasCoarseLocationPermission(context)
+    }
+
+    fun hasFineLocationPermission(context: Context): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun hasCoarseLocationPermission(context: Context): Boolean {
         return ContextCompat.checkSelfPermission(
             context, Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED

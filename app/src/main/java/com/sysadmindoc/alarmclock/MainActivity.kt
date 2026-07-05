@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Repeat missed alarms can now replay after you unplug the phone.",
-            "Unlock and unplug recovery share the same one-replay safety guard.",
-            "Stale, disabled, and already-firing alarm states are still cleared.",
-            "Reliability diagnostics now identify which recovery trigger requested the replay."
+            "Anti-Sleepyhead mode can lock Dismiss until you leave a saved place.",
+            "Save your current place and radius from the alarm editor.",
+            "The ringing screen shows live location-lock status and distance.",
+            "Snooze stays available while location dismissal is locked."
         )
     }
 }
