@@ -16,7 +16,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.21)
+## Current snapshot (v1.15.22)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v19, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
@@ -27,7 +27,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 123`, `versionName 1.15.21`.
+  `versionCode 124`, `versionName 1.15.22`.
 - **Surface area:** 168 Kotlin files in `:app` + 4 in `:wear`, two phone
   flavors (`play`, `fdroid`), **30 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -175,9 +175,7 @@ items. New entries from this pass are tagged **NEW**.
 
 ### Documentation
 
-| # | Item | Source | Effort |
-|---|------|--------|--------|
-| L-DOC2 | F-Droid anti-feature flag for crash-log writes — document explicitly that crash logs stay local and are never uploaded. **NEW.** | local: [util/CrashLogger.kt](app/src/main/java/com/sysadmindoc/alarmclock/util/CrashLogger.kt); [metadata/com.sysadmindoc.alarmclock.yml](metadata/com.sysadmindoc.alarmclock.yml) | S |
+No actionable documentation backlog items remain in this section.
 
 ---
 
@@ -243,7 +241,7 @@ Items that need scoping or platform readiness before they earn a tier.
 ### Distribution / packaging
 
 - Two flavors today: `play` (with YT downloader + Wear Data Layer), `fdroid` (without). Maintain parity on every other surface. Build, test, signing, OSV audit, release artifact creation, and SHA-256 generation happen locally; do not add GitHub Actions.
-- F-Droid lint passes — anti-feature flag for the YT downloader is documented in `metadata/`. Re-verify on each release. Add explicit F-Droid anti-feature note for crash-log local files (L-DOC2).
+- F-Droid lint passes — anti-feature flag for the YT downloader is documented in `metadata/`. Re-verify on each release. Crash-log local-file disclosure is documented in README and F-Droid metadata.
 - AAB for Play Store, signed APK for GitHub Releases; never ship unsigned artifacts.
 - F-Droid users expect APK under **~40 MB**. Any TFLite-model or Matter-SDK work must respect this budget (downloadable models, not bundled).
 

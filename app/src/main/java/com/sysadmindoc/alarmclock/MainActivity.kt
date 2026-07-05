@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Anti-Sleepyhead mode can lock Dismiss until you leave a saved place.",
-            "Save your current place and radius from the alarm editor.",
-            "The ringing screen shows live location-lock status and distance.",
-            "Snooze stays available while location dismissal is locked."
+            "Crash-log privacy wording is clearer across README and F-Droid metadata.",
+            "Crash logs are documented as capped local files in app-private storage.",
+            "Support bundles remain explicit user exports, never automatic uploads.",
+            "F-Droid notes now separate local crash logs from optional network features."
         )
     }
 }

@@ -20,14 +20,17 @@ Description: |-
   No ads, no analytics, no tracking, no accounts required. The F-Droid flavor
   excludes the Play-only YouTube downloader, Wear OS Data Layer bridge,
   Health Connect SDK path, and ML Kit handwriting recognizer.
+  Crash logs are capped local files in app-private storage, excluded from
+  backups, and never uploaded automatically; they leave the device only if
+  you explicitly export a support bundle.
 
 RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.15.21
-    versionCode: 123
-    commit: v1.15.21
+  - versionName: 1.15.22
+    versionCode: 124
+    commit: v1.15.22
     subdir: app
     gradle:
       - fdroid
@@ -39,6 +42,8 @@ AntiFeatures:
       Open-Meteo weather and air quality, Nager.Date public holidays,
       api.weather.gov alerts, Windy radar, public RSS feeds, user-configured
       webhooks, internet radio streams, and a local Philips Hue bridge.
+      Local crash logs do not use network access and are never uploaded by
+      the app.
 
-CurrentVersion: 1.15.21
-CurrentVersionCode: 123
+CurrentVersion: 1.15.22
+CurrentVersionCode: 124

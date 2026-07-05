@@ -4,6 +4,18 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.22] - 2026-07-05
+
+### Changed
+
+- Documented that crash logs are capped local files in app-private storage,
+  excluded from backups, never uploaded automatically, and leave the device
+  only when the user exports a support bundle.
+- Added the same crash-log disclosure to F-Droid metadata and clarified that
+  crash logs are not part of the optional network-access surface.
+- Bumped app, Wear, README, release verifier, and F-Droid metadata to
+  `versionName = "1.15.22"`, `versionCode = 124`.
+
 ## [1.15.21] - 2026-07-05
 
 ### Added

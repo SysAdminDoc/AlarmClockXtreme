@@ -19,6 +19,8 @@ import java.util.Locale
  *
  * Crash logs are written to: files/crash_logs/crash_TIMESTAMP.txt
  * Each file is trimmed after 50 entries to prevent unbounded growth.
+ * Logs stay in app-private storage unless the user explicitly exports a
+ * support bundle; the app never uploads crash logs automatically.
  */
 object CrashLogger {
 
