@@ -91,6 +91,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.domain.BreathingPattern
+import com.sysadmindoc.alarmclock.domain.ChronotypeEstimator
 import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
 import com.sysadmindoc.alarmclock.domain.formatBreathingDuration
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
@@ -615,6 +616,16 @@ fun BedtimeScreen(
             }
         }
 
+        item {
+            ChronotypeSection(
+                state = state,
+                onAnswer = viewModel::updateChronotypeAnswer,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
+
         if (state.healthConnectEnabled) {
             item {
                 HealthConnectSleepSection(
@@ -857,6 +868,81 @@ private val SLEEP_SOUNDS = listOf(
     SleepSound("Pink Noise", Icons.Default.GraphicEq, SleepNoisePreset.PINK),
     SleepSound("Violet Noise", Icons.Default.Waves, SleepNoisePreset.VIOLET),
 )
+
+@Composable
+private fun ChronotypeSection(
+    state: BedtimeUiState,
+    onAnswer: (Int, Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AppSurfaceCard(
+        modifier = modifier,
+        highlighted = state.chronotypeComplete
+    ) {
+        AppSectionTitle(
+            title = "Chronotype estimate",
+            description = if (state.chronotypeComplete) {
+                "Your natural timing preference is folded into the sleep target."
+            } else {
+                "Estimate your morning/evening tilt for a calmer target window."
+            }
+        )
+
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AppStatusChip(
+                label = state.chronotypeCategoryLabel,
+                icon = Icons.Default.Lightbulb,
+                color = if (state.chronotypeComplete) MaterialTheme.colorScheme.primary else TextMuted
+            )
+            AppStatusChip(
+                label = state.chronotypeTimingLabel,
+                icon = Icons.Default.Schedule,
+                color = if (state.chronotypeComplete) DismissGreen else SnoozeYellow
+            )
+            AppStatusChip(
+                label = "${state.chronotypeAnsweredCount}/${ChronotypeEstimator.QUESTION_COUNT}",
+                icon = Icons.Default.CheckCircle,
+                color = if (state.chronotypeComplete) DismissGreen else TextMuted
+            )
+        }
+
+        Text(
+            text = state.chronotypeHelper,
+            color = TextSecondary,
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        ChronotypeEstimator.questions.forEachIndexed { questionIndex, question ->
+            if (questionIndex > 0) {
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.12f))
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = question.prompt,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    question.options.forEachIndexed { answerIndex, label ->
+                        AppFilterChip(
+                            label = label,
+                            selected = state.chronotypeAnswers.getOrNull(questionIndex) == answerIndex,
+                            onClick = { onAnswer(questionIndex, answerIndex) },
+                            selectionSemantics = true
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
 @Composable
 private fun BreathingExerciseSection(

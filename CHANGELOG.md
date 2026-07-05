@@ -4,6 +4,21 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.24] - 2026-07-05
+
+### Added
+
+- Added a local Bedtime chronotype estimate with five compact preference
+  prompts, an early/balanced/late type label, and an ideal bedtime/wake window
+  derived from the current sleep goal.
+- Chronotype answers now persist through app settings and manual JSON backup
+  export/import; older backups still import with safe defaults.
+
+### Changed
+
+- Bumped app, Wear, README, release verifier, backup format, and F-Droid
+  metadata to `versionName = "1.15.24"`, `versionCode = 126`.
+
 ## [1.15.23] - 2026-07-05
 
 ### Added

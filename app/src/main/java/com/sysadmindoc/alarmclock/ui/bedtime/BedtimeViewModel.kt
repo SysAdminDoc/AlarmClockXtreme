@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.domain.ChronotypeEstimator
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.EnvironmentalNoiseBaselinePolicy
 import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
@@ -71,9 +72,24 @@ data class BedtimeUiState(
     val batteryLow: Boolean = false,
     val noiseBaselineLabel: String = "No baseline",
     val noiseBaselineHelper: String = "Checks at reminder",
+    val chronotypeAnswers: List<Int?> = List(ChronotypeEstimator.QUESTION_COUNT) { null },
+    val chronotypeAnsweredCount: Int = 0,
+    val chronotypeCategoryLabel: String = "Not set",
+    val chronotypeTimingLabel: String = "Answer 5 prompts",
+    val chronotypeHelper: String = "Private estimate",
+    val chronotypeComplete: Boolean = false,
     val sonarTrackingActive: Boolean = false,
     val sonarTrackingStatus: String = "Ready to monitor local movement during sleep.",
     val sonarLastSessionLabel: String = ""
+)
+
+private data class ChronotypeUiModel(
+    val answers: List<Int?>,
+    val answeredCount: Int,
+    val categoryLabel: String,
+    val timingLabel: String,
+    val helper: String,
+    val complete: Boolean
 )
 
 @HiltViewModel
@@ -98,6 +114,12 @@ class BedtimeViewModel @Inject constructor(
         viewModelScope.launch {
             val settings = preferencesManager.getCurrentSettings()
             val noiseSnapshot = BedtimeNoiseBaselineSampler.readSnapshot(context)
+            val chronotype = chronotypeUiModel(
+                rawAnswers = settings.chronotypeAnswers,
+                sleepGoalHours = settings.sleepGoalHours,
+                sleepGoalMinutes = settings.sleepGoalMinutes,
+                is24h = settings.is24HourFormat
+            )
             val checklistItems = settings.bedtimeChecklist
                 .split("\n")
                 .map { it.trim() }
@@ -123,7 +145,13 @@ class BedtimeViewModel @Inject constructor(
                 batteryPercent = getBatteryPercent(),
                 batteryLow = getBatteryPercent() in 1..15,
                 noiseBaselineLabel = noiseBaselineLabel(noiseSnapshot),
-                noiseBaselineHelper = noiseBaselineHelper(noiseSnapshot, settings.is24HourFormat)
+                noiseBaselineHelper = noiseBaselineHelper(noiseSnapshot, settings.is24HourFormat),
+                chronotypeAnswers = chronotype.answers,
+                chronotypeAnsweredCount = chronotype.answeredCount,
+                chronotypeCategoryLabel = chronotype.categoryLabel,
+                chronotypeTimingLabel = chronotype.timingLabel,
+                chronotypeHelper = chronotype.helper,
+                chronotypeComplete = chronotype.complete
             )
             refreshSonarTrackingStatus()
             refreshAlarmInfo()
@@ -210,6 +238,7 @@ class BedtimeViewModel @Inject constructor(
             sleepGoalMinutes = minutes,
             sleepDurationFormatted = "${hours}h ${minutes}m"
         )
+        refreshChronotypeRecommendation()
         viewModelScope.launch {
             persistSettings()
             refreshAlarmInfo()
@@ -243,6 +272,7 @@ class BedtimeViewModel @Inject constructor(
                 sleepGoalHours = s.sleepGoalHours,
                 sleepGoalMinutes = s.sleepGoalMinutes,
                 bedtimeReminderMinutes = s.reminderMinutesBefore,
+                chronotypeAnswers = ChronotypeEstimator.encodeAnswers(s.chronotypeAnswers),
                 bedtimeDndEnabled = s.bedtimeDndEnabled
             )
         }
@@ -470,6 +500,25 @@ class BedtimeViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(bedtimeChecklistDone = emptySet())
     }
 
+    fun updateChronotypeAnswer(questionIndex: Int, answerIndex: Int) {
+        val current = _uiState.value
+        val encoded = ChronotypeEstimator.withAnswer(
+            raw = ChronotypeEstimator.encodeAnswers(current.chronotypeAnswers),
+            questionIndex = questionIndex,
+            answerIndex = answerIndex
+        )
+        val chronotype = chronotypeUiModel(
+            rawAnswers = encoded,
+            sleepGoalHours = current.sleepGoalHours,
+            sleepGoalMinutes = current.sleepGoalMinutes,
+            is24h = current.is24HourFormat
+        )
+        _uiState.update { it.copyChronotype(chronotype) }
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(chronotypeAnswers = encoded) }
+        }
+    }
+
     /**
      * v1.15.0: Delay tonight's bedtime reminder by [hours] hours from now.
      * The override is stored as an epoch-millis deadline; once it expires
@@ -568,6 +617,74 @@ class BedtimeViewModel @Inject constructor(
             .atZone(ZoneId.systemDefault())
             .toLocalTime()
         return "Last ${formatTime(measured.hour, measured.minute, is24h)}; no audio saved"
+    }
+
+    private fun refreshChronotypeRecommendation() {
+        val current = _uiState.value
+        val model = chronotypeUiModel(
+            rawAnswers = ChronotypeEstimator.encodeAnswers(current.chronotypeAnswers),
+            sleepGoalHours = current.sleepGoalHours,
+            sleepGoalMinutes = current.sleepGoalMinutes,
+            is24h = current.is24HourFormat
+        )
+        _uiState.update { it.copyChronotype(model) }
+    }
+
+    private fun chronotypeUiModel(
+        rawAnswers: String,
+        sleepGoalHours: Int,
+        sleepGoalMinutes: Int,
+        is24h: Boolean
+    ): ChronotypeUiModel {
+        val estimate = ChronotypeEstimator.estimate(
+            rawAnswers = rawAnswers,
+            sleepGoalMinutes = sleepGoalHours * 60 + sleepGoalMinutes
+        )
+        val category = estimate.category
+        return ChronotypeUiModel(
+            answers = estimate.answers,
+            answeredCount = estimate.answeredCount,
+            categoryLabel = category?.let(ChronotypeEstimator::categoryLabel) ?: "Not set",
+            timingLabel = if (
+                estimate.idealBedtimeMinutes != null &&
+                estimate.idealWakeMinutes != null
+            ) {
+                "${formatMinuteOfDay(estimate.idealBedtimeMinutes, is24h)} - " +
+                    "${formatMinuteOfDay(estimate.idealWakeMinutes, is24h)}"
+            } else {
+                "${estimate.answeredCount}/${ChronotypeEstimator.QUESTION_COUNT} answered"
+            },
+            helper = when (category) {
+                null -> "Local estimate"
+                else -> "Fits ${formatSleepGoal(sleepGoalHours, sleepGoalMinutes)} sleep target"
+            },
+            complete = estimate.isComplete
+        )
+    }
+
+    private fun BedtimeUiState.copyChronotype(model: ChronotypeUiModel): BedtimeUiState = copy(
+        chronotypeAnswers = model.answers,
+        chronotypeAnsweredCount = model.answeredCount,
+        chronotypeCategoryLabel = model.categoryLabel,
+        chronotypeTimingLabel = model.timingLabel,
+        chronotypeHelper = model.helper,
+        chronotypeComplete = model.complete
+    )
+
+    private fun formatMinuteOfDay(minutes: Int, is24h: Boolean): String {
+        val normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60)
+        return formatTime(
+            hour = normalized / 60,
+            minute = normalized % 60,
+            is24h = is24h
+        )
+    }
+
+    private fun formatSleepGoal(hours: Int, minutes: Int): String {
+        return when {
+            minutes == 0 -> "${hours}h"
+            else -> "${hours}h ${minutes}m"
+        }
     }
 
     private suspend fun syncBedtimeDndRule(nextAlarmTriggerMillis: Long? = null) {

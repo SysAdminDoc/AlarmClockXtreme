@@ -93,6 +93,7 @@ class BackupManagerExportImportTest {
         assertEquals(20, settings.calendarCommuteWeatherExtraMinutes)
         assertEquals("routes-test-key", settings.googleRoutesApiKey)
         assertEquals("webhook-signing-secret", settings.webhookSigningSecret)
+        assertEquals("0,1,2,3,4", settings.chronotypeAnswers)
     }
 
     @Test
@@ -124,6 +125,7 @@ class BackupManagerExportImportTest {
                     useManualLocation = true,
                     showTimerTab = false,
                     newsFeedUrl = "https://feeds.example/private.xml",
+                    chronotypeAnswers = "0,1,2,3,4",
                     webhookSigningSecret = "webhook-signing-secret",
                     calendarCommuteAwareEnabled = true,
                     calendarCommuteBaselineMinutes = 35,
@@ -154,6 +156,7 @@ class BackupManagerExportImportTest {
         assertEquals(20, restoredSettings!!.calendarCommuteWeatherExtraMinutes)
         assertEquals("routes-test-key", restoredSettings!!.googleRoutesApiKey)
         assertEquals("webhook-signing-secret", restoredSettings!!.webhookSigningSecret)
+        assertEquals("0,1,2,3,4", restoredSettings!!.chronotypeAnswers)
         coVerify {
             repository.save(
                 match {
@@ -178,7 +181,7 @@ class BackupManagerExportImportTest {
     fun inspectImportFromUriPreviewsBackupWithoutWriting() = runTest {
         val backupJson = backupAdapter.toJson(
             BackupData(
-                appVersion = "1.15.23",
+                appVersion = "1.15.24",
                 exportedAt = 1_700_000_000_000L,
                 alarms = listOf(morningAlarm().toAlarmBackup()),
                 settings = SettingsBackup(
@@ -205,7 +208,7 @@ class BackupManagerExportImportTest {
         assertTrue(result.isSuccess)
         val preview = result.getOrThrow()
         assertEquals(BackupManager.MAX_SUPPORTED_BACKUP_VERSION, preview.version)
-        assertEquals("1.15.23", preview.appVersion)
+        assertEquals("1.15.24", preview.appVersion)
         assertEquals(1, preview.alarmCount)
         assertEquals(1, preview.enabledAlarmCount)
         assertEquals(0, preview.invalidAlarmCount)
@@ -295,6 +298,7 @@ class BackupManagerExportImportTest {
         calendarCommuteAwareEnabled = true,
         calendarCommuteBaselineMinutes = 35,
         calendarCommuteWeatherExtraMinutes = 20,
-        googleRoutesApiKey = "routes-test-key"
+        googleRoutesApiKey = "routes-test-key",
+        chronotypeAnswers = "0,1,2,3,4"
     )
 }

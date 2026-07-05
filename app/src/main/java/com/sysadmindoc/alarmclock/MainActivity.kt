@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Bedtime reminders can include a local room-noise baseline when microphone permission is already granted.",
-            "The Bedtime tab now shows the last quiet, moderate, or loud room baseline.",
-            "Noise baselines store only a label and timestamp; raw audio is never saved.",
-            "Reminder copy now nudges you to quiet the room when the baseline is loud."
+            "Bedtime now includes a local chronotype estimate for early, balanced, or late timing.",
+            "The estimate turns five preference taps into an ideal bedtime and wake window.",
+            "Chronotype timing updates when you adjust your sleep target.",
+            "Manual backups now round-trip chronotype answers with the rest of app settings."
         )
     }
 }

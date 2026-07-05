@@ -98,7 +98,7 @@ data class AlarmBackup(
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 14,
+    val version: Int = 15,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -126,6 +126,7 @@ data class SettingsBackup(
     val sleepGoalHours: Int = 8,
     val sleepGoalMinutes: Int = 0,
     val bedtimeReminderMinutes: Int = 30,
+    val chronotypeAnswers: String = "",
     val bedtimeDndEnabled: Boolean = false,
     val flipToSnoozeEnabled: Boolean = false,
     val webhookEnabled: Boolean = false,
@@ -239,7 +240,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 14
+        const val MAX_SUPPORTED_BACKUP_VERSION = 15
 
         fun assessExportWarning(
             settings: AppSettings,
@@ -351,6 +352,7 @@ class BackupManager @Inject constructor(
                 sleepGoalHours = settings.sleepGoalHours,
                 sleepGoalMinutes = settings.sleepGoalMinutes,
                 bedtimeReminderMinutes = settings.bedtimeReminderMinutes,
+                chronotypeAnswers = settings.chronotypeAnswers,
                 bedtimeDndEnabled = settings.bedtimeDndEnabled,
                 flipToSnoozeEnabled = settings.flipToSnoozeEnabled,
                 webhookEnabled = settings.webhookEnabled,
@@ -568,6 +570,7 @@ class BackupManager @Inject constructor(
         sleepGoalHours = s.sleepGoalHours,
         sleepGoalMinutes = s.sleepGoalMinutes,
         bedtimeReminderMinutes = s.bedtimeReminderMinutes,
+        chronotypeAnswers = s.chronotypeAnswers,
         bedtimeDndEnabled = s.bedtimeDndEnabled,
         flipToSnoozeEnabled = s.flipToSnoozeEnabled,
         webhookEnabled = s.webhookEnabled,
