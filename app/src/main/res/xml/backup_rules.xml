@@ -14,5 +14,6 @@
 <full-backup-content>
     <include domain="database" path="alarm_clock.db" />
     <include domain="sharedpref" path="." />
+    <exclude domain="sharedpref" path="bedtime_noise_baseline.xml" />
     <include domain="file" path="photo_match_" />
 </full-backup-content>

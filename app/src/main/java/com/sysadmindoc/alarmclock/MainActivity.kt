@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Crash-log privacy wording is clearer across README and F-Droid metadata.",
-            "Crash logs are documented as capped local files in app-private storage.",
-            "Support bundles remain explicit user exports, never automatic uploads.",
-            "F-Droid notes now separate local crash logs from optional network features."
+            "Bedtime reminders can include a local room-noise baseline when microphone permission is already granted.",
+            "The Bedtime tab now shows the last quiet, moderate, or loud room baseline.",
+            "Noise baselines store only a label and timestamp; raw audio is never saved.",
+            "Reminder copy now nudges you to quiet the room when the baseline is loud."
         )
     }
 }

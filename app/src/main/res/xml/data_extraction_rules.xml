@@ -18,6 +18,7 @@
     <cloud-backup>
         <include domain="database" path="alarm_clock.db" />
         <include domain="sharedpref" path="." />
+        <exclude domain="sharedpref" path="bedtime_noise_baseline.xml" />
         <!--
           DataStore preferences are EXCLUDED from cloud backup because the
           settings proto contains webhook URLs, Hue API keys, guardian phone
@@ -32,6 +33,7 @@
     <device-transfer>
         <include domain="database" path="alarm_clock.db" />
         <include domain="sharedpref" path="." />
+        <exclude domain="sharedpref" path="bedtime_noise_baseline.xml" />
         <include domain="file" path="datastore/" />
         <include domain="file" path="photo_match_" />
     </device-transfer>

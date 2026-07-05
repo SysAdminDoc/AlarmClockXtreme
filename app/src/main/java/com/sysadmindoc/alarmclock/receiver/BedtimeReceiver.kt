@@ -14,7 +14,9 @@ import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.MainActivity
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.domain.EnvironmentalNoiseBaselinePolicy
 import com.sysadmindoc.alarmclock.service.BedtimeNotificationTiming
+import com.sysadmindoc.alarmclock.service.BedtimeNoiseBaselineSampler
 import com.sysadmindoc.alarmclock.service.PromotedOngoingNotification
 
 /**
@@ -201,10 +203,14 @@ class BedtimeReceiver : BroadcastReceiver() {
         notificationManager: NotificationManager
     ) {
         notificationManager.cancel(NOTIFICATION_ID_COUNTDOWN)
+        val reminderText = EnvironmentalNoiseBaselinePolicy.notificationText(
+            BedtimeNoiseBaselineSampler.sampleAndPersist(context)
+        )
         val notification = NotificationCompat.Builder(context, CHANNEL_BEDTIME)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle("Time to wind down")
-            .setContentText("Your bedtime is approaching. Start getting ready for sleep.")
+            .setContentText(reminderText)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(reminderText))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)

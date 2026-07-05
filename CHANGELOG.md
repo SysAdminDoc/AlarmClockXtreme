@@ -4,6 +4,21 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.23] - 2026-07-05
+
+### Added
+
+- Added a local bedtime room-noise baseline: if microphone permission is
+  already granted, the bedtime reminder samples ambient RMS briefly, stores
+  only a quiet/moderate/loud label plus timestamp, excludes that label from
+  backup/transfer, and adjusts the reminder copy when the room is noisy.
+- Surfaced the last room-noise baseline on the Bedtime tab.
+
+### Changed
+
+- Bumped app, Wear, README, release verifier, and F-Droid metadata to
+  `versionName = "1.15.23"`, `versionCode = 125`.
+
 ## [1.15.22] - 2026-07-05
 
 ### Changed

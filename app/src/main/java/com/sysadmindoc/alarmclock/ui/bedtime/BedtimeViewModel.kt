@@ -12,9 +12,12 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.domain.EnvironmentalNoiseBaselinePolicy
 import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
 import com.sysadmindoc.alarmclock.receiver.BedtimeReceiver
 import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
+import com.sysadmindoc.alarmclock.service.BedtimeNoiseBaselineSampler
+import com.sysadmindoc.alarmclock.service.BedtimeNoiseBaselineSnapshot
 import com.sysadmindoc.alarmclock.service.SonarSleepSnapshot
 import com.sysadmindoc.alarmclock.service.SonarSleepService
 import com.sysadmindoc.alarmclock.service.SleepSoundPlayer
@@ -66,6 +69,8 @@ data class BedtimeUiState(
     val stayUpLateLabel: String = "",
     val batteryPercent: Int = -1,
     val batteryLow: Boolean = false,
+    val noiseBaselineLabel: String = "No baseline",
+    val noiseBaselineHelper: String = "Checks at reminder",
     val sonarTrackingActive: Boolean = false,
     val sonarTrackingStatus: String = "Ready to monitor local movement during sleep.",
     val sonarLastSessionLabel: String = ""
@@ -92,6 +97,7 @@ class BedtimeViewModel @Inject constructor(
     private fun loadPersistedState() {
         viewModelScope.launch {
             val settings = preferencesManager.getCurrentSettings()
+            val noiseSnapshot = BedtimeNoiseBaselineSampler.readSnapshot(context)
             val checklistItems = settings.bedtimeChecklist
                 .split("\n")
                 .map { it.trim() }
@@ -115,7 +121,9 @@ class BedtimeViewModel @Inject constructor(
                 stayUpLateActive = settings.bedtimeStayUpLateUntilMillis > System.currentTimeMillis(),
                 stayUpLateLabel = formatStayUpLateLabel(settings.bedtimeStayUpLateUntilMillis, settings.is24HourFormat),
                 batteryPercent = getBatteryPercent(),
-                batteryLow = getBatteryPercent() in 1..15
+                batteryLow = getBatteryPercent() in 1..15,
+                noiseBaselineLabel = noiseBaselineLabel(noiseSnapshot),
+                noiseBaselineHelper = noiseBaselineHelper(noiseSnapshot, settings.is24HourFormat)
             )
             refreshSonarTrackingStatus()
             refreshAlarmInfo()
@@ -327,6 +335,7 @@ class BedtimeViewModel @Inject constructor(
         viewModelScope.launch {
             syncBedtimeDndRule()
             refreshHealthConnectSleep()
+            refreshNoiseBaselineStatus()
             refreshSonarTrackingStatus()
         }
     }
@@ -430,6 +439,16 @@ class BedtimeViewModel @Inject constructor(
         }
     }
 
+    private fun refreshNoiseBaselineStatus() {
+        val snapshot = BedtimeNoiseBaselineSampler.readSnapshot(context)
+        _uiState.update {
+            it.copy(
+                noiseBaselineLabel = noiseBaselineLabel(snapshot),
+                noiseBaselineHelper = noiseBaselineHelper(snapshot, it.is24HourFormat)
+            )
+        }
+    }
+
     private fun refreshSonarTrackingStatusAfterStop() {
         viewModelScope.launch {
             repeat(3) {
@@ -529,6 +548,26 @@ class BedtimeViewModel @Inject constructor(
             "${snapshot.lastAwakeMinutes}m movement, " +
             "${snapshot.lastLightMinutes}m restless, " +
             "${snapshot.lastDeepMinutes}m still"
+    }
+
+    private fun noiseBaselineLabel(snapshot: BedtimeNoiseBaselineSnapshot): String {
+        val baseline = snapshot.baseline ?: return "No baseline"
+        return EnvironmentalNoiseBaselinePolicy.levelLabel(baseline.level)
+    }
+
+    private fun noiseBaselineHelper(
+        snapshot: BedtimeNoiseBaselineSnapshot,
+        is24h: Boolean
+    ): String {
+        val baseline = snapshot.baseline ?: return if (hasRecordAudioPermission()) {
+            "Checks at reminder"
+        } else {
+            "Mic permission needed"
+        }
+        val measured = java.time.Instant.ofEpochMilli(snapshot.measuredAtMillis)
+            .atZone(ZoneId.systemDefault())
+            .toLocalTime()
+        return "Last ${formatTime(measured.hour, measured.minute, is24h)}; no audio saved"
     }
 
     private suspend fun syncBedtimeDndRule(nextAlarmTriggerMillis: Long? = null) {

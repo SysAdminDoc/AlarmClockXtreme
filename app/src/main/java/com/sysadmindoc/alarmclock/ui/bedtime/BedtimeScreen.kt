@@ -558,6 +558,16 @@ fun BedtimeScreen(
                             helper = if (state.isEnabled) "Before bedtime" else "Turn on above"
                         )
                     }
+                    item {
+                        BedtimeMetricCard(
+                            title = "Room",
+                            value = state.noiseBaselineLabel,
+                            icon = Icons.Default.Air,
+                            accent = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.width(176.dp),
+                            helper = state.noiseBaselineHelper
+                        )
+                    }
                 }
 
                 if (state.wakeTimeFormatted.isBlank()) {
