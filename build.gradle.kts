@@ -1,4 +1,4 @@
-// AlarmClockXtreme v1.15.19
+// AlarmClockXtreme v1.15.20
 // Top-level build file
 plugins {
     id("com.android.application") version "8.11.1" apply false

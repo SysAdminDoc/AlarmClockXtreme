@@ -471,9 +471,9 @@ class AlarmService : Service() {
                         displayTime = formatAlarmTime(missedAlarm), fireId = currentFireId
                     )
                     showMissedNotification(missedAlarm, autoSilenceMinutes)
-                    // v1.4.0: Repeat missed alarms — record the alarm id / timestamp
-                    // so MissedAlarmUnlockReceiver can re-fire when the user unlocks
-                    // soon after. Guard on the user-level preference.
+                    // v1.4.0/v1.15.20: Repeat missed alarms — record the alarm
+                    // id / timestamp so MissedAlarmUnlockReceiver can re-fire
+                    // when the user unlocks or unplugs soon after.
                     if (settings.repeatMissedAlarms) {
                         getSharedPreferences("missed_alarm_state", MODE_PRIVATE)
                             .edit()

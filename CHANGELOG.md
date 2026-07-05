@@ -4,6 +4,17 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.20] - 2026-07-05
+
+### Changed
+
+- Repeat missed alarms now re-fire once after a recent auto-silenced alarm when
+  the user unplugs the phone, matching the existing unlock recovery path.
+- Shared the unlock and power-disconnect recovery triggers behind the same
+  stale-state and live-alarm replay guard, with trigger-specific diagnostics.
+- Bumped app, Wear, README, release verifier, and F-Droid metadata to
+  `versionName = "1.15.20"`, `versionCode = 122`.
+
 ## [1.15.19] - 2026-07-05
 
 ### Added

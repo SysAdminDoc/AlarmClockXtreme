@@ -21,15 +21,17 @@ import kotlinx.coroutines.withTimeout
  *
  * If the most recent alarm auto-silenced within the last 10 minutes and the
  * user has the repeat-missed setting enabled, re-fire that alarm once when
- * the user unlocks the device. Clears the persisted state on every fire so
- * a single missed alarm can only re-trigger once.
+ * the user unlocks the device or unplugs it from power. Clears the persisted
+ * state on every fire so a single missed alarm can only re-trigger once.
  */
 class MissedAlarmUnlockReceiver : BroadcastReceiver() {
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != Intent.ACTION_USER_PRESENT) return
+        val action = intent.action
+        if (!MissedAlarmReplayPolicy.isReplayTrigger(action)) return
+        val incidentSource = MissedAlarmReplayPolicy.sourceForTrigger(action)
 
         val pending = goAsync()
         scope.launch {
@@ -90,7 +92,7 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                             type = AlarmIncidentEvent.TYPE_BROADCAST,
                             status = AlarmIncidentEvent.STATUS_REQUESTED,
                             reasonCode = "MISSED_REPLAY_REQUESTED",
-                            source = "MissedAlarmUnlockReceiver"
+                            source = incidentSource
                         )
                     } catch (e: Exception) {
                         Log.e("MissedAlarmUnlockReceiver",
@@ -102,7 +104,7 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                             type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
                             status = AlarmIncidentEvent.STATUS_FAILED,
                             reasonCode = "MISSED_REPLAY_START_FAILED_${e.javaClass.simpleName}",
-                            source = "MissedAlarmUnlockReceiver"
+                            source = incidentSource
                         )
                     }
                 }

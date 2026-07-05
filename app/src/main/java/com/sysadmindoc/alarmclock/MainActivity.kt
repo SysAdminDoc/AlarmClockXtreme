@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Bedtime now includes guided 4-7-8 and box-breathing timers.",
-            "The breathing guide shows each inhale, hold, and exhale count in place.",
-            "Start, pause, restart, and reset controls stay local to the Bedtime screen.",
-            "The session timer shows how much wind-down time is left before sleep."
+            "Repeat missed alarms can now replay after you unplug the phone.",
+            "Unlock and unplug recovery share the same one-replay safety guard.",
+            "Stale, disabled, and already-firing alarm states are still cleared.",
+            "Reliability diagnostics now identify which recovery trigger requested the replay."
         )
     }
 }

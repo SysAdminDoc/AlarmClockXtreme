@@ -2498,7 +2498,7 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
         SettingsToggle(
             label = "Repeat missed alarms",
             checked = state.settings.repeatMissedAlarms,
-            supportingText = "If an alarm auto-silences, re-fire it briefly when you unlock within 10 minutes.",
+            supportingText = "If an alarm auto-silences, re-fire it briefly when you unlock or unplug within 10 minutes.",
             onToggle = viewModel::toggleRepeatMissed
         )
 

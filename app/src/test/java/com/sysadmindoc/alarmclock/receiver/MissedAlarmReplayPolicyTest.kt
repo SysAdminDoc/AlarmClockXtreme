@@ -1,6 +1,8 @@
 package com.sysadmindoc.alarmclock.receiver
 
 import com.sysadmindoc.alarmclock.receiver.MissedAlarmReplayPolicy.Decision
+import com.sysadmindoc.alarmclock.receiver.MissedAlarmReplayPolicy.ACTION_POWER_DISCONNECTED
+import com.sysadmindoc.alarmclock.receiver.MissedAlarmReplayPolicy.ACTION_USER_PRESENT
 import com.sysadmindoc.alarmclock.receiver.MissedAlarmReplayPolicy.REPLAY_WINDOW_MS
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -15,6 +17,30 @@ class MissedAlarmReplayPolicyTest {
 
     private val now = 10_000_000L
     private val id = 42L
+
+    @Test
+    fun `replay triggers include unlock and power disconnect`() {
+        assertTrue(MissedAlarmReplayPolicy.isReplayTrigger(ACTION_USER_PRESENT))
+        assertTrue(MissedAlarmReplayPolicy.isReplayTrigger(ACTION_POWER_DISCONNECTED))
+        assertFalse(MissedAlarmReplayPolicy.isReplayTrigger("android.intent.action.ACTION_POWER_CONNECTED"))
+        assertFalse(MissedAlarmReplayPolicy.isReplayTrigger(null))
+    }
+
+    @Test
+    fun `incident source identifies the replay trigger`() {
+        assertEquals(
+            "MissedAlarmUnlockReceiver",
+            MissedAlarmReplayPolicy.sourceForTrigger(ACTION_USER_PRESENT)
+        )
+        assertEquals(
+            "MissedAlarmPowerDisconnectReceiver",
+            MissedAlarmReplayPolicy.sourceForTrigger(ACTION_POWER_DISCONNECTED)
+        )
+        assertEquals(
+            "MissedAlarmUnlockReceiver",
+            MissedAlarmReplayPolicy.sourceForTrigger("android.intent.action.SCREEN_ON")
+        )
+    }
 
     @Test
     fun `replays when inside window, feature on, no live alarm`() {

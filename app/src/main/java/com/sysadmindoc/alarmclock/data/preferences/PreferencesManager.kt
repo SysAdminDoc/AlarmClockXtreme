@@ -119,7 +119,7 @@ data class AppSettings(
     val sleepSoundTimerMinutes: Int = 0,
     // v1.4.0: Fade-out duration of the sleep-sound timer in seconds
     val sleepSoundFadeSeconds: Int = 60,
-    // v1.4.0: Repeat missed alarms — re-fire briefly on next unlock if recent miss
+    // v1.4.0/v1.15.20: Repeat missed alarms — re-fire on unlock or unplug after a recent miss
     val repeatMissedAlarms: Boolean = true,
     // v1.4.0: Nap mode default duration (minutes) surfaced from the dashboard FAB
     val napDefaultMinutes: Int = 20,

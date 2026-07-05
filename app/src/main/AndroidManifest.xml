@@ -393,13 +393,15 @@
             </intent-filter>
         </service>
 
-        <!-- v1.4.0: Repeat-missed-alarm handler — fires on screen unlock if the
-             last alarm auto-silenced within the configured window. -->
+        <!-- v1.4.0/v1.15.20: Repeat-missed-alarm handler — fires on screen
+             unlock or charge disconnect if the last alarm auto-silenced within
+             the configured window. -->
         <receiver
             android:name=".receiver.MissedAlarmUnlockReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
             </intent-filter>
         </receiver>
 

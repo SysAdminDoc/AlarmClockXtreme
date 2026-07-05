@@ -2,7 +2,7 @@ package com.sysadmindoc.alarmclock.receiver
 
 /**
  * v1.5.2: Pure decision function for whether a missed alarm should be
- * replayed on the user's next unlock. Extracted out of
+ * replayed when the user returns to the phone. Extracted out of
  * [MissedAlarmUnlockReceiver] so the logic can be unit-tested without
  * needing a real BroadcastReceiver / Hilt / DataStore wiring.
  *
@@ -11,9 +11,22 @@ package com.sysadmindoc.alarmclock.receiver
  */
 object MissedAlarmReplayPolicy {
 
+    const val ACTION_USER_PRESENT = "android.intent.action.USER_PRESENT"
+    const val ACTION_POWER_DISCONNECTED = "android.intent.action.ACTION_POWER_DISCONNECTED"
+    private const val SOURCE_UNLOCK = "MissedAlarmUnlockReceiver"
+    private const val SOURCE_POWER_DISCONNECTED = "MissedAlarmPowerDisconnectReceiver"
+
     /** Hard ceiling on how recently the miss must have happened for us to
      *  bother replaying it. Past this point the user has likely moved on. */
     const val REPLAY_WINDOW_MS: Long = 10 * 60 * 1000L
+
+    fun isReplayTrigger(action: String?): Boolean =
+        action == ACTION_USER_PRESENT || action == ACTION_POWER_DISCONNECTED
+
+    fun sourceForTrigger(action: String?): String = when (action) {
+        ACTION_POWER_DISCONNECTED -> SOURCE_POWER_DISCONNECTED
+        else -> SOURCE_UNLOCK
+    }
 
     /**
      * @return true iff the caller should fire the replay.
