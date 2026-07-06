@@ -513,7 +513,7 @@ class AlarmListViewModel @Inject constructor(
      * Cancels the current schedule and reschedules for the occurrence after next.
      */
     fun skipNextOccurrence(alarm: Alarm) {
-        if (alarm.repeatDays.isEmpty()) return // Only for repeating alarms
+        if (!alarm.isRecurringSchedule) return
         if (alarm.nextTriggerTime <= 0L) return // No scheduled occurrence to skip
         viewModelScope.launch {
             // Record skip event

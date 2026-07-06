@@ -4,6 +4,23 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.27] - 2026-07-06
+
+### Added
+
+- Added rotating shift-pattern scheduling for DDNNO, 4-on-4-off, Panama,
+  DuPont, and Pitman cycles. A selected pattern can act as the recurring
+  schedule by itself or narrow existing weekday selections.
+- Added Alarm Edit controls for shift pattern and cycle start date, plus alarm
+  list chips so shift-gated alarms are visible at a glance.
+- Added Room v22 migration coverage and backup v16 round-trip support for
+  shift-pattern fields.
+
+### Changed
+
+- Bumped app, Wear, README, release verifier, Room schema, backup format, and
+  F-Droid metadata to `versionName = "1.15.27"`, `versionCode = 129`.
+
 ## [1.15.26] - 2026-07-05
 
 ### Added

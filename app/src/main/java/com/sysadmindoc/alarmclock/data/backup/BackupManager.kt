@@ -93,12 +93,15 @@ data class AlarmBackup(
     val firingBackgroundImageUri: String = "",
     val firingBackgroundBlurEnabled: Boolean = true,
     // v1.15.13: manual alarm-list order.
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    // v1.15.27: rotating shift schedule gate.
+    val shiftPattern: String = "",
+    val shiftPatternStartDate: String = ""
 )
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 15,
+    val version: Int = 16,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -240,7 +243,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 15
+        const val MAX_SUPPORTED_BACKUP_VERSION = 16
 
         fun assessExportWarning(
             settings: AppSettings,

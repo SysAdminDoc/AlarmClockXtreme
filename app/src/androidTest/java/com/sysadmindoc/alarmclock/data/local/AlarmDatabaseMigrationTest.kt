@@ -49,6 +49,8 @@ class AlarmDatabaseMigrationTest {
         assertEquals("", db.queryString("SELECT firingBackgroundImageUri FROM alarms LIMIT 1"))
         assertEquals(1, db.queryLong("SELECT firingBackgroundBlurEnabled FROM alarms LIMIT 1"))
         assertEquals(1000, db.queryLong("SELECT sortOrder FROM alarms LIMIT 1"))
+        assertEquals("", db.queryString("SELECT shiftPattern FROM alarms LIMIT 1"))
+        assertEquals("", db.queryString("SELECT shiftPatternStartDate FROM alarms LIMIT 1"))
         db.close()
     }
 
@@ -236,6 +238,25 @@ class AlarmDatabaseMigrationTest {
         assertTrue(columns.containsKey("loggedAt"))
         assertEquals(1, columns.getValue("localDate").primaryKeyPosition)
         assertEquals(2, columns.getValue("tagKey").primaryKeyPosition)
+        db.close()
+    }
+
+    @Test
+    fun migrationTwentyOneToTwentyTwoAddsShiftPatternDefaults() {
+        var db = helper.createDatabase("migration-21-to-22.db", 21)
+        insertSyntheticAlarm(db)
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-21-to-22.db",
+            22,
+            true,
+            AlarmDatabase.MIGRATION_21_22,
+        )
+
+        assertEquals(1, db.queryLong("SELECT COUNT(*) FROM alarms"))
+        assertEquals("", db.queryString("SELECT shiftPattern FROM alarms LIMIT 1"))
+        assertEquals("", db.queryString("SELECT shiftPatternStartDate FROM alarms LIMIT 1"))
         db.close()
     }
 
@@ -431,6 +452,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 21
+        const val LATEST_SCHEMA_VERSION = 22
     }
 }

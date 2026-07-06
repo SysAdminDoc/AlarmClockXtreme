@@ -16,6 +16,8 @@ Description: |-
   exact alarms, weather and public-holiday context, calendar-assisted alarms,
   bedtime tools, timer, stopwatch, widgets, local statistics, and full
   backup/restore.
+  Rotating shift patterns can gate alarms through DDNNO, 4-on-4-off, Panama,
+  DuPont, and Pitman cycles entirely on device.
 
   No ads, no analytics, no tracking, no accounts required. The F-Droid flavor
   excludes the Play-only YouTube downloader, Wear OS Data Layer bridge,
@@ -36,9 +38,9 @@ RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.15.26
-    versionCode: 128
-    commit: v1.15.26
+  - versionName: 1.15.27
+    versionCode: 129
+    commit: v1.15.27
     subdir: app
     gradle:
       - fdroid
@@ -53,5 +55,5 @@ AntiFeatures:
       Local crash logs do not use network access and are never uploaded by
       the app.
 
-CurrentVersion: 1.15.26
-CurrentVersionCode: 128
+CurrentVersion: 1.15.27
+CurrentVersionCode: 129

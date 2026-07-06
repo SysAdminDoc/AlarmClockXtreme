@@ -85,7 +85,7 @@ class SkipNextReceiver : BroadcastReceiver() {
                         fireId = null
                     )
 
-                    if (alarm.repeatDays.isEmpty()) {
+                    if (!alarm.isRecurringSchedule) {
                         repo.setEnabled(alarm.id, enabled = false, nextTrigger = 0)
                         scheduler.cancel(alarm.id)
                     } else {

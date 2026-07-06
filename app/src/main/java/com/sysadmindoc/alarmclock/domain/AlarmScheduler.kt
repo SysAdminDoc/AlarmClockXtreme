@@ -85,7 +85,11 @@ class AlarmScheduler @Inject constructor(
         var triggerTime = calculator.calculate(sanitizedAlarm)
         if (triggerTime <= System.currentTimeMillis()) {
             cancelScheduledEntries(sanitizedAlarm.id)
-            repository.setEnabled(sanitizedAlarm.id, enabled = false, nextTrigger = 0)
+            if (sanitizedAlarm.isRecurringSchedule) {
+                repository.updateNextTrigger(sanitizedAlarm.id, 0)
+            } else {
+                repository.setEnabled(sanitizedAlarm.id, enabled = false, nextTrigger = 0)
+            }
             requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return
         }
@@ -103,7 +107,7 @@ class AlarmScheduler @Inject constructor(
 
         // F13: Holiday auto-skip
         if (sanitizedAlarm.skipOnHolidays && settings.holidayAutoSkipEnabled) {
-            if (sanitizedAlarm.repeatDays.isEmpty()) {
+            if (!sanitizedAlarm.isRecurringSchedule) {
                 // One-shot alarm: if the day is a holiday, don't fire at all
                 val triggerDate = Instant.ofEpochMilli(triggerTime)
                     .atZone(ZoneId.systemDefault()).toLocalDate()
@@ -317,7 +321,7 @@ class AlarmScheduler @Inject constructor(
     suspend fun handleAlarmFired(alarmId: Long) {
         val alarm = repository.getById(alarmId) ?: return
 
-        if (alarm.repeatDays.isEmpty()) {
+        if (!alarm.isRecurringSchedule) {
             // One-shot alarm: disable after firing. Also tear down any still-armed
             // exact-alarm entry. A normally-fired one-shot's PendingIntent was
             // already consumed by AlarmManager (this is a no-op), but a smart-wake

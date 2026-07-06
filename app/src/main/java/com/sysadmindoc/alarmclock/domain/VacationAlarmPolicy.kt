@@ -9,9 +9,9 @@ import java.time.ZonedDateTime
 /**
  * Pure vacation-mode scheduling rules.
  *
- * Vacation mode is intentionally scoped to repeating alarms: one-shot alarms
- * are often deliberate travel/reminder alarms and should not be swallowed by a
- * broad "time away" setting.
+ * Vacation mode is intentionally scoped to recurring schedules: one-shot
+ * alarms are often deliberate travel/reminder alarms and should not be
+ * swallowed by a broad "time away" setting.
  */
 object VacationAlarmPolicy {
 
@@ -27,7 +27,7 @@ object VacationAlarmPolicy {
         zone: ZoneId = ZoneId.systemDefault(),
         calculateFrom: (Alarm, ZonedDateTime) -> Long
     ): Adjustment {
-        if (alarm.repeatDays.isEmpty() || !isInsideVacationWindow(settings, initialTriggerTime)) {
+        if (!alarm.isRecurringSchedule || !isInsideVacationWindow(settings, initialTriggerTime)) {
             return Adjustment(initialTriggerTime, skippedByVacation = false)
         }
 

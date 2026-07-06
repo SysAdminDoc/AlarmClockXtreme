@@ -107,6 +107,7 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
 import com.sysadmindoc.alarmclock.ui.adaptive.shouldUseTwoPaneLayout
 import com.sysadmindoc.alarmclock.ui.alarmlist.components.SwipeableAlarmCard
@@ -889,6 +890,12 @@ private fun AlarmDetailPane(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
+                alarm.shiftPatternChipLabel()?.let { label ->
+                    AppStatusChip(
+                        label = label,
+                        color = SnoozeYellow
+                    )
+                }
                 if (alarm.group.isNotBlank()) {
                     AppStatusChip(label = alarm.group)
                 }
@@ -997,7 +1004,7 @@ private fun AlarmDetailPane(
                         Text("Delete")
                     }
                 }
-                if (alarm.isEnabled && alarm.repeatDays.isNotEmpty()) {
+                if (alarm.isEnabled && alarm.isRecurringSchedule) {
                     OutlinedButton(
                         onClick = { onSkipNext(alarm) },
                         modifier = Modifier.fillMaxWidth(),
@@ -1319,7 +1326,7 @@ private fun AlarmCard(
                                 leadingIcon = { Icon(Icons.Default.Share, null, modifier = Modifier.size(18.dp)) },
                                 onClick = { showMenu = false; onShare() }
                             )
-                            if (alarm.isEnabled && alarm.repeatDays.isNotEmpty()) {
+                            if (alarm.isEnabled && alarm.isRecurringSchedule) {
                                 DropdownMenuItem(
                                     text = { Text("Skip next") },
                                     leadingIcon = { Icon(Icons.Default.SkipNext, null, modifier = Modifier.size(18.dp)) },
@@ -1357,6 +1364,7 @@ private fun AlarmCard(
             // mismatched gaps when only one row had content.
             val showChipRow = suppressedByVacation ||
                 alarm.repeatLabel.isNotBlank() ||
+                alarm.shiftPatternChipLabel() != null ||
                 alarm.group.isNotBlank() ||
                 alarm.challengeType != "NONE" ||
                 alarm.ringtoneUri == "silent"
@@ -1379,6 +1387,12 @@ private fun AlarmCard(
                             label = alarm.repeatLabel,
                             icon = Icons.Default.CheckCircle,
                             color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    alarm.shiftPatternChipLabel()?.let { label ->
+                        AppStatusChip(
+                            label = label,
+                            color = SnoozeYellow
                         )
                     }
                     if (alarm.group.isNotBlank()) {
@@ -1619,6 +1633,12 @@ private fun challengeTypeLabel(type: String): String = when (type) {
     "PUSH_UP"        -> "Push-ups"
     "PLANK_HOLD"     -> "Plank Hold"
     else             -> type.lowercase().replace("_", " ").replaceFirstChar { it.uppercase() }
+}
+
+private fun Alarm.shiftPatternChipLabel(): String? {
+    val pattern = ShiftPattern.fromKey(shiftPattern) ?: return null
+    if (shiftPatternStartDate.isBlank()) return null
+    return pattern.shortLabel
 }
 
 private fun nextOccurrenceLabel(alarm: Alarm, is24Hour: Boolean): String {

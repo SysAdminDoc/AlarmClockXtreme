@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.26-blue)
+![Version](https://img.shields.io/badge/version-1.15.27-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -17,7 +17,7 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.15.26-play-release.apk
+adb install AlarmClockXtreme-v1.15.27-play-release.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, optional Health Connect READ_SLEEP integration, and ML Kit Digital Ink handwriting recognition. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -50,6 +50,7 @@ cd AlarmClockXtreme
 | Alarm Groups | Tag alarms (Work, School, Gym), filter with chips |
 | Alarm Profiles | Named configurations (Work, Travel, Weekend) for quick switching |
 | Date-Specific Alarms | Set alarm for a particular calendar date (overrides repeat days) |
+| Rotating Shift Patterns | Gate any alarm through DDNNO, 4-on-4-off, Panama, DuPont, or Pitman cycles with an anchor date |
 | Duplicate Alarm | Clone any alarm with all settings via overflow menu |
 | Skip Next | Skip one occurrence of a repeating alarm |
 | Vacation Mode | Date range auto-skip for all repeating alarms |
@@ -208,7 +209,7 @@ cd AlarmClockXtreme
 |  Date-specific + holiday + vacation + solar-anchor logic |
 +---------------------------------------------------------+
 |                    Data Layer                            |
-|  Room DB v21 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
+|  Room DB v22 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
 |  HealthConnectSleepRepository (Play READ_SLEEP summaries) |
 |  50+ field Alarm entity | 35+ field AppSettings          |
 |  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |
@@ -248,7 +249,7 @@ signatures with `apksigner`, write `SHA256SUMS.txt` and
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.26-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.27-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in

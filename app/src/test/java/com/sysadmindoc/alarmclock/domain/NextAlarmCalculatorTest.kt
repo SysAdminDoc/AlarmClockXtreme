@@ -6,6 +6,7 @@ import org.junit.Before
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -170,5 +171,121 @@ class NextAlarmCalculatorTest {
         assertEquals(23, resultDateTime.hour)
         assertEquals(59, resultDateTime.minute)
         assertEquals(fromTime.toLocalDate(), resultDateTime.toLocalDate())
+    }
+
+    @Test
+    fun `DDNNO shift pattern skips off day`() {
+        val fromTime = ZonedDateTime.of(2026, 7, 10, 5, 0, 0, 0, ZoneId.of("UTC"))
+        val alarm = Alarm(
+            hour = 6,
+            minute = 0,
+            shiftPattern = "DDNNO",
+            shiftPatternStartDate = "2026-07-06"
+        )
+
+        val result = calculator.calculate(alarm, fromTime)
+        val resultDate = Instant.ofEpochMilli(result).atZone(fromTime.zone).toLocalDate()
+
+        assertEquals(fromTime.toLocalDate().plusDays(1), resultDate)
+    }
+
+    @Test
+    fun `four on four off pattern schedules next work block`() {
+        val fromTime = ZonedDateTime.of(2026, 7, 10, 5, 0, 0, 0, ZoneId.of("UTC"))
+        val alarm = Alarm(
+            hour = 6,
+            minute = 0,
+            shiftPattern = "FOUR_ON_FOUR_OFF",
+            shiftPatternStartDate = "2026-07-06"
+        )
+
+        val result = calculator.calculate(alarm, fromTime)
+        val resultDate = Instant.ofEpochMilli(result).atZone(fromTime.zone).toLocalDate()
+
+        assertEquals(LocalDate.of(2026, 7, 14), resultDate)
+    }
+
+    @Test
+    fun `Panama pattern keeps two two three cadence`() {
+        val fromTime = ZonedDateTime.of(2026, 7, 8, 5, 0, 0, 0, ZoneId.of("UTC"))
+        val alarm = Alarm(
+            hour = 6,
+            minute = 0,
+            shiftPattern = "PANAMA",
+            shiftPatternStartDate = "2026-07-06"
+        )
+
+        val result = calculator.calculate(alarm, fromTime)
+        val resultDate = Instant.ofEpochMilli(result).atZone(fromTime.zone).toLocalDate()
+
+        assertEquals(LocalDate.of(2026, 7, 10), resultDate)
+    }
+
+    @Test
+    fun `DuPont pattern handles long off block`() {
+        val fromTime = ZonedDateTime.of(2026, 7, 27, 5, 0, 0, 0, ZoneId.of("UTC"))
+        val alarm = Alarm(
+            hour = 6,
+            minute = 0,
+            shiftPattern = "DUPONT",
+            shiftPatternStartDate = "2026-07-06"
+        )
+
+        val result = calculator.calculate(alarm, fromTime)
+        val resultDate = Instant.ofEpochMilli(result).atZone(fromTime.zone).toLocalDate()
+
+        assertEquals(LocalDate.of(2026, 8, 3), resultDate)
+    }
+
+    @Test
+    fun `Pitman pattern supports pattern-only recurring alarm`() {
+        val fromTime = ZonedDateTime.of(2026, 7, 8, 5, 0, 0, 0, ZoneId.of("UTC"))
+        val alarm = Alarm(
+            hour = 6,
+            minute = 0,
+            repeatDays = emptySet(),
+            shiftPattern = "PITMAN",
+            shiftPatternStartDate = "2026-07-06"
+        )
+
+        val result = calculator.calculate(alarm, fromTime)
+        val resultDate = Instant.ofEpochMilli(result).atZone(fromTime.zone).toLocalDate()
+
+        assertEquals(LocalDate.of(2026, 7, 10), resultDate)
+    }
+
+    @Test
+    fun `specific date overrides shift pattern when date is future`() {
+        val fromTime = ZonedDateTime.of(2026, 7, 8, 5, 0, 0, 0, ZoneId.of("UTC"))
+        val alarm = Alarm(
+            hour = 6,
+            minute = 0,
+            specificDate = "2026-07-10",
+            shiftPattern = "FOUR_ON_FOUR_OFF",
+            shiftPatternStartDate = "2026-07-06"
+        )
+
+        val result = calculator.calculate(alarm, fromTime)
+        val resultDate = Instant.ofEpochMilli(result).atZone(fromTime.zone).toLocalDate()
+
+        assertEquals(LocalDate.of(2026, 7, 10), resultDate)
+    }
+
+    @Test
+    fun `expired specific date falls through to shift pattern`() {
+        val fromTime = ZonedDateTime.of(2026, 7, 10, 5, 0, 0, 0, ZoneId.of("UTC"))
+        val alarm = Alarm(
+            hour = 6,
+            minute = 0,
+            repeatDays = emptySet(),
+            specificDate = "2026-07-08",
+            shiftPattern = "DDNNO",
+            shiftPatternStartDate = "2026-07-06"
+        )
+
+        val result = calculator.calculate(alarm, fromTime)
+        val resultDate = Instant.ofEpochMilli(result).atZone(fromTime.zone).toLocalDate()
+
+        assertEquals(LocalDate.of(2026, 7, 11), resultDate)
     }
 }

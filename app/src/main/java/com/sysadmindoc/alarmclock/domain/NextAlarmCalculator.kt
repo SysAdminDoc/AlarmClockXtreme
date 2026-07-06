@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.domain
 
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.util.SolarCalculator
@@ -15,6 +16,9 @@ import javax.inject.Singleton
 class NextAlarmCalculator private constructor(
     private val settingsProvider: () -> AppSettings
 ) {
+    private companion object {
+        const val MAX_RECURRING_SEARCH_DAYS = 370L
+    }
 
     /**
      * v1.5.1: Settings are read via a non-suspend cached snapshot exposed by
@@ -58,16 +62,17 @@ class NextAlarmCalculator private constructor(
                 // A one-shot date-specific alarm has expired. Repeating alarms
                 // are allowed to fall through so their repeat-day schedule can
                 // resume after the one-off date has passed.
-                if (alarm.repeatDays.isEmpty()) return 0L
+                if (!alarm.isRecurringSchedule) return 0L
             } catch (_: Exception) { /* Invalid date format, fall through */ }
         }
 
         val today = fromTime.toLocalDate()
+        val shiftSchedule = alarm.shiftScheduleOrNull()
         val todayTime = solarTimeFor(alarm, today, fromTime.zone)
             ?: alarm.time
         val todayAlarmDateTime = ZonedDateTime.of(today, todayTime, fromTime.zone)
 
-        if (alarm.repeatDays.isEmpty()) {
+        if (alarm.repeatDays.isEmpty() && shiftSchedule == null) {
             // One-shot alarm: today if in future, otherwise tomorrow
             return if (todayAlarmDateTime.isAfter(fromTime)) {
                 todayAlarmDateTime.toInstant().toEpochMilli()
@@ -82,10 +87,13 @@ class NextAlarmCalculator private constructor(
 
         // Repeating alarm: find next matching day (solar time is recomputed per day
         // because sunrise/sunset drifts by minutes across the week).
-        for (daysAhead in 0L..7L) {
+        for (daysAhead in 0L..MAX_RECURRING_SEARCH_DAYS) {
             val candidateDate = today.plusDays(daysAhead)
             val dayOfWeek = candidateDate.dayOfWeek
-            if (dayOfWeek in alarm.repeatDays) {
+            val matchesRepeatDays = alarm.repeatDays.isEmpty() || dayOfWeek in alarm.repeatDays
+            val matchesShiftPattern = shiftSchedule == null ||
+                shiftSchedule.pattern.isWorkDate(shiftSchedule.startDate, candidateDate)
+            if (matchesRepeatDays && matchesShiftPattern) {
                 val candidateTime = solarTimeFor(alarm, candidateDate, fromTime.zone)
                     ?: alarm.time
                 val candidate = ZonedDateTime.of(candidateDate, candidateTime, fromTime.zone)
@@ -96,9 +104,20 @@ class NextAlarmCalculator private constructor(
             }
         }
 
-        // Fallback (shouldn't reach here with valid repeatDays)
-        return todayAlarmDateTime.plusDays(1).toInstant().toEpochMilli()
+        return 0L
     }
+
+    private fun Alarm.shiftScheduleOrNull(): ShiftSchedule? {
+        val pattern = ShiftPattern.fromKey(shiftPattern) ?: return null
+        val startDate = runCatching { LocalDate.parse(shiftPatternStartDate) }.getOrNull()
+            ?: return null
+        return ShiftSchedule(pattern, startDate)
+    }
+
+    private data class ShiftSchedule(
+        val pattern: ShiftPattern,
+        val startDate: LocalDate
+    )
 
     /**
      * Returns the solar-adjusted LocalTime for the alarm on [date], or null

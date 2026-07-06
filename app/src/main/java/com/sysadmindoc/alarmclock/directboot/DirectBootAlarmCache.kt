@@ -130,7 +130,7 @@ object DirectBootAlarmCache {
     }
 
     fun consumeFiredOneShotMarker(context: Context, alarm: Alarm, now: Long): Boolean {
-        if (alarm.repeatDays.isNotEmpty()) return false
+        if (alarm.isRecurringSchedule) return false
 
         val prefs = prefs(context)
         val firedAlarmId = prefs.getLong(KEY_FIRED_ALARM_ID, -1L)

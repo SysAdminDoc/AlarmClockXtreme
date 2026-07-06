@@ -131,7 +131,12 @@ data class Alarm(
     // Blur is applied only on Android 12+ where RenderEffect is available.
     val firingBackgroundBlurEnabled: Boolean = true,
     // v1.15.13: User-defined alarm list order. 0 means "not assigned yet".
-    val sortOrder: Int = 0
+    val sortOrder: Int = 0,
+    // v1.15.27: Optional rotating shift pattern. When set, the alarm fires
+    // only on D/N/W days in the selected preset. Empty = regular schedule.
+    val shiftPattern: String = "",
+    // ISO local date that marks day 0 of [shiftPattern].
+    val shiftPatternStartDate: String = ""
 ) {
     companion object {
         const val MAX_SMART_ALARM_WINDOW_MINUTES = 60
@@ -196,6 +201,11 @@ data class Alarm(
 
     val time: LocalTime get() = LocalTime.of(hour.coerceIn(0, 23), minute.coerceIn(0, 59))
 
+    val isRecurringSchedule: Boolean
+        get() = repeatDays.isNotEmpty() ||
+            (ShiftPattern.fromKey(shiftPattern) != null &&
+                runCatching { LocalDate.parse(shiftPatternStartDate) }.isSuccess)
+
     val repeatLabel: String get() = when {
         repeatDays.isEmpty() -> "Once"
         repeatDays.size == 7 -> "Every day"
@@ -239,6 +249,15 @@ data class Alarm(
             .takeIf { it in VALID_VIBRATION_PATTERNS }
             ?: "default"
         val normalizedFiringBackgroundImageUri = firingBackgroundImageUri.trim().take(MAX_URI_CHARS)
+        val normalizedShiftPatternKey = ShiftPattern.normalizedKey(shiftPattern)
+        val normalizedShiftPatternStartDate = shiftPatternStartDate.trim().takeIf {
+            normalizedShiftPatternKey.isNotBlank() &&
+                it.isNotBlank() &&
+                runCatching { LocalDate.parse(it) }.isSuccess
+        }.orEmpty()
+        val normalizedShiftPattern = normalizedShiftPatternKey.takeIf {
+            normalizedShiftPatternStartDate.isNotBlank()
+        }.orEmpty()
 
         return copy(
             hour = hour.coerceIn(0, 23),
@@ -298,7 +317,9 @@ data class Alarm(
             firingBackgroundImageEnabled = firingBackgroundImageEnabled &&
                 normalizedFiringBackgroundImageUri.isNotBlank(),
             firingBackgroundImageUri = normalizedFiringBackgroundImageUri,
-            sortOrder = sortOrder.coerceIn(0, Int.MAX_VALUE)
+            sortOrder = sortOrder.coerceIn(0, Int.MAX_VALUE),
+            shiftPattern = normalizedShiftPattern,
+            shiftPatternStartDate = normalizedShiftPatternStartDate
         )
     }
 }

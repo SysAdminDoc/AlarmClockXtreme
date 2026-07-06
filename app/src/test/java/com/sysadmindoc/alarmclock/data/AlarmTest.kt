@@ -63,6 +63,8 @@ class AlarmTest {
         assertEquals("NONE", alarm.challengeType)
         assertFalse(alarm.holdToDismissEnabled)
         assertEquals(0, alarm.sortOrder)
+        assertEquals("", alarm.shiftPattern)
+        assertEquals("", alarm.shiftPatternStartDate)
     }
 
     @Test
@@ -113,6 +115,8 @@ class AlarmTest {
             ringtonePool = (1..25).joinToString(",") { " tone://$it " } + ",tone://1",
             solarOffsetMinutes = 9999,
             solarAnchor = "dusk",
+            shiftPattern = "panama",
+            shiftPatternStartDate = " 2026-07-06 ",
             sortOrder = -42
         )
 
@@ -157,7 +161,22 @@ class AlarmTest {
         assertEquals("tone://1", sanitized.ringtonePool.substringBefore(","))
         assertEquals(720, sanitized.solarOffsetMinutes)
         assertEquals("SUNRISE", sanitized.solarAnchor)
+        assertEquals("PANAMA", sanitized.shiftPattern)
+        assertEquals("2026-07-06", sanitized.shiftPatternStartDate)
+        assertTrue(sanitized.isRecurringSchedule)
         assertEquals(0, sanitized.sortOrder)
+    }
+
+    @Test
+    fun `invalid shift pattern anchor disables shift schedule`() {
+        val sanitized = Alarm(
+            shiftPattern = "DDNNO",
+            shiftPatternStartDate = "not-a-date"
+        ).sanitized()
+
+        assertEquals("", sanitized.shiftPattern)
+        assertEquals("", sanitized.shiftPatternStartDate)
+        assertFalse(sanitized.isRecurringSchedule)
     }
 
     @Test

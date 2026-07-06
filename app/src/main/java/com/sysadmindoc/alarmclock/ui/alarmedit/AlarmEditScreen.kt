@@ -37,6 +37,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.BuildConfig
+import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
@@ -674,7 +675,8 @@ fun AlarmEditScreen(
 
             // Schedule forecast
             LaunchedEffect(state.hour, state.minute, state.repeatDays, state.specificDate,
-                state.solarOffsetMinutes, state.solarAnchor, state.skipOnHolidays) {
+                state.solarOffsetMinutes, state.solarAnchor, state.shiftPattern,
+                state.shiftPatternStartDate, state.skipOnHolidays) {
                 viewModel.computeForecast()
             }
             SettingsSection("Upcoming fire dates") {
@@ -1577,6 +1579,63 @@ fun AlarmEditScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
+                var showShiftPatternMenu by remember { mutableStateOf(false) }
+                val selectedShiftPattern = ShiftPattern.fromKey(state.shiftPattern)
+                SettingsRow(label = "Shift pattern") {
+                    Box {
+                        SettingsValueButton(
+                            label = selectedShiftPattern?.title ?: "Disabled",
+                            onClick = { showShiftPatternMenu = true }
+                        )
+                        DropdownMenu(
+                            expanded = showShiftPatternMenu,
+                            onDismissRequest = { showShiftPatternMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Disabled") },
+                                onClick = {
+                                    viewModel.updateShiftPattern("")
+                                    showShiftPatternMenu = false
+                                }
+                            )
+                            ShiftPattern.presets.forEach { pattern ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(pattern.title)
+                                            Text(
+                                                pattern.description,
+                                                color = TextMuted,
+                                                style = MaterialTheme.typography.bodySmall
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        viewModel.updateShiftPattern(pattern.key)
+                                        showShiftPatternMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                AnimatedVisibility(visible = selectedShiftPattern != null) {
+                    Column {
+                        OutlinedTextField(
+                            value = state.shiftPatternStartDate,
+                            onValueChange = viewModel::updateShiftPatternStartDate,
+                            label = { Text("Shift cycle start date (YYYY-MM-DD)", color = TextMuted) },
+                            colors = appOutlinedTextFieldColors(),
+                            shape = AppInputShape,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                            singleLine = true
+                        )
+                        SettingsHint(
+                            "Day, night, and work entries ring; off days are skipped. Weekday picks still narrow the pattern.",
+                            tone = HintTone.Neutral
+                        )
+                    }
+                }
                 var showWeatherEarlyMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = "Weather early fire") {
                     Box {

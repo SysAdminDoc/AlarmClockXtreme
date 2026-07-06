@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Bedtime now has pre-sleep factor tiles for caffeine, exercise, alcohol, and stress.",
-            "The local chart compares tagged nights against Sonar and smart-wake restlessness.",
-            "Late-night tags before 6 AM stay attached to the prior night.",
-            "Room database schema is now v21 with a dedicated pre-sleep tag table."
+            "Alarm Edit now supports rotating shift patterns: DDNNO, 4-on-4-off, Panama, DuPont, and Pitman.",
+            "Shift patterns can act as the recurring schedule by themselves or narrow selected weekdays.",
+            "Alarm cards show a compact shift chip so rotation-gated alarms are easy to spot.",
+            "Room database schema is now v22 and backups are now format v16 for shift schedules."
         )
     }
 }

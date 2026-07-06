@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.LocalTime
 import javax.inject.Inject
 
@@ -107,6 +109,8 @@ data class AlarmEditUiState(
     val firingBackgroundImageEnabled: Boolean = false,
     val firingBackgroundImageUri: String = "",
     val firingBackgroundBlurEnabled: Boolean = true,
+    val shiftPattern: String = "",
+    val shiftPatternStartDate: String = "",
     val forecastDates: List<ForecastEntry> = emptyList()
 )
 
@@ -203,7 +207,9 @@ class AlarmEditViewModel @Inject constructor(
                         weatherEarlyMinutes = alarm.weatherEarlyMinutes,
                         firingBackgroundImageEnabled = alarm.firingBackgroundImageEnabled,
                         firingBackgroundImageUri = alarm.firingBackgroundImageUri,
-                        firingBackgroundBlurEnabled = alarm.firingBackgroundBlurEnabled
+                        firingBackgroundBlurEnabled = alarm.firingBackgroundBlurEnabled,
+                        shiftPattern = alarm.shiftPattern,
+                        shiftPatternStartDate = alarm.shiftPatternStartDate
                     )
                 } else {
                     _uiState.value = _uiState.value.copy(notFound = true, is24HourFormat = is24h)
@@ -385,6 +391,22 @@ class AlarmEditViewModel @Inject constructor(
     }
     fun updateSpecificDate(date: String) { _uiState.value = _uiState.value.copy(specificDate = date) }
     fun updateProfileName(name: String) { _uiState.value = _uiState.value.copy(profileName = name) }
+    fun updateShiftPattern(pattern: String) {
+        val sanitized = ShiftPattern.normalizedKey(pattern)
+        _uiState.value = if (sanitized.isBlank()) {
+            _uiState.value.copy(shiftPattern = "", shiftPatternStartDate = "")
+        } else {
+            _uiState.value.copy(
+                shiftPattern = sanitized,
+                shiftPatternStartDate = _uiState.value.shiftPatternStartDate.ifBlank {
+                    LocalDate.now().toString()
+                }
+            )
+        }
+    }
+    fun updateShiftPatternStartDate(date: String) {
+        _uiState.value = _uiState.value.copy(shiftPatternStartDate = date)
+    }
     fun updateEarlyDismiss(minutes: Int) { _uiState.value = _uiState.value.copy(earlyDismissMinutes = minutes) }
     fun updateGuardian(enabled: Boolean, phone: String? = null, delaySec: Int? = null) {
         _uiState.value = _uiState.value.copy(
@@ -470,6 +492,8 @@ class AlarmEditViewModel @Inject constructor(
                 specificDate = s.specificDate,
                 solarOffsetMinutes = s.solarOffsetMinutes,
                 solarAnchor = s.solarAnchor,
+                shiftPattern = s.shiftPattern,
+                shiftPatternStartDate = s.shiftPatternStartDate,
                 skipOnHolidays = s.skipOnHolidays,
                 isEnabled = true
             )
@@ -608,7 +632,9 @@ class AlarmEditViewModel @Inject constructor(
                 weatherEarlyMinutes = s.weatherEarlyMinutes,
                 firingBackgroundImageEnabled = s.firingBackgroundImageEnabled,
                 firingBackgroundImageUri = s.firingBackgroundImageUri,
-                firingBackgroundBlurEnabled = s.firingBackgroundBlurEnabled
+                firingBackgroundBlurEnabled = s.firingBackgroundBlurEnabled,
+                shiftPattern = s.shiftPattern,
+                shiftPatternStartDate = s.shiftPatternStartDate
             )
 
             try {
