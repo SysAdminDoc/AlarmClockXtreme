@@ -16,10 +16,10 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.24)
+## Current snapshot (v1.15.25)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
-  Material 3 (1.4.x), Room 2.6.1 / DB v19, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
+  Material 3 (1.4.x), Room 2.6.1 / DB v20, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
   DataStore 1.1.1, Glance 1.1.1, OkHttp 5.4.0, WorkManager 2.9.1, Wear Tiles
   1.6.0 / protolayout 1.4.0, Wear Data Layer, Wear Watchface complications
   data-source 1.3.0, Health Connect client 1.1.0 (Play flavor), ML Kit Digital
@@ -27,8 +27,8 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 126`, `versionName 1.15.24`.
-- **Surface area:** 168 Kotlin files in `:app` + 4 in `:wear`, two phone
+  `versionCode 127`, `versionName 1.15.25`.
+- **Surface area:** 182 Kotlin files in `:app` + 4 in `:wear`, two phone
   flavors (`play`, `fdroid`), **30 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
   AppSettings fields, 6 phone tabs (Today, Alarms, Bedtime, Timer, World,
@@ -51,7 +51,6 @@ items. New entries from this pass are tagged **NEW**.
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-S2 | Snore recording + timeline (mic ring buffer, save >60 dB bursts). | [Sleep as Android sound detection](https://sleep.urbandroid.org/new-sleep-sound-detection/); [britig/SnoreDetection](https://github.com/britig/SnoreDetection) | M |
 | L-S3 | On-device ML snore/sound-detection (cough / sleep-talk / baby) via TFLite micro. **NEW.** | [Edge Impulse snoring on smartphone](https://github.com/edgeimpulse/expert-projects/blob/main/audio-projects/snoring-detection-on-smartphone.md); [Sleep as Android sound detection blog](https://sleep.urbandroid.org/new-sleep-sound-detection/) | L |
 | L-S4 | Pre-sleep tag tiles (caffeine / exercise / alcohol / stress) + correlation chart. | Sleep as Android | M |
 | L-S5 | Lullaby soundscapes with motion-auto-off — **downloadable add-on**, not bundled, to respect F-Droid 40 MB budget. | [Sleep as Android lullaby pack](https://sleep.urbandroid.org/documentation/release-notes/); [Calm](https://www.calm.com/) | M |

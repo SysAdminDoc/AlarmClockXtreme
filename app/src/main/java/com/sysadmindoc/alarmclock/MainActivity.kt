@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Bedtime now includes a local chronotype estimate for early, balanced, or late timing.",
-            "The estimate turns five preference taps into an ideal bedtime and wake window.",
-            "Chronotype timing updates when you adjust your sleep target.",
-            "Manual backups now round-trip chronotype answers with the rest of app settings."
+            "Sonar sleep sessions now flag loud sleep-sound bursts in a local timeline.",
+            "The timeline stores start time, duration, and estimated peak/average dB only.",
+            "No raw audio is retained; events appear after the foreground Sonar session stops.",
+            "Room database schema is now v20 with a dedicated snore-events table."
         )
     }
 }

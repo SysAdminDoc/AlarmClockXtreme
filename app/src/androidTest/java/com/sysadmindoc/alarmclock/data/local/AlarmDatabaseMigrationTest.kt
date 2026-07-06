@@ -196,6 +196,28 @@ class AlarmDatabaseMigrationTest {
     }
 
     @Test
+    fun migrationNineteenToTwentyCreatesSnoreEventsTable() {
+        var db = helper.createDatabase("migration-19-to-20.db", 19)
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-19-to-20.db",
+            20,
+            true,
+            AlarmDatabase.MIGRATION_19_20,
+        )
+
+        assertEquals(0, db.queryLong("SELECT COUNT(*) FROM snore_events"))
+        val columns = tableColumns(db, "snore_events").map { it.name }.toSet()
+        assertTrue(columns.contains("sessionStartedAt"))
+        assertTrue(columns.contains("startedAt"))
+        assertTrue(columns.contains("durationMillis"))
+        assertTrue(columns.contains("peakDb"))
+        assertTrue(columns.contains("averageDb"))
+        db.close()
+    }
+
+    @Test
     fun freshInstallVersionMatchesLatestExportedSchema() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val exportedLatest = latestExportedSchemaVersion()
@@ -387,6 +409,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 19
+        const val LATEST_SCHEMA_VERSION = 20
     }
 }

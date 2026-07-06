@@ -1098,6 +1098,14 @@ private fun SonarSleepTrackingSection(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
+                if (state.snoreTimeline.isNotEmpty()) {
+                    HorizontalDivider(color = TextMuted.copy(alpha = 0.12f))
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        state.snoreTimeline.forEach { event ->
+                            SnoreTimelineRow(event = event)
+                        }
+                    }
+                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             AppFilterChip(
@@ -1110,6 +1118,45 @@ private fun SonarSleepTrackingSection(
                 } else {
                     "Start sleep-motion tracking"
                 }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SnoreTimelineRow(event: SnoreTimelineItem) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            color = SnoozeYellow.copy(alpha = 0.14f),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.GraphicEq,
+                contentDescription = null,
+                tint = SnoozeYellow,
+                modifier = Modifier
+                    .padding(8.dp)
+                    .size(18.dp)
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = "${event.timeLabel} - ${event.durationLabel}",
+                color = TextPrimary,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = event.intensityLabel,
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall
             )
         }
     }

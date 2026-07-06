@@ -10,9 +10,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
+import com.sysadmindoc.alarmclock.data.local.entity.SnoreEvent
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.domain.ChronotypeEstimator
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.data.repository.SnoreEventRepository
 import com.sysadmindoc.alarmclock.domain.EnvironmentalNoiseBaselinePolicy
 import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
 import com.sysadmindoc.alarmclock.receiver.BedtimeReceiver
@@ -32,6 +34,7 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import kotlin.math.roundToInt
 
 data class BedtimeUiState(
     val isEnabled: Boolean = false,
@@ -80,7 +83,15 @@ data class BedtimeUiState(
     val chronotypeComplete: Boolean = false,
     val sonarTrackingActive: Boolean = false,
     val sonarTrackingStatus: String = "Ready to monitor local movement during sleep.",
-    val sonarLastSessionLabel: String = ""
+    val sonarLastSessionLabel: String = "",
+    val snoreTimeline: List<SnoreTimelineItem> = emptyList()
+)
+
+data class SnoreTimelineItem(
+    val id: Long,
+    val timeLabel: String,
+    val intensityLabel: String,
+    val durationLabel: String
 )
 
 private data class ChronotypeUiModel(
@@ -97,7 +108,8 @@ class BedtimeViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: AlarmRepository,
     private val preferencesManager: PreferencesManager,
-    private val healthConnectSleepRepository: HealthConnectSleepRepository
+    private val healthConnectSleepRepository: HealthConnectSleepRepository,
+    private val snoreEventRepository: SnoreEventRepository
 ) : ViewModel() {
 
     // F10: Sleep sound player
@@ -108,6 +120,7 @@ class BedtimeViewModel @Inject constructor(
 
     init {
         loadPersistedState()
+        observeSnoreTimeline()
     }
 
     private fun loadPersistedState() {
@@ -410,7 +423,7 @@ class BedtimeViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     sonarTrackingActive = true,
-                    sonarTrackingStatus = "Monitoring with ultrasonic reflection. No raw audio is recorded."
+                    sonarTrackingStatus = "Monitoring movement and loud sleep sounds. No raw audio is recorded."
                 )
             }
         }.onFailure { error ->
@@ -460,7 +473,7 @@ class BedtimeViewModel @Inject constructor(
             it.copy(
                 sonarTrackingActive = snapshot.active,
                 sonarTrackingStatus = when {
-                    snapshot.active -> "Monitoring with ultrasonic reflection. No raw audio is recorded."
+                    snapshot.active -> "Monitoring movement and loud sleep sounds. No raw audio is recorded."
                     snapshot.lastEndedAt > 0L -> "Last sonar session saved locally."
                     else -> "Ready to monitor local movement during sleep."
                 },
@@ -485,6 +498,16 @@ class BedtimeViewModel @Inject constructor(
                 delay(1_000L)
                 refreshSonarTrackingStatus()
                 if (!_uiState.value.sonarTrackingStatus.startsWith("Stopping sonar")) return@launch
+            }
+        }
+    }
+
+    private fun observeSnoreTimeline() {
+        viewModelScope.launch {
+            snoreEventRepository.observeRecent(limit = 6).collect { events ->
+                _uiState.update {
+                    it.copy(snoreTimeline = events.map(::snoreTimelineItem))
+                }
             }
         }
     }
@@ -593,10 +616,36 @@ class BedtimeViewModel @Inject constructor(
 
     private fun sonarLastSessionLabel(snapshot: SonarSleepSnapshot): String {
         if (snapshot.lastEndedAt <= 0L || snapshot.lastTotalMinutes <= 0) return ""
+        val snore = if (snapshot.lastSnoreEventCount > 0) {
+            "; ${snapshot.lastSnoreEventCount} loud bursts, peak ${snapshot.lastSnorePeakDb.roundToInt()} dB est."
+        } else {
+            "; no loud bursts"
+        }
         return "Last session: ${snapshot.lastTotalMinutes}m, " +
             "${snapshot.lastAwakeMinutes}m movement, " +
             "${snapshot.lastLightMinutes}m restless, " +
-            "${snapshot.lastDeepMinutes}m still"
+            "${snapshot.lastDeepMinutes}m still" +
+            snore
+    }
+
+    private fun snoreTimelineItem(event: SnoreEvent): SnoreTimelineItem {
+        val start = java.time.Instant.ofEpochMilli(event.startedAt)
+            .atZone(ZoneId.systemDefault())
+            .toLocalTime()
+        return SnoreTimelineItem(
+            id = event.id,
+            timeLabel = formatTime(start.hour, start.minute, _uiState.value.is24HourFormat),
+            intensityLabel = "Peak ${event.peakDb.roundToInt()} dB est. / avg ${event.averageDb.roundToInt()}",
+            durationLabel = formatDurationMillis(event.durationMillis)
+        )
+    }
+
+    private fun formatDurationMillis(durationMillis: Long): String {
+        val seconds = ((durationMillis + 999L) / 1_000L).coerceAtLeast(1L)
+        if (seconds < 60L) return "${seconds}s"
+        val minutes = seconds / 60L
+        val remainder = seconds % 60L
+        return if (remainder == 0L) "${minutes}m" else "${minutes}m ${remainder}s"
     }
 
     private fun noiseBaselineLabel(snapshot: BedtimeNoiseBaselineSnapshot): String {

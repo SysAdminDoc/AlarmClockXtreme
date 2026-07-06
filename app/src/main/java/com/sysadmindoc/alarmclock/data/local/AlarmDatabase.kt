@@ -8,11 +8,18 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
+import com.sysadmindoc.alarmclock.data.local.entity.SnoreEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 
 @Database(
-    entities = [Alarm::class, AlarmEvent::class, ActigraphySession::class, AlarmIncidentEvent::class],
-    version = 19,
+    entities = [
+        Alarm::class,
+        AlarmEvent::class,
+        ActigraphySession::class,
+        AlarmIncidentEvent::class,
+        SnoreEvent::class
+    ],
+    version = 20,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -21,6 +28,7 @@ abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmEventDao(): AlarmEventDao
     abstract fun actigraphySessionDao(): ActigraphySessionDao
     abstract fun alarmIncidentEventDao(): AlarmIncidentEventDao
+    abstract fun snoreEventDao(): SnoreEventDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -280,6 +288,28 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS snore_events (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        sessionStartedAt INTEGER NOT NULL,
+                        startedAt INTEGER NOT NULL,
+                        endedAt INTEGER NOT NULL,
+                        durationMillis INTEGER NOT NULL,
+                        peakDb REAL NOT NULL,
+                        averageDb REAL NOT NULL,
+                        windowCount INTEGER NOT NULL,
+                        source TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_snore_events_sessionStartedAt ON snore_events(sessionStartedAt)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_snore_events_startedAt ON snore_events(startedAt)")
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -299,6 +329,7 @@ abstract class AlarmDatabase : RoomDatabase() {
             MIGRATION_16_17,
             MIGRATION_17_18,
             MIGRATION_18_19,
+            MIGRATION_19_20,
         )
     }
 }

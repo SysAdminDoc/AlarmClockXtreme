@@ -7,6 +7,7 @@ import com.sysadmindoc.alarmclock.data.local.AlarmDao
 import com.sysadmindoc.alarmclock.data.local.AlarmDatabase
 import com.sysadmindoc.alarmclock.data.local.AlarmEventDao
 import com.sysadmindoc.alarmclock.data.local.AlarmIncidentEventDao
+import com.sysadmindoc.alarmclock.data.local.SnoreEventDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -52,5 +53,11 @@ object DatabaseModule {
     @Singleton
     fun provideAlarmIncidentEventDao(database: AlarmDatabase): AlarmIncidentEventDao {
         return database.alarmIncidentEventDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSnoreEventDao(database: AlarmDatabase): SnoreEventDao {
+        return database.snoreEventDao()
     }
 }

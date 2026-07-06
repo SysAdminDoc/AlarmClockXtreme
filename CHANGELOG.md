@@ -4,6 +4,24 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.25] - 2026-07-05
+
+### Added
+
+- Added local Sonar snore/loud-sound event detection: sessions now persist
+  compact start/end/duration/peak/average dB metadata for bursts over the local
+  threshold and render the recent timeline on the Bedtime tab.
+- Added a Room `snore_events` table with v20 migration coverage and 30-day
+  retention through the new repository layer.
+
+### Changed
+
+- Updated Sonar sleep copy to clarify that movement and loud sleep-sound
+  monitoring runs only while the foreground session is active and retains no
+  raw audio.
+- Bumped app, Wear, README, release verifier, Room schema, and F-Droid
+  metadata to `versionName = "1.15.25"`, `versionCode = 127`.
+
 ## [1.15.24] - 2026-07-05
 
 ### Added

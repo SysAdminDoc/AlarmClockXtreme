@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.service
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -18,7 +19,10 @@ import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.actigraphy.ActigraphySessionSummary
 import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
+import com.sysadmindoc.alarmclock.data.repository.SnoreEventRepository
 import com.sysadmindoc.alarmclock.data.sonar.SonarSleepSessionSummarizer
+import com.sysadmindoc.alarmclock.domain.SnoreEventCandidate
+import com.sysadmindoc.alarmclock.domain.SnoreEventDetector
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import kotlin.math.abs
@@ -65,22 +69,43 @@ class SonarSleepService : Service() {
         private const val KEY_LAST_AWAKE_MINUTES = "last_awake_minutes"
         private const val KEY_LAST_LIGHT_MINUTES = "last_light_minutes"
         private const val KEY_LAST_DEEP_MINUTES = "last_deep_minutes"
+        private const val KEY_LAST_SNORE_EVENTS = "last_snore_events"
+        private const val KEY_LAST_SNORE_PEAK_DB = "last_snore_peak_db"
 
         fun readSnapshot(context: Context): SonarSleepSnapshot {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            val storedActive = prefs.getBoolean(KEY_ACTIVE, false)
+            val active = storedActive && isServiceRunning(context)
+            if (storedActive && !active) {
+                prefs.edit()
+                    .putBoolean(KEY_ACTIVE, false)
+                    .putLong(KEY_STARTED_AT, 0L)
+                    .apply()
+            }
             return SonarSleepSnapshot(
-                active = prefs.getBoolean(KEY_ACTIVE, false),
-                startedAt = prefs.getLong(KEY_STARTED_AT, 0L),
+                active = active,
+                startedAt = if (active) prefs.getLong(KEY_STARTED_AT, 0L) else 0L,
                 lastEndedAt = prefs.getLong(KEY_LAST_ENDED_AT, 0L),
                 lastTotalMinutes = prefs.getInt(KEY_LAST_TOTAL_MINUTES, 0),
                 lastAwakeMinutes = prefs.getInt(KEY_LAST_AWAKE_MINUTES, 0),
                 lastLightMinutes = prefs.getInt(KEY_LAST_LIGHT_MINUTES, 0),
-                lastDeepMinutes = prefs.getInt(KEY_LAST_DEEP_MINUTES, 0)
+                lastDeepMinutes = prefs.getInt(KEY_LAST_DEEP_MINUTES, 0),
+                lastSnoreEventCount = prefs.getInt(KEY_LAST_SNORE_EVENTS, 0),
+                lastSnorePeakDb = prefs.getFloat(KEY_LAST_SNORE_PEAK_DB, 0f)
             )
+        }
+
+        private fun isServiceRunning(context: Context): Boolean {
+            val manager = context.getSystemService(ActivityManager::class.java) ?: return false
+            @Suppress("DEPRECATION")
+            return manager.getRunningServices(Int.MAX_VALUE).any { service ->
+                service.service.className == SonarSleepService::class.java.name
+            }
         }
     }
 
     @Inject lateinit var actigraphyRepository: ActigraphyRepository
+    @Inject lateinit var snoreEventRepository: SnoreEventRepository
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var audioTrack: AudioTrack? = null
@@ -90,6 +115,8 @@ class SonarSleepService : Service() {
     private var stillWindows = 0
     private var movementWindows = 0
     private var sessionRecorded = false
+    private var snoreDetector = SnoreEventDetector()
+    private val snoreEvents = mutableListOf<SnoreEventCandidate>()
 
     // Callbacks: set by binding consumer or broadcast receivers
     var onMovementCallback: (() -> Unit)? = null
@@ -127,6 +154,8 @@ class SonarSleepService : Service() {
             stillWindows = 0
             movementWindows = 0
             sessionRecorded = false
+            snoreDetector = SnoreEventDetector()
+            snoreEvents.clear()
         }
         markActive(sessionStartedAt)
         scope.launch {
@@ -217,6 +246,7 @@ class SonarSleepService : Service() {
             if (read <= 0) { delay(WINDOW_MS); continue }
 
             val rms = rms(buffer, read)
+            recordSnoreWindow(rms)
             recentRms.addLast(rms)
             if (recentRms.size > DEEP_SLEEP_WINDOWS) recentRms.removeFirst()
 
@@ -285,17 +315,34 @@ class SonarSleepService : Service() {
         }
     }
 
+    private fun recordSnoreWindow(rms: Float) {
+        val windowStartedAt = System.currentTimeMillis()
+        synchronized(sessionLock) {
+            val completed = snoreDetector.acceptWindow(
+                windowStartedAt = windowStartedAt,
+                windowDurationMs = WINDOW_MS,
+                rms = rms
+            )
+            if (completed != null) {
+                snoreEvents.add(completed)
+            }
+        }
+    }
+
     private suspend fun recordSession(decisionReason: String) {
         val endedAt = System.currentTimeMillis()
         val startedAt: Long
         val still: Int
         val movement: Int
+        val snore: List<SnoreEventCandidate>
         synchronized(sessionLock) {
             if (sessionStartedAt == 0L || sessionRecorded) return
             sessionRecorded = true
+            snoreDetector.flush()?.let(snoreEvents::add)
             startedAt = sessionStartedAt
             still = stillWindows
             movement = movementWindows
+            snore = snoreEvents.toList()
         }
 
         val summary = SonarSleepSessionSummarizer.summarize(
@@ -318,11 +365,18 @@ class SonarSleepService : Service() {
                 smartWakeMode = "SONAR"
             )
         }
-        persistLastSession(endedAt, summary)
+        runCatching {
+            snoreEventRepository.recordAll(
+                sessionStartedAt = startedAt,
+                events = snore
+            )
+        }
+        persistLastSession(endedAt, summary, snore)
         synchronized(sessionLock) {
             sessionStartedAt = 0L
             stillWindows = 0
             movementWindows = 0
+            snoreEvents.clear()
         }
     }
 
@@ -342,7 +396,11 @@ class SonarSleepService : Service() {
             .apply()
     }
 
-    private fun persistLastSession(endedAt: Long, summary: ActigraphySessionSummary) {
+    private fun persistLastSession(
+        endedAt: Long,
+        summary: ActigraphySessionSummary,
+        snoreEvents: List<SnoreEventCandidate>
+    ) {
         getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
             .putBoolean(KEY_ACTIVE, false)
@@ -352,6 +410,8 @@ class SonarSleepService : Service() {
             .putInt(KEY_LAST_AWAKE_MINUTES, summary.awakeMinutes)
             .putInt(KEY_LAST_LIGHT_MINUTES, summary.lightMinutes)
             .putInt(KEY_LAST_DEEP_MINUTES, summary.deepMinutes)
+            .putInt(KEY_LAST_SNORE_EVENTS, snoreEvents.size)
+            .putFloat(KEY_LAST_SNORE_PEAK_DB, snoreEvents.maxOfOrNull { it.peakDb } ?: 0f)
             .apply()
     }
 
@@ -384,5 +444,7 @@ data class SonarSleepSnapshot(
     val lastTotalMinutes: Int,
     val lastAwakeMinutes: Int,
     val lastLightMinutes: Int,
-    val lastDeepMinutes: Int
+    val lastDeepMinutes: Int,
+    val lastSnoreEventCount: Int,
+    val lastSnorePeakDb: Float
 )

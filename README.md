@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.24-blue)
+![Version](https://img.shields.io/badge/version-1.15.25-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -17,7 +17,7 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.15.24-play-release.apk
+adb install AlarmClockXtreme-v1.15.25-play-release.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, optional Health Connect READ_SLEEP integration, and ML Kit Digital Ink handwriting recognition. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -144,7 +144,7 @@ cd AlarmClockXtreme
 | Feature | Description |
 |---------|-------------|
 | Smart Alarm | Accelerometer-based light sleep detection, fires early during optimal window |
-| Sonar Sleep Tracking | Experimental ultrasonic breathing/movement detection with manual Bedtime start/stop and local Statistics summaries; no raw audio is retained |
+| Sonar Sleep Tracking | Experimental ultrasonic breathing/movement detection with manual Bedtime start/stop, local Statistics summaries, and a loud sleep-sound timeline; no raw audio is retained |
 | Local Actigraphy Buckets | Smart-alarm windows store compact awake-motion, light-motion, and still-motion summaries for 30 days; raw accelerometer samples are not retained |
 | Philips Hue Sunrise | Gradually ramp smart lights before alarm fires |
 | Webhook / Tasker | POST HTTPS JSON on `alarm_fired`, `alarm_snoozed`, `alarm_dismissed`, `alarm_missed`, and `alarm_skipped` events |
@@ -164,7 +164,7 @@ cd AlarmClockXtreme
 | World Clock | Live time zones with UTC offset, 24h format support, persistent saved cities |
 | Multiple Timers | Run several countdown timers concurrently (monotonic clock) |
 | Stopwatch | Lap tracking with best/worst marking |
-| Bedtime Tracking | Sleep goal, sleep cycle calculator, chronotype estimate, bedtime reminders, guided breathing, sleep sounds, local room-noise baseline, and Android 16 final-hour bedtime countdown Live Updates |
+| Bedtime Tracking | Sleep goal, sleep cycle calculator, chronotype estimate, bedtime reminders, guided breathing, sleep sounds, local room-noise baseline, snore/loud-sound timeline, and Android 16 final-hour bedtime countdown Live Updates |
 | Bedtime DND | App-owned alarms-only Do Not Disturb rule for the sleep window, with clear access/status feedback |
 | Health Connect Sleep | Play flavor only: opt-in READ_SLEEP summaries and local sleep/wake trend charts in Bedtime and Statistics |
 | Statistics | Wake-streak flame badge, snooze rate, day-of-week breakdown, response times, searchable alarm history |
@@ -208,7 +208,7 @@ cd AlarmClockXtreme
 |  Date-specific + holiday + vacation + solar-anchor logic |
 +---------------------------------------------------------+
 |                    Data Layer                            |
-|  Room DB v19 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
+|  Room DB v20 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
 |  HealthConnectSleepRepository (Play READ_SLEEP summaries) |
 |  50+ field Alarm entity | 35+ field AppSettings          |
 |  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |
@@ -248,7 +248,7 @@ signatures with `apksigner`, write `SHA256SUMS.txt` and
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.24-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.25-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in
@@ -329,7 +329,7 @@ No analytics. No ads. No tracking. No accounts. No data leaves your device excep
 - ML Kit Digital Ink model download in the Play flavor when you first use handwriting recognition; recognition runs on-device after the model is available
 - YouTube search, preview, stream resolution, and download requests in the Play flavor only; F-Droid excludes this feature
 
-Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, including sleep/wake trend charts; they are not copied into Room/DataStore/backups and are never uploaded to the developer. Smart-alarm actigraphy stores only compact local motion-bucket summaries for 30 days; raw accelerometer samples are not retained and the buckets are not medical sleep-stage records. Sonar sleep tracking is manually started from Bedtime, uses the microphone only while its foreground notification is active, stores compact movement/restless/still summaries locally for 30 days, and does not retain raw audio. Chronotype estimates store only five local preference answers and derive a bedtime/wake target on device. Bedtime room-noise baselines use the microphone only at reminder time when permission is granted, keep only a quiet/moderate/loud label plus timestamp, exclude that label from backup and device transfer, and do not save raw audio. Weather and news keep one compact last-good cache file each for offline display; these caches stay in app files storage and are excluded from manual backups, system backup includes, and support bundles. Support bundles are created only when you choose to export them and include redacted wake-readiness, test-alarm proof timing, aggregate smart-wake decision metadata, and recent alarm incident event codes, not labels or per-minute motion/audio buckets. Crash logs are capped local files in app-private storage, excluded from backups, and never uploaded automatically; they leave the device only if you explicitly export a support bundle. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, Hue configuration, selected firing background image URIs, and chronotype answers. Backup import previews read the selected file first and do not write alarms or settings until you choose Append or Replace.
+Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, including sleep/wake trend charts; they are not copied into Room/DataStore/backups and are never uploaded to the developer. Smart-alarm actigraphy stores only compact local motion-bucket summaries for 30 days; raw accelerometer samples are not retained and the buckets are not medical sleep-stage records. Sonar sleep tracking is manually started from Bedtime, uses the microphone only while its foreground notification is active, stores compact movement/restless/still summaries plus loud sleep-sound event metadata locally for 30 days, and does not retain raw audio. Chronotype estimates store only five local preference answers and derive a bedtime/wake target on device. Bedtime room-noise baselines use the microphone only at reminder time when permission is granted, keep only a quiet/moderate/loud label plus timestamp, exclude that label from backup and device transfer, and do not save raw audio. Weather and news keep one compact last-good cache file each for offline display; these caches stay in app files storage and are excluded from manual backups, system backup includes, and support bundles. Support bundles are created only when you choose to export them and include redacted wake-readiness, test-alarm proof timing, aggregate smart-wake decision metadata, and recent alarm incident event codes, not labels, snore-event rows, or per-minute motion/audio buckets. Crash logs are capped local files in app-private storage, excluded from backups, and never uploaded automatically; they leave the device only if you explicitly export a support bundle. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, Hue configuration, selected firing background image URIs, and chronotype answers. Backup import previews read the selected file first and do not write alarms or settings until you choose Append or Replace.
 
 Settings can hide alarm labels on public surfaces. When enabled, alarm notifications, missed-alarm prompts, wake-confirm prompts, the home widget, the quick settings tile, and Play-flavor Wear next-alarm snapshots use neutral alarm text while labels remain visible inside the unlocked app.
 
