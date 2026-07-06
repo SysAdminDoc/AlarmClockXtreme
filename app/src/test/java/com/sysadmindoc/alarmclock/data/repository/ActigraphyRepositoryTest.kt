@@ -64,6 +64,11 @@ class ActigraphyRepositoryTest {
             return recent(limit)
         }
 
+        override suspend fun getSince(sinceMs: Long): List<ActigraphySession> {
+            return inserted.filter { it.startedAt >= sinceMs }
+                .sortedByDescending { it.startedAt }
+        }
+
         override suspend fun deleteOlderThan(beforeMs: Long) {
             deletedBeforeMs = beforeMs
             inserted.removeAll { it.endedAt < beforeMs }

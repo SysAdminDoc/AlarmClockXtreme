@@ -4,6 +4,21 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.26] - 2026-07-05
+
+### Added
+
+- Added Bedtime pre-sleep factor tiles for caffeine, exercise, alcohol, and
+  stress with local 30-day retention.
+- Added a local pre-sleep correlation chart that compares tagged nights against
+  Sonar/smart-wake restlessness summaries without uploading data.
+- Added a Room `pre_sleep_tag_entries` table with v21 migration coverage.
+
+### Changed
+
+- Bumped app, Wear, README, release verifier, Room schema, and F-Droid metadata
+  to `versionName = "1.15.26"`, `versionCode = 128`.
+
 ## [1.15.25] - 2026-07-05
 
 ### Added

@@ -114,6 +114,7 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -798,6 +799,16 @@ fun BedtimeScreen(
         }
 
         item {
+            PreSleepTagSection(
+                state = state,
+                onToggle = viewModel::togglePreSleepTag,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
+
+        item {
             SleepSoundsSection(
                 state = state,
                 viewModel = viewModel,
@@ -868,6 +879,133 @@ private val SLEEP_SOUNDS = listOf(
     SleepSound("Pink Noise", Icons.Default.GraphicEq, SleepNoisePreset.PINK),
     SleepSound("Violet Noise", Icons.Default.Waves, SleepNoisePreset.VIOLET),
 )
+
+@Composable
+private fun PreSleepTagSection(
+    state: BedtimeUiState,
+    onToggle: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val hasSelection = state.preSleepTags.any { it.selected }
+    AppSurfaceCard(
+        modifier = modifier,
+        highlighted = hasSelection
+    ) {
+        AppSectionTitle(
+            title = "Pre-sleep factors",
+            description = "${state.preSleepTagDateLabel}: tag the signals that may shape tomorrow's wake-up friction."
+        )
+
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            state.preSleepTags.forEach { tag ->
+                AppFilterChip(
+                    label = tag.label,
+                    selected = tag.selected,
+                    onClick = { onToggle(tag.key) },
+                    leadingIcon = if (tag.selected) Icons.Default.CheckCircle else Icons.Default.Add,
+                    accessibilityLabel = "${tag.label}: ${tag.helper}"
+                )
+            }
+        }
+
+        if (state.preSleepCorrelations.isNotEmpty()) {
+            HorizontalDivider(color = TextMuted.copy(alpha = 0.12f))
+            PreSleepCorrelationChart(items = state.preSleepCorrelations)
+        } else {
+            Text(
+                text = "Local chart appears after tagged nights overlap Sonar or smart-wake summaries.",
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun PreSleepCorrelationChart(items: List<PreSleepCorrelationItem>) {
+    val maxDelta = items.mapNotNull { it.deltaMinutes?.let(::abs) }.maxOrNull()?.coerceAtLeast(1) ?: 1
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ChartLegend("More restless", SnoozeYellow)
+            ChartLegend("Calmer", DismissGreen)
+        }
+        items.forEach { item ->
+            val delta = item.deltaMinutes
+            val color = when {
+                delta == null -> TextMuted
+                delta > 0 -> SnoozeYellow
+                delta < 0 -> DismissGreen
+                else -> TextMuted
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = item.label,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = item.averageRestlessMinutes?.let { "${it}m avg" } ?: "No sleep data",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .background(SurfaceCard.copy(alpha = 0.54f), RoundedCornerShape(8.dp)),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    val ratio = delta?.let { (abs(it).toFloat() / maxDelta).coerceIn(0.08f, 1f) } ?: 0f
+                    if (ratio > 0f) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(ratio)
+                                .height(8.dp)
+                                .background(color, RoundedCornerShape(8.dp))
+                        )
+                    }
+                }
+                Text(
+                    text = "${item.deltaLabel} - ${item.nightsLabel}",
+                    color = color.copy(alpha = if (delta == null) 0.78f else 1f),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChartLegend(label: String, color: Color) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(9.dp)
+                .background(color, RoundedCornerShape(6.dp))
+        )
+        Text(
+            text = label,
+            color = TextSecondary,
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
 
 @Composable
 private fun ChronotypeSection(

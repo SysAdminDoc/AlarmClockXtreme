@@ -8,6 +8,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
+import com.sysadmindoc.alarmclock.data.local.entity.PreSleepTagEntry
 import com.sysadmindoc.alarmclock.data.local.entity.SnoreEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 
@@ -17,9 +18,10 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
         AlarmEvent::class,
         ActigraphySession::class,
         AlarmIncidentEvent::class,
-        SnoreEvent::class
+        SnoreEvent::class,
+        PreSleepTagEntry::class
     ],
-    version = 20,
+    version = 21,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -29,6 +31,7 @@ abstract class AlarmDatabase : RoomDatabase() {
     abstract fun actigraphySessionDao(): ActigraphySessionDao
     abstract fun alarmIncidentEventDao(): AlarmIncidentEventDao
     abstract fun snoreEventDao(): SnoreEventDao
+    abstract fun preSleepTagDao(): PreSleepTagDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -310,6 +313,23 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS pre_sleep_tag_entries (
+                        localDate TEXT NOT NULL,
+                        tagKey TEXT NOT NULL,
+                        loggedAt INTEGER NOT NULL,
+                        PRIMARY KEY(localDate, tagKey)
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pre_sleep_tag_entries_localDate ON pre_sleep_tag_entries(localDate)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_pre_sleep_tag_entries_tagKey ON pre_sleep_tag_entries(tagKey)")
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -330,6 +350,7 @@ abstract class AlarmDatabase : RoomDatabase() {
             MIGRATION_17_18,
             MIGRATION_18_19,
             MIGRATION_19_20,
+            MIGRATION_20_21,
         )
     }
 }

@@ -226,10 +226,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Sonar sleep sessions now flag loud sleep-sound bursts in a local timeline.",
-            "The timeline stores start time, duration, and estimated peak/average dB only.",
-            "No raw audio is retained; events appear after the foreground Sonar session stops.",
-            "Room database schema is now v20 with a dedicated snore-events table."
+            "Bedtime now has pre-sleep factor tiles for caffeine, exercise, alcohol, and stress.",
+            "The local chart compares tagged nights against Sonar and smart-wake restlessness.",
+            "Late-night tags before 6 AM stay attached to the prior night.",
+            "Room database schema is now v21 with a dedicated pre-sleep tag table."
         )
     }
 }

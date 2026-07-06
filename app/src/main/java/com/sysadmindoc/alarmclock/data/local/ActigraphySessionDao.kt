@@ -17,6 +17,9 @@ interface ActigraphySessionDao {
     @Query("SELECT * FROM actigraphy_sessions ORDER BY endedAt DESC LIMIT :limit")
     suspend fun getRecent(limit: Int = 10): List<ActigraphySession>
 
+    @Query("SELECT * FROM actigraphy_sessions WHERE startedAt >= :sinceMs ORDER BY startedAt DESC")
+    suspend fun getSince(sinceMs: Long): List<ActigraphySession>
+
     @Query("DELETE FROM actigraphy_sessions WHERE endedAt < :beforeMs")
     suspend fun deleteOlderThan(beforeMs: Long)
 }

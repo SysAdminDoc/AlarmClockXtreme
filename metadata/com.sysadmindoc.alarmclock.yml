@@ -20,6 +20,8 @@ Description: |-
   bridge, Health Connect SDK path, and ML Kit handwriting recognizer.
   Chronotype estimates store only five local preference answers and derive
   bedtime/wake timing on device.
+  Pre-sleep factor tags store caffeine/exercise/alcohol/stress flags locally
+  for 30 days and compare them with local restlessness summaries on device.
   Sonar sleep tracking stores compact movement and loud sleep-sound metadata
   locally for 30 days and never saves raw audio.
   Bedtime room-noise baselines store only a quiet/moderate/loud label plus
@@ -32,9 +34,9 @@ RepoType: git
 Repo: https://github.com/SysAdminDoc/AlarmClockXtreme.git
 
 Builds:
-  - versionName: 1.15.25
-    versionCode: 127
-    commit: v1.15.25
+  - versionName: 1.15.26
+    versionCode: 128
+    commit: v1.15.26
     subdir: app
     gradle:
       - fdroid
@@ -51,5 +53,5 @@ AntiFeatures:
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: 1.15.25
-CurrentVersionCode: 127
+CurrentVersion: 1.15.26
+CurrentVersionCode: 128

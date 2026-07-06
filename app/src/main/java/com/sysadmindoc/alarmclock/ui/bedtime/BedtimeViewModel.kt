@@ -14,8 +14,12 @@ import com.sysadmindoc.alarmclock.data.local.entity.SnoreEvent
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.domain.ChronotypeEstimator
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.data.repository.PreSleepTagRepository
 import com.sysadmindoc.alarmclock.data.repository.SnoreEventRepository
 import com.sysadmindoc.alarmclock.domain.EnvironmentalNoiseBaselinePolicy
+import com.sysadmindoc.alarmclock.domain.PreSleepTagAnalytics
+import com.sysadmindoc.alarmclock.domain.PreSleepTagCorrelation
+import com.sysadmindoc.alarmclock.domain.PreSleepTags
 import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
 import com.sysadmindoc.alarmclock.receiver.BedtimeReceiver
 import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
@@ -29,6 +33,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -84,7 +89,33 @@ data class BedtimeUiState(
     val sonarTrackingActive: Boolean = false,
     val sonarTrackingStatus: String = "Ready to monitor local movement during sleep.",
     val sonarLastSessionLabel: String = "",
-    val snoreTimeline: List<SnoreTimelineItem> = emptyList()
+    val snoreTimeline: List<SnoreTimelineItem> = emptyList(),
+    val preSleepTagDateLabel: String = "Tonight",
+    val preSleepTags: List<PreSleepTagTile> = PreSleepTags.all.map {
+        PreSleepTagTile(
+            key = it.key,
+            label = it.label,
+            helper = it.helper,
+            selected = false
+        )
+    },
+    val preSleepCorrelations: List<PreSleepCorrelationItem> = emptyList()
+)
+
+data class PreSleepTagTile(
+    val key: String,
+    val label: String,
+    val helper: String,
+    val selected: Boolean
+)
+
+data class PreSleepCorrelationItem(
+    val key: String,
+    val label: String,
+    val nightsLabel: String,
+    val deltaLabel: String,
+    val deltaMinutes: Int?,
+    val averageRestlessMinutes: Int?
 )
 
 data class SnoreTimelineItem(
@@ -109,6 +140,7 @@ class BedtimeViewModel @Inject constructor(
     private val repository: AlarmRepository,
     private val preferencesManager: PreferencesManager,
     private val healthConnectSleepRepository: HealthConnectSleepRepository,
+    private val preSleepTagRepository: PreSleepTagRepository,
     private val snoreEventRepository: SnoreEventRepository
 ) : ViewModel() {
 
@@ -120,6 +152,7 @@ class BedtimeViewModel @Inject constructor(
 
     init {
         loadPersistedState()
+        observePreSleepTags()
         observeSnoreTimeline()
     }
 
@@ -512,6 +545,44 @@ class BedtimeViewModel @Inject constructor(
         }
     }
 
+    private fun observePreSleepTags() {
+        val tagDate = currentPreSleepTagDate()
+        viewModelScope.launch {
+            preSleepTagRepository.observeForDate(tagDate).collect { rows ->
+                val selected = rows.map { it.tagKey }.toSet()
+                _uiState.update {
+                    it.copy(
+                        preSleepTagDateLabel = preSleepDateLabel(tagDate),
+                        preSleepTags = PreSleepTags.all.map { tag ->
+                            PreSleepTagTile(
+                                key = tag.key,
+                                label = tag.label,
+                                helper = tag.helper,
+                                selected = tag.key in selected
+                            )
+                        }
+                    )
+                }
+                refreshPreSleepCorrelations(tagDate)
+            }
+        }
+        viewModelScope.launch {
+            refreshPreSleepCorrelations(tagDate)
+        }
+    }
+
+    fun togglePreSleepTag(tagKey: String) {
+        val selected = _uiState.value.preSleepTags.firstOrNull { it.key == tagKey }?.selected ?: false
+        val tagDate = currentPreSleepTagDate()
+        viewModelScope.launch {
+            preSleepTagRepository.setTag(
+                localDate = tagDate,
+                tagKey = tagKey,
+                selected = !selected
+            )
+        }
+    }
+
     // v1.4.0: Toggle an individual pre-sleep checklist entry.
     fun toggleChecklistItem(index: Int) {
         val current = _uiState.value.bedtimeChecklistDone
@@ -646,6 +717,49 @@ class BedtimeViewModel @Inject constructor(
         val minutes = seconds / 60L
         val remainder = seconds % 60L
         return if (remainder == 0L) "${minutes}m" else "${minutes}m ${remainder}s"
+    }
+
+    private suspend fun refreshPreSleepCorrelations(today: LocalDate) {
+        val items = runCatching {
+            preSleepTagRepository.readCorrelations(today).map(::preSleepCorrelationItem)
+        }.getOrDefault(emptyList())
+        _uiState.update { it.copy(preSleepCorrelations = items) }
+    }
+
+    private fun preSleepCorrelationItem(correlation: PreSleepTagCorrelation): PreSleepCorrelationItem {
+        val nightsLabel = when {
+            correlation.loggedNights == 0 -> "No tagged nights yet"
+            correlation.nightsWithSessions == 0 -> "${correlation.loggedNights} tagged; waiting for sleep sessions"
+            else -> "${correlation.nightsWithSessions}/${correlation.loggedNights} tagged nights with local sleep data"
+        }
+        val delta = correlation.deltaRestlessMinutes
+        val deltaLabel = when {
+            delta == null -> "Start Sonar or smart wake to compare restlessness"
+            delta > 0 -> "+${delta}m restless vs baseline"
+            delta < 0 -> "${delta}m restless vs baseline"
+            else -> "Matches baseline restlessness"
+        }
+        return PreSleepCorrelationItem(
+            key = correlation.key,
+            label = correlation.label,
+            nightsLabel = nightsLabel,
+            deltaLabel = deltaLabel,
+            deltaMinutes = delta,
+            averageRestlessMinutes = correlation.averageRestlessMinutes
+        )
+    }
+
+    private fun currentPreSleepTagDate(): LocalDate {
+        return PreSleepTagAnalytics.tagDateFor(System.currentTimeMillis(), ZoneId.systemDefault())
+    }
+
+    private fun preSleepDateLabel(tagDate: LocalDate): String {
+        val today = LocalDate.now(ZoneId.systemDefault())
+        return when (tagDate) {
+            today -> "Tonight"
+            today.minusDays(1) -> "Last night"
+            else -> tagDate.format(DateTimeFormatter.ofPattern("MMM d"))
+        }
     }
 
     private fun noiseBaselineLabel(snapshot: BedtimeNoiseBaselineSnapshot): String {
