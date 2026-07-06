@@ -51,7 +51,6 @@ items. New entries from this pass are tagged **NEW**.
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-S3 | On-device ML snore/sound-detection (cough / sleep-talk / baby) via TFLite micro. **NEW.** | [Edge Impulse snoring on smartphone](https://github.com/edgeimpulse/expert-projects/blob/main/audio-projects/snoring-detection-on-smartphone.md); [Sleep as Android sound detection blog](https://sleep.urbandroid.org/new-sleep-sound-detection/) | L |
 | L-S4 | Pre-sleep tag tiles (caffeine / exercise / alcohol / stress) + correlation chart. | Sleep as Android | M |
 | L-S5 | Lullaby soundscapes with motion-auto-off — **downloadable add-on**, not bundled, to respect F-Droid 40 MB budget. | [Sleep as Android lullaby pack](https://sleep.urbandroid.org/documentation/release-notes/); [Calm](https://www.calm.com/) | M |
 | L-S7 | Apnea event flagging (mic onset detection — explicit "screening, not diagnosis" disclaimer; `play` flavor only). | [Apneal app smartphone OSA paper 2025](https://link.springer.com/article/10.1007/s11325-025-03441-w); [Springer 2025 IMU OSA](https://link.springer.com/article/10.1007/s11325-025-03255-w); [Samsung × Stanford 2025](https://www.samsungmobilepress.com/articles/samsung-announces-collaboration-with-stanford-medicine-to-advance-sleep-apnea-detection-and-beyond) | L |
