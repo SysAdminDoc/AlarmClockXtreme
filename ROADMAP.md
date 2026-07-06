@@ -56,10 +56,6 @@ items. New entries from this pass are tagged **NEW**.
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-W1 | Wearable-only vibration alarm (silent phone). | [Sleep as Android wear](https://docs.sleep.urbandroid.org/sleep/wearable_devices.html) | M |
-| L-W2 | Bed-exit auto-dismiss via watch motion >60 s. | [Withings](https://www.withings.com/), [Garmin Connect](https://connect.garmin.com/) | M |
-| L-W3 | HRV-aware smart wake (watch HRV dip > phone accel for light-sleep detection). | [Sleep as Android wear-data](https://docs.sleep.urbandroid.org/sleep/wearable_devices.html) | L |
-| L-W4 | Standalone Wear OS app (alarm fires without phone). | [Pixel Watch 3 alarms](https://support.google.com/wearos/answer/6300982?hl=en); [1Smart WakeUp](https://play.google.com/store/apps/details?id=com.onesmart.wakeup) | L |
 
 ### Workplace / shift worker
 
