@@ -1,11 +1,16 @@
 package com.sysadmindoc.alarmclock.receiver
 
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import com.sysadmindoc.alarmclock.AlarmClockApp
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
+import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.service.AlarmFireDismissContract
 import com.sysadmindoc.alarmclock.service.AlarmService
 import dagger.hilt.android.EntryPointAccessors
@@ -106,6 +111,23 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                             reasonCode = "MISSED_REPLAY_START_FAILED_${e.javaClass.simpleName}",
                             source = incidentSource
                         )
+                        // Background-restricted OEMs refuse the FGS start
+                        // (ForegroundServiceStartNotAllowedException). Rather than
+                        // let the replay vanish silently, post a high-importance
+                        // full-screen-intent notification so the alarm still
+                        // surfaces over the lock screen / as a heads-up.
+                        val fallbackPosted = postFullScreenReplayFallback(context, alarm, at, fireId)
+                        ep.alarmIncidentRepository().record(
+                            alarmId = alarm.id,
+                            fireId = fireId,
+                            scheduledAt = at,
+                            type = AlarmIncidentEvent.TYPE_BROADCAST,
+                            status = if (fallbackPosted) AlarmIncidentEvent.STATUS_SUCCEEDED
+                                     else AlarmIncidentEvent.STATUS_FAILED,
+                            reasonCode = if (fallbackPosted) "MISSED_REPLAY_FSI_FALLBACK"
+                                         else "MISSED_REPLAY_FSI_FALLBACK_FAILED",
+                            source = incidentSource
+                        )
                     }
                 }
             } catch (e: TimeoutCancellationException) {
@@ -116,6 +138,47 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                 pending.finish()
             }
         }
+    }
+
+    /**
+     * Full-screen-intent fallback when the replay foreground service can't be
+     * started (background-restricted OEM). Launches the firing screen directly
+     * where the platform allows a full-screen intent, otherwise heads-up on the
+     * alarm channel. Returns false only if the platform blocks the post itself.
+     */
+    private fun postFullScreenReplayFallback(
+        context: Context,
+        alarm: Alarm,
+        scheduledAt: Long,
+        fireId: String
+    ): Boolean = try {
+        val firingIntent = AlarmFireDismissContract.firingActivityIntent(
+            context, alarm.id, scheduledAt, fireId
+        )
+        val fullScreenPi = PendingIntent.getActivity(
+            context,
+            alarm.id.toInt() + 30000,
+            firingIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(context, AlarmService.CHANNEL_ALARM)
+            .setSmallIcon(R.drawable.ic_alarm)
+            .setContentTitle(context.getString(R.string.notif_alarm_title))
+            .setContentText(alarm.label.ifBlank { context.getString(R.string.notif_alarm_title) })
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setFullScreenIntent(fullScreenPi, true)
+            .setContentIntent(fullScreenPi)
+            .setAutoCancel(true)
+            .setOngoing(false)
+            .build()
+        NotificationManagerCompat.from(context)
+            .notify(AlarmService.NOTIFICATION_ID, notification)
+        true
+    } catch (e: Exception) {
+        Log.e("MissedAlarmUnlockReceiver", "Full-screen replay fallback failed for ${alarm.id}", e)
+        false
     }
 
     @dagger.hilt.EntryPoint

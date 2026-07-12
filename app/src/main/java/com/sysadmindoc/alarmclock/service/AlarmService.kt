@@ -450,36 +450,44 @@ class AlarmService : Service() {
                 kotlinx.coroutines.delay(autoSilenceMinutes * 60 * 1000L)
                 val missedAlarm = repository.getById(alarmId)
                 if (missedAlarm != null) {
-                    recordEvent(missedAlarm, com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent.ACTION_MISSED)
-                    recordIncident(
-                        type = AlarmIncidentEvent.TYPE_AUTO_SILENCE,
-                        status = AlarmIncidentEvent.STATUS_SUCCEEDED,
-                        reasonCode = "AUTO_SILENCED_AFTER_${autoSilenceMinutes}_MINUTES",
-                        source = "AlarmService"
-                    )
-                    webhookService.fireAsync(
-                        event = WebhookEvent.AlarmMissed,
-                        alarmId = missedAlarm.id,
-                        label = missedAlarm.label,
-                        timeFormatted = formatAlarmTime(missedAlarm),
-                        scheduledForMillis = currentScheduledAt.takeIf { it > 0L },
-                        fireId = currentFireId
-                    )
-                    AlarmBroadcastContract.send(
-                        this@AlarmService, AlarmBroadcastContract.ACTION_ALARM_MISSED,
-                        alarmId = missedAlarm.id, label = missedAlarm.label,
-                        displayTime = formatAlarmTime(missedAlarm), fireId = currentFireId
-                    )
-                    showMissedNotification(missedAlarm, autoSilenceMinutes)
-                    // v1.4.0/v1.15.20: Repeat missed alarms — record the alarm
-                    // id / timestamp so MissedAlarmUnlockReceiver can re-fire
-                    // when the user unlocks or unplugs soon after.
-                    if (settings.repeatMissedAlarms) {
-                        getSharedPreferences("missed_alarm_state", MODE_PRIVATE)
-                            .edit()
-                            .putLong("last_missed_at", System.currentTimeMillis())
-                            .putLong("last_missed_id", missedAlarm.id)
-                            .commit()
+                    // Once the auto-silence delay elapses the outcome IS "missed".
+                    // A dismiss arriving at this exact instant can cancel
+                    // serviceScope (onDestroy -> serviceScope.cancel()) and drop
+                    // these writes half-finished. NonCancellable guarantees the
+                    // missed event, incident, webhook, broadcast, notification,
+                    // and repeat-missed state all land atomically before teardown.
+                    withContext(NonCancellable) {
+                        recordEvent(missedAlarm, com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent.ACTION_MISSED)
+                        recordIncident(
+                            type = AlarmIncidentEvent.TYPE_AUTO_SILENCE,
+                            status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                            reasonCode = "AUTO_SILENCED_AFTER_${autoSilenceMinutes}_MINUTES",
+                            source = "AlarmService"
+                        )
+                        webhookService.fireAsync(
+                            event = WebhookEvent.AlarmMissed,
+                            alarmId = missedAlarm.id,
+                            label = missedAlarm.label,
+                            timeFormatted = formatAlarmTime(missedAlarm),
+                            scheduledForMillis = currentScheduledAt.takeIf { it > 0L },
+                            fireId = currentFireId
+                        )
+                        AlarmBroadcastContract.send(
+                            this@AlarmService, AlarmBroadcastContract.ACTION_ALARM_MISSED,
+                            alarmId = missedAlarm.id, label = missedAlarm.label,
+                            displayTime = formatAlarmTime(missedAlarm), fireId = currentFireId
+                        )
+                        showMissedNotification(missedAlarm, autoSilenceMinutes)
+                        // v1.4.0/v1.15.20: Repeat missed alarms — record the alarm
+                        // id / timestamp so MissedAlarmUnlockReceiver can re-fire
+                        // when the user unlocks or unplugs soon after.
+                        if (settings.repeatMissedAlarms) {
+                            getSharedPreferences("missed_alarm_state", MODE_PRIVATE)
+                                .edit()
+                                .putLong("last_missed_at", System.currentTimeMillis())
+                                .putLong("last_missed_id", missedAlarm.id)
+                                .commit()
+                        }
                     }
                 }
                 clearAlarmRuntimeState(alarmId)

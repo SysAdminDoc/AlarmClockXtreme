@@ -6,6 +6,14 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- The auto-silence "missed alarm" outcome (missed event, incident record,
+  webhook, broadcast, notification, and repeat-missed state) is now written
+  atomically under `NonCancellable`, so a dismiss arriving at the exact
+  auto-silence instant can no longer cancel the service mid-write and drop a
+  half-recorded miss.
+- When a missed-alarm replay can't start its foreground service on
+  background-restricted OEMs, the app now posts a high-importance
+  full-screen-intent notification as a fallback instead of failing silently.
 - Alarms set to a wall-clock time inside the spring-forward DST gap (e.g. 02:30
   on a US spring-forward morning) now fire at the moment the skipped hour ends
   instead of silently drifting a full hour past the requested time. Fall-back
