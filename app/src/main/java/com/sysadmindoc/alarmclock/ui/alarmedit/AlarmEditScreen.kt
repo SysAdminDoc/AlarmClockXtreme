@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
+import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -333,6 +334,32 @@ fun AlarmEditScreen(
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
+
+                // Live "rings in …" affordance so the user doesn't have to do the
+                // mental math when picking a time. Sourced from the same forecast
+                // the "Upcoming fire dates" section computes.
+                val nextFireMillis = state.forecastDates.firstOrNull { !it.skippedByVacation }?.timeMillis
+                if (nextFireMillis != null) {
+                    val ringCalculator = remember { NextAlarmCalculator() }
+                    var nowTick by remember { mutableStateOf(System.currentTimeMillis()) }
+                    LaunchedEffect(nextFireMillis) {
+                        while (true) {
+                            nowTick = System.currentTimeMillis()
+                            kotlinx.coroutines.delay(30_000)
+                        }
+                    }
+                    val remaining = remember(nextFireMillis, nowTick) {
+                        ringCalculator.formatRemaining(nextFireMillis)
+                    }
+                    Text(
+                        text = "Rings in $remaining",
+                        color = AccentBlue,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(top = 4.dp)
+                    )
+                }
 
                 DaySelector(
                     selectedDays = state.repeatDays,

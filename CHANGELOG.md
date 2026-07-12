@@ -6,6 +6,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- The alarm editor now shows a live "Rings in …" countdown under the time so you
+  can see how far away the alarm is without doing the mental math.
 - Wake-critical webhook events (`alarm_fired`, `alarm_missed`) are now retried
   with exponential backoff via WorkManager when the fire-time delivery fails, so
   a transient network blip no longer silently breaks a Tasker/automation flow
