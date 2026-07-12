@@ -17,6 +17,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- The "Use phone speakers" setting now actually forces alarm audio to the
+  built-in speaker when accessories are connected — previously the toggle was
+  wired to the UI but never applied to playback, so an alarm could still ring
+  silently through connected wired/Bluetooth headphones. System-managed
+  hearing-aid / BLE routing is deliberately left untouched.
 - The auto-silence "missed alarm" outcome (missed event, incident record,
   webhook, broadcast, notification, and repeat-missed state) is now written
   atomically under `NonCancellable`, so a dismiss arriving at the exact

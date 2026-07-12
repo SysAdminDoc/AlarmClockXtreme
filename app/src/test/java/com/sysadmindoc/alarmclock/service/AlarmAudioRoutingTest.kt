@@ -61,4 +61,48 @@ class AlarmAudioRoutingTest {
         assertFalse(AlarmAudioRouting.isSystemManagedHearingAidLikeType(AudioDeviceInfo.TYPE_BUILTIN_SPEAKER))
         assertFalse(AlarmAudioRouting.isSystemManagedHearingAidLikeType(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP))
     }
+
+    @Test
+    fun forcesSpeakerOnlyWhenOptedInAndNoHearingAid() {
+        val withHeadset = listOf(
+            AudioDeviceInfo.TYPE_BUILTIN_SPEAKER,
+            AudioDeviceInfo.TYPE_WIRED_HEADPHONES
+        )
+        // Opted in with only a normal headset -> force the built-in speaker.
+        assertTrue(AlarmAudioRouting.shouldForceBuiltInSpeaker(usePhoneSpeakers = true, outputDeviceTypes = withHeadset))
+        // Bluetooth A2DP is still a normal (non-accessibility) sink -> force.
+        assertTrue(
+            AlarmAudioRouting.shouldForceBuiltInSpeaker(
+                usePhoneSpeakers = true,
+                outputDeviceTypes = listOf(AudioDeviceInfo.TYPE_BLUETOOTH_A2DP)
+            )
+        )
+    }
+
+    @Test
+    fun doesNotForceSpeakerWhenOptedOut() {
+        assertFalse(
+            AlarmAudioRouting.shouldForceBuiltInSpeaker(
+                usePhoneSpeakers = false,
+                outputDeviceTypes = listOf(AudioDeviceInfo.TYPE_WIRED_HEADPHONES)
+            )
+        )
+    }
+
+    @Test
+    fun doesNotOverrideSystemManagedHearingDevices() {
+        // Even opted-in, never fight the system's hearing-aid / BLE routing.
+        assertFalse(
+            AlarmAudioRouting.shouldForceBuiltInSpeaker(
+                usePhoneSpeakers = true,
+                outputDeviceTypes = listOf(AudioDeviceInfo.TYPE_BUILTIN_SPEAKER, AudioDeviceInfo.TYPE_HEARING_AID)
+            )
+        )
+        assertFalse(
+            AlarmAudioRouting.shouldForceBuiltInSpeaker(
+                usePhoneSpeakers = true,
+                outputDeviceTypes = listOf(AudioDeviceInfo.TYPE_BLE_HEADSET)
+            )
+        )
+    }
 }

@@ -1053,8 +1053,26 @@ class AlarmService : Service() {
                     prepare()
                     playWhenReady = true
                 }
+            forcedSpeakerDevice()?.let { runCatching { player.setPreferredAudioDevice(it) } }
             Media3AlarmPlaybackPlayer(player)
         }
+    }
+
+    /**
+     * The built-in speaker to force alarm output to when the user enabled
+     * "use phone speakers", or null to keep default routing. Never overrides
+     * system-managed hearing-aid / BLE devices.
+     */
+    private fun forcedSpeakerDevice(): android.media.AudioDeviceInfo? {
+        if (!preferencesManager.getCachedSettings().usePhoneSpeakers) return null
+        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return null
+        val outputTypes = audioManager
+            .getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+            .map { it.type }
+        if (!AlarmAudioRouting.shouldForceBuiltInSpeaker(usePhoneSpeakers = true, outputDeviceTypes = outputTypes)) {
+            return null
+        }
+        return AlarmAudioRouting.builtInSpeaker(audioManager)
     }
 
     private fun releasePlaybackIfCurrent(playback: AlarmPlaybackPlayer) {
@@ -1080,6 +1098,7 @@ class AlarmService : Service() {
                 val player = MediaPlayer()
                 val playback = MediaPlayerAlarmPlaybackPlayer(player)
                 alarmPlayback = playback
+                forcedSpeakerDevice()?.let { runCatching { player.setPreferredDevice(it) } }
                 player.apply {
                     setAudioAttributes(AlarmAudioRouting.alarmMusicAttributes())
                     setDataSource(radioUrl)
@@ -1167,6 +1186,7 @@ class AlarmService : Service() {
             val player = MediaPlayer()
             val playback = MediaPlayerAlarmPlaybackPlayer(player)
             alarmPlayback = playback
+            forcedSpeakerDevice()?.let { runCatching { player.setPreferredDevice(it) } }
             player.apply {
                 setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
                 setDataSource(applicationContext, uri)
@@ -1240,6 +1260,7 @@ class AlarmService : Service() {
                     val player = MediaPlayer()
                     val playback = MediaPlayerAlarmPlaybackPlayer(player)
                     alarmPlayback = playback
+                    forcedSpeakerDevice()?.let { runCatching { player.setPreferredDevice(it) } }
                     player.apply {
                         setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
                         setDataSource(applicationContext, fallbackUri)
