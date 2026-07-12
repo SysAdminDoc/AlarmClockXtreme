@@ -4,6 +4,35 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Squat and push-up dismiss challenges are no longer undismissable on devices
+  without an accelerometer: the firing screen now surfaces a "Continue without
+  sensor" fallback (matching the walk/Wi-Fi challenges) when no motion sensor is
+  present. Previously the only escape was force-stopping the app, since the
+  challenge-bypass timer is off by default.
+
+### Accessibility
+
+- Challenge progress rings (squats, push-ups, steps, plank seconds, and other
+  count-based challenges) now announce each increment to TalkBack via a polite
+  live region, so non-visual users get feedback that a rep registered.
+
+## [1.15.28] - 2026-07-06
+
+### Added
+
+- Added a local Bedtime jet-lag planner that shifts wake and bedtime targets
+  gradually over the selected number of days.
+- Added bright-light and dim-light timing rows for each adjustment day, with
+  auto, earlier, and later direction controls.
+- Added backup v17 round-trip support for jet-lag planner settings.
+
+### Changed
+
+- Bumped app, Wear, README, release verifier, backup format, and F-Droid
+  metadata to `versionName = "1.15.28"`, `versionCode = 130`.
+
 ## [1.15.27] - 2026-07-06
 
 ### Added

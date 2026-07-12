@@ -705,14 +705,20 @@ fun AlarmFiringScreen(
                         challenge is Challenge.SquatChallenge -> {
                             SquatChallengeView(
                                 challenge = challenge,
-                                currentSquats = state.squatCount
+                                currentSquats = state.squatCount,
+                                exerciseStatus = state.exerciseStatus,
+                                fallbackAllowed = state.exerciseFallbackAllowed,
+                                onContinueWithoutSensor = viewModel::continueExerciseChallengeWithoutSensor
                             )
                         }
 
                         challenge is Challenge.PushUpChallenge -> {
                             PushUpChallengeView(
                                 challenge = challenge,
-                                currentPushUps = state.pushUpCount
+                                currentPushUps = state.pushUpCount,
+                                exerciseStatus = state.exerciseStatus,
+                                fallbackAllowed = state.exerciseFallbackAllowed,
+                                onContinueWithoutSensor = viewModel::continueExerciseChallengeWithoutSensor
                             )
                         }
 

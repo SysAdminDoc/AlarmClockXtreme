@@ -39,6 +39,9 @@ class PushUpDetector(
     private val cooldownMs = 1000L
     private var lastPushUpTime = 0L
 
+    /** True when an accelerometer exists to count push-ups. */
+    fun isAvailable() = accelerometer != null
+
     fun start() {
         val sm = sensorManager ?: return
         accelerometer?.let {

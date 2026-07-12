@@ -76,9 +76,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -1216,7 +1219,10 @@ fun PhotoMatchChallengeView(
 @Composable
 fun SquatChallengeView(
     challenge: Challenge.SquatChallenge,
-    currentSquats: Int
+    currentSquats: Int,
+    exerciseStatus: String = "",
+    fallbackAllowed: Boolean = false,
+    onContinueWithoutSensor: () -> Unit = {}
 ) {
     val progress = (currentSquats.toFloat() / challenge.requiredSquats).coerceIn(0f, 1f)
     val remaining = (challenge.requiredSquats - currentSquats).coerceAtLeast(0)
@@ -1237,13 +1243,18 @@ fun SquatChallengeView(
             statusLabel = "$currentSquats / ${challenge.requiredSquats} squats",
             summary = if (currentSquats == 0) "Start with one clean squat." else "$remaining squats remaining."
         )
+
+        ExerciseSensorFallback(exerciseStatus, fallbackAllowed, "Continue without squat count", onContinueWithoutSensor)
     }
 }
 
 @Composable
 fun PushUpChallengeView(
     challenge: Challenge.PushUpChallenge,
-    currentPushUps: Int
+    currentPushUps: Int,
+    exerciseStatus: String = "",
+    fallbackAllowed: Boolean = false,
+    onContinueWithoutSensor: () -> Unit = {}
 ) {
     val progress = (currentPushUps.toFloat() / challenge.requiredPushUps).coerceIn(0f, 1f)
     val remaining = (challenge.requiredPushUps - currentPushUps).coerceAtLeast(0)
@@ -1264,6 +1275,36 @@ fun PushUpChallengeView(
             statusLabel = "$currentPushUps / ${challenge.requiredPushUps} push-ups",
             summary = if (currentPushUps == 0) "Start your first push-up." else "$remaining push-ups remaining."
         )
+
+        ExerciseSensorFallback(exerciseStatus, fallbackAllowed, "Continue without push-up count", onContinueWithoutSensor)
+    }
+}
+
+/** Shared "no motion sensor" notice + escape hatch for squat/push-up challenges. */
+@Composable
+private fun ExerciseSensorFallback(
+    status: String,
+    fallbackAllowed: Boolean,
+    buttonLabel: String,
+    onContinueWithoutSensor: () -> Unit
+) {
+    if (status.isNotBlank()) {
+        ChallengeNotice(
+            text = status,
+            accent = SnoozeYellow,
+            icon = Icons.Default.WarningAmber
+        )
+    }
+    if (fallbackAllowed) {
+        OutlinedButton(
+            onClick = onContinueWithoutSensor,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            shape = RoundedCornerShape(10.dp)
+        ) {
+            Text(buttonLabel)
+        }
     }
 }
 
@@ -1578,7 +1619,13 @@ private fun ChallengeProgressHero(
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+        // Announce progress to TalkBack so non-visual users hear each increment
+        // (rep counts, held seconds, steps) without watching the ring.
+        modifier = Modifier.semantics {
+            liveRegion = LiveRegionMode.Polite
+            stateDescription = statusLabel
+        }
     ) {
         Box(contentAlignment = Alignment.Center) {
             CircularProgressIndicator(

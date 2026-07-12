@@ -92,6 +92,9 @@ data class FiringUiState(
     // v1.15.0: Plank hold challenge
     val plankHoldSeconds: Int = 0,
     val plankHoldActive: Boolean = false,
+    // Sensor-backed exercise (squat/push-up) fallback when no accelerometer is present.
+    val exerciseStatus: String = "",
+    val exerciseFallbackAllowed: Boolean = false,
     val challengeBypassAvailable: Boolean = false,
     val challengeBypassRemainingSeconds: Int = -1,
     val locationDismissReady: Boolean = false,
@@ -320,6 +323,8 @@ class AlarmFiringViewModel @Inject constructor(
             pushUpCount = 0,
             plankHoldSeconds = 0,
             plankHoldActive = false,
+            exerciseStatus = "",
+            exerciseFallbackAllowed = false,
             currentSteps = 0,
             walkStatus = "",
             walkFallbackAllowed = false,
@@ -694,6 +699,28 @@ class AlarmFiringViewModel @Inject constructor(
         if (count >= challenge.requiredPushUps) {
             proceedToNextChallenge()
         }
+    }
+
+    /**
+     * Sensor-backed exercise challenges (squat/push-up) have no accelerometer on
+     * some devices. Without a fallback the alarm would be undismissable, so
+     * surface a "Continue without sensor" affordance exactly like the walk/wifi
+     * challenges do.
+     */
+    fun onExerciseChallengeUnavailable(message: String) {
+        val challenge = _uiState.value.challenge
+        if (challenge !is Challenge.SquatChallenge && challenge !is Challenge.PushUpChallenge) return
+        _uiState.value = _uiState.value.copy(
+            exerciseStatus = message,
+            exerciseFallbackAllowed = true
+        )
+    }
+
+    fun continueExerciseChallengeWithoutSensor() {
+        val challenge = _uiState.value.challenge
+        if (challenge !is Challenge.SquatChallenge && challenge !is Challenge.PushUpChallenge) return
+        if (!_uiState.value.exerciseFallbackAllowed) return
+        proceedToNextChallenge()
     }
 
     // v1.15.0: Plank hold challenge — accumulate seconds while the phone is held level

@@ -29,6 +29,9 @@ class SquatDetector(
     private val cooldownMs = 800L
     private var lastSquatTime = 0L
 
+    /** True when an accelerometer exists to count squats. */
+    fun isAvailable() = accelerometer != null
+
     fun start() {
         val sm = sensorManager ?: return
         accelerometer?.let {

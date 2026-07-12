@@ -401,9 +401,14 @@ class AlarmFiringActivity : ComponentActivity() {
 
     private fun startSquatDetection() {
         if (squatDetector != null) return
-        squatDetector = SquatDetector(this) { count ->
+        val detector = SquatDetector(this) { count ->
             viewModel.updateSquatCount(count)
-        }.also { it.start() }
+        }
+        if (!detector.isAvailable()) {
+            viewModel.onExerciseChallengeUnavailable("This device does not expose a motion sensor to count squats.")
+            return
+        }
+        squatDetector = detector.also { it.start() }
     }
 
     private fun stopSquatDetection() {
@@ -413,9 +418,14 @@ class AlarmFiringActivity : ComponentActivity() {
 
     private fun startPushUpDetection() {
         if (pushUpDetector != null) return
-        pushUpDetector = PushUpDetector(this) { count ->
+        val detector = PushUpDetector(this) { count ->
             viewModel.updatePushUpCount(count)
-        }.also { it.start() }
+        }
+        if (!detector.isAvailable()) {
+            viewModel.onExerciseChallengeUnavailable("This device does not expose a motion sensor to count push-ups.")
+            return
+        }
+        pushUpDetector = detector.also { it.start() }
     }
 
     private fun stopPushUpDetection() {

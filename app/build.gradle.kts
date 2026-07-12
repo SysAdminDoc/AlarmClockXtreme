@@ -1,7 +1,7 @@
 import java.util.Properties
 import java.io.FileInputStream
 
-// AlarmClockXtreme v1.15.27
+// AlarmClockXtreme v1.15.28
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -18,8 +18,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 129
-        versionName = "1.15.27"
+        versionCode = 130
+        versionName = "1.15.28"
         buildConfigField("boolean", "USE_MEDIA3_ALARM_PLAYER", "true")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -98,6 +98,14 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+
+    testOptions {
+        unitTests {
+            // Robolectric needs the merged manifest/resources to bootstrap.
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
     }
 
     // v1.7.1: yt-dlp needs `libpython.zip.so` extracted to the lib/ABI dir so
