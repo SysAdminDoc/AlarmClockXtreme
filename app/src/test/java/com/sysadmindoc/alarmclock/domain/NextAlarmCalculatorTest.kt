@@ -7,6 +7,8 @@ import org.junit.Test
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 
@@ -287,5 +289,38 @@ class NextAlarmCalculatorTest {
         val resultDate = Instant.ofEpochMilli(result).atZone(fromTime.zone).toLocalDate()
 
         assertEquals(LocalDate.of(2026, 7, 11), resultDate)
+    }
+
+    // --- DST policy ---------------------------------------------------------
+
+    @Test
+    fun `spring-forward gap alarm fires at gap end not an hour later`() {
+        // America/New_York springs forward 2026-03-08: 02:00 -> 03:00, so 02:30
+        // does not exist. ZonedDateTime.of would silently drift it to 03:30;
+        // policy is to fire at the gap end (03:00) so the alarm goes off as soon
+        // as a valid clock time exists.
+        val ny = ZoneId.of("America/New_York")
+        val fromTime = ZonedDateTime.of(LocalDate.of(2026, 3, 8), LocalTime.of(0, 0), ny)
+        val alarm = Alarm(hour = 2, minute = 30, repeatDays = emptySet())
+
+        val result = calculator.calculate(alarm, fromTime)
+        val resultLocal = Instant.ofEpochMilli(result).atZone(ny).toLocalDateTime()
+
+        assertEquals(LocalDateTime.of(2026, 3, 8, 3, 0), resultLocal)
+    }
+
+    @Test
+    fun `fall-back overlap alarm uses the earlier offset`() {
+        // America/New_York falls back 2026-11-01: 02:00 -> 01:00, so 01:30
+        // occurs twice. Policy keeps the first occurrence (EDT, -04:00).
+        val ny = ZoneId.of("America/New_York")
+        val fromTime = ZonedDateTime.of(LocalDate.of(2026, 11, 1), LocalTime.of(0, 0), ny)
+        val alarm = Alarm(hour = 1, minute = 30, repeatDays = emptySet())
+
+        val result = calculator.calculate(alarm, fromTime)
+        val resultZoned = Instant.ofEpochMilli(result).atZone(ny)
+
+        assertEquals(LocalTime.of(1, 30), resultZoned.toLocalTime())
+        assertEquals(java.time.ZoneOffset.ofHours(-4), resultZoned.offset)
     }
 }

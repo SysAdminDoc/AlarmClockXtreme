@@ -6,6 +6,7 @@ import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.util.SolarCalculator
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -55,7 +56,7 @@ class NextAlarmCalculator private constructor(
                 val specificDate = LocalDate.parse(alarm.specificDate)
                 val specificTime = solarTimeFor(alarm, specificDate, fromTime.zone)
                     ?: alarm.time
-                val specificDateTime = ZonedDateTime.of(specificDate, specificTime, fromTime.zone)
+                val specificDateTime = resolveZoned(specificDate, specificTime, fromTime.zone)
                 if (specificDateTime.isAfter(fromTime)) {
                     return specificDateTime.toInstant().toEpochMilli()
                 }
@@ -70,7 +71,7 @@ class NextAlarmCalculator private constructor(
         val shiftSchedule = alarm.shiftScheduleOrNull()
         val todayTime = solarTimeFor(alarm, today, fromTime.zone)
             ?: alarm.time
-        val todayAlarmDateTime = ZonedDateTime.of(today, todayTime, fromTime.zone)
+        val todayAlarmDateTime = resolveZoned(today, todayTime, fromTime.zone)
 
         if (alarm.repeatDays.isEmpty() && shiftSchedule == null) {
             // One-shot alarm: today if in future, otherwise tomorrow
@@ -80,7 +81,7 @@ class NextAlarmCalculator private constructor(
                 val tomorrow = today.plusDays(1)
                 val tomorrowTime = solarTimeFor(alarm, tomorrow, fromTime.zone)
                     ?: alarm.time
-                ZonedDateTime.of(tomorrow, tomorrowTime, fromTime.zone)
+                resolveZoned(tomorrow, tomorrowTime, fromTime.zone)
                     .toInstant().toEpochMilli()
             }
         }
@@ -96,7 +97,7 @@ class NextAlarmCalculator private constructor(
             if (matchesRepeatDays && matchesShiftPattern) {
                 val candidateTime = solarTimeFor(alarm, candidateDate, fromTime.zone)
                     ?: alarm.time
-                val candidate = ZonedDateTime.of(candidateDate, candidateTime, fromTime.zone)
+                val candidate = resolveZoned(candidateDate, candidateTime, fromTime.zone)
                 if (daysAhead == 0L && !candidate.isAfter(fromTime)) {
                     continue  // Today's time already passed
                 }
@@ -105,6 +106,29 @@ class NextAlarmCalculator private constructor(
         }
 
         return 0L
+    }
+
+    /**
+     * Resolve a wall-clock (date, time) to a concrete instant with an explicit
+     * DST policy instead of letting [ZonedDateTime.of] decide silently.
+     *
+     * - Spring-forward gap (the requested wall time doesn't exist, e.g. 02:30
+     *   on a US spring-forward day): fire at the instant the skipped hour ends,
+     *   so the alarm goes off as soon as a valid clock time exists rather than
+     *   drifting a full gap-length (~1h) past the requested time, which is what
+     *   `ZonedDateTime.of` does by default.
+     * - Fall-back overlap (the wall time happens twice): keep the earlier
+     *   offset — the first occurrence — which is also `ZonedDateTime.of`'s
+     *   default. Made explicit here so the choice is deliberate and testable.
+     */
+    private fun resolveZoned(date: LocalDate, time: LocalTime, zone: ZoneId): ZonedDateTime {
+        val local = LocalDateTime.of(date, time)
+        val transition = zone.rules.getTransition(local)
+        return if (transition != null && transition.isGap) {
+            transition.instant.atZone(zone)
+        } else {
+            ZonedDateTime.of(date, time, zone)
+        }
     }
 
     private fun Alarm.shiftScheduleOrNull(): ShiftSchedule? {

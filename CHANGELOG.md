@@ -6,6 +6,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Alarms set to a wall-clock time inside the spring-forward DST gap (e.g. 02:30
+  on a US spring-forward morning) now fire at the moment the skipped hour ends
+  instead of silently drifting a full hour past the requested time. Fall-back
+  (overlap) times keep the first occurrence. Policy is now explicit and tested.
 - Squat and push-up dismiss challenges are no longer undismissable on devices
   without an accelerometer: the firing screen now surfaces a "Continue without
   sensor" fallback (matching the walk/Wi-Fi challenges) when no motion sensor is
