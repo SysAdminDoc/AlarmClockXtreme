@@ -32,6 +32,7 @@ class BackupManagerSettingsDriftTest {
         "bedtimeStayUpLateUntilMillis",
         "webhookLastDeliveryStatus",
         "webhookLastDeliveryAtMillis",
+        "webhookDeliveryLog",
     )
 
     @Test

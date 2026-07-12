@@ -2046,7 +2046,43 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
                 Text(if (state.isWebhookTesting) "Testing" else "Test")
             }
         }
+
+        val deliveryLog = state.settings.webhookDeliveryLog
+        if (deliveryLog.isNotBlank()) {
+            Spacer(modifier = Modifier.size(10.dp))
+            Text(
+                text = "Recent deliveries",
+                style = MaterialTheme.typography.labelMedium,
+                color = TextMuted
+            )
+            Spacer(modifier = Modifier.size(4.dp))
+            deliveryLog.lineSequence().filter { it.isNotBlank() }.take(8).forEach { line ->
+                Text(
+                    text = formatWebhookLogLine(line),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (line.contains("OK")) DismissGreen else AccentRed,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
     }
+}
+
+/**
+ * Render a stored "<ISO instant> <status>" delivery-log line as a friendly
+ * local time. Falls back to the raw line if the leading token isn't an instant.
+ */
+private fun formatWebhookLogLine(line: String): String {
+    val spaceIdx = line.indexOf(' ')
+    if (spaceIdx <= 0) return line
+    val instantPart = line.substring(0, spaceIdx)
+    val rest = line.substring(spaceIdx + 1)
+    return runCatching {
+        val local = Instant.parse(instantPart)
+            .atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.US))
+        "$local — $rest"
+    }.getOrDefault(line)
 }
 
 @Composable

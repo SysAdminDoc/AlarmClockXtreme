@@ -4,6 +4,17 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Wake-critical webhook events (`alarm_fired`, `alarm_missed`) are now retried
+  with exponential backoff via WorkManager when the fire-time delivery fails, so
+  a transient network blip no longer silently breaks a Tasker/automation flow
+  that depends on them. The retry carries the same event identity so receivers
+  can dedupe. Non-critical events remain fire-and-forget.
+- Webhook settings now show a rolling "Recent deliveries" log (last several
+  attempts with local timestamps and status) instead of only the single last
+  status line.
+
 ### Fixed
 
 - The auto-silence "missed alarm" outcome (missed event, incident record,

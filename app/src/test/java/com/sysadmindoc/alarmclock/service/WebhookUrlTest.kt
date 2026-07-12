@@ -180,4 +180,38 @@ class WebhookUrlTest {
         assertEquals("alarm_skipped", WebhookEvent.AlarmSkipped.wireName)
         assertEquals("test", WebhookEvent.Test.wireName)
     }
+
+    @Test
+    fun `only fired and missed are wake-critical`() {
+        assertTrue(WebhookEvent.AlarmFired.isWakeCritical)
+        assertTrue(WebhookEvent.AlarmMissed.isWakeCritical)
+        assertFalse(WebhookEvent.AlarmSnoozed.isWakeCritical)
+        assertFalse(WebhookEvent.AlarmDismissed.isWakeCritical)
+        assertFalse(WebhookEvent.AlarmSkipped.isWakeCritical)
+        assertFalse(WebhookEvent.Test.isWakeCritical)
+    }
+
+    @Test
+    fun `fromWireName round-trips and rejects unknown`() {
+        assertEquals(WebhookEvent.AlarmFired, WebhookEvent.fromWireName("alarm_fired"))
+        assertEquals(WebhookEvent.AlarmMissed, WebhookEvent.fromWireName("alarm_missed"))
+        assertEquals(null, WebhookEvent.fromWireName("nope"))
+        assertEquals(null, WebhookEvent.fromWireName(null))
+    }
+
+    @Test
+    fun `delivery log prepends newest first and caps length`() {
+        var log = ""
+        log = WebhookService.prependDeliveryLogLine(log, "line1", maxLines = 3)
+        log = WebhookService.prependDeliveryLogLine(log, "line2", maxLines = 3)
+        log = WebhookService.prependDeliveryLogLine(log, "line3", maxLines = 3)
+        log = WebhookService.prependDeliveryLogLine(log, "line4", maxLines = 3)
+        assertEquals(listOf("line4", "line3", "line2"), log.lines())
+    }
+
+    @Test
+    fun `delivery log ignores blank prior lines`() {
+        val log = WebhookService.prependDeliveryLogLine("\n\nold\n", "new", maxLines = 5)
+        assertEquals(listOf("new", "old"), log.lines())
+    }
 }

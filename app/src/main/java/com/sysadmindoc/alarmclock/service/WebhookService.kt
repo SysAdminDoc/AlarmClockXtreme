@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.service
 import android.content.Context
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
+import com.sysadmindoc.alarmclock.worker.WebhookRetryWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,8 +32,24 @@ enum class WebhookEvent(val wireName: String) {
     AlarmDismissed("alarm_dismissed"),
     AlarmMissed("alarm_missed"),
     AlarmSkipped("alarm_skipped"),
-    Test("test")
+    Test("test");
+
+    /**
+     * Wake-critical events gate a user's wake automation (e.g. a Tasker flow
+     * that itself is a backup alarm). A dropped delivery here is a reliability
+     * failure, so these are retried via WorkManager; the rest stay
+     * fire-and-forget.
+     */
+    val isWakeCritical: Boolean get() = this == AlarmFired || this == AlarmMissed
+
+    companion object {
+        fun fromWireName(name: String?): WebhookEvent? =
+            entries.firstOrNull { it.wireName == name }
+    }
 }
+
+/** Outcome of a single webhook delivery attempt. */
+enum class WebhookDeliveryOutcome { Delivered, Failed, Skipped }
 
 /**
  * F8: Outbound webhook / Tasker integration.
@@ -80,52 +97,107 @@ class WebhookService @Inject constructor(
         fireId: String? = null
     ) {
         webhookScope.launch {
-            try {
-                val settings = preferencesManager.getCurrentSettings()
-                if (!settings.webhookEnabled || settings.webhookUrl.isBlank()) return@launch
-                if (!isAllowedUrl(settings.webhookUrl)) return@launch
-                if (LocalNetworkPermission.requiresPermissionForUrl(settings.webhookUrl) &&
-                    !LocalNetworkPermission.isGranted(context)
-                ) {
-                    return@launch
-                }
-
-                val body = buildPayloadJson(
+            // Capture a stable event identity up front so retries carry the same
+            // eventId/occurredAt and a receiver can dedupe them.
+            val includeLabel = preferencesManager.getCurrentSettings().webhookIncludeLabel
+            val eventId = UUID.randomUUID().toString()
+            val occurredAt = System.currentTimeMillis()
+            val outcome = deliverOnce(
+                event = event,
+                alarmId = alarmId,
+                label = label,
+                displayTime = timeFormatted,
+                includeLabel = includeLabel,
+                scheduledForMillis = scheduledForMillis,
+                fireId = fireId,
+                eventId = eventId,
+                occurredAtMillis = occurredAt
+            )
+            // A wake-critical event whose first attempt failed (network blip at
+            // fire time) is handed to a bounded WorkManager retry so it still
+            // lands. Skipped = the integration is disabled/misconfigured; don't
+            // retry those.
+            if (outcome == WebhookDeliveryOutcome.Failed && event.isWakeCritical) {
+                WebhookRetryWorker.enqueue(
+                    context = context,
                     event = event,
                     alarmId = alarmId,
                     label = label,
                     displayTime = timeFormatted,
-                    includeLabel = settings.webhookIncludeLabel,
+                    includeLabel = includeLabel,
                     scheduledForMillis = scheduledForMillis,
-                    fireId = fireId
+                    fireId = fireId,
+                    eventId = eventId,
+                    occurredAtMillis = occurredAt
                 )
-                val requestBuilder = Request.Builder()
-                    .url(settings.webhookUrl)
-                    .post(body.toRequestBody(JSON))
-                    .header("Content-Type", "application/json")
-                applySignatureHeaders(
-                    builder = requestBuilder,
-                    signingSecret = settings.webhookSigningSecret,
-                    body = body
-                )
+            }
+        }
+    }
 
-                client.newCall(requestBuilder.build()).execute().use { response ->
-                    recordDeliveryStatus(
-                        event = event,
-                        successful = response.isSuccessful,
-                        code = response.code,
-                        failure = null
-                    )
-                }
-            } catch (e: Exception) {
+    /**
+     * Perform a single webhook delivery attempt with a fixed event identity.
+     * Reads the current URL/secret/enabled state so a user who fixes a wrong
+     * URL between retries can still succeed. Records the outcome to the rolling
+     * delivery log. Never throws.
+     */
+    suspend fun deliverOnce(
+        event: WebhookEvent,
+        alarmId: Long,
+        label: String,
+        displayTime: String,
+        includeLabel: Boolean,
+        scheduledForMillis: Long?,
+        fireId: String?,
+        eventId: String,
+        occurredAtMillis: Long
+    ): WebhookDeliveryOutcome {
+        val settings = preferencesManager.getCurrentSettings()
+        if (!settings.webhookEnabled || settings.webhookUrl.isBlank()) return WebhookDeliveryOutcome.Skipped
+        if (!isAllowedUrl(settings.webhookUrl)) return WebhookDeliveryOutcome.Skipped
+        if (LocalNetworkPermission.requiresPermissionForUrl(settings.webhookUrl) &&
+            !LocalNetworkPermission.isGranted(context)
+        ) {
+            return WebhookDeliveryOutcome.Skipped
+        }
+        return try {
+            val body = buildPayloadJson(
+                event = event,
+                alarmId = alarmId,
+                label = label,
+                displayTime = displayTime,
+                includeLabel = includeLabel,
+                scheduledForMillis = scheduledForMillis,
+                fireId = fireId,
+                occurredAtMillis = occurredAtMillis,
+                eventId = eventId
+            )
+            val requestBuilder = Request.Builder()
+                .url(settings.webhookUrl)
+                .post(body.toRequestBody(JSON))
+                .header("Content-Type", "application/json")
+            applySignatureHeaders(
+                builder = requestBuilder,
+                signingSecret = settings.webhookSigningSecret,
+                body = body
+            )
+            client.newCall(requestBuilder.build()).execute().use { response ->
                 recordDeliveryStatus(
                     event = event,
-                    successful = false,
-                    code = null,
-                    failure = e
+                    successful = response.isSuccessful,
+                    code = response.code,
+                    failure = null
                 )
-                // Never propagate — webhook failures must not affect alarm flow
+                if (response.isSuccessful) WebhookDeliveryOutcome.Delivered else WebhookDeliveryOutcome.Failed
             }
+        } catch (e: Exception) {
+            recordDeliveryStatus(
+                event = event,
+                successful = false,
+                code = null,
+                failure = e
+            )
+            // Never propagate — webhook failures must not affect alarm flow.
+            WebhookDeliveryOutcome.Failed
         }
     }
 
@@ -199,17 +271,20 @@ class WebhookService @Inject constructor(
         code: Int?,
         failure: Exception?
     ) {
+        val now = System.currentTimeMillis()
         val status = buildDeliveryStatus(
             event = event,
             successful = successful,
             code = code,
             failure = failure
         )
+        val logLine = "${Instant.ofEpochMilli(now)} $status"
         runCatching {
             preferencesManager.update {
                 it.copy(
                     webhookLastDeliveryStatus = status,
-                    webhookLastDeliveryAtMillis = System.currentTimeMillis()
+                    webhookLastDeliveryAtMillis = now,
+                    webhookDeliveryLog = prependDeliveryLogLine(it.webhookDeliveryLog, logLine)
                 )
             }
         }
@@ -233,6 +308,17 @@ class WebhookService @Inject constructor(
         const val PAYLOAD_SCHEMA_VERSION = 1
         const val SIGNATURE_VERSION = "v1"
         const val SIGNATURE_MAX_SKEW_SECONDS = 5 * 60L
+        const val DELIVERY_LOG_MAX_LINES = 20
+
+        /** Prepend [line] to the newline-delimited [existing] log, newest first, capped. */
+        internal fun prependDeliveryLogLine(
+            existing: String,
+            line: String,
+            maxLines: Int = DELIVERY_LOG_MAX_LINES
+        ): String {
+            val prior = existing.lineSequence().filter { it.isNotBlank() }
+            return (sequenceOf(line) + prior).take(maxLines).joinToString("\n")
+        }
 
         data class WebhookSignatureHeaders(
             val timestamp: String,

@@ -79,6 +79,8 @@ data class AppSettings(
     val webhookSigningSecret: String = "",
     val webhookLastDeliveryStatus: String = "",
     val webhookLastDeliveryAtMillis: Long = 0,
+    // Rolling newline-delimited delivery log (newest first), capped for the UI.
+    val webhookDeliveryLog: String = "",
     // F13: Public holiday auto-skip
     val holidayAutoSkipEnabled: Boolean = false,
     val holidayCountryCode: String = "",  // ISO 3166-1 alpha-2 (e.g. "US", "GB")
@@ -194,6 +196,8 @@ private fun AppSettings.sanitized(): AppSettings {
     val normalizedLocationName = locationName.trim().take(120)
     val normalizedGoogleRoutesApiKey = googleRoutesApiKey.trim().take(200)
     val normalizedWebhookStatus = webhookLastDeliveryStatus.trim().take(160)
+    // Cap the rolling log so a runaway retry loop can't grow DataStore unbounded.
+    val normalizedWebhookLog = webhookDeliveryLog.lineSequence().take(20).joinToString("\n").take(2_000)
 
     val normalizedPauseUntil = pauseUntilMillis.coerceAtLeast(0)
     return copy(
@@ -219,6 +223,7 @@ private fun AppSettings.sanitized(): AppSettings {
         webhookSigningSecret = webhookSigningSecret.trim().take(256),
         webhookLastDeliveryStatus = normalizedWebhookStatus,
         webhookLastDeliveryAtMillis = webhookLastDeliveryAtMillis.coerceAtLeast(0),
+        webhookDeliveryLog = normalizedWebhookLog,
         holidayCountryCode = normalizedHolidayCountryCode,
         hueBridgeIp = hueBridgeIp.trim(),
         hueApiKey = hueApiKey.trim(),
@@ -302,6 +307,7 @@ class PreferencesManager @Inject constructor(
         val WEBHOOK_SIGNING_SECRET = stringPreferencesKey("webhook_signing_secret")
         val WEBHOOK_LAST_DELIVERY_STATUS = stringPreferencesKey("webhook_last_delivery_status")
         val WEBHOOK_LAST_DELIVERY_AT = longPreferencesKey("webhook_last_delivery_at")
+        val WEBHOOK_DELIVERY_LOG = stringPreferencesKey("webhook_delivery_log")
         val HOLIDAY_AUTO_SKIP = booleanPreferencesKey("holiday_auto_skip")
         val HOLIDAY_COUNTRY_CODE = stringPreferencesKey("holiday_country_code")
         val HUE_BRIDGE_IP = stringPreferencesKey("hue_bridge_ip")
@@ -431,6 +437,7 @@ class PreferencesManager @Inject constructor(
         webhookSigningSecret = this[Keys.WEBHOOK_SIGNING_SECRET] ?: "",
         webhookLastDeliveryStatus = this[Keys.WEBHOOK_LAST_DELIVERY_STATUS] ?: "",
         webhookLastDeliveryAtMillis = this[Keys.WEBHOOK_LAST_DELIVERY_AT] ?: 0L,
+        webhookDeliveryLog = this[Keys.WEBHOOK_DELIVERY_LOG] ?: "",
         holidayAutoSkipEnabled = this[Keys.HOLIDAY_AUTO_SKIP] ?: false,
         holidayCountryCode = this[Keys.HOLIDAY_COUNTRY_CODE] ?: "",
         hueBridgeIp = this[Keys.HUE_BRIDGE_IP] ?: "",
@@ -515,6 +522,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.WEBHOOK_SIGNING_SECRET] = s.webhookSigningSecret
         this[Keys.WEBHOOK_LAST_DELIVERY_STATUS] = s.webhookLastDeliveryStatus
         this[Keys.WEBHOOK_LAST_DELIVERY_AT] = s.webhookLastDeliveryAtMillis
+        this[Keys.WEBHOOK_DELIVERY_LOG] = s.webhookDeliveryLog
         this[Keys.HOLIDAY_AUTO_SKIP] = s.holidayAutoSkipEnabled
         this[Keys.HOLIDAY_COUNTRY_CODE] = s.holidayCountryCode
         this[Keys.HUE_BRIDGE_IP] = s.hueBridgeIp
