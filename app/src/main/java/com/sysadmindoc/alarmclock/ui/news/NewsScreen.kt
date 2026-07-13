@@ -229,8 +229,8 @@ fun NewsScreen(
                                 NewsCard(
                                     item = item,
                                     onClick = {
-                                        if (item.link.isNotBlank()) {
-                                            uriHandler.openUri(item.link)
+                                        if (item.hasOpenableLink) {
+                                            runCatching { uriHandler.openUri(item.link) }
                                         }
                                     },
                                 )
@@ -251,7 +251,7 @@ private fun NewsCard(
     val cleanedDescription = remember(item.description) {
         if (item.description.isBlank()) "" else stripHtml(item.description).trim()
     }
-    val linkModifier = if (item.link.isNotBlank()) {
+    val linkModifier = if (item.hasOpenableLink) {
         Modifier.clickable(role = Role.Button, onClick = onClick)
     } else {
         Modifier

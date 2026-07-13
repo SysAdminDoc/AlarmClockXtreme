@@ -21,4 +21,22 @@ data class NewsItem(
     val description: String,
     val source: String,
     val publishedAtMillis: Long?,
-)
+) {
+    /** Only open feed links that are plain web URLs — see [isSafeNewsLink]. */
+    val hasOpenableLink: Boolean get() = isSafeNewsLink(link)
+}
+
+/**
+ * The news feed URL is user-configurable and its item links come verbatim from
+ * untrusted RSS/Atom. Restrict what we hand to `ACTION_VIEW` to `http`/`https`
+ * so a hostile or compromised feed can't launch `intent:`, `javascript:`,
+ * `file:`, or an arbitrary exported deep link when the user taps an article.
+ */
+fun isSafeNewsLink(url: String): Boolean {
+    val trimmed = url.trim()
+    // Guard against "  javascript:…" and mixed-case schemes.
+    val lower = trimmed.lowercase()
+    return (lower.startsWith("http://") || lower.startsWith("https://")) &&
+        // Reject embedded control/whitespace that could smuggle a second scheme.
+        trimmed.none { it.isWhitespace() || it.isISOControl() }
+}

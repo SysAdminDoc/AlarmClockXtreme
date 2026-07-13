@@ -4,6 +4,28 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+### Security
+
+- News feed article links are now opened only when they are plain `http`/`https`
+  URLs. Because the feed source is user-configurable and item links come from
+  untrusted RSS/Atom, a hostile or compromised feed could previously hand an
+  `intent:`, `javascript:`, `file:`, or arbitrary deep-link URI to the system on
+  tap; those are now rejected (and non-web links render as non-tappable).
+
+### Fixed
+
+- Weather-based early-wake and the alarm firing screen no longer show the wrong
+  city's weather: cached forecasts are now only reused when they were fetched
+  for the current location, so a recent cache from a previous location can't skew
+  alarm timing after you move or change your saved location.
+- Holiday auto-skip no longer misses holidays in a future year: the in-memory
+  cache fast path now verifies the queried year is actually covered before
+  answering, instead of reporting "not a holiday" for a year that was never
+  fetched (the scheduler probes up to a year ahead).
+- Countdown timers are no longer dropped or resurrected under concurrent writes:
+  timer persistence now serializes its read-modify-write across the countdown
+  coroutine and the expiry receiver.
+
 ### Added
 
 - The alarm editor now shows a live "Rings in …" countdown under the time so you
