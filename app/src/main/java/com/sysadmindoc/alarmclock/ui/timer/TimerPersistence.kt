@@ -95,43 +95,54 @@ class TimerStore(context: Context) {
         prefs.edit().putString(KEY_TIMERS, array.toString()).apply()
     }
 
-    fun upsert(record: PersistedTimerRecord) {
+    // Read-modify-write mutators are serialized on a process-wide lock: the
+    // countdown coroutine (UI) and TimerExpiryReceiver (broadcast thread)
+    // construct separate TimerStore instances over the same SharedPreferences,
+    // so without this an interleaved load/replace would drop or resurrect a
+    // timer (e.g. a tick write clobbering a concurrent "finished" write).
+    fun upsert(record: PersistedTimerRecord) = synchronized(WRITE_LOCK) {
         val records = loadRecords()
             .filterNot { it.id == record.id } + record
         replace(records)
     }
 
-    fun remove(id: Int) {
+    fun remove(id: Int) = synchronized(WRITE_LOCK) {
         replace(loadRecords().filterNot { it.id == id })
     }
 
-    fun markFinished(id: Int): PersistedTimerRecord? {
+    fun markFinished(id: Int): PersistedTimerRecord? = synchronized(WRITE_LOCK) {
         val records = loadRecords()
-        val timer = records.firstOrNull { it.id == id } ?: return null
+        val timer = records.firstOrNull { it.id == id } ?: return@synchronized null
         val finished = timer.copy(
             remainingMillis = 0L,
             state = TimerState.FINISHED,
             endElapsedRealtime = 0L
         )
         replace(records.map { if (it.id == id) finished else it })
-        return finished
+        finished
     }
 
-    fun nextId(): Int = (loadRecords().maxOfOrNull { it.id } ?: 0) + 1
+    fun nextId(): Int = synchronized(WRITE_LOCK) {
+        (loadRecords().maxOfOrNull { it.id } ?: 0) + 1
+    }
 
-    fun removeRunningTimersForReboot(): List<PersistedTimerRecord> {
+    fun removeRunningTimersForReboot(): List<PersistedTimerRecord> = synchronized(WRITE_LOCK) {
         val records = loadRecords()
         val running = records.filter { it.state == TimerState.RUNNING }
         if (running.isNotEmpty()) {
             replace(records.filterNot { it.state == TimerState.RUNNING })
         }
-        return running
+        running
     }
 
     companion object {
         private const val TAG = "TimerStore"
         private const val PREFS_NAME = "timer_state"
         private const val KEY_TIMERS = "timers_json"
+
+        // Process-wide: guards the read-modify-write of the shared prefs across
+        // all TimerStore instances.
+        private val WRITE_LOCK = Any()
     }
 }
 
