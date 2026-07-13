@@ -91,6 +91,9 @@ class AlarmService : Service() {
         const val NOTIFICATION_ID = 1001
         const val MISSED_NOTIFICATION_ID = 1003
         const val DEFAULT_AUTO_SILENCE_MINUTES = 10L
+        // Grace period for a Media3 player to actually start before we assume it
+        // stalled and fall back to the default tone.
+        private const val PLAYBACK_START_TIMEOUT_MS = 8_000L
         private const val TAG = "AlarmService"
 
         data class ActiveAlarmSnapshot(
@@ -168,6 +171,9 @@ class AlarmService : Service() {
     private var vibrator: Vibrator? = null
     private var volumeJob: Job? = null
     private var hapticOnlyJob: Job? = null
+    // Fires the guaranteed default tone if the Media3 player never actually
+    // starts (stuck buffering with no onPlayerError) so the alarm can't ring silently.
+    private var playbackWatchdogJob: Job? = null
     private var currentAlarmId: Long = -1
     private var currentFireId: String = ""
     private var currentScheduledAt: Long = 0L
@@ -924,12 +930,14 @@ class AlarmService : Service() {
                 else -> 1f
             }
             var playbackRef: AlarmPlaybackPlayer? = null
+            val playbackStarted = AtomicBoolean(false)
             val playback = createMedia3Playback(
                 mediaItem = MediaItem.fromUri(uri),
                 audioAttributes = AlarmAudioRouting.media3AlarmSonificationAttributes(),
                 repeatMode = if (alarm.dismissAtRingtoneEnd) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ONE,
                 initialVolume = initialVolume,
                 onReady = {
+                    playbackStarted.set(true)
                     if (alarm.overrideSystemVolume) {
                         setConfiguredAlarmStreamVolume(alarm)
                     }
@@ -971,6 +979,25 @@ class AlarmService : Service() {
                 reasonCode = "MEDIA3_PLAYER_PREPARING",
                 source = "AlarmService"
             )
+
+            // Stall watchdog: if the player never reaches READY within the
+            // timeout (e.g. a stuck stream or a decoder that hangs without
+            // emitting onPlayerError), fall back to the guaranteed default tone
+            // rather than letting the alarm ring silently.
+            playbackWatchdogJob?.cancel()
+            playbackWatchdogJob = serviceScope.launch {
+                delay(PLAYBACK_START_TIMEOUT_MS)
+                if (!playbackStarted.get() && currentAlarmId == alarm.id) {
+                    recordIncidentAsync(
+                        type = AlarmIncidentEvent.TYPE_AUDIO,
+                        status = AlarmIncidentEvent.STATUS_FAILED,
+                        reasonCode = "MEDIA3_PLAYER_STALL_TIMEOUT",
+                        source = "AlarmService"
+                    )
+                    playbackRef?.let { releasePlaybackIfCurrent(it) }
+                    startMedia3DefaultFallback(alarm)
+                }
+            }
 
             if (fadeInMs > 0) {
                 volumeJob = serviceScope.launch {
@@ -1793,6 +1820,8 @@ class AlarmService : Service() {
     private fun stopAlarmPlayback() {
         volumeJob?.cancel()
         volumeJob = null
+        playbackWatchdogJob?.cancel()
+        playbackWatchdogJob = null
         hapticOnlyJob?.cancel()
         hapticOnlyJob = null
         releaseAlarmMediaSession()

@@ -140,6 +140,19 @@ class SonarSleepService : Service() {
 
     override fun onDestroy() {
         stopSonarHardware()
+        // If the OS killed us mid-session (task swipe, low memory, Doze eviction)
+        // rather than an explicit ACTION_STOP, persist what we captured so the
+        // night's sleep stages and snore timeline aren't silently discarded.
+        // recordSession is idempotent (guards on sessionRecorded), so this is a
+        // no-op when ACTION_STOP already recorded. Bounded so service teardown
+        // can't hang; Room writes here are small and local.
+        if (sessionStartedAt > 0L && !sessionRecorded) {
+            runCatching {
+                runBlocking {
+                    withTimeoutOrNull(2_000L) { recordSession("SONAR_SERVICE_DESTROYED") }
+                }
+            }
+        }
         markInactive()
         scope.cancel()
         super.onDestroy()

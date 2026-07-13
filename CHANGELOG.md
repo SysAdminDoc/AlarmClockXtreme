@@ -14,6 +14,13 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- An alarm can no longer ring silently if its ringtone player stalls: if the
+  Media3 player never starts within a short grace period (e.g. a hung decoder or
+  stuck stream that emits no error), the alarm now falls back to the guaranteed
+  default tone instead of staying silent.
+- A sleep-tracking (Sonar) session interrupted by an OS kill now persists what it
+  captured — sleep-stage summary and snore timeline — instead of silently
+  discarding the whole night; previously only an explicit stop saved the session.
 - Weather-based early-wake and the alarm firing screen no longer show the wrong
   city's weather: cached forecasts are now only reused when they were fetched
   for the current location, so a recent cache from a previous location can't skew
