@@ -254,6 +254,12 @@
             android:name=".ui.timer.TimerExpiryReceiver"
             android:exported="false" />
 
+        <!-- Rings a finished timer audibly when the app process was killed. -->
+        <service
+            android:name=".ui.timer.TimerAlarmService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <!-- Alarm Foreground Service -->
         <service
             android:name=".service.AlarmService"

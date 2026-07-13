@@ -17,6 +17,14 @@ class TimerExpiryReceiver : BroadcastReceiver() {
             Log.w("TimerExpiryReceiver", "Timer $timerId expired but no persisted record exists")
             return
         }
-        TimerNotifications.postFinished(appContext, finished.id, finished.label)
+        if (TimerAlertState.uiWillHandleSound()) {
+            // A live ViewModel is present (foreground or backgrounded app) and
+            // plays the finish sound + posts the notification itself.
+            TimerNotifications.postFinished(appContext, finished.id, finished.label)
+        } else {
+            // Process was killed: nothing else will alert, so start the foreground
+            // service to actually ring instead of posting a silent notification.
+            TimerAlarmService.fire(appContext, finished.id, finished.label)
+        }
     }
 }

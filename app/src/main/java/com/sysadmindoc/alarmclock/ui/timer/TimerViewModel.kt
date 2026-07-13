@@ -105,6 +105,10 @@ class TimerViewModel @Inject constructor(
     private var vibrator: Vibrator? = null
 
     init {
+        // Mark that a live ViewModel is present so the AlarmManager expiry
+        // receiver lets us play the finish sound instead of starting the
+        // killed-process fallback service (which would double up the audio).
+        TimerAlertState.setUiAlive(true)
         restorePersistedTimers()
     }
 
@@ -201,6 +205,7 @@ class TimerViewModel @Inject constructor(
         runningEndTimes.remove(id)
         TimerAlarmScheduler.cancel(appContext, id)
         stopAudioForTimer(id)
+        TimerAlarmService.dismiss(appContext, id)
         cancelTimerFinishedNotification(id)
         timerStore.remove(id)
         _uiState.value = _uiState.value.copy(
@@ -211,6 +216,7 @@ class TimerViewModel @Inject constructor(
     fun dismissFinished(timerId: Int? = null) {
         val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.FINISHED }?.id ?: return
         stopAudioForTimer(id)
+        TimerAlarmService.dismiss(appContext, id)
         cancelTimerFinishedNotification(id)
         timerStore.remove(id)
         _uiState.value = _uiState.value.copy(
@@ -361,6 +367,9 @@ class TimerViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        // No live ViewModel remains to play finish sounds; hand alerting back to
+        // the AlarmManager-triggered foreground service.
+        TimerAlertState.setUiAlive(false)
         countdownJobs.values.forEach { it.cancel() }
         stopAudio()
         // v1.12.1 (roadmap N8): the notifications themselves intentionally

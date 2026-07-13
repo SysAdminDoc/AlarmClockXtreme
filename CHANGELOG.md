@@ -4,6 +4,14 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+### Fixed
+
+- Countdown timers now ring audibly even when the app has been killed. Previously
+  a timer that expired after the process was gone only posted a silent
+  notification; a new foreground service plays the alarm tone and vibrates (with
+  a Stop action and full-screen alert) when no live screen is present to sound it,
+  while the in-app case is unchanged so the alert never doubles up.
+
 ### Security
 
 - News feed article links are now opened only when they are plain `http`/`https`
