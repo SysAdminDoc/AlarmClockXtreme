@@ -41,7 +41,9 @@ class WeatherRepository @Inject constructor(
 
     data class CachedWeather(
         val response: WeatherResponse,
-        val fetchedAtMillis: Long
+        val fetchedAtMillis: Long,
+        val latitude: Double? = null,
+        val longitude: Double? = null
     )
 
     data class WeatherSnapshot(
@@ -51,14 +53,33 @@ class WeatherRepository @Inject constructor(
         val refreshError: Throwable? = null
     )
 
-    fun getCachedWeather(): WeatherResponse? {
+    /**
+     * Returns a fresh cached forecast, or null. When [latitude]/[longitude] are
+     * supplied the cache is only used if it was fetched for that location (within
+     * [LOCATION_CACHE_DELTA]); this prevents a recent cache from a previous
+     * location from skewing weather-based alarm timing or the firing screen after
+     * the user moves or changes their saved location. Callers that genuinely want
+     * "any recent weather" can omit the coordinates.
+     */
+    fun getCachedWeather(latitude: Double? = null, longitude: Double? = null): WeatherResponse? {
         val cached = lastWeather
-        if (cached != null && System.currentTimeMillis() - cached.fetchedAtMillis <= FRESH_CACHE_MS) {
+        if (cached != null &&
+            System.currentTimeMillis() - cached.fetchedAtMillis <= FRESH_CACHE_MS &&
+            cached.matchesLocation(latitude, longitude)
+        ) {
             return cached.response
         }
-        val disk = readCache(maxAgeMs = FRESH_CACHE_MS) ?: return null
+        val disk = readCache(latitude = latitude, longitude = longitude, maxAgeMs = FRESH_CACHE_MS)
+            ?: return null
         lastWeather = disk
         return disk.response
+    }
+
+    private fun CachedWeather.matchesLocation(latitude: Double?, longitude: Double?): Boolean {
+        if (latitude == null || longitude == null) return true
+        val lat = this.latitude ?: return false
+        val lng = this.longitude ?: return false
+        return abs(lat - latitude) <= LOCATION_CACHE_DELTA && abs(lng - longitude) <= LOCATION_CACHE_DELTA
     }
 
     suspend fun getWeather(
@@ -70,7 +91,7 @@ class WeatherRepository @Inject constructor(
         try {
             val response = api.getForecast(latitude, longitude, tempUnit = tempUnit, windUnit = windUnit)
             val fetchedAt = System.currentTimeMillis()
-            val cached = CachedWeather(response, fetchedAt)
+            val cached = CachedWeather(response, fetchedAt, latitude, longitude)
             lastWeather = cached
             writeCache(
                 WeatherCacheEnvelope(
@@ -146,7 +167,7 @@ class WeatherRepository @Inject constructor(
             }
             if (tempUnit != null && envelope.tempUnit != tempUnit) return null
             if (windUnit != null && envelope.windUnit != windUnit) return null
-            CachedWeather(envelope.response, envelope.fetchedAtMillis)
+            CachedWeather(envelope.response, envelope.fetchedAtMillis, envelope.latitude, envelope.longitude)
         }.getOrNull()
     }
 

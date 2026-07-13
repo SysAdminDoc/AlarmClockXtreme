@@ -148,16 +148,19 @@ class AlarmScheduler @Inject constructor(
         }
 
         if (sanitizedAlarm.weatherEarlyMinutes > 0 && triggerTime > 0) {
-            var weather = weatherRepository.getCachedWeather()
-            if (weather == null) {
-                val settings = preferencesManager.getCurrentSettings()
-                val lat = settings.lastKnownLatitude
-                val lng = settings.lastKnownLongitude
-                if (lat != 0.0 || lng != 0.0) {
-                    weather = weatherRepository.getWeather(lat, lng, settings.temperatureUnit)
-                        .getOrNull()
-                        ?.response
-                }
+            val weatherSettings = preferencesManager.getCurrentSettings()
+            val lat = weatherSettings.lastKnownLatitude
+            val lng = weatherSettings.lastKnownLongitude
+            val haveLocation = lat != 0.0 || lng != 0.0
+            // Only trust cached weather that was fetched for the current location.
+            var weather = weatherRepository.getCachedWeather(
+                latitude = lat.takeIf { haveLocation },
+                longitude = lng.takeIf { haveLocation }
+            )
+            if (weather == null && haveLocation) {
+                weather = weatherRepository.getWeather(lat, lng, weatherSettings.temperatureUnit)
+                    .getOrNull()
+                    ?.response
             }
             if (weather != null) {
                 val triggerDate = java.time.Instant.ofEpochMilli(triggerTime)

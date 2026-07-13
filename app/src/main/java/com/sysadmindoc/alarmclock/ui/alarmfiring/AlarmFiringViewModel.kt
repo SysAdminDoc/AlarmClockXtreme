@@ -229,7 +229,12 @@ class AlarmFiringViewModel @Inject constructor(
 
             val quote = MOTIVATIONAL_QUOTES.random()
 
-            val cached = weatherRepository.getCachedWeather()
+            val weatherSettings = preferencesManager.getCachedSettings()
+            val haveLocation = weatherSettings.lastKnownLatitude != 0.0 || weatherSettings.lastKnownLongitude != 0.0
+            val cached = weatherRepository.getCachedWeather(
+                latitude = weatherSettings.lastKnownLatitude.takeIf { haveLocation },
+                longitude = weatherSettings.lastKnownLongitude.takeIf { haveLocation }
+            )
             val weatherTemp = cached?.current?.temperature?.let { temp ->
                 val unit = cached.currentUnits?.temperature ?: ""
                 "${temp.toInt()}$unit"

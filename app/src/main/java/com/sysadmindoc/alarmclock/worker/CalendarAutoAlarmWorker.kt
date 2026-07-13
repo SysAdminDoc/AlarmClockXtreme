@@ -17,6 +17,7 @@ import androidx.work.workDataOf
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.data.remote.WeatherResponse
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.CommuteRouteRepository
 import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
@@ -210,9 +211,13 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
         )
     }
 
-    private suspend fun loadWeather(settings: AppSettings) =
-        weatherRepository.getCachedWeather()
-            ?: if (settings.lastKnownLatitude != 0.0 || settings.lastKnownLongitude != 0.0) {
+    private suspend fun loadWeather(settings: AppSettings): WeatherResponse? {
+        val haveLocation = settings.lastKnownLatitude != 0.0 || settings.lastKnownLongitude != 0.0
+        return weatherRepository.getCachedWeather(
+            latitude = settings.lastKnownLatitude.takeIf { haveLocation },
+            longitude = settings.lastKnownLongitude.takeIf { haveLocation }
+        )
+            ?: if (haveLocation) {
                 weatherRepository.getWeather(
                     settings.lastKnownLatitude,
                     settings.lastKnownLongitude,
@@ -221,6 +226,7 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
             } else {
                 null
             }
+    }
 
     private data class CalEvent(val startMs: Long, val title: String, val location: String)
 

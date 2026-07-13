@@ -36,6 +36,11 @@ class HolidayRepository @Inject constructor(
     @Volatile private var memoryCacheCountry: String? = null
     @Volatile private var memoryCacheLoadedAt: Long = 0L
     @Volatile private var memoryCacheDates: Set<String> = emptySet()
+    // Which calendar years the in-memory snapshot actually covers. Without this
+    // the fast path would answer "not a holiday" for a year that was never
+    // fetched (the scheduler probes up to a year ahead), silently firing alarms
+    // on holidays the user asked to skip.
+    @Volatile private var memoryCacheYears: Set<Int> = emptySet()
 
     private data class CacheMeta(
         val countryCode: String = "",
@@ -49,9 +54,13 @@ class HolidayRepository @Inject constructor(
         if (!settings.holidayAutoSkipEnabled || settings.holidayCountryCode.isBlank()) return false
 
         val country = settings.holidayCountryCode
-        // Fast path: in-memory cache for the right country and not stale.
+        // Fast path: in-memory cache for the right country, not stale, AND the
+        // queried year is actually covered by that snapshot.
         val now = System.currentTimeMillis()
-        if (memoryCacheCountry == country && (now - memoryCacheLoadedAt) <= cacheTtlMs) {
+        if (memoryCacheCountry == country &&
+            (now - memoryCacheLoadedAt) <= cacheTtlMs &&
+            date.year in memoryCacheYears
+        ) {
             return date.toString() in memoryCacheDates
         }
 
@@ -59,6 +68,7 @@ class HolidayRepository @Inject constructor(
             ensureCacheValidLocked(country, date.year)
             // Reload memory snapshot from disk while still holding the lock.
             memoryCacheDates = readCacheDatesLocked()
+            memoryCacheYears = readMetaLocked().coveredYears
             memoryCacheCountry = country
             memoryCacheLoadedAt = System.currentTimeMillis()
             date.toString() in memoryCacheDates
@@ -84,6 +94,7 @@ class HolidayRepository @Inject constructor(
                 )
             }
             memoryCacheDates = readCacheDatesLocked()
+            memoryCacheYears = readMetaLocked().coveredYears
             memoryCacheCountry = countryCode
             memoryCacheLoadedAt = System.currentTimeMillis()
         }
