@@ -84,6 +84,10 @@ class AlarmHealthWorker @AssistedInject constructor(
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            // Reliability reminder, not a firing alert — categorize it so Android 16
+            // Notification Cooldown treats it correctly and never groups it with the
+            // wake-critical alarm-category notifications (which stay CATEGORY_ALARM).
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
             .setContentIntent(
                 android.app.PendingIntent.getActivity(
