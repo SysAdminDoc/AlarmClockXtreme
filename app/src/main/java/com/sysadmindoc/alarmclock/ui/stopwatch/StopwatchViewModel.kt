@@ -1,11 +1,15 @@
 package com.sysadmindoc.alarmclock.ui.stopwatch
 
+import android.content.Context
 import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
+import org.json.JSONArray
+import org.json.JSONObject
 import javax.inject.Inject
 
 enum class StopwatchState { IDLE, RUNNING, PAUSED }
@@ -30,7 +34,11 @@ data class StopwatchUiState(
 }
 
 @HiltViewModel
-class StopwatchViewModel @Inject constructor() : ViewModel() {
+class StopwatchViewModel @Inject constructor(
+    @ApplicationContext private val context: Context
+) : ViewModel() {
+
+    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _uiState = MutableStateFlow(StopwatchUiState())
     val uiState: StateFlow<StopwatchUiState> = _uiState.asStateFlow()
@@ -40,6 +48,7 @@ class StopwatchViewModel @Inject constructor() : ViewModel() {
     private var accumulatedTime: Long = 0
 
     init {
+        restore()
         viewModelScope.launch {
             _uiState.subscriptionCount.collect { count ->
                 if (count > 0 && _uiState.value.state == StopwatchState.RUNNING && tickerJob?.isActive != true) {
@@ -58,6 +67,7 @@ class StopwatchViewModel @Inject constructor() : ViewModel() {
         startTime = SystemClock.elapsedRealtime()
         _uiState.value = _uiState.value.copy(state = StopwatchState.RUNNING)
         startTicker()
+        persist()
     }
 
     fun pause() {
@@ -67,18 +77,21 @@ class StopwatchViewModel @Inject constructor() : ViewModel() {
             state = StopwatchState.PAUSED,
             elapsedMillis = accumulatedTime
         )
+        persist()
     }
 
     fun resume() {
         startTime = SystemClock.elapsedRealtime()
         _uiState.value = _uiState.value.copy(state = StopwatchState.RUNNING)
         startTicker()
+        persist()
     }
 
     fun reset() {
         tickerJob?.cancel()
         accumulatedTime = 0
         _uiState.value = StopwatchUiState()
+        persist()
     }
 
     fun lap() {
@@ -99,6 +112,7 @@ class StopwatchViewModel @Inject constructor() : ViewModel() {
         val markedLaps = markBestWorst(allLaps)
 
         _uiState.value = current.copy(laps = markedLaps)
+        persist()
     }
 
     private fun markBestWorst(laps: List<Lap>): List<Lap> {
@@ -126,8 +140,99 @@ class StopwatchViewModel @Inject constructor() : ViewModel() {
         }
     }
 
+    /**
+     * Persist enough to reconstruct the stopwatch across process death. We store
+     * the monotonic [startTime] anchor (elapsedRealtime) rather than a computed
+     * elapsed, so a RUNNING stopwatch keeps advancing correctly while the app is
+     * gone. [bootToken] lets us detect a reboot (which resets elapsedRealtime) so
+     * we don't compute a bogus running delta against a stale anchor.
+     */
+    private fun persist() {
+        val state = _uiState.value
+        runCatching {
+            val laps = JSONArray()
+            state.laps.forEach { lap ->
+                laps.put(
+                    JSONObject()
+                        .put("n", lap.number)
+                        .put("s", lap.splitMillis)
+                        .put("t", lap.totalMillis)
+                )
+            }
+            prefs.edit()
+                .putString("state", state.state.name)
+                .putLong("accumulated", accumulatedTime)
+                .putLong("startTime", startTime)
+                .putLong("bootToken", bootToken())
+                .putString("laps", laps.toString())
+                .apply()
+        }
+    }
+
+    private fun restore() {
+        runCatching {
+            val stateName = prefs.getString("state", null) ?: return
+            val restoredState = runCatching { StopwatchState.valueOf(stateName) }
+                .getOrDefault(StopwatchState.IDLE)
+            if (restoredState == StopwatchState.IDLE) return
+            accumulatedTime = prefs.getLong("accumulated", 0L).coerceAtLeast(0L)
+            startTime = prefs.getLong("startTime", 0L)
+            val laps = parseLaps(prefs.getString("laps", null))
+
+            if (restoredState == StopwatchState.RUNNING) {
+                val rebooted = kotlin.math.abs(bootToken() - prefs.getLong("bootToken", 0L)) > BOOT_TOKEN_TOLERANCE_MS
+                val delta = SystemClock.elapsedRealtime() - startTime
+                if (rebooted || delta < 0) {
+                    // Reboot reset the monotonic clock; the running segment can't be
+                    // recovered. Keep the accumulated time and restore as paused.
+                    _uiState.value = StopwatchUiState(
+                        elapsedMillis = accumulatedTime,
+                        state = StopwatchState.PAUSED,
+                        laps = laps
+                    )
+                } else {
+                    _uiState.value = StopwatchUiState(
+                        elapsedMillis = accumulatedTime + delta,
+                        state = StopwatchState.RUNNING,
+                        laps = laps
+                    )
+                    startTicker()
+                }
+            } else {
+                _uiState.value = StopwatchUiState(
+                    elapsedMillis = accumulatedTime,
+                    state = StopwatchState.PAUSED,
+                    laps = laps
+                )
+            }
+        }
+    }
+
+    private fun parseLaps(raw: String?): List<Lap> {
+        if (raw.isNullOrBlank()) return emptyList()
+        val restored = runCatching {
+            val array = JSONArray(raw)
+            buildList {
+                for (i in 0 until array.length()) {
+                    val obj = array.optJSONObject(i) ?: continue
+                    add(Lap(obj.optInt("n"), obj.optLong("s"), obj.optLong("t")))
+                }
+            }
+        }.getOrDefault(emptyList())
+        return markBestWorst(restored)
+    }
+
+    private fun bootToken(): Long = System.currentTimeMillis() - SystemClock.elapsedRealtime()
+
     override fun onCleared() {
         tickerJob?.cancel()
         super.onCleared()
+    }
+
+    private companion object {
+        const val PREFS_NAME = "stopwatch_state"
+        // Clock drift can nudge (currentTimeMillis - elapsedRealtime) by a little;
+        // only a difference beyond this indicates an actual reboot.
+        const val BOOT_TOKEN_TOLERANCE_MS = 5_000L
     }
 }

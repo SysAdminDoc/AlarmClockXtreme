@@ -32,6 +32,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Countdown timers are no longer dropped or resurrected under concurrent writes:
   timer persistence now serializes its read-modify-write across the countdown
   coroutine and the expiry receiver.
+- The stopwatch now survives leaving the app: a running or paused stopwatch and
+  its laps are restored when you return, instead of resetting on process death.
+  (A reboot, which resets the monotonic clock, restores the accumulated time as
+  paused rather than guessing the elapsed running segment.)
 
 ### Added
 
