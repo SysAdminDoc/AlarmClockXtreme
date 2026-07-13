@@ -223,6 +223,15 @@ fun StatsScreen(
             }
 
             item {
+                WakeConsistencyCard(
+                    result = state.wakeConsistency,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+
+            item {
                 SleepWakeAnalyticsCard(
                     analytics = state.sleepWakeAnalytics,
                     healthConnectEnabled = state.healthConnectEnabled,
@@ -760,6 +769,53 @@ private fun HealthConnectStatsCard(
                 icon = Icons.Default.ErrorOutline,
                 color = SnoozeYellow
             )
+        }
+    }
+}
+
+@Composable
+private fun WakeConsistencyCard(
+    result: com.sysadmindoc.alarmclock.domain.WakeConsistencyCalculator.Result?,
+    modifier: Modifier = Modifier
+) {
+    AppSurfaceCard(modifier = modifier) {
+        AppSectionTitle(
+            title = "Wake consistency",
+            description = "How steady your wake-up times have been, computed on-device from your recent dismisses."
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        if (result == null) {
+            Text(
+                text = "Dismiss a few more alarms to see how consistent your wake times are.",
+                color = TextMuted,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        } else {
+            val accent = when {
+                result.score >= 65 -> DismissGreen
+                result.score >= 40 -> SnoozeYellow
+                else -> AccentRed
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "${result.score}",
+                    color = accent,
+                    style = MaterialTheme.typography.displaySmall
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = com.sysadmindoc.alarmclock.domain.WakeConsistencyCalculator.label(result.score),
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "from ${result.sampleCount} recent wake-ups",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
     }
 }

@@ -10,9 +10,12 @@ import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
+import com.sysadmindoc.alarmclock.domain.WakeConsistencyCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.ZoneId
 import javax.inject.Inject
 
 data class StatsUiState(
@@ -24,7 +27,8 @@ data class StatsUiState(
     val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary(),
     val sleepWakeAnalytics: SleepWakeAnalytics = SleepWakeAnalytics(),
     val actigraphySessions: List<ActigraphySession> = emptyList(),
-    val sleepNeedMinutes: Long = DEFAULT_SLEEP_NEED_MINUTES
+    val sleepNeedMinutes: Long = DEFAULT_SLEEP_NEED_MINUTES,
+    val wakeConsistency: WakeConsistencyCalculator.Result? = null
 )
 
 @HiltViewModel
@@ -54,6 +58,7 @@ class StatsViewModel @Inject constructor(
                     recentEvents = events,
                     stats = stats,
                     sleepWakeAnalytics = analytics,
+                    wakeConsistency = computeWakeConsistency(events),
                     isLoading = false
                 )
             }
@@ -109,6 +114,23 @@ class StatsViewModel @Inject constructor(
             days = SLEEP_WAKE_WINDOW_DAYS,
             sleepNeedMinutes = sleepNeedMinutes
         )
+    }
+
+    /**
+     * Wake-time consistency from recent dismisses. Only successful wake-ups
+     * (DISMISSED with a real action time) count; snoozes/skips/misses aren't a
+     * "when did you get up" signal. Times are taken in the device's current
+     * zone as minutes past midnight.
+     */
+    private fun computeWakeConsistency(events: List<AlarmEvent>): WakeConsistencyCalculator.Result? {
+        val zone = ZoneId.systemDefault()
+        val wakeMinutes = events
+            .filter { it.action == AlarmEvent.ACTION_DISMISSED && it.actionAt > 0 }
+            .map {
+                val time = Instant.ofEpochMilli(it.actionAt).atZone(zone)
+                time.hour * 60 + time.minute
+            }
+        return WakeConsistencyCalculator.consistencyScore(wakeMinutes)
     }
 
     private companion object {

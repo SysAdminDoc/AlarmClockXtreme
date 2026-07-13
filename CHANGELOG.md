@@ -4,6 +4,13 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Stats now shows a "Wake consistency" score — a 0-100 measure of how steady your
+  wake-up times have been, computed entirely on-device from your recent alarm
+  dismisses (using circular statistics so times either side of midnight are
+  handled correctly). No cloud, no extra permissions.
+
 ### Fixed
 
 - Countdown timers now ring audibly even when the app has been killed. Previously
