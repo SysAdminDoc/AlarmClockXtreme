@@ -8,6 +8,7 @@ import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
 import com.sysadmindoc.alarmclock.ui.timer.TimerNotifications
 import com.sysadmindoc.alarmclock.ui.timer.TimerStore
 import com.sysadmindoc.alarmclock.worker.BootRescheduleWorker
+import com.sysadmindoc.alarmclock.worker.AlarmHealthWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -84,6 +85,9 @@ class BootReceiver : BroadcastReceiver() {
                     sourceAction = action,
                     forceRecalculate = forceRecalculate
                 )
+                if (shouldCheckAlarmHealthAfter(action)) {
+                    AlarmHealthWorker.enqueueImmediate(appContext)
+                }
             } catch (e: Exception) {
                 Log.e("BootReceiver", "Failed to enqueue alarm reschedule", e)
             } finally {
@@ -92,3 +96,6 @@ class BootReceiver : BroadcastReceiver() {
         }
     }
 }
+
+internal fun shouldCheckAlarmHealthAfter(action: String): Boolean =
+    action == Intent.ACTION_BOOT_COMPLETED || action == Intent.ACTION_MY_PACKAGE_REPLACED

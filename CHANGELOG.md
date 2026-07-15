@@ -20,6 +20,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Alarm reliability checks now run immediately after boot and app updates as
+  well as every six hours, detect Android background restriction alongside
+  battery/exact-alarm/notification regressions, and route warnings directly to
+  the existing OEM-specific reliability guidance.
 - Bedtime now reports Sonar as active only after its foreground service, tone
   output, and microphone recorder are all running; failed or stalled starts
   remain off and surface a retryable status instead of false monitoring.
