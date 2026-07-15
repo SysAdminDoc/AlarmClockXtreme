@@ -11,8 +11,10 @@ import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -111,8 +113,20 @@ data class AlarmEditUiState(
     val firingBackgroundBlurEnabled: Boolean = true,
     val shiftPattern: String = "",
     val shiftPatternStartDate: String = "",
-    val forecastDates: List<ForecastEntry> = emptyList()
+    val forecastDates: List<ForecastEntry> = emptyList(),
+    val hasUnsavedChanges: Boolean = false
 )
+
+internal fun AlarmEditUiState.hasDraftChangesFrom(original: AlarmEditUiState): Boolean {
+    fun AlarmEditUiState.comparableDraft() = copy(
+        isSaving = false,
+        saveError = null,
+        notFound = false,
+        forecastDates = emptyList(),
+        hasUnsavedChanges = false
+    )
+    return comparableDraft() != original.comparableDraft()
+}
 
 data class ForecastEntry(
     val timeMillis: Long,
@@ -130,8 +144,15 @@ class AlarmEditViewModel @Inject constructor(
 
     private val alarmId: Long = savedStateHandle.get<Long>("alarmId") ?: -1
 
+    private var loadedDraft: AlarmEditUiState? = null
     private val _uiState = MutableStateFlow(AlarmEditUiState())
-    val uiState: StateFlow<AlarmEditUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<AlarmEditUiState> = _uiState
+        .map { state ->
+            state.copy(
+                hasUnsavedChanges = loadedDraft?.let { state.hasDraftChangesFrom(it) } == true
+            )
+        }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, _uiState.value)
 
     init {
         viewModelScope.launch {
@@ -211,6 +232,7 @@ class AlarmEditViewModel @Inject constructor(
                         shiftPattern = alarm.shiftPattern,
                         shiftPatternStartDate = alarm.shiftPatternStartDate
                     )
+                    loadedDraft = _uiState.value
                 } else {
                     _uiState.value = _uiState.value.copy(notFound = true, is24HourFormat = is24h)
                 }
@@ -224,6 +246,7 @@ class AlarmEditViewModel @Inject constructor(
                     minute = roundedMinute % 60,
                     is24HourFormat = is24h
                 )
+                loadedDraft = _uiState.value
             }
         }
     }

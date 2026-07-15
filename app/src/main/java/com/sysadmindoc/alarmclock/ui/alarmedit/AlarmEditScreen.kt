@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.ui.alarmedit
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,6 +59,21 @@ import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.DayOfWeek
 import java.util.Locale
 
+internal enum class AlarmEditorExitDecision {
+    NAVIGATE,
+    CONFIRM_DISCARD,
+    STAY
+}
+
+internal fun alarmEditorExitDecision(
+    hasUnsavedChanges: Boolean,
+    isSaving: Boolean
+): AlarmEditorExitDecision = when {
+    isSaving -> AlarmEditorExitDecision.STAY
+    hasUnsavedChanges -> AlarmEditorExitDecision.CONFIRM_DISCARD
+    else -> AlarmEditorExitDecision.NAVIGATE
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlarmEditScreen(
@@ -71,7 +88,21 @@ fun AlarmEditScreen(
     var photoReferenceStatus by remember { mutableStateOf("") }
     var firingBackgroundStatus by remember { mutableStateOf("") }
     var locationDismissStatus by remember { mutableStateOf("") }
+    var showDiscardConfirmation by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val requestNavigateBack = {
+        when (alarmEditorExitDecision(state.hasUnsavedChanges, state.isSaving)) {
+            AlarmEditorExitDecision.NAVIGATE -> onNavigateBack()
+            AlarmEditorExitDecision.CONFIRM_DISCARD -> showDiscardConfirmation = true
+            AlarmEditorExitDecision.STAY -> Unit
+        }
+    }
+    BackHandler(enabled = !state.notFound) { requestNavigateBack() }
+
+    LaunchedEffect(state.hasUnsavedChanges) {
+        if (!state.hasUnsavedChanges) showDiscardConfirmation = false
+    }
 
     LaunchedEffect(state.saveError) {
         state.saveError?.let { message ->
@@ -193,6 +224,29 @@ fun AlarmEditScreen(
         )
     }
 
+    if (showDiscardConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirmation = false },
+            title = { Text("Discard unsaved changes?") },
+            text = { Text("Your alarm edits have not been saved. Keep editing or discard them.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDiscardConfirmation = false
+                        onNavigateBack()
+                    }
+                ) {
+                    Text("Discard changes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirmation = false }) {
+                    Text("Keep editing")
+                }
+            }
+        )
+    }
+
     Scaffold(
         containerColor = SurfaceDark,
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -217,7 +271,7 @@ fun AlarmEditScreen(
                     }
                 },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = requestNavigateBack, enabled = !state.isSaving) {
                         Icon(Icons.Default.Close, "Cancel", tint = TextPrimary)
                     }
                 },

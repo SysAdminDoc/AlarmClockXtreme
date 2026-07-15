@@ -16,6 +16,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Toolbar and system back no longer silently discard alarm-editor changes: a
+  full-draft dirty check now presents a keep-editing/discard confirmation while
+  save progress and derived forecast state remain outside the dirty boundary.
 - Android voice assistants and automation apps now reach a complete,
   permission-protected AlarmClock contract: alarm/timer creation, active-alarm
   snooze/dismiss, warm-intent delivery, malformed-input rejection, duplicate
