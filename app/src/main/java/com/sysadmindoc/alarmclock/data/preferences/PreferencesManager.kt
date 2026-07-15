@@ -271,6 +271,8 @@ class PreferencesManager @Inject constructor(
     // read before DataStore has emitted is still safe.
     @Volatile
     private var cachedSettings: AppSettings = AppSettings()
+    @Volatile
+    private var hasLoadedSettings = false
 
     private object Keys {
         val IS_24_HOUR = booleanPreferencesKey("is_24_hour")
@@ -375,7 +377,10 @@ class PreferencesManager @Inject constructor(
             } else throw e
         }
         .map { it.toSettings().sanitized() }
-        .onEach { cachedSettings = it }
+        .onEach {
+            cachedSettings = it
+            hasLoadedSettings = true
+        }
 
     suspend fun getCurrentSettings(): AppSettings = settings.first()
 
@@ -388,11 +393,18 @@ class PreferencesManager @Inject constructor(
      */
     fun getCachedSettings(): AppSettings = cachedSettings
 
+    /** Privacy-sensitive public surfaces fail closed during cold process start,
+     *  before DataStore has emitted the user's persisted preference. */
+    fun shouldHideLabelsOnPublicSurfaces(): Boolean {
+        return !hasLoadedSettings || cachedSettings.hideAlarmLabelsOnPublicSurfaces
+    }
+
     suspend fun update(transform: (AppSettings) -> AppSettings) {
         context.dataStore.edit { prefs ->
             val old = prefs.toSettings().sanitized()
             val new = transform(old).sanitized()
             cachedSettings = new
+            hasLoadedSettings = true
             prefs.applySettings(new)
         }
     }

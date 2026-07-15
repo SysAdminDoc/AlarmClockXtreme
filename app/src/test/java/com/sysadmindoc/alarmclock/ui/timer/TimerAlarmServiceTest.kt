@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
+import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import java.time.Duration
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -56,6 +57,68 @@ class TimerAlarmServiceTest {
             notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
         )
         assertEquals(TimerAlarmService.NOTIFICATION_ID, shadowOf(service).lastForegroundNotificationId)
+    }
+
+    @Test
+    fun `foreground alert keeps private label but publishes generic lock screen content`() {
+        service.onStartCommand(fireIntent(4, "Medication"), 0, 1)
+
+        val notification = service.buildNotification(hidePublicLabel = true)
+
+        assertEquals(
+            "Medication",
+            notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
+        )
+        assertEquals(Notification.VISIBILITY_PRIVATE, notification.visibility)
+        assertNotNull(notification.publicVersion)
+        assertEquals(
+            "Timer",
+            notification.publicVersion.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
+        )
+        assertEquals(Notification.VISIBILITY_PUBLIC, notification.publicVersion.visibility)
+    }
+
+    @Test
+    fun `passive finished notification uses the same public label policy`() {
+        val notification = TimerNotifications.buildFinishedNotification(
+            context = context,
+            timerId = 5,
+            label = "Laundry",
+            hidePublicLabel = true
+        )
+
+        assertEquals(
+            "Laundry",
+            notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
+        )
+        assertEquals(Notification.VISIBILITY_PRIVATE, notification.visibility)
+        assertNotNull(notification.publicVersion)
+        assertEquals(
+            "Timer",
+            notification.publicVersion.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
+        )
+        assertEquals(Notification.VISIBILITY_PUBLIC, notification.publicVersion.visibility)
+    }
+
+    @Test
+    fun `labels remain public when privacy control is disabled`() {
+        val notification = TimerNotifications.buildFinishedNotification(
+            context = context,
+            timerId = 6,
+            label = "Laundry",
+            hidePublicLabel = false
+        )
+
+        assertEquals(Notification.VISIBILITY_PUBLIC, notification.visibility)
+        assertEquals(
+            "Laundry",
+            notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
+        )
+    }
+
+    @Test
+    fun `public label policy fails closed before preferences load`() {
+        assertTrue(PreferencesManager(context).shouldHideLabelsOnPublicSurfaces())
     }
 
     @Test

@@ -27,6 +27,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Security
 
+- The existing public-label privacy control now covers countdown timers: the
+  ringing and passive finished notifications keep labels in private content
+  while publishing generic lock-screen and screen-sharing versions.
 - Play, F-Droid, and Wear release dependencies now resolve against reviewed
   SHA-256 metadata and strict runtime lockfiles. The repeatable refresh also
   exercises release lint/plugin artifacts, and the Play downloader graph now

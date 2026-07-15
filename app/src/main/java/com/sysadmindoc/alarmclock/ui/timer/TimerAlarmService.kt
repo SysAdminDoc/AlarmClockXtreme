@@ -48,6 +48,11 @@ internal class TimerAlertBatch {
         count == 1 -> alerts.values.first().label.ifBlank { "Timer" }
         else -> "Timer"
     }
+
+    fun publicNotificationText(): String = when {
+        count > 1 -> "$count timers finished"
+        else -> TimerNotifications.GENERIC_TIMER_TEXT
+    }
 }
 
 /**
@@ -109,7 +114,9 @@ class TimerAlarmService : Service() {
         }
     }
 
-    private fun buildNotification(): android.app.Notification {
+    internal fun buildNotification(
+        hidePublicLabel: Boolean = TimerNotifications.shouldHidePublicLabels(this)
+    ): android.app.Notification {
         val fullScreen = PendingIntent.getActivity(
             this,
             NOTIFICATION_ID,
@@ -124,19 +131,34 @@ class TimerAlarmService : Service() {
             Intent(this, TimerAlarmService::class.java).setAction(ACTION_DISMISS_ALL),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        return NotificationCompat.Builder(this, AlarmService.CHANNEL_TIMER)
+        val privateBuilder = NotificationCompat.Builder(this, AlarmService.CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Timer finished")
+            .setContentTitle(TimerNotifications.FINISHED_TITLE)
             .setContentText(alerts.notificationText())
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
             .setFullScreenIntent(fullScreen, true)
             .setContentIntent(fullScreen)
             .addAction(R.drawable.ic_alarm, "Stop", stop)
+        val publicVersion = NotificationCompat.Builder(this, AlarmService.CHANNEL_TIMER)
+            .setSmallIcon(R.drawable.ic_alarm)
+            .setContentTitle(TimerNotifications.FINISHED_TITLE)
+            .setContentText(alerts.publicNotificationText())
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setContentIntent(fullScreen)
+            .addAction(R.drawable.ic_alarm, "Stop", stop)
             .build()
+        return TimerNotifications.applyPublicLabelPolicy(
+            privateBuilder = privateBuilder,
+            hidePublicLabel = hidePublicLabel,
+            publicVersion = publicVersion
+        ).build()
     }
 
     private fun ensureSoundPlaying() {

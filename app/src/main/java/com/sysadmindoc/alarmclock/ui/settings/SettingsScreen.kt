@@ -376,9 +376,9 @@ fun SettingsScreen(
                     onToggle = viewModel::toggleLockScreen
                 )
                 SettingsToggle(
-                    label = "Hide public alarm labels",
+                    label = "Hide public alarm and timer labels",
                     checked = state.settings.hideAlarmLabelsOnPublicSurfaces,
-                    supportingText = "Use neutral text on lock screen, widget, quick settings, and Wear surfaces.",
+                    supportingText = "Use neutral text on lock screen, timer notifications, widget, quick settings, and Wear surfaces.",
                     onToggle = viewModel::toggleHideAlarmLabelsOnPublicSurfaces
                 )
                 SettingsToggle(
