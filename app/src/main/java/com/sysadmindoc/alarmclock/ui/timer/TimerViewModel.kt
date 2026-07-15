@@ -1,13 +1,9 @@
 package com.sysadmindoc.alarmclock.ui.timer
 
 import android.app.Application
-import android.media.MediaPlayer
-import android.media.RingtoneManager
-import android.os.*
-import android.util.Log
+import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.sysadmindoc.alarmclock.service.AlarmAudioRouting
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -89,7 +85,6 @@ class TimerViewModel @Inject constructor(
 ) : AndroidViewModel(application) {
 
     companion object {
-        private const val TAG = "TimerViewModel"
         private const val COUNTDOWN_TICK_MS = 250L
     }
 
@@ -101,14 +96,8 @@ class TimerViewModel @Inject constructor(
     private var nextId = 1
     private val countdownJobs = mutableMapOf<Int, Job>()
     private val runningEndTimes = mutableMapOf<Int, Long>()
-    private var mediaPlayer: MediaPlayer? = null
-    private var vibrator: Vibrator? = null
 
     init {
-        // Mark that a live ViewModel is present so the AlarmManager expiry
-        // receiver lets us play the finish sound instead of starting the
-        // killed-process fallback service (which would double up the audio).
-        TimerAlertState.setUiAlive(true)
         restorePersistedTimers()
     }
 
@@ -204,7 +193,6 @@ class TimerViewModel @Inject constructor(
         countdownJobs.remove(id)
         runningEndTimes.remove(id)
         TimerAlarmScheduler.cancel(appContext, id)
-        stopAudioForTimer(id)
         TimerAlarmService.dismiss(appContext, id)
         cancelTimerFinishedNotification(id)
         timerStore.remove(id)
@@ -215,7 +203,6 @@ class TimerViewModel @Inject constructor(
 
     fun dismissFinished(timerId: Int? = null) {
         val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.FINISHED }?.id ?: return
-        stopAudioForTimer(id)
         TimerAlarmService.dismiss(appContext, id)
         cancelTimerFinishedNotification(id)
         timerStore.remove(id)
@@ -255,15 +242,16 @@ class TimerViewModel @Inject constructor(
                     if (remaining <= 0) {
                         runningEndTimes.remove(id)
                         TimerAlarmScheduler.cancel(appContext, id)
+                        val finished = timerStore.markFinished(id)
                         updateTimer(id) { timer ->
-                            timer.copy(state = TimerState.FINISHED).also {
-                                timerStore.upsert(it.toPersistedRecord())
-                            }
+                            timer.copy(
+                                remainingMillis = 0L,
+                                state = TimerState.FINISHED
+                            )
                         }
-                        playFinishSound()
-                        // v1.12.1 (roadmap N8): surface the finished timer
-                        // even when the app is in the background.
-                        postTimerFinishedNotification(id)
+                        if (finished != null) {
+                            TimerAlarmService.fire(appContext, finished.id, finished.label)
+                        }
                         break
                     }
                     // The UI only renders down to whole seconds plus a progress
@@ -281,12 +269,15 @@ class TimerViewModel @Inject constructor(
     }
 
     private fun restorePersistedTimers() {
-        val records = timerStore.loadRecords()
+        val snapshot = timerStore.restoreSnapshot()
+        snapshot.newlyFinished.forEach { finished ->
+            TimerAlarmService.fire(appContext, finished.id, finished.label)
+        }
+        val records = snapshot.records
         val timers = records.map { it.toTimerInstance() }
         nextId = ((records.maxOfOrNull { it.id } ?: 0) + 1).coerceAtLeast(1)
         if (timers.isEmpty()) return
 
-        timerStore.replace(records)
         _uiState.value = _uiState.value.copy(activeTimers = timers)
         records.forEach { record ->
             when (record.state) {
@@ -295,7 +286,7 @@ class TimerViewModel @Inject constructor(
                     TimerAlarmScheduler.schedule(appContext, record.id, record.endElapsedRealtime)
                     startCountdownUntil(record.id, record.endElapsedRealtime)
                 }
-                TimerState.FINISHED -> TimerNotifications.postFinished(appContext, record.id, record.label)
+                TimerState.FINISHED -> Unit
                 TimerState.IDLE,
                 TimerState.PAUSED -> Unit
             }
@@ -310,88 +301,9 @@ class TimerViewModel @Inject constructor(
         }.trim()
     }
 
-    private fun playFinishSound() {
-        // If audio is already playing for a previous finished timer, don't allocate a
-        // second MediaPlayer — the existing tone covers all simultaneously-finished timers.
-        if (mediaPlayer != null) return
-        try {
-            val context = getApplication<Application>()
-            val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                ?: return
-
-            mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
-                setDataSource(context, uri)
-                isLooping = true
-                prepare()
-                start()
-            }
-
-            if (vibrator == null) {
-                vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    val vm = context.getSystemService(VibratorManager::class.java)
-                    vm?.defaultVibrator
-                } else {
-                    @Suppress("DEPRECATION")
-                    context.getSystemService(Vibrator::class.java)
-                }
-                val pattern = longArrayOf(0, 500, 500, 500, 500)
-                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
-            }
-        } catch (e: Exception) {
-            // Free the partial player on any prepare/start failure to avoid leaking it.
-            try { mediaPlayer?.release() } catch (_: Exception) {}
-            mediaPlayer = null
-            Log.w(TAG, "Failed to play timer completion sound", e)
-        }
-    }
-
-    private fun stopAudioForTimer(id: Int) {
-        // Only stop audio if no other timer is finished
-        if (_uiState.value.activeTimers.none { it.id != id && it.state == TimerState.FINISHED }) {
-            stopAudio()
-        }
-    }
-
-    private fun stopAudio() {
-        try {
-            mediaPlayer?.let {
-                if (it.isPlaying) it.stop()
-                it.release()
-            }
-        } catch (_: Exception) { /* already released */ }
-        mediaPlayer = null
-        try { vibrator?.cancel() } catch (_: Exception) {}
-        vibrator = null
-    }
-
     override fun onCleared() {
-        // No live ViewModel remains to play finish sounds; hand alerting back to
-        // the AlarmManager-triggered foreground service.
-        TimerAlertState.setUiAlive(false)
         countdownJobs.values.forEach { it.cancel() }
-        stopAudio()
-        // v1.12.1 (roadmap N8): the notifications themselves intentionally
-        // survive process death — they are the "missed timer" surface for
-        // the user who closed the app — so we do NOT cancel them here.
         super.onCleared()
-    }
-
-    /**
-     * v1.12.1 (roadmap N8): post a heads-up notification for a finished
-     * timer. The intent re-opens the timer screen so a tap restores
-     * focus to the running list. Caller must hold an active timer with
-     * id [id]; we look up its label once and bail silently if it's gone.
-     *
-     * Notification permission (POST_NOTIFICATIONS) is declared in the
-     * manifest and granted as part of the alarm-readiness flow — the
-     * runtime check is done by `NotificationManagerCompat.from()` and
-     * `notify()` silently no-ops if the user denied it.
-     */
-    private fun postTimerFinishedNotification(id: Int) {
-        val timer = _uiState.value.activeTimers.find { it.id == id } ?: return
-        TimerNotifications.postFinished(appContext, id, timer.label)
     }
 
     private fun cancelTimerFinishedNotification(id: Int) {

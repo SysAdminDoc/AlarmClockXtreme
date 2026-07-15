@@ -254,7 +254,7 @@
             android:name=".ui.timer.TimerExpiryReceiver"
             android:exported="false" />
 
-        <!-- Rings a finished timer audibly when the app process was killed. -->
+        <!-- Sole audible/vibration owner for every finished countdown timer. -->
         <service
             android:name=".ui.timer.TimerAlarmService"
             android:exported="false"

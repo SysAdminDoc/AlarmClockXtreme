@@ -5,6 +5,8 @@ import android.content.Intent
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -91,6 +93,46 @@ class TimerPersistenceTest {
         val timer = store.loadTimers().single()
         assertEquals(TimerState.FINISHED, timer.state)
         assertEquals(0, timer.remainingMillis)
+    }
+
+    @Test
+    fun finishClaimIsIdempotentAcrossUiAndReceiverDelivery() {
+        val now = SystemClock.elapsedRealtime()
+        store.upsert(
+            PersistedTimerRecord(
+                id = 9,
+                label = "rice",
+                totalSeconds = 60,
+                remainingMillis = 0,
+                state = TimerState.RUNNING,
+                endElapsedRealtime = now
+            )
+        )
+
+        assertNotNull(store.markFinished(9))
+        assertNull(store.markFinished(9))
+        assertEquals(TimerState.FINISHED, store.loadRecords().single().state)
+    }
+
+    @Test
+    fun restoreClaimsOverdueTimersExactlyOnce() {
+        val now = SystemClock.elapsedRealtime()
+        store.replace(
+            listOf(
+                PersistedTimerRecord(10, "overdue", 60, 1_000, TimerState.RUNNING, now - 1),
+                PersistedTimerRecord(11, "later", 60, 60_000, TimerState.RUNNING, now + 60_000),
+                PersistedTimerRecord(12, "paused", 60, 30_000, TimerState.PAUSED)
+            )
+        )
+
+        val firstRestore = store.restoreSnapshot(now)
+        val secondRestore = store.restoreSnapshot(now)
+
+        assertEquals(listOf(10), firstRestore.newlyFinished.map { it.id })
+        assertTrue(secondRestore.newlyFinished.isEmpty())
+        assertEquals(TimerState.FINISHED, secondRestore.records.first { it.id == 10 }.state)
+        assertEquals(TimerState.RUNNING, secondRestore.records.first { it.id == 11 }.state)
+        assertEquals(TimerState.PAUSED, secondRestore.records.first { it.id == 12 }.state)
     }
 
     @Test

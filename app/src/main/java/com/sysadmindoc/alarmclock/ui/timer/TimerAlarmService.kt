@@ -7,7 +7,9 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -17,36 +19,50 @@ import com.sysadmindoc.alarmclock.MainActivity
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.service.AlarmAudioRouting
 import com.sysadmindoc.alarmclock.service.AlarmService
-import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * Process-wide signal: is a live [TimerViewModel] present that will play the
- * finish sound itself? The timer countdown runs on `viewModelScope`, so a
- * foreground OR backgrounded (but not killed) app already alerts via the
- * ViewModel. Only when the process was killed does no ViewModel exist — in that
- * case a fresh process is spawned just for [TimerExpiryReceiver], the flag reads
- * its default `false`, and this service takes over the alerting. This prevents
- * double sound while guaranteeing a killed-app timer is never silent.
- */
-object TimerAlertState {
-    private val uiAlive = AtomicBoolean(false)
-    fun setUiAlive(alive: Boolean) = uiAlive.set(alive)
-    fun uiWillHandleSound(): Boolean = uiAlive.get()
+internal data class TimerAlert(val id: Int, val label: String)
+
+/** Small deterministic state holder so duplicate and simultaneous expiry
+ * deliveries can be tested without constructing audio hardware. */
+internal class TimerAlertBatch {
+    private val alerts = linkedMapOf<Int, TimerAlert>()
+
+    val count: Int get() = alerts.size
+    val isEmpty: Boolean get() = alerts.isEmpty()
+
+    fun add(id: Int, label: String): Boolean {
+        if (id <= 0) return false
+        val isNew = id !in alerts
+        alerts[id] = TimerAlert(id, label)
+        return isNew
+    }
+
+    fun remove(id: Int): TimerAlert? = alerts.remove(id)
+
+    fun snapshot(): List<TimerAlert> = alerts.values.toList()
+
+    fun clear(): List<TimerAlert> = snapshot().also { alerts.clear() }
+
+    fun notificationText(): String = when {
+        count > 1 -> "$count timers finished"
+        count == 1 -> alerts.values.first().label.ifBlank { "Timer" }
+        else -> "Timer"
+    }
 }
 
 /**
- * Foreground service that audibly alerts for a finished countdown timer when no
- * live ViewModel can (i.e. the app process was killed). Plays the default alarm
- * tone on a loop with vibration, shows a high-importance full-screen-intent
- * notification with a Stop action, auto-silences after a few minutes, and
- * coalesces multiple simultaneously-finished timers into one alert.
+ * Sole audible/vibration owner for finished countdown timers. Every expiry is
+ * atomically claimed in [TimerStore] before it reaches this service, so UI and
+ * AlarmManager delivery races cannot create two players. Multiple timers share
+ * one foreground notification, one looping player, and one vibration waveform.
  */
 class TimerAlarmService : Service() {
 
     private var mediaPlayer: MediaPlayer? = null
     private var vibrator: Vibrator? = null
-    private val firedTimerIds = linkedSetOf<Int>()
-    private var lastLabel: String = ""
+    private val alerts = TimerAlertBatch()
+    private val handler = Handler(Looper.getMainLooper())
+    private val autoStop = Runnable { autoSilenceAndStop() }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -55,8 +71,11 @@ class TimerAlarmService : Service() {
             ACTION_FIRED -> {
                 val id = intent.getIntExtra(EXTRA_TIMER_ID, -1)
                 val label = intent.getStringExtra(EXTRA_LABEL).orEmpty()
-                if (id > 0) firedTimerIds.add(id)
-                if (label.isNotBlank()) lastLabel = label
+                if (id <= 0) {
+                    stopSelf(startId)
+                    return START_NOT_STICKY
+                }
+                alerts.add(id, label)
                 startForegroundAlert()
                 ensureSoundPlaying()
                 scheduleAutoStop()
@@ -64,10 +83,11 @@ class TimerAlarmService : Service() {
             ACTION_DISMISS -> {
                 val id = intent.getIntExtra(EXTRA_TIMER_ID, -1)
                 if (id > 0) {
-                    firedTimerIds.remove(id)
+                    alerts.remove(id)
                     runCatching { TimerStore(this).remove(id) }
+                    TimerNotifications.cancelFinished(this, id)
                 }
-                if (firedTimerIds.isEmpty()) stopEverything() else refreshNotification()
+                if (alerts.isEmpty) stopEverything() else refreshNotification()
             }
             ACTION_DISMISS_ALL, null -> {
                 dismissAllAndStop()
@@ -104,16 +124,10 @@ class TimerAlarmService : Service() {
             Intent(this, TimerAlarmService::class.java).setAction(ACTION_DISMISS_ALL),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val count = firedTimerIds.size
-        val text = when {
-            count > 1 -> "$count timers finished"
-            lastLabel.isNotBlank() -> lastLabel
-            else -> "Timer"
-        }
         return NotificationCompat.Builder(this, AlarmService.CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle("Timer finished")
-            .setContentText(text)
+            .setContentText(alerts.notificationText())
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -161,17 +175,34 @@ class TimerAlarmService : Service() {
         if (autoStopScheduled) return
         autoStopScheduled = true
         // Don't ring forever if nobody dismisses it.
-        android.os.Handler(mainLooper).postDelayed({ dismissAllAndStop() }, AUTO_STOP_MS)
+        handler.postDelayed(autoStop, AUTO_STOP_MS)
     }
 
     private fun dismissAllAndStop() {
-        val ids = firedTimerIds.toList()
-        firedTimerIds.clear()
-        runCatching { val store = TimerStore(this); ids.forEach { store.remove(it) } }
+        val dismissed = alerts.clear()
+        runCatching {
+            val store = TimerStore(this)
+            dismissed.forEach { alert ->
+                store.remove(alert.id)
+                TimerNotifications.cancelFinished(this, alert.id)
+            }
+        }
+        stopEverything()
+    }
+
+    private fun autoSilenceAndStop() {
+        // Auto-silence ends sound/vibration but is not a user dismissal. Keep
+        // FINISHED records so process recreation still shows what elapsed, and
+        // replace the foreground alert with per-timer passive notifications.
+        alerts.clear().forEach { alert ->
+            TimerNotifications.postFinished(this, alert.id, alert.label)
+        }
         stopEverything()
     }
 
     private fun stopEverything() {
+        handler.removeCallbacks(autoStop)
+        autoStopScheduled = false
         runCatching {
             mediaPlayer?.let { if (it.isPlaying) it.stop(); it.release() }
         }
@@ -183,6 +214,8 @@ class TimerAlarmService : Service() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(autoStop)
+        autoStopScheduled = false
         runCatching { mediaPlayer?.release() }
         mediaPlayer = null
         runCatching { vibrator?.cancel() }

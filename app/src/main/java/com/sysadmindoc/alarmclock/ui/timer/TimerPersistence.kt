@@ -39,10 +39,48 @@ data class PersistedTimerRecord(
     }
 }
 
+data class TimerRestoreSnapshot(
+    val records: List<PersistedTimerRecord>,
+    val newlyFinished: List<PersistedTimerRecord>
+)
+
 class TimerStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun loadRecords(nowElapsed: Long = SystemClock.elapsedRealtime()): List<PersistedTimerRecord> {
+        return readStoredRecords().map { it.normalized(nowElapsed) }
+    }
+
+    /**
+     * Atomically restores persisted timers and claims any overdue running timers.
+     * The caller must alert for [TimerRestoreSnapshot.newlyFinished]. Keeping the
+     * transition and returned claim under one lock prevents a receiver and a
+     * freshly-created ViewModel from both starting the timer alert service.
+     */
+    fun restoreSnapshot(nowElapsed: Long = SystemClock.elapsedRealtime()): TimerRestoreSnapshot =
+        synchronized(WRITE_LOCK) {
+            val stored = readStoredRecords()
+            val newlyFinished = stored
+                .filter { record ->
+                    record.state == TimerState.RUNNING &&
+                        record.endElapsedRealtime <= nowElapsed
+                }
+                .map { it.asFinished() }
+            val newlyFinishedIds = newlyFinished.mapTo(mutableSetOf()) { it.id }
+            val persisted = if (newlyFinishedIds.isEmpty()) {
+                stored
+            } else {
+                stored.map { record ->
+                    if (record.id in newlyFinishedIds) record.asFinished() else record
+                }.also(::replace)
+            }
+            TimerRestoreSnapshot(
+                records = persisted.map { it.normalized(nowElapsed) },
+                newlyFinished = newlyFinished
+            )
+        }
+
+    private fun readStoredRecords(): List<PersistedTimerRecord> {
         val raw = prefs.getString(KEY_TIMERS, null).orEmpty()
         if (raw.isBlank()) return emptyList()
         return runCatching {
@@ -60,7 +98,7 @@ class TimerStore(context: Context) {
                                 TimerState.valueOf(obj.optString("state"))
                             }.getOrDefault(TimerState.IDLE),
                             endElapsedRealtime = obj.optLong("endElapsedRealtime")
-                        ).normalized(nowElapsed)
+                        )
                     )
                 }
             }
@@ -76,7 +114,7 @@ class TimerStore(context: Context) {
     fun loadTimers(nowElapsed: Long = SystemClock.elapsedRealtime()): List<TimerInstance> =
         loadRecords(nowElapsed).map { it.toTimerInstance(nowElapsed) }
 
-    fun replace(records: List<PersistedTimerRecord>) {
+    fun replace(records: List<PersistedTimerRecord>) = synchronized(WRITE_LOCK) {
         val array = JSONArray()
         records
             .filter { it.id > 0 && it.totalSeconds > 0L && it.state != TimerState.IDLE }
@@ -101,39 +139,43 @@ class TimerStore(context: Context) {
     // so without this an interleaved load/replace would drop or resurrect a
     // timer (e.g. a tick write clobbering a concurrent "finished" write).
     fun upsert(record: PersistedTimerRecord) = synchronized(WRITE_LOCK) {
-        val records = loadRecords()
+        val records = readStoredRecords()
             .filterNot { it.id == record.id } + record
         replace(records)
     }
 
     fun remove(id: Int) = synchronized(WRITE_LOCK) {
-        replace(loadRecords().filterNot { it.id == id })
+        replace(readStoredRecords().filterNot { it.id == id })
     }
 
     fun markFinished(id: Int): PersistedTimerRecord? = synchronized(WRITE_LOCK) {
-        val records = loadRecords()
-        val timer = records.firstOrNull { it.id == id } ?: return@synchronized null
-        val finished = timer.copy(
-            remainingMillis = 0L,
-            state = TimerState.FINISHED,
-            endElapsedRealtime = 0L
-        )
+        val records = readStoredRecords()
+        val timer = records.firstOrNull {
+            it.id == id && it.state == TimerState.RUNNING
+        } ?: return@synchronized null
+        val finished = timer.asFinished()
         replace(records.map { if (it.id == id) finished else it })
         finished
     }
 
     fun nextId(): Int = synchronized(WRITE_LOCK) {
-        (loadRecords().maxOfOrNull { it.id } ?: 0) + 1
+        (readStoredRecords().maxOfOrNull { it.id } ?: 0) + 1
     }
 
     fun removeRunningTimersForReboot(): List<PersistedTimerRecord> = synchronized(WRITE_LOCK) {
-        val records = loadRecords()
+        val records = readStoredRecords()
         val running = records.filter { it.state == TimerState.RUNNING }
         if (running.isNotEmpty()) {
             replace(records.filterNot { it.state == TimerState.RUNNING })
         }
         running
     }
+
+    private fun PersistedTimerRecord.asFinished(): PersistedTimerRecord = copy(
+        remainingMillis = 0L,
+        state = TimerState.FINISHED,
+        endElapsedRealtime = 0L
+    )
 
     companion object {
         private const val TAG = "TimerStore"

@@ -13,11 +13,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
-- Countdown timers now ring audibly even when the app has been killed. Previously
-  a timer that expired after the process was gone only posted a silent
-  notification; a new foreground service plays the alarm tone and vibrates (with
-  a Stop action and full-screen alert) when no live screen is present to sound it,
-  while the in-app case is unchanged so the alert never doubles up.
+- Countdown timers now use one foreground service for every expiry, whether the
+  app is visible, backgrounded, or absent. The persisted finish transition is an
+  atomic delivery claim, simultaneous expiries share one player/vibration alert,
+  and automatic silence preserves the finished timer for later recovery.
 
 ### Security
 

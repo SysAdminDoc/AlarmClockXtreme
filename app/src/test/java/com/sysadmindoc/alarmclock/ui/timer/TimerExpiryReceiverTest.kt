@@ -14,10 +14,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 
 /**
- * A timer that expires while the app process is dead must ring, not fail
- * silently. The expiry receiver starts [TimerAlarmService] only when no live
- * ViewModel is present (killed process); when the UI is alive it defers to the
- * ViewModel's own sound and just posts the notification.
+ * The persisted RUNNING -> FINISHED transition is the single-delivery claim.
+ * Whether a ViewModel exists or not, the first expiry starts the alert service
+ * and a duplicate AlarmManager delivery is ignored.
  */
 @RunWith(RobolectricTestRunner::class)
 class TimerExpiryReceiverTest {
@@ -47,13 +46,11 @@ class TimerExpiryReceiverTest {
 
     @After
     fun tearDown() {
-        TimerAlertState.setUiAlive(false)
         TimerStore(context).replace(emptyList())
     }
 
     @Test
-    fun `killed-process expiry starts the ringing foreground service`() {
-        TimerAlertState.setUiAlive(false)
+    fun `expiry starts the ringing foreground service`() {
         persistRunningTimer(1)
 
         fireExpiry(1)
@@ -64,12 +61,14 @@ class TimerExpiryReceiverTest {
     }
 
     @Test
-    fun `expiry with a live UI does not start the service`() {
-        TimerAlertState.setUiAlive(true)
+    fun `duplicate expiry delivery does not start a second service`() {
         persistRunningTimer(2)
 
         fireExpiry(2)
+        val first = shadowOf(context as Application).nextStartedService
+        fireExpiry(2)
 
+        assertEquals(TimerAlarmService.ACTION_FIRED, first?.action)
         assertNull(shadowOf(context as Application).nextStartedService)
     }
 }
