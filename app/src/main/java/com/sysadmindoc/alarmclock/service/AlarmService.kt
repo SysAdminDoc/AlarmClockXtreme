@@ -36,6 +36,8 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
+import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.receiver.DismissReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeReceiver
@@ -69,6 +71,8 @@ class AlarmService : Service() {
     @Inject lateinit var webhookService: WebhookService
     @Inject lateinit var wearNextAlarmBridge: WearNextAlarmBridge
     @Inject lateinit var dismissActionExecutor: DismissActionExecutor
+    @Inject lateinit var weatherRepository: WeatherRepository
+    @Inject lateinit var calendarRepository: CalendarRepository
 
     companion object {
         const val ACTION_START_ALARM = "com.sysadmindoc.alarmclock.START_ALARM"
@@ -1690,7 +1694,28 @@ class AlarmService : Service() {
 
     // F12: Launch morning briefing Activity
     private fun showMorningBriefing(alarm: Alarm) {
-        val payload = AlarmPostDismissController.morningBriefingPayload(alarm)
+        val settings = preferencesManager.getCachedSettings()
+        if (!AlarmPostDismissController.shouldShowMorningBriefing(settings)) return
+
+        val hasLocation = settings.lastKnownLatitude != 0.0 || settings.lastKnownLongitude != 0.0
+        val cachedWeather = if (settings.showWeatherOnDashboard) {
+            weatherRepository.getCachedWeather(
+                latitude = settings.lastKnownLatitude.takeIf { hasLocation },
+                longitude = settings.lastKnownLongitude.takeIf { hasLocation }
+            )
+        } else {
+            null
+        }
+        val events = if (settings.showCalendarOnDashboard) {
+            calendarRepository.getTodayEvents().getOrDefault(emptyList())
+        } else {
+            emptyList()
+        }
+        val payload = AlarmPostDismissController.morningBriefingPayload(
+            alarm = alarm,
+            weather = AlarmPostDismissController.cachedWeatherSummary(cachedWeather),
+            nextEvent = AlarmPostDismissController.nextCalendarEventSummary(events)
+        )
 
         val intent = Intent(this, MorningBriefingActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
@@ -1700,7 +1725,8 @@ class AlarmService : Service() {
             putExtra(MorningBriefingActivity.EXTRA_NEXT_EVENT, payload.nextEvent)
             putExtra(MorningBriefingActivity.EXTRA_ROUTINE, payload.routine)
         }
-        startActivity(intent)
+        runCatching { startActivity(intent) }
+            .onFailure { Log.w(TAG, "Post-dismiss summary could not be shown", it) }
     }
 
     // F5: Schedule wake confirmation via WorkManager. Clamp the configured

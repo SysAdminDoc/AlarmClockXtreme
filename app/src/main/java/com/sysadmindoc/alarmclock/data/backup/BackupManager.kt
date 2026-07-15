@@ -124,6 +124,7 @@ data class SettingsBackup(
     val vacationEndMillis: Long,
     val showWeatherOnDashboard: Boolean,
     val showCalendarOnDashboard: Boolean,
+    val postDismissSummaryEnabled: Boolean = false,
     // Previously missing settings
     val temperatureUnit: String = "fahrenheit",
     val bedtimeEnabled: Boolean = false,
@@ -351,6 +352,7 @@ class BackupManager @Inject constructor(
                 vacationEndMillis = settings.vacationEndMillis,
                 showWeatherOnDashboard = settings.showWeatherOnDashboard,
                 showCalendarOnDashboard = settings.showCalendarOnDashboard,
+                postDismissSummaryEnabled = settings.postDismissSummaryEnabled,
                 temperatureUnit = settings.temperatureUnit,
                 bedtimeEnabled = settings.bedtimeEnabled,
                 bedtimeHour = settings.bedtimeHour,
@@ -569,6 +571,7 @@ class BackupManager @Inject constructor(
         vacationEndMillis = s.vacationEndMillis,
         showWeatherOnDashboard = s.showWeatherOnDashboard,
         showCalendarOnDashboard = s.showCalendarOnDashboard,
+        postDismissSummaryEnabled = s.postDismissSummaryEnabled,
         temperatureUnit = s.temperatureUnit,
         bedtimeEnabled = s.bedtimeEnabled,
         bedtimeHour = s.bedtimeHour,

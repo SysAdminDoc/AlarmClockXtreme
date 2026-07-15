@@ -480,6 +480,12 @@ fun SettingsScreen(
                     onToggle = viewModel::toggleShowCalendar
                 )
                 SettingsToggle(
+                    label = "After-dismiss day summary",
+                    checked = state.settings.postDismissSummaryEnabled,
+                    supportingText = "After the final dismiss step, show cached weather and the next local calendar event. No network request is made.",
+                    onToggle = viewModel::togglePostDismissSummary
+                )
+                SettingsToggle(
                     label = "First-meeting auto-alarm",
                     checked = state.settings.calendarAutoAlarmEnabled,
                     supportingText = if (state.settings.calendarAutoAlarmEnabled) {

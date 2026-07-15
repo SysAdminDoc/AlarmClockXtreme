@@ -1,6 +1,12 @@
 package com.sysadmindoc.alarmclock.service
 
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.preferences.AppSettings
+import com.sysadmindoc.alarmclock.data.remote.CurrentUnits
+import com.sysadmindoc.alarmclock.data.remote.CurrentWeather
+import com.sysadmindoc.alarmclock.data.remote.DailyWeather
+import com.sysadmindoc.alarmclock.data.remote.WeatherResponse
+import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import java.time.LocalDate
 import java.time.LocalTime
@@ -76,6 +82,65 @@ class AlarmServiceControllerTest {
         assertEquals("", payload.weather)
         assertEquals("", payload.nextEvent)
         assertEquals("Stretch, water", payload.routine)
+    }
+
+    @Test
+    fun postDismissSummaryIsOptInAndFormatsCachedDayData() {
+        assertFalse(AlarmPostDismissController.shouldShowMorningBriefing(AppSettings()))
+        assertTrue(
+            AlarmPostDismissController.shouldShowMorningBriefing(
+                AppSettings(postDismissSummaryEnabled = true)
+            )
+        )
+        val weather = WeatherResponse(
+            current = CurrentWeather(
+                temperature = 63.6,
+                humidity = 50,
+                weatherCode = 2,
+                windSpeed = 4.0,
+                feelsLike = 63.0,
+                uvIndex = 1.0
+            ),
+            hourly = null,
+            daily = DailyWeather(
+                time = listOf("2026-07-02"),
+                maxTemp = listOf(72.2),
+                minTemp = listOf(55.7),
+                weatherCode = listOf(2),
+                precipChance = listOf(30),
+                sunrise = null,
+                sunset = null,
+                uvIndexMax = null
+            ),
+            currentUnits = CurrentUnits(temperature = "°F")
+        )
+        val event = CalendarEvent(
+            id = 1L,
+            title = "Team sync",
+            startTime = 1_783_001_400_000L,
+            endTime = 1_783_005_000_000L,
+            allDay = false,
+            location = "",
+            calendarColor = 0
+        )
+
+        assertEquals(
+            "Partly cloudy · 64°F · high 72, low 56 · 30% precipitation",
+            AlarmPostDismissController.cachedWeatherSummary(weather)
+        )
+        assertTrue(
+            AlarmPostDismissController.nextCalendarEventSummary(
+                events = listOf(event),
+                nowMillis = event.startTime - 1L
+            ).startsWith("Team sync · ")
+        )
+        assertEquals(
+            "",
+            AlarmPostDismissController.nextCalendarEventSummary(
+                events = listOf(event),
+                nowMillis = event.endTime + 1L
+            )
+        )
     }
 
     @Test

@@ -3,10 +3,15 @@ package com.sysadmindoc.alarmclock.service
 import androidx.work.Data
 import androidx.work.workDataOf
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.preferences.AppSettings
+import com.sysadmindoc.alarmclock.data.remote.WeatherCodes
+import com.sysadmindoc.alarmclock.data.remote.WeatherResponse
+import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 internal data class MorningBriefingPayload(
     val time: String,
@@ -24,6 +29,9 @@ internal data class WakeConfirmationPlan(
 )
 
 internal object AlarmPostDismissController {
+    fun shouldShowMorningBriefing(settings: AppSettings): Boolean =
+        settings.postDismissSummaryEnabled
+
     fun shouldSpeakMorningAnnouncement(alarm: Alarm): Boolean = alarm.ttsEnabled
 
     fun morningAnnouncementText(
@@ -44,6 +52,8 @@ internal object AlarmPostDismissController {
 
     fun morningBriefingPayload(
         alarm: Alarm,
+        weather: String = "",
+        nextEvent: String = "",
         now: LocalTime = LocalTime.now(),
         today: LocalDate = LocalDate.now()
     ): MorningBriefingPayload {
@@ -52,8 +62,44 @@ internal object AlarmPostDismissController {
         return MorningBriefingPayload(
             time = time,
             date = date,
+            weather = weather,
+            nextEvent = nextEvent,
             routine = alarm.morningRoutine
         )
+    }
+
+    fun cachedWeatherSummary(weather: WeatherResponse?): String {
+        val response = weather ?: return ""
+        val current = response.current
+        val daily = response.daily
+        val parts = buildList {
+            current?.weatherCode?.let { add(WeatherCodes.describe(it)) }
+            current?.temperature?.let { temperature ->
+                add("${temperature.roundToInt()}${response.currentUnits?.temperature.orEmpty()}")
+            }
+            val high = daily?.maxTemp?.firstOrNull()?.roundToInt()
+            val low = daily?.minTemp?.firstOrNull()?.roundToInt()
+            if (high != null && low != null) {
+                add("high $high, low $low")
+            }
+            daily?.precipChance?.firstOrNull()?.takeIf { it > 0 }?.let {
+                add("$it% precipitation")
+            }
+        }
+        return parts.joinToString(" · ")
+    }
+
+    fun nextCalendarEventSummary(
+        events: List<CalendarEvent>,
+        nowMillis: Long = System.currentTimeMillis()
+    ): String {
+        val next = events
+            .asSequence()
+            .filter { it.endTime >= nowMillis }
+            .minByOrNull { it.startTime }
+            ?: return ""
+        val title = next.title.trim().take(80).ifBlank { "Calendar event" }
+        return if (next.allDay) "$title · All day" else "$title · ${next.startFormatted}"
     }
 
     fun shouldScheduleWakeConfirmation(alarm: Alarm): Boolean = alarm.wakeConfirmEnabled

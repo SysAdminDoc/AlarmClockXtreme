@@ -6,6 +6,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- A new default-off after-dismiss day summary turns the existing morning card
+  into a real cached-data handoff: current conditions, today’s high/low and
+  precipitation, the next local calendar event, and the alarm routine appear
+  without making a network request; closing it returns to the prior home flow.
 - Alarms can now either follow the device time zone or stay pinned to a valid
   IANA zone while traveling. Fixed-zone scheduling covers recurring, one-shot,
   shift, solar, and DST-transition cases; the policy survives backup, sharing,
