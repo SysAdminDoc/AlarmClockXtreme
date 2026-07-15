@@ -2067,30 +2067,30 @@ private fun SettingsInfo(label: String, description: String) {
 @Composable
 private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewModel) {
     SettingsGroup(
-        title = "Webhook integrations",
-        description = "Connect alarm events to automations, home setups, or debugging endpoints."
+        title = stringResource(R.string.settings_webhook_integrations),
+        description = stringResource(R.string.settings_webhook_description)
     ) {
         SettingsToggle(
-            label = "Enable webhook",
+            label = stringResource(R.string.settings_enable_webhook),
             checked = state.settings.webhookEnabled,
-            supportingText = "Send v1 JSON events for alarm_fired, alarm_snoozed, alarm_dismissed, alarm_missed, and alarm_skipped.",
+            supportingText = stringResource(R.string.settings_enable_webhook_description),
             onToggle = viewModel::toggleWebhook
         )
 
         BufferedSettingsTextField(
             value = state.settings.webhookUrl,
             onCommit = viewModel::updateWebhookUrl,
-            label = { Text("Webhook URL") },
-            placeholder = { Text("https://example.com/hook") },
+            label = { Text(stringResource(R.string.settings_webhook_url)) },
+            placeholder = { Text(stringResource(R.string.settings_webhook_url_placeholder)) },
             enabled = state.settings.webhookEnabled,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
 
         SettingsToggle(
-            label = "Include alarm labels",
+            label = stringResource(R.string.settings_webhook_include_labels),
             checked = state.settings.webhookIncludeLabel,
-            supportingText = "When off, payloads send labelIncluded=false instead of the alarm name.",
+            supportingText = stringResource(R.string.settings_webhook_labels_description),
             enabled = state.settings.webhookEnabled,
             onToggle = viewModel::toggleWebhookLabelSharing
         )
@@ -2098,8 +2098,8 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
         BufferedSettingsTextField(
             value = state.settings.webhookSigningSecret,
             onCommit = viewModel::updateWebhookSigningSecret,
-            label = { Text("Signing secret") },
-            placeholder = { Text("Optional HMAC secret") },
+            label = { Text(stringResource(R.string.settings_signing_secret)) },
+            placeholder = { Text(stringResource(R.string.settings_signing_secret_placeholder)) },
             enabled = state.settings.webhookEnabled,
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
@@ -2120,16 +2120,16 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
 
         if (plainHttpWarning) {
             AppInlineNotice(
-                title = "Webhook blocked",
-                message = "Plain HTTP webhooks are blocked. Use an HTTPS endpoint or a local HTTPS bridge for Home Assistant or Tasker.",
+                title = stringResource(R.string.settings_webhook_blocked),
+                message = stringResource(R.string.settings_webhook_blocked_description),
                 icon = Icons.Default.Warning,
                 color = AccentRed
             )
         }
         if (localWebhookPermissionMissing) {
             AppInlineNotice(
-                title = "Local network access needed",
-                message = "Android 17+ requires local network access before this LAN webhook can be tested or fired.",
+                title = stringResource(R.string.settings_local_network_needed),
+                message = stringResource(R.string.settings_webhook_network_description),
                 icon = Icons.Default.Link,
                 color = SnoozeYellow
             )
@@ -2144,7 +2144,7 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
             Text(
                 text = state.webhookTestResult
                     ?: lastDeliveryStatus
-                    ?: "Payloads include schemaVersion, eventId, occurredAt, scheduledFor, displayTime, and labelIncluded.",
+                    ?: stringResource(R.string.settings_webhook_payload_description),
                 color = when {
                     state.isWebhookTesting -> MaterialTheme.colorScheme.primary
                     state.webhookTestResult?.contains("OK") == true -> DismissGreen
@@ -2176,7 +2176,11 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
                     Icon(Icons.Default.Link, null, modifier = Modifier.size(18.dp))
                 }
                 Spacer(modifier = Modifier.size(6.dp))
-                Text(if (state.isWebhookTesting) "Testing" else "Test")
+                Text(
+                    stringResource(
+                        if (state.isWebhookTesting) R.string.settings_testing else R.string.settings_test
+                    )
+                )
             }
         }
 
@@ -2184,7 +2188,7 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
         if (deliveryLog.isNotBlank()) {
             Spacer(modifier = Modifier.size(10.dp))
             Text(
-                text = "Recent deliveries",
+                text = stringResource(R.string.settings_recent_deliveries),
                 style = MaterialTheme.typography.labelMedium,
                 color = TextMuted
             )
@@ -2221,13 +2225,13 @@ private fun formatWebhookLogLine(line: String): String {
 @Composable
 private fun HolidaysSection(state: SettingsUiState, viewModel: SettingsViewModel) {
     SettingsGroup(
-        title = "Public holidays",
-        description = "Automatically skip alarms on country-specific holidays without disabling the alarm itself."
+        title = stringResource(R.string.settings_public_holidays),
+        description = stringResource(R.string.settings_public_holidays_description)
     ) {
         SettingsToggle(
-            label = "Skip alarms on holidays",
+            label = stringResource(R.string.settings_skip_holidays),
             checked = state.settings.holidayAutoSkipEnabled,
-            supportingText = "Useful for weekday alarms that should respect bank holidays and public closures.",
+            supportingText = stringResource(R.string.settings_skip_holidays_description),
             onToggle = viewModel::toggleHolidayAutoSkip
         )
         BufferedSettingsTextField(
@@ -2239,8 +2243,8 @@ private fun HolidaysSection(state: SettingsUiState, viewModel: SettingsViewModel
                     .uppercase(Locale.US)
                     .take(2)
             },
-            label = { Text("Country code") },
-            placeholder = { Text("US, GB, DE...") },
+            label = { Text(stringResource(R.string.settings_country_code)) },
+            placeholder = { Text(stringResource(R.string.settings_country_code_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             keyboardOptions = KeyboardOptions(
@@ -2249,9 +2253,9 @@ private fun HolidaysSection(state: SettingsUiState, viewModel: SettingsViewModel
         )
         Text(
             text = if (state.settings.holidayAutoSkipEnabled) {
-                "Holiday data comes from Nager.Date and is cached locally for a week."
+                stringResource(R.string.settings_holiday_enabled_description)
             } else {
-                "Choose the country now if you want. Holiday skipping only activates when the toggle above is on."
+                stringResource(R.string.settings_holiday_disabled_description)
             },
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
@@ -2266,37 +2270,37 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
         state.settings.hueBridgeIp.isNotBlank() &&
         !state.hasLocalNetworkPermission
     SettingsGroup(
-        title = "Philips Hue sunrise",
-        description = "Wake the room up gradually before the alarm sound takes over."
+        title = stringResource(R.string.settings_hue_sunrise),
+        description = stringResource(R.string.settings_hue_sunrise_description)
     ) {
         BufferedSettingsTextField(
             value = state.settings.hueBridgeIp,
             onCommit = viewModel::updateHueBridgeIp,
-            label = { Text("Bridge IP address") },
-            placeholder = { Text("192.168.1.100") },
+            label = { Text(stringResource(R.string.settings_hue_ip)) },
+            placeholder = { Text(stringResource(R.string.settings_hue_ip_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
         BufferedSettingsTextField(
             value = state.settings.hueApiKey,
             onCommit = viewModel::updateHueApiKey,
-            label = { Text("Hue API key") },
-            placeholder = { Text("Press the Hue bridge button first") },
+            label = { Text(stringResource(R.string.settings_hue_api_key)) },
+            placeholder = { Text(stringResource(R.string.settings_hue_api_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
         BufferedSettingsTextField(
             value = state.settings.hueLightIds,
             onCommit = viewModel::updateHueLightIds,
-            label = { Text("Light IDs") },
-            placeholder = { Text("1,2,3") },
+            label = { Text(stringResource(R.string.settings_hue_light_ids)) },
+            placeholder = { Text(stringResource(R.string.settings_hue_light_ids_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
         SettingsToggle(
-            label = "Allow legacy Hue API v1 over HTTP",
+            label = stringResource(R.string.settings_hue_legacy),
             checked = state.settings.hueLegacyHttpEnabled,
-            supportingText = "Off by default. Enable only for an older bridge that cannot use encrypted API v2.",
+            supportingText = stringResource(R.string.settings_hue_legacy_description),
             onToggle = viewModel::toggleHueLegacyHttp
         )
         if (state.settings.hueBridgeCertFingerprint.isNotBlank()) {
@@ -2307,7 +2311,7 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Bridge certificate pinned",
+                        text = stringResource(R.string.settings_hue_cert_pinned),
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextPrimary
                     )
@@ -2318,14 +2322,14 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
                     )
                 }
                 TextButton(onClick = { showForgetCertificateDialog = true }) {
-                    Text("Forget")
+                    Text(stringResource(R.string.settings_forget))
                 }
             }
         }
         if (localNetworkPermissionMissing) {
             AppInlineNotice(
-                title = "Local network access needed",
-                message = "Android 17+ requires local network access before ACX can reach this Hue bridge.",
+                title = stringResource(R.string.settings_local_network_needed),
+                message = stringResource(R.string.settings_hue_network_description),
                 icon = Icons.Default.Link,
                 color = SnoozeYellow
             )
@@ -2336,7 +2340,7 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = state.hueTestResult ?: "Run a quick bridge check once the IP and API key are in place.",
+                text = state.hueTestResult ?: stringResource(R.string.settings_hue_test_description),
                 color = when {
                     state.isHueTesting -> MaterialTheme.colorScheme.primary
                     state.hueTestResult?.contains("reachable") == true -> DismissGreen
@@ -2366,18 +2370,21 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
                     Icon(Icons.Default.Cloud, null, modifier = Modifier.size(18.dp))
                 }
                 Spacer(modifier = Modifier.size(6.dp))
-                Text(if (state.isHueTesting) "Testing" else "Test")
+                Text(
+                    stringResource(
+                        if (state.isHueTesting) R.string.settings_testing else R.string.settings_test
+                    )
+                )
             }
         }
     }
     if (showForgetCertificateDialog) {
         AlertDialog(
             onDismissRequest = { showForgetCertificateDialog = false },
-            title = { Text("Forget Hue certificate?") },
+            title = { Text(stringResource(R.string.settings_hue_forget_title)) },
             text = {
                 Text(
-                    "Only continue after verifying the bridge was replaced or its certificate changed. " +
-                        "The next successful encrypted connection will trust and save a new certificate."
+                    stringResource(R.string.settings_hue_forget_message)
                 )
             },
             confirmButton = {
@@ -2387,12 +2394,12 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
                         viewModel.clearHueCertificatePin()
                     }
                 ) {
-                    Text("Forget certificate")
+                    Text(stringResource(R.string.settings_hue_forget_action))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showForgetCertificateDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -2415,20 +2422,20 @@ private fun HealthConnectSection(
     val summary = state.healthConnectSleepSummary
     AppSurfaceCard {
         AppSectionTitle(
-            title = "Health Connect",
+            title = stringResource(R.string.settings_health_connect),
             description = if (isPlayFlavor) {
                 healthConnectDescription(state.settings.healthConnectEnabled, summary)
             } else {
-                "The F-Droid flavor does not ship the Health Connect SDK. This setting is retained for backup compatibility only."
+                stringResource(R.string.settings_health_fdroid_description)
             }
         )
         SettingsToggle(
-            label = "Read recent sleep sessions",
+            label = stringResource(R.string.settings_health_read_sleep),
             checked = state.settings.healthConnectEnabled,
             supportingText = if (isPlayFlavor) {
-                "Uses only android.permission.health.READ_SLEEP. Summaries stay local and are refreshed when Bedtime, Stats, or Settings is open."
+                stringResource(R.string.settings_health_read_sleep_description)
             } else {
-                "No Health Connect permissions are requested on F-Droid."
+                stringResource(R.string.settings_health_fdroid_permission)
             },
             onToggle = { enabled ->
                 if (enabled && isPlayFlavor && !summary.permissionGranted && onRequestPermissions != null) {
@@ -2442,16 +2449,19 @@ private fun HealthConnectSection(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AppStatusChip(
                     label = when (summary.availability) {
-                        HealthConnectAvailability.AVAILABLE -> "SDK available"
-                        HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED -> "Update needed"
-                        HealthConnectAvailability.UNAVAILABLE -> "Unavailable"
-                        HealthConnectAvailability.NOT_INCLUDED -> "Not included"
+                        HealthConnectAvailability.AVAILABLE -> stringResource(R.string.settings_health_sdk_available)
+                        HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED -> stringResource(R.string.settings_health_update_needed)
+                        HealthConnectAvailability.UNAVAILABLE -> stringResource(R.string.settings_health_unavailable)
+                        HealthConnectAvailability.NOT_INCLUDED -> stringResource(R.string.settings_health_not_included)
                     },
                     icon = if (summary.isAvailable) Icons.Default.CheckCircle else Icons.Default.Warning,
                     color = if (summary.isAvailable) DismissGreen else SnoozeYellow
                 )
                 AppStatusChip(
-                    label = if (summary.permissionGranted) "READ_SLEEP granted" else "Permission needed",
+                    label = stringResource(
+                        if (summary.permissionGranted) R.string.settings_health_permission_granted
+                        else R.string.settings_health_permission_needed
+                    ),
                     icon = if (summary.permissionGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
                     color = if (summary.permissionGranted) DismissGreen else SnoozeYellow
                 )
@@ -2459,9 +2469,13 @@ private fun HealthConnectSection(
             if (summary.permissionGranted) {
                 Text(
                     text = if (summary.hasRecentSession) {
-                        "Last Health Connect session: ${formatSleepMinutes(summary.lastSessionDurationMinutes)} · ${summary.sessionsRead} read in the last 14 days."
+                        stringResource(
+                            R.string.settings_health_last_session,
+                            formatSleepMinutes(summary.lastSessionDurationMinutes),
+                            summary.sessionsRead
+                        )
                     } else {
-                        "READ_SLEEP is granted, but no recent sleep sessions were returned in the last 14 days."
+                        stringResource(R.string.settings_health_no_recent_sessions)
                     },
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodySmall
@@ -2469,7 +2483,7 @@ private fun HealthConnectSection(
             }
             summary.errorMessage?.let { error ->
                 AppInlineNotice(
-                    title = "Health Connect needs attention",
+                    title = stringResource(R.string.settings_health_attention),
                     message = error,
                     icon = Icons.Default.Warning,
                     color = SnoozeYellow
@@ -2484,7 +2498,12 @@ private fun HealthConnectSection(
                 ) {
                     Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.size(6.dp))
-                    Text(if (summary.permissionGranted) "Review access" else "Grant access")
+                    Text(
+                        stringResource(
+                            if (summary.permissionGranted) R.string.settings_health_review_access
+                            else R.string.settings_health_grant_access
+                        )
+                    )
                 }
                 OutlinedButton(
                     onClick = viewModel::refreshHealthConnectSleep,
@@ -2494,39 +2513,41 @@ private fun HealthConnectSection(
                 ) {
                     Icon(Icons.Default.Bedtime, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.size(6.dp))
-                    Text("Refresh")
+                    Text(stringResource(R.string.settings_refresh))
                 }
             }
         }
     }
 }
 
+@Composable
 private fun healthConnectDescription(
     enabled: Boolean,
     summary: HealthConnectSleepSummary
 ): String = when {
     summary.availability == HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED ->
-        "Health Connect is installed but needs an update before sleep sessions can be read."
+        stringResource(R.string.settings_health_update_description)
     summary.availability == HealthConnectAvailability.UNAVAILABLE ->
-        "Health Connect is not available on this device."
+        stringResource(R.string.settings_health_unavailable_description)
     !enabled ->
-        "Opt in to read recent Health Connect sleep sessions on-device for Bedtime and Stats context."
+        stringResource(R.string.settings_health_opt_in_description)
     !summary.permissionGranted ->
-        "Grant READ_SLEEP in Health Connect before AlarmClockXtreme can show recent sleep summaries."
+        stringResource(R.string.settings_health_grant_description)
     summary.hasRecentSession ->
-        "Recent sleep summaries are available locally from Health Connect."
+        stringResource(R.string.settings_health_available_description)
     else ->
-        "READ_SLEEP is granted; no recent Health Connect sleep sessions were found yet."
+        stringResource(R.string.settings_health_empty_description)
 }
 
+@Composable
 private fun formatSleepMinutes(minutes: Long?): String {
-    val value = minutes ?: return "No session"
+    val value = minutes ?: return stringResource(R.string.settings_health_no_session)
     val hours = value / 60
     val mins = value % 60
     return when {
-        hours > 0 && mins > 0 -> "${hours}h ${mins}m"
-        hours > 0 -> "${hours}h"
-        else -> "${mins}m"
+        hours > 0 && mins > 0 -> stringResource(R.string.settings_hours_minutes_short, hours, mins)
+        hours > 0 -> stringResource(R.string.settings_hours_short, hours)
+        else -> stringResource(R.string.settings_minutes_compact, mins)
     }
 }
 
@@ -2548,81 +2569,81 @@ private fun ConnectionsSection(state: SettingsUiState) {
 
     val connections = buildList {
         add(ConnectionInfo(
-            name = "Weather",
+            name = stringResource(R.string.settings_connection_weather),
             enabled = state.settings.showWeatherOnDashboard,
             domain = "api.open-meteo.com",
-            dataSent = "Latitude, longitude",
-            offlineFallback = "Last cached forecast"
+            dataSent = stringResource(R.string.settings_connection_location_data),
+            offlineFallback = stringResource(R.string.settings_connection_cached_forecast)
         ))
         add(ConnectionInfo(
-            name = "Air quality",
+            name = stringResource(R.string.settings_connection_air_quality),
             enabled = state.settings.showWeatherOnDashboard,
             domain = "air-quality-api.open-meteo.com",
-            dataSent = "Latitude, longitude",
-            offlineFallback = "Hidden when unavailable"
+            dataSent = stringResource(R.string.settings_connection_location_data),
+            offlineFallback = stringResource(R.string.settings_connection_hidden_unavailable)
         ))
         add(ConnectionInfo(
-            name = "NWS weather alerts",
+            name = stringResource(R.string.settings_connection_nws),
             enabled = state.settings.showWeatherOnDashboard,
             domain = "api.weather.gov",
-            dataSent = "Latitude, longitude (US only)",
-            offlineFallback = "No alerts shown"
+            dataSent = stringResource(R.string.settings_connection_us_location_data),
+            offlineFallback = stringResource(R.string.settings_connection_no_alerts)
         ))
         add(ConnectionInfo(
-            name = "Public holidays",
+            name = stringResource(R.string.settings_public_holidays),
             enabled = state.settings.holidayAutoSkipEnabled,
             domain = "date.nager.at",
-            dataSent = "Country code",
-            offlineFallback = "Cached holidays; skip disabled"
+            dataSent = stringResource(R.string.settings_country_code),
+            offlineFallback = stringResource(R.string.settings_connection_cached_holidays)
         ))
         add(ConnectionInfo(
-            name = "Live radar",
+            name = stringResource(R.string.settings_connection_radar),
             enabled = state.settings.showRadarEmbed,
             domain = "embed.windy.com",
-            dataSent = "Latitude, longitude (via embed URL)",
-            offlineFallback = "Radar card hidden"
+            dataSent = stringResource(R.string.settings_connection_embed_location),
+            offlineFallback = stringResource(R.string.settings_connection_radar_hidden)
         ))
         add(ConnectionInfo(
-            name = "News feed",
+            name = stringResource(R.string.settings_connection_news),
             enabled = state.settings.showNewsTab,
             domain = state.settings.newsFeedUrl
                 .removePrefix("https://").removePrefix("http://")
-                .substringBefore("/").ifBlank { "user-configured" },
-            dataSent = "Feed URL fetch only",
-            offlineFallback = "Empty feed"
+                .substringBefore("/").ifBlank { stringResource(R.string.settings_connection_user_configured) },
+            dataSent = stringResource(R.string.settings_connection_feed_data),
+            offlineFallback = stringResource(R.string.settings_connection_empty_feed)
         ))
         if (state.settings.webhookEnabled) {
             add(ConnectionInfo(
-                name = "Webhook",
+                name = stringResource(R.string.settings_connection_webhook),
                 enabled = true,
                 domain = state.settings.webhookUrl
                     .removePrefix("https://").removePrefix("http://")
-                    .substringBefore("/").ifBlank { "not configured" },
-                dataSent = "Alarm event, time, optional label",
-                offlineFallback = "Events silently dropped"
+                    .substringBefore("/").ifBlank { stringResource(R.string.settings_connection_not_configured) },
+                dataSent = stringResource(R.string.settings_connection_webhook_data),
+                offlineFallback = stringResource(R.string.settings_connection_events_dropped)
             ))
         }
         if (state.settings.hueBridgeIp.isNotBlank()) {
             add(ConnectionInfo(
-                name = "Philips Hue",
+                name = stringResource(R.string.settings_connection_hue),
                 enabled = true,
-                domain = "${state.settings.hueBridgeIp} (LAN)",
-                dataSent = "Light on/brightness/color commands",
-                offlineFallback = "Sunrise simulation skipped"
+                domain = stringResource(R.string.settings_connection_lan_domain, state.settings.hueBridgeIp),
+                dataSent = stringResource(R.string.settings_connection_hue_data),
+                offlineFallback = stringResource(R.string.settings_connection_sunrise_skipped)
             ))
         }
         add(ConnectionInfo(
-            name = "Health Connect",
+            name = stringResource(R.string.settings_health_connect),
             enabled = state.settings.healthConnectEnabled,
-            domain = "On-device (no network)",
-            dataSent = "None — reads local sleep sessions",
-            offlineFallback = "Always local"
+            domain = stringResource(R.string.settings_connection_on_device),
+            dataSent = stringResource(R.string.settings_connection_health_data),
+            offlineFallback = stringResource(R.string.settings_connection_always_local)
         ))
     }
 
     SettingsGroup(
-        title = "Connections and data",
-        description = "Optional network services and what they send. Nothing leaves the device unless you enable it."
+        title = stringResource(R.string.settings_connections_data),
+        description = stringResource(R.string.settings_connections_data_description)
     ) {
         connections.forEach { conn ->
             Surface(
@@ -2645,7 +2666,9 @@ private fun ConnectionsSection(state: SettingsUiState) {
                             color = if (conn.enabled) TextPrimary else TextMuted
                         )
                         AppStatusChip(
-                            label = if (conn.enabled) "Active" else "Off",
+                            label = stringResource(
+                                if (conn.enabled) R.string.settings_active else R.string.settings_off
+                            ),
                             color = if (conn.enabled) DismissGreen else TextMuted
                         )
                     }
@@ -2658,12 +2681,12 @@ private fun ConnectionsSection(state: SettingsUiState) {
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "Sends: ${conn.dataSent}",
+                        text = stringResource(R.string.settings_connection_sends, conn.dataSent),
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted
                     )
                     Text(
-                        text = "Offline: ${conn.offlineFallback}",
+                        text = stringResource(R.string.settings_connection_offline, conn.offlineFallback),
                         style = MaterialTheme.typography.bodySmall,
                         color = TextMuted
                     )
