@@ -84,6 +84,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -95,6 +97,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.BarcodeScanChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.Challenge
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.MathChallengeView
@@ -143,6 +146,7 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlin.math.roundToInt
 
 @Composable
@@ -218,7 +222,7 @@ fun AlarmFiringScreen(
         !state.challengeBypassAvailable
     val locationDismissDistanceMeters = state.locationDismissDistanceMeters
     val locationDismissMessage = state.locationDismissStatus.ifBlank {
-        "Leave the saved area to unlock dismissal. Snooze remains available."
+        stringResource(R.string.firing_leave_area_hint)
     }
     if (challenge is Challenge.MemoryPatternChallenge && state.memoryPhase == MemoryPhase.SHOWING) {
         LaunchedEffect(state.memoryPhase, state.wrongAttempts, state.currentChallengeIndex) {
@@ -249,22 +253,35 @@ fun AlarmFiringScreen(
     val timePattern = if (is24Hour) "HH:mm" else "h:mm"
     val timeText = currentTime.format(DateTimeFormatter.ofPattern(timePattern))
     val amPm = if (is24Hour) "" else currentTime.format(DateTimeFormatter.ofPattern("a"))
-    val dateText = currentDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d"))
-    val alarmLabel = state.alarm?.label?.takeIf { it.isNotBlank() } ?: "Alarm ringing"
+    val dateText = currentDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL))
+    val alarmLabel = state.alarm?.label?.takeIf { it.isNotBlank() }
+        ?: stringResource(R.string.notif_alarm_ringing)
     val stepLabel = if (state.totalChallenges > 1) {
-        "Step ${state.currentChallengeIndex + 1} of ${state.totalChallenges}"
+        stringResource(
+            R.string.firing_step_of,
+            state.currentChallengeIndex + 1,
+            state.totalChallenges
+        )
     } else {
-        "Single-step dismissal"
+        stringResource(R.string.firing_single_step)
     }
     val statusLine = when {
         state.canDismiss && holdToDismissEnabled ->
-            "Wake-up steps are complete. Hold Dismiss for 1.5 seconds, or right-swipe to snooze."
-        state.canDismiss -> "Wake-up steps are complete. Swipe left to dismiss, or right to snooze."
+            stringResource(R.string.firing_status_hold_or_snooze)
+        state.canDismiss -> stringResource(R.string.firing_status_swipe_or_snooze)
         locationDismissActive && state.wakeChallengeReady -> locationDismissMessage
-        challenge == null && holdToDismissEnabled -> "Hold Dismiss for 1.5 seconds to stop the alarm."
-        challenge == null -> "Swipe left or tap dismiss to stop the alarm."
+        challenge == null && holdToDismissEnabled -> stringResource(R.string.firing_status_hold_to_stop)
+        challenge == null -> stringResource(R.string.firing_status_swipe_to_stop)
         else -> challenge.statusDescription()
     }
+    val holdButtonHint = stringResource(R.string.firing_hold_button_hint)
+    val holdDismissHint = stringResource(R.string.firing_hold_dismiss_short)
+    val releaseDismissHint = stringResource(R.string.firing_release_dismiss)
+    val releaseSnoozeHint = stringResource(R.string.firing_release_snooze)
+    val swipeProtectedHint = stringResource(R.string.firing_swipe_protected)
+    val swipeLeftHint = stringResource(R.string.firing_swipe_left_dismiss)
+    val finishStepHint = stringResource(R.string.firing_finish_step_first)
+    val swipeRightHint = stringResource(R.string.firing_swipe_right_snooze)
 
     Box(
         modifier = Modifier
@@ -285,7 +302,7 @@ fun AlarmFiringScreen(
                     onDragEnd = {
                         if (swipeCumulativeDrag < -swipeThreshold && state.canDismiss) {
                             if (holdToDismissEnabled) {
-                                swipeHint = "Hold the Dismiss button for 1.5 seconds."
+                                swipeHint = holdButtonHint
                             } else {
                                 onDismiss()
                                 swipeHint = ""
@@ -306,14 +323,17 @@ fun AlarmFiringScreen(
                         swipeCumulativeDrag += dragAmount
                         swipeHint = when {
                             swipeCumulativeDrag < -swipeThreshold / 2 && state.canDismiss && holdToDismissEnabled ->
-                                "Hold Dismiss for 1.5 seconds"
-                            swipeCumulativeDrag < -swipeThreshold / 2 && state.canDismiss -> "Release to dismiss"
-                            swipeCumulativeDrag > swipeThreshold / 2 -> "Release to snooze"
+                                holdDismissHint
+                            swipeCumulativeDrag < -swipeThreshold / 2 && state.canDismiss ->
+                                releaseDismissHint
+                            swipeCumulativeDrag > swipeThreshold / 2 ->
+                                releaseSnoozeHint
                             swipeCumulativeDrag < -50 && state.canDismiss && holdToDismissEnabled ->
-                                "Swipe-left is protected. Use Hold Dismiss."
-                            swipeCumulativeDrag < -50 && state.canDismiss -> "Swipe left to dismiss"
-                            swipeCumulativeDrag < -50 -> "Finish the wake-up step first"
-                            swipeCumulativeDrag > 50 -> "Swipe right to snooze"
+                                swipeProtectedHint
+                            swipeCumulativeDrag < -50 && state.canDismiss ->
+                                swipeLeftHint
+                            swipeCumulativeDrag < -50 -> finishStepHint
+                            swipeCumulativeDrag > 50 -> swipeRightHint
                             else -> ""
                         }
                     }
@@ -396,10 +416,11 @@ fun AlarmFiringScreen(
                     }
                     AppStatusChip(
                         label = when {
-                            state.canDismiss && holdToDismissEnabled -> "Hold required"
-                            state.canDismiss -> "Dismiss ready"
-                            locationDismissActive && state.wakeChallengeReady -> "Location locked"
-                            else -> "Dismiss locked"
+                            state.canDismiss && holdToDismissEnabled -> stringResource(R.string.firing_hold_required)
+                            state.canDismiss -> stringResource(R.string.firing_dismiss_ready)
+                            locationDismissActive && state.wakeChallengeReady ->
+                                stringResource(R.string.firing_location_locked)
+                            else -> stringResource(R.string.firing_dismiss_locked)
                         },
                         icon = when {
                             state.canDismiss -> Icons.Default.CheckCircle
@@ -410,7 +431,10 @@ fun AlarmFiringScreen(
                     )
                     if (state.challengeBypassRemainingSeconds > 0 && !state.canDismiss) {
                         AppStatusChip(
-                            label = "Bypass in ${state.challengeBypassRemainingSeconds}s",
+                            label = stringResource(
+                                R.string.firing_bypass_in_seconds,
+                                state.challengeBypassRemainingSeconds
+                            ),
                             icon = Icons.Default.AccessTime,
                             color = TextMuted
                         )
@@ -459,29 +483,43 @@ fun AlarmFiringScreen(
                 ) {
                     if (state.firedEarlyForWeather) {
                         AppStatusChip(
-                            label = "Fired early — ${state.weatherDescription ?: "weather"}",
+                            label = stringResource(
+                                R.string.firing_weather_early,
+                                state.weatherDescription ?: stringResource(R.string.firing_weather_fallback)
+                            ),
                             icon = Icons.Default.AcUnit,
                             color = AccentBlue
                         )
                     } else if (state.weatherTemp != null) {
                         AppStatusChip(
-                            label = "${state.weatherTemp} ${state.weatherDescription ?: ""}".trim(),
+                            label = stringResource(
+                                R.string.firing_weather_summary,
+                                state.weatherTemp.orEmpty(),
+                                state.weatherDescription.orEmpty()
+                            ).trim(),
                             icon = Icons.Default.Cloud,
                             color = TextSecondary
                         )
                     }
                     AppStatusChip(
-                        label = if (state.totalChallenges > 1) stepLabel else "Wake-up check",
+                        label = if (state.totalChallenges > 1) {
+                            stepLabel
+                        } else {
+                            stringResource(R.string.firing_wakeup_check)
+                        },
                         icon = Icons.Default.TaskAlt,
                         color = MaterialTheme.colorScheme.primary
                     )
                     if (state.alarm?.locationDismissEnabled == true) {
                         AppStatusChip(
                             label = when {
-                                state.locationDismissReady -> "Left saved place"
+                                state.locationDismissReady -> stringResource(R.string.firing_left_saved_place)
                                 locationDismissDistanceMeters != null ->
-                                    "${locationDismissDistanceMeters.toInt()} m from place"
-                                else -> "Location lock"
+                                    stringResource(
+                                        R.string.firing_distance_from_place,
+                                        locationDismissDistanceMeters.toInt()
+                                    )
+                                else -> stringResource(R.string.firing_location_lock)
                             },
                             icon = Icons.Default.LocationOn,
                             color = if (state.locationDismissReady) DismissGreen else SnoozeYellow
@@ -489,13 +527,20 @@ fun AlarmFiringScreen(
                     }
                     if (state.wrongAttempts > 0) {
                         AppStatusChip(
-                            label = "${state.wrongAttempts} retry${if (state.wrongAttempts == 1) "" else "ies"}",
+                            label = pluralStringResource(
+                                R.plurals.firing_retry_count,
+                                state.wrongAttempts,
+                                state.wrongAttempts
+                            ),
                             icon = Icons.Default.WarningAmber,
                             color = AccentRed
                         )
                     }
                     AppStatusChip(
-                        label = "Default snooze ${state.alarm?.snoozeDurationMinutes ?: 10} min",
+                        label = stringResource(
+                            R.string.firing_default_snooze_minutes,
+                            state.alarm?.snoozeDurationMinutes ?: 10
+                        ),
                         icon = Icons.Default.Timer,
                         color = SnoozeYellow
                     )
@@ -503,14 +548,14 @@ fun AlarmFiringScreen(
                     // enabled the global setting — otherwise the chip lies.
                     if (flipToSnoozeEnabled) {
                         AppStatusChip(
-                            label = "Flip to snooze",
+                            label = stringResource(R.string.firing_flip_to_snooze),
                             icon = Icons.Default.Snooze,
                             color = TextMuted
                         )
                     }
                     if (holdToDismissEnabled) {
                         AppStatusChip(
-                            label = "Hold dismiss 1.5s",
+                            label = stringResource(R.string.firing_hold_dismiss),
                             icon = Icons.Default.AlarmOff,
                             color = DismissGreen
                         )
@@ -538,7 +583,7 @@ fun AlarmFiringScreen(
             ) {
                 AppSectionTitle(
                     title = if (locationDismissActive && state.wakeChallengeReady) {
-                        "Leave the saved place"
+                        stringResource(R.string.firing_leave_place_title)
                     } else {
                         challenge.headline()
                     },
@@ -570,15 +615,15 @@ fun AlarmFiringScreen(
                                         .scale(pulseScale)
                                 )
                                 Text(
-                                    text = "Alarm ready to dismiss",
+                                    text = stringResource(R.string.firing_ready_title),
                                     color = TextPrimary,
                                     style = MaterialTheme.typography.headlineSmall
                                 )
                                 Text(
                                     text = if (holdToDismissEnabled) {
-                                        "You’ve cleared every required step. Hold the Dismiss button to finish, or snooze if you need a short buffer."
+                                        stringResource(R.string.firing_ready_hold_description)
                                     } else {
-                                        "You’ve cleared every required step. Dismiss now or snooze if you need a short buffer."
+                                        stringResource(R.string.firing_ready_description)
                                     },
                                     color = TextSecondary,
                                     style = MaterialTheme.typography.bodyMedium,
@@ -601,7 +646,7 @@ fun AlarmFiringScreen(
                                         .scale(pulseScale)
                                 )
                                 Text(
-                                    text = "Move outside the saved area",
+                                    text = stringResource(R.string.firing_move_outside),
                                     color = TextPrimary,
                                     style = MaterialTheme.typography.headlineSmall,
                                     textAlign = TextAlign.Center
@@ -883,24 +928,27 @@ fun AlarmFiringScreen(
                         text = if (swipeHint.isBlank()) {
                             if (state.canDismiss) {
                                 if (holdToDismissEnabled && flipToSnoozeEnabled) {
-                                    "Hold Dismiss for 1.5 seconds or swipe right to snooze. Flip the phone over for a quick snooze."
+                                    stringResource(R.string.firing_swipe_hold_flip_hint)
                                 } else if (holdToDismissEnabled) {
-                                    "Hold Dismiss for 1.5 seconds or swipe right to snooze."
+                                    stringResource(R.string.firing_swipe_hold_hint)
                                 } else if (flipToSnoozeEnabled) {
-                                    "Swipe left to dismiss or right to snooze. Flip the phone over for a quick snooze."
+                                    stringResource(R.string.firing_swipe_flip_hint)
                                 } else {
-                                    "Swipe left to dismiss or right to snooze."
+                                    stringResource(R.string.firing_swipe_hint)
                                 }
                             } else if (locationDismissActive && state.wakeChallengeReady) {
-                                "Swipe right to snooze if you need a short reset. Dismiss unlocks after you leave the saved place."
+                                stringResource(R.string.firing_location_snooze_hint)
                             } else {
-                                "Swipe right to snooze if you need a short reset. Dismiss unlocks once the wake-up task is complete."
+                                stringResource(R.string.firing_challenge_snooze_hint)
                             }
                         } else {
                             swipeHint
                         },
                         color = when {
-                            swipeHint.contains("Release") -> MaterialTheme.colorScheme.primary
+                            swipeCumulativeDrag > swipeThreshold / 2 ||
+                                (swipeCumulativeDrag < -swipeThreshold / 2 &&
+                                    state.canDismiss && !holdToDismissEnabled) ->
+                                MaterialTheme.colorScheme.primary
                             state.canDismiss -> TextSecondary
                             else -> TextMuted
                         },
@@ -913,17 +961,17 @@ fun AlarmFiringScreen(
 
             AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                 AppSectionTitle(
-                    title = "Alarm controls",
+                    title = stringResource(R.string.firing_controls_title),
                     description = if (state.canDismiss) {
                         if (holdToDismissEnabled) {
-                            "Hold to confirm dismissal. Snooze remains a quick action."
+                            stringResource(R.string.firing_controls_hold_description)
                         } else {
-                            "Choose the cleanest exit for this alarm now that the wake-up work is done."
+                            stringResource(R.string.firing_controls_ready_description)
                         }
                     } else if (locationDismissActive && state.wakeChallengeReady) {
-                        "Snooze remains available. Dismiss unlocks when location confirms you left the saved area."
+                        stringResource(R.string.firing_controls_location_description)
                     } else {
-                        "Snooze is always available. Dismiss unlocks as soon as the current wake-up step is complete."
+                        stringResource(R.string.firing_controls_locked_description)
                     }
                 )
 
@@ -935,17 +983,24 @@ fun AlarmFiringScreen(
                 ) {
                     AppStatusChip(
                         label = when {
-                            state.canDismiss && holdToDismissEnabled -> "Hold Dismiss to finish"
-                            state.canDismiss && showSwipeControls -> "Swipe left to dismiss"
-                            state.canDismiss -> "Tap to dismiss"
-                            locationDismissActive && state.wakeChallengeReady -> "Dismiss unlocks after location"
-                            else -> "Dismiss unlocks after challenge"
+                            state.canDismiss && holdToDismissEnabled ->
+                                stringResource(R.string.firing_hold_to_finish)
+                            state.canDismiss && showSwipeControls ->
+                                stringResource(R.string.firing_swipe_left_dismiss)
+                            state.canDismiss -> stringResource(R.string.firing_tap_dismiss)
+                            locationDismissActive && state.wakeChallengeReady ->
+                                stringResource(R.string.firing_dismiss_after_location)
+                            else -> stringResource(R.string.firing_dismiss_after_challenge)
                         },
                         icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
                         color = if (state.canDismiss) DismissGreen else TextMuted
                     )
                     AppStatusChip(
-                        label = if (showSwipeControls) "Swipe right to snooze" else "Tap to snooze",
+                        label = if (showSwipeControls) {
+                            stringResource(R.string.firing_swipe_right_snooze)
+                        } else {
+                            stringResource(R.string.firing_tap_snooze)
+                        },
                         icon = Icons.Default.Snooze,
                         color = SnoozeYellow
                     )
@@ -973,9 +1028,10 @@ fun AlarmFiringScreen(
                         ) {
                             Text(
                                 text = when {
-                                    state.canDismiss -> "Dismiss alarm"
-                                    locationDismissActive && state.wakeChallengeReady -> "Leave saved place to dismiss"
-                                    else -> "Finish wake-up challenge"
+                                    state.canDismiss -> stringResource(R.string.dismiss_alarm)
+                                    locationDismissActive && state.wakeChallengeReady ->
+                                        stringResource(R.string.firing_leave_place_to_dismiss)
+                                    else -> stringResource(R.string.firing_finish_challenge)
                                 },
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 16.sp
@@ -994,149 +1050,162 @@ fun AlarmFiringScreen(
                     )
 
                     Text(
-                        text = "Long-press Snooze for exact minutes. Your saved default stays unchanged.",
+                        text = stringResource(R.string.firing_snooze_hint),
                         color = TextMuted,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                TextButton(
-                    onClick = { showSnoozeOptions = !showSnoozeOptions },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    Text(
-                        text = if (showSnoozeOptions) "Hide snooze choices" else "Choose preset or exact minutes",
-                        color = TextSecondary
+                        modifier = Modifier.fillMaxWidth()
                     )
-                }
 
-                if (showSnoozeOptions) {
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    TextButton(
+                        onClick = { showSnoozeOptions = !showSnoozeOptions },
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
-                        listOf(1, 3, 5, 15, 30).forEach { minutes ->
-                            QuickSnoozeButton(
-                                minutes = minutes,
-                                isDefault = minutes == defaultSnoozeMinutes,
-                                onClick = { onSnoozeCustom(minutes) }
-                            )
-                        }
+                        Text(
+                            text = if (showSnoozeOptions) {
+                                stringResource(R.string.firing_hide_snooze_choices)
+                            } else {
+                                stringResource(R.string.firing_choose_snooze)
+                            },
+                            color = TextSecondary
+                        )
                     }
 
-                    SnoozeMinutePicker(
-                        minutes = customSnoozeMinutes,
-                        onMinutesChange = { minutes ->
-                            customSnoozeMinutes = minutes.coerceIn(
-                                MIN_CUSTOM_SNOOZE_MINUTES,
-                                MAX_CUSTOM_SNOOZE_MINUTES
-                            )
-                        },
-                        onSnooze = { onSnoozeCustom(customSnoozeMinutes) }
-                    )
-                }
+                    if (showSnoozeOptions) {
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(1, 3, 5, 15, 30).forEach { minutes ->
+                                QuickSnoozeButton(
+                                    minutes = minutes,
+                                    isDefault = minutes == defaultSnoozeMinutes,
+                                    onClick = { onSnoozeCustom(minutes) }
+                                )
+                            }
+                        }
+
+                        SnoozeMinutePicker(
+                            minutes = customSnoozeMinutes,
+                            onMinutesChange = { minutes ->
+                                customSnoozeMinutes = minutes.coerceIn(
+                                    MIN_CUSTOM_SNOOZE_MINUTES,
+                                    MAX_CUSTOM_SNOOZE_MINUTES
+                                )
+                            },
+                            onSnooze = { onSnoozeCustom(customSnoozeMinutes) }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-private fun Challenge?.headline(): String = when (this) {
-    null -> "Alarm ready"
-    is Challenge.MathChallenge -> "Solve the final problem"
-    is Challenge.ShakeChallenge -> "Shake yourself fully awake"
-    is Challenge.SequenceChallenge -> "Finish the number sequence"
-    is Challenge.MemoryPatternChallenge -> "Repeat the pattern"
-    is Challenge.TypingChallenge -> "Type the wake-up phrase"
-    is Challenge.VoicePhraseChallenge -> "Say the wake-up phrase"
-    is Challenge.HandwritingChallenge -> "Draw the wake-up word"
-    is Challenge.WalkChallenge -> "Walk it off"
-    is Challenge.NfcChallenge -> "Tap the registered NFC tag"
-    is Challenge.BarcodeChallenge -> "Scan the registered code"
-    is Challenge.PhotoMatchChallenge -> "Match the reference photo"
-    is Challenge.SquatChallenge -> "Complete the movement check"
-    is Challenge.PushUpChallenge -> "Do the push-ups"
-    is Challenge.PlankHoldChallenge -> "Hold the plank"
-    is Challenge.MazeChallenge -> "Navigate out of the maze"
-    is Challenge.WifiChallenge -> "Connect to the right network"
-    is Challenge.CountSheepChallenge -> "Count the sheep"
-    is Challenge.SimonSaysChallenge -> "Play back the pattern"
-    is Challenge.DateBackwardsChallenge -> "Type the date backwards"
-    is Challenge.StroopChallenge -> "Tap the ink color"
-    is Challenge.RockPaperScissorsChallenge -> "Win at Rock Paper Scissors"
-    is Challenge.EmojiMemoryChallenge -> "Match the emoji pairs"
-    is Challenge.TypingSpeedChallenge -> "Type at speed"
-    is Challenge.WordleChallenge -> "Solve the Wordle"
-    is Challenge.PvtChallenge -> "React to the stimulus"
-    is Challenge.SpotDifferenceChallenge -> "Spot the difference"
-    is Challenge.ChessMateChallenge -> "Find mate in one"
-    is Challenge.RsvpReadingChallenge -> "Read at speed"
-}
+@Composable
+private fun Challenge?.headline(): String = stringResource(
+    when (this) {
+        null -> R.string.firing_challenge_none_title
+        is Challenge.MathChallenge -> R.string.firing_challenge_math_title
+        is Challenge.ShakeChallenge -> R.string.firing_challenge_shake_title
+        is Challenge.SequenceChallenge -> R.string.firing_challenge_sequence_title
+        is Challenge.MemoryPatternChallenge -> R.string.firing_challenge_memory_title
+        is Challenge.TypingChallenge -> R.string.firing_challenge_typing_title
+        is Challenge.VoicePhraseChallenge -> R.string.firing_challenge_voice_title
+        is Challenge.HandwritingChallenge -> R.string.firing_challenge_handwriting_title
+        is Challenge.WalkChallenge -> R.string.firing_challenge_walk_title
+        is Challenge.NfcChallenge -> R.string.firing_challenge_nfc_title
+        is Challenge.BarcodeChallenge -> R.string.firing_challenge_barcode_title
+        is Challenge.PhotoMatchChallenge -> R.string.firing_challenge_photo_title
+        is Challenge.SquatChallenge -> R.string.firing_challenge_squat_title
+        is Challenge.PushUpChallenge -> R.string.firing_challenge_pushup_title
+        is Challenge.PlankHoldChallenge -> R.string.firing_challenge_plank_title
+        is Challenge.MazeChallenge -> R.string.firing_challenge_maze_title
+        is Challenge.WifiChallenge -> R.string.firing_challenge_wifi_title
+        is Challenge.CountSheepChallenge -> R.string.firing_challenge_sheep_title
+        is Challenge.SimonSaysChallenge -> R.string.firing_challenge_simon_title
+        is Challenge.DateBackwardsChallenge -> R.string.firing_challenge_date_title
+        is Challenge.StroopChallenge -> R.string.firing_challenge_stroop_title
+        is Challenge.RockPaperScissorsChallenge -> R.string.firing_challenge_rps_title
+        is Challenge.EmojiMemoryChallenge -> R.string.firing_challenge_emoji_title
+        is Challenge.TypingSpeedChallenge -> R.string.firing_challenge_speed_title
+        is Challenge.WordleChallenge -> R.string.firing_challenge_wordle_title
+        is Challenge.PvtChallenge -> R.string.firing_challenge_pvt_title
+        is Challenge.SpotDifferenceChallenge -> R.string.firing_challenge_difference_title
+        is Challenge.ChessMateChallenge -> R.string.firing_challenge_chess_title
+        is Challenge.RsvpReadingChallenge -> R.string.firing_challenge_rsvp_title
+    }
+)
 
-private fun Challenge?.supportingText(): String = when (this) {
-    null -> "No extra challenge is required for this alarm."
-    is Challenge.MathChallenge -> "A quick mental check before the alarm can be turned off."
-    is Challenge.ShakeChallenge -> "Physical movement helps stop sleepy autopilot."
-    is Challenge.SequenceChallenge -> "Tap in order without losing your place."
-    is Challenge.MemoryPatternChallenge -> "Watch the tiles, then repeat them exactly."
-    is Challenge.TypingChallenge -> "Typing the phrase confirms you are alert enough to finish."
-    is Challenge.VoicePhraseChallenge -> "Speaking the phrase adds a hands-free wake-up check."
-    is Challenge.HandwritingChallenge -> "Writing the word gives your brain and hands a wake-up check."
-    is Challenge.WalkChallenge -> "A few steps create enough movement to wake up properly."
-    is Challenge.NfcChallenge -> "Use the tag you saved for this alarm."
-    is Challenge.BarcodeChallenge -> "Scan the code you linked to this wake-up routine."
-    is Challenge.PhotoMatchChallenge -> "Take a fresh photo that closely matches the saved reference."
-    is Challenge.SquatChallenge -> "A short movement challenge helps you actually get moving."
-    is Challenge.PushUpChallenge -> "Push-ups force upper-body engagement that resets sleepiness."
-    is Challenge.PlankHoldChallenge -> "A sustained hold proves you are awake and in control."
-    is Challenge.MazeChallenge -> "Stay focused and reach the exit."
-    is Challenge.WifiChallenge -> "This alarm clears once you reconnect where you planned."
-    is Challenge.CountSheepChallenge -> "A light-focus wake-up \u2014 tap only the sheep."
-    is Challenge.SimonSaysChallenge -> "Watch the four-color sequence, then repeat it in order."
-    is Challenge.DateBackwardsChallenge -> "Reading + typing cognitive gate \u2014 hard to do half-asleep."
-    is Challenge.StroopChallenge -> "Classic interference test \u2014 pick the ink, ignore the word."
-    is Challenge.RockPaperScissorsChallenge -> "Best-of-5 against the computer \u2014 first to 3 wins."
-    is Challenge.EmojiMemoryChallenge -> "Memorise 8 pairs while they\u2019re face-up, then find them all."
-    is Challenge.TypingSpeedChallenge -> "Groggy fingers slow you down \u2014 prove you can type at speed."
-    is Challenge.WordleChallenge -> "Find the hidden 5-letter word in up to 6 guesses."
-    is Challenge.PvtChallenge -> "Tap fast when the target appears \u2014 average under 500 ms."
-    is Challenge.SpotDifferenceChallenge -> "Compare both grids and tap the one tile that changed."
-    is Challenge.ChessMateChallenge -> "Pick the checkmate move from a small board position."
-    is Challenge.RsvpReadingChallenge -> "Read a rapid word stream, then identify a word you saw."
-}
+@Composable
+private fun Challenge?.supportingText(): String = stringResource(
+    when (this) {
+        null -> R.string.firing_challenge_none_support
+        is Challenge.MathChallenge -> R.string.firing_challenge_math_support
+        is Challenge.ShakeChallenge -> R.string.firing_challenge_shake_support
+        is Challenge.SequenceChallenge -> R.string.firing_challenge_sequence_support
+        is Challenge.MemoryPatternChallenge -> R.string.firing_challenge_memory_support
+        is Challenge.TypingChallenge -> R.string.firing_challenge_typing_support
+        is Challenge.VoicePhraseChallenge -> R.string.firing_challenge_voice_support
+        is Challenge.HandwritingChallenge -> R.string.firing_challenge_handwriting_support
+        is Challenge.WalkChallenge -> R.string.firing_challenge_walk_support
+        is Challenge.NfcChallenge -> R.string.firing_challenge_nfc_support
+        is Challenge.BarcodeChallenge -> R.string.firing_challenge_barcode_support
+        is Challenge.PhotoMatchChallenge -> R.string.firing_challenge_photo_support
+        is Challenge.SquatChallenge -> R.string.firing_challenge_squat_support
+        is Challenge.PushUpChallenge -> R.string.firing_challenge_pushup_support
+        is Challenge.PlankHoldChallenge -> R.string.firing_challenge_plank_support
+        is Challenge.MazeChallenge -> R.string.firing_challenge_maze_support
+        is Challenge.WifiChallenge -> R.string.firing_challenge_wifi_support
+        is Challenge.CountSheepChallenge -> R.string.firing_challenge_sheep_support
+        is Challenge.SimonSaysChallenge -> R.string.firing_challenge_simon_support
+        is Challenge.DateBackwardsChallenge -> R.string.firing_challenge_date_support
+        is Challenge.StroopChallenge -> R.string.firing_challenge_stroop_support
+        is Challenge.RockPaperScissorsChallenge -> R.string.firing_challenge_rps_support
+        is Challenge.EmojiMemoryChallenge -> R.string.firing_challenge_emoji_support
+        is Challenge.TypingSpeedChallenge -> R.string.firing_challenge_speed_support
+        is Challenge.WordleChallenge -> R.string.firing_challenge_wordle_support
+        is Challenge.PvtChallenge -> R.string.firing_challenge_pvt_support
+        is Challenge.SpotDifferenceChallenge -> R.string.firing_challenge_difference_support
+        is Challenge.ChessMateChallenge -> R.string.firing_challenge_chess_support
+        is Challenge.RsvpReadingChallenge -> R.string.firing_challenge_rsvp_support
+    }
+)
 
-private fun Challenge?.statusDescription(): String = when (this) {
-    is Challenge.MathChallenge -> "Solve the prompt below to unlock dismiss."
-    is Challenge.ShakeChallenge -> "Keep moving until the shake target is complete."
-    is Challenge.SequenceChallenge -> "Tap the numbers in ascending order."
-    is Challenge.MemoryPatternChallenge -> "Memorize first, then repeat the pattern."
-    is Challenge.TypingChallenge -> "Type the full phrase exactly as shown."
-    is Challenge.VoicePhraseChallenge -> "Say the phrase shown below, or use the typed fallback."
-    is Challenge.HandwritingChallenge -> "Draw the displayed word, or use the typed fallback."
-    is Challenge.WalkChallenge -> "Walk enough steps to prove you are up."
-    is Challenge.NfcChallenge -> "Tap the saved NFC tag to continue."
-    is Challenge.BarcodeChallenge -> "Scan the saved barcode or QR code."
-    is Challenge.PhotoMatchChallenge -> "Take a matching photo to finish this wake-up step."
-    is Challenge.SquatChallenge -> "Complete the required number of squats."
-    is Challenge.PushUpChallenge -> "Complete the required push-ups with the phone on the floor."
-    is Challenge.PlankHoldChallenge -> "Hold the phone level for the full duration."
-    is Challenge.MazeChallenge -> "Find the exit without hitting walls."
-    is Challenge.WifiChallenge -> "Reconnect to the required Wi-Fi network."
-    is Challenge.CountSheepChallenge -> "Tap every sheep; avoid the goats."
-    is Challenge.SimonSaysChallenge -> "Wait for playback, then tap the pads in order."
-    is Challenge.DateBackwardsChallenge -> "Type today's date reversed exactly."
-    is Challenge.StroopChallenge -> "Tap the color the word is painted in."
-    is Challenge.RockPaperScissorsChallenge -> "Win 3 rounds to clear the alarm."
-    is Challenge.EmojiMemoryChallenge -> "Flip pairs of matching emoji until all are found."
-    is Challenge.TypingSpeedChallenge -> "Type the phrase fast and accurately to proceed."
-    is Challenge.WordleChallenge -> "Enter a 5-letter guess and use the color clues."
-    is Challenge.PvtChallenge -> "Tap the green square as fast as you can."
-    is Challenge.SpotDifferenceChallenge -> "Tap the changed tile in the right-hand grid."
-    is Challenge.ChessMateChallenge -> "Choose the mate-in-1 move."
-    is Challenge.RsvpReadingChallenge -> "Watch the words, then pick the remembered word."
-    null -> "Swipe or tap dismiss when you're ready."
-}
+@Composable
+private fun Challenge?.statusDescription(): String = stringResource(
+    when (this) {
+        is Challenge.MathChallenge -> R.string.firing_challenge_math_status
+        is Challenge.ShakeChallenge -> R.string.firing_challenge_shake_status
+        is Challenge.SequenceChallenge -> R.string.firing_challenge_sequence_status
+        is Challenge.MemoryPatternChallenge -> R.string.firing_challenge_memory_status
+        is Challenge.TypingChallenge -> R.string.firing_challenge_typing_status
+        is Challenge.VoicePhraseChallenge -> R.string.firing_challenge_voice_status
+        is Challenge.HandwritingChallenge -> R.string.firing_challenge_handwriting_status
+        is Challenge.WalkChallenge -> R.string.firing_challenge_walk_status
+        is Challenge.NfcChallenge -> R.string.firing_challenge_nfc_status
+        is Challenge.BarcodeChallenge -> R.string.firing_challenge_barcode_status
+        is Challenge.PhotoMatchChallenge -> R.string.firing_challenge_photo_status
+        is Challenge.SquatChallenge -> R.string.firing_challenge_squat_status
+        is Challenge.PushUpChallenge -> R.string.firing_challenge_pushup_status
+        is Challenge.PlankHoldChallenge -> R.string.firing_challenge_plank_status
+        is Challenge.MazeChallenge -> R.string.firing_challenge_maze_status
+        is Challenge.WifiChallenge -> R.string.firing_challenge_wifi_status
+        is Challenge.CountSheepChallenge -> R.string.firing_challenge_sheep_status
+        is Challenge.SimonSaysChallenge -> R.string.firing_challenge_simon_status
+        is Challenge.DateBackwardsChallenge -> R.string.firing_challenge_date_status
+        is Challenge.StroopChallenge -> R.string.firing_challenge_stroop_status
+        is Challenge.RockPaperScissorsChallenge -> R.string.firing_challenge_rps_status
+        is Challenge.EmojiMemoryChallenge -> R.string.firing_challenge_emoji_status
+        is Challenge.TypingSpeedChallenge -> R.string.firing_challenge_speed_status
+        is Challenge.WordleChallenge -> R.string.firing_challenge_wordle_status
+        is Challenge.PvtChallenge -> R.string.firing_challenge_pvt_status
+        is Challenge.SpotDifferenceChallenge -> R.string.firing_challenge_difference_status
+        is Challenge.ChessMateChallenge -> R.string.firing_challenge_chess_status
+        is Challenge.RsvpReadingChallenge -> R.string.firing_challenge_rsvp_status
+        null -> R.string.firing_challenge_none_status
+    }
+)
 
 private suspend fun loadFiringBackgroundImage(
     context: Context,
@@ -1182,6 +1251,12 @@ private fun HoldToDismissButton(
 ) {
     var isHolding by remember(enabled) { mutableStateOf(false) }
     var holdProgress by remember(enabled) { mutableFloatStateOf(0f) }
+    val holdDescription = stringResource(
+        if (enabled) R.string.firing_hold_accessibility else R.string.firing_challenge_before_dismiss
+    )
+    val holdStateDescription = stringResource(
+        if (enabled) R.string.firing_dismiss_ready else R.string.firing_dismiss_locked
+    )
 
     LaunchedEffect(enabled, isHolding) {
         if (!enabled) {
@@ -1212,12 +1287,8 @@ private fun HoldToDismissButton(
             .height(56.dp)
             .semantics {
                 role = Role.Button
-                contentDescription = if (enabled) {
-                    "Hold Dismiss for 1.5 seconds"
-                } else {
-                    "Finish the wake-up challenge before dismissing"
-                }
-                stateDescription = if (enabled) "Dismiss ready" else "Dismiss locked"
+                contentDescription = holdDescription
+                stateDescription = holdStateDescription
             }
             .pointerInput(enabled) {
                 awaitEachGesture {
@@ -1266,9 +1337,9 @@ private fun HoldToDismissButton(
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = when {
-                        !enabled -> "Finish wake-up challenge"
-                        isHolding -> "Keep holding"
-                        else -> "Hold 1.5s to dismiss"
+                        !enabled -> stringResource(R.string.firing_finish_challenge)
+                        isHolding -> stringResource(R.string.firing_keep_holding)
+                        else -> stringResource(R.string.firing_hold_to_dismiss_short)
                     },
                     color = if (enabled) DismissGreen else TextMuted,
                     fontWeight = FontWeight.SemiBold,
@@ -1286,15 +1357,17 @@ private fun LongPressSnoozeButton(
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
+    val snoozeLabel = stringResource(R.string.firing_snooze_for_minutes, minutes)
+    val exactSnoozeLabel = stringResource(R.string.firing_choose_snooze)
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
             .combinedClickable(
                 role = Role.Button,
-                onClickLabel = "Snooze for $minutes minutes",
+                onClickLabel = snoozeLabel,
                 onClick = onClick,
-                onLongClickLabel = "Choose exact snooze length",
+                onLongClickLabel = exactSnoozeLabel,
                 onLongClick = onLongClick
             ),
         shape = RoundedCornerShape(12.dp),
@@ -1314,7 +1387,7 @@ private fun LongPressSnoozeButton(
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "Snooze for $minutes min",
+                text = snoozeLabel,
                 color = SnoozeYellow,
                 fontWeight = FontWeight.SemiBold
             )
@@ -1345,19 +1418,19 @@ private fun SnoozeMinutePicker(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Exact snooze",
+                    text = stringResource(R.string.firing_exact_snooze),
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Applies once to this alarm.",
+                    text = stringResource(R.string.firing_exact_snooze_hint),
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
             Text(
-                text = "$minutes min",
+                text = stringResource(R.string.firing_minutes_short, minutes),
                 color = SnoozeYellow,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
@@ -1387,7 +1460,7 @@ private fun SnoozeMinutePicker(
             ) {
                 Icon(
                     imageVector = Icons.Default.Remove,
-                    contentDescription = "Decrease snooze minutes",
+                    contentDescription = stringResource(R.string.firing_decrease_snooze),
                     tint = if (minutes > MIN_CUSTOM_SNOOZE_MINUTES) TextSecondary else TextMuted
                 )
             }
@@ -1403,7 +1476,7 @@ private fun SnoozeMinutePicker(
                 )
             ) {
                 Text(
-                    text = "Snooze $minutes min",
+                    text = stringResource(R.string.firing_snooze_minutes, minutes),
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -1413,7 +1486,7 @@ private fun SnoozeMinutePicker(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Increase snooze minutes",
+                    contentDescription = stringResource(R.string.firing_increase_snooze),
                     tint = if (minutes < MAX_CUSTOM_SNOOZE_MINUTES) TextSecondary else TextMuted
                 )
             }
@@ -1442,12 +1515,12 @@ private fun QuickSnoozeButton(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "$minutes min",
+                text = stringResource(R.string.firing_minutes_short, minutes),
                 fontWeight = FontWeight.SemiBold
             )
             if (isDefault) {
                 AppStatusChip(
-                    label = "Default",
+                    label = stringResource(R.string.firing_default),
                     color = SnoozeYellow
                 )
             }
