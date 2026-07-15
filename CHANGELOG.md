@@ -6,6 +6,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- Android 16 running timers, active snoozes, and Hue sunrise ramps now expose
+  promoted `ProgressStyle` Live Updates with countdown chips. Timers and Hue
+  keep a quiet ongoing chronometer notification on older Android versions,
+  reuse stable IDs across updates, and remove the surface on pause, completion,
+  cancellation, or failure.
 - A new default-off after-dismiss day summary turns the existing morning card
   into a real cached-data handoff: current conditions, today’s high/low and
   precipitation, the next local calendar event, and the alarm routine appear

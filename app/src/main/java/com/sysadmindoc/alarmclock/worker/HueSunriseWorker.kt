@@ -108,18 +108,30 @@ class HueSunriseWorker @AssistedInject constructor(
             return Result.failure()
         }
 
-        for (step in 1..STEPS) {
-            delay(stepMs)
-            val bri = (step * 254 / STEPS).coerceIn(1, 254)
-            if (lightIds.any { id ->
-                    !putLightState(useV2, v2Client, bridgeIp, apiKey, id, on = true, bri = bri, ct = WARM_CT)
+        val rampStart = System.currentTimeMillis()
+        val rampEnd = rampStart + totalMs
+        HueSunriseNotifications.post(applicationContext, alarm.id, rampStart, rampEnd, rampStart)
+        return try {
+            for (step in 1..STEPS) {
+                delay(stepMs)
+                val bri = (step * 254 / STEPS).coerceIn(1, 254)
+                if (lightIds.any { id ->
+                        !putLightState(useV2, v2Client, bridgeIp, apiKey, id, on = true, bri = bri, ct = WARM_CT)
+                    }
+                ) {
+                    return Result.failure()
                 }
-            ) {
-                return Result.failure()
+                HueSunriseNotifications.post(
+                    context = applicationContext,
+                    alarmId = alarm.id,
+                    startWallClockMillis = rampStart,
+                    endWallClockMillis = rampEnd
+                )
             }
+            Result.success()
+        } finally {
+            HueSunriseNotifications.cancel(applicationContext, alarm.id)
         }
-
-        return Result.success()
     }
 
     private fun putLightState(

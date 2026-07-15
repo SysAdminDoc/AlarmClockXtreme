@@ -9,6 +9,7 @@ import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.service.AlarmFireDismissContract
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.ui.timer.TimerAlarmScheduler
+import com.sysadmindoc.alarmclock.ui.timer.TimerNotifications
 import com.sysadmindoc.alarmclock.ui.timer.TimerStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
@@ -90,6 +91,7 @@ class AlarmClockIntentHandler @Inject constructor(
         val result = timerStore.startOrReuse(command.lengthSeconds.toLong(), label)
         if (result.created) {
             TimerAlarmScheduler.schedule(context, result.record.id, result.record.endElapsedRealtime)
+            TimerNotifications.postRunning(context, result.record)
         }
         return AlarmClockHandleResult.Handled(if (command.skipUi) null else ROUTE_TIMER)
     }

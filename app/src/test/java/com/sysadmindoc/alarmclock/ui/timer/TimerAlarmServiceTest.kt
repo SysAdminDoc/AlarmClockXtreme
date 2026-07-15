@@ -12,6 +12,7 @@ import java.time.Duration
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -114,6 +115,60 @@ class TimerAlarmServiceTest {
             "Laundry",
             notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
         )
+    }
+
+    @Test
+    fun `running timer fallback is ongoing private and counts down to elapsed deadline`() {
+        val notification = TimerNotifications.buildRunningNotification(
+            context = context,
+            timer = PersistedTimerRecord(
+                id = 8,
+                label = "Medication",
+                totalSeconds = 600,
+                remainingMillis = 300_000,
+                state = TimerState.RUNNING,
+                endElapsedRealtime = 500_000L
+            ),
+            hidePublicLabel = true,
+            nowElapsedRealtime = 200_000L,
+            nowWallClockMillis = 1_000_000L
+        )
+
+        assertEquals(1_300_000L, notification.`when`)
+        assertTrue(notification.flags and Notification.FLAG_ONGOING_EVENT != 0)
+        assertTrue(notification.extras.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER))
+        assertTrue(notification.extras.getBoolean(Notification.EXTRA_CHRONOMETER_COUNT_DOWN))
+        assertEquals(Notification.VISIBILITY_PRIVATE, notification.visibility)
+        assertEquals("Medication", notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString())
+        assertEquals(
+            "Timer",
+            notification.publicVersion.extras.getCharSequence(Notification.EXTRA_TITLE).toString()
+        )
+    }
+
+    @Test
+    fun `posting and canceling a running timer owns its stable notification id`() {
+        val timer = PersistedTimerRecord(
+            id = 9,
+            label = "Tea",
+            totalSeconds = 60,
+            remainingMillis = 60_000,
+            state = TimerState.RUNNING,
+            endElapsedRealtime = 260_000L
+        )
+        val manager = shadowOf(context.getSystemService(NotificationManager::class.java))
+
+        TimerNotifications.postRunning(
+            context = context,
+            timer = timer,
+            hidePublicLabel = false,
+            nowElapsedRealtime = 200_000L,
+            nowWallClockMillis = 1_000_000L
+        )
+
+        assertNotNull(manager.getNotification(TimerNotifications.notificationId(timer.id)))
+        TimerNotifications.cancelTimer(context, timer.id)
+        assertNull(manager.getNotification(TimerNotifications.notificationId(timer.id)))
     }
 
     @Test

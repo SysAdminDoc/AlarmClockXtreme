@@ -80,6 +80,7 @@ class TimerAlarmService : Service() {
                     stopSelf(startId)
                     return START_NOT_STICKY
                 }
+                TimerNotifications.cancelTimer(this, id)
                 alerts.add(id, label)
                 startForegroundAlert()
                 ensureSoundPlaying()

@@ -157,9 +157,11 @@ class TimerViewModel @Inject constructor(
             isInputMode = true
         )
         val endElapsedRealtime = SystemClock.elapsedRealtime() + totalMillis
+        val persisted = timer.toPersistedRecord(endElapsedRealtime)
         runningEndTimes[id] = endElapsedRealtime
-        timerStore.upsert(timer.toPersistedRecord(endElapsedRealtime))
+        timerStore.upsert(persisted)
         TimerAlarmScheduler.schedule(appContext, id, endElapsedRealtime)
+        TimerNotifications.postRunning(appContext, persisted)
         startCountdownUntil(id, endElapsedRealtime)
     }
 
@@ -168,6 +170,7 @@ class TimerViewModel @Inject constructor(
         countdownJobs.remove(id)?.cancel()
         runningEndTimes.remove(id)
         TimerAlarmScheduler.cancel(appContext, id)
+        TimerNotifications.cancelTimer(appContext, id)
         updateTimer(id) { timer ->
             timer.copy(state = TimerState.PAUSED).also { timerStore.upsert(it.toPersistedRecord()) }
         }
@@ -177,13 +180,13 @@ class TimerViewModel @Inject constructor(
         val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.PAUSED }?.id ?: return
         val timer = _uiState.value.activeTimers.find { it.id == id } ?: return
         val endElapsedRealtime = SystemClock.elapsedRealtime() + timer.remainingMillis
+        val resumed = timer.copy(state = TimerState.RUNNING)
+        val persisted = resumed.toPersistedRecord(endElapsedRealtime)
         runningEndTimes[id] = endElapsedRealtime
-        updateTimer(id) { running ->
-            running.copy(state = TimerState.RUNNING).also {
-                timerStore.upsert(it.toPersistedRecord(endElapsedRealtime))
-            }
-        }
+        updateTimer(id) { resumed }
+        timerStore.upsert(persisted)
         TimerAlarmScheduler.schedule(appContext, id, endElapsedRealtime)
+        TimerNotifications.postRunning(appContext, persisted)
         startCountdownUntil(id, endElapsedRealtime)
     }
 
@@ -284,6 +287,7 @@ class TimerViewModel @Inject constructor(
                 TimerState.RUNNING -> {
                     runningEndTimes[record.id] = record.endElapsedRealtime
                     TimerAlarmScheduler.schedule(appContext, record.id, record.endElapsedRealtime)
+                    TimerNotifications.postRunning(appContext, record)
                     startCountdownUntil(record.id, record.endElapsedRealtime)
                 }
                 TimerState.FINISHED -> Unit
