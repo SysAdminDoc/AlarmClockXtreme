@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -92,6 +93,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -110,6 +113,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.ui.components.AppFeedbackCard
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
@@ -154,46 +158,46 @@ import kotlinx.coroutines.launch
 
 private data class SettingsPaneCategory(
     val id: String,
-    val title: String,
-    val description: String,
+    @StringRes val titleRes: Int,
+    @StringRes val descriptionRes: Int,
     val icon: ImageVector
 )
 
 private val settingsPaneCategories = listOf(
     SettingsPaneCategory(
         id = "readiness",
-        title = "Readiness",
-        description = "Permissions, diagnostics, battery, vacation, and pause controls.",
+        titleRes = R.string.settings_pane_readiness,
+        descriptionRes = R.string.settings_pane_readiness_description,
         icon = Icons.Default.Security
     ),
     SettingsPaneCategory(
         id = "defaults",
-        title = "Defaults",
-        description = "New-alarm behavior, dashboard content, and navigation tabs.",
+        titleRes = R.string.settings_pane_defaults,
+        descriptionRes = R.string.settings_pane_defaults_description,
         icon = Icons.Default.Alarm
     ),
     SettingsPaneCategory(
         id = "integrations",
-        title = "Integrations",
-        description = "Webhook, holidays, Hue, Health Connect, and connection status.",
+        titleRes = R.string.settings_pane_integrations,
+        descriptionRes = R.string.settings_pane_integrations_description,
         icon = Icons.Default.Link
     ),
     SettingsPaneCategory(
         id = "personalization",
-        title = "Personalization",
-        description = "Theme, challenge difficulty, privacy, and firing-screen behavior.",
+        titleRes = R.string.settings_pane_personalization,
+        descriptionRes = R.string.settings_pane_personalization_description,
         icon = Icons.Default.AutoAwesome
     ),
     SettingsPaneCategory(
         id = "backup",
-        title = "Backup",
-        description = "Encrypted export, restore preview, and conflict-safe import.",
+        titleRes = R.string.settings_pane_backup,
+        descriptionRes = R.string.settings_pane_backup_description,
         icon = Icons.Default.Backup
     ),
     SettingsPaneCategory(
         id = "utilities",
-        title = "Utilities",
-        description = "Companion tools, support bundle export, app version, and license.",
+        titleRes = R.string.settings_pane_utilities,
+        descriptionRes = R.string.settings_pane_utilities_description,
         icon = Icons.Default.Speed
     )
 )
@@ -237,6 +241,9 @@ fun SettingsScreen(
     var showClearCommuteHistoryDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val screenScope = rememberCoroutineScope()
+    val supportBundleSubject = stringResource(R.string.settings_support_bundle_subject)
+    val shareSupportBundleTitle = stringResource(R.string.settings_share_support_bundle)
+    val shareUnavailableMessage = stringResource(R.string.settings_share_unavailable)
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) {
@@ -274,14 +281,14 @@ fun SettingsScreen(
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = export.mimeType
             putExtra(Intent.EXTRA_STREAM, export.uri)
-            putExtra(Intent.EXTRA_SUBJECT, "AlarmClockXtreme support bundle")
+            putExtra(Intent.EXTRA_SUBJECT, supportBundleSubject)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         try {
-            context.startActivity(Intent.createChooser(sendIntent, "Share support bundle"))
+            context.startActivity(Intent.createChooser(sendIntent, shareSupportBundleTitle))
         } catch (_: Exception) {
             viewModel.setSupportExportShareFailed()
-            Toast.makeText(context, "No app is available to share this file.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, shareUnavailableMessage, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -302,11 +309,17 @@ fun SettingsScreen(
                     SettingsPaneHeader(selectedPane, state)
                 } else {
                     AlarmClockHeroHeader(
-                        title = "Settings",
-                        subtitle = "Tune the app once and it stays out of your way. Changes save immediately.",
+                        title = stringResource(R.string.settings_title),
+                        subtitle = stringResource(R.string.settings_subtitle),
                         badge = {
                             AppStatusChip(
-                                label = if (state.isIgnoringBatteryOptimizations) "Battery protected" else "Needs battery setup",
+                                label = stringResource(
+                                    if (state.isIgnoringBatteryOptimizations) {
+                                        R.string.settings_battery_protected
+                                    } else {
+                                        R.string.settings_battery_setup_needed
+                                    }
+                                ),
                                 icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
                                 color = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow
                             )
@@ -363,44 +376,44 @@ fun SettingsScreen(
 
             if (showAllSettings || selectedPane.id == "defaults") {
             SettingsGroup(
-                title = "Alarm defaults",
-                description = "Set the behavior new alarms start with so setup feels faster and more predictable."
+                title = stringResource(R.string.settings_alarm_defaults),
+                description = stringResource(R.string.settings_alarm_defaults_description)
             ) {
                 SettingsToggle(
-                    label = "24-hour format",
+                    label = stringResource(R.string.format_24h),
                     checked = state.settings.is24HourFormat,
-                    supportingText = "Use military time everywhere in the app.",
+                    supportingText = stringResource(R.string.settings_24h_description),
                     onToggle = viewModel::toggle24Hour
                 )
                 SettingsToggle(
-                    label = "Show on lock screen",
+                    label = stringResource(R.string.settings_show_lock_screen),
                     checked = state.settings.showOnLockScreen,
-                    supportingText = "Keep alarm controls visible without unlocking.",
+                    supportingText = stringResource(R.string.settings_show_lock_screen_description),
                     onToggle = viewModel::toggleLockScreen
                 )
                 SettingsToggle(
-                    label = "Hide public alarm and timer labels",
+                    label = stringResource(R.string.settings_hide_public_labels),
                     checked = state.settings.hideAlarmLabelsOnPublicSurfaces,
-                    supportingText = "Use neutral text on lock screen, timer notifications, widget, quick settings, and Wear surfaces.",
+                    supportingText = stringResource(R.string.settings_hide_public_labels_description),
                     onToggle = viewModel::toggleHideAlarmLabelsOnPublicSurfaces
                 )
                 SettingsToggle(
-                    label = "Use phone speakers",
+                    label = stringResource(R.string.settings_phone_speakers),
                     checked = state.settings.usePhoneSpeakers,
-                    supportingText = "Route alarm playback through the loudspeaker even with accessories connected.",
+                    supportingText = stringResource(R.string.settings_phone_speakers_description),
                     onToggle = viewModel::togglePhoneSpeakers
                 )
                 SettingsToggle(
-                    label = "Flip phone to snooze",
+                    label = stringResource(R.string.settings_flip_snooze),
                     checked = state.settings.flipToSnoozeEnabled,
-                    supportingText = "A quick face-down gesture can snooze instead of tapping the screen.",
+                    supportingText = stringResource(R.string.settings_flip_snooze_description),
                     onToggle = viewModel::toggleFlipToSnooze
                 )
 
                 SettingsActionRow(
-                    label = "Default snooze",
-                    value = "${state.settings.defaultSnoozeDuration} min",
-                    supportingText = "Used whenever a new alarm doesn’t specify its own snooze length.",
+                    label = stringResource(R.string.settings_default_snooze),
+                    value = stringResource(R.string.settings_minutes_short, state.settings.defaultSnoozeDuration),
+                    supportingText = stringResource(R.string.settings_default_snooze_description),
                     onClick = { showDefaultSnoozeMenu = true }
                 )
                 DropdownMenu(
@@ -409,7 +422,7 @@ fun SettingsScreen(
                 ) {
                     listOf(1, 3, 5, 10, 15, 20, 30).forEach { minutes ->
                         DropdownMenuItem(
-                            text = { Text("$minutes minutes") },
+                            text = { Text(pluralStringResource(R.plurals.settings_minutes, minutes, minutes)) },
                             onClick = {
                                 viewModel.updateDefaultSnooze(minutes)
                                 showDefaultSnoozeMenu = false
@@ -419,9 +432,9 @@ fun SettingsScreen(
                 }
 
                 SettingsActionRow(
-                    label = "Default volume ramp",
+                    label = stringResource(R.string.settings_default_volume_ramp),
                     value = formatSeconds(state.settings.defaultGradualVolume),
-                    supportingText = "Controls how gently new alarms fade in before reaching full volume.",
+                    supportingText = stringResource(R.string.settings_default_volume_ramp_description),
                     onClick = { showGradualVolumeMenu = true }
                 )
                 DropdownMenu(
@@ -442,9 +455,13 @@ fun SettingsScreen(
                 }
 
                 SettingsActionRow(
-                    label = "Auto-silence",
-                    value = if (state.settings.autoSilenceMinutes == 0) "Never" else "${state.settings.autoSilenceMinutes} min",
-                    supportingText = "Fail-safe timeout for alarms that keep ringing unattended.",
+                    label = stringResource(R.string.auto_silence),
+                    value = if (state.settings.autoSilenceMinutes == 0) {
+                        stringResource(R.string.settings_never)
+                    } else {
+                        stringResource(R.string.settings_minutes_short, state.settings.autoSilenceMinutes)
+                    },
+                    supportingText = stringResource(R.string.settings_auto_silence_description),
                     onClick = { showAutoSilenceMenu = true }
                 )
                 DropdownMenu(
@@ -453,7 +470,12 @@ fun SettingsScreen(
                 ) {
                     listOf(0, 5, 10, 15, 30).forEach { minutes ->
                         DropdownMenuItem(
-                            text = { Text(if (minutes == 0) "Never" else "$minutes minutes") },
+                            text = {
+                                Text(
+                                    if (minutes == 0) stringResource(R.string.settings_never)
+                                    else pluralStringResource(R.plurals.settings_minutes, minutes, minutes)
+                                )
+                            },
                             onClick = {
                                 viewModel.updateAutoSilence(minutes)
                                 showAutoSilenceMenu = false
@@ -464,41 +486,41 @@ fun SettingsScreen(
             }
 
             SettingsGroup(
-                title = "Dashboard",
-                description = "Control what appears on the My Day screen so it stays useful without feeling busy."
+                title = stringResource(R.string.settings_dashboard),
+                description = stringResource(R.string.settings_dashboard_description)
             ) {
                 SettingsToggle(
-                    label = "Show weather",
+                    label = stringResource(R.string.show_weather),
                     checked = state.settings.showWeatherOnDashboard,
-                    supportingText = "Current conditions and a short forecast.",
+                    supportingText = stringResource(R.string.settings_show_weather_description),
                     onToggle = viewModel::toggleShowWeather
                 )
                 SettingsToggle(
-                    label = "Show calendar",
+                    label = stringResource(R.string.show_calendar),
                     checked = state.settings.showCalendarOnDashboard,
-                    supportingText = "Display today’s events and meeting times.",
+                    supportingText = stringResource(R.string.settings_show_calendar_description),
                     onToggle = viewModel::toggleShowCalendar
                 )
                 SettingsToggle(
-                    label = "After-dismiss day summary",
+                    label = stringResource(R.string.settings_post_dismiss_summary),
                     checked = state.settings.postDismissSummaryEnabled,
-                    supportingText = "After the final dismiss step, show cached weather and the next local calendar event. No network request is made.",
+                    supportingText = stringResource(R.string.settings_post_dismiss_summary_description),
                     onToggle = viewModel::togglePostDismissSummary
                 )
                 SettingsToggle(
-                    label = "First-meeting auto-alarm",
+                    label = stringResource(R.string.settings_first_meeting_alarm),
                     checked = state.settings.calendarAutoAlarmEnabled,
                     supportingText = if (state.settings.calendarAutoAlarmEnabled) {
-                        "Keeps one Calendar alarm shifted to tomorrow's first timed event."
+                        stringResource(R.string.settings_first_meeting_enabled_description)
                     } else {
-                        "Create one reusable alarm before tomorrow's first timed event."
+                        stringResource(R.string.settings_first_meeting_disabled_description)
                     },
                     onToggle = viewModel::toggleCalendarAutoAlarm
                 )
                 SettingsActionRow(
-                    label = "Meeting lead time",
-                    value = "${state.settings.calendarAutoAlarmMinutesBefore} min",
-                    supportingText = "How early the Calendar alarm fires before the first meeting.",
+                    label = stringResource(R.string.settings_meeting_lead_time),
+                    value = stringResource(R.string.settings_minutes_short, state.settings.calendarAutoAlarmMinutesBefore),
+                    supportingText = stringResource(R.string.settings_meeting_lead_description),
                     onClick = { showCalendarLeadMenu = true }
                 )
                 DropdownMenu(
@@ -507,7 +529,7 @@ fun SettingsScreen(
                 ) {
                     listOf(15, 30, 45, 60, 90, 120).forEach { minutes ->
                         DropdownMenuItem(
-                            text = { Text("$minutes minutes") },
+                            text = { Text(pluralStringResource(R.plurals.settings_minutes, minutes, minutes)) },
                             onClick = {
                                 viewModel.updateCalendarAutoAlarmMinutes(minutes)
                                 showCalendarLeadMenu = false
@@ -516,20 +538,20 @@ fun SettingsScreen(
                     }
                 }
                 SettingsToggle(
-                    label = "Commute-aware auto-alarm",
+                    label = stringResource(R.string.settings_commute_aware),
                     checked = state.settings.calendarCommuteAwareEnabled,
-                    supportingText = "For first meetings with a location, add transit/weather buffer before the calendar lead time.",
+                    supportingText = stringResource(R.string.settings_commute_aware_description),
                     enabled = state.settings.calendarAutoAlarmEnabled,
                     onToggle = viewModel::toggleCalendarCommuteAware
                 )
                 SettingsActionRow(
-                    label = "Normal commute",
+                    label = stringResource(R.string.settings_normal_commute),
                     value = if (state.settings.calendarCommuteBaselineMinutes == 0) {
-                        "Use lead time"
+                        stringResource(R.string.settings_use_lead_time)
                     } else {
-                        "${state.settings.calendarCommuteBaselineMinutes} min"
+                        stringResource(R.string.settings_minutes_short, state.settings.calendarCommuteBaselineMinutes)
                     },
-                    supportingText = "Route estimates above this baseline shift the auto-alarm earlier.",
+                    supportingText = stringResource(R.string.settings_normal_commute_description),
                     onClick = { showCommuteBaselineMenu = true },
                     enabled = state.settings.calendarCommuteAwareEnabled
                 )
@@ -539,7 +561,12 @@ fun SettingsScreen(
                 ) {
                     listOf(0, 15, 30, 45, 60, 90, 120).forEach { minutes ->
                         DropdownMenuItem(
-                            text = { Text(if (minutes == 0) "Use meeting lead time" else "$minutes minutes") },
+                            text = {
+                                Text(
+                                    if (minutes == 0) stringResource(R.string.settings_use_meeting_lead)
+                                    else pluralStringResource(R.plurals.settings_minutes, minutes, minutes)
+                                )
+                            },
                             onClick = {
                                 viewModel.updateCalendarCommuteBaselineMinutes(minutes)
                                 showCommuteBaselineMenu = false
@@ -548,9 +575,9 @@ fun SettingsScreen(
                     }
                 }
                 SettingsActionRow(
-                    label = "Bad-weather buffer",
-                    value = "${state.settings.calendarCommuteWeatherExtraMinutes} min",
-                    supportingText = "Added when the event day forecast has snow, ice, storms, or heavy precipitation.",
+                    label = stringResource(R.string.settings_weather_buffer),
+                    value = stringResource(R.string.settings_minutes_short, state.settings.calendarCommuteWeatherExtraMinutes),
+                    supportingText = stringResource(R.string.settings_weather_buffer_description),
                     onClick = { showCommuteWeatherMenu = true },
                     enabled = state.settings.calendarCommuteAwareEnabled
                 )
@@ -560,7 +587,12 @@ fun SettingsScreen(
                 ) {
                     listOf(0, 10, 15, 20, 30, 45, 60).forEach { minutes ->
                         DropdownMenuItem(
-                            text = { Text(if (minutes == 0) "No weather buffer" else "$minutes minutes") },
+                            text = {
+                                Text(
+                                    if (minutes == 0) stringResource(R.string.settings_no_weather_buffer)
+                                    else pluralStringResource(R.plurals.settings_minutes, minutes, minutes)
+                                )
+                            },
                             onClick = {
                                 viewModel.updateCalendarCommuteWeatherExtraMinutes(minutes)
                                 showCommuteWeatherMenu = false
@@ -571,8 +603,8 @@ fun SettingsScreen(
                 BufferedSettingsTextField(
                     value = state.settings.googleRoutesApiKey,
                     onCommit = viewModel::updateGoogleRoutesApiKey,
-                    label = { Text("Google Routes API key") },
-                    placeholder = { Text("Optional for transit ETA") },
+                    label = { Text(stringResource(R.string.settings_routes_api_key)) },
+                    placeholder = { Text(stringResource(R.string.settings_routes_api_placeholder)) },
                     enabled = state.settings.calendarCommuteAwareEnabled,
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -580,30 +612,36 @@ fun SettingsScreen(
                 )
                 if (state.settings.calendarCommuteAwareEnabled && state.settings.googleRoutesApiKey.isBlank()) {
                     AppInlineNotice(
-                        title = "Offline commute fallback",
-                        message = "After three successful route estimates, failures can use a conservative 45-day on-device history plus the weather buffer.",
+                        title = stringResource(R.string.settings_commute_fallback),
+                        message = stringResource(R.string.settings_commute_fallback_description),
                         icon = Icons.Default.Cloud,
                         color = AccentBlue
                     )
                 }
                 SettingsActionRow(
-                    label = "Learned commute history",
-                    value = "Clear",
-                    supportingText = "Stores only hashed route keys and up to eight recent durations per route on this device; locations are excluded from support bundles.",
+                    label = stringResource(R.string.settings_commute_history),
+                    value = stringResource(R.string.settings_clear),
+                    supportingText = stringResource(R.string.settings_commute_history_description),
                     onClick = { showClearCommuteHistoryDialog = true },
                     enabled = state.settings.calendarCommuteAwareEnabled
                 )
                 SettingsActionRow(
-                    label = "Temperature unit",
-                    value = if (state.settings.temperatureUnit == "celsius") "Celsius (\u00B0C)" else "Fahrenheit (\u00B0F)",
-                    supportingText = "Applied across the dashboard and weather cards.",
+                    label = stringResource(R.string.temperature_unit),
+                    value = stringResource(
+                        if (state.settings.temperatureUnit == "celsius") R.string.settings_celsius
+                        else R.string.settings_fahrenheit
+                    ),
+                    supportingText = stringResource(R.string.settings_temperature_description),
                     onClick = { showTemperatureMenu = true }
                 )
                 DropdownMenu(
                     expanded = showTemperatureMenu,
                     onDismissRequest = { showTemperatureMenu = false }
                 ) {
-                    listOf("fahrenheit" to "Fahrenheit (\u00B0F)", "celsius" to "Celsius (\u00B0C)").forEach { (unit, label) ->
+                    listOf(
+                        "fahrenheit" to stringResource(R.string.settings_fahrenheit),
+                        "celsius" to stringResource(R.string.settings_celsius)
+                    ).forEach { (unit, label) ->
                         DropdownMenuItem(
                             text = { Text(label) },
                             onClick = {
@@ -619,53 +657,55 @@ fun SettingsScreen(
                 if (showClearCommuteHistoryDialog) {
                     AlertDialog(
                         onDismissRequest = { showClearCommuteHistoryDialog = false },
-                        title = { Text("Clear learned commute history?") },
-                        text = { Text("Calendar auto-alarms will use live Routes estimates or your manual baseline until enough new local samples are learned.") },
+                        title = { Text(stringResource(R.string.settings_clear_commute_title)) },
+                        text = { Text(stringResource(R.string.settings_clear_commute_message)) },
                         confirmButton = {
                             TextButton(onClick = {
                                 viewModel.clearLearnedCommuteHistory()
                                 showClearCommuteHistoryDialog = false
-                            }) { Text("Clear history") }
+                            }) { Text(stringResource(R.string.settings_clear_history)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showClearCommuteHistoryDialog = false }) { Text("Cancel") }
+                            TextButton(onClick = { showClearCommuteHistoryDialog = false }) {
+                                Text(stringResource(R.string.cancel))
+                            }
                         }
                     )
                 }
             }
 
             SettingsGroup(
-                title = "Bottom navigation",
-                description = "Hide tabs you never use. Alarms and Settings always stay available."
+                title = stringResource(R.string.settings_bottom_navigation),
+                description = stringResource(R.string.settings_bottom_navigation_description)
             ) {
                 SettingsToggle(
-                    label = "Show Today tab",
+                    label = stringResource(R.string.settings_show_today_tab),
                     checked = state.settings.showDashboardTab,
-                    supportingText = "Daily overview — conditions, hourly, UV, sunrise/sunset, and live radar.",
+                    supportingText = stringResource(R.string.settings_show_today_description),
                     onToggle = viewModel::toggleShowDashboardTab
                 )
                 SettingsToggle(
-                    label = "Show Timer tab",
+                    label = stringResource(R.string.settings_show_timer_tab),
                     checked = state.settings.showTimerTab,
-                    supportingText = "Countdown timers with multiple lanes.",
+                    supportingText = stringResource(R.string.settings_show_timer_description),
                     onToggle = viewModel::toggleShowTimerTab
                 )
                 SettingsToggle(
-                    label = "Show World tab",
+                    label = stringResource(R.string.settings_show_world_tab),
                     checked = state.settings.showWorldClockTab,
-                    supportingText = "Track time zones for cities you care about.",
+                    supportingText = stringResource(R.string.settings_show_world_description),
                     onToggle = viewModel::toggleShowWorldClockTab
                 )
                 SettingsToggle(
-                    label = "Show News tab",
+                    label = stringResource(R.string.settings_show_news_tab),
                     checked = state.settings.showNewsTab,
-                    supportingText = "Public RSS feeds — Google News, BBC, NPR, Hacker News.",
+                    supportingText = stringResource(R.string.settings_show_news_description),
                     onToggle = viewModel::toggleShowNewsTab
                 )
                 SettingsToggle(
-                    label = "Live radar on Weather tab",
+                    label = stringResource(R.string.settings_radar_tab),
                     checked = state.settings.showRadarEmbed,
-                    supportingText = "Embed Windy.com's animated precipitation radar below the conditions card.",
+                    supportingText = stringResource(R.string.settings_radar_description),
                     onToggle = viewModel::toggleShowRadarEmbed
                 )
             }
@@ -691,34 +731,34 @@ fun SettingsScreen(
 
             if (showAllSettings || selectedPane.id == "utilities") {
             SettingsGroup(
-                title = "Utilities",
-                description = "Quick access to companion tools that round out the app."
+                title = stringResource(R.string.settings_utilities),
+                description = stringResource(R.string.settings_utilities_description)
             ) {
                 UtilityShortcutCard(
                     icon = Icons.Default.BarChart,
-                    title = "Alarm statistics",
-                    description = "Review streaks, response times, and habits over time.",
+                    title = stringResource(R.string.settings_alarm_statistics),
+                    description = stringResource(R.string.settings_alarm_statistics_description),
                     onClick = onNavigateToStats
                 )
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
                 UtilityShortcutCard(
                     icon = Icons.Default.Speed,
-                    title = "Stopwatch",
-                    description = "Track laps with best and worst splits highlighted.",
+                    title = stringResource(R.string.nav_stopwatch),
+                    description = stringResource(R.string.settings_stopwatch_description),
                     onClick = onNavigateToStopwatch
                 )
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
                 UtilityShortcutCard(
                     icon = Icons.Default.Bedtime,
-                    title = "Bedtime",
-                    description = "Set a sleep goal and keep your routine feeling intentional.",
+                    title = stringResource(R.string.nav_bedtime),
+                    description = stringResource(R.string.settings_bedtime_description),
                     onClick = onNavigateToBedtime
                 )
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
                 UtilityShortcutCard(
                     icon = Icons.Default.DarkMode,
-                    title = "Night clock",
-                    description = "Full-screen bedside clock with a warm low-light glow for bedside use.",
+                    title = stringResource(R.string.settings_night_clock),
+                    description = stringResource(R.string.settings_night_clock_description),
                     onClick = {
                         val intent = Intent(
                             context,
@@ -730,11 +770,11 @@ fun SettingsScreen(
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
                 UtilityShortcutCard(
                     icon = Icons.Default.BugReport,
-                    title = "Export support bundle",
+                    title = stringResource(R.string.settings_export_support_bundle),
                     description = if (supportExportBusy) {
-                        "Packaging local crash logs and redacted diagnostics..."
+                        stringResource(R.string.settings_packaging_diagnostics)
                     } else {
-                        "Share local crash logs plus redacted wake, incident, and alarm diagnostics."
+                        stringResource(R.string.settings_support_bundle_description)
                     },
                     onClick = {
                         if (!supportExportBusy) {
@@ -760,7 +800,7 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "Packaging support bundle",
+                            text = stringResource(R.string.settings_packaging_support_bundle),
                             color = TextPrimary,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -771,7 +811,9 @@ fun SettingsScreen(
             supportExportResult?.let { message ->
                 val failed = isFailureStatusMessage(message)
                 AppFeedbackCard(
-                    title = if (failed) "Support export failed" else "Support bundle ready",
+                    title = stringResource(
+                        if (failed) R.string.settings_support_export_failed else R.string.settings_support_bundle_ready
+                    ),
                     message = message,
                     icon = if (failed) Icons.Default.Warning else Icons.Default.BugReport,
                     color = if (failed) AccentRed else DismissGreen,
@@ -780,14 +822,14 @@ fun SettingsScreen(
             }
 
             SettingsGroup(
-                title = "About",
-                description = "A quick reference for what’s running on this device."
+                title = stringResource(R.string.about),
+                description = stringResource(R.string.settings_about_description)
             ) {
-                SettingsInfo("Version", state.appVersion)
-                SettingsInfo("Device", state.deviceModel)
-                SettingsInfo("Android", state.androidVersion)
-                SettingsInfo("License", "Apache License 2.0")
-                SettingsInfo("Source", "github.com/SysAdminDoc/AlarmClockXtreme")
+                SettingsInfo(stringResource(R.string.settings_version), state.appVersion)
+                SettingsInfo(stringResource(R.string.settings_device), state.deviceModel)
+                SettingsInfo(stringResource(R.string.settings_android), state.androidVersion)
+                SettingsInfo(stringResource(R.string.settings_license), stringResource(R.string.settings_license_value))
+                SettingsInfo(stringResource(R.string.settings_source), stringResource(R.string.settings_source_value))
             }
             }
 
@@ -839,8 +881,8 @@ private fun SettingsPaneHeader(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         AppSectionTitle(
-            title = category.title,
-            description = category.description,
+            title = stringResource(category.titleRes),
+            description = stringResource(category.descriptionRes),
             action = {
                 AppStatusChip(
                     label = state.appVersion,
@@ -855,12 +897,18 @@ private fun SettingsPaneHeader(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
-                label = if (state.isIgnoringBatteryOptimizations) "Battery protected" else "Needs battery setup",
+                label = stringResource(
+                    if (state.isIgnoringBatteryOptimizations) {
+                        R.string.settings_battery_protected
+                    } else {
+                        R.string.settings_battery_setup_needed
+                    }
+                ),
                 icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
                 color = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow
             )
             AppStatusChip(
-                label = category.title,
+                label = stringResource(category.titleRes),
                 icon = category.icon,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -876,9 +924,12 @@ private fun SettingsPaneRail(
     state: SettingsUiState,
     modifier: Modifier = Modifier
 ) {
+    val categoriesDescription = stringResource(R.string.settings_categories_accessibility)
+    val selectedDescription = stringResource(R.string.settings_selected)
+    val notSelectedDescription = stringResource(R.string.settings_not_selected)
     AppSurfaceCard(
         modifier = modifier.semantics {
-            contentDescription = "Settings categories"
+            contentDescription = categoriesDescription
         },
         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
     ) {
@@ -889,13 +940,13 @@ private fun SettingsPaneRail(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Settings",
+                text = stringResource(R.string.settings_title),
                 color = TextPrimary,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Choose a group to keep wide screens focused.",
+                text = stringResource(R.string.settings_choose_group_hint),
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -906,7 +957,13 @@ private fun SettingsPaneRail(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AppStatusChip(
-                    label = if (state.isIgnoringBatteryOptimizations) "Protected" else "Setup needed",
+                    label = stringResource(
+                        if (state.isIgnoringBatteryOptimizations) {
+                            R.string.settings_protected
+                        } else {
+                            R.string.settings_setup_needed
+                        }
+                    ),
                     icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
                     color = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow
                 )
@@ -926,7 +983,7 @@ private fun SettingsPaneRail(
                         .clickable(role = Role.Button) { onSelect(category.id) }
                         .semantics {
                             this.selected = selected
-                            stateDescription = if (selected) "Selected" else "Not selected"
+                            stateDescription = if (selected) selectedDescription else notSelectedDescription
                         },
                     shape = RoundedCornerShape(10.dp),
                     color = if (selected) {
@@ -956,13 +1013,13 @@ private fun SettingsPaneRail(
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(
-                                text = category.title,
+                                text = stringResource(category.titleRes),
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
                             )
                             Text(
-                                text = category.description,
+                                text = stringResource(category.descriptionRes),
                                 color = TextSecondary,
                                 style = MaterialTheme.typography.bodySmall,
                                 maxLines = 2,
