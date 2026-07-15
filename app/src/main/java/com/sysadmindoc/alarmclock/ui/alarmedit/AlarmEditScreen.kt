@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.ui.alarmedit
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import androidx.annotation.StringRes
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -44,6 +47,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.BuildConfig
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
@@ -66,16 +70,45 @@ import java.time.DayOfWeek
 import java.util.Locale
 
 internal enum class AlarmEditorPage(
-    val title: String,
-    val subtitle: String
+    @StringRes val titleRes: Int,
+    @StringRes val subtitleRes: Int
 ) {
-    OVERVIEW("Alarm overview", "Time, recurrence, label, and current setting summaries."),
-    SOUND("Sound & vibration", "Ringtone, volume, fade-in, and vibration behavior."),
-    DISMISS("Snooze & dismiss", "Snooze timing, challenges, and dismissal safeguards."),
-    SCHEDULE("Schedule & smart wake", "Upcoming rings, holiday policy, and smart wake timing."),
-    WAKE("Wake experience", "Wake effects, announcements, confirmation, and morning routine."),
-    INTEGRATIONS("Integrations & safety", "Hue, audio services, and guardian escalation."),
-    ADVANCED("Advanced behavior", "Shift, solar, hardware, and power-user controls.")
+    OVERVIEW(R.string.alarm_edit_page_overview, R.string.alarm_edit_page_overview_subtitle),
+    SOUND(R.string.alarm_edit_page_sound, R.string.alarm_edit_page_sound_subtitle),
+    DISMISS(R.string.alarm_edit_page_dismiss, R.string.alarm_edit_page_dismiss_subtitle),
+    SCHEDULE(R.string.alarm_edit_page_schedule, R.string.alarm_edit_page_schedule_subtitle),
+    WAKE(R.string.alarm_edit_page_wake, R.string.alarm_edit_page_wake_subtitle),
+    INTEGRATIONS(R.string.alarm_edit_page_integrations, R.string.alarm_edit_page_integrations_subtitle),
+    ADVANCED(R.string.alarm_edit_page_advanced, R.string.alarm_edit_page_advanced_subtitle)
+}
+
+private enum class AlarmEditorSection(
+    val page: AlarmEditorPage,
+    @StringRes val titleRes: Int,
+    @StringRes val descriptionRes: Int
+) {
+    LABEL(AlarmEditorPage.OVERVIEW, R.string.label, R.string.alarm_edit_section_label_description),
+    GROUP(AlarmEditorPage.OVERVIEW, R.string.alarm_edit_group, R.string.alarm_edit_section_group_description),
+    SOUND(AlarmEditorPage.SOUND, R.string.alarm_edit_sound, R.string.alarm_edit_section_sound_description),
+    VIBRATION(AlarmEditorPage.SOUND, R.string.vibration, R.string.alarm_edit_section_vibration_description),
+    SNOOZE(AlarmEditorPage.DISMISS, R.string.alarm_edit_snooze, R.string.alarm_edit_section_snooze_description),
+    UPCOMING(AlarmEditorPage.SCHEDULE, R.string.alarm_edit_upcoming_dates, R.string.alarm_edit_section_upcoming_description),
+    DISMISS_CHALLENGE(AlarmEditorPage.DISMISS, R.string.dismiss_challenge, R.string.alarm_edit_section_challenge_description),
+    LOCATION(AlarmEditorPage.DISMISS, R.string.alarm_edit_location_lock, R.string.alarm_edit_section_location_description),
+    WAKE_EFFECTS(AlarmEditorPage.WAKE, R.string.alarm_edit_wake_effects, R.string.alarm_edit_section_wake_effects_description),
+    ANNOUNCEMENT(AlarmEditorPage.WAKE, R.string.alarm_edit_announcement, R.string.alarm_edit_section_announcement_description),
+    WAKE_CONFIRM(AlarmEditorPage.WAKE, R.string.alarm_edit_wake_confirmation, R.string.alarm_edit_section_wake_confirmation_description),
+    SMART_ALARM(AlarmEditorPage.SCHEDULE, R.string.alarm_edit_smart_alarm, R.string.alarm_edit_section_smart_alarm_description),
+    HOLIDAYS(AlarmEditorPage.SCHEDULE, R.string.alarm_edit_holidays, R.string.alarm_edit_section_holidays_description),
+    SPOTIFY(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_spotify, R.string.alarm_edit_section_spotify_description),
+    HUE(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_hue, R.string.alarm_edit_section_hue_description),
+    CHAIN(AlarmEditorPage.DISMISS, R.string.alarm_edit_mission_chain, R.string.alarm_edit_section_chain_description),
+    ANTI_SNOOZE(AlarmEditorPage.DISMISS, R.string.alarm_edit_anti_snooze, R.string.alarm_edit_section_anti_snooze_description),
+    SUNRISE(AlarmEditorPage.WAKE, R.string.alarm_edit_sunrise, R.string.alarm_edit_section_sunrise_description),
+    RADIO(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_internet_radio, R.string.alarm_edit_section_radio_description),
+    GUARDIAN(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_guardian, R.string.alarm_edit_section_guardian_description),
+    ROUTINE(AlarmEditorPage.WAKE, R.string.alarm_edit_morning_routine, R.string.alarm_edit_section_routine_description),
+    ADVANCED(AlarmEditorPage.ADVANCED, R.string.alarm_edit_advanced, R.string.alarm_edit_section_advanced_description)
 }
 
 private val LocalAlarmEditorPage = staticCompositionLocalOf { AlarmEditorPage.OVERVIEW }
@@ -134,6 +167,16 @@ fun AlarmEditScreen(
         ?: AlarmEditorPage.OVERVIEW
     val editorScrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val noReferencePhotoMessage = stringResource(R.string.alarm_edit_photo_none_captured)
+    val referencePhotoSavedMessage = stringResource(R.string.alarm_edit_photo_saved)
+    val referencePhotoSaveFailedMessage = stringResource(R.string.alarm_edit_photo_save_failed)
+    val cameraPermissionMessage = stringResource(R.string.alarm_edit_camera_permission_required)
+    val noBackgroundMessage = stringResource(R.string.alarm_edit_background_none_selected)
+    val backgroundSelectedMessage = stringResource(R.string.alarm_edit_background_selected)
+    val backgroundPermissionMessage = stringResource(R.string.alarm_edit_background_permission_warning)
+    val locationSavedMessage = stringResource(R.string.alarm_edit_location_saved)
+    val locationFixFailedMessage = stringResource(R.string.alarm_edit_location_fix_failed)
+    val locationPermissionMessage = stringResource(R.string.alarm_edit_location_permission_required)
 
     val requestNavigateBack = {
         when (alarmEditorExitDecision(state.hasUnsavedChanges, state.isSaving, editorPage)) {
@@ -164,7 +207,7 @@ fun AlarmEditScreen(
         ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap == null) {
-            photoReferenceStatus = "No reference photo captured."
+            photoReferenceStatus = noReferencePhotoMessage
             return@rememberLauncherForActivityResult
         }
 
@@ -177,9 +220,9 @@ fun AlarmEditScreen(
             PhotoMatcher.saveReference(context, referenceKey, bitmap)
         }.onSuccess { uri ->
             viewModel.updatePhotoMatchUri(uri)
-            photoReferenceStatus = "Reference photo saved."
+            photoReferenceStatus = referencePhotoSavedMessage
         }.onFailure {
-            photoReferenceStatus = "Could not save reference photo."
+            photoReferenceStatus = referencePhotoSaveFailedMessage
         }
         if (!bitmap.isRecycled) bitmap.recycle()
     }
@@ -189,7 +232,7 @@ fun AlarmEditScreen(
         if (granted) {
             photoReferenceLauncher.launch(null)
         } else {
-            photoReferenceStatus = "Camera permission is required to capture a reference photo."
+            photoReferenceStatus = cameraPermissionMessage
         }
     }
     val captureReferencePhoto = {
@@ -205,7 +248,7 @@ fun AlarmEditScreen(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri == null) {
-            firingBackgroundStatus = "No background image selected."
+            firingBackgroundStatus = noBackgroundMessage
             return@rememberLauncherForActivityResult
         }
         val persisted = runCatching {
@@ -216,18 +259,18 @@ fun AlarmEditScreen(
         }.isSuccess
         viewModel.updateFiringBackgroundImage(uri.toString())
         firingBackgroundStatus = if (persisted) {
-            "Background image selected."
+            backgroundSelectedMessage
         } else {
-            "Background image selected. Re-select it if Android revokes access."
+            backgroundPermissionMessage
         }
     }
     val captureLocationDismissTarget = {
         val location = LocationHelper.getLastKnownLocation(context)
         if (location != null) {
             viewModel.updateLocationDismissTarget(location.latitude, location.longitude)
-            locationDismissStatus = "Saved current place for location dismissal."
+            locationDismissStatus = locationSavedMessage
         } else {
-            locationDismissStatus = "Could not get a location fix. Turn on Location and try again."
+            locationDismissStatus = locationFixFailedMessage
         }
     }
     val locationDismissPermissionLauncher = rememberLauncherForActivityResult(
@@ -236,7 +279,7 @@ fun AlarmEditScreen(
         if (granted) {
             captureLocationDismissTarget()
         } else {
-            locationDismissStatus = "Location permission is required to save this dismissal lock."
+            locationDismissStatus = locationPermissionMessage
         }
     }
     val requestLocationDismissTarget = {
@@ -276,8 +319,8 @@ fun AlarmEditScreen(
     if (showDiscardConfirmation) {
         AlertDialog(
             onDismissRequest = { showDiscardConfirmation = false },
-            title = { Text("Discard unsaved changes?") },
-            text = { Text("Your alarm edits have not been saved. Keep editing or discard them.") },
+            title = { Text(stringResource(R.string.alarm_edit_discard_title)) },
+            text = { Text(stringResource(R.string.alarm_edit_discard_message)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -285,12 +328,12 @@ fun AlarmEditScreen(
                         onNavigateBack()
                     }
                 ) {
-                    Text("Discard changes")
+                    Text(stringResource(R.string.alarm_edit_discard_action))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDiscardConfirmation = false }) {
-                    Text("Keep editing")
+                    Text(stringResource(R.string.alarm_edit_keep_editing))
                 }
             }
         )
@@ -301,15 +344,15 @@ fun AlarmEditScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             val editorTitle = if (editorPage == AlarmEditorPage.OVERVIEW) {
-                if (state.isEditing) "Edit Alarm" else "New Alarm"
-            } else editorPage.title
+                stringResource(if (state.isEditing) R.string.edit_alarm else R.string.new_alarm)
+            } else stringResource(editorPage.titleRes)
             val editorSubtitle = if (editorPage == AlarmEditorPage.OVERVIEW) {
                 if (state.isEditing) {
-                    "Refine timing, sound, and wake-up behavior."
+                    stringResource(R.string.alarm_edit_existing_subtitle)
                 } else {
-                    "Build an alarm that feels intentional from the first ring."
+                    stringResource(R.string.alarm_edit_new_subtitle)
                 }
-            } else editorPage.subtitle
+            } else stringResource(editorPage.subtitleRes)
             TopAppBar(
                 title = {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -333,9 +376,9 @@ fun AlarmEditScreen(
                                 Icons.AutoMirrored.Filled.ArrowBack
                             },
                             contentDescription = if (editorPage == AlarmEditorPage.OVERVIEW) {
-                                "Cancel alarm editing"
+                                stringResource(R.string.alarm_edit_cancel_accessibility)
                             } else {
-                                "Back to alarm overview"
+                                stringResource(R.string.alarm_edit_back_overview_accessibility)
                             },
                             tint = TextPrimary
                         )
@@ -383,7 +426,11 @@ fun AlarmEditScreen(
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (state.isSaving) "Saving alarm..." else if (state.isEditing) "Save changes" else "Create alarm",
+                            text = when {
+                                state.isSaving -> stringResource(R.string.alarm_edit_saving)
+                                state.isEditing -> stringResource(R.string.alarm_edit_save_changes)
+                                else -> stringResource(R.string.alarm_edit_create)
+                            },
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -408,12 +455,14 @@ fun AlarmEditScreen(
                 highlighted = true
             ) {
                 AppSectionTitle(
-                    title = "Alarm preview",
-                    description = "Tap the time or days below to shape when this alarm should ring."
+                    title = stringResource(R.string.alarm_edit_preview_title),
+                    description = stringResource(R.string.alarm_edit_preview_description)
                 )
 
                 AppStatusChip(
-                    label = if (state.isEditing) "Editing existing alarm" else "New alarm",
+                    label = stringResource(
+                        if (state.isEditing) R.string.alarm_edit_existing_status else R.string.alarm_edit_new_status
+                    ),
                     icon = if (state.isEditing) Icons.Default.Edit else Icons.Default.AddAlarm,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -434,7 +483,8 @@ fun AlarmEditScreen(
                     } else {
                         Row(verticalAlignment = Alignment.Bottom) {
                             val hour12 = if (state.hour % 12 == 0) 12 else state.hour % 12
-                            val amPm = if (state.hour < 12) "AM" else "PM"
+                            val amPm = java.time.LocalTime.of(state.hour, state.minute)
+                                .format(java.time.format.DateTimeFormatter.ofPattern("a"))
                             Text(
                                 text = "$hour12:${String.format("%02d", state.minute)}",
                                 style = ClockTimeLarge,
@@ -451,7 +501,7 @@ fun AlarmEditScreen(
                 }
 
                 Text(
-                    text = "Tap the time to adjust it precisely.",
+                    text = stringResource(R.string.alarm_edit_adjust_time_hint),
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -474,7 +524,7 @@ fun AlarmEditScreen(
                         ringCalculator.formatRemaining(nextFireMillis)
                     }
                     Text(
-                        text = "Rings in $remaining",
+                        text = stringResource(R.string.alarm_edit_rings_in, remaining),
                         color = AccentBlue,
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier
@@ -511,11 +561,11 @@ fun AlarmEditScreen(
             }
 
             // Label
-            SettingsSection("Label") {
+            SettingsSection(AlarmEditorSection.LABEL) {
                 OutlinedTextField(
                     value = state.label,
                     onValueChange = viewModel::updateLabel,
-                    placeholder = { Text("Alarm label", color = TextMuted) },
+                    placeholder = { Text(stringResource(R.string.alarm_edit_label_placeholder), color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
                     modifier = Modifier
@@ -526,25 +576,38 @@ fun AlarmEditScreen(
             }
 
             // Group
-            SettingsSection("Group") {
+            SettingsSection(AlarmEditorSection.GROUP) {
                 var showGroupMenu by remember { mutableStateOf(false) }
-                val defaultGroups = listOf("", "Work", "School", "Gym", "Medication", "Personal")
-                val isCustomGroup = state.group.isNotBlank() && state.group !in defaultGroups
-                SettingsRow(label = "Alarm group") {
+                val defaultGroups = listOf(
+                    "" to stringResource(R.string.alarm_edit_group_none),
+                    "Work" to stringResource(R.string.alarm_edit_group_work),
+                    "School" to stringResource(R.string.alarm_edit_group_school),
+                    "Gym" to stringResource(R.string.alarm_edit_group_gym),
+                    "Medication" to stringResource(R.string.alarm_edit_group_medication),
+                    "Personal" to stringResource(R.string.alarm_edit_group_personal)
+                )
+                val defaultGroupValues = defaultGroups.map { it.first }
+                val isCustomGroup = state.group.isNotBlank() && state.group !in defaultGroupValues
+                SettingsRow(label = stringResource(R.string.alarm_edit_alarm_group)) {
                     Box {
                         SettingsValueButton(
-                            label = if (isCustomGroup) state.group else state.group.ifBlank { "None" },
+                            label = if (isCustomGroup) {
+                                state.group
+                            } else {
+                                defaultGroups.firstOrNull { it.first == state.group }?.second
+                                    ?: stringResource(R.string.alarm_edit_group_none)
+                            },
                             onClick = { showGroupMenu = true }
                         )
                         DropdownMenu(
                             expanded = showGroupMenu,
                             onDismissRequest = { showGroupMenu = false }
                         ) {
-                            defaultGroups.forEach { group ->
+                            defaultGroups.forEach { (group, groupLabel) ->
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            group.ifBlank { "None" },
+                                            groupLabel,
                                             color = if (group == state.group) AccentBlue else TextPrimary
                                         )
                                     },
@@ -557,7 +620,7 @@ fun AlarmEditScreen(
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        "Custom…",
+                                        stringResource(R.string.alarm_edit_group_custom),
                                         color = if (isCustomGroup) AccentBlue else TextMuted
                                     )
                                 },
@@ -576,7 +639,7 @@ fun AlarmEditScreen(
                     OutlinedTextField(
                         value = state.group.trim(),
                         onValueChange = viewModel::updateGroup,
-                        label = { Text("Custom group name", color = TextMuted) },
+                        label = { Text(stringResource(R.string.alarm_edit_group_custom_name), color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
                         shape = AppInputShape,
                         modifier = Modifier
@@ -595,10 +658,10 @@ fun AlarmEditScreen(
             }
 
             // Sound settings
-            SettingsSection("Sound") {
+            SettingsSection(AlarmEditorSection.SOUND) {
                 val hapticOnlyActive = state.overrideSystemVolume && state.volume == 0 && state.vibrationEnabled
 
-                SettingsRow(label = "Don't wake partner") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_partner_mode)) {
                     OutlinedButton(
                         onClick = viewModel::applyDontWakePartnerProfile,
                         shape = RoundedCornerShape(12.dp),
@@ -611,16 +674,16 @@ fun AlarmEditScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Apply")
+                        Text(stringResource(R.string.alarm_edit_apply))
                     }
                 }
                 SettingsHint(
-                    "Sets this alarm to haptic-only: alarm audio is muted, fade-in is off, and a gentle repeating vibration stays active.",
+                    stringResource(R.string.alarm_edit_partner_mode_hint),
                     tone = HintTone.Neutral
                 )
                 if (hapticOnlyActive) {
                     AppStatusChip(
-                        label = "Haptic-only profile active",
+                        label = stringResource(R.string.alarm_edit_haptic_profile_active),
                         icon = Icons.AutoMirrored.Filled.VolumeOff,
                         color = AccentBlue,
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -628,13 +691,13 @@ fun AlarmEditScreen(
                 }
 
                 SettingsRow(
-                    label = "Alarm sound",
+                    label = stringResource(R.string.alarm_edit_alarm_sound),
                     trailing = {
                         SettingsValueButton(
                             label = when (state.ringtoneUri) {
-                                "" -> "Default"
-                                "silent" -> "Silent"
-                                else -> "Custom"
+                                "" -> stringResource(R.string.alarm_edit_default)
+                                "silent" -> stringResource(R.string.alarm_edit_silent)
+                                else -> stringResource(R.string.alarm_edit_custom)
                             },
                             onClick = { showRingtonePicker = true }
                         )
@@ -642,7 +705,7 @@ fun AlarmEditScreen(
                 )
 
                 SettingsRow(
-                    label = "Override system volume",
+                    label = stringResource(R.string.alarm_edit_override_volume),
                     trailing = {
                         Switch(
                             checked = state.overrideSystemVolume,
@@ -653,9 +716,13 @@ fun AlarmEditScreen(
                 )
 
                 if (state.overrideSystemVolume) {
-                    SettingsRow(label = "Volume") {
+                    SettingsRow(label = stringResource(R.string.volume)) {
                         Text(
-                            if (state.volume == 0) "Muted" else "${state.volume}%",
+                            if (state.volume == 0) {
+                                stringResource(R.string.alarm_edit_muted)
+                            } else {
+                                stringResource(R.string.alarm_edit_percent, state.volume)
+                            },
                             color = AccentBlue
                         )
                     }
@@ -673,12 +740,16 @@ fun AlarmEditScreen(
 
                 // Gradual volume - interactive slider
                 var showGradualMenu by remember { mutableStateOf(false) }
-                SettingsRow(label = "Gradually increase volume") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_gradual_volume)) {
                     Box {
                         SettingsValueButton(
                             label = when (state.gradualVolumeSeconds) {
-                                0 -> "Off"
-                                else -> "${state.gradualVolumeSeconds / 60}m ${state.gradualVolumeSeconds % 60}s"
+                                0 -> stringResource(R.string.alarm_edit_off)
+                                else -> stringResource(
+                                    R.string.alarm_edit_minutes_seconds_short,
+                                    state.gradualVolumeSeconds / 60,
+                                    state.gradualVolumeSeconds % 60
+                                )
                             },
                             onClick = { showGradualMenu = true }
                         )
@@ -691,8 +762,12 @@ fun AlarmEditScreen(
                                     text = {
                                         Text(
                                             when (secs) {
-                                                0 -> "Off (full volume immediately)"
-                                                else -> "${secs / 60}m ${secs % 60}s"
+                                                0 -> stringResource(R.string.alarm_edit_off_full_volume)
+                                                else -> stringResource(
+                                                    R.string.alarm_edit_minutes_seconds_short,
+                                                    secs / 60,
+                                                    secs % 60
+                                                )
                                             }
                                         )
                                     },
@@ -708,9 +783,9 @@ fun AlarmEditScreen(
             }
 
             // Vibration
-            SettingsSection("Vibration") {
+            SettingsSection(AlarmEditorSection.VIBRATION) {
                 SettingsRow(
-                    label = "Vibration",
+                    label = stringResource(R.string.vibration),
                     trailing = {
                         Switch(
                             checked = state.vibrationEnabled,
@@ -724,23 +799,24 @@ fun AlarmEditScreen(
                     // Vibration pattern picker
                     var showPatternMenu by remember { mutableStateOf(false) }
                     val patterns = listOf(
-                        "default" to "Default (strong pulse)",
-                        "gentle" to "Gentle (soft pulse)",
-                        "heartbeat" to "Heartbeat (double tap)",
-                        "escalating" to "Escalating (builds up)",
-                        "sos" to "SOS (urgent pattern)"
+                        Triple("default", stringResource(R.string.alarm_edit_default), stringResource(R.string.alarm_edit_vibration_default)),
+                        Triple("gentle", stringResource(R.string.alarm_edit_gentle), stringResource(R.string.alarm_edit_vibration_gentle)),
+                        Triple("heartbeat", stringResource(R.string.alarm_edit_heartbeat), stringResource(R.string.alarm_edit_vibration_heartbeat)),
+                        Triple("escalating", stringResource(R.string.alarm_edit_escalating), stringResource(R.string.alarm_edit_vibration_escalating)),
+                        Triple("sos", stringResource(R.string.alarm_edit_sos), stringResource(R.string.alarm_edit_vibration_sos))
                     )
-                    SettingsRow(label = "Vibration pattern") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_vibration_pattern)) {
                         Box {
                             SettingsValueButton(
-                                label = patterns.find { it.first == state.vibrationPattern }?.second?.substringBefore(" (") ?: "Default",
+                                label = patterns.find { it.first == state.vibrationPattern }?.second
+                                    ?: stringResource(R.string.alarm_edit_default),
                                 onClick = { showPatternMenu = true }
                             )
                             DropdownMenu(
                                 expanded = showPatternMenu,
                                 onDismissRequest = { showPatternMenu = false }
                             ) {
-                                patterns.forEach { (key, label) ->
+                                patterns.forEach { (key, _, label) ->
                                     DropdownMenuItem(
                                         text = {
                                             Text(
@@ -760,13 +836,16 @@ fun AlarmEditScreen(
 
                     if (state.vibrationPattern == "escalating") {
                         var showIntensityMenu by remember { mutableStateOf(false) }
-                        val intensities = listOf(1 to "Gentle", 2 to "Strong")
-                        SettingsRow(label = "Ramp strength") {
+                        val intensities = listOf(
+                            1 to stringResource(R.string.alarm_edit_gentle),
+                            2 to stringResource(R.string.alarm_edit_strong)
+                        )
+                        SettingsRow(label = stringResource(R.string.alarm_edit_ramp_strength)) {
                             Box {
                                 SettingsValueButton(
                                     label = intensities.firstOrNull {
                                         it.first == state.vibrationIntensity
-                                    }?.second ?: "Strong",
+                                    }?.second ?: stringResource(R.string.alarm_edit_strong),
                                     onClick = { showIntensityMenu = true }
                                 )
                                 DropdownMenu(
@@ -795,20 +874,24 @@ fun AlarmEditScreen(
                             }
                         }
                         SettingsHint(
-                            "Android 16 uses a smooth haptic envelope; older devices use the same gentle-to-strong pulse pattern.",
+                            stringResource(R.string.alarm_edit_haptic_envelope_hint),
                             tone = HintTone.Neutral
                         )
                     }
 
                     // v1.12.0 (roadmap N7): vibration start-delay
                     var showVibDelayMenu by remember { mutableStateOf(false) }
-                    SettingsRow(label = "Start vibration after") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_vibration_delay)) {
                         Box {
                             SettingsValueButton(
                                 label = when (state.vibrationDelaySeconds) {
-                                    0 -> "Immediately"
-                                    in 1..59 -> "${state.vibrationDelaySeconds}s"
-                                    else -> "${state.vibrationDelaySeconds / 60}m ${state.vibrationDelaySeconds % 60}s"
+                                    0 -> stringResource(R.string.alarm_edit_immediately)
+                                    in 1..59 -> stringResource(R.string.alarm_edit_seconds_short, state.vibrationDelaySeconds)
+                                    else -> stringResource(
+                                        R.string.alarm_edit_minutes_seconds_short,
+                                        state.vibrationDelaySeconds / 60,
+                                        state.vibrationDelaySeconds % 60
+                                    )
                                 },
                                 onClick = { showVibDelayMenu = true }
                             )
@@ -821,9 +904,9 @@ fun AlarmEditScreen(
                                         text = {
                                             Text(
                                                 when (secs) {
-                                                    0 -> "Immediately (default)"
-                                                    in 1..59 -> "$secs seconds"
-                                                    else -> "${secs / 60} minutes"
+                                                    0 -> stringResource(R.string.alarm_edit_immediately_default)
+                                                    in 1..59 -> pluralStringResource(R.plurals.alarm_edit_seconds, secs, secs)
+                                                    else -> pluralStringResource(R.plurals.alarm_edit_minutes, secs / 60, secs / 60)
                                                 },
                                                 color = if (secs == state.vibrationDelaySeconds) AccentBlue else TextPrimary
                                             )
@@ -841,12 +924,12 @@ fun AlarmEditScreen(
             }
 
             // Snooze - interactive picker
-            SettingsSection("Snooze") {
+            SettingsSection(AlarmEditorSection.SNOOZE) {
                 var showSnoozeMenu by remember { mutableStateOf(false) }
-                SettingsRow(label = "Snooze duration") {
+                SettingsRow(label = stringResource(R.string.snooze_duration)) {
                     Box {
                         SettingsValueButton(
-                            label = "${state.snoozeDurationMinutes} min",
+                            label = stringResource(R.string.alarm_edit_minutes_short, state.snoozeDurationMinutes),
                             onClick = { showSnoozeMenu = true }
                         )
                         DropdownMenu(
@@ -857,7 +940,7 @@ fun AlarmEditScreen(
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            "$mins minutes",
+                                            pluralStringResource(R.plurals.alarm_edit_minutes, mins, mins),
                                             color = if (mins == state.snoozeDurationMinutes) AccentBlue else TextPrimary
                                         )
                                     },
@@ -879,47 +962,58 @@ fun AlarmEditScreen(
                 state.skipOnHolidays) {
                 viewModel.computeForecast()
             }
-            SettingsSection("Upcoming fire dates") {
+            SettingsSection(AlarmEditorSection.UPCOMING) {
                 if (state.forecastDates.isNotEmpty()) {
                     state.forecastDates.forEach { entry ->
                         val instant = java.time.Instant.ofEpochMilli(entry.timeMillis)
                         val dt = instant.atZone(java.time.ZoneId.systemDefault())
-                        val dateStr = dt.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))
+                        val dateStr = dt.format(
+                            java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
+                        )
                         val timeStr = dt.format(java.time.format.DateTimeFormatter.ofPattern(
                             if (state.is24HourFormat) "HH:mm" else "h:mm a"
                         ))
-                        val label = if (entry.skippedByVacation) "$dateStr $timeStr (vacation skip)" else "$dateStr $timeStr"
+                        val label = if (entry.skippedByVacation) {
+                            stringResource(R.string.alarm_edit_vacation_skip_date, dateStr, timeStr)
+                        } else {
+                            stringResource(R.string.alarm_edit_fire_date, dateStr, timeStr)
+                        }
                         val tone = if (entry.skippedByVacation) HintTone.Warning else HintTone.Neutral
                         SettingsHint(label, tone = tone)
                     }
                 } else {
-                    SettingsHint("This alarm will not ring with the current settings.", tone = HintTone.Warning)
+                    SettingsHint(stringResource(R.string.alarm_edit_will_not_ring), tone = HintTone.Warning)
                 }
             }
 
             CollapsibleGroup(
-                title = "Dismiss and wake",
+                title = stringResource(R.string.alarm_edit_dismiss_and_wake),
                 subtitle = buildList {
-                    if (state.challengeType != "NONE") add(state.challengeType.lowercase()
-                        .replaceFirstChar { it.uppercase() }.replace("_", " "))
-                    if (state.locationDismissEnabled) add("Location lock")
-                    if (state.wakeConfirmEnabled) add("Wake confirm")
-                    if (state.smartAlarmEnabled) add("Smart alarm")
+                    if (state.challengeType != "NONE") add(state.challengeType.toAlarmChallengeSummary())
+                    if (state.locationDismissEnabled) add(stringResource(R.string.alarm_edit_location_lock_short))
+                    if (state.wakeConfirmEnabled) add(stringResource(R.string.alarm_edit_wake_confirm_short))
+                    if (state.smartAlarmEnabled) add(stringResource(R.string.alarm_edit_smart_alarm))
                 }.joinToString(", ").ifEmpty { null },
                 initiallyExpanded = state.challengeType != "NONE" ||
                     state.locationDismissEnabled ||
                     state.wakeConfirmEnabled ||
-                    state.smartAlarmEnabled
+                    state.smartAlarmEnabled,
+                focusedPages = setOf(
+                    AlarmEditorPage.DISMISS,
+                    AlarmEditorPage.SCHEDULE,
+                    AlarmEditorPage.WAKE
+                )
             ) {
             // Dismiss Challenge
-            SettingsSection("Dismiss challenge") {
+            SettingsSection(AlarmEditorSection.DISMISS_CHALLENGE) {
                 val challengeOptions = alarmChallengeOptions()
                 var expanded by remember { mutableStateOf(false) }
 
-                SettingsRow(label = "Challenge type") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_challenge_type)) {
                     Box {
                         SettingsValueButton(
-                            label = challengeOptions.find { it.first == state.challengeType }?.second ?: "None",
+                            label = challengeOptions.find { it.first == state.challengeType }?.second
+                                ?: stringResource(R.string.alarm_edit_none),
                             onClick = { expanded = true }
                         )
                         DropdownMenu(
@@ -967,7 +1061,7 @@ fun AlarmEditScreen(
                 if (challengeReadiness != null) {
                     if (challengeReadiness.status == ChallengeReadinessStatus.READY) {
                         SettingsHint(
-                            "This challenge is ready on your device.",
+                            stringResource(R.string.alarm_edit_challenge_ready),
                             tone = HintTone.Neutral
                         )
                     } else {
@@ -981,10 +1075,14 @@ fun AlarmEditScreen(
                 // WALK_STEPS: step count config
                 if (state.challengeType == "WALK_STEPS") {
                     var showStepsMenu by remember { mutableStateOf(false) }
-                    SettingsRow(label = "Steps required") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_steps_required)) {
                         Box {
                             SettingsValueButton(
-                                label = "${state.walkStepsRequired} steps",
+                                label = pluralStringResource(
+                                    R.plurals.alarm_edit_steps,
+                                    state.walkStepsRequired,
+                                    state.walkStepsRequired
+                                ),
                                 onClick = { showStepsMenu = true }
                             )
                             DropdownMenu(
@@ -993,7 +1091,12 @@ fun AlarmEditScreen(
                             ) {
                                 listOf(10, 20, 30, 50, 100).forEach { steps ->
                                     DropdownMenuItem(
-                                        text = { Text("$steps steps", color = if (steps == state.walkStepsRequired) AccentBlue else TextPrimary) },
+                                        text = {
+                                            Text(
+                                                pluralStringResource(R.plurals.alarm_edit_steps, steps, steps),
+                                                color = if (steps == state.walkStepsRequired) AccentBlue else TextPrimary
+                                            )
+                                        },
                                         onClick = { viewModel.updateWalkSteps(steps); showStepsMenu = false }
                                     )
                                 }
@@ -1005,10 +1108,14 @@ fun AlarmEditScreen(
                 // SQUAT: squat count config
                 if (state.challengeType == "SQUAT") {
                     var showSquatsMenu by remember { mutableStateOf(false) }
-                    SettingsRow(label = "Squats required") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_squats_required)) {
                         Box {
                             SettingsValueButton(
-                                label = "${state.requiredSquats} squats",
+                                label = pluralStringResource(
+                                    R.plurals.alarm_edit_squats,
+                                    state.requiredSquats,
+                                    state.requiredSquats
+                                ),
                                 onClick = { showSquatsMenu = true }
                             )
                             DropdownMenu(
@@ -1017,7 +1124,12 @@ fun AlarmEditScreen(
                             ) {
                                 listOf(5, 10, 15, 20, 30, 50).forEach { count ->
                                     DropdownMenuItem(
-                                        text = { Text("$count squats", color = if (count == state.requiredSquats) AccentBlue else TextPrimary) },
+                                        text = {
+                                            Text(
+                                                pluralStringResource(R.plurals.alarm_edit_squats, count, count),
+                                                color = if (count == state.requiredSquats) AccentBlue else TextPrimary
+                                            )
+                                        },
                                         onClick = { viewModel.updateRequiredSquats(count); showSquatsMenu = false }
                                     )
                                 }
@@ -1031,7 +1143,7 @@ fun AlarmEditScreen(
                     OutlinedTextField(
                         value = state.nfcTagId,
                         onValueChange = viewModel::updateNfcTagId,
-                        label = { Text("NFC tag ID", color = TextMuted) },
+                        label = { Text(stringResource(R.string.alarm_edit_nfc_id), color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
                         shape = AppInputShape,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -1039,7 +1151,7 @@ fun AlarmEditScreen(
                     )
                     if (state.nfcTagId.isBlank()) {
                         SettingsHint(
-                            "No NFC tag registered. This challenge will be skipped at fire time until a tag ID is set.",
+                            stringResource(R.string.alarm_edit_nfc_missing),
                             tone = HintTone.Warning
                         )
                     }
@@ -1050,7 +1162,7 @@ fun AlarmEditScreen(
                     OutlinedTextField(
                         value = state.barcodeValue,
                         onValueChange = viewModel::updateBarcodeValue,
-                        label = { Text("Barcode or QR value", color = TextMuted) },
+                        label = { Text(stringResource(R.string.alarm_edit_barcode_value), color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
                         shape = AppInputShape,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -1058,7 +1170,7 @@ fun AlarmEditScreen(
                     )
                     if (state.barcodeValue.isBlank()) {
                         SettingsHint(
-                            "No barcode or QR code registered. This challenge will be skipped at fire time until a value is set.",
+                            stringResource(R.string.alarm_edit_barcode_missing),
                             tone = HintTone.Warning
                         )
                     }
@@ -1069,7 +1181,7 @@ fun AlarmEditScreen(
                     OutlinedTextField(
                         value = state.wifiDismissSsid,
                         onValueChange = viewModel::updateWifiDismissSsid,
-                        label = { Text("Wi-Fi network name (SSID)", color = TextMuted) },
+                        label = { Text(stringResource(R.string.alarm_edit_wifi_name), color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
                         shape = AppInputShape,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -1077,7 +1189,7 @@ fun AlarmEditScreen(
                     )
                     if (state.wifiDismissSsid.isBlank()) {
                         SettingsHint(
-                            "No Wi-Fi network specified. Set the SSID the alarm should require you to connect to.",
+                            stringResource(R.string.alarm_edit_wifi_missing),
                             tone = HintTone.Warning
                         )
                     }
@@ -1085,7 +1197,7 @@ fun AlarmEditScreen(
 
                 // PHOTO_MATCH: reference photo URI field
                 if (state.challengeType == "PHOTO_MATCH") {
-                    SettingsRow(label = "Reference photo") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_reference_photo)) {
                         OutlinedButton(
                             onClick = captureReferencePhoto,
                             shape = RoundedCornerShape(12.dp),
@@ -1097,14 +1209,18 @@ fun AlarmEditScreen(
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(if (state.photoMatchUri.isBlank()) "Capture" else "Replace")
+                            Text(
+                                stringResource(
+                                    if (state.photoMatchUri.isBlank()) R.string.alarm_edit_capture else R.string.alarm_edit_replace
+                                )
+                            )
                         }
                     }
                     SettingsHint(
                         if (state.photoMatchUri.isBlank()) {
-                            "Capture a reference photo from the place or angle the alarm should require."
+                            stringResource(R.string.alarm_edit_capture_photo_hint)
                         } else {
-                            "Reference photo saved for this alarm."
+                            stringResource(R.string.alarm_edit_photo_saved_for_alarm)
                         },
                         tone = if (state.photoMatchUri.isBlank()) HintTone.Warning else HintTone.Neutral
                     )
@@ -1117,13 +1233,13 @@ fun AlarmEditScreen(
                 }
             }
 
-            SettingsSection("Location dismissal lock") {
+            SettingsSection(AlarmEditorSection.LOCATION) {
                 val hasLocationTarget = LocationDismissPolicy.hasTarget(
                     state.locationDismissLat,
                     state.locationDismissLng
                 )
                 SettingsRow(
-                    label = "Require leaving saved place",
+                    label = stringResource(R.string.alarm_edit_require_leaving),
                     trailing = {
                         Switch(
                             checked = state.locationDismissEnabled,
@@ -1137,7 +1253,7 @@ fun AlarmEditScreen(
                 )
                 if (state.locationDismissEnabled) {
                     var showRadiusMenu by remember { mutableStateOf(false) }
-                    SettingsRow(label = "Saved place") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_saved_place)) {
                         SettingsValueButton(
                             label = if (hasLocationTarget) {
                                 formatLocationDismissTarget(
@@ -1145,15 +1261,15 @@ fun AlarmEditScreen(
                                     state.locationDismissLng
                                 )
                             } else {
-                                "Not saved"
+                                stringResource(R.string.alarm_edit_not_saved)
                             },
                             onClick = requestLocationDismissTarget
                         )
                     }
-                    SettingsRow(label = "Unlock radius") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_unlock_radius)) {
                         Box {
                             SettingsValueButton(
-                                label = "${state.locationDismissRadius} m",
+                                label = stringResource(R.string.alarm_edit_meters_short, state.locationDismissRadius),
                                 onClick = { showRadiusMenu = true }
                             )
                             DropdownMenu(
@@ -1164,7 +1280,7 @@ fun AlarmEditScreen(
                                     DropdownMenuItem(
                                         text = {
                                             Text(
-                                                "$radius meters",
+                                                pluralStringResource(R.plurals.alarm_edit_meters, radius, radius),
                                                 color = if (radius == state.locationDismissRadius) AccentBlue else TextPrimary
                                             )
                                         },
@@ -1189,13 +1305,17 @@ fun AlarmEditScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (hasLocationTarget) "Update saved place" else "Save current place")
+                        Text(
+                            stringResource(
+                                if (hasLocationTarget) R.string.alarm_edit_update_saved_place else R.string.alarm_edit_save_current_place
+                            )
+                        )
                     }
                     SettingsHint(
                         text = if (hasLocationTarget) {
-                            "Dismiss stays locked until the phone is outside the saved ${state.locationDismissRadius} m radius. Snooze remains available."
+                            stringResource(R.string.alarm_edit_location_radius_hint, state.locationDismissRadius)
                         } else {
-                            "Save the place where the alarm starts before enabling this lock."
+                            stringResource(R.string.alarm_edit_location_save_first)
                         },
                         tone = if (hasLocationTarget) HintTone.Neutral else HintTone.Warning
                     )
@@ -1207,14 +1327,14 @@ fun AlarmEditScreen(
                     }
                 } else {
                     SettingsHint(
-                        "Optional Anti-Sleepyhead mode: dismiss unlocks only after location confirms you left the saved area.",
+                        stringResource(R.string.alarm_edit_location_optional_hint),
                         tone = HintTone.Neutral
                     )
                 }
             }
 
             // Wake effects
-            SettingsSection("Wake effects") {
+            SettingsSection(AlarmEditorSection.WAKE_EFFECTS) {
                 val isGentleWake = state.gradualVolumeSeconds >= 120 &&
                     state.vibrationDelaySeconds >= 60 &&
                     state.sunriseSimulation
@@ -1238,17 +1358,21 @@ fun AlarmEditScreen(
                     ),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
-                    Text(if (isGentleWake) "Gentle wake active" else "Apply gentle wake preset")
+                    Text(
+                        stringResource(
+                            if (isGentleWake) R.string.alarm_edit_gentle_wake_active else R.string.alarm_edit_apply_gentle_wake
+                        )
+                    )
                 }
                 if (!isGentleWake) {
                     SettingsHint(
-                        "Sets 2-min volume fade, 1-min vibration delay, and sunrise simulation for a calm wake.",
+                        stringResource(R.string.alarm_edit_gentle_wake_hint),
                         tone = HintTone.Neutral
                     )
                 }
 
                 SettingsRow(
-                    label = "Flash wake (brighten screen)",
+                    label = stringResource(R.string.alarm_edit_flash_wake),
                     trailing = {
                         Switch(
                             checked = state.flashWake,
@@ -1258,27 +1382,29 @@ fun AlarmEditScreen(
                     }
                 )
                 SettingsHint(
-                    "Gradually increases screen brightness alongside volume",
+                    stringResource(R.string.alarm_edit_flash_wake_hint),
                     tone = HintTone.Neutral
                 )
 
                 SettingsRow(
-                    label = "Firing background image",
+                    label = stringResource(R.string.alarm_edit_background_image),
                     trailing = {
                         SettingsValueButton(
-                            label = if (state.firingBackgroundImageUri.isBlank()) "Choose" else "Replace",
+                            label = stringResource(
+                                if (state.firingBackgroundImageUri.isBlank()) R.string.alarm_edit_choose else R.string.alarm_edit_replace
+                            ),
                             onClick = { firingBackgroundImageLauncher.launch(arrayOf("image/*")) }
                         )
                     }
                 )
                 if (state.firingBackgroundImageUri.isBlank()) {
                     SettingsHint(
-                        "Optional. The ringing screen keeps the standard gradient until you choose an image.",
+                        stringResource(R.string.alarm_edit_background_optional_hint),
                         tone = HintTone.Neutral
                     )
                 } else {
                     SettingsRow(
-                        label = "Show image while ringing",
+                        label = stringResource(R.string.alarm_edit_show_ringing_image),
                         trailing = {
                             Switch(
                                 checked = state.firingBackgroundImageEnabled,
@@ -1288,7 +1414,7 @@ fun AlarmEditScreen(
                         }
                     )
                     SettingsRow(
-                        label = "Blur image on Android 12+",
+                        label = stringResource(R.string.alarm_edit_blur_image),
                         trailing = {
                             Switch(
                                 checked = state.firingBackgroundBlurEnabled,
@@ -1304,13 +1430,13 @@ fun AlarmEditScreen(
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                     ) {
-                        Text("Clear background image")
+                        Text(stringResource(R.string.alarm_edit_clear_background))
                     }
                     SettingsHint(
                         if (state.firingBackgroundImageEnabled) {
-                            "Ringing screen image is enabled for this alarm."
+                            stringResource(R.string.alarm_edit_background_enabled_hint)
                         } else {
-                            "Image is saved for this alarm but the ringing screen still uses the standard gradient."
+                            stringResource(R.string.alarm_edit_background_disabled_hint)
                         },
                         tone = HintTone.Neutral
                     )
@@ -1321,9 +1447,9 @@ fun AlarmEditScreen(
             }
 
             // Morning Announcement (TTS)
-            SettingsSection("Morning announcement") {
+            SettingsSection(AlarmEditorSection.ANNOUNCEMENT) {
                 SettingsRow(
-                    label = "Speak time, date & weather",
+                    label = stringResource(R.string.alarm_edit_speak_context),
                     trailing = {
                         Switch(
                             checked = state.ttsEnabled,
@@ -1333,15 +1459,15 @@ fun AlarmEditScreen(
                     }
                 )
                 SettingsHint(
-                    "Uses on-device text-to-speech to announce the time, date, and weather after dismissal",
+                    stringResource(R.string.alarm_edit_speak_context_hint),
                     tone = HintTone.Neutral
                 )
             }
 
             // Wake Confirmation
-            SettingsSection("Wake confirmation") {
+            SettingsSection(AlarmEditorSection.WAKE_CONFIRM) {
                 SettingsRow(
-                    label = "Confirm you're awake",
+                    label = stringResource(R.string.alarm_edit_confirm_awake),
                     trailing = {
                         Switch(
                             checked = state.wakeConfirmEnabled,
@@ -1352,10 +1478,10 @@ fun AlarmEditScreen(
                 )
                 if (state.wakeConfirmEnabled) {
                     var showDelayMenu by remember { mutableStateOf(false) }
-                    SettingsRow(label = "Re-alarm delay if not confirmed") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_realarm_delay)) {
                         Box {
                             SettingsValueButton(
-                                label = "${state.wakeConfirmDelayMinutes} min",
+                                label = stringResource(R.string.alarm_edit_minutes_short, state.wakeConfirmDelayMinutes),
                                 onClick = { showDelayMenu = true }
                             )
                             DropdownMenu(
@@ -1364,7 +1490,12 @@ fun AlarmEditScreen(
                             ) {
                                 listOf(5, 10, 15, 20, 30).forEach { mins ->
                                     DropdownMenuItem(
-                                        text = { Text("$mins minutes", color = if (mins == state.wakeConfirmDelayMinutes) AccentBlue else TextPrimary) },
+                                        text = {
+                                            Text(
+                                                pluralStringResource(R.plurals.alarm_edit_minutes, mins, mins),
+                                                color = if (mins == state.wakeConfirmDelayMinutes) AccentBlue else TextPrimary
+                                            )
+                                        },
                                         onClick = { viewModel.updateWakeConfirm(true, mins); showDelayMenu = false }
                                     )
                                 }
@@ -1372,16 +1503,16 @@ fun AlarmEditScreen(
                         }
                     }
                     SettingsHint(
-                        "A notification will appear after dismissal. If you don't confirm within the delay, the alarm re-fires.",
+                        stringResource(R.string.alarm_edit_realarm_hint),
                         tone = HintTone.Warning
                     )
                 }
             }
 
             // Smart Alarm
-            SettingsSection("Smart alarm") {
+            SettingsSection(AlarmEditorSection.SMART_ALARM) {
                 SettingsRow(
-                    label = "Wake during light sleep",
+                    label = stringResource(R.string.alarm_edit_light_sleep),
                     trailing = {
                         Switch(
                             checked = state.smartAlarmEnabled,
@@ -1392,10 +1523,10 @@ fun AlarmEditScreen(
                 )
                 if (state.smartAlarmEnabled) {
                     var showWindowMenu by remember { mutableStateOf(false) }
-                    SettingsRow(label = "Detection window") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_detection_window)) {
                         Box {
                             SettingsValueButton(
-                                label = "${state.smartAlarmWindowMinutes} min before",
+                                label = stringResource(R.string.alarm_edit_minutes_before_short, state.smartAlarmWindowMinutes),
                                 onClick = { showWindowMenu = true }
                             )
                             DropdownMenu(
@@ -1404,7 +1535,12 @@ fun AlarmEditScreen(
                             ) {
                                 listOf(15, 20, 30, 45, 60).forEach { mins ->
                                     DropdownMenuItem(
-                                        text = { Text("$mins minutes before alarm", color = if (mins == state.smartAlarmWindowMinutes) AccentBlue else TextPrimary) },
+                                        text = {
+                                            Text(
+                                                stringResource(R.string.alarm_edit_minutes_before_alarm, mins),
+                                                color = if (mins == state.smartAlarmWindowMinutes) AccentBlue else TextPrimary
+                                            )
+                                        },
                                         onClick = { viewModel.updateSmartAlarm(true, mins); showWindowMenu = false }
                                     )
                                 }
@@ -1412,7 +1548,7 @@ fun AlarmEditScreen(
                         }
                     }
                     SettingsHint(
-                        "Uses conservative phone-motion scoring and waits for enough evidence before firing early.",
+                        stringResource(R.string.alarm_edit_smart_alarm_hint),
                         tone = HintTone.Neutral
                     )
                 }
@@ -1420,18 +1556,24 @@ fun AlarmEditScreen(
             }
 
             CollapsibleGroup(
-                title = "Extras and integrations",
+                title = stringResource(R.string.alarm_edit_extras_integrations),
                 subtitle = buildList {
-                    if (state.skipOnHolidays) add("Holiday skip")
-                    if (state.hueEnabled) add("Hue")
-                    if (state.guardianEnabled) add("Guardian")
-                    if (state.progressiveSnooze) add("Progressive snooze")
-                }.joinToString(", ").ifEmpty { null }
+                    if (state.skipOnHolidays) add(stringResource(R.string.alarm_edit_holiday_skip_short))
+                    if (state.hueEnabled) add(stringResource(R.string.alarm_edit_hue_short))
+                    if (state.guardianEnabled) add(stringResource(R.string.alarm_edit_guardian_short))
+                    if (state.progressiveSnooze) add(stringResource(R.string.alarm_edit_progressive_snooze_short))
+                }.joinToString(", ").ifEmpty { null },
+                focusedPages = setOf(
+                    AlarmEditorPage.DISMISS,
+                    AlarmEditorPage.SCHEDULE,
+                    AlarmEditorPage.WAKE,
+                    AlarmEditorPage.INTEGRATIONS
+                )
             ) {
             // Holiday Skip
-            SettingsSection("Holidays") {
+            SettingsSection(AlarmEditorSection.HOLIDAYS) {
                 SettingsRow(
-                    label = "Skip on public holidays",
+                    label = stringResource(R.string.alarm_edit_skip_holidays),
                     trailing = {
                         Switch(
                             checked = state.skipOnHolidays,
@@ -1441,33 +1583,33 @@ fun AlarmEditScreen(
                     }
                 )
                 SettingsHint(
-                    "Requires holiday auto-skip and country code configured in Settings → Integrations",
+                    stringResource(R.string.alarm_edit_holidays_hint),
                     tone = HintTone.Warning
                 )
             }
 
             // Spotify Ringtone
-            SettingsSection("Spotify ringtone") {
+            SettingsSection(AlarmEditorSection.SPOTIFY) {
                 OutlinedTextField(
                     value = state.spotifyUri,
                     onValueChange = viewModel::updateSpotifyUri,
-                    label = { Text("Spotify URI (e.g. spotify:track:...)", color = TextMuted) },
-                    placeholder = { Text("Leave blank to use default ringtone", color = TextMuted) },
+                    label = { Text(stringResource(R.string.alarm_edit_spotify_uri), color = TextMuted) },
+                    placeholder = { Text(stringResource(R.string.alarm_edit_default_ringtone_placeholder), color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     singleLine = true
                 )
                 SettingsHint(
-                    "Requires Spotify installed. Falls back to default ringtone if unavailable.",
+                    stringResource(R.string.alarm_edit_spotify_hint),
                     tone = HintTone.Warning
                 )
             }
 
             // Philips Hue Sunrise
-            SettingsSection("Philips Hue sunrise") {
+            SettingsSection(AlarmEditorSection.HUE) {
                 SettingsRow(
-                    label = "Sunrise light simulation",
+                    label = stringResource(R.string.alarm_edit_hue_sunrise),
                     trailing = {
                         Switch(
                             checked = state.hueEnabled,
@@ -1478,10 +1620,10 @@ fun AlarmEditScreen(
                 )
                 if (state.hueEnabled) {
                     var showHueMenu by remember { mutableStateOf(false) }
-                    SettingsRow(label = "Start lights before alarm") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_hue_start)) {
                         Box {
                             SettingsValueButton(
-                                label = "${state.huePreWakeMinutes} min before",
+                                label = stringResource(R.string.alarm_edit_minutes_before_short, state.huePreWakeMinutes),
                                 onClick = { showHueMenu = true }
                             )
                             DropdownMenu(
@@ -1490,7 +1632,12 @@ fun AlarmEditScreen(
                             ) {
                                 listOf(10, 15, 20, 30, 45, 60, 90).forEach { mins ->
                                     DropdownMenuItem(
-                                        text = { Text("$mins minutes before", color = if (mins == state.huePreWakeMinutes) AccentBlue else TextPrimary) },
+                                        text = {
+                                            Text(
+                                                stringResource(R.string.alarm_edit_minutes_before, mins),
+                                                color = if (mins == state.huePreWakeMinutes) AccentBlue else TextPrimary
+                                            )
+                                        },
                                         onClick = { viewModel.updateHue(true, mins); showHueMenu = false }
                                     )
                                 }
@@ -1498,20 +1645,24 @@ fun AlarmEditScreen(
                         }
                     }
                     SettingsHint(
-                        "Requires Hue bridge IP and API key configured in Settings → Philips Hue",
+                        stringResource(R.string.alarm_edit_hue_hint),
                         tone = HintTone.Warning
                     )
                 }
             }
 
             // v1.2.0: Mission Chaining
-            SettingsSection("Mission chaining") {
+            SettingsSection(AlarmEditorSection.CHAIN) {
                 val chainItems = state.challengeChain.toChallengeChainList()
                 SettingsRow(
-                    label = "Challenge chain",
+                    label = stringResource(R.string.alarm_edit_challenge_chain),
                     trailing = {
                         SettingsValueButton(
-                            label = if (chainItems.isEmpty()) "Choose" else "${chainItems.size} challenges",
+                            label = if (chainItems.isEmpty()) {
+                                stringResource(R.string.alarm_edit_choose)
+                            } else {
+                                pluralStringResource(R.plurals.alarm_edit_challenges, chainItems.size, chainItems.size)
+                            },
                             onClick = { showChainPicker = true }
                         )
                     }
@@ -1535,27 +1686,27 @@ fun AlarmEditScreen(
                 OutlinedTextField(
                     value = state.challengeChain,
                     onValueChange = viewModel::updateChallengeChain,
-                    label = { Text("Advanced chain override", color = TextMuted) },
-                    placeholder = { Text("MATH_EASY,SHAKE,TYPING", color = TextMuted) },
+                    label = { Text(stringResource(R.string.alarm_edit_chain_override), color = TextMuted) },
+                    placeholder = { Text(stringResource(R.string.alarm_edit_chain_placeholder), color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
                 SettingsHint(
-                    "Stack multiple challenges in sequence. Use the picker above for a guided setup, or edit the raw chain directly if you already know the codes.",
+                    stringResource(R.string.alarm_edit_chain_hint),
                     tone = HintTone.Neutral
                 )
                 if (chainItems.isNotEmpty()) {
                     val missingRefs = buildList {
-                        if ("NFC_SCAN" in chainItems && state.nfcTagId.isBlank()) add("NFC tag ID")
-                        if ("BARCODE_SCAN" in chainItems && state.barcodeValue.isBlank()) add("barcode value")
-                        if ("PHOTO_MATCH" in chainItems && state.photoMatchUri.isBlank()) add("reference photo")
-                        if ("WIFI_CONNECT" in chainItems && state.wifiDismissSsid.isBlank()) add("Wi-Fi SSID")
+                        if ("NFC_SCAN" in chainItems && state.nfcTagId.isBlank()) add(stringResource(R.string.alarm_edit_nfc_id))
+                        if ("BARCODE_SCAN" in chainItems && state.barcodeValue.isBlank()) add(stringResource(R.string.alarm_edit_barcode_value_short))
+                        if ("PHOTO_MATCH" in chainItems && state.photoMatchUri.isBlank()) add(stringResource(R.string.alarm_edit_reference_photo_lower))
+                        if ("WIFI_CONNECT" in chainItems && state.wifiDismissSsid.isBlank()) add(stringResource(R.string.alarm_edit_wifi_ssid))
                     }
                     if (missingRefs.isNotEmpty()) {
                         SettingsHint(
-                            "Missing ${missingRefs.joinToString(", ")}. These challenges will be skipped at fire time.",
+                            stringResource(R.string.alarm_edit_missing_references, missingRefs.joinToString(", ")),
                             tone = HintTone.Warning
                         )
                     }
@@ -1563,9 +1714,9 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Anti-Snooze Features
-            SettingsSection("Anti-snooze") {
+            SettingsSection(AlarmEditorSection.ANTI_SNOOZE) {
                 SettingsRow(
-                    label = "Progressive snooze (shorter each time)",
+                    label = stringResource(R.string.alarm_edit_progressive_snooze),
                     trailing = {
                         Switch(
                             checked = state.progressiveSnooze,
@@ -1575,12 +1726,12 @@ fun AlarmEditScreen(
                     }
                 )
                 SettingsHint(
-                    "Each snooze shortens by 1 minute, such as 10 → 9 → 8.",
+                    stringResource(R.string.alarm_edit_progressive_snooze_hint),
                     tone = HintTone.Neutral
                 )
 
                 SettingsRow(
-                    label = "Backup sound escalation",
+                    label = stringResource(R.string.alarm_edit_backup_sound),
                     trailing = {
                         Switch(
                             checked = state.backupSoundEnabled,
@@ -1591,16 +1742,16 @@ fun AlarmEditScreen(
                 )
                 if (state.backupSoundEnabled) {
                     var showDelayMenu by remember { mutableStateOf(false) }
-                    SettingsRow(label = "Escalate after") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_escalate_after)) {
                         Box {
                             SettingsValueButton(
-                                label = "${state.backupSoundDelaySec}s",
+                                label = stringResource(R.string.alarm_edit_seconds_short, state.backupSoundDelaySec),
                                 onClick = { showDelayMenu = true }
                             )
                             DropdownMenu(expanded = showDelayMenu, onDismissRequest = { showDelayMenu = false }) {
                                 listOf(20, 30, 40, 60, 90, 120).forEach { sec ->
                                     DropdownMenuItem(
-                                        text = { Text("$sec seconds") },
+                                        text = { Text(pluralStringResource(R.plurals.alarm_edit_seconds, sec, sec)) },
                                         onClick = { viewModel.updateBackupSound(true, sec); showDelayMenu = false }
                                     )
                                 }
@@ -1608,13 +1759,13 @@ fun AlarmEditScreen(
                         }
                     }
                     SettingsHint(
-                        "Cranks volume to maximum if there is no interaction within the delay.",
+                        stringResource(R.string.alarm_edit_backup_sound_hint),
                         tone = HintTone.Warning
                     )
                 }
 
                 SettingsRow(
-                    label = "Flashlight strobe",
+                    label = stringResource(R.string.alarm_edit_flashlight_strobe),
                     trailing = {
                         Switch(
                             checked = state.flashlightStrobe,
@@ -1625,16 +1776,16 @@ fun AlarmEditScreen(
                 )
                 if (state.flashlightStrobe) {
                     SettingsHint(
-                        "Warning: rapid flashing can trigger seizures or discomfort. Reduce motion and flashing in Settings disables this effect.",
+                        stringResource(R.string.alarm_edit_flashlight_warning),
                         tone = HintTone.Warning
                     )
                 }
             }
 
             // v1.2.0: Sunrise Simulation
-            SettingsSection("Sunrise simulation") {
+            SettingsSection(AlarmEditorSection.SUNRISE) {
                 SettingsRow(
-                    label = "Screen sunrise (color transition)",
+                    label = stringResource(R.string.alarm_edit_screen_sunrise),
                     trailing = {
                         Switch(
                             checked = state.sunriseSimulation,
@@ -1645,16 +1796,16 @@ fun AlarmEditScreen(
                 )
                 if (state.sunriseSimulation) {
                     var showMenu by remember { mutableStateOf(false) }
-                    SettingsRow(label = "Duration") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_duration)) {
                         Box {
                             SettingsValueButton(
-                                label = "${state.sunriseMinutes} min",
+                                label = stringResource(R.string.alarm_edit_minutes_short, state.sunriseMinutes),
                                 onClick = { showMenu = true }
                             )
                             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                                 listOf(5, 10, 15, 20, 30).forEach { mins ->
                                     DropdownMenuItem(
-                                        text = { Text("$mins minutes") },
+                                        text = { Text(pluralStringResource(R.plurals.alarm_edit_minutes, mins, mins)) },
                                         onClick = { viewModel.updateSunriseSimulation(true, mins); showMenu = false }
                                     )
                                 }
@@ -1662,34 +1813,34 @@ fun AlarmEditScreen(
                         }
                     }
                     SettingsHint(
-                        "Transitions the screen from deep red to warm yellow to simulate sunrise.",
+                        stringResource(R.string.alarm_edit_sunrise_hint),
                         tone = HintTone.Neutral
                     )
                 }
             }
 
             // v1.2.0: Sound Source
-            SettingsSection("Internet radio") {
+            SettingsSection(AlarmEditorSection.RADIO) {
                 OutlinedTextField(
                     value = state.internetRadioUrl,
                     onValueChange = viewModel::updateInternetRadioUrl,
-                    label = { Text("Stream URL (http://...)", color = TextMuted) },
-                    placeholder = { Text("Leave blank for default ringtone", color = TextMuted) },
+                    label = { Text(stringResource(R.string.alarm_edit_stream_url), color = TextMuted) },
+                    placeholder = { Text(stringResource(R.string.alarm_edit_default_ringtone_placeholder), color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     singleLine = true
                 )
                 SettingsHint(
-                    "Streams internet radio as the alarm sound and falls back to the default ringtone on failure.",
+                    stringResource(R.string.alarm_edit_radio_hint),
                     tone = HintTone.Warning
                 )
             }
 
             // v1.2.0: Guardian Angel
-            SettingsSection("Guardian Angel") {
+            SettingsSection(AlarmEditorSection.GUARDIAN) {
                 SettingsRow(
-                    label = "Emergency contact alert",
+                    label = stringResource(R.string.alarm_edit_emergency_alert),
                     trailing = {
                         Switch(
                             checked = state.guardianEnabled,
@@ -1702,23 +1853,31 @@ fun AlarmEditScreen(
                     OutlinedTextField(
                         value = state.guardianPhone,
                         onValueChange = { viewModel.updateGuardian(true, phone = it) },
-                        label = { Text("Emergency phone number", color = TextMuted) },
+                        label = { Text(stringResource(R.string.alarm_edit_emergency_phone), color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
                         shape = AppInputShape,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                         singleLine = true
                     )
                     var showDelayMenu by remember { mutableStateOf(false) }
-                    SettingsRow(label = "Alert after") {
+                    SettingsRow(label = stringResource(R.string.alarm_edit_alert_after)) {
                         Box {
                             SettingsValueButton(
-                                label = "${state.guardianDelaySec / 60} min",
+                                label = stringResource(R.string.alarm_edit_minutes_short, state.guardianDelaySec / 60),
                                 onClick = { showDelayMenu = true }
                             )
                             DropdownMenu(expanded = showDelayMenu, onDismissRequest = { showDelayMenu = false }) {
                                 listOf(120, 180, 300, 600, 900).forEach { sec ->
                                     DropdownMenuItem(
-                                        text = { Text("${sec / 60} minutes") },
+                                        text = {
+                                            Text(
+                                                pluralStringResource(
+                                                    R.plurals.alarm_edit_minutes,
+                                                    sec / 60,
+                                                    sec / 60
+                                                )
+                                            )
+                                        },
                                         onClick = { viewModel.updateGuardian(true, delaySec = sec); showDelayMenu = false }
                                     )
                                 }
@@ -1745,31 +1904,31 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Morning Routine
-            SettingsSection("Morning routine") {
+            SettingsSection(AlarmEditorSection.ROUTINE) {
                 OutlinedTextField(
                     value = state.morningRoutine,
                     onValueChange = viewModel::updateMorningRoutine,
-                    label = { Text("Checklist items (one per line)", color = TextMuted) },
-                    placeholder = { Text("Stretch\nDrink water\nBrush teeth", color = TextMuted) },
+                    label = { Text(stringResource(R.string.alarm_edit_checklist_label), color = TextMuted) },
+                    placeholder = { Text(stringResource(R.string.alarm_edit_checklist_placeholder), color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     minLines = 3, maxLines = 6
                 )
                 SettingsHint(
-                    "Shown as a checklist after dismissal on the morning briefing screen.",
+                    stringResource(R.string.alarm_edit_checklist_hint),
                     tone = HintTone.Neutral
                 )
             }
             }
 
             // v1.2.0: Advanced
-            SettingsSection("Advanced") {
-                SettingsRow(label = "Alarm profile") {
+            SettingsSection(AlarmEditorSection.ADVANCED) {
+                SettingsRow(label = stringResource(R.string.alarm_edit_profile)) {
                     OutlinedTextField(
                         value = state.profileName,
                         onValueChange = viewModel::updateProfileName,
-                        placeholder = { Text("e.g. Work, Travel, Weekend", color = TextMuted) },
+                        placeholder = { Text(stringResource(R.string.alarm_edit_profile_placeholder), color = TextMuted) },
                         colors = appOutlinedTextFieldColors(),
                         shape = AppInputShape,
                         modifier = Modifier.width(180.dp),
@@ -1779,20 +1938,20 @@ fun AlarmEditScreen(
                 OutlinedTextField(
                     value = state.specificDate,
                     onValueChange = viewModel::updateSpecificDate,
-                    label = { Text("Specific date (YYYY-MM-DD, leave blank for repeat days)", color = TextMuted) },
+                    label = { Text(stringResource(R.string.alarm_edit_specific_date), color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
                 var showTimezonePolicyMenu by remember { mutableStateOf(false) }
-                SettingsRow(label = "Time zone") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_time_zone)) {
                     Box {
                         SettingsValueButton(
                             label = if (state.timezonePolicy == Alarm.TIMEZONE_POLICY_FIXED) {
-                                "Fixed zone"
+                                stringResource(R.string.alarm_edit_fixed_zone)
                             } else {
-                                "Follow device"
+                                stringResource(R.string.alarm_edit_follow_device)
                             },
                             onClick = { showTimezonePolicyMenu = true }
                         )
@@ -1801,14 +1960,14 @@ fun AlarmEditScreen(
                             onDismissRequest = { showTimezonePolicyMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Follow device time zone") },
+                                text = { Text(stringResource(R.string.alarm_edit_follow_device_zone)) },
                                 onClick = {
                                     viewModel.updateTimezonePolicy(Alarm.TIMEZONE_POLICY_LOCAL)
                                     showTimezonePolicyMenu = false
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("Keep time in a fixed zone") },
+                                text = { Text(stringResource(R.string.alarm_edit_keep_fixed_zone)) },
                                 onClick = {
                                     viewModel.updateTimezonePolicy(Alarm.TIMEZONE_POLICY_FIXED)
                                     showTimezonePolicyMenu = false
@@ -1824,13 +1983,17 @@ fun AlarmEditScreen(
                     OutlinedTextField(
                         value = state.fixedTimezoneId,
                         onValueChange = viewModel::updateFixedTimezoneId,
-                        label = { Text("IANA time zone (for example America/New_York)", color = TextMuted) },
+                        label = { Text(stringResource(R.string.alarm_edit_iana_zone), color = TextMuted) },
                         supportingText = {
                             Text(
                                 if (zoneIsValid) {
-                                    "The alarm stays at ${state.hour.toString().padStart(2, '0')}:${state.minute.toString().padStart(2, '0')} in this zone when you travel."
+                                    stringResource(
+                                        R.string.alarm_edit_fixed_zone_hint,
+                                        state.hour.toString().padStart(2, '0'),
+                                        state.minute.toString().padStart(2, '0')
+                                    )
                                 } else {
-                                    "Unknown zone; saving will safely fall back to following the device."
+                                    stringResource(R.string.alarm_edit_unknown_zone)
                                 }
                             )
                         },
@@ -1843,10 +2006,10 @@ fun AlarmEditScreen(
                 }
                 var showShiftPatternMenu by remember { mutableStateOf(false) }
                 val selectedShiftPattern = ShiftPattern.fromKey(state.shiftPattern)
-                SettingsRow(label = "Shift pattern") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_shift_pattern)) {
                     Box {
                         SettingsValueButton(
-                            label = selectedShiftPattern?.title ?: "Disabled",
+                            label = selectedShiftPattern?.title ?: stringResource(R.string.alarm_edit_disabled),
                             onClick = { showShiftPatternMenu = true }
                         )
                         DropdownMenu(
@@ -1854,7 +2017,7 @@ fun AlarmEditScreen(
                             onDismissRequest = { showShiftPatternMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Disabled") },
+                                text = { Text(stringResource(R.string.alarm_edit_disabled)) },
                                 onClick = {
                                     viewModel.updateShiftPattern("")
                                     showShiftPatternMenu = false
@@ -1866,7 +2029,7 @@ fun AlarmEditScreen(
                                         Column {
                                             Text(pattern.title)
                                             Text(
-                                                pattern.description,
+                                                shiftPatternDescription(pattern),
                                                 color = TextMuted,
                                                 style = MaterialTheme.typography.bodySmall
                                             )
@@ -1886,29 +2049,41 @@ fun AlarmEditScreen(
                         OutlinedTextField(
                             value = state.shiftPatternStartDate,
                             onValueChange = viewModel::updateShiftPatternStartDate,
-                            label = { Text("Shift cycle start date (YYYY-MM-DD)", color = TextMuted) },
+                            label = { Text(stringResource(R.string.alarm_edit_shift_start), color = TextMuted) },
                             colors = appOutlinedTextFieldColors(),
                             shape = AppInputShape,
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                             singleLine = true
                         )
                         SettingsHint(
-                            "Day, night, and work entries ring; off days are skipped. Weekday picks still narrow the pattern.",
+                            stringResource(R.string.alarm_edit_shift_hint),
                             tone = HintTone.Neutral
                         )
                     }
                 }
                 var showWeatherEarlyMenu by remember { mutableStateOf(false) }
-                SettingsRow(label = "Weather early fire") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_weather_early)) {
                     Box {
                         SettingsValueButton(
-                            label = if (state.weatherEarlyMinutes == 0) "Disabled" else "${state.weatherEarlyMinutes} min",
+                            label = if (state.weatherEarlyMinutes == 0) {
+                                stringResource(R.string.alarm_edit_disabled)
+                            } else {
+                                stringResource(R.string.alarm_edit_minutes_short, state.weatherEarlyMinutes)
+                            },
                             onClick = { showWeatherEarlyMenu = true }
                         )
                         DropdownMenu(expanded = showWeatherEarlyMenu, onDismissRequest = { showWeatherEarlyMenu = false }) {
                             listOf(0, 10, 15, 20, 30).forEach { mins ->
                                 DropdownMenuItem(
-                                    text = { Text(if (mins == 0) "Disabled" else "$mins minutes earlier") },
+                                    text = {
+                                        Text(
+                                            if (mins == 0) {
+                                                stringResource(R.string.alarm_edit_disabled)
+                                            } else {
+                                                stringResource(R.string.alarm_edit_minutes_earlier, mins)
+                                            }
+                                        )
+                                    },
                                     onClick = { viewModel.updateWeatherEarlyMinutes(mins); showWeatherEarlyMenu = false }
                                 )
                             }
@@ -1916,21 +2091,33 @@ fun AlarmEditScreen(
                     }
                 }
                 SettingsHint(
-                    "Fire this alarm earlier when snow, freezing rain, or ice is forecast. Uses cached weather data.",
+                    stringResource(R.string.alarm_edit_weather_early_hint),
                     tone = HintTone.Neutral
                 )
 
                 var showEarlyMenu by remember { mutableStateOf(false) }
-                SettingsRow(label = "Early dismiss window") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_early_dismiss)) {
                     Box {
                         SettingsValueButton(
-                            label = if (state.earlyDismissMinutes == 0) "Disabled" else "${state.earlyDismissMinutes} min",
+                            label = if (state.earlyDismissMinutes == 0) {
+                                stringResource(R.string.alarm_edit_disabled)
+                            } else {
+                                stringResource(R.string.alarm_edit_minutes_short, state.earlyDismissMinutes)
+                            },
                             onClick = { showEarlyMenu = true }
                         )
                         DropdownMenu(expanded = showEarlyMenu, onDismissRequest = { showEarlyMenu = false }) {
                             listOf(0, 15, 30, 60).forEach { mins ->
                                 DropdownMenuItem(
-                                    text = { Text(if (mins == 0) "Disabled" else "$mins minutes before") },
+                                    text = {
+                                        Text(
+                                            if (mins == 0) {
+                                                stringResource(R.string.alarm_edit_disabled)
+                                            } else {
+                                                stringResource(R.string.alarm_edit_minutes_before, mins)
+                                            }
+                                        )
+                                    },
                                     onClick = { viewModel.updateEarlyDismiss(mins); showEarlyMenu = false }
                                 )
                             }
@@ -1938,14 +2125,14 @@ fun AlarmEditScreen(
                     }
                 }
                 SettingsHint(
-                    "Allows a deliberate early skip from the upcoming-alarm notification before the ring begins.",
+                    stringResource(R.string.alarm_edit_early_dismiss_hint),
                     tone = HintTone.Neutral
                 )
 
                 OutlinedTextField(
                     value = state.wifiDismissSsid,
                     onValueChange = viewModel::updateWifiDismissSsid,
-                    label = { Text("Wi-Fi dismiss SSID (connect to this network to dismiss)", color = TextMuted) },
+                    label = { Text(stringResource(R.string.alarm_edit_wifi_dismiss_ssid), color = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
@@ -1955,14 +2142,20 @@ fun AlarmEditScreen(
                 // v1.4.0: Hardware-button action (Volume/Camera/Headset-hook keys
                 // during firing). NONE = normal volume control passes through.
                 var showHwMenu by remember { mutableStateOf(false) }
-                SettingsRow(label = "Hardware-button action") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_hardware_action)) {
                     Box {
+                        val hardwareActions = listOf(
+                            "NONE" to stringResource(R.string.alarm_edit_hardware_none),
+                            "SNOOZE" to stringResource(R.string.alarm_edit_hardware_snooze),
+                            "DISMISS" to stringResource(R.string.alarm_edit_hardware_dismiss)
+                        )
                         SettingsValueButton(
-                            label = state.hardwareButtonAction.lowercase().replaceFirstChar { it.uppercase() },
+                            label = hardwareActions.firstOrNull { it.first == state.hardwareButtonAction }?.second
+                                ?: stringResource(R.string.alarm_edit_none),
                             onClick = { showHwMenu = true }
                         )
                         DropdownMenu(expanded = showHwMenu, onDismissRequest = { showHwMenu = false }) {
-                            listOf("NONE" to "None (default)", "SNOOZE" to "Snooze on any key", "DISMISS" to "Dismiss on any key").forEach { (value, label) ->
+                            hardwareActions.forEach { (value, label) ->
                                 DropdownMenuItem(
                                     text = { Text(label) },
                                     onClick = { viewModel.updateHardwareButtonAction(value); showHwMenu = false }
@@ -1972,13 +2165,13 @@ fun AlarmEditScreen(
                     }
                 }
                 SettingsHint(
-                    "Volume, camera, or headset keys during the alarm trigger the chosen action. NONE leaves normal volume control intact.",
+                    stringResource(R.string.alarm_edit_hardware_hint),
                     tone = HintTone.Neutral
                 )
 
                 // v1.10.3: Deliberate dismiss confirmation for users who
                 // accidentally swipe ready alarms while half-awake.
-                SettingsRow(label = "Hold to dismiss") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_hold_to_dismiss)) {
                     Switch(
                         checked = state.holdToDismissEnabled,
                         onCheckedChange = viewModel::updateHoldToDismiss,
@@ -1986,12 +2179,12 @@ fun AlarmEditScreen(
                     )
                 }
                 SettingsHint(
-                    "When enabled, the firing screen requires holding Dismiss for 1.5 seconds. Swipe-left dismissal is replaced with a visible hold prompt.",
+                    stringResource(R.string.alarm_edit_hold_to_dismiss_hint),
                     tone = HintTone.Neutral
                 )
 
                 // v1.4.0: Dismiss-at-ringtone-end. Great for single-song wake-ups.
-                SettingsRow(label = "Dismiss when song finishes") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_dismiss_song_end)) {
                     Switch(
                         checked = state.dismissAtRingtoneEnd,
                         onCheckedChange = viewModel::updateDismissAtRingtoneEnd,
@@ -1999,7 +2192,7 @@ fun AlarmEditScreen(
                     )
                 }
                 SettingsHint(
-                    "Turns off looping and auto-dismisses the alarm when the chosen ringtone or track finishes naturally. Internet radio ignores this setting.",
+                    stringResource(R.string.alarm_edit_dismiss_song_end_hint),
                     tone = HintTone.Neutral
                 )
 
@@ -2019,7 +2212,7 @@ fun AlarmEditScreen(
                 var showAddRingtoneDialog by remember { mutableStateOf(false) }
                 Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
                     Text(
-                        text = "Ringtone pool",
+                        text = stringResource(R.string.alarm_edit_ringtone_pool),
                         color = TextSecondary,
                         style = MaterialTheme.typography.labelMedium
                     )
@@ -2035,7 +2228,7 @@ fun AlarmEditScreen(
                                 selected = true,
                                 leadingIcon = Icons.Default.Close,
                                 selectionSemantics = false,
-                                accessibilityLabel = "Remove $shortName from ringtone pool",
+                                accessibilityLabel = stringResource(R.string.alarm_edit_remove_ringtone, shortName),
                                 onClick = {
                                     val next = ringtonePoolEntries.filterNot { it == uri }.joinToString(",")
                                     viewModel.updateRingtonePool(next)
@@ -2043,15 +2236,15 @@ fun AlarmEditScreen(
                             )
                         }
                         AppFilterChip(
-                            label = "Add ringtone",
+                            label = stringResource(R.string.alarm_edit_add_ringtone),
                             selected = false,
-                            accessibilityLabel = "Add ringtone to pool",
+                            accessibilityLabel = stringResource(R.string.alarm_edit_add_ringtone_accessibility),
                             onClick = { showAddRingtoneDialog = true }
                         )
                     }
                 }
                 SettingsHint(
-                    "When the pool is non-empty, a random entry is picked each fire and overrides the single Ringtone setting above. Tap a chip to remove it.",
+                    stringResource(R.string.alarm_edit_ringtone_pool_hint),
                     tone = HintTone.Neutral
                 )
                 if (showAddRingtoneDialog) {
@@ -2061,19 +2254,19 @@ fun AlarmEditScreen(
                     val canAddRingtone = trimmedUri.isNotEmpty() && !duplicateUri
                     AlertDialog(
                         onDismissRequest = { showAddRingtoneDialog = false },
-                        title = { Text("Add ringtone to pool") },
+                        title = { Text(stringResource(R.string.alarm_edit_add_ringtone_title)) },
                         text = {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(
-                                    "Paste a content:// URI or file:// path. A random pool entry plays each time this alarm fires.",
+                                    stringResource(R.string.alarm_edit_ringtone_uri_hint),
                                     color = TextSecondary,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 OutlinedTextField(
                                     value = newUri,
                                     onValueChange = { newUri = it },
-                                    label = { Text("Ringtone URI") },
-                                    placeholder = { Text("content://... or file://...", color = TextMuted) },
+                                    label = { Text(stringResource(R.string.alarm_edit_ringtone_uri)) },
+                                    placeholder = { Text(stringResource(R.string.alarm_edit_ringtone_uri_placeholder), color = TextMuted) },
                                     singleLine = true,
                                     colors = appOutlinedTextFieldColors(),
                                     shape = AppInputShape,
@@ -2081,7 +2274,7 @@ fun AlarmEditScreen(
                                 )
                                 if (duplicateUri) {
                                     Text(
-                                        text = "That ringtone is already in the pool.",
+                                        text = stringResource(R.string.alarm_edit_ringtone_duplicate),
                                         color = AccentRed,
                                         style = MaterialTheme.typography.bodySmall
                                     )
@@ -2096,10 +2289,12 @@ fun AlarmEditScreen(
                                     viewModel.updateRingtonePool(next)
                                     showAddRingtoneDialog = false
                                 }
-                            ) { Text("Add ringtone") }
+                            ) { Text(stringResource(R.string.alarm_edit_add_ringtone)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showAddRingtoneDialog = false }) { Text("Cancel") }
+                            TextButton(onClick = { showAddRingtoneDialog = false }) {
+                                Text(stringResource(R.string.cancel))
+                            }
                         }
                     )
                 }
@@ -2108,14 +2303,19 @@ fun AlarmEditScreen(
                 // when offset is non-zero; uses last-known location for the solar
                 // calc (cached by weather pulls) with a sensible fallback to clock.
                 var showAnchorMenu by remember { mutableStateOf(false) }
-                SettingsRow(label = "Solar anchor") {
+                val solarAnchors = listOf(
+                    "SUNRISE" to stringResource(R.string.alarm_edit_solar_sunrise),
+                    "SUNSET" to stringResource(R.string.alarm_edit_solar_sunset)
+                )
+                SettingsRow(label = stringResource(R.string.alarm_edit_solar_anchor)) {
                     Box {
                         SettingsValueButton(
-                            label = state.solarAnchor.lowercase().replaceFirstChar { it.uppercase() },
+                            label = solarAnchors.firstOrNull { it.first == state.solarAnchor }?.second
+                                ?: stringResource(R.string.alarm_edit_solar_sunrise),
                             onClick = { showAnchorMenu = true }
                         )
                         DropdownMenu(expanded = showAnchorMenu, onDismissRequest = { showAnchorMenu = false }) {
-                            listOf("SUNRISE" to "Sunrise", "SUNSET" to "Sunset").forEach { (value, label) ->
+                            solarAnchors.forEach { (value, label) ->
                                 DropdownMenuItem(
                                     text = { Text(label) },
                                     onClick = { viewModel.updateSolarAnchor(value); showAnchorMenu = false }
@@ -2125,12 +2325,15 @@ fun AlarmEditScreen(
                     }
                 }
                 var showOffsetMenu by remember { mutableStateOf(false) }
-                SettingsRow(label = "Solar offset") {
+                SettingsRow(label = stringResource(R.string.alarm_edit_solar_offset)) {
                     Box {
                         val solarOffsetLabel = when {
-                            state.solarOffsetMinutes == 0 -> "Off (use clock time)"
-                            state.solarOffsetMinutes > 0 -> "+${state.solarOffsetMinutes} min"
-                            else -> "${state.solarOffsetMinutes} min"
+                            state.solarOffsetMinutes == 0 -> stringResource(R.string.alarm_edit_solar_off)
+                            state.solarOffsetMinutes > 0 -> stringResource(
+                                R.string.alarm_edit_positive_minutes_short,
+                                state.solarOffsetMinutes
+                            )
+                            else -> stringResource(R.string.alarm_edit_minutes_short, state.solarOffsetMinutes)
                         }
                         SettingsValueButton(
                             label = solarOffsetLabel,
@@ -2141,9 +2344,17 @@ fun AlarmEditScreen(
                                 DropdownMenuItem(
                                     text = {
                                         val lbl = when {
-                                            mins == 0 -> "Off (use clock time)"
-                                            mins > 0 -> "+$mins min (after ${state.solarAnchor.lowercase()})"
-                                            else -> "$mins min (before ${state.solarAnchor.lowercase()})"
+                                            mins == 0 -> stringResource(R.string.alarm_edit_solar_off)
+                                            mins > 0 -> stringResource(
+                                                R.string.alarm_edit_solar_after,
+                                                mins,
+                                                solarAnchors.firstOrNull { it.first == state.solarAnchor }?.second.orEmpty()
+                                            )
+                                            else -> stringResource(
+                                                R.string.alarm_edit_solar_before,
+                                                mins,
+                                                solarAnchors.firstOrNull { it.first == state.solarAnchor }?.second.orEmpty()
+                                            )
                                         }
                                         Text(lbl)
                                     },
@@ -2154,7 +2365,7 @@ fun AlarmEditScreen(
                     }
                 }
                 SettingsHint(
-                    "When the offset is non-zero, the alarm fires relative to the selected sunrise or sunset event at your last known location.",
+                    stringResource(R.string.alarm_edit_solar_hint),
                     tone = HintTone.Neutral
                 )
             }
@@ -2179,22 +2390,28 @@ fun AlarmEditScreen(
                     viewModel.updateTime(timePickerState.hour, timePickerState.minute)
                     showTimePicker = false
                 }) {
-                    Text("Save time", color = AccentBlue)
+                    Text(stringResource(R.string.alarm_edit_save_time), color = AccentBlue)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showTimePicker = false }) {
-                    Text("Keep current", color = TextSecondary)
+                    Text(stringResource(R.string.alarm_edit_keep_current), color = TextSecondary)
                 }
             },
             title = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppStatusChip(
-                        label = if (state.is24HourFormat) "24-hour time" else "12-hour time",
+                        label = stringResource(
+                            if (state.is24HourFormat) R.string.alarm_edit_24_hour else R.string.alarm_edit_12_hour
+                        ),
                         icon = Icons.Default.Schedule,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Text("Choose alarm time", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        stringResource(R.string.alarm_edit_choose_time),
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleLarge
+                    )
                 }
             },
             text = {
@@ -2221,13 +2438,13 @@ private fun DaySelector(
     onToggleDay: (DayOfWeek) -> Unit
 ) {
     val days = listOf(
-        DayOfWeek.MONDAY to "Mo",
-        DayOfWeek.TUESDAY to "Tu",
-        DayOfWeek.WEDNESDAY to "We",
-        DayOfWeek.THURSDAY to "Th",
-        DayOfWeek.FRIDAY to "Fr",
-        DayOfWeek.SATURDAY to "Sa",
-        DayOfWeek.SUNDAY to "Su"
+        DayOfWeek.MONDAY to stringResource(R.string.alarm_edit_day_monday_short),
+        DayOfWeek.TUESDAY to stringResource(R.string.alarm_edit_day_tuesday_short),
+        DayOfWeek.WEDNESDAY to stringResource(R.string.alarm_edit_day_wednesday_short),
+        DayOfWeek.THURSDAY to stringResource(R.string.alarm_edit_day_thursday_short),
+        DayOfWeek.FRIDAY to stringResource(R.string.alarm_edit_day_friday_short),
+        DayOfWeek.SATURDAY to stringResource(R.string.alarm_edit_day_saturday_short),
+        DayOfWeek.SUNDAY to stringResource(R.string.alarm_edit_day_sunday_short)
     )
 
     Row(
@@ -2285,20 +2502,28 @@ private fun AlarmEditorCategoryOverview(
 ) {
     val repeatSummary = state.repeatDays.toAlarmRepeatSummary()
     val baseScheduleSummary = when {
-        state.specificDate.isNotBlank() -> "$repeatSummary • Specific date set"
-        state.smartAlarmEnabled -> "$repeatSummary • Smart ${state.smartAlarmWindowMinutes} min window"
-        else -> "$repeatSummary • Fixed wake time"
+        state.specificDate.isNotBlank() -> stringResource(R.string.alarm_edit_schedule_specific, repeatSummary)
+        state.smartAlarmEnabled -> stringResource(
+            R.string.alarm_edit_schedule_smart,
+            repeatSummary,
+            state.smartAlarmWindowMinutes
+        )
+        else -> stringResource(R.string.alarm_edit_schedule_fixed, repeatSummary)
     }
     val scheduleSummary = if (state.timezonePolicy == Alarm.TIMEZONE_POLICY_FIXED) {
-        "$baseScheduleSummary • ${state.fixedTimezoneId.ifBlank { "Invalid fixed zone" }}"
+        stringResource(
+            R.string.alarm_edit_schedule_zone,
+            baseScheduleSummary,
+            state.fixedTimezoneId.ifBlank { stringResource(R.string.alarm_edit_invalid_fixed_zone) }
+        )
     } else {
-        "$baseScheduleSummary • Follows device zone"
+        stringResource(R.string.alarm_edit_schedule_device_zone, baseScheduleSummary)
     }
     val wakeFeatures = listOfNotNull(
-        "Flash".takeIf { state.flashWake || state.flashlightStrobe },
-        "Sunrise".takeIf { state.sunriseSimulation },
-        "Announcement".takeIf { state.ttsEnabled },
-        "Routine".takeIf { state.morningRoutine.isNotBlank() }
+        stringResource(R.string.alarm_edit_feature_flash).takeIf { state.flashWake || state.flashlightStrobe },
+        stringResource(R.string.alarm_edit_feature_sunrise).takeIf { state.sunriseSimulation },
+        stringResource(R.string.alarm_edit_feature_announcement).takeIf { state.ttsEnabled },
+        stringResource(R.string.alarm_edit_feature_routine).takeIf { state.morningRoutine.isNotBlank() }
     )
     val integrationCount = listOf(
         state.spotifyUri.isNotBlank(),
@@ -2307,46 +2532,62 @@ private fun AlarmEditorCategoryOverview(
         state.guardianEnabled
     ).count { it }
     val advancedFeatures = listOfNotNull(
-        "Profile".takeIf { state.profileName.isNotBlank() },
-        "Shift pattern".takeIf { state.shiftPattern.isNotBlank() },
-        "Solar timing".takeIf { state.solarOffsetMinutes != 0 },
-        "Wi-Fi rule".takeIf { state.wifiDismissSsid.isNotBlank() }
+        stringResource(R.string.alarm_edit_feature_profile).takeIf { state.profileName.isNotBlank() },
+        stringResource(R.string.alarm_edit_feature_shift).takeIf { state.shiftPattern.isNotBlank() },
+        stringResource(R.string.alarm_edit_feature_solar).takeIf { state.solarOffsetMinutes != 0 },
+        stringResource(R.string.alarm_edit_feature_wifi).takeIf { state.wifiDismissSsid.isNotBlank() }
     )
     val categories = listOf(
         AlarmEditorCategory(
             page = AlarmEditorPage.SOUND,
-            title = "Sound & vibration",
-            summary = "${state.soundSummary()} • ${if (state.vibrationEnabled) "Vibration on" else "Vibration off"}",
+            title = stringResource(R.string.alarm_edit_page_sound),
+            summary = stringResource(
+                R.string.alarm_edit_sound_category_summary,
+                state.soundSummary(),
+                stringResource(
+                    if (state.vibrationEnabled) R.string.alarm_edit_vibration_on else R.string.alarm_edit_vibration_off
+                )
+            ),
             icon = Icons.AutoMirrored.Filled.VolumeUp
         ),
         AlarmEditorCategory(
             page = AlarmEditorPage.DISMISS,
-            title = "Snooze & dismiss",
-            summary = "${state.challengeSummary()} • ${state.snoozeDurationMinutes} min snooze",
+            title = stringResource(R.string.alarm_edit_page_dismiss),
+            summary = stringResource(
+                R.string.alarm_edit_dismiss_category_summary,
+                state.challengeSummary(),
+                state.snoozeDurationMinutes
+            ),
             icon = Icons.Default.TaskAlt
         ),
         AlarmEditorCategory(
             page = AlarmEditorPage.SCHEDULE,
-            title = "Schedule & smart wake",
+            title = stringResource(R.string.alarm_edit_page_schedule),
             summary = scheduleSummary,
             icon = Icons.Default.CalendarMonth
         ),
         AlarmEditorCategory(
             page = AlarmEditorPage.WAKE,
-            title = "Wake experience",
-            summary = wakeFeatures.takeIf { it.isNotEmpty() }?.joinToString(" • ") ?: "Standard wake",
+            title = stringResource(R.string.alarm_edit_page_wake),
+            summary = wakeFeatures.takeIf { it.isNotEmpty() }?.joinToString(" • ")
+                ?: stringResource(R.string.alarm_edit_standard_wake),
             icon = Icons.Default.WbSunny
         ),
         AlarmEditorCategory(
             page = AlarmEditorPage.INTEGRATIONS,
-            title = "Integrations & safety",
-            summary = if (integrationCount == 0) "No optional integrations" else "$integrationCount active",
+            title = stringResource(R.string.alarm_edit_page_integrations),
+            summary = if (integrationCount == 0) {
+                stringResource(R.string.alarm_edit_no_integrations)
+            } else {
+                pluralStringResource(R.plurals.alarm_edit_active_integrations, integrationCount, integrationCount)
+            },
             icon = Icons.Default.Hub
         ),
         AlarmEditorCategory(
             page = AlarmEditorPage.ADVANCED,
-            title = "Advanced behavior",
-            summary = advancedFeatures.takeIf { it.isNotEmpty() }?.joinToString(" • ") ?: "Using defaults",
+            title = stringResource(R.string.alarm_edit_page_advanced),
+            summary = advancedFeatures.takeIf { it.isNotEmpty() }?.joinToString(" • ")
+                ?: stringResource(R.string.alarm_edit_using_defaults),
             icon = Icons.Default.Tune
         )
     )
@@ -2356,8 +2597,8 @@ private fun AlarmEditorCategoryOverview(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         AppSectionTitle(
-            title = "Alarm settings",
-            description = "Open a category to adjust it. Your current choices stay visible here."
+            title = stringResource(R.string.alarm_edit_settings_title),
+            description = stringResource(R.string.alarm_edit_settings_description)
         )
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val columns = alarmEditorCategoryColumns(maxWidth.value.toInt())
@@ -2443,15 +2684,18 @@ private fun AlarmEditorCategoryCard(
 }
 
 @Composable
-private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    if (alarmEditorPageForSection(title) != LocalAlarmEditorPage.current) return
+private fun SettingsSection(
+    section: AlarmEditorSection,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    if (section.page != LocalAlarmEditorPage.current) return
     Column(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         AppSectionTitle(
-            title = title,
-            description = alarmEditSectionDescription(title)
+            title = stringResource(section.titleRes),
+            description = stringResource(section.descriptionRes)
         )
         AppSurfaceCard(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
             content()
@@ -2464,23 +2708,10 @@ private fun CollapsibleGroup(
     title: String,
     subtitle: String? = null,
     initiallyExpanded: Boolean = false,
+    focusedPages: Set<AlarmEditorPage>? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val editorPage = LocalAlarmEditorPage.current
-    val focusedPages = when (title) {
-        "Dismiss and wake" -> setOf(
-            AlarmEditorPage.DISMISS,
-            AlarmEditorPage.SCHEDULE,
-            AlarmEditorPage.WAKE
-        )
-        "Extras and integrations" -> setOf(
-            AlarmEditorPage.DISMISS,
-            AlarmEditorPage.SCHEDULE,
-            AlarmEditorPage.WAKE,
-            AlarmEditorPage.INTEGRATIONS
-        )
-        else -> null
-    }
     if (focusedPages != null) {
         if (editorPage !in focusedPages) return
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -2525,7 +2756,9 @@ private fun CollapsibleGroup(
                 }
                 Icon(
                     imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    contentDescription = stringResource(
+                        if (expanded) R.string.alarm_edit_collapse else R.string.alarm_edit_expand
+                    ),
                     tint = TextMuted
                 )
             }
@@ -2693,13 +2926,13 @@ private fun ChallengeChainPickerSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             AppSectionTitle(
-                title = "Challenge chain",
-                description = "Pick the wake-up tasks in the order they should happen. The first item appears first when the alarm rings."
+                title = stringResource(R.string.alarm_edit_challenge_chain),
+                description = stringResource(R.string.alarm_edit_chain_picker_description)
             )
 
             if (draftChain.isEmpty()) {
                 SettingsHint(
-                    "Start with two or more challenges when you want dismissal to feel more deliberate than a single math or shake task.",
+                    stringResource(R.string.alarm_edit_chain_picker_empty_hint),
                     tone = HintTone.Neutral
                 )
             } else {
@@ -2766,7 +2999,7 @@ private fun ChallengeChainPickerSheet(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.KeyboardArrowUp,
-                                            contentDescription = "Move $label earlier",
+                                            contentDescription = stringResource(R.string.alarm_edit_move_earlier, label),
                                             tint = if (index > 0) TextPrimary else TextMuted
                                         )
                                     }
@@ -2776,7 +3009,7 @@ private fun ChallengeChainPickerSheet(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.KeyboardArrowDown,
-                                            contentDescription = "Move $label later",
+                                            contentDescription = stringResource(R.string.alarm_edit_move_later, label),
                                             tint = if (index < draftChain.lastIndex) TextPrimary else TextMuted
                                         )
                                     }
@@ -2785,14 +3018,14 @@ private fun ChallengeChainPickerSheet(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Close,
-                                            contentDescription = "Remove $label",
+                                            contentDescription = stringResource(R.string.alarm_edit_remove_challenge, label),
                                             tint = AccentRed
                                         )
                                     }
                                 }
                             } else {
                                 TextButton(onClick = { draftChain = draftChain + type }) {
-                                    Text("Add", color = AccentBlue)
+                                    Text(stringResource(R.string.alarm_edit_add), color = AccentBlue)
                                 }
                             }
                         }
@@ -2808,18 +3041,25 @@ private fun ChallengeChainPickerSheet(
                     onClick = { draftChain = emptyList() },
                     enabled = draftChain.isNotEmpty()
                 ) {
-                    Text("Clear chain", color = if (draftChain.isNotEmpty()) AccentRed else TextMuted)
+                    Text(
+                        stringResource(R.string.alarm_edit_clear_chain),
+                        color = if (draftChain.isNotEmpty()) AccentRed else TextMuted
+                    )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = TextSecondary)
+                        Text(stringResource(R.string.cancel), color = TextSecondary)
                     }
                     Button(
                         onClick = { onApply(draftChain) },
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
                     ) {
-                        Text(if (draftChain.isEmpty()) "Disable chain" else "Use chain")
+                        Text(
+                            stringResource(
+                                if (draftChain.isEmpty()) R.string.alarm_edit_disable_chain else R.string.alarm_edit_use_chain
+                            )
+                        )
                     }
                 }
             }
@@ -2829,6 +3069,7 @@ private fun ChallengeChainPickerSheet(
     }
 }
 
+@Composable
 private fun Set<DayOfWeek>.toAlarmRepeatSummary(): String {
     val orderedDays = listOf(
         DayOfWeek.MONDAY,
@@ -2844,153 +3085,184 @@ private fun Set<DayOfWeek>.toAlarmRepeatSummary(): String {
     val weekendSet = orderedDays.takeLast(2).toSet()
 
     return when {
-        isEmpty() -> "One-time"
-        size == orderedDays.size -> "Every day"
-        this == weekdaySet -> "Weekdays"
-        this == weekendSet -> "Weekends"
+        isEmpty() -> stringResource(R.string.alarm_edit_repeat_once)
+        size == orderedDays.size -> stringResource(R.string.alarm_edit_repeat_daily)
+        this == weekdaySet -> stringResource(R.string.alarm_edit_repeat_weekdays)
+        this == weekendSet -> stringResource(R.string.alarm_edit_repeat_weekends)
         else -> orderedDays
             .filter { it in this }
             .joinToString(", ") { day ->
-                day.name.lowercase()
-                    .replaceFirstChar { it.uppercase() }
-                    .take(3)
+                day.getDisplayName(java.time.format.TextStyle.SHORT, Locale.getDefault())
             }
     }
 }
 
-private fun String.toAlarmChallengeSummary(): String = when (this) {
-    "NONE" -> "No challenge"
-    "MATH_EASY" -> "Easy math"
-    "MATH_MEDIUM" -> "Math puzzle"
-    "MATH_HARD" -> "Hard math"
-    "SHAKE" -> "Shake phone"
-    "SEQUENCE" -> "Number sequence"
-    "MEMORY_PATTERN" -> "Memory pattern"
-    "TYPING" -> "Type phrase"
-    "VOICE_PHRASE" -> "Voice phrase"
-    "HANDWRITING" -> "Handwriting"
-    "WALK_STEPS" -> "Walk steps"
-    "NFC_SCAN" -> "NFC scan"
-    "BARCODE_SCAN" -> "Barcode scan"
-    "PHOTO_MATCH" -> "Photo match"
-    "SQUAT" -> "Squats"
-    "PUSH_UP" -> "Push-ups"
-    "PLANK_HOLD" -> "Plank hold"
-    "WIFI_CONNECT" -> "Wi-Fi connect"
-    "MAZE" -> "Maze puzzle"
-    "ROCK_PAPER_SCISSORS" -> "RPS (best-of-5)"
-    "EMOJI_MEMORY" -> "Emoji memory"
-    "TYPING_SPEED" -> "Typing speed"
-    "WORDLE" -> "Wordle"
-    "PVT" -> "Reaction test"
-    "SPOT_DIFFERENCE" -> "Spot difference"
-    "CHESS_MATE" -> "Mate in one"
-    "RSVP_READING" -> "RSVP reading"
-    else -> replace('_', ' ')
-        .lowercase()
-        .replaceFirstChar { it.uppercase() }
+@Composable
+private fun String.toAlarmChallengeSummary(): String {
+    val resource = when (this) {
+        "NONE" -> R.string.alarm_edit_challenge_none
+        "MATH_EASY" -> R.string.alarm_edit_challenge_math_easy
+        "MATH_MEDIUM" -> R.string.alarm_edit_challenge_math_medium
+        "MATH_HARD" -> R.string.alarm_edit_challenge_math_hard
+        "SHAKE" -> R.string.alarm_edit_challenge_shake
+        "SEQUENCE" -> R.string.alarm_edit_challenge_sequence
+        "MEMORY_PATTERN" -> R.string.alarm_edit_challenge_memory
+        "TYPING" -> R.string.alarm_edit_challenge_typing
+        "VOICE_PHRASE" -> R.string.alarm_edit_challenge_voice
+        "HANDWRITING" -> R.string.alarm_edit_challenge_handwriting
+        "WALK_STEPS" -> R.string.alarm_edit_challenge_walk
+        "NFC_SCAN" -> R.string.alarm_edit_challenge_nfc
+        "BARCODE_SCAN" -> R.string.alarm_edit_challenge_barcode
+        "PHOTO_MATCH" -> R.string.alarm_edit_challenge_photo
+        "SQUAT" -> R.string.alarm_edit_challenge_squat
+        "PUSH_UP" -> R.string.alarm_edit_challenge_pushup
+        "PLANK_HOLD" -> R.string.alarm_edit_challenge_plank
+        "WIFI_CONNECT" -> R.string.alarm_edit_challenge_wifi
+        "MAZE" -> R.string.alarm_edit_challenge_maze
+        "COUNT_SHEEP" -> R.string.alarm_edit_challenge_sheep
+        "SIMON_SAYS" -> R.string.alarm_edit_challenge_simon
+        "DATE_BACKWARDS" -> R.string.alarm_edit_challenge_date
+        "STROOP" -> R.string.alarm_edit_challenge_stroop
+        "ROCK_PAPER_SCISSORS" -> R.string.alarm_edit_challenge_rps
+        "EMOJI_MEMORY" -> R.string.alarm_edit_challenge_emoji
+        "TYPING_SPEED" -> R.string.alarm_edit_challenge_speed
+        "WORDLE" -> R.string.alarm_edit_challenge_wordle
+        "PVT" -> R.string.alarm_edit_challenge_pvt
+        "SPOT_DIFFERENCE" -> R.string.alarm_edit_challenge_difference
+        "CHESS_MATE" -> R.string.alarm_edit_challenge_chess
+        "RSVP_READING" -> R.string.alarm_edit_challenge_rsvp
+        else -> null
+    }
+    if (resource != null) return stringResource(resource)
+    val readableCode = replace('_', ' ').lowercase().replaceFirstChar { it.uppercase() }
+    return stringResource(R.string.alarm_edit_challenge_unknown, readableCode)
 }
 
-private fun String.toAlarmChallengeDescription(): String = when (this) {
-    "MATH_EASY" -> "Solve a simple math problem to dismiss."
-    "MATH_MEDIUM" -> "Solve a two-operation problem before the alarm stops."
-    "MATH_HARD" -> "Use larger numbers and more focus when you need a stronger wake-up."
-    "SHAKE" -> "Shake the phone repeatedly to prove you are actually moving."
-    "SEQUENCE" -> "Tap numbers in ascending order without missing a step."
-    "MEMORY_PATTERN" -> "Memorize and recreate a short visual pattern."
-    "TYPING" -> "Type a wake-up phrase accurately before dismissal."
-    "VOICE_PHRASE" -> "Say a wake-up phrase with Android speech recognition, with typed fallback."
-    "HANDWRITING" -> "Draw a wake-up word with on-device handwriting recognition and typed fallback."
-    "WALK_STEPS" -> "Walk a set number of steps to get fully upright."
-    "NFC_SCAN" -> "Scan a specific NFC tag placed somewhere away from bed."
-    "BARCODE_SCAN" -> "Scan a saved barcode to finish the challenge."
-    "PHOTO_MATCH" -> "Match a reference photo so you need to move to the right spot."
-    "SQUAT" -> "Complete a quick squat set while holding the phone."
-    "PUSH_UP" -> "Do push-ups over the phone placed face-down on the floor."
-    "PLANK_HOLD" -> "Hold the phone level in a plank position for 30 seconds."
-    "WIFI_CONNECT" -> "Connect to a specific Wi-Fi network before the alarm stops."
-    "MAZE" -> "Finish a simple maze to prevent sleepy autopilot taps."
-    "ROCK_PAPER_SCISSORS" -> "Win 3 rounds of RPS against the computer to dismiss."
-    "EMOJI_MEMORY" -> "Memorise 8 pairs on a 4x4 grid, then find them all face-down."
-    "TYPING_SPEED" -> "Type a short phrase at 15+ wpm with at most 2 word errors."
-    "WORDLE" -> "Guess a hidden 5-letter word in up to 6 tries."
-    "PVT" -> "Tap a target 5 times as fast as you can. Average under 500 ms to dismiss."
-    "SPOT_DIFFERENCE" -> "Compare two color grids and tap the single changed tile."
-    "CHESS_MATE" -> "Pick the mate-in-1 move from a small chess position."
-    "RSVP_READING" -> "Read a rapid word stream, then identify a word that appeared."
-    else -> "Dismissal requires this challenge before the alarm can stop."
-}
+@Composable
+private fun String.toAlarmChallengeDescription(): String = stringResource(
+    when (this) {
+        "MATH_EASY" -> R.string.alarm_edit_challenge_math_easy_description
+        "MATH_MEDIUM" -> R.string.alarm_edit_challenge_math_medium_description
+        "MATH_HARD" -> R.string.alarm_edit_challenge_math_hard_description
+        "SHAKE" -> R.string.alarm_edit_challenge_shake_description
+        "SEQUENCE" -> R.string.alarm_edit_challenge_sequence_description
+        "MEMORY_PATTERN" -> R.string.alarm_edit_challenge_memory_description
+        "TYPING" -> R.string.alarm_edit_challenge_typing_description
+        "VOICE_PHRASE" -> R.string.alarm_edit_challenge_voice_description
+        "HANDWRITING" -> R.string.alarm_edit_challenge_handwriting_description
+        "WALK_STEPS" -> R.string.alarm_edit_challenge_walk_description
+        "NFC_SCAN" -> R.string.alarm_edit_challenge_nfc_description
+        "BARCODE_SCAN" -> R.string.alarm_edit_challenge_barcode_description
+        "PHOTO_MATCH" -> R.string.alarm_edit_challenge_photo_description
+        "SQUAT" -> R.string.alarm_edit_challenge_squat_description
+        "PUSH_UP" -> R.string.alarm_edit_challenge_pushup_description
+        "PLANK_HOLD" -> R.string.alarm_edit_challenge_plank_description
+        "WIFI_CONNECT" -> R.string.alarm_edit_challenge_wifi_description
+        "MAZE" -> R.string.alarm_edit_challenge_maze_description
+        "COUNT_SHEEP" -> R.string.alarm_edit_challenge_sheep_description
+        "SIMON_SAYS" -> R.string.alarm_edit_challenge_simon_description
+        "DATE_BACKWARDS" -> R.string.alarm_edit_challenge_date_description
+        "STROOP" -> R.string.alarm_edit_challenge_stroop_description
+        "ROCK_PAPER_SCISSORS" -> R.string.alarm_edit_challenge_rps_description
+        "EMOJI_MEMORY" -> R.string.alarm_edit_challenge_emoji_description
+        "TYPING_SPEED" -> R.string.alarm_edit_challenge_speed_description
+        "WORDLE" -> R.string.alarm_edit_challenge_wordle_description
+        "PVT" -> R.string.alarm_edit_challenge_pvt_description
+        "SPOT_DIFFERENCE" -> R.string.alarm_edit_challenge_difference_description
+        "CHESS_MATE" -> R.string.alarm_edit_challenge_chess_description
+        "RSVP_READING" -> R.string.alarm_edit_challenge_rsvp_description
+        else -> R.string.alarm_edit_challenge_default_description
+    }
+)
 
 private fun formatLocationDismissTarget(latitude: Double, longitude: Double): String =
     String.format(Locale.US, "%.5f, %.5f", latitude, longitude)
 
+@Composable
 private fun AlarmEditUiState.challengeSummary(): String {
     if (challengeChain.isNotBlank()) {
         val count = challengeChain.split(",")
             .map { it.trim() }
             .count { it.isNotEmpty() }
-        if (count > 0) return "$count-step chain"
+        if (count > 0) return pluralStringResource(R.plurals.alarm_edit_step_chain, count, count)
     }
     return challengeType.toAlarmChallengeSummary()
 }
 
-private fun AlarmEditUiState.soundSummary(): String = when {
-    internetRadioUrl.isNotBlank() -> "Internet radio"
-    spotifyUri.isNotBlank() -> "Spotify"
-    ringtoneUri == "silent" -> "Silent wake"
-    ringtoneUri.isBlank() -> "Default sound"
-    else -> "Custom tone"
-}
+@Composable
+private fun AlarmEditUiState.soundSummary(): String = stringResource(
+    when {
+        internetRadioUrl.isNotBlank() -> R.string.alarm_edit_internet_radio
+        spotifyUri.isNotBlank() -> R.string.alarm_edit_spotify_short
+        ringtoneUri == "silent" -> R.string.alarm_edit_silent_wake
+        ringtoneUri.isBlank() -> R.string.alarm_edit_default_sound
+        else -> R.string.alarm_edit_custom_tone
+    }
+)
 
+@Composable
+private fun shiftPatternDescription(pattern: ShiftPattern): String = stringResource(
+    when (pattern.key) {
+        "DDNNO" -> R.string.alarm_edit_shift_ddnno_description
+        "FOUR_ON_FOUR_OFF" -> R.string.alarm_edit_shift_four_description
+        "PANAMA" -> R.string.alarm_edit_shift_panama_description
+        "DUPONT" -> R.string.alarm_edit_shift_dupont_description
+        "PITMAN" -> R.string.alarm_edit_shift_pitman_description
+        else -> R.string.alarm_edit_shift_default_description
+    }
+)
+
+@Composable
 private fun guardianEditHint(readiness: GuardianReadiness): String {
     val callPath = if (readiness.hasCallPhonePermission) {
-        "Direct call permission is granted."
+        stringResource(R.string.alarm_edit_guardian_call_granted)
     } else {
-        "Call fallback opens the dialer because CALL_PHONE is not granted."
+        stringResource(R.string.alarm_edit_guardian_call_dialer)
     }
     return when (readiness.smsPath) {
-        GuardianSmsPath.INACTIVE -> "Guardian Angel is off for this alarm."
+        GuardianSmsPath.INACTIVE -> stringResource(R.string.alarm_edit_guardian_inactive)
         GuardianSmsPath.DIRECT_SMS ->
-            "Sends an emergency SMS automatically, then opens the call path if the alarm is not dismissed. $callPath"
+            stringResource(R.string.alarm_edit_guardian_direct_sms, callPath)
         GuardianSmsPath.NEEDS_SEND_SMS_PERMISSION ->
-            "F-Droid can send automatic SMS after SEND_SMS is allowed. Until then, it opens a prefilled SMS composer. $callPath"
+            stringResource(R.string.alarm_edit_guardian_needs_sms, callPath)
         GuardianSmsPath.SMS_COMPOSER ->
-            "Opens a prefilled emergency SMS composer if the alarm is not dismissed, then falls back to call or dialer. $callPath"
+            stringResource(R.string.alarm_edit_guardian_composer, callPath)
     }
 }
 
+@Composable
 private fun alarmChallengeOptions(): List<Pair<String, String>> = listOf(
-    "NONE" to "None",
-    "MATH_EASY" to "Math (Easy)",
-    "MATH_MEDIUM" to "Math (Medium)",
-    "MATH_HARD" to "Math (Hard)",
-    "SHAKE" to "Shake Phone",
-    "SEQUENCE" to "Number Sequence",
-    "MEMORY_PATTERN" to "Memory Pattern",
-    "TYPING" to "Type a Phrase",
-    "VOICE_PHRASE" to "Voice Phrase",
-    "HANDWRITING" to "Handwriting",
-    "WALK_STEPS" to "Walk Steps",
-    "NFC_SCAN" to "NFC Tag Scan",
-    "BARCODE_SCAN" to "Barcode Scan",
-    "PHOTO_MATCH" to "Photo Match",
-    "SQUAT" to "Squats",
-    "WIFI_CONNECT" to "Wi-Fi Connect",
-    "MAZE" to "Maze Puzzle",
-    "COUNT_SHEEP" to "Count the Sheep",
-    "SIMON_SAYS" to "Simon Says",
-    "DATE_BACKWARDS" to "Type date backwards",
-    "STROOP" to "Stroop color test",
-    "ROCK_PAPER_SCISSORS" to "Rock Paper Scissors",
-    "EMOJI_MEMORY" to "Emoji Memory",
-    "TYPING_SPEED" to "Typing Speed",
-    "WORDLE" to "Wordle",
-    "PVT" to "Reaction Test",
-    "SPOT_DIFFERENCE" to "Spot the Difference",
-    "CHESS_MATE" to "Chess Mate in 1",
-    "RSVP_READING" to "RSVP Speed Reading",
-    "PUSH_UP" to "Push-ups",
-    "PLANK_HOLD" to "Plank Hold"
+    "NONE" to stringResource(R.string.alarm_edit_challenge_none),
+    "MATH_EASY" to stringResource(R.string.alarm_edit_challenge_math_easy),
+    "MATH_MEDIUM" to stringResource(R.string.alarm_edit_challenge_math_medium),
+    "MATH_HARD" to stringResource(R.string.alarm_edit_challenge_math_hard),
+    "SHAKE" to stringResource(R.string.alarm_edit_challenge_shake),
+    "SEQUENCE" to stringResource(R.string.alarm_edit_challenge_sequence),
+    "MEMORY_PATTERN" to stringResource(R.string.alarm_edit_challenge_memory),
+    "TYPING" to stringResource(R.string.alarm_edit_challenge_typing),
+    "VOICE_PHRASE" to stringResource(R.string.alarm_edit_challenge_voice),
+    "HANDWRITING" to stringResource(R.string.alarm_edit_challenge_handwriting),
+    "WALK_STEPS" to stringResource(R.string.alarm_edit_challenge_walk),
+    "NFC_SCAN" to stringResource(R.string.alarm_edit_challenge_nfc),
+    "BARCODE_SCAN" to stringResource(R.string.alarm_edit_challenge_barcode),
+    "PHOTO_MATCH" to stringResource(R.string.alarm_edit_challenge_photo),
+    "SQUAT" to stringResource(R.string.alarm_edit_challenge_squat),
+    "WIFI_CONNECT" to stringResource(R.string.alarm_edit_challenge_wifi),
+    "MAZE" to stringResource(R.string.alarm_edit_challenge_maze),
+    "COUNT_SHEEP" to stringResource(R.string.alarm_edit_challenge_sheep),
+    "SIMON_SAYS" to stringResource(R.string.alarm_edit_challenge_simon),
+    "DATE_BACKWARDS" to stringResource(R.string.alarm_edit_challenge_date),
+    "STROOP" to stringResource(R.string.alarm_edit_challenge_stroop),
+    "ROCK_PAPER_SCISSORS" to stringResource(R.string.alarm_edit_challenge_rps),
+    "EMOJI_MEMORY" to stringResource(R.string.alarm_edit_challenge_emoji),
+    "TYPING_SPEED" to stringResource(R.string.alarm_edit_challenge_speed),
+    "WORDLE" to stringResource(R.string.alarm_edit_challenge_wordle),
+    "PVT" to stringResource(R.string.alarm_edit_challenge_pvt),
+    "SPOT_DIFFERENCE" to stringResource(R.string.alarm_edit_challenge_difference),
+    "CHESS_MATE" to stringResource(R.string.alarm_edit_challenge_chess),
+    "RSVP_READING" to stringResource(R.string.alarm_edit_challenge_rsvp),
+    "PUSH_UP" to stringResource(R.string.alarm_edit_challenge_pushup),
+    "PLANK_HOLD" to stringResource(R.string.alarm_edit_challenge_plank)
 )
 
 private fun String.toChallengeChainList(): List<String> = split(",")
@@ -3005,31 +3277,6 @@ private fun List<String>.moveItem(fromIndex: Int, toIndex: Int): List<String> {
     val item = updated.removeAt(fromIndex)
     updated.add(toIndex, item)
     return updated
-}
-
-private fun alarmEditSectionDescription(title: String): String = when (title) {
-    "Label" -> "Give the alarm a name that is easy to recognize at a glance."
-    "Group" -> "Organize alarms by context so related schedules stay easy to manage."
-    "Sound" -> "Shape the tone, volume, and ramp-up behavior of the alarm."
-    "Vibration" -> "Control how physical feedback supports the ring pattern."
-    "Snooze" -> "Decide how much room this alarm gives you to delay getting up."
-    "Dismiss challenge" -> "Add a wake-up task so dismissing the alarm takes real intent."
-    "Location dismissal lock" -> "Keep Dismiss locked until the phone leaves the saved area."
-    "Wake effects" -> "Layer in extra visual or physical cues to make waking up harder to ignore."
-    "Morning announcement" -> "Let the alarm speak useful context once you are up."
-    "Wake confirmation" -> "Require a second check-in if this alarm needs extra accountability."
-    "Smart alarm" -> "Allow the alarm to ring inside a window when the timing is more natural."
-    "Holidays" -> "Prevent routine alarms from firing when the day should stay flexible."
-    "Spotify ringtone" -> "Use music services when you want a less generic wake-up sound."
-    "Philips Hue sunrise" -> "Coordinate bedside lighting with the alarm for a gentler rise."
-    "Mission chaining" -> "Stack multiple wake-up steps when one challenge is not enough."
-    "Anti-snooze" -> "Add guardrails that make repeated delay harder."
-    "Sunrise simulation" -> "Blend the screen into a brighter pre-wake color transition."
-    "Internet radio" -> "Wake up to a live stream instead of a local ringtone."
-    "Guardian Angel" -> "Escalate if missing this alarm has consequences beyond oversleeping."
-    "Morning routine" -> "Capture the first few things you want to do once the alarm is done."
-    "Advanced" -> "Fine-tune fallback behavior and edge-case wake-up protections."
-    else -> "Review and fine-tune how this alarm behaves."
 }
 
 /**
