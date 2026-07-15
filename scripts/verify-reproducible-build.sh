@@ -15,23 +15,26 @@ echo "Java: $JAVA_VER"
 # Build twice
 echo ""
 echo ">>> Build 1..."
-./gradlew clean assembleFdroidRelease --no-daemon 2>/dev/null
-APK1="app/build/outputs/apk/fdroid/release/app-fdroid-release-unsigned.apk"
-if [ ! -f "$APK1" ]; then
-    echo "ERROR: Build 1 failed - APK not found"
+./gradlew clean assembleFdroidRelease --no-daemon
+APKS=(app/build/outputs/apk/fdroid/release/*.apk)
+if [ "${#APKS[@]}" -ne 1 ] || [ ! -f "${APKS[0]}" ]; then
+    echo "ERROR: Build 1 failed - expected exactly one release APK"
     exit 1
 fi
+APK1=${APKS[0]}
 HASH1=$(sha256sum "$APK1" | cut -d' ' -f1)
 cp "$APK1" /tmp/build1.apk
 echo "Build 1 SHA-256: $HASH1"
 
 echo ""
 echo ">>> Build 2..."
-./gradlew clean assembleFdroidRelease --no-daemon 2>/dev/null
-if [ ! -f "$APK1" ]; then
-    echo "ERROR: Build 2 failed - APK not found"
+./gradlew clean assembleFdroidRelease --no-daemon
+APKS=(app/build/outputs/apk/fdroid/release/*.apk)
+if [ "${#APKS[@]}" -ne 1 ] || [ ! -f "${APKS[0]}" ]; then
+    echo "ERROR: Build 2 failed - expected exactly one release APK"
     exit 1
 fi
+APK1=${APKS[0]}
 HASH2=$(sha256sum "$APK1" | cut -d' ' -f1)
 echo "Build 2 SHA-256: $HASH2"
 

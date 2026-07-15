@@ -27,6 +27,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Security
 
+- Play, F-Droid, and Wear release dependencies now resolve against reviewed
+  SHA-256 metadata and strict runtime lockfiles. The repeatable refresh also
+  exercises release lint/plugin artifacts, and the Play downloader graph now
+  constrains Jackson to 2.18.9 to close its remaining OSV advisory.
 - Hue connection tests, sunrise workers, and dismiss-scene actions now share one
   trust-on-first-use TLS client and certificate pin. A changed bridge
   certificate is rejected without downgrading to HTTP; legacy API v1 is tried
@@ -40,6 +44,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- The reproducible-build gate now works from LF-safe checkouts, reports Gradle
+  failures instead of hiding stderr, and discovers the current F-Droid release
+  APK name rather than assuming the obsolete `-unsigned` suffix.
 - An alarm can no longer ring silently if its ringtone player stalls: if the
   Media3 player never starts within a short grace period (e.g. a hung decoder or
   stuck stream that emits no error), the alarm now falls back to the guaranteed

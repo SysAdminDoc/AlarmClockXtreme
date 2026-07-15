@@ -259,8 +259,17 @@ Before a local release, run:
 
 ```bash
 bash scripts/check-signing-hygiene.sh
+./gradlew verifyDependencyIntegrity
 python scripts/osv_gradle_audit.py
 python scripts/verify_api37_release.py --device <api37-16kb-serial> --run-test-alarm --fresh-install
+```
+
+Dependency artifacts are SHA-256 verified and the Play, F-Droid, and Wear
+release runtime graphs are locked. When intentionally updating dependencies,
+refresh both controls and review every checksum/version diff before committing:
+
+```powershell
+.\scripts\update-dependency-integrity.ps1
 ```
 
 The signing check fails if keystore files or `keystore.properties` are
