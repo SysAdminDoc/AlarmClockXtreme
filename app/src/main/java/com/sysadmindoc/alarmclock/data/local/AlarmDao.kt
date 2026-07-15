@@ -34,6 +34,9 @@ interface AlarmDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(alarm: Alarm): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(alarms: List<Alarm>): List<Long>
+
     @Update
     suspend fun update(alarm: Alarm)
 
@@ -60,6 +63,16 @@ interface AlarmDao {
         idsInOrder.forEachIndexed { index, id ->
             updateSortOrder(id, (index + 1) * SORT_ORDER_STEP)
         }
+    }
+
+    @Transaction
+    suspend fun insertAllWithStableOrder(alarms: List<Alarm>): List<Long> {
+        val start = maxSortOrder()
+        return insertAll(
+            alarms.mapIndexed { index, alarm ->
+                alarm.copy(sortOrder = start + (index + 1) * SORT_ORDER_STEP)
+            }
+        )
     }
 
     companion object {

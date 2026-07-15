@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Upload
@@ -123,6 +124,7 @@ import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.backup.BackupImportMode
 import com.sysadmindoc.alarmclock.data.backup.BackupImportOptions
 import com.sysadmindoc.alarmclock.data.backup.BackupImportPreview
+import com.sysadmindoc.alarmclock.data.backup.FossifyImportPreview
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
@@ -2887,6 +2889,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     var pendingExportWarning by remember { mutableStateOf<BackupExportWarning?>(null) }
     var pendingExportKind by remember { mutableStateOf<BackupExportKind?>(null) }
     var pendingImport by remember { mutableStateOf<PendingBackupImport?>(null) }
+    var pendingFossifyImport by remember { mutableStateOf<PendingFossifyImport?>(null) }
     var importEnabledAsDisabled by remember { mutableStateOf(false) }
     var importPreviewBusy by remember { mutableStateOf(false) }
     val passphraseMismatch = encryptedPassphraseConfirm.isNotEmpty() &&
@@ -2951,6 +2954,23 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
         }
     }
 
+    fun requestFossifyImport(uri: Uri) {
+        scope.launch {
+            importPreviewBusy = true
+            try {
+                viewModel.inspectFossifyImport(uri)
+                    .onSuccess { preview -> pendingFossifyImport = PendingFossifyImport(uri, preview) }
+                    .onFailure { error ->
+                        viewModel.showBackupResult(
+                            "Fossify preview failed: ${error.message ?: "unexpected error"}"
+                        )
+                    }
+            } finally {
+                importPreviewBusy = false
+            }
+        }
+    }
+
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri -> uri?.let { viewModel.exportBackup(it) } }
@@ -2958,6 +2978,10 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { requestBackupImport(it, encrypted = false) } }
+
+    val fossifyImportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri -> uri?.let(::requestFossifyImport) }
 
     val encryptedExportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -3023,6 +3047,25 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
 
         Text(
             text = "Plain backups include alarms and global settings in a readable JSON file. AlarmClockXtreme warns before exporting configured secrets or private references.",
+            color = TextMuted,
+            style = MaterialTheme.typography.bodySmall
+        )
+
+        HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
+
+        OutlinedButton(
+            onClick = { fossifyImportLauncher.launch(arrayOf("application/json", "text/plain")) },
+            enabled = !operationBusy,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Icon(Icons.Default.Restore, null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.size(6.dp))
+            Text("Import Fossify Clock JSON")
+        }
+        Text(
+            text = "Previews a bounded Fossify export without changing alarms. Confirmed alarms are appended disabled so times, weekdays, vibration, and available sounds can be reviewed first.",
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
@@ -3135,6 +3178,17 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
         )
     }
 
+    pendingFossifyImport?.let { pending ->
+        FossifyImportPreviewDialog(
+            pending = pending,
+            onDismiss = { pendingFossifyImport = null },
+            onImport = {
+                pendingFossifyImport = null
+                viewModel.importFossifyAlarms(pending.uri, pending.preview.fingerprint)
+            }
+        )
+    }
+
     if (operationBusy) {
         AppSurfaceCard(highlighted = true) {
             Row(
@@ -3190,6 +3244,67 @@ private data class PendingBackupImport(
     val passphrase: String,
     val preview: BackupImportPreview
 )
+
+private data class PendingFossifyImport(
+    val uri: Uri,
+    val preview: FossifyImportPreview
+)
+
+@Composable
+private fun FossifyImportPreviewDialog(
+    pending: PendingFossifyImport,
+    onDismiss: () -> Unit,
+    onImport: () -> Unit
+) {
+    val preview = pending.preview
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Restore, contentDescription = null) },
+        title = { Text("Review Fossify alarms") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "${preview.alarmCount} valid alarms; ${preview.invalidAlarmCount} invalid rows skipped.",
+                    color = TextPrimary
+                )
+                Text(
+                    "All imports will be disabled. ${preview.sourceEnabledAlarmCount} were enabled in Fossify.",
+                    color = SnoozeYellow,
+                    style = MaterialTheme.typography.bodySmall
+                )
+                if (preview.unreadableRingtoneCount > 0) {
+                    Text(
+                        "${preview.unreadableRingtoneCount} ringtone URI${if (preview.unreadableRingtoneCount == 1) " is" else "s are"} not readable on this device and will use the default alarm sound.",
+                        color = AccentRed,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                preview.alarms.take(5).forEach { alarm ->
+                    val days = alarm.repeatDays.joinToString(", ") { it.name.take(3) }
+                    Text(
+                        "%02d:%02d  %s%s".format(
+                            alarm.hour,
+                            alarm.minute,
+                            alarm.label.ifBlank { "Alarm" },
+                            if (days.isBlank()) "" else " • $days"
+                        ),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                if (preview.alarmCount > 5) {
+                    Text("+ ${preview.alarmCount - 5} more", color = TextMuted)
+                }
+            }
+        },
+        confirmButton = {
+            if (preview.canImport) {
+                TextButton(onClick = onImport) { Text("Import disabled") }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
 
 @Composable
 private fun BackupImportPreviewDialog(

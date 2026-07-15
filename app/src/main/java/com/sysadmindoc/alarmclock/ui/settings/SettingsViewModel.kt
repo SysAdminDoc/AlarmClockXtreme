@@ -19,6 +19,8 @@ import com.sysadmindoc.alarmclock.data.backup.BackupImportPreview
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.backup.BackupManager
+import com.sysadmindoc.alarmclock.data.backup.FossifyImportManager
+import com.sysadmindoc.alarmclock.data.backup.FossifyImportPreview
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
@@ -155,7 +157,8 @@ class SettingsViewModel @Inject constructor(
     private val alarmIncidentRepository: AlarmIncidentRepository,
     private val hueBridgeClient: HueBridgeClient,
     private val hueTrustStore: HueTrustStore,
-    private val commuteHistoryStore: CommuteHistoryStore
+    private val commuteHistoryStore: CommuteHistoryStore,
+    private val fossifyImportManager: FossifyImportManager
 ) : AndroidViewModel(application) {
 
     private val _batteryState = MutableStateFlow(
@@ -635,6 +638,9 @@ class SettingsViewModel @Inject constructor(
         passphrase: String
     ): Result<BackupImportPreview> = backupManager.inspectEncryptedImportFromUri(uri, passphrase)
 
+    suspend fun inspectFossifyImport(uri: Uri): Result<FossifyImportPreview> =
+        fossifyImportManager.inspect(uri)
+
     fun exportBackup(uri: Uri) {
         viewModelScope.launch {
             _backupBusy.value = true
@@ -696,6 +702,23 @@ class SettingsViewModel @Inject constructor(
                     .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedImport, it)) }
             } catch (e: Exception) {
                 setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedImport, e))
+            } finally {
+                _backupBusy.value = false
+            }
+        }
+    }
+
+    fun importFossifyAlarms(uri: Uri, expectedFingerprint: String) {
+        viewModelScope.launch {
+            _backupBusy.value = true
+            try {
+                fossifyImportManager.import(uri, expectedFingerprint)
+                    .onSuccess { count ->
+                        setBackupResult("Imported $count Fossify alarm${if (count == 1) "" else "s"} as disabled for review.")
+                    }
+                    .onFailure { setBackupResult("Fossify import failed: ${it.message ?: "unexpected error"}") }
+            } catch (e: Exception) {
+                setBackupResult("Fossify import failed: ${e.message ?: "unexpected error"}")
             } finally {
                 _backupBusy.value = false
             }

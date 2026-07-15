@@ -28,6 +28,13 @@ class AlarmRepository @Inject constructor(
         }
         return dao.insert(ordered)
     }
+
+    suspend fun importDisabledAtomically(alarms: List<Alarm>): List<Long> =
+        dao.insertAllWithStableOrder(
+            alarms.map {
+                it.copy(id = 0L, isEnabled = false, nextTriggerTime = 0L).sanitized()
+            }
+        )
     suspend fun update(alarm: Alarm) = dao.update(alarm.sanitized())
     suspend fun delete(alarm: Alarm) = dao.delete(alarm)
     suspend fun deleteById(id: Long) = dao.deleteById(id)

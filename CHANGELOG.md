@@ -6,6 +6,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- Settings can now preview and import bounded Fossify Clock JSON exports.
+  Time, weekday mask, label, vibration, and readable ringtone URIs are mapped;
+  invalid rows and inaccessible sounds are disclosed before confirmation, and
+  the entire append is one disabled-by-default Room transaction.
 - Commute-aware calendar alarms now retain a bounded, 45-day on-device history
   of successful live route durations and can use a conservative learned
   estimate during transient API failures. Route keys are hashed, sparse/stale
