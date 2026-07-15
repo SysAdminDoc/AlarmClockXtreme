@@ -237,6 +237,7 @@ object TimerNotifications {
         hidePublicLabel: Boolean
     ): Notification {
         val contentIntent = openAppIntent(context, notificationId(timerId))
+        val restartIntent = restartPendingIntent(context, timerId, notificationId(timerId))
         val privateBuilder = NotificationCompat.Builder(context, AlarmService.CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(FINISHED_TITLE)
@@ -246,6 +247,7 @@ object TimerNotifications {
             .setAutoCancel(true)
             .setOngoing(false)
             .setContentIntent(contentIntent)
+            .addAction(R.drawable.ic_alarm, context.getString(R.string.timer_restart), restartIntent)
         val publicVersion = NotificationCompat.Builder(context, AlarmService.CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(FINISHED_TITLE)
@@ -256,6 +258,7 @@ object TimerNotifications {
             .setAutoCancel(true)
             .setOngoing(false)
             .setContentIntent(contentIntent)
+            .addAction(R.drawable.ic_alarm, context.getString(R.string.timer_restart), restartIntent)
             .build()
         return applyPublicLabelPolicy(privateBuilder, hidePublicLabel, publicVersion).build()
     }
@@ -323,6 +326,19 @@ object TimerNotifications {
     fun cancelFinished(context: Context, timerId: Int) = cancelTimer(context, timerId)
 
     internal fun notificationId(timerId: Int): Int = TIMER_NOTIFICATION_BASE_ID + timerId
+
+    internal fun restartPendingIntent(
+        context: Context,
+        timerId: Int,
+        requestCode: Int
+    ): PendingIntent = PendingIntent.getService(
+        context,
+        requestCode,
+        Intent(context, TimerAlarmService::class.java)
+            .setAction(TimerAlarmService.ACTION_RESTART)
+            .putExtra(TimerAlarmService.EXTRA_TIMER_ID, timerId),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
 
     private fun openAppIntent(context: Context, requestCode: Int): PendingIntent {
         val openIntent = Intent(context, MainActivity::class.java).apply {

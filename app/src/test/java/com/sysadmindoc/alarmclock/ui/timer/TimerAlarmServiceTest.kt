@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.timer
 
+import android.app.AlarmManager
 import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
@@ -99,6 +100,45 @@ class TimerAlarmServiceTest {
             notification.publicVersion.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
         )
         assertEquals(Notification.VISIBILITY_PUBLIC, notification.publicVersion.visibility)
+        assertEquals("Restart", notification.actions.single().title.toString())
+        assertEquals("Restart", notification.publicVersion.actions.single().title.toString())
+        val restartIntent = shadowOf(notification.actions.single().actionIntent).savedIntent
+        assertEquals(TimerAlarmService.ACTION_RESTART, restartIntent.action)
+        assertEquals(5, restartIntent.getIntExtra(TimerAlarmService.EXTRA_TIMER_ID, -1))
+    }
+
+    @Test
+    fun `single ringing timer notification offers restart`() {
+        service.onStartCommand(fireIntent(4, "Tea"), 0, 1)
+
+        val notification = service.buildNotification(hidePublicLabel = false)
+
+        assertEquals(listOf("Stop", "Restart"), notification.actions.map { it.title.toString() })
+    }
+
+    @Test
+    fun `restart action creates and schedules exactly one fresh timer without ui`() {
+        TimerStore(context).upsert(
+            PersistedTimerRecord(3, "Pasta", 60, 0, TimerState.FINISHED)
+        )
+        service.onStartCommand(fireIntent(3, "Pasta"), 0, 1)
+
+        service.onStartCommand(restartIntent(3), 0, 2)
+        service.onStartCommand(restartIntent(3), 0, 3)
+
+        val records = TimerStore(context).loadRecords()
+        val running = records.single()
+        assertEquals(4, running.id)
+        assertEquals("Pasta", running.label)
+        assertEquals(60L, running.totalSeconds)
+        assertEquals(TimerState.RUNNING, running.state)
+        assertEquals(
+            1,
+            shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms.size
+        )
+        val notifications = shadowOf(context.getSystemService(NotificationManager::class.java))
+        assertNull(notifications.getNotification(TimerNotifications.notificationId(3)))
+        assertNotNull(notifications.getNotification(TimerNotifications.notificationId(4)))
     }
 
     @Test
@@ -196,4 +236,9 @@ class TimerAlarmServiceTest {
             .setAction(TimerAlarmService.ACTION_FIRED)
             .putExtra(TimerAlarmService.EXTRA_TIMER_ID, id)
             .putExtra(TimerAlarmService.EXTRA_LABEL, label)
+
+    private fun restartIntent(id: Int): Intent =
+        Intent(context, TimerAlarmService::class.java)
+            .setAction(TimerAlarmService.ACTION_RESTART)
+            .putExtra(TimerAlarmService.EXTRA_TIMER_ID, id)
 }

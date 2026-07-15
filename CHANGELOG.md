@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- Finished timer notifications now offer Restart. The action stops that alert,
+  atomically creates one fresh timer with the same duration and label, and
+  schedules it without opening the app; duplicate action delivery is ignored.
 - Alarm time selection now offers an optional four-digit numpad alongside the
   existing clock picker. It validates 24-hour input and provides explicit
   AM/PM selection in 12-hour mode; the timer duration keypad remains available.

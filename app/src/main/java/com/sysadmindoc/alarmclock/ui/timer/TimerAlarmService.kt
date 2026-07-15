@@ -95,6 +95,25 @@ class TimerAlarmService : Service() {
                 }
                 if (alerts.isEmpty) stopEverything() else refreshNotification()
             }
+            ACTION_RESTART -> {
+                val id = intent.getIntExtra(EXTRA_TIMER_ID, -1)
+                val restarted = if (id > 0) {
+                    runCatching { TimerStore(this).restartFinished(id) }
+                        .onFailure { Log.w(TAG, "Could not restart finished timer $id", it) }
+                        .getOrNull()
+                } else {
+                    null
+                }
+                if (id > 0) {
+                    alerts.remove(id)
+                    TimerNotifications.cancelFinished(this, id)
+                }
+                if (restarted != null) {
+                    TimerAlarmScheduler.schedule(this, restarted.id, restarted.endElapsedRealtime)
+                    TimerNotifications.postRunning(this, restarted)
+                }
+                if (alerts.isEmpty) stopEverything() else refreshNotification()
+            }
             ACTION_DISMISS_ALL, null -> {
                 dismissAllAndStop()
             }
@@ -132,6 +151,9 @@ class TimerAlarmService : Service() {
             Intent(this, TimerAlarmService::class.java).setAction(ACTION_DISMISS_ALL),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        val restart = alerts.snapshot().singleOrNull()?.let { alert ->
+            TimerNotifications.restartPendingIntent(this, alert.id, NOTIFICATION_ID + 2)
+        }
         val privateBuilder = NotificationCompat.Builder(this, AlarmService.CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(TimerNotifications.FINISHED_TITLE)
@@ -143,7 +165,12 @@ class TimerAlarmService : Service() {
             .setFullScreenIntent(fullScreen, true)
             .setContentIntent(fullScreen)
             .addAction(R.drawable.ic_alarm, "Stop", stop)
-        val publicVersion = NotificationCompat.Builder(this, AlarmService.CHANNEL_TIMER)
+            .also { builder ->
+                if (restart != null) {
+                    builder.addAction(R.drawable.ic_alarm, getString(R.string.timer_restart), restart)
+                }
+            }
+        val publicBuilder = NotificationCompat.Builder(this, AlarmService.CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(TimerNotifications.FINISHED_TITLE)
             .setContentText(alerts.publicNotificationText())
@@ -154,7 +181,12 @@ class TimerAlarmService : Service() {
             .setAutoCancel(false)
             .setContentIntent(fullScreen)
             .addAction(R.drawable.ic_alarm, "Stop", stop)
-            .build()
+            .also { builder ->
+                if (restart != null) {
+                    builder.addAction(R.drawable.ic_alarm, getString(R.string.timer_restart), restart)
+                }
+            }
+        val publicVersion = publicBuilder.build()
         return TimerNotifications.applyPublicLabelPolicy(
             privateBuilder = privateBuilder,
             hidePublicLabel = hidePublicLabel,
@@ -251,6 +283,7 @@ class TimerAlarmService : Service() {
         private const val AUTO_STOP_MS = 3L * 60 * 1000
         const val ACTION_FIRED = "com.sysadmindoc.alarmclock.action.TIMER_ALARM_FIRED"
         const val ACTION_DISMISS = "com.sysadmindoc.alarmclock.action.TIMER_ALARM_DISMISS"
+        const val ACTION_RESTART = "com.sysadmindoc.alarmclock.action.TIMER_ALARM_RESTART"
         const val ACTION_DISMISS_ALL = "com.sysadmindoc.alarmclock.action.TIMER_ALARM_DISMISS_ALL"
         const val EXTRA_TIMER_ID = "timer_id"
         const val EXTRA_LABEL = "timer_label"

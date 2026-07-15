@@ -167,6 +167,32 @@ class TimerStore @Inject constructor(@ApplicationContext context: Context) {
         finished
     }
 
+    /**
+     * Atomically consumes one finished timer and creates a fresh running timer
+     * with the same duration and label. Re-delivery is intentionally a no-op:
+     * the source record no longer exists after the first successful restart.
+     */
+    fun restartFinished(
+        id: Int,
+        nowElapsed: Long = SystemClock.elapsedRealtime()
+    ): PersistedTimerRecord? = synchronized(WRITE_LOCK) {
+        val records = readStoredRecords()
+        val finished = records.firstOrNull {
+            it.id == id && it.state == TimerState.FINISHED
+        } ?: return@synchronized null
+        val newId = (records.maxOfOrNull { it.id } ?: 0) + 1
+        val restarted = PersistedTimerRecord(
+            id = newId,
+            label = finished.label,
+            totalSeconds = finished.totalSeconds,
+            remainingMillis = finished.totalSeconds * 1_000L,
+            state = TimerState.RUNNING,
+            endElapsedRealtime = nowElapsed + finished.totalSeconds * 1_000L
+        )
+        replace(records.filterNot { it.id == id } + restarted)
+        restarted
+    }
+
     fun nextId(): Int = synchronized(WRITE_LOCK) {
         (readStoredRecords().maxOfOrNull { it.id } ?: 0) + 1
     }

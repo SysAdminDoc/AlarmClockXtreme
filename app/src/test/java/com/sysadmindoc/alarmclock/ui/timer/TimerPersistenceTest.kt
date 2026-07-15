@@ -115,6 +115,31 @@ class TimerPersistenceTest {
     }
 
     @Test
+    fun restartFinishedAtomicallyConsumesSourceAndIgnoresDuplicateDelivery() {
+        store.replace(
+            listOf(
+                PersistedTimerRecord(4, "Tea", 90, 0, TimerState.FINISHED),
+                PersistedTimerRecord(9, "Paused", 30, 10_000, TimerState.PAUSED)
+            )
+        )
+
+        val restarted = store.restartFinished(4, nowElapsed = 100_000L)
+        val duplicate = store.restartFinished(4, nowElapsed = 101_000L)
+        val records = store.loadRecords(nowElapsed = 100_000L)
+
+        assertNotNull(restarted)
+        assertEquals(10, restarted?.id)
+        assertEquals("Tea", restarted?.label)
+        assertEquals(90L, restarted?.totalSeconds)
+        assertEquals(90_000L, restarted?.remainingMillis)
+        assertEquals(190_000L, restarted?.endElapsedRealtime)
+        assertEquals(TimerState.RUNNING, restarted?.state)
+        assertNull(duplicate)
+        assertTrue(records.none { it.id == 4 })
+        assertEquals(1, records.count { it.state == TimerState.RUNNING })
+    }
+
+    @Test
     fun restoreClaimsOverdueTimersExactlyOnce() {
         val now = SystemClock.elapsedRealtime()
         store.replace(

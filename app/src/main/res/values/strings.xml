@@ -23,6 +23,7 @@
     <string name="nav_my_day">My Day</string>
     <string name="nav_alarms">Alarms</string>
     <string name="nav_timer">Timer</string>
+    <string name="timer_restart">Restart</string>
     <string name="nav_stopwatch">Stopwatch</string>
     <string name="nav_bedtime">Bedtime</string>
     <string name="nav_settings">Settings</string>
