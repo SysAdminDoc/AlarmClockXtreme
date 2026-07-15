@@ -16,6 +16,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -190,7 +193,7 @@ fun AlarmEditScreen(
     var editorPageName by rememberSaveable { mutableStateOf(AlarmEditorPage.OVERVIEW.name) }
     val editorPage = AlarmEditorPage.entries.firstOrNull { it.name == editorPageName }
         ?: AlarmEditorPage.OVERVIEW
-    val editorScrollState = rememberScrollState()
+    val editorScrollState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val noReferencePhotoMessage = stringResource(R.string.alarm_edit_photo_none_captured)
     val referencePhotoSavedMessage = stringResource(R.string.alarm_edit_photo_saved)
@@ -214,7 +217,7 @@ fun AlarmEditScreen(
     BackHandler(enabled = !state.notFound) { requestNavigateBack() }
 
     LaunchedEffect(editorPage) {
-        editorScrollState.scrollTo(0)
+        editorScrollState.scrollToItem(0)
     }
 
     LaunchedEffect(state.hasUnsavedChanges) {
@@ -464,15 +467,31 @@ fun AlarmEditScreen(
             }
         }
     ) { padding ->
+        LaunchedEffect(
+            state.hour,
+            state.minute,
+            state.repeatDays,
+            state.specificDate,
+            state.solarOffsetMinutes,
+            state.solarAnchor,
+            state.shiftPattern,
+            state.shiftPatternStartDate,
+            state.timezonePolicy,
+            state.fixedTimezoneId,
+            state.skipOnHolidays
+        ) {
+            viewModel.computeForecast()
+        }
         CompositionLocalProvider(LocalAlarmEditorPage provides editorPage) {
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(editorScrollState),
+                    .padding(padding),
+                state = editorScrollState,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
             if (editorPage == AlarmEditorPage.OVERVIEW) {
+            item(key = "overview-preview") {
             AppSurfaceCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -588,9 +607,10 @@ fun AlarmEditScreen(
                 }
             }
             }
+            }
 
             // Label
-            SettingsSection(AlarmEditorSection.LABEL) {
+            SettingsSection(editorPage, AlarmEditorSection.LABEL) {
                 OutlinedTextField(
                     value = state.label,
                     onValueChange = viewModel::updateLabel,
@@ -605,7 +625,7 @@ fun AlarmEditScreen(
             }
 
             // Group
-            SettingsSection(AlarmEditorSection.GROUP) {
+            SettingsSection(editorPage, AlarmEditorSection.GROUP) {
                 var showGroupMenu by remember { mutableStateOf(false) }
                 val defaultGroups = listOf(
                     "" to stringResource(R.string.alarm_edit_group_none),
@@ -680,14 +700,16 @@ fun AlarmEditScreen(
             }
 
             if (editorPage == AlarmEditorPage.OVERVIEW) {
+                item(key = "overview-categories") {
                 AlarmEditorCategoryOverview(
                     state = state,
                     onSelect = { page -> editorPageName = page.name }
                 )
+                }
             }
 
             // Sound settings
-            SettingsSection(AlarmEditorSection.SOUND) {
+            SettingsSection(editorPage, AlarmEditorSection.SOUND) {
                 val hapticOnlyActive = state.overrideSystemVolume && state.volume == 0 && state.vibrationEnabled
 
                 SettingsRow(label = stringResource(R.string.alarm_edit_partner_mode)) {
@@ -812,7 +834,7 @@ fun AlarmEditScreen(
             }
 
             // Vibration
-            SettingsSection(AlarmEditorSection.VIBRATION) {
+            SettingsSection(editorPage, AlarmEditorSection.VIBRATION) {
                 SettingsRow(
                     label = stringResource(R.string.vibration),
                     trailing = {
@@ -953,7 +975,7 @@ fun AlarmEditScreen(
             }
 
             // Snooze - interactive picker
-            SettingsSection(AlarmEditorSection.SNOOZE) {
+            SettingsSection(editorPage, AlarmEditorSection.SNOOZE) {
                 var showSnoozeMenu by remember { mutableStateOf(false) }
                 SettingsRow(label = stringResource(R.string.snooze_duration)) {
                     Box {
@@ -985,13 +1007,7 @@ fun AlarmEditScreen(
             }
 
             // Schedule forecast
-            LaunchedEffect(state.hour, state.minute, state.repeatDays, state.specificDate,
-                state.solarOffsetMinutes, state.solarAnchor, state.shiftPattern,
-                state.shiftPatternStartDate, state.timezonePolicy, state.fixedTimezoneId,
-                state.skipOnHolidays) {
-                viewModel.computeForecast()
-            }
-            SettingsSection(AlarmEditorSection.UPCOMING) {
+            SettingsSection(editorPage, AlarmEditorSection.UPCOMING) {
                 if (state.forecastDates.isNotEmpty()) {
                     state.forecastDates.forEach { entry ->
                         val instant = java.time.Instant.ofEpochMilli(entry.timeMillis)
@@ -1015,26 +1031,8 @@ fun AlarmEditScreen(
                 }
             }
 
-            CollapsibleGroup(
-                title = stringResource(R.string.alarm_edit_dismiss_and_wake),
-                subtitle = buildList {
-                    if (state.challengeType != "NONE") add(state.challengeType.toAlarmChallengeSummary())
-                    if (state.locationDismissEnabled) add(stringResource(R.string.alarm_edit_location_lock_short))
-                    if (state.wakeConfirmEnabled) add(stringResource(R.string.alarm_edit_wake_confirm_short))
-                    if (state.smartAlarmEnabled) add(stringResource(R.string.alarm_edit_smart_alarm))
-                }.joinToString(", ").ifEmpty { null },
-                initiallyExpanded = state.challengeType != "NONE" ||
-                    state.locationDismissEnabled ||
-                    state.wakeConfirmEnabled ||
-                    state.smartAlarmEnabled,
-                focusedPages = setOf(
-                    AlarmEditorPage.DISMISS,
-                    AlarmEditorPage.SCHEDULE,
-                    AlarmEditorPage.WAKE
-                )
-            ) {
             // Dismiss Challenge
-            SettingsSection(AlarmEditorSection.DISMISS_CHALLENGE) {
+            SettingsSection(editorPage, AlarmEditorSection.DISMISS_CHALLENGE) {
                 val challengeOptions = alarmChallengeOptions()
                 var expanded by remember { mutableStateOf(false) }
 
@@ -1262,7 +1260,7 @@ fun AlarmEditScreen(
                 }
             }
 
-            SettingsSection(AlarmEditorSection.LOCATION) {
+            SettingsSection(editorPage, AlarmEditorSection.LOCATION) {
                 val hasLocationTarget = LocationDismissPolicy.hasTarget(
                     state.locationDismissLat,
                     state.locationDismissLng
@@ -1363,7 +1361,7 @@ fun AlarmEditScreen(
             }
 
             // Wake effects
-            SettingsSection(AlarmEditorSection.WAKE_EFFECTS) {
+            SettingsSection(editorPage, AlarmEditorSection.WAKE_EFFECTS) {
                 val isGentleWake = state.gradualVolumeSeconds >= 120 &&
                     state.vibrationDelaySeconds >= 60 &&
                     state.sunriseSimulation
@@ -1476,7 +1474,7 @@ fun AlarmEditScreen(
             }
 
             // Morning Announcement (TTS)
-            SettingsSection(AlarmEditorSection.ANNOUNCEMENT) {
+            SettingsSection(editorPage, AlarmEditorSection.ANNOUNCEMENT) {
                 SettingsRow(
                     label = stringResource(R.string.alarm_edit_speak_context),
                     trailing = {
@@ -1494,7 +1492,7 @@ fun AlarmEditScreen(
             }
 
             // Wake Confirmation
-            SettingsSection(AlarmEditorSection.WAKE_CONFIRM) {
+            SettingsSection(editorPage, AlarmEditorSection.WAKE_CONFIRM) {
                 SettingsRow(
                     label = stringResource(R.string.alarm_edit_confirm_awake),
                     trailing = {
@@ -1539,7 +1537,7 @@ fun AlarmEditScreen(
             }
 
             // Smart Alarm
-            SettingsSection(AlarmEditorSection.SMART_ALARM) {
+            SettingsSection(editorPage, AlarmEditorSection.SMART_ALARM) {
                 SettingsRow(
                     label = stringResource(R.string.alarm_edit_light_sleep),
                     trailing = {
@@ -1582,25 +1580,9 @@ fun AlarmEditScreen(
                     )
                 }
             }
-            }
 
-            CollapsibleGroup(
-                title = stringResource(R.string.alarm_edit_extras_integrations),
-                subtitle = buildList {
-                    if (state.skipOnHolidays) add(stringResource(R.string.alarm_edit_holiday_skip_short))
-                    if (state.hueEnabled) add(stringResource(R.string.alarm_edit_hue_short))
-                    if (state.guardianEnabled) add(stringResource(R.string.alarm_edit_guardian_short))
-                    if (state.progressiveSnooze) add(stringResource(R.string.alarm_edit_progressive_snooze_short))
-                }.joinToString(", ").ifEmpty { null },
-                focusedPages = setOf(
-                    AlarmEditorPage.DISMISS,
-                    AlarmEditorPage.SCHEDULE,
-                    AlarmEditorPage.WAKE,
-                    AlarmEditorPage.INTEGRATIONS
-                )
-            ) {
             // Holiday Skip
-            SettingsSection(AlarmEditorSection.HOLIDAYS) {
+            SettingsSection(editorPage, AlarmEditorSection.HOLIDAYS) {
                 SettingsRow(
                     label = stringResource(R.string.alarm_edit_skip_holidays),
                     trailing = {
@@ -1618,7 +1600,7 @@ fun AlarmEditScreen(
             }
 
             // Spotify Ringtone
-            SettingsSection(AlarmEditorSection.SPOTIFY) {
+            SettingsSection(editorPage, AlarmEditorSection.SPOTIFY) {
                 OutlinedTextField(
                     value = state.spotifyUri,
                     onValueChange = viewModel::updateSpotifyUri,
@@ -1636,7 +1618,7 @@ fun AlarmEditScreen(
             }
 
             // Philips Hue Sunrise
-            SettingsSection(AlarmEditorSection.HUE) {
+            SettingsSection(editorPage, AlarmEditorSection.HUE) {
                 SettingsRow(
                     label = stringResource(R.string.alarm_edit_hue_sunrise),
                     trailing = {
@@ -1681,7 +1663,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Mission Chaining
-            SettingsSection(AlarmEditorSection.CHAIN) {
+            SettingsSection(editorPage, AlarmEditorSection.CHAIN) {
                 val chainItems = state.challengeChain.toChallengeChainList()
                 SettingsRow(
                     label = stringResource(R.string.alarm_edit_challenge_chain),
@@ -1743,7 +1725,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Anti-Snooze Features
-            SettingsSection(AlarmEditorSection.ANTI_SNOOZE) {
+            SettingsSection(editorPage, AlarmEditorSection.ANTI_SNOOZE) {
                 SettingsRow(
                     label = stringResource(R.string.alarm_edit_progressive_snooze),
                     trailing = {
@@ -1812,7 +1794,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Sunrise Simulation
-            SettingsSection(AlarmEditorSection.SUNRISE) {
+            SettingsSection(editorPage, AlarmEditorSection.SUNRISE) {
                 SettingsRow(
                     label = stringResource(R.string.alarm_edit_screen_sunrise),
                     trailing = {
@@ -1849,7 +1831,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Sound Source
-            SettingsSection(AlarmEditorSection.RADIO) {
+            SettingsSection(editorPage, AlarmEditorSection.RADIO) {
                 OutlinedTextField(
                     value = state.internetRadioUrl,
                     onValueChange = viewModel::updateInternetRadioUrl,
@@ -1867,7 +1849,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Guardian Angel
-            SettingsSection(AlarmEditorSection.GUARDIAN) {
+            SettingsSection(editorPage, AlarmEditorSection.GUARDIAN) {
                 SettingsRow(
                     label = stringResource(R.string.alarm_edit_emergency_alert),
                     trailing = {
@@ -1933,7 +1915,7 @@ fun AlarmEditScreen(
             }
 
             // v1.2.0: Morning Routine
-            SettingsSection(AlarmEditorSection.ROUTINE) {
+            SettingsSection(editorPage, AlarmEditorSection.ROUTINE) {
                 OutlinedTextField(
                     value = state.morningRoutine,
                     onValueChange = viewModel::updateMorningRoutine,
@@ -1949,10 +1931,8 @@ fun AlarmEditScreen(
                     tone = HintTone.Neutral
                 )
             }
-            }
-
             // v1.2.0: Advanced
-            SettingsSection(AlarmEditorSection.ADVANCED) {
+            SettingsSection(editorPage, AlarmEditorSection.ADVANCED) {
                 SettingsRow(label = stringResource(R.string.alarm_edit_profile)) {
                     OutlinedTextField(
                         value = state.profileName,
@@ -2402,7 +2382,9 @@ fun AlarmEditScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            item(key = "bottom-spacer") {
+                Spacer(modifier = Modifier.height(28.dp))
+            }
             }
         }
     }
@@ -2849,12 +2831,22 @@ private fun AlarmEditorCategoryCard(
     }
 }
 
-@Composable
-private fun SettingsSection(
+private fun LazyListScope.SettingsSection(
+    activePage: AlarmEditorPage,
     section: AlarmEditorSection,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    if (section.page != LocalAlarmEditorPage.current) return
+    if (section.page != activePage) return
+    item(key = "alarm-editor-${section.name.lowercase()}") {
+        SettingsSectionContent(section, content)
+    }
+}
+
+@Composable
+private fun SettingsSectionContent(
+    section: AlarmEditorSection,
+    content: @Composable ColumnScope.() -> Unit
+) {
     Column(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)

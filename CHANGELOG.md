@@ -60,6 +60,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Changed
 
+- Settings and alarm editing now render stable keyed sections through
+  `LazyColumn`, keeping offscreen controls out of composition while preserving
+  pane/page scroll reset and all existing field state.
 - Alarm firing, alarm editing, and Settings text and accessibility labels now
   use Android string resources, including localized dynamic summaries and
   locale-aware dates. XML lint and a primary-screen Compose verification task

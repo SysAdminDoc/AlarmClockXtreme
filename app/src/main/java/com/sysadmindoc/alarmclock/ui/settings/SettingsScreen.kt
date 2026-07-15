@@ -29,6 +29,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
@@ -204,6 +207,17 @@ private val settingsPaneCategories = listOf(
     )
 )
 
+private fun LazyListScope.settingsItem(
+    key: String,
+    content: @Composable () -> Unit
+) {
+    item(key = key) {
+        Box(modifier = Modifier.padding(horizontal = 16.dp)) {
+            content()
+        }
+    }
+}
+
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit = {},
@@ -304,12 +318,24 @@ fun SettingsScreen(
         val selectedPane = settingsPaneCategories.firstOrNull { it.id == selectedPaneId }
             ?: settingsPaneCategories.first()
         val showAllSettings = !useTwoPane
+        val settingsListState = rememberLazyListState()
+
+        androidx.compose.runtime.LaunchedEffect(useTwoPane, selectedPane.id) {
+            if (useTwoPane) settingsListState.scrollToItem(0)
+        }
 
         val settingsContent: @Composable (Modifier) -> Unit = { contentModifier ->
-            Column(modifier = contentModifier) {
+            LazyColumn(
+                modifier = contentModifier,
+                state = settingsListState,
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
                 if (useTwoPane) {
-                    SettingsPaneHeader(selectedPane, state)
+                    item(key = "pane-header-${selectedPane.id}") {
+                        SettingsPaneHeader(selectedPane, state)
+                    }
                 } else {
+                    item(key = "settings-hero") {
                     AlarmClockHeroHeader(
                         title = stringResource(R.string.settings_title),
                         subtitle = stringResource(R.string.settings_subtitle),
@@ -331,13 +357,10 @@ fun SettingsScreen(
                             )
                         }
                     )
+                    }
                 }
-
-                Column(
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(18.dp)
-                ) {
             if (showAllSettings || selectedPane.id == "readiness") {
+            settingsItem("readiness-wake") {
             WakeReadinessSection(
                 state = state,
                 onRequestNotifications = {
@@ -359,24 +382,38 @@ fun SettingsScreen(
                 },
                 onOpenOnboardingChecklist = onOpenOnboardingChecklist
             )
+            }
+            settingsItem("readiness-incidents") {
             IncidentTimelineSection(
                 timeline = state.incidentTimeline,
                 use24Hour = state.settings.is24HourFormat,
                 onClearIncidentHistory = viewModel::clearIncidentHistory
             )
-            PermissionRequestCard(includeNotifications = false)
-            SettingsOverviewRow(state)
-
-            if (state.needsBatteryGuidance || !state.isIgnoringBatteryOptimizations) {
-                BatteryOptimizationSection(state, viewModel)
+            }
+            settingsItem("readiness-permissions") {
+                PermissionRequestCard(includeNotifications = false)
+            }
+            settingsItem("readiness-overview") {
+                SettingsOverviewRow(state)
             }
 
-            PauseAlarmsSection(state, viewModel)
+            if (state.needsBatteryGuidance || !state.isIgnoringBatteryOptimizations) {
+                settingsItem("readiness-battery") {
+                    BatteryOptimizationSection(state, viewModel)
+                }
+            }
 
-            VacationModeSection(state, viewModel)
+            settingsItem("readiness-pause") {
+                PauseAlarmsSection(state, viewModel)
+            }
+
+            settingsItem("readiness-vacation") {
+                VacationModeSection(state, viewModel)
+            }
             }
 
             if (showAllSettings || selectedPane.id == "defaults") {
+            settingsItem("defaults-alarm") {
             SettingsGroup(
                 title = stringResource(R.string.settings_alarm_defaults),
                 description = stringResource(R.string.settings_alarm_defaults_description)
@@ -486,7 +523,9 @@ fun SettingsScreen(
                     }
                 }
             }
+            }
 
+            settingsItem("defaults-dashboard") {
             SettingsGroup(
                 title = stringResource(R.string.settings_dashboard),
                 description = stringResource(R.string.settings_dashboard_description)
@@ -675,7 +714,9 @@ fun SettingsScreen(
                     )
                 }
             }
+            }
 
+            settingsItem("defaults-navigation") {
             SettingsGroup(
                 title = stringResource(R.string.settings_bottom_navigation),
                 description = stringResource(R.string.settings_bottom_navigation_description)
@@ -712,26 +753,42 @@ fun SettingsScreen(
                 )
             }
             }
+            }
 
             if (showAllSettings || selectedPane.id == "integrations") {
-            IntegrationsSection(state, viewModel)
-            HolidaysSection(state, viewModel)
-            PhilipsHueSection(state, viewModel)
+            settingsItem("integrations-services") {
+                IntegrationsSection(state, viewModel)
+            }
+            settingsItem("integrations-holidays") {
+                HolidaysSection(state, viewModel)
+            }
+            settingsItem("integrations-hue") {
+                PhilipsHueSection(state, viewModel)
+            }
+            settingsItem("integrations-health") {
             HealthConnectSection(
                 state = state,
                 viewModel = viewModel,
                 onRequestPermissions = requestHealthConnectPermissions
             )
-            ConnectionsSection(state)
+            }
+            settingsItem("integrations-connections") {
+                ConnectionsSection(state)
+            }
             }
             if (showAllSettings || selectedPane.id == "personalization") {
-            PersonalizationSection(state, viewModel)
+            settingsItem("personalization") {
+                PersonalizationSection(state, viewModel)
+            }
             }
             if (showAllSettings || selectedPane.id == "backup") {
-            BackupRestoreSection(viewModel)
+            settingsItem("backup-restore") {
+                BackupRestoreSection(viewModel)
+            }
             }
 
             if (showAllSettings || selectedPane.id == "utilities") {
+            settingsItem("utilities-shortcuts") {
             SettingsGroup(
                 title = stringResource(R.string.settings_utilities),
                 description = stringResource(R.string.settings_utilities_description)
@@ -788,8 +845,10 @@ fun SettingsScreen(
                     }
                 )
             }
+            }
 
             if (supportExportBusy) {
+                settingsItem("utilities-support-progress") {
                 AppSurfaceCard(highlighted = true) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -808,9 +867,11 @@ fun SettingsScreen(
                         )
                     }
                 }
+                }
             }
 
             supportExportResult?.let { message ->
+                settingsItem("utilities-support-result") {
                 val failed = isFailureStatusMessage(message)
                 AppFeedbackCard(
                     title = stringResource(
@@ -821,8 +882,10 @@ fun SettingsScreen(
                     color = if (failed) AccentRed else DismissGreen,
                     onDismiss = viewModel::clearSupportExportResult
                 )
+                }
             }
 
+            settingsItem("utilities-about") {
             SettingsGroup(
                 title = stringResource(R.string.about),
                 description = stringResource(R.string.settings_about_description)
@@ -834,10 +897,12 @@ fun SettingsScreen(
                 SettingsInfo(stringResource(R.string.settings_source), stringResource(R.string.settings_source_value))
             }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-                }
             }
+
+            item(key = "settings-bottom-spacer") {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
         }
 
         if (useTwoPane) {
@@ -860,14 +925,12 @@ fun SettingsScreen(
                     Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .verticalScroll(rememberScrollState())
                 )
             }
         } else {
             settingsContent(
                 Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
             )
         }
     }
