@@ -50,14 +50,16 @@ class NextAlarmCalculator private constructor(
      * known or the location hits a polar day/night.
      */
     fun calculate(alarm: Alarm, fromTime: ZonedDateTime = ZonedDateTime.now()): Long {
+        val scheduleZone = alarm.schedulingZone(fromTime.zone)
+        val scheduleTime = fromTime.withZoneSameInstant(scheduleZone)
         // v1.2.0: Date-specific alarm overrides repeat days
         if (alarm.specificDate.isNotBlank()) {
             try {
                 val specificDate = LocalDate.parse(alarm.specificDate)
-                val specificTime = solarTimeFor(alarm, specificDate, fromTime.zone)
+                val specificTime = solarTimeFor(alarm, specificDate, scheduleZone)
                     ?: alarm.time
-                val specificDateTime = resolveZoned(specificDate, specificTime, fromTime.zone)
-                if (specificDateTime.isAfter(fromTime)) {
+                val specificDateTime = resolveZoned(specificDate, specificTime, scheduleZone)
+                if (specificDateTime.isAfter(scheduleTime)) {
                     return specificDateTime.toInstant().toEpochMilli()
                 }
                 // A one-shot date-specific alarm has expired. Repeating alarms
@@ -67,21 +69,21 @@ class NextAlarmCalculator private constructor(
             } catch (_: Exception) { /* Invalid date format, fall through */ }
         }
 
-        val today = fromTime.toLocalDate()
+        val today = scheduleTime.toLocalDate()
         val shiftSchedule = alarm.shiftScheduleOrNull()
-        val todayTime = solarTimeFor(alarm, today, fromTime.zone)
+        val todayTime = solarTimeFor(alarm, today, scheduleZone)
             ?: alarm.time
-        val todayAlarmDateTime = resolveZoned(today, todayTime, fromTime.zone)
+        val todayAlarmDateTime = resolveZoned(today, todayTime, scheduleZone)
 
         if (alarm.repeatDays.isEmpty() && shiftSchedule == null) {
             // One-shot alarm: today if in future, otherwise tomorrow
-            return if (todayAlarmDateTime.isAfter(fromTime)) {
+            return if (todayAlarmDateTime.isAfter(scheduleTime)) {
                 todayAlarmDateTime.toInstant().toEpochMilli()
             } else {
                 val tomorrow = today.plusDays(1)
-                val tomorrowTime = solarTimeFor(alarm, tomorrow, fromTime.zone)
+                val tomorrowTime = solarTimeFor(alarm, tomorrow, scheduleZone)
                     ?: alarm.time
-                resolveZoned(tomorrow, tomorrowTime, fromTime.zone)
+                resolveZoned(tomorrow, tomorrowTime, scheduleZone)
                     .toInstant().toEpochMilli()
             }
         }
@@ -95,10 +97,10 @@ class NextAlarmCalculator private constructor(
             val matchesShiftPattern = shiftSchedule == null ||
                 shiftSchedule.pattern.isWorkDate(shiftSchedule.startDate, candidateDate)
             if (matchesRepeatDays && matchesShiftPattern) {
-                val candidateTime = solarTimeFor(alarm, candidateDate, fromTime.zone)
+                val candidateTime = solarTimeFor(alarm, candidateDate, scheduleZone)
                     ?: alarm.time
-                val candidate = resolveZoned(candidateDate, candidateTime, fromTime.zone)
-                if (daysAhead == 0L && !candidate.isAfter(fromTime)) {
+                val candidate = resolveZoned(candidateDate, candidateTime, scheduleZone)
+                if (daysAhead == 0L && !candidate.isAfter(scheduleTime)) {
                     continue  // Today's time already passed
                 }
                 return candidate.toInstant().toEpochMilli()

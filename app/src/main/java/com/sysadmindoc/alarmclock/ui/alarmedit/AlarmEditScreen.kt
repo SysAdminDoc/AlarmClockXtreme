@@ -44,6 +44,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.BuildConfig
+import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
@@ -832,7 +833,8 @@ fun AlarmEditScreen(
             // Schedule forecast
             LaunchedEffect(state.hour, state.minute, state.repeatDays, state.specificDate,
                 state.solarOffsetMinutes, state.solarAnchor, state.shiftPattern,
-                state.shiftPatternStartDate, state.skipOnHolidays) {
+                state.shiftPatternStartDate, state.timezonePolicy, state.fixedTimezoneId,
+                state.skipOnHolidays) {
                 viewModel.computeForecast()
             }
             SettingsSection("Upcoming fire dates") {
@@ -1741,6 +1743,62 @@ fun AlarmEditScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     singleLine = true
                 )
+                var showTimezonePolicyMenu by remember { mutableStateOf(false) }
+                SettingsRow(label = "Time zone") {
+                    Box {
+                        SettingsValueButton(
+                            label = if (state.timezonePolicy == Alarm.TIMEZONE_POLICY_FIXED) {
+                                "Fixed zone"
+                            } else {
+                                "Follow device"
+                            },
+                            onClick = { showTimezonePolicyMenu = true }
+                        )
+                        DropdownMenu(
+                            expanded = showTimezonePolicyMenu,
+                            onDismissRequest = { showTimezonePolicyMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Follow device time zone") },
+                                onClick = {
+                                    viewModel.updateTimezonePolicy(Alarm.TIMEZONE_POLICY_LOCAL)
+                                    showTimezonePolicyMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Keep time in a fixed zone") },
+                                onClick = {
+                                    viewModel.updateTimezonePolicy(Alarm.TIMEZONE_POLICY_FIXED)
+                                    showTimezonePolicyMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+                if (state.timezonePolicy == Alarm.TIMEZONE_POLICY_FIXED) {
+                    val zoneIsValid = remember(state.fixedTimezoneId) {
+                        runCatching { java.time.ZoneId.of(state.fixedTimezoneId.trim()) }.isSuccess
+                    }
+                    OutlinedTextField(
+                        value = state.fixedTimezoneId,
+                        onValueChange = viewModel::updateFixedTimezoneId,
+                        label = { Text("IANA time zone (for example America/New_York)", color = TextMuted) },
+                        supportingText = {
+                            Text(
+                                if (zoneIsValid) {
+                                    "The alarm stays at ${state.hour.toString().padStart(2, '0')}:${state.minute.toString().padStart(2, '0')} in this zone when you travel."
+                                } else {
+                                    "Unknown zone; saving will safely fall back to following the device."
+                                }
+                            )
+                        },
+                        isError = !zoneIsValid,
+                        colors = appOutlinedTextFieldColors(),
+                        shape = AppInputShape,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                        singleLine = true
+                    )
+                }
                 var showShiftPatternMenu by remember { mutableStateOf(false) }
                 val selectedShiftPattern = ShiftPattern.fromKey(state.shiftPattern)
                 SettingsRow(label = "Shift pattern") {
@@ -2184,10 +2242,15 @@ private fun AlarmEditorCategoryOverview(
     onSelect: (AlarmEditorPage) -> Unit
 ) {
     val repeatSummary = state.repeatDays.toAlarmRepeatSummary()
-    val scheduleSummary = when {
+    val baseScheduleSummary = when {
         state.specificDate.isNotBlank() -> "$repeatSummary • Specific date set"
         state.smartAlarmEnabled -> "$repeatSummary • Smart ${state.smartAlarmWindowMinutes} min window"
         else -> "$repeatSummary • Fixed wake time"
+    }
+    val scheduleSummary = if (state.timezonePolicy == Alarm.TIMEZONE_POLICY_FIXED) {
+        "$baseScheduleSummary • ${state.fixedTimezoneId.ifBlank { "Invalid fixed zone" }}"
+    } else {
+        "$baseScheduleSummary • Follows device zone"
     }
     val wakeFeatures = listOfNotNull(
         "Flash".takeIf { state.flashWake || state.flashlightStrobe },

@@ -10,6 +10,8 @@ data class DirectBootAlarmSnapshot(
     val playDefaultSound: Boolean,
     val vibrationEnabled: Boolean,
     val updatedAt: Long,
+    val timezonePolicy: String = Alarm.TIMEZONE_POLICY_LOCAL,
+    val fixedTimezoneId: String = "",
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION
 ) {
     fun isSchedulable(now: Long): Boolean {
@@ -37,7 +39,9 @@ data class DirectBootAlarmSnapshot(
                 timeLabel = timeLabel.take(MAX_TIME_LABEL_CHARS),
                 playDefaultSound = sanitized.ringtoneUri != "silent" && !mutedByVolume,
                 vibrationEnabled = sanitized.vibrationEnabled,
-                updatedAt = now
+                updatedAt = now,
+                timezonePolicy = sanitized.timezonePolicy,
+                fixedTimezoneId = sanitized.fixedTimezoneId
             )
         }
     }

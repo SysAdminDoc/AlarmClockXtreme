@@ -73,7 +73,9 @@ fun Alarm.toAlarmBackup(): AlarmBackup {
         firingBackgroundBlurEnabled = firingBackgroundBlurEnabled,
         sortOrder = sortOrder,
         shiftPattern = shiftPattern,
-        shiftPatternStartDate = shiftPatternStartDate
+        shiftPatternStartDate = shiftPatternStartDate,
+        timezonePolicy = timezonePolicy,
+        fixedTimezoneId = fixedTimezoneId
     )
 }
 
@@ -149,7 +151,9 @@ fun AlarmBackup.toAlarmOrNull(): Alarm? {
             firingBackgroundBlurEnabled = firingBackgroundBlurEnabled,
             sortOrder = sortOrder,
             shiftPattern = shiftPattern,
-            shiftPatternStartDate = shiftPatternStartDate
+            shiftPatternStartDate = shiftPatternStartDate,
+            timezonePolicy = timezonePolicy,
+            fixedTimezoneId = fixedTimezoneId
         ).sanitized()
     }.getOrNull()
 }

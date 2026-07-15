@@ -896,6 +896,9 @@ private fun AlarmDetailPane(
                         color = SnoozeYellow
                     )
                 }
+                if (alarm.usesFixedTimezone) {
+                    AppStatusChip(label = alarm.fixedTimezoneId, color = SnoozeYellow)
+                }
                 if (alarm.group.isNotBlank()) {
                     AppStatusChip(label = alarm.group)
                 }
@@ -1365,6 +1368,7 @@ private fun AlarmCard(
             val showChipRow = suppressedByVacation ||
                 alarm.repeatLabel.isNotBlank() ||
                 alarm.shiftPatternChipLabel() != null ||
+                alarm.usesFixedTimezone ||
                 alarm.group.isNotBlank() ||
                 alarm.challengeType != "NONE" ||
                 alarm.ringtoneUri == "silent"
@@ -1394,6 +1398,9 @@ private fun AlarmCard(
                             label = label,
                             color = SnoozeYellow
                         )
+                    }
+                    if (alarm.usesFixedTimezone) {
+                        AppStatusChip(label = alarm.fixedTimezoneId, color = SnoozeYellow)
                     }
                     if (alarm.group.isNotBlank()) {
                         AppStatusChip(label = alarm.group)

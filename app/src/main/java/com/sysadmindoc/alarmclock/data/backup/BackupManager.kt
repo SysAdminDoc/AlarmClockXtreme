@@ -96,12 +96,15 @@ data class AlarmBackup(
     val sortOrder: Int = 0,
     // v1.15.27: rotating shift schedule gate.
     val shiftPattern: String = "",
-    val shiftPatternStartDate: String = ""
+    val shiftPatternStartDate: String = "",
+    // v1.15.28: optional IANA zone pin. Older backups follow the device zone.
+    val timezonePolicy: String = Alarm.TIMEZONE_POLICY_LOCAL,
+    val fixedTimezoneId: String = ""
 )
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 16,
+    val version: Int = 17,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -243,7 +246,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 16
+        const val MAX_SUPPORTED_BACKUP_VERSION = 17
 
         fun assessExportWarning(
             settings: AppSettings,

@@ -17,6 +17,8 @@ object WearAlarmData {
     const val KEY_TRIGGER_TIME = "trigger_time"
     const val KEY_IS_FIRING = "is_firing"
     const val KEY_UPDATED_AT = "updated_at"
+    const val KEY_TIMEZONE_POLICY = "timezone_policy"
+    const val KEY_FIXED_TIMEZONE_ID = "fixed_timezone_id"
 
     // Tile clickable IDs for the wrist-side actions.
     const val CLICK_SKIP = "skip"
@@ -40,6 +42,8 @@ data class WearAlarmSnapshot(
     val triggerTime: Long = 0L,
     val isFiring: Boolean = false,
     val updatedAt: Long = 0L,
+    val timezonePolicy: String = "LOCAL",
+    val fixedTimezoneId: String = "",
 )
 
 /**
@@ -84,7 +88,7 @@ object WearAlarmText {
         if (isStale(snapshot, now)) return "Phone sync stale"
         if (snapshot.isFiring) return "Alarm is ringing"
         val remaining = formatRemaining(snapshot.triggerTime, now)
-        return listOf(snapshot.label, remaining)
+        return listOf(snapshot.label, remaining, fixedZoneLabel(snapshot))
             .filter { it.isNotBlank() }
             .joinToString(" - ")
             .ifBlank { "Ready on phone" }
@@ -120,10 +124,17 @@ object WearAlarmText {
         snapshot.hasAlarm -> listOf(
             snapshot.timeLabel.ifBlank { "Scheduled" },
             snapshot.label,
+            fixedZoneLabel(snapshot),
             formatRemaining(snapshot.triggerTime, now)
         ).filter { it.isNotBlank() }.joinToString(" - ")
         else -> "No phone alarm synced"
     }
+
+    private fun fixedZoneLabel(snapshot: WearAlarmSnapshot): String =
+        snapshot.fixedTimezoneId
+            .takeIf { snapshot.timezonePolicy == "FIXED" && it.isNotBlank() }
+            ?.replace('_', ' ')
+            .orEmpty()
 }
 
 object WearAlarmStore {
@@ -139,6 +150,8 @@ object WearAlarmStore {
             triggerTime = prefs.getLong(WearAlarmData.KEY_TRIGGER_TIME, 0L),
             isFiring = prefs.getBoolean(WearAlarmData.KEY_IS_FIRING, false),
             updatedAt = prefs.getLong(WearAlarmData.KEY_UPDATED_AT, 0L),
+            timezonePolicy = prefs.getString(WearAlarmData.KEY_TIMEZONE_POLICY, "LOCAL").orEmpty(),
+            fixedTimezoneId = prefs.getString(WearAlarmData.KEY_FIXED_TIMEZONE_ID, "").orEmpty(),
         )
     }
 
@@ -152,6 +165,8 @@ object WearAlarmStore {
                 putLong(WearAlarmData.KEY_TRIGGER_TIME, snapshot.triggerTime)
                 putBoolean(WearAlarmData.KEY_IS_FIRING, snapshot.isFiring)
                 putLong(WearAlarmData.KEY_UPDATED_AT, snapshot.updatedAt)
+                putString(WearAlarmData.KEY_TIMEZONE_POLICY, snapshot.timezonePolicy)
+                putString(WearAlarmData.KEY_FIXED_TIMEZONE_ID, snapshot.fixedTimezoneId)
             }
     }
 
@@ -164,6 +179,8 @@ object WearAlarmStore {
             triggerTime = dataMap.getLong(WearAlarmData.KEY_TRIGGER_TIME, 0L),
             isFiring = dataMap.getBoolean(WearAlarmData.KEY_IS_FIRING, false),
             updatedAt = dataMap.getLong(WearAlarmData.KEY_UPDATED_AT, 0L),
+            timezonePolicy = dataMap.getString(WearAlarmData.KEY_TIMEZONE_POLICY, "LOCAL").orEmpty(),
+            fixedTimezoneId = dataMap.getString(WearAlarmData.KEY_FIXED_TIMEZONE_ID, "").orEmpty(),
         )
     }
 }

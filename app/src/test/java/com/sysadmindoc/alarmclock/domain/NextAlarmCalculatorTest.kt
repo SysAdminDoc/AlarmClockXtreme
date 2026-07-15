@@ -1,6 +1,8 @@
 package com.sysadmindoc.alarmclock.domain
 
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.preferences.AppSettings
+import com.sysadmindoc.alarmclock.util.SolarCalculator
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -322,5 +324,143 @@ class NextAlarmCalculatorTest {
 
         assertEquals(LocalTime.of(1, 30), resultZoned.toLocalTime())
         assertEquals(java.time.ZoneOffset.ofHours(-4), resultZoned.offset)
+    }
+
+    @Test
+    fun `local policy keeps the same wall time after device zone changes`() {
+        val alarm = Alarm(
+            hour = 7,
+            minute = 0,
+            repeatDays = DayOfWeek.entries.toSet()
+        )
+        val ny = ZoneId.of("America/New_York")
+        val la = ZoneId.of("America/Los_Angeles")
+
+        val nyTrigger = calculator.calculate(
+            alarm,
+            ZonedDateTime.of(2026, 7, 15, 0, 0, 0, 0, ny)
+        )
+        val laTrigger = calculator.calculate(
+            alarm,
+            ZonedDateTime.of(2026, 7, 15, 0, 0, 0, 0, la)
+        )
+
+        assertEquals(LocalTime.of(7, 0), Instant.ofEpochMilli(nyTrigger).atZone(ny).toLocalTime())
+        assertEquals(LocalTime.of(7, 0), Instant.ofEpochMilli(laTrigger).atZone(la).toLocalTime())
+    }
+
+    @Test
+    fun `fixed policy keeps source-zone wall time while traveling`() {
+        val ny = ZoneId.of("America/New_York")
+        val la = ZoneId.of("America/Los_Angeles")
+        val alarm = Alarm(
+            hour = 7,
+            minute = 0,
+            repeatDays = DayOfWeek.entries.toSet(),
+            timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,
+            fixedTimezoneId = ny.id
+        )
+
+        val trigger = calculator.calculate(
+            alarm,
+            ZonedDateTime.of(2026, 7, 15, 0, 0, 0, 0, la)
+        )
+        val instant = Instant.ofEpochMilli(trigger)
+
+        assertEquals(LocalTime.of(7, 0), instant.atZone(ny).toLocalTime())
+        assertEquals(LocalTime.of(4, 0), instant.atZone(la).toLocalTime())
+    }
+
+    @Test
+    fun `fixed one-shot specific date is interpreted in its source zone`() {
+        val ny = ZoneId.of("America/New_York")
+        val la = ZoneId.of("America/Los_Angeles")
+        val alarm = Alarm(
+            hour = 7,
+            minute = 15,
+            specificDate = "2026-07-16",
+            timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,
+            fixedTimezoneId = ny.id
+        )
+
+        val trigger = calculator.calculate(
+            alarm,
+            ZonedDateTime.of(2026, 7, 15, 23, 0, 0, 0, la)
+        )
+
+        assertEquals(
+            ZonedDateTime.of(2026, 7, 16, 7, 15, 0, 0, ny).toInstant(),
+            Instant.ofEpochMilli(trigger)
+        )
+    }
+
+    @Test
+    fun `invalid fixed zone safely follows the device zone`() {
+        val la = ZoneId.of("America/Los_Angeles")
+        val alarm = Alarm(
+            hour = 7,
+            minute = 0,
+            timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,
+            fixedTimezoneId = "Mars/Olympus_Mons"
+        )
+
+        val trigger = calculator.calculate(
+            alarm,
+            ZonedDateTime.of(2026, 7, 15, 0, 0, 0, 0, la)
+        )
+
+        assertEquals(LocalTime.of(7, 0), Instant.ofEpochMilli(trigger).atZone(la).toLocalTime())
+    }
+
+    @Test
+    fun `fixed policy applies DST gap and overlap rules in the source zone`() {
+        val ny = ZoneId.of("America/New_York")
+        val la = ZoneId.of("America/Los_Angeles")
+        val gapAlarm = Alarm(
+            hour = 2,
+            minute = 30,
+            timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,
+            fixedTimezoneId = ny.id
+        )
+        val overlapAlarm = gapAlarm.copy(hour = 1, minute = 30)
+
+        val gap = calculator.calculate(
+            gapAlarm,
+            ZonedDateTime.of(2026, 3, 7, 21, 0, 0, 0, la)
+        )
+        val overlap = calculator.calculate(
+            overlapAlarm,
+            ZonedDateTime.of(2026, 10, 31, 21, 0, 0, 0, la)
+        )
+
+        assertEquals(LocalDateTime.of(2026, 3, 8, 3, 0), Instant.ofEpochMilli(gap).atZone(ny).toLocalDateTime())
+        assertEquals(java.time.ZoneOffset.ofHours(-4), Instant.ofEpochMilli(overlap).atZone(ny).offset)
+    }
+
+    @Test
+    fun `fixed solar alarm calculates sunrise in the source zone`() {
+        val ny = ZoneId.of("America/New_York")
+        val la = ZoneId.of("America/Los_Angeles")
+        val settings = AppSettings(lastKnownLatitude = 40.7128, lastKnownLongitude = -74.0060)
+        val solarCalculator = NextAlarmCalculator(settings)
+        val date = LocalDate.of(2026, 7, 15)
+        val alarm = Alarm(
+            hour = 7,
+            minute = 0,
+            solarOffsetMinutes = 15,
+            solarAnchor = "SUNRISE",
+            timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,
+            fixedTimezoneId = ny.id
+        )
+
+        val trigger = solarCalculator.calculate(
+            alarm,
+            ZonedDateTime.of(2026, 7, 14, 21, 0, 0, 0, la)
+        )
+        val expected = requireNotNull(
+            SolarCalculator.sunrise(date, 40.7128, -74.0060, ny)
+        ).plusMinutes(15)
+
+        assertEquals(expected, Instant.ofEpochMilli(trigger).atZone(ny).toLocalTime())
     }
 }

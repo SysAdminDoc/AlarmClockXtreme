@@ -13,4 +13,6 @@ object WearAlarmData {
     const val KEY_TRIGGER_TIME = "trigger_time"
     const val KEY_IS_FIRING = "is_firing"
     const val KEY_UPDATED_AT = "updated_at"
+    const val KEY_TIMEZONE_POLICY = "timezone_policy"
+    const val KEY_FIXED_TIMEZONE_ID = "fixed_timezone_id"
 }

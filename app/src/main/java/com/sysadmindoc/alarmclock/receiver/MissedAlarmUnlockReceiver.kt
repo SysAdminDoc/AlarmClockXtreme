@@ -1,12 +1,16 @@
 package com.sysadmindoc.alarmclock.receiver
 
+import android.Manifest
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
@@ -151,34 +155,42 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
         alarm: Alarm,
         scheduledAt: Long,
         fireId: String
-    ): Boolean = try {
-        val firingIntent = AlarmFireDismissContract.firingActivityIntent(
-            context, alarm.id, scheduledAt, fireId
-        )
-        val fullScreenPi = PendingIntent.getActivity(
-            context,
-            alarm.id.toInt() + 30000,
-            firingIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val notification = NotificationCompat.Builder(context, AlarmService.CHANNEL_ALARM)
-            .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle(context.getString(R.string.notif_alarm_title))
-            .setContentText(alarm.label.ifBlank { context.getString(R.string.notif_alarm_title) })
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setFullScreenIntent(fullScreenPi, true)
-            .setContentIntent(fullScreenPi)
-            .setAutoCancel(true)
-            .setOngoing(false)
-            .build()
-        NotificationManagerCompat.from(context)
-            .notify(AlarmService.NOTIFICATION_ID, notification)
-        true
-    } catch (e: Exception) {
-        Log.e("MissedAlarmUnlockReceiver", "Full-screen replay fallback failed for ${alarm.id}", e)
-        false
+    ): Boolean {
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) return false
+
+        return try {
+            val firingIntent = AlarmFireDismissContract.firingActivityIntent(
+                context, alarm.id, scheduledAt, fireId
+            )
+            val fullScreenPi = PendingIntent.getActivity(
+                context,
+                alarm.id.toInt() + 30000,
+                firingIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val notification = NotificationCompat.Builder(context, AlarmService.CHANNEL_ALARM)
+                .setSmallIcon(R.drawable.ic_alarm)
+                .setContentTitle(context.getString(R.string.notif_alarm_title))
+                .setContentText(alarm.label.ifBlank { context.getString(R.string.notif_alarm_title) })
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setFullScreenIntent(fullScreenPi, true)
+                .setContentIntent(fullScreenPi)
+                .setAutoCancel(true)
+                .setOngoing(false)
+                .build()
+            NotificationManagerCompat.from(context)
+                .notify(AlarmService.NOTIFICATION_ID, notification)
+            true
+        } catch (e: Exception) {
+            Log.e("MissedAlarmUnlockReceiver", "Full-screen replay fallback failed for ${alarm.id}", e)
+            false
+        }
     }
 
     @dagger.hilt.EntryPoint

@@ -6,6 +6,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- Alarms can now either follow the device time zone or stay pinned to a valid
+  IANA zone while traveling. Fixed-zone scheduling covers recurring, one-shot,
+  shift, solar, and DST-transition cases; the policy survives backup, sharing,
+  Direct Boot, Wear sync, widgets, and support diagnostics, while legacy or
+  invalid data safely follows the device.
 - Settings can now preview and import bounded Fossify Clock JSON exports.
   Time, weekday mask, label, vibration, and readable ringtone URIs are mapped;
   invalid rows and inaccessible sounds are disclosed before confirmation, and

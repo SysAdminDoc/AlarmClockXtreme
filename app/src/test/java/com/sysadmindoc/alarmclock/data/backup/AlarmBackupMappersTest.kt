@@ -30,7 +30,9 @@ class AlarmBackupMappersTest {
             firingBackgroundBlurEnabled = false,
             sortOrder = 4_000,
             shiftPattern = "DUPONT",
-            shiftPatternStartDate = "2026-07-06"
+            shiftPatternStartDate = "2026-07-06",
+            timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,
+            fixedTimezoneId = "America/New_York"
         ).sanitized()
 
         val restored = alarm.toAlarmBackup().toAlarmOrNull()
@@ -49,6 +51,8 @@ class AlarmBackupMappersTest {
         assertEquals(4_000, restored.sortOrder)
         assertEquals("DUPONT", restored.shiftPattern)
         assertEquals("2026-07-06", restored.shiftPatternStartDate)
+        assertEquals(Alarm.TIMEZONE_POLICY_FIXED, restored.timezonePolicy)
+        assertEquals("America/New_York", restored.fixedTimezoneId)
     }
 
     @Test
@@ -110,5 +114,18 @@ class AlarmBackupMappersTest {
         requireNotNull(restored)
         // sanitized() keeps only known challenge types and drops NONE.
         assertEquals("MATH_EASY,SHAKE", restored.challengeChain)
+    }
+
+    @Test
+    fun invalidFixedTimezoneFallsBackToLocalOnImport() {
+        val backup = Alarm(hour = 7, minute = 0).toAlarmBackup().copy(
+            timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,
+            fixedTimezoneId = "Invalid/Zone"
+        )
+
+        val restored = requireNotNull(backup.toAlarmOrNull())
+
+        assertEquals(Alarm.TIMEZONE_POLICY_LOCAL, restored.timezonePolicy)
+        assertEquals("", restored.fixedTimezoneId)
     }
 }

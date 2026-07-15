@@ -22,8 +22,13 @@ class WearAlarmDataTest {
         timeLabel: String = "",
         triggerTime: Long = 0L,
         isFiring: Boolean = false,
-        updatedAt: Long = System.currentTimeMillis()
-    ) = WearAlarmSnapshot(hasAlarm, alarmId, label, timeLabel, triggerTime, isFiring, updatedAt)
+        updatedAt: Long = System.currentTimeMillis(),
+        timezonePolicy: String = "LOCAL",
+        fixedTimezoneId: String = ""
+    ) = WearAlarmSnapshot(
+        hasAlarm, alarmId, label, timeLabel, triggerTime, isFiring, updatedAt,
+        timezonePolicy, fixedTimezoneId
+    )
 
     // --- WearAlarmText.formatRemaining ---
 
@@ -107,6 +112,26 @@ class WearAlarmDataTest {
     }
 
     @Test
+    fun fixedTimezoneIsDisclosedOnWearTextSurfaces() {
+        val fixed = snapshot(
+            label = "Medication",
+            timeLabel = "4:00 AM",
+            triggerTime = base + 5 * 60_000L,
+            timezonePolicy = "FIXED",
+            fixedTimezoneId = "America/New_York"
+        )
+
+        assertEquals(
+            "Medication - 5m - America/New York",
+            WearAlarmText.secondaryLabel(fixed, now = base)
+        )
+        assertEquals(
+            "4:00 AM - Medication - America/New York - 5m",
+            WearAlarmText.complicationLongText(fixed, now = base)
+        )
+    }
+
+    @Test
     fun contentDescriptionReflectsState() {
         assertEquals("AlarmClockXtreme alarm is ringing", WearAlarmText.contentDescription(snapshot(isFiring = true)))
         assertEquals(
@@ -159,11 +184,16 @@ class WearAlarmDataTest {
             putLong(WearAlarmData.KEY_TRIGGER_TIME, base)
             putBoolean(WearAlarmData.KEY_IS_FIRING, false)
             putLong(WearAlarmData.KEY_UPDATED_AT, base + 5L)
+            putString(WearAlarmData.KEY_TIMEZONE_POLICY, "FIXED")
+            putString(WearAlarmData.KEY_FIXED_TIMEZONE_ID, "Europe/London")
         }
 
         val snap = WearAlarmStore.fromDataMap(dataMap)
         assertEquals(
-            WearAlarmSnapshot(true, 99L, "Work", "8:15 AM", base, false, base + 5L),
+            WearAlarmSnapshot(
+                true, 99L, "Work", "8:15 AM", base, false, base + 5L,
+                "FIXED", "Europe/London"
+            ),
             snap
         )
     }

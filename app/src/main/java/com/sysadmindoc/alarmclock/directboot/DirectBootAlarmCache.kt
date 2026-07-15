@@ -22,6 +22,8 @@ object DirectBootAlarmCache {
     private const val KEY_PLAY_DEFAULT_SOUND = "play_default_sound"
     private const val KEY_VIBRATION_ENABLED = "vibration_enabled"
     private const val KEY_UPDATED_AT = "updated_at"
+    private const val KEY_TIMEZONE_POLICY = "timezone_policy"
+    private const val KEY_FIXED_TIMEZONE_ID = "fixed_timezone_id"
     private const val KEY_FIRED_ALARM_ID = "fired_alarm_id"
     private const val KEY_FIRED_TRIGGER_TIME = "fired_trigger_time"
     private const val KEY_FIRED_AT = "fired_at"
@@ -61,6 +63,8 @@ object DirectBootAlarmCache {
             .remove(KEY_PLAY_DEFAULT_SOUND)
             .remove(KEY_VIBRATION_ENABLED)
             .remove(KEY_UPDATED_AT)
+            .remove(KEY_TIMEZONE_POLICY)
+            .remove(KEY_FIXED_TIMEZONE_ID)
             .apply()
     }
 
@@ -124,6 +128,8 @@ object DirectBootAlarmCache {
                     .remove(KEY_PLAY_DEFAULT_SOUND)
                     .remove(KEY_VIBRATION_ENABLED)
                     .remove(KEY_UPDATED_AT)
+                    .remove(KEY_TIMEZONE_POLICY)
+                    .remove(KEY_FIXED_TIMEZONE_ID)
             }
         }
         edit.apply()
@@ -166,6 +172,11 @@ object DirectBootAlarmCache {
             playDefaultSound = prefs.getBoolean(KEY_PLAY_DEFAULT_SOUND, true),
             vibrationEnabled = prefs.getBoolean(KEY_VIBRATION_ENABLED, true),
             updatedAt = prefs.getLong(KEY_UPDATED_AT, 0L),
+            timezonePolicy = prefs.getString(
+                KEY_TIMEZONE_POLICY,
+                Alarm.TIMEZONE_POLICY_LOCAL
+            ).orEmpty(),
+            fixedTimezoneId = prefs.getString(KEY_FIXED_TIMEZONE_ID, "").orEmpty(),
             schemaVersion = prefs.getInt(
                 KEY_SCHEMA_VERSION,
                 DirectBootAlarmSnapshot.CURRENT_SCHEMA_VERSION
@@ -183,6 +194,8 @@ object DirectBootAlarmCache {
             .putBoolean(KEY_PLAY_DEFAULT_SOUND, snapshot.playDefaultSound)
             .putBoolean(KEY_VIBRATION_ENABLED, snapshot.vibrationEnabled)
             .putLong(KEY_UPDATED_AT, snapshot.updatedAt)
+            .putString(KEY_TIMEZONE_POLICY, snapshot.timezonePolicy)
+            .putString(KEY_FIXED_TIMEZONE_ID, snapshot.fixedTimezoneId)
             .apply()
     }
 

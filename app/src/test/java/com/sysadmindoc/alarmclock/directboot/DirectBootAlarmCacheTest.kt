@@ -81,6 +81,20 @@ class DirectBootAlarmCacheTest {
     }
 
     @Test
+    fun fixedTimezoneMetadataSurvivesDeviceProtectedCacheRoundTrip() {
+        val fixed = alarm(4L).copy(
+            timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,
+            fixedTimezoneId = "Australia/Sydney"
+        )
+
+        DirectBootAlarmCache.saveIfEarlier(context, fixed, now + 600_000L, now)
+
+        val snapshot = requireNotNull(DirectBootAlarmCache.read(context))
+        assertEquals(Alarm.TIMEZONE_POLICY_FIXED, snapshot.timezonePolicy)
+        assertEquals("Australia/Sydney", snapshot.fixedTimezoneId)
+    }
+
+    @Test
     fun clearRemovesCachedAlarm() {
         DirectBootAlarmCache.saveIfEarlier(context, alarm(1L), now + 600_000L, now)
         DirectBootAlarmCache.clear(context)

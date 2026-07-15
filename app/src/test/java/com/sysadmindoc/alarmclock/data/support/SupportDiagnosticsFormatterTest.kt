@@ -28,7 +28,9 @@ class SupportDiagnosticsFormatterTest {
             guardianEnabled = true,
             guardianPhone = "+15555551212",
             wifiDismissSsid = "PrivateWifi",
-            nfcTagId = "secret-tag"
+            nfcTagId = "secret-tag",
+            timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,
+            fixedTimezoneId = "America/New_York"
         )
 
         val csv = SupportDiagnosticsFormatter.alarmCsv(
@@ -43,6 +45,8 @@ class SupportDiagnosticsFormatterTest {
         assertFalse(csv.contains("PrivateWifi"))
         assertFalse(csv.contains("secret-tag"))
         assertTrue(csv.contains("hasCustomSound"))
+        assertTrue(csv.contains("timezonePolicy"))
+        assertTrue(csv.contains("America/New_York"))
         assertTrue(csv.contains("true"))
     }
 

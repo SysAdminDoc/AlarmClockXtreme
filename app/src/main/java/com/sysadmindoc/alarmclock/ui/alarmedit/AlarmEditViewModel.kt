@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import javax.inject.Inject
 
 data class AlarmEditUiState(
@@ -113,6 +114,8 @@ data class AlarmEditUiState(
     val firingBackgroundBlurEnabled: Boolean = true,
     val shiftPattern: String = "",
     val shiftPatternStartDate: String = "",
+    val timezonePolicy: String = Alarm.TIMEZONE_POLICY_LOCAL,
+    val fixedTimezoneId: String = "",
     val forecastDates: List<ForecastEntry> = emptyList(),
     val hasUnsavedChanges: Boolean = false
 )
@@ -230,7 +233,9 @@ class AlarmEditViewModel @Inject constructor(
                         firingBackgroundImageUri = alarm.firingBackgroundImageUri,
                         firingBackgroundBlurEnabled = alarm.firingBackgroundBlurEnabled,
                         shiftPattern = alarm.shiftPattern,
-                        shiftPatternStartDate = alarm.shiftPatternStartDate
+                        shiftPatternStartDate = alarm.shiftPatternStartDate,
+                        timezonePolicy = alarm.timezonePolicy,
+                        fixedTimezoneId = alarm.fixedTimezoneId
                     )
                     loadedDraft = _uiState.value
                 } else {
@@ -430,6 +435,20 @@ class AlarmEditViewModel @Inject constructor(
     fun updateShiftPatternStartDate(date: String) {
         _uiState.value = _uiState.value.copy(shiftPatternStartDate = date)
     }
+    fun updateTimezonePolicy(policy: String) {
+        val fixed = policy == Alarm.TIMEZONE_POLICY_FIXED
+        _uiState.value = _uiState.value.copy(
+            timezonePolicy = if (fixed) Alarm.TIMEZONE_POLICY_FIXED else Alarm.TIMEZONE_POLICY_LOCAL,
+            fixedTimezoneId = if (fixed) {
+                _uiState.value.fixedTimezoneId.ifBlank { ZoneId.systemDefault().id }
+            } else {
+                ""
+            }
+        )
+    }
+    fun updateFixedTimezoneId(zoneId: String) {
+        _uiState.value = _uiState.value.copy(fixedTimezoneId = zoneId)
+    }
     fun updateEarlyDismiss(minutes: Int) { _uiState.value = _uiState.value.copy(earlyDismissMinutes = minutes) }
     fun updateGuardian(enabled: Boolean, phone: String? = null, delaySec: Int? = null) {
         _uiState.value = _uiState.value.copy(
@@ -517,6 +536,8 @@ class AlarmEditViewModel @Inject constructor(
                 solarAnchor = s.solarAnchor,
                 shiftPattern = s.shiftPattern,
                 shiftPatternStartDate = s.shiftPatternStartDate,
+                timezonePolicy = s.timezonePolicy,
+                fixedTimezoneId = s.fixedTimezoneId,
                 skipOnHolidays = s.skipOnHolidays,
                 isEnabled = true
             )
@@ -657,8 +678,10 @@ class AlarmEditViewModel @Inject constructor(
                 firingBackgroundImageUri = s.firingBackgroundImageUri,
                 firingBackgroundBlurEnabled = s.firingBackgroundBlurEnabled,
                 shiftPattern = s.shiftPattern,
-                shiftPatternStartDate = s.shiftPatternStartDate
-            )
+                shiftPatternStartDate = s.shiftPatternStartDate,
+                timezonePolicy = s.timezonePolicy,
+                fixedTimezoneId = s.fixedTimezoneId
+            ).sanitized()
 
             try {
                 val savedId = repository.save(alarm)

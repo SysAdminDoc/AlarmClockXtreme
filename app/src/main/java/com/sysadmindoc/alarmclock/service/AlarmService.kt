@@ -1162,7 +1162,9 @@ class AlarmService : Service() {
                 val player = MediaPlayer()
                 val playback = MediaPlayerAlarmPlaybackPlayer(player)
                 alarmPlayback = playback
-                forcedSpeakerDevice()?.let { runCatching { player.setPreferredDevice(it) } }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    forcedSpeakerDevice()?.let { runCatching { player.setPreferredDevice(it) } }
+                }
                 player.apply {
                     setAudioAttributes(AlarmAudioRouting.alarmMusicAttributes())
                     setDataSource(radioUrl)
@@ -1251,7 +1253,9 @@ class AlarmService : Service() {
             val player = MediaPlayer()
             val playback = MediaPlayerAlarmPlaybackPlayer(player)
             alarmPlayback = playback
-            forcedSpeakerDevice()?.let { runCatching { player.setPreferredDevice(it) } }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                forcedSpeakerDevice()?.let { runCatching { player.setPreferredDevice(it) } }
+            }
             player.apply {
                 setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
                 setDataSource(applicationContext, uri)
@@ -1333,7 +1337,9 @@ class AlarmService : Service() {
                     val player = MediaPlayer()
                     val playback = MediaPlayerAlarmPlaybackPlayer(player)
                     alarmPlayback = playback
-                    forcedSpeakerDevice()?.let { runCatching { player.setPreferredDevice(it) } }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        forcedSpeakerDevice()?.let { runCatching { player.setPreferredDevice(it) } }
+                    }
                     player.apply {
                         setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
                         setDataSource(applicationContext, fallbackUri)

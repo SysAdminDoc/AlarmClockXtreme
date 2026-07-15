@@ -17,6 +17,8 @@ data class SupportAlarmDiagnostic(
     val time: String,
     val repeat: String,
     val nextTriggerTime: Long,
+    val timezonePolicy: String,
+    val fixedTimezoneId: String,
     val challengeType: String,
     val hasCustomSound: Boolean,
     val hasInternetRadio: Boolean,
@@ -33,6 +35,8 @@ data class SupportAlarmDiagnostic(
                 time = "%02d:%02d".format(sanitized.hour, sanitized.minute),
                 repeat = sanitized.repeatLabel,
                 nextTriggerTime = sanitized.nextTriggerTime,
+                timezonePolicy = sanitized.timezonePolicy,
+                fixedTimezoneId = sanitized.fixedTimezoneId,
                 challengeType = sanitized.challengeType,
                 hasCustomSound = sanitized.ringtoneUri.isNotBlank() ||
                     sanitized.ringtonePool.isNotBlank() ||
@@ -76,7 +80,7 @@ object CrashLogScrubber {
 }
 
 object SupportDiagnosticsFormatter {
-    const val SCHEMA_VERSION = 3
+    const val SCHEMA_VERSION = 4
     const val REDACTION_POLICY_VERSION = 1
 
     private val READINESS_FIELDS = listOf(
@@ -98,7 +102,8 @@ object SupportDiagnosticsFormatter {
     )
 
     private val ALARM_DIAGNOSTIC_FIELDS = listOf(
-        "id", "enabled", "time", "repeat", "nextTriggerTime", "challengeType",
+        "id", "enabled", "time", "repeat", "nextTriggerTime", "timezonePolicy",
+        "fixedTimezoneId", "challengeType",
         "hasCustomSound", "hasInternetRadio", "hueEnabled", "guardianEnabled",
         "wakeConfirmEnabled"
     )
@@ -247,6 +252,8 @@ object SupportDiagnosticsFormatter {
                     "time",
                     "repeat",
                     "nextTriggerTime",
+                    "timezonePolicy",
+                    "fixedTimezoneId",
                     "challengeType",
                     "hasCustomSound",
                     "hasInternetRadio",
@@ -263,6 +270,8 @@ object SupportDiagnosticsFormatter {
                         csv(alarm.time),
                         csv(alarm.repeat),
                         alarm.nextTriggerTime.toString(),
+                        csv(alarm.timezonePolicy),
+                        csv(alarm.fixedTimezoneId),
                         csv(alarm.challengeType),
                         alarm.hasCustomSound.toString(),
                         alarm.hasInternetRadio.toString(),

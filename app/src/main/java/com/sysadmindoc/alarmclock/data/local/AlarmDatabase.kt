@@ -21,7 +21,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
         SnoreEvent::class,
         PreSleepTagEntry::class
     ],
-    version = 22,
+    version = 23,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -337,6 +337,13 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE alarms ADD COLUMN timezonePolicy TEXT NOT NULL DEFAULT 'LOCAL'")
+                db.execSQL("ALTER TABLE alarms ADD COLUMN fixedTimezoneId TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -359,6 +366,7 @@ abstract class AlarmDatabase : RoomDatabase() {
             MIGRATION_19_20,
             MIGRATION_20_21,
             MIGRATION_21_22,
+            MIGRATION_22_23,
         )
     }
 }

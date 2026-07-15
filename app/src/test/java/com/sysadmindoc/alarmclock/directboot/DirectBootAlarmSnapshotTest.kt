@@ -92,4 +92,21 @@ class DirectBootAlarmSnapshotTest {
         assertEquals("", snapshot.label)
         assertTrue(snapshot.timeLabel.length <= 32)
     }
+
+    @Test
+    fun `direct boot snapshot preserves fixed-zone schedule metadata`() {
+        val snapshot = DirectBootAlarmSnapshot.fromAlarm(
+            alarm = Alarm(
+                id = 8,
+                timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,
+                fixedTimezoneId = "Asia/Tokyo"
+            ),
+            triggerTime = 2_000L,
+            timeLabel = "8:00 PM",
+            now = 1_000L
+        )
+
+        assertEquals(Alarm.TIMEZONE_POLICY_FIXED, snapshot.timezonePolicy)
+        assertEquals("Asia/Tokyo", snapshot.fixedTimezoneId)
+    }
 }

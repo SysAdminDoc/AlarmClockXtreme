@@ -51,6 +51,8 @@ class AlarmDatabaseMigrationTest {
         assertEquals(1000, db.queryLong("SELECT sortOrder FROM alarms LIMIT 1"))
         assertEquals("", db.queryString("SELECT shiftPattern FROM alarms LIMIT 1"))
         assertEquals("", db.queryString("SELECT shiftPatternStartDate FROM alarms LIMIT 1"))
+        assertEquals("LOCAL", db.queryString("SELECT timezonePolicy FROM alarms LIMIT 1"))
+        assertEquals("", db.queryString("SELECT fixedTimezoneId FROM alarms LIMIT 1"))
         db.close()
     }
 
@@ -261,6 +263,24 @@ class AlarmDatabaseMigrationTest {
     }
 
     @Test
+    fun migrationTwentyTwoToTwentyThreeAddsLocalTimezoneDefaults() {
+        var db = helper.createDatabase("migration-22-to-23.db", 22)
+        insertSyntheticAlarm(db)
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-22-to-23.db",
+            23,
+            true,
+            AlarmDatabase.MIGRATION_22_23,
+        )
+
+        assertEquals("LOCAL", db.queryString("SELECT timezonePolicy FROM alarms LIMIT 1"))
+        assertEquals("", db.queryString("SELECT fixedTimezoneId FROM alarms LIMIT 1"))
+        db.close()
+    }
+
+    @Test
     fun freshInstallVersionMatchesLatestExportedSchema() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val exportedLatest = latestExportedSchemaVersion()
@@ -452,6 +472,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 22
+        const val LATEST_SCHEMA_VERSION = 23
     }
 }

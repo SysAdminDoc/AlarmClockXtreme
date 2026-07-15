@@ -5,6 +5,7 @@ import androidx.room.PrimaryKey
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.util.Locale
 
 /**
@@ -136,9 +137,15 @@ data class Alarm(
     // only on D/N/W days in the selected preset. Empty = regular schedule.
     val shiftPattern: String = "",
     // ISO local date that marks day 0 of [shiftPattern].
-    val shiftPatternStartDate: String = ""
+    val shiftPatternStartDate: String = "",
+    // LOCAL follows the device wall clock. FIXED keeps the alarm's wall clock
+    // anchored to [fixedTimezoneId] while the user travels.
+    val timezonePolicy: String = TIMEZONE_POLICY_LOCAL,
+    val fixedTimezoneId: String = ""
 ) {
     companion object {
+        const val TIMEZONE_POLICY_LOCAL = "LOCAL"
+        const val TIMEZONE_POLICY_FIXED = "FIXED"
         const val MAX_SMART_ALARM_WINDOW_MINUTES = 60
         private const val MAX_LABEL_CHARS = 120
         private const val MAX_GROUP_CHARS = 40
@@ -201,6 +208,15 @@ data class Alarm(
 
     val time: LocalTime get() = LocalTime.of(hour.coerceIn(0, 23), minute.coerceIn(0, 59))
 
+    val usesFixedTimezone: Boolean
+        get() = timezonePolicy == TIMEZONE_POLICY_FIXED && fixedTimezoneId.isNotBlank()
+
+    /** Resolve the schedule's wall-clock zone, falling back safely for corrupt imports. */
+    fun schedulingZone(deviceZone: ZoneId): ZoneId {
+        if (!usesFixedTimezone) return deviceZone
+        return runCatching { ZoneId.of(fixedTimezoneId) }.getOrDefault(deviceZone)
+    }
+
     val isRecurringSchedule: Boolean
         get() = repeatDays.isNotEmpty() ||
             (ShiftPattern.fromKey(shiftPattern) != null &&
@@ -258,6 +274,13 @@ data class Alarm(
         val normalizedShiftPattern = normalizedShiftPatternKey.takeIf {
             normalizedShiftPatternStartDate.isNotBlank()
         }.orEmpty()
+        val normalizedFixedTimezoneId = fixedTimezoneId.trim().takeIf {
+            it.isNotBlank() && runCatching { ZoneId.of(it) }.isSuccess
+        }.orEmpty()
+        val normalizedTimezonePolicy = if (
+            timezonePolicy.equals(TIMEZONE_POLICY_FIXED, ignoreCase = true) &&
+            normalizedFixedTimezoneId.isNotBlank()
+        ) TIMEZONE_POLICY_FIXED else TIMEZONE_POLICY_LOCAL
 
         return copy(
             hour = hour.coerceIn(0, 23),
@@ -319,7 +342,13 @@ data class Alarm(
             firingBackgroundImageUri = normalizedFiringBackgroundImageUri,
             sortOrder = sortOrder.coerceIn(0, Int.MAX_VALUE),
             shiftPattern = normalizedShiftPattern,
-            shiftPatternStartDate = normalizedShiftPatternStartDate
+            shiftPatternStartDate = normalizedShiftPatternStartDate,
+            timezonePolicy = normalizedTimezonePolicy,
+            fixedTimezoneId = if (normalizedTimezonePolicy == TIMEZONE_POLICY_FIXED) {
+                normalizedFixedTimezoneId
+            } else {
+                ""
+            }
         )
     }
 }

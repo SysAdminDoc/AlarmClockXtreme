@@ -99,6 +99,8 @@ class PlayWearNextAlarmBridge @Inject constructor(
                 putString(WearAlarmData.KEY_TIME_LABEL, "")
                 putLong(WearAlarmData.KEY_TRIGGER_TIME, 0L)
                 putBoolean(WearAlarmData.KEY_IS_FIRING, false)
+                putString(WearAlarmData.KEY_TIMEZONE_POLICY, Alarm.TIMEZONE_POLICY_LOCAL)
+                putString(WearAlarmData.KEY_FIXED_TIMEZONE_ID, "")
             } else {
                 putLong(WearAlarmData.KEY_ALARM_ID, activeAlarm.id)
                 putString(
@@ -117,6 +119,8 @@ class PlayWearNextAlarmBridge @Inject constructor(
                     WearAlarmData.KEY_IS_FIRING,
                     firingAlarmId.get() == activeAlarm.id
                 )
+                putString(WearAlarmData.KEY_TIMEZONE_POLICY, activeAlarm.timezonePolicy)
+                putString(WearAlarmData.KEY_FIXED_TIMEZONE_ID, activeAlarm.fixedTimezoneId)
             }
         }
 

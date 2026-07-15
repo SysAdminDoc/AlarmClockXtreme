@@ -77,7 +77,8 @@ class NextAlarmWidget : GlanceAppWidget() {
                     timeFormatted = timeStr,
                     dayFormatted = dayStr,
                     remaining = remaining,
-                    label = AlarmPublicText.optionalAlarmLabel(alarm.label, hideLabel)
+                    label = AlarmPublicText.optionalAlarmLabel(alarm.label, hideLabel),
+                    fixedTimezoneId = alarm.fixedTimezoneId.takeIf { alarm.usesFixedTimezone }.orEmpty()
                 )
             } else null
         } catch (_: Exception) {
@@ -92,7 +93,8 @@ data class WidgetAlarmData(
     val timeFormatted: String,
     val dayFormatted: String,
     val remaining: String,
-    val label: String
+    val label: String,
+    val fixedTimezoneId: String = ""
 ) {
     val isWithin24Hours: Boolean
         get() = triggerTimeMs - System.currentTimeMillis() in 1..24 * 60 * 60 * 1000L
@@ -171,6 +173,15 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?) {
                         style = TextStyle(
                             color = ColorProvider(WidgetTextSecondary),
                             fontSize = 12.sp
+                        )
+                    )
+                }
+                if (data.fixedTimezoneId.isNotBlank()) {
+                    Text(
+                        text = data.fixedTimezoneId.replace('_', ' '),
+                        style = TextStyle(
+                            color = ColorProvider(WidgetAccent),
+                            fontSize = 10.sp
                         )
                     )
                 }
