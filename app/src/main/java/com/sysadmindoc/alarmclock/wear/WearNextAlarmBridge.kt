@@ -11,6 +11,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
  */
 interface WearNextAlarmBridge {
     fun start()
+    fun stop()
     fun publishAlarmFiring(alarm: Alarm)
     fun publishAlarmIdle(alarmId: Long)
 }

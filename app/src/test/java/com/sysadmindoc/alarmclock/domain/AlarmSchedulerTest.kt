@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.domain
 
 import android.app.AlarmManager
+import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.Operation
@@ -34,7 +35,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30])
+@Config(sdk = [30], application = Application::class)
 class AlarmSchedulerTest {
     private lateinit var context: Context
     private lateinit var repository: AlarmRepository

@@ -17,6 +17,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   app is visible, backgrounded, or absent. The persisted finish transition is an
   atomic delivery claim, simultaneous expiries share one player/vibration alert,
   and automatic silence preserves the finished timer for later recovery.
+- The complete Play unit suite is reliable again: host tests no longer leak
+  application-owned Room observers across Robolectric sandboxes, and scheduler
+  tests use an isolated application instead of inheriting seeded alarms.
 
 ### Security
 

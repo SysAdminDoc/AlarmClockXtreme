@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.smoke
 
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import androidx.room.Room
@@ -27,7 +28,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30])
+@Config(sdk = [30], application = Application::class)
 class AlarmFireToDismissSmokeTest {
 
     private lateinit var context: Context

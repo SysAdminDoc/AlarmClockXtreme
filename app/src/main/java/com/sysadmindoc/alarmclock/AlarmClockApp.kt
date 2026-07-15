@@ -22,13 +22,16 @@ import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
 import com.sysadmindoc.alarmclock.worker.HolidaySyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.android.HiltAndroidApp
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -48,6 +51,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var unlockedStartupComplete = false
     private var unlockReceiver: BroadcastReceiver? = null
+    private var startedNextAlarmNotifier: NextAlarmNotifier? = null
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
@@ -122,7 +126,10 @@ class AlarmClockApp : Application(), Configuration.Provider {
 
         // Start persistent next-alarm notification observer
         val entryPoint = EntryPointAccessors.fromApplication(this, AppEntryPoint::class.java)
-        entryPoint.nextAlarmNotifier().startObserving()
+        entryPoint.nextAlarmNotifier().also { notifier ->
+            startedNextAlarmNotifier = notifier
+            notifier.startObserving()
+        }
         wearNextAlarmBridge.start()
 
         // v1.7.0: Unpack yt-dlp binaries off the main thread so the YouTube
@@ -141,13 +148,28 @@ class AlarmClockApp : Application(), Configuration.Provider {
         // Seed default alarm on first launch
         val prefs = getSharedPreferences("app_prefs", 0)
         if (!prefs.getBoolean("default_alarm_seeded", false)) {
-            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            appScope.launch {
                 try {
                     seedDefaultAlarm(entryPoint)
                     prefs.edit().putBoolean("default_alarm_seeded", true).apply()
                 } catch (_: Exception) { /* Will retry next launch */ }
             }
         }
+    }
+
+    /** Robolectric calls this between test sandboxes. Android devices do not,
+     * but keeping process-lifetime observers cancellable prevents database
+     * collectors from escaping their owning application in host tests. */
+    override fun onTerminate() {
+        startedNextAlarmNotifier?.stopObserving()
+        startedNextAlarmNotifier = null
+        if (::wearNextAlarmBridge.isInitialized) {
+            wearNextAlarmBridge.stop()
+        }
+        runBlocking {
+            appScope.coroutineContext[Job]?.cancelAndJoin()
+        }
+        super.onTerminate()
     }
 
     private fun isUserUnlocked(): Boolean {

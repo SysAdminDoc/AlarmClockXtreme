@@ -14,11 +14,14 @@ import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -57,6 +60,12 @@ class PlayWearNextAlarmBridge @Inject constructor(
                 .collect { (alarm, settings) ->
                     publish(alarm, settings)
                 }
+        }
+    }
+
+    override fun stop() {
+        runBlocking {
+            scope.coroutineContext[Job]?.cancelAndJoin()
         }
     }
 
