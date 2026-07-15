@@ -7,15 +7,14 @@ import com.squareup.moshi.Types
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.integration.hue.HueBridgeClient
+import com.sysadmindoc.alarmclock.integration.hue.HuePinResult
+import com.sysadmindoc.alarmclock.integration.hue.HueTrustStore
 import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
-import com.sysadmindoc.alarmclock.worker.HueSunriseWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.security.SecureRandom
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,6 +36,8 @@ class DismissActionExecutor @Inject constructor(
     @ApplicationContext private val context: Context,
     private val preferencesManager: PreferencesManager,
     private val client: OkHttpClient,
+    private val hueBridgeClient: HueBridgeClient,
+    private val hueTrustStore: HueTrustStore,
     moshi: Moshi
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -115,7 +116,11 @@ class DismissActionExecutor @Inject constructor(
 
         val v2Request = buildHueSceneRequestV2(bridgeIp, apiKey, target.sceneId)
         val v2Result = executeHueRequestV2(v2Request, settings)
-        if (v2Result == DismissActionResult.Success || !settings.hueLegacyHttpEnabled) {
+        if (v2Result == DismissActionResult.Success ||
+            !settings.hueLegacyHttpEnabled ||
+            (v2Result is DismissActionResult.Failure &&
+                v2Result.reason == "HUE_CERTIFICATE_CHANGED")
+        ) {
             return v2Result
         }
 
@@ -127,23 +132,25 @@ class DismissActionExecutor @Inject constructor(
         settings: AppSettings
     ): DismissActionResult {
         val pinnedFingerprint = settings.hueBridgeCertFingerprint
-        val tofuTm = HueSunriseWorker.TofuTrustManager(pinnedFingerprint)
-        val sslContext = SSLContext.getInstance("TLS").apply {
-            init(null, arrayOf<TrustManager>(tofuTm), SecureRandom())
-        }
-        val v2Client = client.newBuilder()
-            .sslSocketFactory(sslContext.socketFactory, tofuTm)
-            .hostnameVerifier { _, _ -> true }
-            .build()
-
-        val result = executeRequest(request, v2Client)
+        val tofu = hueBridgeClient.buildTofuClient(pinnedFingerprint)
+        val result = runCatching { executeRequest(request, tofu.client) }
+            .getOrElse { error ->
+                val observed = tofu.trustManager.observedFingerprint
+                if (pinnedFingerprint.isNotBlank() &&
+                    observed != null &&
+                    !pinnedFingerprint.equals(observed, ignoreCase = true)
+                ) {
+                    return DismissActionResult.Failure("HUE_CERTIFICATE_CHANGED")
+                }
+                throw error
+            }
         if (result == DismissActionResult.Success && pinnedFingerprint.isBlank()) {
-            tofuTm.observedFingerprint?.let { observed ->
-                preferencesManager.update { current ->
-                    if (current.hueBridgeCertFingerprint.isBlank()) {
-                        current.copy(hueBridgeCertFingerprint = observed)
-                    } else {
-                        current
+            tofu.trustManager.observedFingerprint?.let { observed ->
+                when (hueTrustStore.rememberFirstUse(observed)) {
+                    is HuePinResult.Accepted -> Unit
+                    is HuePinResult.Changed,
+                    HuePinResult.Invalid -> {
+                        return DismissActionResult.Failure("HUE_CERTIFICATE_CHANGED")
                     }
                 }
             }
@@ -202,17 +209,11 @@ class DismissActionExecutor @Inject constructor(
         }
 
         internal fun sanitiseHost(raw: String): String? {
-            val trimmed = raw.trim()
-            if (trimmed.isBlank()) return null
-            val pattern = Regex("^[A-Za-z0-9.\\-]{1,253}(:\\d{1,5})?$")
-            return if (pattern.matches(trimmed)) trimmed else null
+            return HueBridgeClient.sanitiseHost(raw)
         }
 
         internal fun sanitiseToken(raw: String): String? {
-            val trimmed = raw.trim()
-            if (trimmed.isBlank()) return null
-            val pattern = Regex("^[A-Za-z0-9_\\-]{1,128}$")
-            return if (pattern.matches(trimmed)) trimmed else null
+            return HueBridgeClient.sanitiseToken(raw)
         }
     }
 }

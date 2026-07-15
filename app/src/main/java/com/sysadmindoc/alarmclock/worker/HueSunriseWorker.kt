@@ -6,6 +6,10 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.integration.hue.HueBridgeClient
+import com.sysadmindoc.alarmclock.integration.hue.HuePinResult
+import com.sysadmindoc.alarmclock.integration.hue.HueTrustStore
+import com.sysadmindoc.alarmclock.integration.hue.HueV2ProbeResult
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.delay
@@ -13,12 +17,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.security.MessageDigest
-import java.security.cert.CertificateException
-import java.security.cert.X509Certificate
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 /**
  * F15: Philips Hue sunrise simulation.
@@ -26,8 +24,9 @@ import javax.net.ssl.X509TrustManager
  * Input: KEY_ALARM_ID. Reads bridge IP, API key, and comma-separated light IDs from preferences.
  *
  * v1.11.5 (roadmap N5): API v2 (HTTPS, header auth, CLIP v2 resource shape)
- * with v1 fallback. Probes v2 first on every fresh-bridge run; remembers the
- * verdict per bridge IP in SharedPrefs so subsequent runs skip the probe.
+ * with an explicit legacy-v1 fallback. Each run proves v2 reachability and the
+ * current certificate before sending light commands; a pin mismatch can never
+ * downgrade to plain HTTP.
  *
  * v1.14.x: TOFU (Trust On First Use) certificate pinning for v2 HTTPS.
  * On first successful connection, the bridge cert SHA-256 fingerprint is saved
@@ -40,7 +39,9 @@ class HueSunriseWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
     private val repository: AlarmRepository,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val hueBridgeClient: HueBridgeClient,
+    private val hueTrustStore: HueTrustStore
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
@@ -49,27 +50,6 @@ class HueSunriseWorker @AssistedInject constructor(
         private const val STEPS = 20          // brightness increments
         private const val WARM_CT = 500       // ~2000K warm white (Hue range 153-500)
 
-        private const val PREFS_HUE = "hue_api_capability"
-
-        fun certFingerprint(cert: X509Certificate): String {
-            val digest = MessageDigest.getInstance("SHA-256")
-            return digest.digest(cert.encoded)
-                .joinToString("") { "%02x".format(it) }
-        }
-    }
-
-    private fun buildTofuClient(pinnedFingerprint: String): Pair<OkHttpClient, TofuTrustManager> {
-        val tofuTm = TofuTrustManager(pinnedFingerprint)
-        val sslContext = SSLContext.getInstance("TLS").apply {
-            init(null, arrayOf<TrustManager>(tofuTm), java.security.SecureRandom())
-        }
-        val client = OkHttpClient.Builder()
-            .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
-            .sslSocketFactory(sslContext.socketFactory, tofuTm)
-            .hostnameVerifier { _, _ -> true }
-            .build()
-        return client to tofuTm
     }
 
     private val httpV1: OkHttpClient by lazy {
@@ -87,86 +67,59 @@ class HueSunriseWorker @AssistedInject constructor(
         if (!alarm.hueEnabled) return Result.success()
 
         val settings = preferencesManager.getCurrentSettings()
-        val bridgeIp = sanitiseHost(settings.hueBridgeIp)
+        val bridgeIp = HueBridgeClient.sanitiseHost(settings.hueBridgeIp)
             ?: return Result.failure()
-        val apiKey = sanitiseToken(settings.hueApiKey)
+        val apiKey = HueBridgeClient.sanitiseToken(settings.hueApiKey)
             ?: return Result.failure()
         val lightIds = settings.hueLightIds
             .split(",")
-            .map { sanitiseToken(it.trim()) }
+            .map { HueBridgeClient.sanitiseToken(it.trim()) }
             .filterNotNull()
         if (lightIds.isEmpty()) return Result.failure()
 
-        val useV2 = resolveApiVersion(bridgeIp, apiKey, lightIds.first(), settings)
-        if (!useV2 && !settings.hueLegacyHttpEnabled) {
-            return Result.failure()
+        val v2Probe = hueBridgeClient.probeV2(
+            bridgeHost = bridgeIp,
+            apiKey = apiKey,
+            resourcePath = "light/${lightIds.first()}",
+            pinnedFingerprint = settings.hueBridgeCertFingerprint
+        )
+        val effectivePin = when (v2Probe) {
+            is HueV2ProbeResult.Reachable -> when (
+                val pin = hueTrustStore.rememberFirstUse(v2Probe.observedFingerprint)
+            ) {
+                is HuePinResult.Accepted -> pin.fingerprint
+                is HuePinResult.Changed,
+                HuePinResult.Invalid -> return Result.failure()
+            }
+            is HueV2ProbeResult.CertificateChanged -> return Result.failure()
+            is HueV2ProbeResult.Failed -> null
         }
-
-        val pinnedFingerprint = settings.hueBridgeCertFingerprint
-        val (v2Client, tofuTm) = if (useV2) buildTofuClient(pinnedFingerprint) else (null to null)
+        val useV2 = effectivePin != null
+        if (!useV2 && !settings.hueLegacyHttpEnabled) return Result.failure()
+        val v2Client = effectivePin?.let { hueBridgeClient.buildTofuClient(it).client }
 
         val totalMs = alarm.huePreWakeMinutes * 60_000L
         val stepMs = totalMs / STEPS
 
-        lightIds.forEach { id ->
-            putLightState(useV2, v2Client, bridgeIp, apiKey, id, on = true, bri = 1, ct = WARM_CT)
-        }
-
-        if (useV2 && tofuTm != null && pinnedFingerprint.isBlank()) {
-            val observed = tofuTm.observedFingerprint
-            if (observed != null) {
-                preferencesManager.update { current ->
-                    if (current.hueBridgeCertFingerprint.isBlank()) {
-                        current.copy(hueBridgeCertFingerprint = observed)
-                    } else {
-                        current
-                    }
-                }
+        if (lightIds.any { id ->
+                !putLightState(useV2, v2Client, bridgeIp, apiKey, id, on = true, bri = 1, ct = WARM_CT)
             }
+        ) {
+            return Result.failure()
         }
 
         for (step in 1..STEPS) {
             delay(stepMs)
             val bri = (step * 254 / STEPS).coerceIn(1, 254)
-            lightIds.forEach { id ->
-                putLightState(useV2, v2Client, bridgeIp, apiKey, id, on = true, bri = bri, ct = WARM_CT)
+            if (lightIds.any { id ->
+                    !putLightState(useV2, v2Client, bridgeIp, apiKey, id, on = true, bri = bri, ct = WARM_CT)
+                }
+            ) {
+                return Result.failure()
             }
         }
 
         return Result.success()
-    }
-
-    private fun resolveApiVersion(
-        bridgeIp: String, apiKey: String, sampleLightId: String,
-        settings: com.sysadmindoc.alarmclock.data.preferences.AppSettings
-    ): Boolean {
-        val prefs = applicationContext.getSharedPreferences(PREFS_HUE, Context.MODE_PRIVATE)
-        when (prefs.getString("ver:$bridgeIp", null)) {
-            "v2" -> return true
-            "v1" -> return false
-        }
-        val v2Reachable = probeV2(bridgeIp, apiKey, sampleLightId, settings.hueBridgeCertFingerprint)
-        prefs.edit().putString("ver:$bridgeIp", if (v2Reachable) "v2" else "v1").apply()
-        return v2Reachable
-    }
-
-    private fun probeV2(
-        bridgeIp: String, apiKey: String, sampleLightId: String,
-        pinnedFingerprint: String
-    ): Boolean {
-        return try {
-            val (client, _) = buildTofuClient(pinnedFingerprint)
-            val request = Request.Builder()
-                .url("https://$bridgeIp/clip/v2/resource/light/$sampleLightId")
-                .header("hue-application-key", apiKey)
-                .get()
-                .build()
-            client.newCall(request).execute().use { resp ->
-                resp.isSuccessful
-            }
-        } catch (_: Exception) {
-            false
-        }
     }
 
     private fun putLightState(
@@ -174,24 +127,29 @@ class HueSunriseWorker @AssistedInject constructor(
         v2Client: OkHttpClient?,
         bridgeIp: String, apiKey: String, lightId: String,
         on: Boolean, bri: Int, ct: Int
-    ) {
-        if (useV2 && v2Client != null) putLightStateV2(v2Client, bridgeIp, apiKey, lightId, on, bri, ct)
-        else if (!useV2) putLightStateV1(bridgeIp, apiKey, lightId, on, bri, ct)
+    ): Boolean {
+        return if (useV2 && v2Client != null) {
+            putLightStateV2(v2Client, bridgeIp, apiKey, lightId, on, bri, ct)
+        } else if (!useV2) {
+            putLightStateV1(bridgeIp, apiKey, lightId, on, bri, ct)
+        } else {
+            false
+        }
     }
 
     private fun putLightStateV1(
         bridgeIp: String, apiKey: String, lightId: String,
         on: Boolean, bri: Int, ct: Int
-    ) {
-        try {
+    ): Boolean {
+        return try {
             val body = """{"on":$on,"bri":$bri,"ct":$ct}"""
             val request = Request.Builder()
                 .url("http://$bridgeIp/api/$apiKey/lights/$lightId/state")
                 .put(body.toRequestBody(JSON))
                 .build()
-            httpV1.newCall(request).execute().close()
+            httpV1.newCall(request).execute().use { it.isSuccessful }
         } catch (_: Exception) {
-            // Non-fatal: next step will retry
+            false
         }
     }
 
@@ -199,8 +157,8 @@ class HueSunriseWorker @AssistedInject constructor(
         client: OkHttpClient,
         bridgeIp: String, apiKey: String, lightId: String,
         on: Boolean, bri: Int, ct: Int
-    ) {
-        try {
+    ): Boolean {
+        return try {
             val brightnessPct = (bri * 100f / 254f).coerceIn(1f, 100f)
             val body = buildString {
                 append("{")
@@ -216,49 +174,10 @@ class HueSunriseWorker @AssistedInject constructor(
                 .header("hue-application-key", apiKey)
                 .put(body.toRequestBody(JSON))
                 .build()
-            client.newCall(request).execute().close()
+            client.newCall(request).execute().use { it.isSuccessful }
         } catch (_: Exception) {
-            // Non-fatal: next step will retry
+            false
         }
     }
 
-    private fun sanitiseHost(raw: String): String? {
-        val trimmed = raw.trim()
-        if (trimmed.isBlank()) return null
-        val pattern = Regex("^[A-Za-z0-9.\\-]{1,253}(:\\d{1,5})?$")
-        return if (pattern.matches(trimmed)) trimmed else null
-    }
-
-    private fun sanitiseToken(raw: String): String? {
-        if (raw.isBlank()) return null
-        val pattern = Regex("^[A-Za-z0-9_\\-]{1,128}$")
-        return if (pattern.matches(raw)) raw else null
-    }
-
-    /**
-     * TOFU (Trust On First Use) TrustManager for Hue bridge certificates.
-     * If [pinnedFingerprint] is blank, accepts any cert and records its fingerprint.
-     * If [pinnedFingerprint] is set, rejects certs whose SHA-256 doesn't match.
-     */
-    class TofuTrustManager(private val pinnedFingerprint: String) : X509TrustManager {
-        @Volatile
-        var observedFingerprint: String? = null
-            private set
-
-        override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) {}
-
-        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) {
-            if (chain.isNullOrEmpty()) throw CertificateException("Empty certificate chain")
-            val leafFingerprint = certFingerprint(chain[0])
-            observedFingerprint = leafFingerprint
-            if (pinnedFingerprint.isNotBlank() && !pinnedFingerprint.equals(leafFingerprint, ignoreCase = true)) {
-                throw CertificateException(
-                    "Hue bridge certificate changed. Expected $pinnedFingerprint, got $leafFingerprint. " +
-                    "Clear the pinned fingerprint in Settings if this is expected (e.g. bridge replacement)."
-                )
-            }
-        }
-
-        override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
-    }
 }

@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.worker
 
+import com.sysadmindoc.alarmclock.integration.hue.HueBridgeClient
+import com.sysadmindoc.alarmclock.integration.hue.HueTofuTrustManager
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
@@ -29,7 +31,7 @@ class HueTofuTrustManagerTest {
     @Test
     fun blankPinAcceptsAnyCertAndRecordsFingerprint() {
         val encoded = byteArrayOf(1, 2, 3, 4, 5)
-        val tm = HueSunriseWorker.TofuTrustManager(pinnedFingerprint = "")
+        val tm = HueTofuTrustManager(pinnedFingerprint = "")
 
         tm.checkServerTrusted(arrayOf(fakeCert(encoded)), "RSA")
 
@@ -40,10 +42,10 @@ class HueTofuTrustManagerTest {
     fun matchingPinIsAccepted() {
         val encoded = byteArrayOf(10, 20, 30)
         val pinned = fingerprintOf(encoded)
-        val tm = HueSunriseWorker.TofuTrustManager(pinnedFingerprint = pinned)
+        val tm = HueTofuTrustManager(pinnedFingerprint = pinned)
 
         // Uppercase pin must still match (comparison is case-insensitive).
-        val upperTm = HueSunriseWorker.TofuTrustManager(pinnedFingerprint = pinned.uppercase())
+        val upperTm = HueTofuTrustManager(pinnedFingerprint = pinned.uppercase())
 
         tm.checkServerTrusted(arrayOf(fakeCert(encoded)), "RSA")
         upperTm.checkServerTrusted(arrayOf(fakeCert(encoded)), "RSA")
@@ -54,7 +56,7 @@ class HueTofuTrustManagerTest {
     @Test
     fun changedCertWithPinnedFingerprintIsRejected() {
         val pinned = fingerprintOf(byteArrayOf(1, 1, 1))
-        val tm = HueSunriseWorker.TofuTrustManager(pinnedFingerprint = pinned)
+        val tm = HueTofuTrustManager(pinnedFingerprint = pinned)
 
         assertThrows(CertificateException::class.java) {
             tm.checkServerTrusted(arrayOf(fakeCert(byteArrayOf(9, 9, 9))), "RSA")
@@ -63,7 +65,7 @@ class HueTofuTrustManagerTest {
 
     @Test
     fun emptyChainIsRejected() {
-        val tm = HueSunriseWorker.TofuTrustManager(pinnedFingerprint = "")
+        val tm = HueTofuTrustManager(pinnedFingerprint = "")
 
         assertThrows(CertificateException::class.java) {
             tm.checkServerTrusted(emptyArray(), "RSA")
@@ -76,6 +78,6 @@ class HueTofuTrustManagerTest {
     @Test
     fun companionFingerprintMatchesManualDigest() {
         val encoded = byteArrayOf(42, 7, 13, 99)
-        assertEquals(fingerprintOf(encoded), HueSunriseWorker.certFingerprint(fakeCert(encoded)))
+        assertEquals(fingerprintOf(encoded), HueBridgeClient.certFingerprint(fakeCert(encoded)))
     }
 }

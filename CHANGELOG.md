@@ -27,6 +27,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Security
 
+- Hue connection tests, sunrise workers, and dismiss-scene actions now share one
+  trust-on-first-use TLS client and certificate pin. A changed bridge
+  certificate is rejected without downgrading to HTTP; legacy API v1 is tried
+  only when its explicit warning-backed setting is enabled, and Settings offers
+  a confirmed certificate-reset action for verified bridge replacements.
 - News feed article links are now opened only when they are plain `http`/`https`
   URLs. Because the feed source is user-configurable and item links come from
   untrusted RSS/Atom, a hostile or compromised feed could previously hand an

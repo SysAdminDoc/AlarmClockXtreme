@@ -31,6 +31,10 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.data.support.SupportExportManager
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.integration.hue.HueBridgeClient
+import com.sysadmindoc.alarmclock.integration.hue.HueConnectionResult
+import com.sysadmindoc.alarmclock.integration.hue.HuePinResult
+import com.sysadmindoc.alarmclock.integration.hue.HueTrustStore
 import com.sysadmindoc.alarmclock.service.WebhookService
 import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
 import com.sysadmindoc.alarmclock.util.ManufacturerCompat
@@ -147,7 +151,9 @@ class SettingsViewModel @Inject constructor(
     private val healthConnectSleepRepository: HealthConnectSleepRepository,
     private val supportExportManager: SupportExportManager,
     private val alarmRepository: AlarmRepository,
-    private val alarmIncidentRepository: AlarmIncidentRepository
+    private val alarmIncidentRepository: AlarmIncidentRepository,
+    private val hueBridgeClient: HueBridgeClient,
+    private val hueTrustStore: HueTrustStore
 ) : AndroidViewModel(application) {
 
     private val _batteryState = MutableStateFlow(
@@ -414,6 +420,12 @@ class SettingsViewModel @Inject constructor(
     fun updateHueBridgeIp(ip: String) = updateSettings { it.copy(hueBridgeIp = ip.trim()) }
     fun updateHueApiKey(key: String) = updateSettings { it.copy(hueApiKey = key.trim()) }
     fun updateHueLightIds(ids: String) = updateSettings { it.copy(hueLightIds = ids.trim()) }
+    fun toggleHueLegacyHttp(enabled: Boolean) = updateSettings {
+        it.copy(hueLegacyHttpEnabled = enabled)
+    }
+    fun clearHueCertificatePin() = updateSettings {
+        it.copy(hueBridgeCertFingerprint = "")
+    }
     fun testHue() {
         viewModelScope.launch(Dispatchers.IO) {
             _hueTestState.value = IntegrationTestState(
@@ -432,46 +444,36 @@ class SettingsViewModel @Inject constructor(
                 }
                 return@launch
             }
-            // v1.11.5 (roadmap N5): try Hue API v2 first (HTTPS + header auth).
-            // The HueSunriseWorker caches the verdict — surfacing it here gives
-            // the user instant feedback on whether their bridge is on a recent
-            // firmware (≥1.40) supporting v2.
-            val v2Ok = runCatching {
-                val trustAll = arrayOf<javax.net.ssl.TrustManager>(object : javax.net.ssl.X509TrustManager {
-                    override fun checkClientTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
-                    override fun checkServerTrusted(chain: Array<out java.security.cert.X509Certificate>?, authType: String?) {}
-                    override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = emptyArray()
-                })
-                val ssl = javax.net.ssl.SSLContext.getInstance("TLS").apply {
-                    init(null, trustAll, java.security.SecureRandom())
+            val connection = hueBridgeClient.testConnection(
+                rawBridgeHost = settings.hueBridgeIp,
+                rawApiKey = settings.hueApiKey,
+                pinnedFingerprint = settings.hueBridgeCertFingerprint,
+                allowLegacyHttp = settings.hueLegacyHttpEnabled
+            )
+            val result = when (connection) {
+                is HueConnectionResult.V2Reachable -> when (
+                    val pin = hueTrustStore.rememberFirstUse(connection.observedFingerprint)
+                ) {
+                    is HuePinResult.Accepted -> if (pin.newlyPinned) {
+                        "Hue bridge reachable (API v2) — certificate saved"
+                    } else {
+                        "Hue bridge reachable (API v2)"
+                    }
+                    is HuePinResult.Changed ->
+                        "Hue certificate changed — verify the bridge, then forget the saved certificate"
+                    HuePinResult.Invalid -> "Hue bridge returned an invalid certificate fingerprint"
                 }
-                val client = okhttp3.OkHttpClient.Builder()
-                    .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
-                    .sslSocketFactory(ssl.socketFactory, trustAll[0] as javax.net.ssl.X509TrustManager)
-                    .hostnameVerifier { _, _ -> true }
-                    .build()
-                val url = "https://${settings.hueBridgeIp}/clip/v2/resource/light"
-                val request = okhttp3.Request.Builder()
-                    .url(url)
-                    .header("hue-application-key", settings.hueApiKey)
-                    .get()
-                    .build()
-                client.newCall(request).execute().use { it.isSuccessful }
-            }.getOrDefault(false)
-            // Fall back to v1 HTTP probe if v2 fails — same call pattern as
-            // before, so the existing test surface stays identical for users
-            // on pre-1.40 firmware.
-            val v1Ok = if (v2Ok) false else runCatching {
-                val url = "http://${settings.hueBridgeIp}/api/${settings.hueApiKey}/lights"
-                val client = okhttp3.OkHttpClient.Builder()
-                    .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS).build()
-                val response = client.newCall(okhttp3.Request.Builder().url(url).build()).execute()
-                response.isSuccessful.also { response.close() }
-            }.getOrDefault(false)
-            val result = when {
-                v2Ok -> "Hue bridge reachable (API v2)"
-                v1Ok -> "Hue bridge reachable (API v1 — bridge firmware is below 1.40)"
-                else -> "Hue bridge not found — check IP and key"
+                HueConnectionResult.V1Reachable ->
+                    "Hue bridge reachable (legacy API v1 over HTTP)"
+                is HueConnectionResult.CertificateChanged ->
+                    "Hue certificate changed — verify the bridge, then forget the saved certificate"
+                HueConnectionResult.InvalidConfiguration ->
+                    "Hue bridge not checked — enter a valid IP and API key"
+                is HueConnectionResult.Unreachable -> if (settings.hueLegacyHttpEnabled) {
+                    "Hue bridge not found — check IP and key"
+                } else {
+                    "Hue API v2 not reachable — legacy HTTP is off"
+                }
             }
             _hueTestState.value = IntegrationTestState(message = result, isRunning = false)
             kotlinx.coroutines.delay(4000)

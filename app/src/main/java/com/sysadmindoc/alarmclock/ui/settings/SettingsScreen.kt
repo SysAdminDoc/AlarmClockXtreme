@@ -2128,6 +2128,7 @@ private fun HolidaysSection(state: SettingsUiState, viewModel: SettingsViewModel
 
 @Composable
 private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+    var showForgetCertificateDialog by remember { mutableStateOf(false) }
     val localNetworkPermissionMissing = LocalNetworkPermission.isRuntimeRequired() &&
         state.settings.hueBridgeIp.isNotBlank() &&
         !state.hasLocalNetworkPermission
@@ -2159,6 +2160,35 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
+        SettingsToggle(
+            label = "Allow legacy Hue API v1 over HTTP",
+            checked = state.settings.hueLegacyHttpEnabled,
+            supportingText = "Off by default. Enable only for an older bridge that cannot use encrypted API v2.",
+            onToggle = viewModel::toggleHueLegacyHttp
+        )
+        if (state.settings.hueBridgeCertFingerprint.isNotBlank()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Bridge certificate pinned",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = state.settings.hueBridgeCertFingerprint.take(16) + "…",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextMuted
+                    )
+                }
+                TextButton(onClick = { showForgetCertificateDialog = true }) {
+                    Text("Forget")
+                }
+            }
+        }
         if (localNetworkPermissionMissing) {
             AppInlineNotice(
                 title = "Local network access needed",
@@ -2206,6 +2236,33 @@ private fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMod
                 Text(if (state.isHueTesting) "Testing" else "Test")
             }
         }
+    }
+    if (showForgetCertificateDialog) {
+        AlertDialog(
+            onDismissRequest = { showForgetCertificateDialog = false },
+            title = { Text("Forget Hue certificate?") },
+            text = {
+                Text(
+                    "Only continue after verifying the bridge was replaced or its certificate changed. " +
+                        "The next successful encrypted connection will trust and save a new certificate."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showForgetCertificateDialog = false
+                        viewModel.clearHueCertificatePin()
+                    }
+                ) {
+                    Text("Forget certificate")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgetCertificateDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

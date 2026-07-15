@@ -6,6 +6,8 @@ import com.squareup.moshi.Moshi
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.integration.hue.HueBridgeClient
+import com.sysadmindoc.alarmclock.integration.hue.HueTrustStore
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -149,6 +151,8 @@ class DismissActionExecutorTest {
             context = context,
             preferencesManager = preferences,
             client = client,
+            hueBridgeClient = HueBridgeClient(client),
+            hueTrustStore = mockk<HueTrustStore>(relaxed = true),
             moshi = Moshi.Builder().build()
         )
     }
