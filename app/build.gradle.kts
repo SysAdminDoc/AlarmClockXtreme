@@ -201,6 +201,12 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.5")
 
+    // Quarterly freshness review 2026-07-15: NewPipe 0.26.3,
+    // youtubedl-android 0.18.1, and OkHttp 5.4.0 are current stable; Moshi was
+    // updated to 1.15.2. Room 2.8.4 fails this KSP1 schema processor and
+    // WorkManager 2.11.2 pulls Room 2.7 into the runtime graph, so both remain
+    // coupled to the tracked AGP 9 / KSP2 migration in Roadmap_Blocked.md.
+
     // Room
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
@@ -223,8 +229,8 @@ dependencies {
     // Retrofit + Moshi for Open-Meteo weather API and Nager.Date holidays
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-moshi:2.11.0")
-    implementation("com.squareup.moshi:moshi:1.15.1")
-    ksp("com.squareup.moshi:moshi-kotlin-codegen:1.15.1")
+    implementation("com.squareup.moshi:moshi:1.15.2")
+    ksp("com.squareup.moshi:moshi-kotlin-codegen:1.15.2")
     // OkHttp (explicit — also used by WebhookService and HueSunriseWorker).
     // 5.x adds an HTTP/2 total-header-size limit (resource-exhaustion guard).
     implementation("com.squareup.okhttp3:okhttp:5.4.0")

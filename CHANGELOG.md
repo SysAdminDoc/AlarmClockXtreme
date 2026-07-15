@@ -64,6 +64,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   use Android string resources, including localized dynamic summaries and
   locale-aware dates. XML lint and a primary-screen Compose verification task
   now reject new hardcoded UI copy.
+- The 2026-07-15 dependency review updated Moshi to 1.15.2, refreshed release
+  locks and SHA-256 verification metadata, and added a release-lock gate against
+  alpha, beta, and release-candidate dependencies. NewPipe, youtubedl-android,
+  and OkHttp were already current; Room/WorkManager remain AGP9/KSP2-blocked.
 
 ### Fixed
 

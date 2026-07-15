@@ -16,6 +16,30 @@ val verifyDependencyIntegrity = tasks.register("verifyDependencyIntegrity") {
     group = "verification"
     description = "Verify checksums and locked Play, F-Droid, and Wear release graphs."
 }
+val verifyStableReleaseDependencies = tasks.register("verifyStableReleaseDependencies") {
+    group = "verification"
+    description = "Reject alpha, beta, and release-candidate versions in release lockfiles."
+    val releaseLockfiles = files("app/gradle.lockfile", "wear/gradle.lockfile")
+    inputs.files(releaseLockfiles)
+    doLast {
+        val prerelease = Regex("(?:^|[-.])(alpha|beta|rc)\\d*(?:$|[-.])", RegexOption.IGNORE_CASE)
+        val violations = releaseLockfiles.files.flatMap { lockfile ->
+            lockfile.readLines().mapNotNull { line ->
+                val coordinate = line.substringBefore('=').trim()
+                val version = coordinate.substringAfterLast(':', missingDelimiterValue = "")
+                if (version.isNotEmpty() && prerelease.containsMatchIn(version)) {
+                    "${lockfile.relativeTo(rootDir)}: $coordinate"
+                } else {
+                    null
+                }
+            }
+        }
+        check(violations.isEmpty()) {
+            "Pre-release dependencies are not allowed in release graphs:\n" + violations.joinToString("\n")
+        }
+    }
+}
+verifyDependencyIntegrity.configure { dependsOn(verifyStableReleaseDependencies) }
 
 subprojects {
     val releaseLockConfigurations = setOf(
