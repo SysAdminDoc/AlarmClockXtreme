@@ -815,6 +815,117 @@
     <string name="settings_source">Source</string>
     <string name="settings_source_value" translatable="false">github.com/SysAdminDoc/AlarmClockXtreme</string>
 
+    <!-- Settings readiness, diagnostics, pause, and vacation -->
+    <string name="settings_diagnostics">Alarm diagnostics</string>
+    <string name="settings_diagnostics_description">Recent redacted incident codes explain alarm delivery without storing labels, URLs, contacts, or locations.</string>
+    <string name="settings_incident_history">Incident history</string>
+    <string name="settings_incident_empty">No incident events yet. New alarm fires will add compact local diagnostic codes here.</string>
+    <string name="settings_incident_retention">This history is separate from Statistics and is bounded to the newest 100 rows or 30 days.</string>
+    <string name="settings_latest_degraded">Latest degraded event</string>
+    <string name="settings_latest_incident">Latest incident event</string>
+    <plurals name="settings_recent_diagnostics"><item quantity="one">%1$d recent diagnostic event retained locally.</item><item quantity="other">%1$d recent diagnostic events retained locally.</item></plurals>
+    <string name="settings_unknown_code" translatable="false">UNKNOWN</string>
+    <string name="settings_none_code" translatable="false">NONE</string>
+    <string name="settings_reason_code">Reason code</string>
+    <string name="settings_clear_diagnostics_hint">Clearing diagnostics removes only incident rows. Alarm statistics and support-export crash logs are kept separate.</string>
+    <string name="settings_clear_diagnostics">Clear diagnostics</string>
+    <string name="settings_clear_diagnostics_title">Clear alarm diagnostics?</string>
+    <string name="settings_clear_diagnostics_message">This deletes the redacted incident timeline only. Alarm statistics, alarms, backups, and crash logs are not changed.</string>
+    <string name="settings_at_a_glance">At a glance</string>
+    <string name="settings_at_a_glance_description">The highest-impact preferences, without digging through every category.</string>
+    <string name="settings_reliability">Reliability</string>
+    <string name="settings_ready">Ready</string>
+    <string name="settings_needs_review">Needs review</string>
+    <string name="settings_dashboard_overview_description">Visibility and calendar automation</string>
+    <string name="settings_wake_style">Wake style</string>
+    <string name="settings_24_hour">24-hour</string>
+    <string name="settings_12_hour">12-hour</string>
+    <string name="settings_default_snooze_summary">Default snooze %1$d min</string>
+    <string name="settings_wake_readiness">Wake readiness</string>
+    <string name="settings_wake_readiness_description">The system switches that matter most for precise alarms and visible alerts.</string>
+    <string name="settings_ready_count">%1$d of %2$d ready</string>
+    <string name="settings_open_setup_checklist">Open setup checklist</string>
+    <string name="settings_real_test_alarm">Real test alarm</string>
+    <string name="settings_run_setup_checklist">Run setup checklist</string>
+    <string name="settings_exact_alarm_access">Exact alarm access</string>
+    <string name="settings_exact_alarm_description">Keeps wake times precise through Doze and standby.</string>
+    <string name="settings_open_alarm_access">Open alarm access</string>
+    <string name="settings_alarm_notifications">Alarm notifications</string>
+    <string name="settings_alarm_notifications_description">Shows next-alarm, ringing, missed, and wake-check alerts.</string>
+    <string name="settings_allow_notifications">Allow notifications</string>
+    <string name="settings_fullscreen_access">Full-screen alarm access</string>
+    <string name="settings_fullscreen_allowed">Allows the ringing screen to open over the lock screen on Android 14+.</string>
+    <string name="settings_fullscreen_blocked">Android may only show a notification until full-screen alarm access is allowed.</string>
+    <string name="settings_fullscreen_unknown">Settings could not confirm full-screen alarm access; review the platform setting.</string>
+    <string name="settings_open_fullscreen">Open full-screen settings</string>
+    <string name="settings_local_network_access">Local network access</string>
+    <string name="settings_local_network_description">Allows Android 17+ Hue bridge checks and local webhook endpoints on your LAN.</string>
+    <string name="settings_allow_local_network">Allow local network</string>
+    <string name="settings_battery_protection">Battery protection</string>
+    <string name="settings_battery_protection_description">Reduces the chance of OEM battery rules delaying alarm work.</string>
+    <string name="settings_open_battery">Open battery settings</string>
+    <string name="settings_standby_bucket">App Standby bucket</string>
+    <string name="settings_guardian_escalation">Guardian Angel escalation</string>
+    <string name="settings_standby_unknown">Standby bucket unknown on this device.</string>
+    <string name="settings_standby_active">Active — alarms scheduled without throttling.</string>
+    <string name="settings_standby_working">Working set — light throttling only; alarms fire on time.</string>
+    <string name="settings_standby_frequent">Frequent — Android is throttling background work; alarms may be delayed.</string>
+    <string name="settings_standby_rare">Rare — strong throttling; alarms may fire late or be skipped.</string>
+    <string name="settings_standby_restricted">Restricted — Android caps you to one alarm per day. Open battery settings and exempt the app.</string>
+    <string name="settings_standby_other">Standby bucket %1$d — open battery settings to promote the app to Working set.</string>
+    <string name="settings_verified">Verified</string>
+    <string name="settings_refresh">Refresh</string>
+    <string name="settings_dismiss_test">Dismiss test</string>
+    <string name="settings_run_test">Run test</string>
+    <string name="settings_test_dismissed_with_latency">Last dismissed %1$s; rang %2$s via %3$s.</string>
+    <string name="settings_test_dismissed_no_latency">Last dismissed %1$s; delivery timing was not captured.</string>
+    <string name="settings_test_legacy">Completed before detailed proof was added; run the setup test again to refresh timestamp and latency.</string>
+    <string name="settings_test_not_dismissed">The last test rang at %1$s but was not dismissed in setup.</string>
+    <string name="settings_test_run_description">Run the setup test to prove this device can launch, alert, and dismiss a real alarm.</string>
+    <string name="settings_unknown_time">unknown time</string>
+    <string name="settings_on_time">on time</string>
+    <string name="settings_seconds_after_schedule">%1$ds after schedule</string>
+    <string name="settings_minutes_after_schedule">%1$dm after schedule</string>
+    <string name="settings_minutes_seconds_after_schedule">%1$dm %2$ds after schedule</string>
+    <string name="settings_delivery_notification">notification</string>
+    <string name="settings_delivery_fullscreen">full-screen request</string>
+    <string name="settings_delivery_direct">direct screen launch</string>
+    <string name="settings_delivery_alarm_screen">alarm screen</string>
+    <plurals name="settings_guardian_alarms"><item quantity="one">%1$d Guardian alarm</item><item quantity="other">%1$d Guardian alarms</item></plurals>
+    <string name="settings_guardian_call_granted">Direct call permission is granted.</string>
+    <string name="settings_guardian_call_dialer">Call fallback opens the dialer because CALL_PHONE is not granted.</string>
+    <string name="settings_guardian_none">No Guardian alarms are enabled.</string>
+    <string name="settings_guardian_direct">%1$s can send automatic SMS in F-Droid. %2$s</string>
+    <string name="settings_guardian_needs_sms">%1$s will open the SMS composer until SEND_SMS is allowed. %2$s</string>
+    <string name="settings_guardian_composer">%1$s uses a prefilled SMS composer in this build. %2$s</string>
+    <string name="settings_review">Review</string>
+    <string name="settings_off">Off</string>
+    <string name="settings_direct_sms">Direct SMS</string>
+    <string name="settings_composer">Composer</string>
+    <string name="settings_allow_sms">Allow SMS</string>
+    <string name="settings_allow_calls">Allow calls</string>
+    <string name="settings_pause_alarms">Pause alarms</string>
+    <string name="settings_pause_until">All alarms suspended until end of %1$s.</string>
+    <string name="settings_pause_description">One-tap suspend for an unplanned interruption — works for one-shot alarms too.</string>
+    <string name="settings_paused">Paused</string>
+    <string name="settings_tonight">Tonight</string>
+    <plurals name="settings_days"><item quantity="one">%1$d day</item><item quantity="other">%1$d days</item></plurals>
+    <string name="settings_resume_now">Resume now</string>
+    <string name="settings_choose_start_date">Choose start date</string>
+    <string name="settings_choose_end_date">Choose end date</string>
+    <string name="settings_vacation_description">Silence repeating alarms during a time away without turning them off permanently.</string>
+    <string name="settings_active">Active</string>
+    <string name="settings_enable_vacation">Enable vacation schedule</string>
+    <string name="settings_enable_vacation_description">Repeating alarms stay enabled but skip dates inside the range below.</string>
+    <string name="settings_starts">Starts</string>
+    <string name="settings_ends">Ends</string>
+    <string name="settings_battery_optimization">Battery optimization</string>
+    <string name="settings_battery_ready_description">Your device is configured for reliable alarm delivery.</string>
+    <string name="settings_battery_risk_description">Some Android vendors aggressively pause background work. This is the biggest reliability risk for alarms.</string>
+    <string name="settings_action_recommended">Action recommended</string>
+    <string name="settings_manufacturer_battery_steps">%1$s battery steps</string>
+    <string name="settings_battery_guide_link">View the up-to-date %1$s guide at dontkillmyapp.com</string>
+
     <!-- Onboarding -->
     <string name="onboarding_app_title">Alarm Clock Xtreme</string>
     <string name="onboarding_tagline">Dependable mornings with less friction</string>

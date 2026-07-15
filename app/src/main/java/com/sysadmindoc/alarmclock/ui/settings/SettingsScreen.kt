@@ -1041,26 +1041,34 @@ private fun IncidentTimelineSection(
 ) {
     var showClearDialog by remember { mutableStateOf(false) }
     SettingsGroup(
-        title = "Alarm diagnostics",
-        description = "Recent redacted incident codes explain alarm delivery without storing labels, URLs, contacts, or locations."
+        title = stringResource(R.string.settings_diagnostics),
+        description = stringResource(R.string.settings_diagnostics_description)
     ) {
         if (!timeline.hasIncidents) {
             SettingsInfo(
-                label = "Incident history",
-                description = "No incident events yet. New alarm fires will add compact local diagnostic codes here."
+                label = stringResource(R.string.settings_incident_history),
+                description = stringResource(R.string.settings_incident_empty)
             )
             Text(
-                text = "This history is separate from Statistics and is bounded to the newest 100 rows or 30 days.",
+                text = stringResource(R.string.settings_incident_retention),
                 color = TextMuted,
                 style = MaterialTheme.typography.bodySmall
             )
         } else {
             AppSectionTitle(
-                title = if (timeline.latestIsDegraded) "Latest degraded event" else "Latest incident event",
-                description = "${timeline.recentCount} recent diagnostic events retained locally.",
+                title = stringResource(
+                    if (timeline.latestIsDegraded) R.string.settings_latest_degraded else R.string.settings_latest_incident
+                ),
+                description = pluralStringResource(
+                    R.plurals.settings_recent_diagnostics,
+                    timeline.recentCount,
+                    timeline.recentCount
+                ),
                 action = {
                     AppStatusChip(
-                        label = timeline.latestStatus.orEmpty().ifBlank { "UNKNOWN" },
+                        label = timeline.latestStatus.orEmpty().ifBlank {
+                            stringResource(R.string.settings_unknown_code)
+                        },
                         icon = if (timeline.latestIsDegraded) Icons.Default.Warning else Icons.Default.CheckCircle,
                         color = if (timeline.latestIsDegraded) SnoozeYellow else DismissGreen
                     )
@@ -1075,11 +1083,13 @@ private fun IncidentTimelineSection(
                 }
             )
             SettingsInfo(
-                label = "Reason code",
-                description = timeline.latestReason.orEmpty().ifBlank { "NONE" }
+                label = stringResource(R.string.settings_reason_code),
+                description = timeline.latestReason.orEmpty().ifBlank {
+                    stringResource(R.string.settings_none_code)
+                }
             )
             Text(
-                text = "Clearing diagnostics removes only incident rows. Alarm statistics and support-export crash logs are kept separate.",
+                text = stringResource(R.string.settings_clear_diagnostics_hint),
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -1088,7 +1098,7 @@ private fun IncidentTimelineSection(
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
             ) {
-                Text("Clear diagnostics")
+                Text(stringResource(R.string.settings_clear_diagnostics))
             }
         }
     }
@@ -1099,10 +1109,10 @@ private fun IncidentTimelineSection(
             icon = {
                 Icon(Icons.Default.Warning, contentDescription = null, tint = SnoozeYellow)
             },
-            title = { Text("Clear alarm diagnostics?") },
+            title = { Text(stringResource(R.string.settings_clear_diagnostics_title)) },
             text = {
                 Text(
-                    text = "This deletes the redacted incident timeline only. Alarm statistics, alarms, backups, and crash logs are not changed.",
+                    text = stringResource(R.string.settings_clear_diagnostics_message),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -1114,12 +1124,12 @@ private fun IncidentTimelineSection(
                         onClearIncidentHistory()
                     }
                 ) {
-                    Text("Clear diagnostics", color = AccentRed)
+                    Text(stringResource(R.string.settings_clear_diagnostics), color = AccentRed)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -1145,8 +1155,8 @@ private fun SettingsOverviewRow(state: SettingsUiState) {
         standbyOk
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AppSectionTitle(
-            title = "At a glance",
-            description = "The highest-impact preferences, without digging through every category."
+            title = stringResource(R.string.settings_at_a_glance),
+            description = stringResource(R.string.settings_at_a_glance_description)
         )
         Row(
             modifier = Modifier
@@ -1155,25 +1165,32 @@ private fun SettingsOverviewRow(state: SettingsUiState) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SettingsOverviewTile(
-                title = "Reliability",
-                value = if (reliabilityReady) "Ready" else "Needs review",
+                title = stringResource(R.string.settings_reliability),
+                value = stringResource(
+                    if (reliabilityReady) R.string.settings_ready else R.string.settings_needs_review
+                ),
                 supporting = wakeReadinessSummary(state),
                 icon = if (reliabilityReady) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
                 accent = if (reliabilityReady) DismissGreen else SnoozeYellow,
                 modifier = Modifier.width(190.dp)
             )
             SettingsOverviewTile(
-                title = "Dashboard",
+                title = stringResource(R.string.settings_dashboard),
                 value = dashboardSummary(state),
-                supporting = "Visibility and calendar automation",
+                supporting = stringResource(R.string.settings_dashboard_overview_description),
                 icon = Icons.Default.Cloud,
                 accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.width(190.dp)
             )
             SettingsOverviewTile(
-                title = "Wake style",
-                value = if (state.settings.is24HourFormat) "24-hour" else "12-hour",
-                supporting = "Default snooze ${state.settings.defaultSnoozeDuration} min",
+                title = stringResource(R.string.settings_wake_style),
+                value = stringResource(
+                    if (state.settings.is24HourFormat) R.string.settings_24_hour else R.string.settings_12_hour
+                ),
+                supporting = stringResource(
+                    R.string.settings_default_snooze_summary,
+                    state.settings.defaultSnoozeDuration
+                ),
                 icon = Icons.Default.AutoAwesome,
                 accent = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.width(190.dp)
@@ -1270,11 +1287,11 @@ private fun WakeReadinessSection(
 
     AppSurfaceCard(highlighted = !allReady) {
         AppSectionTitle(
-            title = "Wake readiness",
-            description = "The system switches that matter most for precise alarms and visible alerts.",
+            title = stringResource(R.string.settings_wake_readiness),
+            description = stringResource(R.string.settings_wake_readiness_description),
             action = {
                 AppStatusChip(
-                    label = "$readyCount of $total ready",
+                    label = stringResource(R.string.settings_ready_count, readyCount, total),
                     icon = if (allReady) Icons.Default.CheckCircle else Icons.Default.Warning,
                     color = if (allReady) DismissGreen else SnoozeYellow
                 )
@@ -1290,83 +1307,83 @@ private fun WakeReadinessSection(
             ),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f))
         ) {
-            Text("Open setup checklist")
+            Text(stringResource(R.string.settings_open_setup_checklist))
         }
 
         WakeReadinessRow(
             icon = Icons.Default.Alarm,
-            title = "Real test alarm",
+            title = stringResource(R.string.settings_real_test_alarm),
             description = testAlarmProofDescription(
                 proof = state.testAlarmProof,
                 is24HourFormat = state.settings.is24HourFormat
             ),
             ready = testAlarmProofReady,
             statusLabel = testAlarmProofStatusLabel(state.testAlarmProof),
-            actionLabel = "Run setup checklist",
+            actionLabel = stringResource(R.string.settings_run_setup_checklist),
             onAction = onOpenOnboardingChecklist
         )
         WakeReadinessRow(
             icon = Icons.Default.Alarm,
-            title = "Exact alarm access",
-            description = "Keeps wake times precise through Doze and standby.",
+            title = stringResource(R.string.settings_exact_alarm_access),
+            description = stringResource(R.string.settings_exact_alarm_description),
             ready = state.canScheduleExactAlarms,
-            actionLabel = "Open alarm access",
+            actionLabel = stringResource(R.string.settings_open_alarm_access),
             onAction = onRequestExactAlarms
         )
         WakeReadinessRow(
             icon = Icons.Default.NotificationsActive,
-            title = "Alarm notifications",
-            description = "Shows next-alarm, ringing, missed, and wake-check alerts.",
+            title = stringResource(R.string.settings_alarm_notifications),
+            description = stringResource(R.string.settings_alarm_notifications_description),
             ready = state.hasNotificationPermission,
-            actionLabel = "Allow notifications",
+            actionLabel = stringResource(R.string.settings_allow_notifications),
             onAction = onRequestNotifications
         )
         if (fullScreenRowVisible) {
             WakeReadinessRow(
                 icon = Icons.Default.NotificationsActive,
-                title = "Full-screen alarm access",
+                title = stringResource(R.string.settings_fullscreen_access),
                 description = when (state.canUseFullScreenIntent) {
-                    true -> "Allows the ringing screen to open over the lock screen on Android 14+."
-                    false -> "Android may only show a notification until full-screen alarm access is allowed."
-                    null -> "Settings could not confirm full-screen alarm access; review the platform setting."
+                    true -> stringResource(R.string.settings_fullscreen_allowed)
+                    false -> stringResource(R.string.settings_fullscreen_blocked)
+                    null -> stringResource(R.string.settings_fullscreen_unknown)
                 },
                 ready = state.canUseFullScreenIntent == true,
-                actionLabel = "Open full-screen settings",
+                actionLabel = stringResource(R.string.settings_open_fullscreen),
                 onAction = onRequestFullScreenAlarms
             )
         }
         if (localNetworkRowVisible) {
             WakeReadinessRow(
                 icon = Icons.Default.Link,
-                title = "Local network access",
-                description = "Allows Android 17+ Hue bridge checks and local webhook endpoints on your LAN.",
+                title = stringResource(R.string.settings_local_network_access),
+                description = stringResource(R.string.settings_local_network_description),
                 ready = state.hasLocalNetworkPermission,
-                actionLabel = "Allow local network",
+                actionLabel = stringResource(R.string.settings_allow_local_network),
                 onAction = onRequestLocalNetworkPermission
             )
         }
         WakeReadinessRow(
             icon = Icons.Default.BatteryAlert,
-            title = "Battery protection",
-            description = "Reduces the chance of OEM battery rules delaying alarm work.",
+            title = stringResource(R.string.settings_battery_protection),
+            description = stringResource(R.string.settings_battery_protection_description),
             ready = state.isIgnoringBatteryOptimizations,
-            actionLabel = "Open battery settings",
+            actionLabel = stringResource(R.string.settings_open_battery),
             onAction = onRequestBatteryExemption
         )
         if (standbyRowVisible) {
             WakeReadinessRow(
                 icon = Icons.Default.BatteryAlert,
-                title = "App Standby bucket",
+                title = stringResource(R.string.settings_standby_bucket),
                 description = standbyBucketDescription(state.appStandbyBucket),
                 ready = standbyReady,
-                actionLabel = "Open battery settings",
+                actionLabel = stringResource(R.string.settings_open_battery),
                 onAction = onRequestBatteryExemption
             )
         }
         if (state.guardianReadiness.hasEnabledAlarms) {
             WakeReadinessRow(
                 icon = Icons.Default.Security,
-                title = "Guardian Angel escalation",
+                title = stringResource(R.string.settings_guardian_escalation),
                 description = guardianReadinessDescription(state.guardianReadiness),
                 ready = !state.guardianReadiness.needsUserAction,
                 statusLabel = guardianReadinessStatusLabel(state.guardianReadiness),
@@ -1387,110 +1404,120 @@ private fun WakeReadinessSection(
  * v1.11.3: Map the raw bucket value to a sentence we can show in the row.
  * Values from `UsageStatsManager.STANDBY_BUCKET_*` constants (API 28+).
  */
+@Composable
 private fun standbyBucketDescription(bucket: Int): String = when (bucket) {
-    in Int.MIN_VALUE..0 -> "Standby bucket unknown on this device."
-    10 -> "Active — alarms scheduled without throttling."
-    20 -> "Working set — light throttling only; alarms fire on time."
-    30 -> "Frequent — Android is throttling background work; alarms may be delayed."
-    40 -> "Rare — strong throttling; alarms may fire late or be skipped."
-    45 -> "Restricted — Android caps you to one alarm per day. Open battery settings and exempt the app."
-    else -> "Standby bucket $bucket — open battery settings to promote the app to Working set."
+    in Int.MIN_VALUE..0 -> stringResource(R.string.settings_standby_unknown)
+    10 -> stringResource(R.string.settings_standby_active)
+    20 -> stringResource(R.string.settings_standby_working)
+    30 -> stringResource(R.string.settings_standby_frequent)
+    40 -> stringResource(R.string.settings_standby_rare)
+    45 -> stringResource(R.string.settings_standby_restricted)
+    else -> stringResource(R.string.settings_standby_other, bucket)
 }
 
-private fun testAlarmProofStatusLabel(proof: TestAlarmProof): String = when {
-    proof.hasDetailedCompletion -> "Verified"
-    proof.legacyCompleted -> "Refresh"
-    proof.firedAt > 0L -> "Dismiss test"
-    else -> "Run test"
-}
+@Composable
+private fun testAlarmProofStatusLabel(proof: TestAlarmProof): String = stringResource(when {
+    proof.hasDetailedCompletion -> R.string.settings_verified
+    proof.legacyCompleted -> R.string.settings_refresh
+    proof.firedAt > 0L -> R.string.settings_dismiss_test
+    else -> R.string.settings_run_test
+})
 
+@Composable
 private fun testAlarmProofDescription(
     proof: TestAlarmProof,
     is24HourFormat: Boolean
 ): String {
     if (proof.hasDetailedCompletion) {
         val completed = formatTestAlarmProofTime(proof.completedAt, is24HourFormat)
-        val latency = proof.latencyMs?.let(::formatTestAlarmLatency)
+        val latency = proof.latencyMs?.let { formatTestAlarmLatency(it) }
         val delivery = testAlarmDeliveryPath(proof)
         return if (latency != null) {
-            "Last dismissed $completed; rang $latency via $delivery."
+            stringResource(R.string.settings_test_dismissed_with_latency, completed, latency, delivery)
         } else {
-            "Last dismissed $completed; delivery timing was not captured."
+            stringResource(R.string.settings_test_dismissed_no_latency, completed)
         }
     }
-    if (proof.legacyCompleted) {
-        return "Completed before detailed proof was added; run the setup test again to refresh timestamp and latency."
-    }
+    if (proof.legacyCompleted) return stringResource(R.string.settings_test_legacy)
     if (proof.firedAt > 0L) {
-        return "The last test rang at ${formatTestAlarmProofTime(proof.firedAt, is24HourFormat)} but was not dismissed in setup."
+        return stringResource(
+            R.string.settings_test_not_dismissed,
+            formatTestAlarmProofTime(proof.firedAt, is24HourFormat)
+        )
     }
-    return "Run the setup test to prove this device can launch, alert, and dismiss a real alarm."
+    return stringResource(R.string.settings_test_run_description)
 }
 
+@Composable
 private fun formatTestAlarmProofTime(epochMillis: Long, is24HourFormat: Boolean): String {
-    if (epochMillis <= 0L) return "unknown time"
+    if (epochMillis <= 0L) return stringResource(R.string.settings_unknown_time)
     val pattern = if (is24HourFormat) "EEE HH:mm" else "EEE h:mm a"
     return Instant.ofEpochMilli(epochMillis)
         .atZone(ZoneId.systemDefault())
         .format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
 }
 
+@Composable
 private fun formatTestAlarmLatency(latencyMs: Long): String {
-    if (latencyMs < 1_500L) return "on time"
+    if (latencyMs < 1_500L) return stringResource(R.string.settings_on_time)
     val totalSeconds = ((latencyMs + 999L) / 1_000L).coerceAtLeast(1L)
-    if (totalSeconds < 60L) return "${totalSeconds}s after schedule"
+    if (totalSeconds < 60L) return stringResource(R.string.settings_seconds_after_schedule, totalSeconds)
     val minutes = totalSeconds / 60L
     val seconds = totalSeconds % 60L
     return if (seconds == 0L) {
-        "${minutes}m after schedule"
+        stringResource(R.string.settings_minutes_after_schedule, minutes)
     } else {
-        "${minutes}m ${seconds}s after schedule"
+        stringResource(R.string.settings_minutes_seconds_after_schedule, minutes, seconds)
     }
 }
 
+@Composable
 private fun testAlarmDeliveryPath(proof: TestAlarmProof): String {
     val parts = buildList {
-        if (proof.notificationPermissionGranted) add("notification")
-        if (proof.fullScreenIntentRequested) add("full-screen request")
-        if (proof.activityLaunchSucceeded) add("direct screen launch")
+        if (proof.notificationPermissionGranted) add(stringResource(R.string.settings_delivery_notification))
+        if (proof.fullScreenIntentRequested) add(stringResource(R.string.settings_delivery_fullscreen))
+        if (proof.activityLaunchSucceeded) add(stringResource(R.string.settings_delivery_direct))
     }
-    return parts.joinToString(" + ").ifBlank { "alarm screen" }
+    return parts.joinToString(" + ").ifBlank { stringResource(R.string.settings_delivery_alarm_screen) }
 }
 
+@Composable
 private fun guardianReadinessDescription(readiness: GuardianReadiness): String {
-    val alarmCount = if (readiness.enabledAlarmCount == 1) {
-        "1 Guardian alarm"
-    } else {
-        "${readiness.enabledAlarmCount} Guardian alarms"
-    }
+    val alarmCount = pluralStringResource(
+        R.plurals.settings_guardian_alarms,
+        readiness.enabledAlarmCount,
+        readiness.enabledAlarmCount
+    )
     val callPath = if (readiness.hasCallPhonePermission) {
-        "Direct call permission is granted."
+        stringResource(R.string.settings_guardian_call_granted)
     } else {
-        "Call fallback opens the dialer because CALL_PHONE is not granted."
+        stringResource(R.string.settings_guardian_call_dialer)
     }
     return when (readiness.smsPath) {
-        GuardianSmsPath.INACTIVE -> "No Guardian alarms are enabled."
+        GuardianSmsPath.INACTIVE -> stringResource(R.string.settings_guardian_none)
         GuardianSmsPath.DIRECT_SMS ->
-            "$alarmCount can send automatic SMS in F-Droid. $callPath"
+            stringResource(R.string.settings_guardian_direct, alarmCount, callPath)
         GuardianSmsPath.NEEDS_SEND_SMS_PERMISSION ->
-            "$alarmCount will open the SMS composer until SEND_SMS is allowed. $callPath"
+            stringResource(R.string.settings_guardian_needs_sms, alarmCount, callPath)
         GuardianSmsPath.SMS_COMPOSER ->
-            "$alarmCount uses a prefilled SMS composer in this build. $callPath"
+            stringResource(R.string.settings_guardian_composer, alarmCount, callPath)
     }
 }
 
-private fun guardianReadinessStatusLabel(readiness: GuardianReadiness): String {
-    if (readiness.needsUserAction) return "Review"
-    return when (readiness.smsPath) {
-        GuardianSmsPath.INACTIVE -> "Off"
-        GuardianSmsPath.DIRECT_SMS -> "Direct SMS"
-        GuardianSmsPath.NEEDS_SEND_SMS_PERMISSION -> "Review"
-        GuardianSmsPath.SMS_COMPOSER -> "Composer"
+@Composable
+private fun guardianReadinessStatusLabel(readiness: GuardianReadiness): String = stringResource(
+    if (readiness.needsUserAction) R.string.settings_review else when (readiness.smsPath) {
+        GuardianSmsPath.INACTIVE -> R.string.settings_off
+        GuardianSmsPath.DIRECT_SMS -> R.string.settings_direct_sms
+        GuardianSmsPath.NEEDS_SEND_SMS_PERMISSION -> R.string.settings_review
+        GuardianSmsPath.SMS_COMPOSER -> R.string.settings_composer
     }
-}
+)
 
-private fun guardianReadinessActionLabel(readiness: GuardianReadiness): String =
-    if (readiness.needsSmsPermission) "Allow SMS" else "Allow calls"
+@Composable
+private fun guardianReadinessActionLabel(readiness: GuardianReadiness): String = stringResource(
+    if (readiness.needsSmsPermission) R.string.settings_allow_sms else R.string.settings_allow_calls
+)
 
 @Composable
 private fun WakeReadinessRow(
@@ -1498,11 +1525,14 @@ private fun WakeReadinessRow(
     title: String,
     description: String,
     ready: Boolean,
-    statusLabel: String = if (ready) "Ready" else "Review",
+    statusLabel: String? = null,
     actionLabel: String,
     onAction: () -> Unit
 ) {
     val accent = if (ready) DismissGreen else SnoozeYellow
+    val resolvedStatusLabel = statusLabel ?: stringResource(
+        if (ready) R.string.settings_ready else R.string.settings_review
+    )
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(10.dp),
@@ -1545,7 +1575,7 @@ private fun WakeReadinessRow(
                     Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                 }
                 AppStatusChip(
-                    label = statusLabel,
+                    label = resolvedStatusLabel,
                     icon = if (ready) Icons.Default.CheckCircle else Icons.Default.Warning,
                     color = accent
                 )
@@ -1583,20 +1613,22 @@ private fun PauseAlarmsSection(state: SettingsUiState, viewModel: SettingsViewMo
         java.time.Instant.ofEpochMilli(pauseUntil)
             .atZone(java.time.ZoneId.systemDefault())
             .toLocalDate()
-            .format(java.time.format.DateTimeFormatter.ofPattern("EEE MMM d"))
+            .format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
     } else null
 
     AppSurfaceCard(highlighted = isPaused) {
         AppSectionTitle(
-            title = "Pause alarms",
+            title = stringResource(R.string.settings_pause_alarms),
             description = if (isPaused) {
-                "All alarms suspended until end of $resumeAtLabel."
+                stringResource(R.string.settings_pause_until, resumeAtLabel.orEmpty())
             } else {
-                "One-tap suspend for an unplanned interruption — works for one-shot alarms too."
+                stringResource(R.string.settings_pause_description)
             },
             action = {
                 AppStatusChip(
-                    label = if (isPaused) "Paused" else "Off",
+                    label = stringResource(
+                        if (isPaused) R.string.settings_paused else R.string.settings_off
+                    ),
                     icon = Icons.Default.BeachAccess,
                     color = if (isPaused) SnoozeYellow else TextMuted
                 )
@@ -1611,14 +1643,18 @@ private fun PauseAlarmsSection(state: SettingsUiState, viewModel: SettingsViewMo
         ) {
             listOf(1, 3, 7, 14).forEach { days ->
                 AppFilterChip(
-                    label = if (days == 1) "Tonight" else "$days days",
+                    label = if (days == 1) {
+                        stringResource(R.string.settings_tonight)
+                    } else {
+                        pluralStringResource(R.plurals.settings_days, days, days)
+                    },
                     selected = false,
                     onClick = { viewModel.pauseAlarmsForDays(days) }
                 )
             }
             if (isPaused) {
                 AppFilterChip(
-                    label = "Resume now",
+                    label = stringResource(R.string.settings_resume_now),
                     selected = true,
                     onClick = { viewModel.resumeAlarms() }
                 )
@@ -1638,27 +1674,29 @@ private fun VacationModeSection(state: SettingsUiState, viewModel: SettingsViewM
         Instant.ofEpochMilli(settings.vacationStartMillis)
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
-            .format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+            .format(DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
     } else {
-        "Choose start date"
+        stringResource(R.string.settings_choose_start_date)
     }
 
     val endDate = if (settings.vacationEndMillis > 0) {
         Instant.ofEpochMilli(settings.vacationEndMillis)
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
-            .format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+            .format(DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
     } else {
-        "Choose end date"
+        stringResource(R.string.settings_choose_end_date)
     }
 
     AppSurfaceCard(highlighted = settings.vacationModeEnabled) {
         AppSectionTitle(
-            title = "Vacation mode",
-            description = "Silence repeating alarms during a time away without turning them off permanently.",
+            title = stringResource(R.string.vacation_mode),
+            description = stringResource(R.string.settings_vacation_description),
             action = {
                 AppStatusChip(
-                    label = if (settings.vacationModeEnabled) "Active" else "Off",
+                    label = stringResource(
+                        if (settings.vacationModeEnabled) R.string.settings_active else R.string.settings_off
+                    ),
                     icon = Icons.Default.BeachAccess,
                     color = if (settings.vacationModeEnabled) SnoozeYellow else TextMuted
                 )
@@ -1666,9 +1704,9 @@ private fun VacationModeSection(state: SettingsUiState, viewModel: SettingsViewM
         )
 
         SettingsToggle(
-            label = "Enable vacation schedule",
+            label = stringResource(R.string.settings_enable_vacation),
             checked = settings.vacationModeEnabled,
-            supportingText = "Repeating alarms stay enabled but skip dates inside the range below.",
+            supportingText = stringResource(R.string.settings_enable_vacation_description),
             onToggle = { enabled ->
                 if (enabled) {
                     val start = settings.vacationStartMillis.takeIf { it > 0 }
@@ -1689,13 +1727,13 @@ private fun VacationModeSection(state: SettingsUiState, viewModel: SettingsViewM
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             DateField(
                 modifier = Modifier.weight(1f),
-                label = "Starts",
+                label = stringResource(R.string.settings_starts),
                 value = startDate,
                 onClick = { showStartPicker = true }
             )
             DateField(
                 modifier = Modifier.weight(1f),
-                label = "Ends",
+                label = stringResource(R.string.settings_ends),
                 value = endDate,
                 onClick = { showEndPicker = true }
             )
@@ -1723,12 +1761,12 @@ private fun VacationModeSection(state: SettingsUiState, viewModel: SettingsViewM
                     }
                     showStartPicker = false
                 }) {
-                    Text("Save", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.save), color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showStartPicker = false }) {
-                    Text("Cancel", color = TextSecondary)
+                    Text(stringResource(R.string.cancel), color = TextSecondary)
                 }
             },
             colors = DatePickerDefaults.colors(containerColor = SurfaceDark)
@@ -1758,12 +1796,12 @@ private fun VacationModeSection(state: SettingsUiState, viewModel: SettingsViewM
                     }
                     showEndPicker = false
                 }) {
-                    Text("Save", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.save), color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEndPicker = false }) {
-                    Text("Cancel", color = TextSecondary)
+                    Text(stringResource(R.string.cancel), color = TextSecondary)
                 }
             },
             colors = DatePickerDefaults.colors(containerColor = SurfaceDark)
@@ -1779,15 +1817,18 @@ private fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Settin
 
     AppSurfaceCard(highlighted = !state.isIgnoringBatteryOptimizations) {
         AppSectionTitle(
-            title = "Battery optimization",
+            title = stringResource(R.string.settings_battery_optimization),
             description = if (state.isIgnoringBatteryOptimizations) {
-                "Your device is configured for reliable alarm delivery."
+                stringResource(R.string.settings_battery_ready_description)
             } else {
-                "Some Android vendors aggressively pause background work. This is the biggest reliability risk for alarms."
+                stringResource(R.string.settings_battery_risk_description)
             },
             action = {
                 AppStatusChip(
-                    label = if (state.isIgnoringBatteryOptimizations) "Ready" else "Action recommended",
+                    label = stringResource(
+                        if (state.isIgnoringBatteryOptimizations) R.string.settings_ready
+                        else R.string.settings_action_recommended
+                    ),
                     icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.Warning,
                     color = accent
                 )
@@ -1800,14 +1841,16 @@ private fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Settin
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Open battery settings")
+                Text(stringResource(R.string.settings_open_battery))
             }
         }
 
         if (state.needsBatteryGuidance && state.batteryGuidanceSteps.isNotEmpty()) {
             HorizontalDivider(color = TextMuted.copy(alpha = 0.18f))
             Text(
-                text = state.batteryGuidanceTitle.ifBlank { "${state.manufacturerName} battery steps" },
+                text = state.batteryGuidanceTitle.ifBlank {
+                    stringResource(R.string.settings_manufacturer_battery_steps, state.manufacturerName)
+                },
                 color = accent,
                 style = MaterialTheme.typography.titleSmall
             )
@@ -1830,7 +1873,7 @@ private fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Settin
                 TextButton(
                     onClick = { runCatching { uriHandler.openUri(state.batteryGuidanceUrl) } }
                 ) {
-                    Text("View the up-to-date ${state.manufacturerName} guide at dontkillmyapp.com")
+                    Text(stringResource(R.string.settings_battery_guide_link, state.manufacturerName))
                 }
             }
         }
