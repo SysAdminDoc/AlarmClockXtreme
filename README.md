@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.27-blue)
+![Version](https://img.shields.io/badge/version-1.15.28-blue)
 ![License](https://img.shields.io/badge/license-Apache%202.0-green)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
@@ -17,7 +17,7 @@
 **Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
-adb install AlarmClockXtreme-v1.15.27-play-release.apk
+adb install AlarmClockXtreme-v1.15.28-play-release.apk
 ```
 
 The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, optional Health Connect READ_SLEEP integration, and ML Kit Digital Ink handwriting recognition. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
@@ -249,7 +249,7 @@ signatures with `apksigner`, write `SHA256SUMS.txt` and
 To verify a sideloaded APK's signing certificate:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.27-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.15.28-play-release.apk
 ```
 
 Compare the `certificate SHA-256 digest` against the fingerprint published in
@@ -259,6 +259,7 @@ Before a local release, run:
 
 ```bash
 bash scripts/check-signing-hygiene.sh
+python scripts/verify_release_metadata.py
 ./gradlew verifyDependencyIntegrity
 python scripts/osv_gradle_audit.py
 python scripts/verify_api37_release.py --device <api37-16kb-serial> --run-test-alarm --fresh-install

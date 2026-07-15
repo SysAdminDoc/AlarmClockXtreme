@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- A local release-metadata gate now keeps app/Wear versions, README artifacts,
+  F-Droid declarations, the API-37 verifier, Room schemas, and backup format
+  declarations in sync without relying on hosted CI.
 - Stats now shows a "Wake consistency" score — a 0-100 measure of how steady your
   wake-up times have been, computed entirely on-device from your recent alarm
   dismisses (using circular statistics so times either side of midnight are
