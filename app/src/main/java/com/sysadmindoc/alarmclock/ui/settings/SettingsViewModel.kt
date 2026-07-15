@@ -308,6 +308,8 @@ class SettingsViewModel @Inject constructor(
         updateSettings { it.copy(dynamicColorEnabled = enabled) }
     fun toggleExpressiveMode(enabled: Boolean) =
         updateSettings { it.copy(expressiveModeEnabled = enabled) }
+    fun toggleReduceMotionAndFlashing(enabled: Boolean) =
+        updateSettings { it.copy(reduceMotionAndFlashing = enabled) }
     fun toggleCoverToSnooze(enabled: Boolean) =
         updateSettings { it.copy(coverToSnoozeEnabled = enabled) }
     fun toggleRepeatMissed(enabled: Boolean) =

@@ -80,6 +80,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.LocalMotionEnabled
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 
 @Composable
@@ -164,16 +165,19 @@ private fun ActiveTimerCard(
     onDismiss: () -> Unit
 ) {
     val isFinished = timer.state == TimerState.FINISHED
-    val transition = rememberInfiniteTransition(label = "timer-finished")
-    val pulseAlpha by transition.animateFloat(
-        initialValue = 0.52f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(720, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "timer-pulse"
-    )
+    val pulseAlpha = if (LocalMotionEnabled.current) {
+        rememberInfiniteTransition(label = "timer-finished").animateFloat(
+            initialValue = 0.52f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(720, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "timer-pulse"
+        ).value
+    } else {
+        1f
+    }
 
     AppSurfaceCard(highlighted = isFinished) {
         Row(

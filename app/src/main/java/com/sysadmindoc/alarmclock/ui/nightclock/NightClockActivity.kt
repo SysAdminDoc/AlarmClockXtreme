@@ -29,6 +29,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.data.preferences.AppSettings
+import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -42,19 +45,25 @@ import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
 import com.sysadmindoc.alarmclock.ui.theme.BlueLight
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
+import com.sysadmindoc.alarmclock.ui.theme.LocalMotionEnabled
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
 
 /**
  * v1.2.0: Night clock / bedside mode.
  * Full-screen always-on display showing time in large text.
  * Long-press to exit. Keeps screen on at minimum brightness.
  */
+@AndroidEntryPoint
 class NightClockActivity : ComponentActivity() {
+
+    @Inject lateinit var preferencesManager: PreferencesManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -64,7 +73,8 @@ class NightClockActivity : ComponentActivity() {
         window.attributes = window.attributes.also { it.screenBrightness = 0.01f }
 
         setContent {
-            AlarmClockXtremeTheme {
+            val settings by preferencesManager.settings.collectAsStateWithLifecycle(AppSettings())
+            AlarmClockXtremeTheme(reduceMotionAndFlashing = settings.reduceMotionAndFlashing) {
                 NightClockScreen(onExit = { finish() })
             }
         }
@@ -88,37 +98,48 @@ fun NightClockScreen(onExit: () -> Unit) {
             delay(60_000)
         }
     }
-    val ambient = rememberInfiniteTransition(label = "nightAmbient")
-    val glowAlpha by ambient.animateFloat(
-        initialValue = 0.18f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2400),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "glowAlpha"
-    )
+    val motionEnabled = LocalMotionEnabled.current
+    val glowAlpha = if (motionEnabled) {
+        rememberInfiniteTransition(label = "nightAmbient").animateFloat(
+            initialValue = 0.18f,
+            targetValue = 0.3f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 2400),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "glowAlpha"
+        ).value
+    } else {
+        0.24f
+    }
     val amPm = if (is24Hour) "" else currentTime.format(DateTimeFormatter.ofPattern("a"))
 
-    val driftTransition = rememberInfiniteTransition(label = "burnInDrift")
-    val driftX by driftTransition.animateFloat(
-        initialValue = -24f,
-        targetValue = 24f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 120_000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "driftX"
-    )
-    val driftY by driftTransition.animateFloat(
-        initialValue = 18f,
-        targetValue = -18f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 90_000),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "driftY"
-    )
+    val driftX: Float
+    val driftY: Float
+    if (motionEnabled) {
+        val driftTransition = rememberInfiniteTransition(label = "burnInDrift")
+        driftX = driftTransition.animateFloat(
+            initialValue = -24f,
+            targetValue = 24f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 120_000),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "driftX"
+        ).value
+        driftY = driftTransition.animateFloat(
+            initialValue = 18f,
+            targetValue = -18f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 90_000),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "driftY"
+        ).value
+    } else {
+        driftX = 0f
+        driftY = 0f
+    }
 
     Box(
         modifier = Modifier

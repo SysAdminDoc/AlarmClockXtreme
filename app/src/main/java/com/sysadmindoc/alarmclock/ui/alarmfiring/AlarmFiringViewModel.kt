@@ -159,6 +159,10 @@ class AlarmFiringViewModel @Inject constructor(
         .map { it.showMotivationalQuotes }
         .stateIn(viewModelScope, SharingStarted.Eagerly, true)
 
+    val reduceMotionAndFlashing: StateFlow<Boolean> = preferencesManager.settings
+        .map { it.reduceMotionAndFlashing }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     /** v1.4.0: Whether "cover the phone" snooze is enabled globally. */
     val coverToSnoozeEnabled: StateFlow<Boolean> = preferencesManager.settings
         .map { it.coverToSnoozeEnabled }

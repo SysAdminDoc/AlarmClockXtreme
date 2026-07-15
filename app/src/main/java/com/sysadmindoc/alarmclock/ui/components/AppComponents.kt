@@ -64,6 +64,7 @@ import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
 import com.sysadmindoc.alarmclock.ui.theme.HeaderBottom
 import com.sysadmindoc.alarmclock.ui.theme.HeaderTop
 import com.sysadmindoc.alarmclock.ui.theme.LocalAppShapeTokens
+import com.sysadmindoc.alarmclock.ui.theme.LocalMotionEnabled
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
@@ -619,16 +620,19 @@ fun AppLoadingCard(
     label: String = "Loading content"
 ) {
     val shapeTokens = LocalAppShapeTokens.current
-    val transition = rememberInfiniteTransition(label = "loading-card")
-    val alpha by transition.animateFloat(
-        initialValue = 0.42f,
-        targetValue = 0.86f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 950, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "loading-alpha"
-    )
+    val alpha = if (LocalMotionEnabled.current) {
+        rememberInfiniteTransition(label = "loading-card").animateFloat(
+            initialValue = 0.42f,
+            targetValue = 0.86f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 950, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "loading-alpha"
+        ).value
+    } else {
+        0.72f
+    }
 
     AppSurfaceCard(
         modifier = modifier
@@ -756,16 +760,19 @@ fun AppSkeletonBlock(
     height: Dp = 14.dp,
     cornerRadius: Dp = 8.dp,
 ) {
-    val transition = rememberInfiniteTransition(label = "skeleton-block")
-    val alpha by transition.animateFloat(
-        initialValue = 0.36f,
-        targetValue = 0.78f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 950, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "skeleton-alpha",
-    )
+    val alpha = if (LocalMotionEnabled.current) {
+        rememberInfiniteTransition(label = "skeleton-block").animateFloat(
+            initialValue = 0.36f,
+            targetValue = 0.78f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 950, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "skeleton-alpha",
+        ).value
+    } else {
+        0.65f
+    }
     Spacer(
         modifier = modifier
             .height(height)

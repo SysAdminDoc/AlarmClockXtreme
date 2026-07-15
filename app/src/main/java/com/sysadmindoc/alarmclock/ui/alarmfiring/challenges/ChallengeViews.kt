@@ -95,6 +95,7 @@ import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
+import com.sysadmindoc.alarmclock.ui.theme.LocalMotionEnabled
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
@@ -204,16 +205,19 @@ fun ShakeChallengeView(
     val progress = (currentShakes.toFloat() / challenge.requiredShakes).coerceIn(0f, 1f)
     val remaining = (challenge.requiredShakes - currentShakes).coerceAtLeast(0)
 
-    val infiniteTransition = rememberInfiniteTransition(label = "shake")
-    val shakeOffset by infiniteTransition.animateFloat(
-        initialValue = -5f,
-        targetValue = 5f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(100),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "shakeAnim"
-    )
+    val shakeOffset = if (LocalMotionEnabled.current) {
+        rememberInfiniteTransition(label = "shake").animateFloat(
+            initialValue = -5f,
+            targetValue = 5f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(100),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "shakeAnim"
+        ).value
+    } else {
+        0f
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1004,13 +1008,16 @@ fun NfcScanChallengeView(
     challenge: Challenge.NfcChallenge,
     scanStatus: String
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "nfcPulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
-        label = "nfcAlpha"
-    )
+    val pulseAlpha = if (LocalMotionEnabled.current) {
+        rememberInfiniteTransition(label = "nfcPulse").animateFloat(
+            initialValue = 0.4f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
+            label = "nfcAlpha"
+        ).value
+    } else {
+        1f
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1055,13 +1062,16 @@ fun BarcodeScanChallengeView(
     onCodeEntered: (String) -> Unit
 ) {
     var codeInput by remember(challenge.registeredValue) { mutableStateOf("") }
-    val infiniteTransition = rememberInfiniteTransition(label = "barcodeScan")
-    val lineProgress by infiniteTransition.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(1500), RepeatMode.Reverse),
-        label = "scanLine"
-    )
+    val lineProgress = if (LocalMotionEnabled.current) {
+        rememberInfiniteTransition(label = "barcodeScan").animateFloat(
+            initialValue = 0.25f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(1500), RepeatMode.Reverse),
+            label = "scanLine"
+        ).value
+    } else {
+        1f
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1681,16 +1691,19 @@ fun CountSheepChallengeView(
     onGoatTap: () -> Unit
 ) {
     val progress = (tapped.toFloat() / challenge.targetCount).coerceIn(0f, 1f)
-    val transition = rememberInfiniteTransition(label = "sheep-drift")
-    val drift by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 6000, easing = androidx.compose.animation.core.LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "sheep-drift-value"
-    )
+    val drift = if (LocalMotionEnabled.current) {
+        rememberInfiniteTransition(label = "sheep-drift").animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 6000, easing = androidx.compose.animation.core.LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "sheep-drift-value"
+        ).value
+    } else {
+        0f
+    }
 
     // Stable arrangement per challenge instance: rows of sheep + a few goats interleaved.
     data class Creature(val emoji: String, val row: Int, val phase: Float, val isSheep: Boolean)

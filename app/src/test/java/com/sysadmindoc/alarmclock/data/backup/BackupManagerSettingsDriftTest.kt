@@ -37,6 +37,9 @@ class BackupManagerSettingsDriftTest {
         // loudness when a backup moves to hardware with different speakers.
         "challengeAudioDuckingEnabled",
         "challengeAudioDuckPercent",
+        // Accessibility behavior follows each device's display/animation
+        // needs and Android system setting instead of migrating blindly.
+        "reduceMotionAndFlashing",
     )
 
     @Test

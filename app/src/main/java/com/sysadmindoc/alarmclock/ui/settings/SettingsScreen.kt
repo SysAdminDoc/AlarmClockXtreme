@@ -2582,6 +2582,13 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
         )
 
         SettingsToggle(
+            label = "Reduce motion and flashing",
+            checked = state.settings.reduceMotionAndFlashing,
+            supportingText = "Stops decorative loops and flashlight strobing. Android's Remove animations setting is also honored.",
+            onToggle = viewModel::toggleReduceMotionAndFlashing
+        )
+
+        SettingsToggle(
             label = "Cover-to-snooze",
             checked = state.settings.coverToSnoozeEnabled,
             supportingText = "Hold a hand over the proximity sensor for ~1.5 s during an alarm to snooze.",

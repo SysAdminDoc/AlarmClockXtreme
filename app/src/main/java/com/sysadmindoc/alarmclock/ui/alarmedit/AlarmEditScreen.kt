@@ -1579,6 +1579,12 @@ fun AlarmEditScreen(
                         )
                     }
                 )
+                if (state.flashlightStrobe) {
+                    SettingsHint(
+                        "Warning: rapid flashing can trigger seizures or discomfort. Reduce motion and flashing in Settings disables this effect.",
+                        tone = HintTone.Warning
+                    )
+                }
             }
 
             // v1.2.0: Sunrise Simulation

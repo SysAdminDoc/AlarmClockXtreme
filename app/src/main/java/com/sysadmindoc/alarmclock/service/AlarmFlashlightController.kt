@@ -8,7 +8,7 @@ internal data class AlarmFlashlightStrobePlan(
 )
 
 internal object AlarmFlashlightController {
-    fun strobePlan(alarm: Alarm): AlarmFlashlightStrobePlan? {
-        return if (alarm.flashlightStrobe) AlarmFlashlightStrobePlan() else null
+    fun strobePlan(alarm: Alarm, flashingAllowed: Boolean = true): AlarmFlashlightStrobePlan? {
+        return if (alarm.flashlightStrobe && flashingAllowed) AlarmFlashlightStrobePlan() else null
     }
 }

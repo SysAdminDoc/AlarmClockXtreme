@@ -53,7 +53,8 @@ class MainActivity : ComponentActivity() {
             AlarmClockXtremeTheme(
                 accentColorHex = settings.value.accentColor,
                 dynamicColor = settings.value.dynamicColorEnabled,
-                expressiveMode = settings.value.expressiveModeEnabled
+                expressiveMode = settings.value.expressiveModeEnabled,
+                reduceMotionAndFlashing = settings.value.reduceMotionAndFlashing
             ) {
                 AppNavigation(
                     sharedAlarmDraft = pendingSharedAlarmDraft,

@@ -50,6 +50,12 @@ class AlarmServiceControllerTest {
         val plan = AlarmFlashlightController.strobePlan(Alarm(flashlightStrobe = true))
         assertEquals(200L, plan?.onMillis)
         assertEquals(300L, plan?.offMillis)
+        assertNull(
+            AlarmFlashlightController.strobePlan(
+                Alarm(flashlightStrobe = true),
+                flashingAllowed = false
+            )
+        )
     }
 
     @Test

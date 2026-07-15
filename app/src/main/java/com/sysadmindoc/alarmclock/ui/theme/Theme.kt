@@ -1,12 +1,21 @@
 package com.sysadmindoc.alarmclock.ui.theme
 
 import android.app.Activity
+import android.database.ContentObserver
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.toArgb
@@ -15,9 +24,11 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import com.sysadmindoc.alarmclock.util.MotionPolicy
 
 val LocalAccentColor = compositionLocalOf { AccentBlue }
 val LocalExpressiveMode = compositionLocalOf { false }
+val LocalMotionEnabled = compositionLocalOf { true }
 
 data class AppShapeTokens(
     val card: Shape,
@@ -90,9 +101,27 @@ fun AlarmClockXtremeTheme(
     accentColorHex: String? = null,
     dynamicColor: Boolean = false,
     expressiveMode: Boolean = false,
+    reduceMotionAndFlashing: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
+    var animatorDurationScale by remember(context) {
+        mutableFloatStateOf(MotionPolicy.animatorDurationScale(context))
+    }
+    DisposableEffect(context) {
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                animatorDurationScale = MotionPolicy.animatorDurationScale(context)
+            }
+        }
+        context.contentResolver.registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE),
+            false,
+            observer
+        )
+        onDispose { context.contentResolver.unregisterContentObserver(observer) }
+    }
+    val motionEnabled = MotionPolicy.allowsMotion(reduceMotionAndFlashing, animatorDurationScale)
     val parsedAccent = if (accentColorHex != null && accentColorHex.startsWith("#")) {
         try { Color(android.graphics.Color.parseColor(accentColorHex)) } catch (_: Exception) { AccentBlue }
     } else AccentBlue
@@ -157,6 +186,7 @@ fun AlarmClockXtremeTheme(
     CompositionLocalProvider(
         LocalAccentColor provides accent,
         LocalExpressiveMode provides expressiveMode,
+        LocalMotionEnabled provides motionEnabled,
         LocalAppShapeTokens provides appShapeTokens
     ) {
         MaterialTheme(

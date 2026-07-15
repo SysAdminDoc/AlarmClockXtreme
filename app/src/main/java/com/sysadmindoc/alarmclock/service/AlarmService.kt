@@ -559,7 +559,11 @@ class AlarmService : Service() {
         }
 
         // v1.2.0: Flashlight strobe
-        AlarmFlashlightController.strobePlan(alarm)?.let { plan ->
+        val flashingAllowed = com.sysadmindoc.alarmclock.util.MotionPolicy.allowsMotion(
+            this,
+            settings.reduceMotionAndFlashing
+        )
+        AlarmFlashlightController.strobePlan(alarm, flashingAllowed)?.let { plan ->
             startFlashlightStrobe(plan)
         }
 

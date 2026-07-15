@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.theme.SkyGradient
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.LocalMotionEnabled
 import com.sysadmindoc.alarmclock.ui.theme.TimeOfDaySky
 import com.sysadmindoc.alarmclock.ui.theme.WeatherSkyOverrides
 import kotlinx.coroutines.delay
@@ -154,7 +155,7 @@ fun WeatherSkyBackground(
 
         // Layer 3: lightning. Gated behind storm conditions; the flash is
         // brighter at night because the dark sky benefits from it most.
-        if (isStorm || tornadoActive) {
+        if ((isStorm || tornadoActive) && LocalMotionEnabled.current) {
             LightningOverlay(
                 modifier = Modifier.fillMaxSize(),
                 intensity = if (tornadoActive) 1.4f else 1f,
@@ -288,25 +289,32 @@ private fun TornadoOverlay(modifier: Modifier = Modifier) {
  */
 @Composable
 private fun FunnelCloud(modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "funnel")
-    val rotation by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 8_000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart,
-        ),
-        label = "funnel-rotation",
-    )
-    val drift by transition.animateFloat(
-        initialValue = -1f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 4_500, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "funnel-drift",
-    )
+    val rotation: Float
+    val drift: Float
+    if (LocalMotionEnabled.current) {
+        val transition = rememberInfiniteTransition(label = "funnel")
+        rotation = transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 8_000, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart,
+            ),
+            label = "funnel-rotation",
+        ).value
+        drift = transition.animateFloat(
+            initialValue = -1f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 4_500, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "funnel-drift",
+        ).value
+    } else {
+        rotation = 0f
+        drift = 0f
+    }
 
     Canvas(modifier = modifier.rotate(rotation)) {
         val w = size.width

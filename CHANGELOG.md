@@ -6,6 +6,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- A device-local accessibility preference and Android's system Remove
+  animations setting now stop decorative alarm, challenge, timer, weather,
+  loading, and Night Clock loops. The same policy prevents optional flashlight
+  strobing, which remains off by default and now carries a seizure warning.
 - An opt-in accessibility setting can reduce alarm-player volume to 20–65%
   while a dismiss challenge is active. Challenge completion restores the live
   fade level, phone calls still mute completely, and system volume is untouched.
