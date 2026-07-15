@@ -13,6 +13,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Android voice assistants and automation apps now reach a complete,
+  permission-protected AlarmClock contract: alarm/timer creation, active-alarm
+  snooze/dismiss, warm-intent delivery, malformed-input rejection, duplicate
+  coalescing, and the platform's optional show/skip-UI behavior share one path.
 - Countdown timers now use one foreground service for every expiry, whether the
   app is visible, backgrounded, or absent. The persisted finish transition is an
   atomic delivery claim, simultaneous expiries share one player/vibration alert,

@@ -150,4 +150,25 @@ class TimerPersistenceTest {
         assertEquals(listOf(2), store.loadTimers().map { it.id })
         assertTrue(store.loadTimers().all { it.state != TimerState.RUNNING })
     }
+
+    @Test
+    fun alarmClockStartIsAtomicAndReusesImmediateDuplicate() {
+        val first = store.startOrReuse(totalSeconds = 90, label = "Tea", nowElapsed = 10_000L)
+        val duplicate = store.startOrReuse(totalSeconds = 90, label = "Tea", nowElapsed = 12_000L)
+
+        assertTrue(first.created)
+        assertTrue(!duplicate.created)
+        assertEquals(first.record.id, duplicate.record.id)
+        assertEquals(1, store.loadRecords(nowElapsed = 12_000L).size)
+    }
+
+    @Test
+    fun alarmClockStartAllowsSameTimerAfterCoalescingWindow() {
+        store.startOrReuse(totalSeconds = 90, label = "Tea", nowElapsed = 10_000L)
+
+        val later = store.startOrReuse(totalSeconds = 90, label = "Tea", nowElapsed = 16_000L)
+
+        assertTrue(later.created)
+        assertEquals(2, store.loadRecords(nowElapsed = 16_000L).size)
+    }
 }

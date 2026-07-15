@@ -136,23 +136,6 @@
                 <action android:name="android.intent.action.SHOW_ALARMS" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-            <!-- Voice assistant / Gemini: create an alarm via SET_ALARM -->
-            <intent-filter>
-                <action android:name="android.intent.action.SET_ALARM" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.DISMISS_ALARM" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SNOOZE_ALARM" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.SET_TIMER" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
             <!-- v1.5.x: Import a single shared alarm without importing a full backup. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -161,6 +144,30 @@
                 <data
                     android:host="alarm"
                     android:scheme="acx" />
+            </intent-filter>
+        </activity>
+
+        <!-- Android AlarmClock contract. Keep the launcher unpermissioned: the
+             platform SET_ALARM permission belongs on this exported boundary. -->
+        <activity
+            android:name=".platform.AlarmClockIntentActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:noHistory="true"
+            android:permission="com.android.alarm.permission.SET_ALARM"
+            android:theme="@style/Theme.AlarmClockXtreme.IntentProxy">
+            <intent-filter>
+                <action android:name="android.intent.action.SET_ALARM" />
+                <action android:name="android.intent.action.DISMISS_ALARM" />
+                <action android:name="android.intent.action.SNOOZE_ALARM" />
+                <action android:name="android.intent.action.SET_TIMER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.DISMISS_ALARM" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="acx" android:host="alarm" />
             </intent-filter>
         </activity>
 

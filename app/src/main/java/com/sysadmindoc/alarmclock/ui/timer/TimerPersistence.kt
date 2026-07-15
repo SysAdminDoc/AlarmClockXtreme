@@ -6,8 +6,11 @@ import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
 import android.util.Log
+import dagger.hilt.android.qualifiers.ApplicationContext
 import org.json.JSONArray
 import org.json.JSONObject
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class PersistedTimerRecord(
     val id: Int,
@@ -44,7 +47,13 @@ data class TimerRestoreSnapshot(
     val newlyFinished: List<PersistedTimerRecord>
 )
 
-class TimerStore(context: Context) {
+data class TimerStartResult(
+    val record: PersistedTimerRecord,
+    val created: Boolean
+)
+
+@Singleton
+class TimerStore @Inject constructor(@ApplicationContext context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun loadRecords(nowElapsed: Long = SystemClock.elapsedRealtime()): List<PersistedTimerRecord> {
@@ -162,6 +171,42 @@ class TimerStore(context: Context) {
         (readStoredRecords().maxOfOrNull { it.id } ?: 0) + 1
     }
 
+    /**
+     * Starts a timer as one atomic read-modify-write. An identical timer whose
+     * deadline is within the delivery-coalescing window is returned rather than
+     * duplicated, which makes repeated AlarmClock intents idempotent even if
+     * Android recreates the proxy activity between deliveries.
+     */
+    fun startOrReuse(
+        totalSeconds: Long,
+        label: String,
+        nowElapsed: Long = SystemClock.elapsedRealtime()
+    ): TimerStartResult = synchronized(WRITE_LOCK) {
+        require(totalSeconds in 1L..86_400L)
+        val records = readStoredRecords()
+        val endElapsed = nowElapsed + totalSeconds * 1_000L
+        val existing = records.firstOrNull { record ->
+            record.state == TimerState.RUNNING &&
+                record.totalSeconds == totalSeconds &&
+                record.label == label &&
+                kotlin.math.abs(record.endElapsedRealtime - endElapsed) <= DUPLICATE_WINDOW_MS
+        }
+        if (existing != null) {
+            return@synchronized TimerStartResult(existing.normalized(nowElapsed), created = false)
+        }
+        val id = (records.maxOfOrNull { it.id } ?: 0) + 1
+        val record = PersistedTimerRecord(
+            id = id,
+            label = label,
+            totalSeconds = totalSeconds,
+            remainingMillis = totalSeconds * 1_000L,
+            state = TimerState.RUNNING,
+            endElapsedRealtime = endElapsed
+        )
+        replace(records + record)
+        TimerStartResult(record, created = true)
+    }
+
     fun removeRunningTimersForReboot(): List<PersistedTimerRecord> = synchronized(WRITE_LOCK) {
         val records = readStoredRecords()
         val running = records.filter { it.state == TimerState.RUNNING }
@@ -181,6 +226,7 @@ class TimerStore(context: Context) {
         private const val TAG = "TimerStore"
         private const val PREFS_NAME = "timer_state"
         private const val KEY_TIMERS = "timers_json"
+        private const val DUPLICATE_WINDOW_MS = 5_000L
 
         // Process-wide: guards the read-modify-write of the shared prefs across
         // all TimerStore instances.

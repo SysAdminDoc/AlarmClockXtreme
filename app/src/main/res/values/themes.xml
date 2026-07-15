@@ -5,4 +5,13 @@
         <item name="android:navigationBarColor">#0D1B2A</item>
         <item name="android:windowBackground">#0D1B2A</item>
     </style>
+
+    <style name="Theme.AlarmClockXtreme.IntentProxy" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
 </resources>
