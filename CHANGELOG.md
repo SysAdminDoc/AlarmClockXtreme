@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- Alarm time selection now offers an optional four-digit numpad alongside the
+  existing clock picker. It validates 24-hour input and provides explicit
+  AM/PM selection in 12-hour mode; the timer duration keypad remains available.
 - The Escalating vibration pattern now uses Android 16's hardware-adaptive
   basic haptic envelopes when supported, with a smooth zero-to-peak ramp,
   alarm-class vibration attributes, Gentle/Strong per-alarm strength, and the

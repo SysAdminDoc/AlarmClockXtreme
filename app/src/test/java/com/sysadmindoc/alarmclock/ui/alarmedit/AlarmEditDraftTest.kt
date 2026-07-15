@@ -63,6 +63,24 @@ class AlarmEditDraftTest {
     }
 
     @Test
+    fun `alarm numpad parses and validates 24 hour times`() {
+        assertEquals(AlarmNumpadTime(7, 0), parseAlarmNumpadTime("0700", is24Hour = true, isPm = false))
+        assertEquals(AlarmNumpadTime(23, 59), parseAlarmNumpadTime("2359", is24Hour = true, isPm = false))
+        assertEquals(null, parseAlarmNumpadTime("2400", is24Hour = true, isPm = false))
+        assertEquals(null, parseAlarmNumpadTime("1260", is24Hour = true, isPm = false))
+        assertEquals(null, parseAlarmNumpadTime("700", is24Hour = true, isPm = false))
+    }
+
+    @Test
+    fun `alarm numpad converts 12 hour periods without noon or midnight drift`() {
+        assertEquals(AlarmNumpadTime(0, 0), parseAlarmNumpadTime("1200", is24Hour = false, isPm = false))
+        assertEquals(AlarmNumpadTime(12, 0), parseAlarmNumpadTime("1200", is24Hour = false, isPm = true))
+        assertEquals(AlarmNumpadTime(19, 30), parseAlarmNumpadTime("0730", is24Hour = false, isPm = true))
+        assertEquals(null, parseAlarmNumpadTime("0000", is24Hour = false, isPm = false))
+        assertEquals(null, parseAlarmNumpadTime("1300", is24Hour = false, isPm = true))
+    }
+
+    @Test
     fun `every settings section is assigned to a focused page`() {
         assertEquals(AlarmEditorPage.OVERVIEW, alarmEditorPageForSection("Label"))
         assertEquals(AlarmEditorPage.SOUND, alarmEditorPageForSection("Vibration"))

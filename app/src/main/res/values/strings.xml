@@ -1172,6 +1172,15 @@
     <string name="settings_minutes_seconds_compact">%1$dm %2$ds</string>
     <string name="settings_webhook_log_line">%1$s — %2$s</string>
     <string name="alarm_edit_empty_ringtone">(empty)</string>
+    <string name="alarm_edit_clock_entry">Clock</string>
+    <string name="alarm_edit_numpad_entry">Numpad</string>
+    <string name="alarm_edit_numpad_hint">Enter four digits, such as 0700.</string>
+    <string name="alarm_edit_numpad_invalid_24">Enter a time from 0000 through 2359.</string>
+    <string name="alarm_edit_numpad_invalid_12">Enter an hour from 01 through 12 and minutes from 00 through 59.</string>
+    <string name="alarm_edit_am">AM</string>
+    <string name="alarm_edit_pm">PM</string>
+    <string name="alarm_edit_clear_short">Clear</string>
+    <string name="alarm_edit_delete_digit">Delete digit</string>
 
     <!-- Onboarding -->
     <string name="onboarding_app_title">Alarm Clock Xtreme</string>

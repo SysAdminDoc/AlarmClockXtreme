@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
@@ -116,6 +117,27 @@ private val LocalAlarmEditorPage = staticCompositionLocalOf { AlarmEditorPage.OV
 internal fun alarmEditorCategoryColumns(availableWidthDp: Int): Int =
     if (availableWidthDp >= 720) 2 else 1
 
+internal data class AlarmNumpadTime(val hour: Int, val minute: Int)
+
+internal fun parseAlarmNumpadTime(
+    digits: String,
+    is24Hour: Boolean,
+    isPm: Boolean
+): AlarmNumpadTime? {
+    if (digits.length != 4 || digits.any { !it.isDigit() }) return null
+    val enteredHour = digits.take(2).toInt()
+    val minute = digits.takeLast(2).toInt()
+    if (minute !in 0..59) return null
+
+    val hour = if (is24Hour) {
+        enteredHour.takeIf { it in 0..23 } ?: return null
+    } else {
+        if (enteredHour !in 1..12) return null
+        (enteredHour % 12) + if (isPm) 12 else 0
+    }
+    return AlarmNumpadTime(hour, minute)
+}
+
 internal fun alarmEditorPageForSection(title: String): AlarmEditorPage = when (title) {
     "Label", "Group" -> AlarmEditorPage.OVERVIEW
     "Sound", "Vibration" -> AlarmEditorPage.SOUND
@@ -156,6 +178,9 @@ fun AlarmEditScreen(
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTimePicker by remember { mutableStateOf(false) }
+    var useTimeNumpad by rememberSaveable { mutableStateOf(false) }
+    var timeNumpadDigits by rememberSaveable { mutableStateOf("") }
+    var timeNumpadIsPm by rememberSaveable { mutableStateOf(false) }
     var showRingtonePicker by remember { mutableStateOf(false) }
     var showChainPicker by remember { mutableStateOf(false) }
     var photoReferenceStatus by remember { mutableStateOf("") }
@@ -470,7 +495,11 @@ fun AlarmEditScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(role = Role.Button) { showTimePicker = true }
+                        .clickable(role = Role.Button) {
+                            timeNumpadDigits = ""
+                            timeNumpadIsPm = state.hour >= 12
+                            showTimePicker = true
+                        }
                         .padding(vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -2385,14 +2414,24 @@ fun AlarmEditScreen(
             initialMinute = state.minute,
             is24Hour = state.is24HourFormat
         )
+        val numpadTime = parseAlarmNumpadTime(
+            digits = timeNumpadDigits,
+            is24Hour = state.is24HourFormat,
+            isPm = timeNumpadIsPm
+        )
 
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    viewModel.updateTime(timePickerState.hour, timePickerState.minute)
+                    val selectedTime = if (useTimeNumpad) {
+                        numpadTime
+                    } else {
+                        AlarmNumpadTime(timePickerState.hour, timePickerState.minute)
+                    }
+                    selectedTime?.let { viewModel.updateTime(it.hour, it.minute) }
                     showTimePicker = false
-                }) {
+                }, enabled = !useTimeNumpad || numpadTime != null) {
                     Text(stringResource(R.string.alarm_edit_save_time), color = AccentBlue)
                 }
             },
@@ -2418,20 +2457,144 @@ fun AlarmEditScreen(
                 }
             },
             text = {
-                TimePicker(
-                    state = timePickerState,
-                    colors = TimePickerDefaults.colors(
-                        clockDialColor = SurfaceCard,
-                        selectorColor = MaterialTheme.colorScheme.primary,
-                        containerColor = SurfaceMedium,
-                        timeSelectorSelectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                        timeSelectorUnselectedContainerColor = SurfaceCard
-                    )
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AppFilterChip(
+                            label = stringResource(R.string.alarm_edit_clock_entry),
+                            selected = !useTimeNumpad,
+                            onClick = { useTimeNumpad = false },
+                            modifier = Modifier.weight(1f)
+                        )
+                        AppFilterChip(
+                            label = stringResource(R.string.alarm_edit_numpad_entry),
+                            selected = useTimeNumpad,
+                            onClick = { useTimeNumpad = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (useTimeNumpad) {
+                        AlarmTimeNumpad(
+                            digits = timeNumpadDigits,
+                            is24Hour = state.is24HourFormat,
+                            isPm = timeNumpadIsPm,
+                            onPeriodChange = { timeNumpadIsPm = it },
+                            onDigit = { digit ->
+                                if (timeNumpadDigits.length < 4) {
+                                    timeNumpadDigits += digit
+                                }
+                            },
+                            onDelete = { timeNumpadDigits = timeNumpadDigits.dropLast(1) },
+                            onClear = { timeNumpadDigits = "" }
+                        )
+                    } else {
+                        TimePicker(
+                            state = timePickerState,
+                            colors = TimePickerDefaults.colors(
+                                clockDialColor = SurfaceCard,
+                                selectorColor = MaterialTheme.colorScheme.primary,
+                                containerColor = SurfaceMedium,
+                                timeSelectorSelectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                timeSelectorUnselectedContainerColor = SurfaceCard
+                            )
+                        )
+                    }
+                }
             },
             containerColor = SurfaceMedium,
             shape = RoundedCornerShape(12.dp)
         )
+    }
+}
+
+@Composable
+private fun AlarmTimeNumpad(
+    digits: String,
+    is24Hour: Boolean,
+    isPm: Boolean,
+    onPeriodChange: (Boolean) -> Unit,
+    onDigit: (Char) -> Unit,
+    onDelete: () -> Unit,
+    onClear: () -> Unit
+) {
+    val displayDigits = digits.padEnd(4, '–')
+    val parsedTime = parseAlarmNumpadTime(digits, is24Hour, isPm)
+    val keys = listOf('1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫')
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = "${displayDigits.take(2)}:${displayDigits.takeLast(2)}",
+            style = ClockTimeLarge,
+            color = if (digits.length == 4 && parsedTime == null) AccentRed else TextPrimary,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
+        Text(
+            text = if (digits.length == 4 && parsedTime == null) {
+                stringResource(
+                    if (is24Hour) R.string.alarm_edit_numpad_invalid_24
+                    else R.string.alarm_edit_numpad_invalid_12
+                )
+            } else {
+                stringResource(R.string.alarm_edit_numpad_hint)
+            },
+            color = if (digits.length == 4 && parsedTime == null) AccentRed else TextSecondary,
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (!is24Hour) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AppFilterChip(
+                    label = stringResource(R.string.alarm_edit_am),
+                    selected = !isPm,
+                    onClick = { onPeriodChange(false) },
+                    modifier = Modifier.weight(1f)
+                )
+                AppFilterChip(
+                    label = stringResource(R.string.alarm_edit_pm),
+                    selected = isPm,
+                    onClick = { onPeriodChange(true) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+        keys.chunked(3).forEach { rowKeys ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                rowKeys.forEach { key ->
+                    OutlinedButton(
+                        onClick = {
+                            when (key) {
+                                'C' -> onClear()
+                                '⌫' -> onDelete()
+                                else -> onDigit(key)
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(0.dp)
+                    ) {
+                        when (key) {
+                            'C' -> Text(stringResource(R.string.alarm_edit_clear_short))
+                            '⌫' -> Icon(
+                                Icons.AutoMirrored.Filled.Backspace,
+                                contentDescription = stringResource(R.string.alarm_edit_delete_digit)
+                            )
+                            else -> Text(key.toString(), fontSize = 22.sp)
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
