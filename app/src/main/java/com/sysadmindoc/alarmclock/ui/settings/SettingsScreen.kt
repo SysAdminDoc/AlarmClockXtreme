@@ -2716,6 +2716,34 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
             }
         }
 
+        SettingsToggle(
+            label = "Quieter audio during challenges",
+            supportingText = "Reduces only this alarm's player volume while you solve a dismiss challenge; calls still mute it completely.",
+            checked = state.settings.challengeAudioDuckingEnabled,
+            onToggle = viewModel::updateChallengeAudioDuckingEnabled
+        )
+        if (state.settings.challengeAudioDuckingEnabled) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Challenge volume: ${state.settings.challengeAudioDuckPercent}%",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(20, 35, 50, 65).forEach { percent ->
+                        AppFilterChip(
+                            selected = state.settings.challengeAudioDuckPercent == percent,
+                            onClick = { viewModel.updateChallengeAudioDuckPercent(percent) },
+                            label = "$percent%"
+                        )
+                    }
+                }
+            }
+        }
+
         // v1.4.0: Pre-sleep checklist items, shown on the Bedtime tab.
         BufferedSettingsTextField(
             value = state.settings.bedtimeChecklist,

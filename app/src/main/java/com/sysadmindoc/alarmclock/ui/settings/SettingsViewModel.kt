@@ -320,6 +320,10 @@ class SettingsViewModel @Inject constructor(
         updateSettings { it.copy(challengeBypassEnabled = enabled) }
     fun updateChallengeBypassDelay(seconds: Int) =
         updateSettings { it.copy(challengeBypassDelaySeconds = seconds) }
+    fun updateChallengeAudioDuckingEnabled(enabled: Boolean) =
+        updateSettings { it.copy(challengeAudioDuckingEnabled = enabled) }
+    fun updateChallengeAudioDuckPercent(percent: Int) =
+        updateSettings { it.copy(challengeAudioDuckPercent = percent.coerceIn(10, 80)) }
     fun updateBedtimeChecklist(items: String) =
         updateSettings { it.copy(bedtimeChecklist = items) }
     fun updateSleepSoundTimer(minutes: Int) =

@@ -159,6 +159,8 @@ data class AppSettings(
     val firingControlMode: String = "hybrid",
     val challengeBypassEnabled: Boolean = false,
     val challengeBypassDelaySeconds: Int = 30,
+    val challengeAudioDuckingEnabled: Boolean = false,
+    val challengeAudioDuckPercent: Int = 35,
     // v1.14.19: YouTube engine provenance (Play flavor only; F-Droid ignores).
     val ytEngineBundledVersion: String = "",
     val ytEngineActiveVersion: String = "",
@@ -247,6 +249,7 @@ private fun AppSettings.sanitized(): AppSettings {
             it in setOf("hybrid", "buttons", "swipe")
         } ?: "hybrid",
         challengeBypassDelaySeconds = challengeBypassDelaySeconds.coerceIn(10, 120),
+        challengeAudioDuckPercent = challengeAudioDuckPercent.coerceIn(10, 80),
         ytEngineLastFailureReason = ytEngineLastFailureReason.take(200)
     )
 }
@@ -351,6 +354,8 @@ class PreferencesManager @Inject constructor(
         val FIRING_CONTROL_MODE = stringPreferencesKey("firing_control_mode")
         val CHALLENGE_BYPASS_ENABLED = booleanPreferencesKey("challenge_bypass_enabled")
         val CHALLENGE_BYPASS_DELAY = intPreferencesKey("challenge_bypass_delay_seconds")
+        val CHALLENGE_AUDIO_DUCKING_ENABLED = booleanPreferencesKey("challenge_audio_ducking_enabled")
+        val CHALLENGE_AUDIO_DUCK_PERCENT = intPreferencesKey("challenge_audio_duck_percent")
         val YT_ENGINE_BUNDLED_VERSION = stringPreferencesKey("yt_engine_bundled_version")
         val YT_ENGINE_ACTIVE_VERSION = stringPreferencesKey("yt_engine_active_version")
         val YT_ENGINE_LAST_UPDATE_MS = longPreferencesKey("yt_engine_last_update_ms")
@@ -490,6 +495,8 @@ class PreferencesManager @Inject constructor(
         firingControlMode = this[Keys.FIRING_CONTROL_MODE] ?: "hybrid",
         challengeBypassEnabled = this[Keys.CHALLENGE_BYPASS_ENABLED] ?: false,
         challengeBypassDelaySeconds = this[Keys.CHALLENGE_BYPASS_DELAY] ?: 30,
+        challengeAudioDuckingEnabled = this[Keys.CHALLENGE_AUDIO_DUCKING_ENABLED] ?: false,
+        challengeAudioDuckPercent = this[Keys.CHALLENGE_AUDIO_DUCK_PERCENT] ?: 35,
         ytEngineBundledVersion = this[Keys.YT_ENGINE_BUNDLED_VERSION] ?: "",
         ytEngineActiveVersion = this[Keys.YT_ENGINE_ACTIVE_VERSION] ?: "",
         ytEngineLastUpdateMs = this[Keys.YT_ENGINE_LAST_UPDATE_MS] ?: 0L,
@@ -575,6 +582,8 @@ class PreferencesManager @Inject constructor(
         this[Keys.FIRING_CONTROL_MODE] = s.firingControlMode
         this[Keys.CHALLENGE_BYPASS_ENABLED] = s.challengeBypassEnabled
         this[Keys.CHALLENGE_BYPASS_DELAY] = s.challengeBypassDelaySeconds
+        this[Keys.CHALLENGE_AUDIO_DUCKING_ENABLED] = s.challengeAudioDuckingEnabled
+        this[Keys.CHALLENGE_AUDIO_DUCK_PERCENT] = s.challengeAudioDuckPercent
         this[Keys.YT_ENGINE_BUNDLED_VERSION] = s.ytEngineBundledVersion
         this[Keys.YT_ENGINE_ACTIVE_VERSION] = s.ytEngineActiveVersion
         this[Keys.YT_ENGINE_LAST_UPDATE_MS] = s.ytEngineLastUpdateMs

@@ -119,6 +119,11 @@ data class FiringUiState(
     }
 }
 
+data class ChallengeAudioDuckingPreference(
+    val enabled: Boolean = false,
+    val volumePercent: Int = 35
+)
+
 @HiltViewModel
 class AlarmFiringViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -162,6 +167,20 @@ class AlarmFiringViewModel @Inject constructor(
     val firingControlMode: StateFlow<String> = preferencesManager.settings
         .map { it.firingControlMode }
         .stateIn(viewModelScope, SharingStarted.Eagerly, "hybrid")
+
+    val challengeAudioDucking: StateFlow<ChallengeAudioDuckingPreference> =
+        preferencesManager.settings
+            .map {
+                ChallengeAudioDuckingPreference(
+                    enabled = it.challengeAudioDuckingEnabled,
+                    volumePercent = it.challengeAudioDuckPercent
+                )
+            }
+            .stateIn(
+                viewModelScope,
+                SharingStarted.Eagerly,
+                ChallengeAudioDuckingPreference()
+            )
 
     // v1.2.0: Challenge chain list built from alarm config
     private var challengeChainTypes: List<ChallengeType> = emptyList()

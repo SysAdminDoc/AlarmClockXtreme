@@ -20,6 +20,19 @@ internal fun randomRingtoneStartOffsetMs(durationMs: Long, randomUnit: Double): 
     return (latestStart * randomUnit.coerceIn(0.0, 1.0)).toLong()
 }
 
+internal fun alarmPlaybackGain(
+    callMuted: Boolean,
+    challengeDuckingActive: Boolean,
+    challengeDuckPercent: Int,
+    rampGain: Float
+): Float {
+    if (callMuted) return 0f
+    val duckGain = if (challengeDuckingActive) {
+        challengeDuckPercent.coerceIn(10, 80) / 100f
+    } else 1f
+    return (rampGain.coerceIn(0f, 1f) * duckGain).coerceIn(0f, 1f)
+}
+
 private object PlaybackMainThread {
     private val handler = Handler(Looper.getMainLooper())
 

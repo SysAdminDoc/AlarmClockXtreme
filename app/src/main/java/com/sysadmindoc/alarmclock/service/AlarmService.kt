@@ -74,10 +74,14 @@ class AlarmService : Service() {
         const val ACTION_START_ALARM = "com.sysadmindoc.alarmclock.START_ALARM"
         const val ACTION_SNOOZE = "com.sysadmindoc.alarmclock.SNOOZE"
         const val ACTION_DISMISS = "com.sysadmindoc.alarmclock.DISMISS"
+        const val ACTION_SET_CHALLENGE_DUCKING =
+            "com.sysadmindoc.alarmclock.SET_CHALLENGE_DUCKING"
         const val EXTRA_CUSTOM_SNOOZE_MINUTES = "custom_snooze_minutes"
         const val EXTRA_CHALLENGE_RETRY_COUNT = "challenge_retry_count"
         const val EXTRA_CHALLENGE_SOLVE_TIME_MS = "challenge_solve_time_ms"
         const val EXTRA_WAKE_CONFIRM_REFIRE_COUNT = "wake_confirm_refire_count"
+        const val EXTRA_CHALLENGE_DUCKING_ACTIVE = "challenge_ducking_active"
+        const val EXTRA_CHALLENGE_DUCK_PERCENT = "challenge_duck_percent"
         private const val MIN_CUSTOM_SNOOZE_MINUTES = 1
         private const val MAX_CUSTOM_SNOOZE_MINUTES = 120
 
@@ -213,6 +217,12 @@ class AlarmService : Service() {
     // would mean every passive call state change touched the player ref.
     @Volatile
     private var callMutedAudio: Boolean = false
+    @Volatile
+    private var challengeAudioDuckingActive: Boolean = false
+    @Volatile
+    private var challengeAudioDuckPercent: Int = 35
+    @Volatile
+    private var playbackRampGain: Float = 1f
     private var telephonyCallback: TelephonyCallback? = null
     @Suppress("DEPRECATION")
     private var legacyPhoneStateListener: PhoneStateListener? = null
@@ -308,6 +318,20 @@ class AlarmService : Service() {
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                 }
                 serviceScope.launch { snoozeAlarm(alarmId, customMinutes) }
+            }
+            ACTION_SET_CHALLENGE_DUCKING -> {
+                val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1L)
+                if (alarmId == currentAlarmId && alarmId > 0L) {
+                    challengeAudioDuckingActive = intent.getBooleanExtra(
+                        EXTRA_CHALLENGE_DUCKING_ACTIVE,
+                        false
+                    )
+                    challengeAudioDuckPercent = intent.getIntExtra(
+                        EXTRA_CHALLENGE_DUCK_PERCENT,
+                        35
+                    ).coerceIn(10, 80)
+                    applyPlaybackGain()
+                }
             }
             ACTION_DISMISS -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
@@ -529,7 +553,8 @@ class AlarmService : Service() {
                     reasonCode = "BACKUP_SOUND_ESCALATED",
                     source = "AlarmService"
                 )
-                if (!callMutedAudio) alarmPlayback?.setVolume(1f, 1f)
+                playbackRampGain = 1f
+                applyPlaybackGain()
             }
         }
 
@@ -869,7 +894,12 @@ class AlarmService : Service() {
                 mediaItem = MediaItem.fromUri(radioUrl),
                 audioAttributes = AlarmAudioRouting.media3AlarmMusicAttributes(),
                 repeatMode = Player.REPEAT_MODE_OFF,
-                initialVolume = if (callMutedAudio) 0f else 1f,
+                initialVolume = alarmPlaybackGain(
+                    callMuted = callMutedAudio,
+                    challengeDuckingActive = challengeAudioDuckingActive,
+                    challengeDuckPercent = challengeAudioDuckPercent,
+                    rampGain = 1f
+                ),
                 onReady = {
                     updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
                     recordIncidentAsync(
@@ -881,9 +911,8 @@ class AlarmService : Service() {
                     if (alarm.overrideSystemVolume) {
                         setConfiguredAlarmStreamVolume(alarm)
                     }
-                    if (callMutedAudio) {
-                        playbackRef?.setVolume(0f, 0f)
-                    }
+                    playbackRampGain = 1f
+                    applyPlaybackGain()
                 },
                 onEnded = {},
                 onError = { error ->
@@ -925,10 +954,15 @@ class AlarmService : Service() {
         try {
             val fadeInMs = alarm.gradualVolumeSeconds * 1000L
             val initialVolume = when {
-                callMutedAudio -> 0f
                 fadeInMs > 0 -> 0f
-                else -> 1f
+                else -> alarmPlaybackGain(
+                    callMuted = callMutedAudio,
+                    challengeDuckingActive = challengeAudioDuckingActive,
+                    challengeDuckPercent = challengeAudioDuckPercent,
+                    rampGain = 1f
+                )
             }
+            playbackRampGain = if (fadeInMs > 0) 0f else 1f
             var playbackRef: AlarmPlaybackPlayer? = null
             val playbackStarted = AtomicBoolean(false)
             val playback = createMedia3Playback(
@@ -942,9 +976,7 @@ class AlarmService : Service() {
                     if (alarm.overrideSystemVolume) {
                         setConfiguredAlarmStreamVolume(alarm)
                     }
-                    if (callMutedAudio) {
-                        playbackRef?.setVolume(0f, 0f)
-                    }
+                    applyPlaybackGain()
                     updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
                     recordIncidentAsync(
                         type = AlarmIncidentEvent.TYPE_AUDIO,
@@ -1006,9 +1038,9 @@ class AlarmService : Service() {
                     val stepDelay = fadeInMs / steps
                     for (i in 1..steps) {
                         delay(stepDelay)
-                        if (callMutedAudio) continue
                         val volume = i.toFloat() / steps
-                        alarmPlayback?.setVolume(volume, volume)
+                        playbackRampGain = volume
+                        applyPlaybackGain()
                     }
                 }
             }
@@ -1147,7 +1179,8 @@ class AlarmService : Service() {
                             audioManager.setStreamVolume(AudioManager.STREAM_ALARM, targetVol, 0)
                         }
                         // v1.11.2: if a call landed during prepareAsync, honour it.
-                        if (callMutedAudio) try { playback.setVolume(0f, 0f) } catch (_: Exception) {}
+                        playbackRampGain = 1f
+                        applyPlaybackGain()
                     }
                     // Without an OnErrorListener, a stream failure (DNS, 404, codec
                     // mismatch) results in a silent alarm — fall back to the device
@@ -1246,8 +1279,14 @@ class AlarmService : Service() {
                 // hears the alarm immediately at the configured level.
                 // v1.11.2: callMutedAudio overrides both — a ringing call at
                 // alarm fire-time keeps audio at 0 until the call ends.
-                if (callMutedAudio) setVolume(0f, 0f)
-                else if (fadeInMs > 0) setVolume(0f, 0f) else setVolume(1f, 1f)
+                playbackRampGain = if (fadeInMs > 0) 0f else 1f
+                val initialGain = alarmPlaybackGain(
+                    callMuted = callMutedAudio,
+                    challengeDuckingActive = challengeAudioDuckingActive,
+                    challengeDuckPercent = challengeAudioDuckPercent,
+                    rampGain = playbackRampGain
+                )
+                setVolume(initialGain, initialGain)
                 start()
                 updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
             }
@@ -1266,9 +1305,9 @@ class AlarmService : Service() {
                         delay(stepDelay)
                         // v1.11.2: the call observer takes priority; don't ramp
                         // volume during a call (it'll be restored on IDLE).
-                        if (callMutedAudio) continue
                         val volume = i.toFloat() / steps
-                        alarmPlayback?.setVolume(volume, volume)
+                        playbackRampGain = volume
+                        applyPlaybackGain()
                     }
                 }
             }
@@ -1297,7 +1336,14 @@ class AlarmService : Service() {
                         isLooping = true
                         prepare()
                         // v1.11.2: honour an active call right out of the gate.
-                        if (callMutedAudio) setVolume(0f, 0f) else setVolume(1f, 1f)
+                        playbackRampGain = 1f
+                        val gain = alarmPlaybackGain(
+                            callMuted = callMutedAudio,
+                            challengeDuckingActive = challengeAudioDuckingActive,
+                            challengeDuckPercent = challengeAudioDuckPercent,
+                            rampGain = playbackRampGain
+                        )
+                        setVolume(gain, gain)
                         start()
                         updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
                     }
@@ -1854,6 +1900,9 @@ class AlarmService : Service() {
         vibrator = null
         unregisterCallObserver()
         callMutedAudio = false
+        challengeAudioDuckingActive = false
+        challengeAudioDuckPercent = 35
+        playbackRampGain = 1f
     }
 
     /**
@@ -1936,11 +1985,21 @@ class AlarmService : Service() {
             state == TelephonyManager.CALL_STATE_RINGING
         if (onCall && !callMutedAudio) {
             callMutedAudio = true
-            try { alarmPlayback?.setVolume(0f, 0f) } catch (_: Exception) {}
+            applyPlaybackGain()
         } else if (!onCall && callMutedAudio) {
             callMutedAudio = false
-            try { alarmPlayback?.setVolume(1f, 1f) } catch (_: Exception) {}
+            applyPlaybackGain()
         }
+    }
+
+    private fun applyPlaybackGain() {
+        val gain = alarmPlaybackGain(
+            callMuted = callMutedAudio,
+            challengeDuckingActive = challengeAudioDuckingActive,
+            challengeDuckPercent = challengeAudioDuckPercent,
+            rampGain = playbackRampGain
+        )
+        try { alarmPlayback?.setVolume(gain, gain) } catch (_: Exception) {}
     }
 
     override fun onDestroy() {

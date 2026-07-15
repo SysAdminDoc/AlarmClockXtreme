@@ -33,6 +33,10 @@ class BackupManagerSettingsDriftTest {
         "webhookLastDeliveryStatus",
         "webhookLastDeliveryAtMillis",
         "webhookDeliveryLog",
+        // Device-local audio comfort settings should not silently change alarm
+        // loudness when a backup moves to hardware with different speakers.
+        "challengeAudioDuckingEnabled",
+        "challengeAudioDuckPercent",
     )
 
     @Test

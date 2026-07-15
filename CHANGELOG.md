@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- An opt-in accessibility setting can reduce alarm-player volume to 20–65%
+  while a dismiss challenge is active. Challenge completion restores the live
+  fade level, phone calls still mute completely, and system volume is untouched.
 - Ringtone pools now combine their existing per-fire track shuffle with a
   bounded random start offset for clips at least 30 seconds long, while always
   preserving the final 15 seconds and supporting both playback backends.

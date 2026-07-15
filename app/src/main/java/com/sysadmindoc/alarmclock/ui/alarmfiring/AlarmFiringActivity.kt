@@ -39,6 +39,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
@@ -213,6 +214,23 @@ class AlarmFiringActivity : ComponentActivity() {
                     else -> disableNfcForegroundDispatch()
                 }
             }
+        }
+
+        lifecycleScope.launch {
+            combine(viewModel.uiState, viewModel.challengeAudioDucking) { state, preference ->
+                ChallengeAudioDuckingCommand(
+                    active = shouldDuckAlarmForChallenge(
+                        enabled = preference.enabled,
+                        challengePresent = state.challenge != null,
+                        challengeSolved = state.challengeSolved
+                    ),
+                    volumePercent = preference.volumePercent
+                )
+            }
+                .distinctUntilChanged()
+                .collect { command ->
+                    updateChallengeAudioDucking(command)
+                }
         }
 
         // F6: Flip-to-snooze — only register the sensor listener when:
@@ -721,6 +739,7 @@ class AlarmFiringActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        updateChallengeAudioDucking(ChallengeAudioDuckingCommand(active = false, volumePercent = 100))
         flashWakeJob?.cancel()
         sunriseJob?.cancel()
         stopShakeDetection()
@@ -732,6 +751,25 @@ class AlarmFiringActivity : ComponentActivity() {
         stopFlipDetector()
         stopCoverDetector()
         super.onDestroy()
+    }
+
+    private fun updateChallengeAudioDucking(command: ChallengeAudioDuckingCommand) {
+        if (alarmId <= 0L) return
+        runCatching {
+            startService(
+                Intent(this, com.sysadmindoc.alarmclock.service.AlarmService::class.java)
+                    .setAction(com.sysadmindoc.alarmclock.service.AlarmService.ACTION_SET_CHALLENGE_DUCKING)
+                    .putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+                    .putExtra(
+                        com.sysadmindoc.alarmclock.service.AlarmService.EXTRA_CHALLENGE_DUCKING_ACTIVE,
+                        command.active
+                    )
+                    .putExtra(
+                        com.sysadmindoc.alarmclock.service.AlarmService.EXTRA_CHALLENGE_DUCK_PERCENT,
+                        command.volumePercent
+                    )
+            )
+        }
     }
 
     private fun recordIncidentAsync(
@@ -753,3 +791,14 @@ class AlarmFiringActivity : ComponentActivity() {
         )
     }
 }
+
+internal data class ChallengeAudioDuckingCommand(
+    val active: Boolean,
+    val volumePercent: Int
+)
+
+internal fun shouldDuckAlarmForChallenge(
+    enabled: Boolean,
+    challengePresent: Boolean,
+    challengeSolved: Boolean
+): Boolean = enabled && challengePresent && !challengeSolved
