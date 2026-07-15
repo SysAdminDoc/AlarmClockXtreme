@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- Ringtone pools now combine their existing per-fire track shuffle with a
+  bounded random start offset for clips at least 30 seconds long, while always
+  preserving the final 15 seconds and supporting both playback backends.
 - The alarm editor now opens as a compact overview with live summaries for
   sound, dismissal, scheduling, wake behavior, integrations, and advanced
   controls. Focused category pages keep one draft across navigation and adapt

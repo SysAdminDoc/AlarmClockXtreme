@@ -938,6 +938,7 @@ class AlarmService : Service() {
                 initialVolume = initialVolume,
                 onReady = {
                     playbackStarted.set(true)
+                    seekToRandomPoolOffset(alarm, playbackRef)
                     if (alarm.overrideSystemVolume) {
                         setConfiguredAlarmStreamVolume(alarm)
                     }
@@ -1231,6 +1232,8 @@ class AlarmService : Service() {
                 }
                 prepare()
 
+                seekToRandomPoolOffset(alarm, playback)
+
                 if (alarm.overrideSystemVolume) {
                     val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
                     val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
@@ -1314,6 +1317,17 @@ class AlarmService : Service() {
                     source = "AlarmService"
                 )
             }
+        }
+    }
+
+    private fun seekToRandomPoolOffset(alarm: Alarm, playback: AlarmPlaybackPlayer?) {
+        if (alarm.ringtonePool.isBlank() || playback == null) return
+        val offset = randomRingtoneStartOffsetMs(
+            durationMs = playback.durationMs(),
+            randomUnit = kotlin.random.Random.nextDouble()
+        )
+        if (offset > 0L) {
+            runCatching { playback.seekTo(offset) }
         }
     }
 

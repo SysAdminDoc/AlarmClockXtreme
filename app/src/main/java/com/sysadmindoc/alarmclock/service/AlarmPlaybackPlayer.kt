@@ -9,7 +9,15 @@ import java.util.concurrent.atomic.AtomicReference
 
 internal interface AlarmPlaybackPlayer {
     fun setVolume(left: Float, right: Float)
+    fun durationMs(): Long
+    fun seekTo(positionMs: Long)
     fun stopAndRelease()
+}
+
+internal fun randomRingtoneStartOffsetMs(durationMs: Long, randomUnit: Double): Long {
+    if (durationMs < 30_000L) return 0L
+    val latestStart = (durationMs - 15_000L).coerceAtLeast(0L)
+    return (latestStart * randomUnit.coerceIn(0.0, 1.0)).toLong()
 }
 
 private object PlaybackMainThread {
@@ -77,6 +85,12 @@ internal class MediaPlayerAlarmPlaybackPlayer(
         player.setVolume(left, right)
     }
 
+    override fun durationMs(): Long = runCatching { player.duration.toLong() }.getOrDefault(0L)
+
+    override fun seekTo(positionMs: Long) {
+        player.seekTo(positionMs.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt())
+    }
+
     override fun stopAndRelease() {
         try {
             if (player.isPlaying) {
@@ -97,6 +111,12 @@ internal class Media3AlarmPlaybackPlayer(
         PlaybackMainThread.run {
             player.volume = minOf(left, right).coerceIn(0f, 1f)
         }
+    }
+
+    override fun durationMs(): Long = callOnPlaybackMainThread { player.duration.coerceAtLeast(0L) }
+
+    override fun seekTo(positionMs: Long) {
+        PlaybackMainThread.run { player.seekTo(positionMs.coerceAtLeast(0L)) }
     }
 
     override fun stopAndRelease() {
