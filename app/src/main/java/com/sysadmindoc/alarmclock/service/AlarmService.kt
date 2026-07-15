@@ -1401,7 +1401,15 @@ class AlarmService : Service() {
         // Devices without a vibrator (some tablets, Wear shells, emulators) — skip silently.
         if (vibrator == null || vibrator?.hasVibrator() != true) return
 
-        if (AlarmHapticController.usesHapticOnlyProfile(alarm) && startHapticOnlyCompositionLoop()) {
+        if (Build.VERSION.SDK_INT >= 36 && startEscalatingEnvelope(alarm)) {
+            return
+        }
+
+        if (
+            alarm.vibrationPattern != "escalating" &&
+            AlarmHapticController.usesHapticOnlyProfile(alarm) &&
+            startHapticOnlyCompositionLoop()
+        ) {
             return
         }
 
@@ -1416,6 +1424,26 @@ class AlarmService : Service() {
         } else {
             vibrator?.vibrate(VibrationEffect.createWaveform(waveform.pattern, 0), vibrationAttributes)
         }
+    }
+
+    @androidx.annotation.RequiresApi(36)
+    private fun startEscalatingEnvelope(alarm: Alarm): Boolean {
+        val activeVibrator = vibrator ?: return false
+        val plan = AlarmHapticController.escalatingEnvelope(alarm) ?: return false
+        return runCatching {
+            if (!activeVibrator.areEnvelopeEffectsSupported()) return@runCatching false
+            val builder = VibrationEffect.BasicEnvelopeBuilder()
+                .setInitialSharpness(plan.initialSharpness)
+            plan.points.forEach { point ->
+                builder.addControlPoint(point.intensity, point.sharpness, point.durationMillis)
+            }
+            val repeatingEffect = VibrationEffect.createRepeatingEffect(builder.build())
+            activeVibrator.vibrate(
+                repeatingEffect,
+                VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM)
+            )
+            true
+        }.getOrDefault(false)
     }
 
     private fun startHapticOnlyCompositionLoop(): Boolean {

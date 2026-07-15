@@ -50,6 +50,28 @@ class AlarmServiceControllerTest {
     }
 
     @Test
+    fun hapticControllerBuildsBoundedEscalatingEnvelopeAtSelectedStrength() {
+        val gentleAlarm = Alarm(
+            vibrationEnabled = true,
+            vibrationPattern = "escalating",
+            vibrationIntensity = 1
+        )
+        val strongAlarm = gentleAlarm.copy(vibrationIntensity = 2)
+
+        val gentle = requireNotNull(AlarmHapticController.escalatingEnvelope(gentleAlarm))
+        val strong = requireNotNull(AlarmHapticController.escalatingEnvelope(strongAlarm))
+
+        assertEquals(8, gentle.points.size)
+        assertTrue(gentle.points.all { it.durationMillis in 20L..1_000L })
+        assertEquals(0f, gentle.points.last().intensity)
+        assertEquals(0.55f, gentle.points.maxOf { it.intensity })
+        assertEquals(1f, strong.points.maxOf { it.intensity })
+        assertEquals(140, AlarmHapticController.waveform(gentleAlarm).amplitudes.max())
+        assertEquals(255, AlarmHapticController.waveform(strongAlarm).amplitudes.max())
+        assertNull(AlarmHapticController.escalatingEnvelope(gentleAlarm.copy(vibrationPattern = "sos")))
+    }
+
+    @Test
     fun flashlightControllerOnlyPlansEnabledStrobe() {
         assertNull(AlarmFlashlightController.strobePlan(Alarm(flashlightStrobe = false)))
 

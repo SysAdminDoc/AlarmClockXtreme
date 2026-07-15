@@ -275,6 +275,10 @@ class AlarmEditViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(vibrationEnabled = enabled)
     }
 
+    fun updateVibrationIntensity(intensity: Int) {
+        _uiState.value = _uiState.value.copy(vibrationIntensity = intensity.coerceIn(1, 2))
+    }
+
     fun updateVolume(volume: Int) {
         _uiState.value = _uiState.value.copy(volume = volume.coerceIn(0, 100))
     }

@@ -6,6 +6,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- The Escalating vibration pattern now uses Android 16's hardware-adaptive
+  basic haptic envelopes when supported, with a smooth zero-to-peak ramp,
+  alarm-class vibration attributes, Gentle/Strong per-alarm strength, and the
+  existing repeating waveform as the automatic fallback on older hardware.
 - Android 16 running timers, active snoozes, and Hue sunrise ramps now expose
   promoted `ProgressStyle` Live Updates with countdown chips. Timers and Hue
   keep a quiet ongoing chronometer notification on older Android versions,

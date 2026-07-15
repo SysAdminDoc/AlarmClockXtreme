@@ -758,6 +758,48 @@ fun AlarmEditScreen(
                         }
                     }
 
+                    if (state.vibrationPattern == "escalating") {
+                        var showIntensityMenu by remember { mutableStateOf(false) }
+                        val intensities = listOf(1 to "Gentle", 2 to "Strong")
+                        SettingsRow(label = "Ramp strength") {
+                            Box {
+                                SettingsValueButton(
+                                    label = intensities.firstOrNull {
+                                        it.first == state.vibrationIntensity
+                                    }?.second ?: "Strong",
+                                    onClick = { showIntensityMenu = true }
+                                )
+                                DropdownMenu(
+                                    expanded = showIntensityMenu,
+                                    onDismissRequest = { showIntensityMenu = false }
+                                ) {
+                                    intensities.forEach { (intensity, label) ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    label,
+                                                    color = if (intensity == state.vibrationIntensity) {
+                                                        AccentBlue
+                                                    } else {
+                                                        TextPrimary
+                                                    }
+                                                )
+                                            },
+                                            onClick = {
+                                                viewModel.updateVibrationIntensity(intensity)
+                                                showIntensityMenu = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        SettingsHint(
+                            "Android 16 uses a smooth haptic envelope; older devices use the same gentle-to-strong pulse pattern.",
+                            tone = HintTone.Neutral
+                        )
+                    }
+
                     // v1.12.0 (roadmap N7): vibration start-delay
                     var showVibDelayMenu by remember { mutableStateOf(false) }
                     SettingsRow(label = "Start vibration after") {
