@@ -1082,6 +1082,65 @@
     <string name="settings_use_accent">Use %1$s accent</string>
     <string name="settings_accent_semantics">%1$s accent color</string>
 
+    <!-- Settings backup and restore -->
+    <string name="settings_unexpected_error">unexpected error</string>
+    <string name="settings_fossify_preview_failed">Fossify preview failed: %1$s</string>
+    <string name="settings_backup_inspection_failed">Backup contents could not be inspected: %1$s</string>
+    <string name="settings_backup_restore">Backup and restore</string>
+    <string name="settings_backup_restore_description">Keep a portable copy of alarms and app preferences for new devices or peace of mind.</string>
+    <string name="settings_export">Export</string>
+    <string name="settings_import">Import</string>
+    <string name="settings_plain_backup_description">Plain backups include alarms and global settings in a readable JSON file. AlarmClockXtreme warns before exporting configured secrets or private references.</string>
+    <string name="settings_import_fossify">Import Fossify Clock JSON</string>
+    <string name="settings_import_fossify_description">Previews a bounded Fossify export without changing alarms. Confirmed alarms are appended disabled so times, weekdays, vibration, and available sounds can be reviewed first.</string>
+    <string name="settings_encrypted_backup">Encrypted backup</string>
+    <string name="settings_encrypted_backup_description">Use a passphrase to create an AES-256 encrypted backup. Keep the passphrase somewhere safe; it cannot be recovered by the app.</string>
+    <string name="settings_passphrase">Passphrase</string>
+    <string name="settings_passphrase_required">Required for encrypted files</string>
+    <string name="settings_confirm_passphrase">Confirm passphrase</string>
+    <string name="settings_confirm_passphrase_required">Required before encrypted export</string>
+    <string name="settings_passphrase_mismatch">Passphrases do not match. Encrypted import uses only the first field.</string>
+    <string name="settings_encrypt_export">Encrypt export</string>
+    <string name="settings_decrypt_import">Decrypt import</string>
+    <string name="settings_inspecting_backup">Inspecting backup</string>
+    <string name="settings_backup_in_progress">Backup operation in progress</string>
+    <string name="settings_restore_choices_description">Restore choices appear after the file is checked.</string>
+    <string name="settings_backup_locked_description">Backup buttons stay locked until the result appears.</string>
+    <string name="settings_backup_attention">Backup needs attention</string>
+    <string name="settings_backup_complete">Backup complete</string>
+    <string name="settings_review_fossify_alarms">Review Fossify alarms</string>
+    <string name="settings_fossify_preview_counts">%1$d valid alarms; %2$d invalid rows skipped.</string>
+    <string name="settings_fossify_import_disabled_summary">All imports will be disabled. %1$d were enabled in Fossify.</string>
+    <plurals name="settings_fossify_unreadable_ringtones"><item quantity="one">%1$d ringtone URI is not readable on this device and will use the default alarm sound.</item><item quantity="other">%1$d ringtone URIs are not readable on this device and will use the default alarm sound.</item></plurals>
+    <string name="settings_fossify_days_suffix"> • %1$s</string>
+    <string name="settings_fossify_alarm_summary">%1$02d:%2$02d  %3$s%4$s</string>
+    <plurals name="settings_more_items"><item quantity="one">+ %1$d more</item><item quantity="other">+ %1$d more</item></plurals>
+    <string name="settings_import_disabled">Import disabled</string>
+    <string name="settings_review_backup">Review backup before restore</string>
+    <string name="settings_review_backup_description">Nothing changes until you choose how to restore this backup.</string>
+    <string name="settings_backup_version">Backup v%1$d from app %2$s</string>
+    <string name="settings_unknown">unknown</string>
+    <string name="settings_close">Close</string>
+    <string name="settings_backup_alarm_counts">%1$d alarms, %2$d enabled</string>
+    <plurals name="settings_backup_invalid_rows"><item quantity="one">%1$d alarm row could not be read and will be skipped.</item><item quantity="other">%1$d alarm rows could not be read and will be skipped.</item></plurals>
+    <string name="settings_global_settings_restored">Global settings will be restored.</string>
+    <string name="settings_global_settings_missing">This backup does not include global settings.</string>
+    <string name="settings_private_values_detected">Private values detected:</string>
+    <string name="settings_list_item">- %1$s</string>
+    <string name="settings_keep_restored_disabled">Keep restored alarms disabled until I review them</string>
+    <string name="settings_append_alarms">Append alarms</string>
+    <string name="settings_replace_alarms">Replace alarms</string>
+    <string name="settings_export_time_unknown">Export time unknown</string>
+    <string name="settings_exported_at">Exported %1$s</string>
+    <string name="settings_encrypted_backup_private">Encrypted backup includes private values</string>
+    <string name="settings_plain_backup_private">Plain backup includes private values</string>
+    <string name="settings_private_values_encrypted">These values will be inside the encrypted file:</string>
+    <string name="settings_private_values_plain">These values will be readable in the exported JSON:</string>
+    <string name="settings_encrypted_backup_warning">Keep the passphrase private. Anyone with the file and passphrase can restore these values.</string>
+    <string name="settings_plain_backup_warning">Use encrypted export when sharing or storing backups outside your own device.</string>
+    <string name="settings_export_encrypted_backup">Export encrypted backup</string>
+    <string name="settings_export_plain_backup">Export plain backup</string>
+
     <!-- Onboarding -->
     <string name="onboarding_app_title">Alarm Clock Xtreme</string>
     <string name="onboarding_tagline">Dependable mornings with less friction</string>

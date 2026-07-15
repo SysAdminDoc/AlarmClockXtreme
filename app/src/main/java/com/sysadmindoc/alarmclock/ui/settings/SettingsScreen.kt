@@ -3026,6 +3026,8 @@ private val lightAccentSwatches = setOf("#FFB347", "#5BD49A", "#E0E4EA")
 
 @Composable
 private fun BackupRestoreSection(viewModel: SettingsViewModel) {
+    val context = LocalContext.current
+    val unexpectedError = stringResource(R.string.settings_unexpected_error)
     val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
     val backupBusy by viewModel.backupBusy.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -3108,7 +3110,10 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                     .onSuccess { preview -> pendingFossifyImport = PendingFossifyImport(uri, preview) }
                     .onFailure { error ->
                         viewModel.showBackupResult(
-                            "Fossify preview failed: ${error.message ?: "unexpected error"}"
+                            context.getString(
+                                R.string.settings_fossify_preview_failed,
+                                error.message ?: unexpectedError
+                            )
                         )
                     }
             } finally {
@@ -3150,7 +3155,12 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 viewModel.inspectBackupExportWarning()
             }.getOrElse { error ->
                 BackupExportWarning(
-                    listOf("Backup contents could not be inspected: ${error.message ?: "unexpected error"}")
+                    listOf(
+                        context.getString(
+                            R.string.settings_backup_inspection_failed,
+                            error.message ?: unexpectedError
+                        )
+                    )
                 )
             }
             if (warning.shouldWarn) {
@@ -3163,8 +3173,8 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     }
 
     SettingsGroup(
-        title = "Backup and restore",
-        description = "Keep a portable copy of alarms and app preferences for new devices or peace of mind."
+        title = stringResource(R.string.settings_backup_restore),
+        description = stringResource(R.string.settings_backup_restore_description)
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedButton(
@@ -3176,7 +3186,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
             ) {
                 Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.size(6.dp))
-                Text("Export")
+                Text(stringResource(R.string.settings_export))
             }
             OutlinedButton(
                 onClick = { importLauncher.launch(arrayOf("application/json")) },
@@ -3187,12 +3197,12 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
             ) {
                 Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.size(6.dp))
-                Text("Import")
+                Text(stringResource(R.string.settings_import))
             }
         }
 
         Text(
-            text = "Plain backups include alarms and global settings in a readable JSON file. AlarmClockXtreme warns before exporting configured secrets or private references.",
+            text = stringResource(R.string.settings_plain_backup_description),
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
@@ -3208,10 +3218,10 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
         ) {
             Icon(Icons.Default.Restore, null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.size(6.dp))
-            Text("Import Fossify Clock JSON")
+            Text(stringResource(R.string.settings_import_fossify))
         }
         Text(
-            text = "Previews a bounded Fossify export without changing alarms. Confirmed alarms are appended disabled so times, weekdays, vibration, and available sounds can be reviewed first.",
+            text = stringResource(R.string.settings_import_fossify_description),
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
@@ -3220,21 +3230,21 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
-                text = "Encrypted backup",
+                text = stringResource(R.string.settings_encrypted_backup),
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = "Use a passphrase to create an AES-256 encrypted backup. Keep the passphrase somewhere safe; it cannot be recovered by the app.",
+                text = stringResource(R.string.settings_encrypted_backup_description),
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )
             OutlinedTextField(
                 value = encryptedPassphrase,
                 onValueChange = { encryptedPassphrase = it },
-                label = { Text("Passphrase") },
-                placeholder = { Text("Required for encrypted files") },
+                label = { Text(stringResource(R.string.settings_passphrase)) },
+                placeholder = { Text(stringResource(R.string.settings_passphrase_required)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
@@ -3248,15 +3258,15 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
             OutlinedTextField(
                 value = encryptedPassphraseConfirm,
                 onValueChange = { encryptedPassphraseConfirm = it },
-                label = { Text("Confirm passphrase") },
-                placeholder = { Text("Required before encrypted export") },
+                label = { Text(stringResource(R.string.settings_confirm_passphrase)) },
+                placeholder = { Text(stringResource(R.string.settings_confirm_passphrase_required)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 isError = passphraseMismatch,
                 supportingText = if (passphraseMismatch) {
                     {
                         Text(
-                            "Passphrases do not match. Encrypted import uses only the first field.",
+                            stringResource(R.string.settings_passphrase_mismatch),
                             color = AccentRed
                         )
                     }
@@ -3280,7 +3290,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 ) {
                     Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.size(6.dp))
-                    Text("Encrypt export")
+                    Text(stringResource(R.string.settings_encrypt_export))
                 }
                 OutlinedButton(
                     onClick = { encryptedImportLauncher.launch(arrayOf("application/json", "*/*")) },
@@ -3291,7 +3301,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 ) {
                     Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.size(6.dp))
-                    Text("Decrypt import")
+                    Text(stringResource(R.string.settings_decrypt_import))
                 }
             }
         }
@@ -3349,15 +3359,18 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = if (importPreviewBusy) "Inspecting backup" else "Backup operation in progress",
+                        text = stringResource(
+                            if (importPreviewBusy) R.string.settings_inspecting_backup
+                            else R.string.settings_backup_in_progress
+                        ),
                         color = TextPrimary,
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text(
                         text = if (importPreviewBusy) {
-                            "Restore choices appear after the file is checked."
+                            stringResource(R.string.settings_restore_choices_description)
                         } else {
-                            "Backup buttons stay locked until the result appears."
+                            stringResource(R.string.settings_backup_locked_description)
                         },
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodySmall
@@ -3370,7 +3383,9 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     backupResult?.let { message ->
         val failed = isFailureStatusMessage(message)
         AppFeedbackCard(
-            title = if (failed) "Backup needs attention" else "Backup complete",
+            title = stringResource(
+                if (failed) R.string.settings_backup_attention else R.string.settings_backup_complete
+            ),
             message = message,
             icon = if (failed) Icons.Default.Warning else Icons.Default.Backup,
             color = if (failed) AccentRed else DismissGreen,
@@ -3403,52 +3418,74 @@ private fun FossifyImportPreviewDialog(
     onImport: () -> Unit
 ) {
     val preview = pending.preview
+    val defaultAlarmLabel = stringResource(R.string.direct_boot_alarm_title)
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Restore, contentDescription = null) },
-        title = { Text("Review Fossify alarms") },
+        title = { Text(stringResource(R.string.settings_review_fossify_alarms)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "${preview.alarmCount} valid alarms; ${preview.invalidAlarmCount} invalid rows skipped.",
+                    stringResource(
+                        R.string.settings_fossify_preview_counts,
+                        preview.alarmCount,
+                        preview.invalidAlarmCount
+                    ),
                     color = TextPrimary
                 )
                 Text(
-                    "All imports will be disabled. ${preview.sourceEnabledAlarmCount} were enabled in Fossify.",
+                    stringResource(
+                        R.string.settings_fossify_import_disabled_summary,
+                        preview.sourceEnabledAlarmCount
+                    ),
                     color = SnoozeYellow,
                     style = MaterialTheme.typography.bodySmall
                 )
                 if (preview.unreadableRingtoneCount > 0) {
                     Text(
-                        "${preview.unreadableRingtoneCount} ringtone URI${if (preview.unreadableRingtoneCount == 1) " is" else "s are"} not readable on this device and will use the default alarm sound.",
+                        pluralStringResource(
+                            R.plurals.settings_fossify_unreadable_ringtones,
+                            preview.unreadableRingtoneCount,
+                            preview.unreadableRingtoneCount
+                        ),
                         color = AccentRed,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 preview.alarms.take(5).forEach { alarm ->
                     val days = alarm.repeatDays.joinToString(", ") { it.name.take(3) }
+                    val daySummary = if (days.isBlank()) {
+                        ""
+                    } else {
+                        stringResource(R.string.settings_fossify_days_suffix, days)
+                    }
                     Text(
-                        "%02d:%02d  %s%s".format(
+                        stringResource(
+                            R.string.settings_fossify_alarm_summary,
                             alarm.hour,
                             alarm.minute,
-                            alarm.label.ifBlank { "Alarm" },
-                            if (days.isBlank()) "" else " • $days"
+                            alarm.label.ifBlank { defaultAlarmLabel },
+                            daySummary
                         ),
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 if (preview.alarmCount > 5) {
-                    Text("+ ${preview.alarmCount - 5} more", color = TextMuted)
+                    val remaining = preview.alarmCount - 5
+                    Text(
+                        pluralStringResource(R.plurals.settings_more_items, remaining, remaining),
+                        color = TextMuted
+                    )
                 }
             }
         },
         confirmButton = {
             if (preview.canImport) {
-                TextButton(onClick = onImport) { Text("Import disabled") }
+                TextButton(onClick = onImport) { Text(stringResource(R.string.settings_import_disabled)) }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -3461,6 +3498,7 @@ private fun BackupImportPreviewDialog(
     onImport: (BackupImportMode) -> Unit
 ) {
     val preview = pendingImport.preview
+    val unknownAppVersion = stringResource(R.string.settings_unknown)
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
@@ -3470,11 +3508,11 @@ private fun BackupImportPreviewDialog(
                 tint = if (preview.canImport) MaterialTheme.colorScheme.primary else AccentRed
             )
         },
-        title = { Text("Review backup before restore") },
+        title = { Text(stringResource(R.string.settings_review_backup)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "Nothing changes until you choose how to restore this backup.",
+                    text = stringResource(R.string.settings_review_backup_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextPrimary
                 )
@@ -3484,7 +3522,11 @@ private fun BackupImportPreviewDialog(
                     color = if (preview.canImport) TextPrimary else AccentRed
                 )
                 Text(
-                    text = "Backup v${preview.version} from app ${preview.appVersion.ifBlank { "unknown" }}",
+                    text = stringResource(
+                        R.string.settings_backup_version,
+                        preview.version,
+                        preview.appVersion.ifBlank { unknownAppVersion }
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary
                 )
@@ -3494,36 +3536,44 @@ private fun BackupImportPreviewDialog(
                     color = TextSecondary
                 )
                 Text(
-                    text = "${preview.alarmCount} alarms, ${preview.enabledAlarmCount} enabled",
+                    text = stringResource(
+                        R.string.settings_backup_alarm_counts,
+                        preview.alarmCount,
+                        preview.enabledAlarmCount
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary
                 )
                 if (preview.invalidAlarmCount > 0) {
                     Text(
-                        text = "${preview.invalidAlarmCount} alarm rows could not be read and will be skipped.",
+                        text = pluralStringResource(
+                            R.plurals.settings_backup_invalid_rows,
+                            preview.invalidAlarmCount,
+                            preview.invalidAlarmCount
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = SnoozeYellow
                     )
                 }
                 Text(
                     text = if (preview.settingsIncluded) {
-                        "Global settings will be restored."
+                        stringResource(R.string.settings_global_settings_restored)
                     } else {
-                        "This backup does not include global settings."
+                        stringResource(R.string.settings_global_settings_missing)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary
                 )
                 if (preview.privateDataCategories.isNotEmpty()) {
                     Text(
-                        text = "Private values detected:",
+                        text = stringResource(R.string.settings_private_values_detected),
                         style = MaterialTheme.typography.bodySmall,
                         color = TextPrimary,
                         fontWeight = FontWeight.SemiBold
                     )
                     preview.privateDataCategories.forEach { category ->
                         Text(
-                            text = "- $category",
+                            text = stringResource(R.string.settings_list_item, category),
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary
                         )
@@ -3547,7 +3597,7 @@ private fun BackupImportPreviewDialog(
                             colors = appSwitchColors()
                         )
                         Text(
-                            text = "Keep restored alarms disabled until I review them",
+                            text = stringResource(R.string.settings_keep_restored_disabled),
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary,
                             modifier = Modifier.weight(1f)
@@ -3560,30 +3610,37 @@ private fun BackupImportPreviewDialog(
             if (preview.canImport) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { onImport(BackupImportMode.Append) }) {
-                        Text("Append alarms")
+                        Text(stringResource(R.string.settings_append_alarms))
                     }
                     TextButton(onClick = { onImport(BackupImportMode.Replace) }) {
-                        Text("Replace alarms")
+                        Text(stringResource(R.string.settings_replace_alarms))
                     }
                 }
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(if (preview.canImport) "Cancel" else "Close")
+                Text(
+                    stringResource(if (preview.canImport) R.string.cancel else R.string.settings_close)
+                )
             }
         }
     )
 }
 
+@Composable
 private fun formatBackupExportedAt(exportedAt: Long): String {
-    if (exportedAt <= 0L) return "Export time unknown"
-    return runCatching {
-        "Exported " + DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a", Locale.US)
+    if (exportedAt <= 0L) return stringResource(R.string.settings_export_time_unknown)
+    val formatted = runCatching {
+        DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.MEDIUM, java.time.format.FormatStyle.SHORT)
+            .withLocale(Locale.getDefault())
             .withZone(ZoneId.systemDefault())
             .format(Instant.ofEpochMilli(exportedAt))
-    }.getOrElse {
-        "Export time unknown"
+    }.getOrNull()
+    return if (formatted == null) {
+        stringResource(R.string.settings_export_time_unknown)
+    } else {
+        stringResource(R.string.settings_exported_at, formatted)
     }
 }
 
@@ -3601,32 +3658,35 @@ private fun BackupExportWarningDialog(
         },
         title = {
             Text(
-                text = if (encrypted) "Encrypted backup includes private values" else "Plain backup includes private values"
+                text = stringResource(
+                    if (encrypted) R.string.settings_encrypted_backup_private
+                    else R.string.settings_plain_backup_private
+                )
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = if (encrypted) {
-                        "These values will be inside the encrypted file:"
+                        stringResource(R.string.settings_private_values_encrypted)
                     } else {
-                        "These values will be readable in the exported JSON:"
+                        stringResource(R.string.settings_private_values_plain)
                     },
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextPrimary
                 )
                 warning.categories.forEach { category ->
                     Text(
-                        text = "- $category",
+                        text = stringResource(R.string.settings_list_item, category),
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary
                     )
                 }
                 Text(
                     text = if (encrypted) {
-                        "Keep the passphrase private. Anyone with the file and passphrase can restore these values."
+                        stringResource(R.string.settings_encrypted_backup_warning)
                     } else {
-                        "Use encrypted export when sharing or storing backups outside your own device."
+                        stringResource(R.string.settings_plain_backup_warning)
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary
@@ -3635,12 +3695,17 @@ private fun BackupExportWarningDialog(
         },
         confirmButton = {
             TextButton(onClick = onContinue) {
-                Text(if (encrypted) "Export encrypted backup" else "Export plain backup")
+                Text(
+                    stringResource(
+                        if (encrypted) R.string.settings_export_encrypted_backup
+                        else R.string.settings_export_plain_backup
+                    )
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
