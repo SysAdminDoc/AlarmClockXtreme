@@ -6,6 +6,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- The alarm editor now opens as a compact overview with live summaries for
+  sound, dismissal, scheduling, wake behavior, integrations, and advanced
+  controls. Focused category pages keep one draft across navigation and adapt
+  from one-column phone layouts to two-column wide layouts.
 - A local release-metadata gate now keeps app/Wear versions, README artifacts,
   F-Droid declarations, the API-37 verifier, Room schemas, and backup format
   declarations in sync without relying on hosted CI.

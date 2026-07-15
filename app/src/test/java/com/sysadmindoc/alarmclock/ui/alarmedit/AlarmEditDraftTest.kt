@@ -44,5 +44,32 @@ class AlarmEditDraftTest {
             AlarmEditorExitDecision.STAY,
             alarmEditorExitDecision(hasUnsavedChanges = true, isSaving = true)
         )
+        assertEquals(
+            AlarmEditorExitDecision.SHOW_OVERVIEW,
+            alarmEditorExitDecision(
+                hasUnsavedChanges = true,
+                isSaving = false,
+                page = AlarmEditorPage.SOUND
+            )
+        )
+    }
+
+    @Test
+    fun `editor categories adapt to compact and wide layouts`() {
+        assertEquals(1, alarmEditorCategoryColumns(360))
+        assertEquals(1, alarmEditorCategoryColumns(719))
+        assertEquals(2, alarmEditorCategoryColumns(720))
+        assertEquals(2, alarmEditorCategoryColumns(840))
+    }
+
+    @Test
+    fun `every settings section is assigned to a focused page`() {
+        assertEquals(AlarmEditorPage.OVERVIEW, alarmEditorPageForSection("Label"))
+        assertEquals(AlarmEditorPage.SOUND, alarmEditorPageForSection("Vibration"))
+        assertEquals(AlarmEditorPage.DISMISS, alarmEditorPageForSection("Mission chaining"))
+        assertEquals(AlarmEditorPage.SCHEDULE, alarmEditorPageForSection("Smart alarm"))
+        assertEquals(AlarmEditorPage.WAKE, alarmEditorPageForSection("Morning routine"))
+        assertEquals(AlarmEditorPage.INTEGRATIONS, alarmEditorPageForSection("Guardian Angel"))
+        assertEquals(AlarmEditorPage.ADVANCED, alarmEditorPageForSection("Advanced"))
     }
 }

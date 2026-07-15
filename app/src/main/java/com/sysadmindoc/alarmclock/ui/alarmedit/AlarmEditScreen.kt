@@ -20,7 +20,9 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,8 +30,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,7 +64,39 @@ import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.DayOfWeek
 import java.util.Locale
 
+internal enum class AlarmEditorPage(
+    val title: String,
+    val subtitle: String
+) {
+    OVERVIEW("Alarm overview", "Time, recurrence, label, and current setting summaries."),
+    SOUND("Sound & vibration", "Ringtone, volume, fade-in, and vibration behavior."),
+    DISMISS("Snooze & dismiss", "Snooze timing, challenges, and dismissal safeguards."),
+    SCHEDULE("Schedule & smart wake", "Upcoming rings, holiday policy, and smart wake timing."),
+    WAKE("Wake experience", "Wake effects, announcements, confirmation, and morning routine."),
+    INTEGRATIONS("Integrations & safety", "Hue, audio services, and guardian escalation."),
+    ADVANCED("Advanced behavior", "Shift, solar, hardware, and power-user controls.")
+}
+
+private val LocalAlarmEditorPage = staticCompositionLocalOf { AlarmEditorPage.OVERVIEW }
+
+internal fun alarmEditorCategoryColumns(availableWidthDp: Int): Int =
+    if (availableWidthDp >= 720) 2 else 1
+
+internal fun alarmEditorPageForSection(title: String): AlarmEditorPage = when (title) {
+    "Label", "Group" -> AlarmEditorPage.OVERVIEW
+    "Sound", "Vibration" -> AlarmEditorPage.SOUND
+    "Snooze", "Dismiss challenge", "Location dismissal lock", "Mission chaining",
+    "Anti-snooze" -> AlarmEditorPage.DISMISS
+    "Upcoming fire dates", "Smart alarm", "Holidays" -> AlarmEditorPage.SCHEDULE
+    "Wake effects", "Morning announcement", "Wake confirmation", "Sunrise simulation",
+    "Morning routine" -> AlarmEditorPage.WAKE
+    "Spotify ringtone", "Philips Hue sunrise", "Internet radio", "Guardian Angel" ->
+        AlarmEditorPage.INTEGRATIONS
+    else -> AlarmEditorPage.ADVANCED
+}
+
 internal enum class AlarmEditorExitDecision {
+    SHOW_OVERVIEW,
     NAVIGATE,
     CONFIRM_DISCARD,
     STAY
@@ -67,9 +104,11 @@ internal enum class AlarmEditorExitDecision {
 
 internal fun alarmEditorExitDecision(
     hasUnsavedChanges: Boolean,
-    isSaving: Boolean
+    isSaving: Boolean,
+    page: AlarmEditorPage = AlarmEditorPage.OVERVIEW
 ): AlarmEditorExitDecision = when {
     isSaving -> AlarmEditorExitDecision.STAY
+    page != AlarmEditorPage.OVERVIEW -> AlarmEditorExitDecision.SHOW_OVERVIEW
     hasUnsavedChanges -> AlarmEditorExitDecision.CONFIRM_DISCARD
     else -> AlarmEditorExitDecision.NAVIGATE
 }
@@ -89,16 +128,25 @@ fun AlarmEditScreen(
     var firingBackgroundStatus by remember { mutableStateOf("") }
     var locationDismissStatus by remember { mutableStateOf("") }
     var showDiscardConfirmation by rememberSaveable { mutableStateOf(false) }
+    var editorPageName by rememberSaveable { mutableStateOf(AlarmEditorPage.OVERVIEW.name) }
+    val editorPage = AlarmEditorPage.entries.firstOrNull { it.name == editorPageName }
+        ?: AlarmEditorPage.OVERVIEW
+    val editorScrollState = rememberScrollState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     val requestNavigateBack = {
-        when (alarmEditorExitDecision(state.hasUnsavedChanges, state.isSaving)) {
+        when (alarmEditorExitDecision(state.hasUnsavedChanges, state.isSaving, editorPage)) {
+            AlarmEditorExitDecision.SHOW_OVERVIEW -> editorPageName = AlarmEditorPage.OVERVIEW.name
             AlarmEditorExitDecision.NAVIGATE -> onNavigateBack()
             AlarmEditorExitDecision.CONFIRM_DISCARD -> showDiscardConfirmation = true
             AlarmEditorExitDecision.STAY -> Unit
         }
     }
     BackHandler(enabled = !state.notFound) { requestNavigateBack() }
+
+    LaunchedEffect(editorPage) {
+        editorScrollState.scrollTo(0)
+    }
 
     LaunchedEffect(state.hasUnsavedChanges) {
         if (!state.hasUnsavedChanges) showDiscardConfirmation = false
@@ -251,16 +299,21 @@ fun AlarmEditScreen(
         containerColor = SurfaceDark,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            val editorSubtitle = if (state.isEditing) {
-                "Refine timing, sound, and wake-up behavior."
-            } else {
-                "Build an alarm that feels intentional from the first ring."
-            }
+            val editorTitle = if (editorPage == AlarmEditorPage.OVERVIEW) {
+                if (state.isEditing) "Edit Alarm" else "New Alarm"
+            } else editorPage.title
+            val editorSubtitle = if (editorPage == AlarmEditorPage.OVERVIEW) {
+                if (state.isEditing) {
+                    "Refine timing, sound, and wake-up behavior."
+                } else {
+                    "Build an alarm that feels intentional from the first ring."
+                }
+            } else editorPage.subtitle
             TopAppBar(
                 title = {
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
-                            text = if (state.isEditing) "Edit Alarm" else "New Alarm",
+                            text = editorTitle,
                             color = TextPrimary
                         )
                         Text(
@@ -272,7 +325,19 @@ fun AlarmEditScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = requestNavigateBack, enabled = !state.isSaving) {
-                        Icon(Icons.Default.Close, "Cancel", tint = TextPrimary)
+                        Icon(
+                            imageVector = if (editorPage == AlarmEditorPage.OVERVIEW) {
+                                Icons.Default.Close
+                            } else {
+                                Icons.AutoMirrored.Filled.ArrowBack
+                            },
+                            contentDescription = if (editorPage == AlarmEditorPage.OVERVIEW) {
+                                "Cancel alarm editing"
+                            } else {
+                                "Back to alarm overview"
+                            },
+                            tint = TextPrimary
+                        )
                     }
                 },
                 actions = {},
@@ -326,13 +391,15 @@ fun AlarmEditScreen(
             }
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        CompositionLocalProvider(LocalAlarmEditorPage provides editorPage) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .verticalScroll(editorScrollState),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+            if (editorPage == AlarmEditorPage.OVERVIEW) {
             AppSurfaceCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -440,6 +507,7 @@ fun AlarmEditScreen(
                     )
                 }
             }
+            }
 
             // Label
             SettingsSection("Label") {
@@ -516,6 +584,13 @@ fun AlarmEditScreen(
                         singleLine = true
                     )
                 }
+            }
+
+            if (editorPage == AlarmEditorPage.OVERVIEW) {
+                AlarmEditorCategoryOverview(
+                    state = state,
+                    onSelect = { page -> editorPageName = page.name }
+                )
             }
 
             // Sound settings
@@ -1979,6 +2054,7 @@ fun AlarmEditScreen(
             }
 
             Spacer(modifier = Modifier.height(28.dp))
+            }
         }
     }
 
@@ -2097,7 +2173,167 @@ private fun DaySelector(
 }
 
 @Composable
+private fun AlarmEditorCategoryOverview(
+    state: AlarmEditUiState,
+    onSelect: (AlarmEditorPage) -> Unit
+) {
+    val repeatSummary = state.repeatDays.toAlarmRepeatSummary()
+    val scheduleSummary = when {
+        state.specificDate.isNotBlank() -> "$repeatSummary • Specific date set"
+        state.smartAlarmEnabled -> "$repeatSummary • Smart ${state.smartAlarmWindowMinutes} min window"
+        else -> "$repeatSummary • Fixed wake time"
+    }
+    val wakeFeatures = listOfNotNull(
+        "Flash".takeIf { state.flashWake || state.flashlightStrobe },
+        "Sunrise".takeIf { state.sunriseSimulation },
+        "Announcement".takeIf { state.ttsEnabled },
+        "Routine".takeIf { state.morningRoutine.isNotBlank() }
+    )
+    val integrationCount = listOf(
+        state.spotifyUri.isNotBlank(),
+        state.hueEnabled,
+        state.internetRadioUrl.isNotBlank(),
+        state.guardianEnabled
+    ).count { it }
+    val advancedFeatures = listOfNotNull(
+        "Profile".takeIf { state.profileName.isNotBlank() },
+        "Shift pattern".takeIf { state.shiftPattern.isNotBlank() },
+        "Solar timing".takeIf { state.solarOffsetMinutes != 0 },
+        "Wi-Fi rule".takeIf { state.wifiDismissSsid.isNotBlank() }
+    )
+    val categories = listOf(
+        AlarmEditorCategory(
+            page = AlarmEditorPage.SOUND,
+            title = "Sound & vibration",
+            summary = "${state.soundSummary()} • ${if (state.vibrationEnabled) "Vibration on" else "Vibration off"}",
+            icon = Icons.AutoMirrored.Filled.VolumeUp
+        ),
+        AlarmEditorCategory(
+            page = AlarmEditorPage.DISMISS,
+            title = "Snooze & dismiss",
+            summary = "${state.challengeSummary()} • ${state.snoozeDurationMinutes} min snooze",
+            icon = Icons.Default.TaskAlt
+        ),
+        AlarmEditorCategory(
+            page = AlarmEditorPage.SCHEDULE,
+            title = "Schedule & smart wake",
+            summary = scheduleSummary,
+            icon = Icons.Default.CalendarMonth
+        ),
+        AlarmEditorCategory(
+            page = AlarmEditorPage.WAKE,
+            title = "Wake experience",
+            summary = wakeFeatures.takeIf { it.isNotEmpty() }?.joinToString(" • ") ?: "Standard wake",
+            icon = Icons.Default.WbSunny
+        ),
+        AlarmEditorCategory(
+            page = AlarmEditorPage.INTEGRATIONS,
+            title = "Integrations & safety",
+            summary = if (integrationCount == 0) "No optional integrations" else "$integrationCount active",
+            icon = Icons.Default.Hub
+        ),
+        AlarmEditorCategory(
+            page = AlarmEditorPage.ADVANCED,
+            title = "Advanced behavior",
+            summary = advancedFeatures.takeIf { it.isNotEmpty() }?.joinToString(" • ") ?: "Using defaults",
+            icon = Icons.Default.Tune
+        )
+    )
+
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        AppSectionTitle(
+            title = "Alarm settings",
+            description = "Open a category to adjust it. Your current choices stay visible here."
+        )
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val columns = alarmEditorCategoryColumns(maxWidth.value.toInt())
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                categories.chunked(columns).forEach { rowCategories ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        rowCategories.forEach { category ->
+                            Box(modifier = Modifier.weight(1f)) {
+                                AlarmEditorCategoryCard(category, onSelect)
+                            }
+                        }
+                        repeat(columns - rowCategories.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class AlarmEditorCategory(
+    val page: AlarmEditorPage,
+    val title: String,
+    val summary: String,
+    val icon: ImageVector
+)
+
+@Composable
+private fun AlarmEditorCategoryCard(
+    category: AlarmEditorCategory,
+    onSelect: (AlarmEditorPage) -> Unit
+) {
+    AppSurfaceCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 104.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "${category.title}. ${category.summary}"
+            }
+            .clickable(role = Role.Button) { onSelect(category.page) },
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = category.icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = category.title,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = category.summary,
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = TextMuted
+            )
+        }
+    }
+}
+
+@Composable
 private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    if (alarmEditorPageForSection(title) != LocalAlarmEditorPage.current) return
     Column(
         modifier = Modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -2119,6 +2355,29 @@ private fun CollapsibleGroup(
     initiallyExpanded: Boolean = false,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val editorPage = LocalAlarmEditorPage.current
+    val focusedPages = when (title) {
+        "Dismiss and wake" -> setOf(
+            AlarmEditorPage.DISMISS,
+            AlarmEditorPage.SCHEDULE,
+            AlarmEditorPage.WAKE
+        )
+        "Extras and integrations" -> setOf(
+            AlarmEditorPage.DISMISS,
+            AlarmEditorPage.SCHEDULE,
+            AlarmEditorPage.WAKE,
+            AlarmEditorPage.INTEGRATIONS
+        )
+        else -> null
+    }
+    if (focusedPages != null) {
+        if (editorPage !in focusedPages) return
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            content()
+        }
+        return
+    }
+
     var expanded by remember { mutableStateOf(initiallyExpanded) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Surface(
