@@ -30,6 +30,7 @@ import com.sysadmindoc.alarmclock.service.SonarSleepService
 import com.sysadmindoc.alarmclock.service.SleepSoundPlayer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -149,6 +150,7 @@ class BedtimeViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(BedtimeUiState())
     val uiState: StateFlow<BedtimeUiState> = _uiState.asStateFlow()
+    private var sonarStartConfirmationJob: Job? = null
 
     init {
         loadPersistedState()
@@ -434,6 +436,7 @@ class BedtimeViewModel @Inject constructor(
     }
 
     fun startSonarTracking() {
+        sonarStartConfirmationJob?.cancel()
         if (!hasRecordAudioPermission()) {
             _uiState.update {
                 it.copy(
@@ -455,10 +458,11 @@ class BedtimeViewModel @Inject constructor(
         }.onSuccess {
             _uiState.update {
                 it.copy(
-                    sonarTrackingActive = true,
-                    sonarTrackingStatus = "Monitoring movement and loud sleep sounds. No raw audio is recorded."
+                    sonarTrackingActive = false,
+                    sonarTrackingStatus = "Starting sonar and confirming microphone monitoring."
                 )
             }
+            confirmSonarTrackingStarted()
         }.onFailure { error ->
             _uiState.update {
                 it.copy(
@@ -470,6 +474,7 @@ class BedtimeViewModel @Inject constructor(
     }
 
     fun stopSonarTracking() {
+        sonarStartConfirmationJob?.cancel()
         val intent = Intent(context, SonarSleepService::class.java)
             .setAction(SonarSleepService.ACTION_STOP)
         runCatching { context.startService(intent) }
@@ -492,6 +497,7 @@ class BedtimeViewModel @Inject constructor(
     }
 
     fun noteSonarPermissionDenied() {
+        sonarStartConfirmationJob?.cancel()
         _uiState.update {
             it.copy(
                 sonarTrackingActive = false,
@@ -531,6 +537,42 @@ class BedtimeViewModel @Inject constructor(
                 delay(1_000L)
                 refreshSonarTrackingStatus()
                 if (!_uiState.value.sonarTrackingStatus.startsWith("Stopping sonar")) return@launch
+            }
+        }
+    }
+
+    private fun confirmSonarTrackingStarted() {
+        sonarStartConfirmationJob = viewModelScope.launch {
+            repeat(SONAR_START_CONFIRMATION_ATTEMPTS) { attempt ->
+                delay(SONAR_START_CONFIRMATION_DELAY_MS)
+                val snapshot = SonarSleepService.readSnapshot(context)
+                when (
+                    sonarStartConfirmation(
+                        snapshotActive = snapshot.active,
+                        attemptsRemaining = SONAR_START_CONFIRMATION_ATTEMPTS - attempt - 1
+                    )
+                ) {
+                    SonarStartConfirmation.MONITORING -> {
+                        _uiState.update {
+                            it.copy(
+                                sonarTrackingActive = true,
+                                sonarTrackingStatus = "Monitoring movement and loud sleep sounds. No raw audio is recorded.",
+                                sonarLastSessionLabel = sonarLastSessionLabel(snapshot)
+                            )
+                        }
+                        return@launch
+                    }
+                    SonarStartConfirmation.WAITING -> Unit
+                    SonarStartConfirmation.FAILED -> {
+                        _uiState.update {
+                            it.copy(
+                                sonarTrackingActive = false,
+                                sonarTrackingStatus = "Sonar could not confirm microphone monitoring. Try again."
+                            )
+                        }
+                        return@launch
+                    }
+                }
             }
         }
     }
@@ -863,5 +905,10 @@ class BedtimeViewModel @Inject constructor(
                 bedtimeDndError = status.error
             )
         }
+    }
+
+    private companion object {
+        const val SONAR_START_CONFIRMATION_ATTEMPTS = 12
+        const val SONAR_START_CONFIRMATION_DELAY_MS = 250L
     }
 }

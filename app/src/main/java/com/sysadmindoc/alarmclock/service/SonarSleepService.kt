@@ -170,12 +170,14 @@ class SonarSleepService : Service() {
             snoreDetector = SnoreEventDetector()
             snoreEvents.clear()
         }
-        markActive(sessionStartedAt)
         scope.launch {
             try {
                 startToneEmitter()
-                startReflectionAnalyzer()
+                prepareReflectionAnalyzer()
+                markActive(sessionStartedAt)
+                runReflectionAnalyzer()
             } catch (_: Exception) {
+                markInactive()
                 recordSession("SONAR_START_FAILED")
                 stopSonarHardware()
                 stopSelf()
@@ -215,6 +217,9 @@ class SonarSleepService : Service() {
             .build()
             .apply {
                 play()
+                check(playState == AudioTrack.PLAYSTATE_PLAYING) {
+                    "Sonar tone output did not enter playback state"
+                }
             }
 
         // Continuously write tone buffer in a loop. Catch any exception from
@@ -234,7 +239,7 @@ class SonarSleepService : Service() {
     }
 
     @SuppressLint("MissingPermission")
-    private suspend fun CoroutineScope.startReflectionAnalyzer() {
+    private fun prepareReflectionAnalyzer() {
         val bufferSize = AudioRecord.getMinBufferSize(
             SAMPLE_RATE,
             AudioFormat.CHANNEL_IN_MONO,
@@ -247,8 +252,15 @@ class SonarSleepService : Service() {
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT,
             bufferSize
-        ).apply { startRecording() }
+        ).apply {
+            startRecording()
+            check(recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                "Sonar microphone did not enter recording state"
+            }
+        }
+    }
 
+    private suspend fun CoroutineScope.runReflectionAnalyzer() {
         val windowSamples = (SAMPLE_RATE * WINDOW_MS / 1000).toInt()
         val buffer = ShortArray(windowSamples)
         val recentRms = ArrayDeque<Float>(DEEP_SLEEP_WINDOWS + 1)

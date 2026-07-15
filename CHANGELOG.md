@@ -20,6 +20,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Bedtime now reports Sonar as active only after its foreground service, tone
+  output, and microphone recorder are all running; failed or stalled starts
+  remain off and surface a retryable status instead of false monitoring.
 - Toolbar and system back no longer silently discard alarm-editor changes: a
   full-draft dirty check now presents a keep-editing/discard confirmation while
   save progress and derived forecast state remain outside the dirty boundary.
