@@ -2699,8 +2699,8 @@ private fun ConnectionsSection(state: SettingsUiState) {
 @Composable
 private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsViewModel) {
     SettingsGroup(
-        title = "Personalization",
-        description = "Pick the accent color, enable adaptive difficulty, and tune the wake-up screen."
+        title = stringResource(R.string.settings_personalization),
+        description = stringResource(R.string.settings_personalization_description)
     ) {
         AccentColorPicker(
             currentHex = state.settings.accentColor,
@@ -2708,15 +2708,15 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
         )
 
         SettingsToggle(
-            label = "Motivational quotes on alarm",
+            label = stringResource(R.string.settings_motivational_quotes),
             checked = state.settings.showMotivationalQuotes,
-            supportingText = "Shows a short quote on the firing screen alongside the time.",
+            supportingText = stringResource(R.string.settings_motivational_quotes_description),
             onToggle = viewModel::toggleShowMotivationalQuotes
         )
         SettingsToggle(
-            label = "Adaptive challenge difficulty",
+            label = stringResource(R.string.settings_adaptive_difficulty),
             checked = state.settings.adaptiveDifficultyEnabled,
-            supportingText = "Auto-bumps math challenges (Easy → Medium → Hard) when your snooze rate climbs above 50%.",
+            supportingText = stringResource(R.string.settings_adaptive_difficulty_description),
             onToggle = viewModel::toggleAdaptiveDifficulty
         )
 
@@ -2724,37 +2724,37 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
         // On older devices the toggle is still persisted but has no visual effect,
         // so the help copy names the requirement rather than silently no-op'ing.
         SettingsToggle(
-            label = "Material You dynamic color",
+            label = stringResource(R.string.settings_dynamic_color),
             checked = state.settings.dynamicColorEnabled,
-            supportingText = "Blends the app accent with your wallpaper palette (Android 12+).",
+            supportingText = stringResource(R.string.settings_dynamic_color_description),
             onToggle = viewModel::toggleDynamicColor
         )
 
         SettingsToggle(
-            label = "Expressive surfaces",
+            label = stringResource(R.string.settings_expressive_surfaces),
             checked = state.settings.expressiveModeEnabled,
-            supportingText = "Adds bolder shape rhythm and clearer accent semantics across shared app surfaces.",
+            supportingText = stringResource(R.string.settings_expressive_surfaces_description),
             onToggle = viewModel::toggleExpressiveMode
         )
 
         SettingsToggle(
-            label = "Reduce motion and flashing",
+            label = stringResource(R.string.settings_reduce_motion),
             checked = state.settings.reduceMotionAndFlashing,
-            supportingText = "Stops decorative loops and flashlight strobing. Android's Remove animations setting is also honored.",
+            supportingText = stringResource(R.string.settings_reduce_motion_description),
             onToggle = viewModel::toggleReduceMotionAndFlashing
         )
 
         SettingsToggle(
-            label = "Cover-to-snooze",
+            label = stringResource(R.string.settings_cover_to_snooze),
             checked = state.settings.coverToSnoozeEnabled,
-            supportingText = "Hold a hand over the proximity sensor for ~1.5 s during an alarm to snooze.",
+            supportingText = stringResource(R.string.settings_cover_to_snooze_description),
             onToggle = viewModel::toggleCoverToSnooze
         )
 
         SettingsToggle(
-            label = "Repeat missed alarms",
+            label = stringResource(R.string.settings_repeat_missed),
             checked = state.settings.repeatMissedAlarms,
-            supportingText = "If an alarm auto-silences, re-fire it briefly when you unlock or unplug within 10 minutes.",
+            supportingText = stringResource(R.string.settings_repeat_missed_description),
             onToggle = viewModel::toggleRepeatMissed
         )
 
@@ -2767,9 +2767,9 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Cancellation lock", color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.settings_cancellation_lock), color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "Prevent disabling alarms close to fire time",
+                    stringResource(R.string.settings_cancellation_lock_description),
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -2777,14 +2777,26 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
             Box {
                 TextButton(onClick = { showLockMenu = true }) {
                     Text(
-                        if (state.settings.cancellationLockMinutes == 0) "Disabled" else "${state.settings.cancellationLockMinutes} min",
+                        if (state.settings.cancellationLockMinutes == 0) {
+                            stringResource(R.string.settings_disabled)
+                        } else {
+                            stringResource(R.string.settings_minutes_short, state.settings.cancellationLockMinutes)
+                        },
                         color = AccentBlue
                     )
                 }
                 DropdownMenu(expanded = showLockMenu, onDismissRequest = { showLockMenu = false }) {
                     listOf(0, 15, 30, 60).forEach { mins ->
                         DropdownMenuItem(
-                            text = { Text(if (mins == 0) "Disabled" else "Lock $mins min before fire") },
+                            text = {
+                                Text(
+                                    if (mins == 0) {
+                                        stringResource(R.string.settings_disabled)
+                                    } else {
+                                        stringResource(R.string.settings_lock_before_fire, mins)
+                                    }
+                                )
+                            },
                             onClick = { viewModel.updateCancellationLockMinutes(mins); showLockMenu = false }
                         )
                     }
@@ -2801,9 +2813,9 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Firing controls", color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.settings_firing_controls), color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
                 Text(
-                    "How you dismiss and snooze alarms. Buttons mode is recommended for screen readers.",
+                    stringResource(R.string.settings_firing_controls_description),
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -2812,24 +2824,24 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
                 TextButton(onClick = { showFiringModeMenu = true }) {
                     Text(
                         when (state.settings.firingControlMode) {
-                            "buttons" -> "Buttons"
-                            "swipe" -> "Swipe"
-                            else -> "Hybrid"
+                            "buttons" -> stringResource(R.string.settings_firing_buttons)
+                            "swipe" -> stringResource(R.string.settings_firing_swipe)
+                            else -> stringResource(R.string.settings_firing_hybrid)
                         },
                         color = AccentBlue
                     )
                 }
                 DropdownMenu(expanded = showFiringModeMenu, onDismissRequest = { showFiringModeMenu = false }) {
                     DropdownMenuItem(
-                        text = { Text("Hybrid — swipe gestures and buttons") },
+                        text = { Text(stringResource(R.string.settings_firing_hybrid_description)) },
                         onClick = { viewModel.updateFiringControlMode("hybrid"); showFiringModeMenu = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("Buttons only — accessible, no gestures") },
+                        text = { Text(stringResource(R.string.settings_firing_buttons_description)) },
                         onClick = { viewModel.updateFiringControlMode("buttons"); showFiringModeMenu = false }
                     )
                     DropdownMenuItem(
-                        text = { Text("Swipe only — gesture-driven") },
+                        text = { Text(stringResource(R.string.settings_firing_swipe_description)) },
                         onClick = { viewModel.updateFiringControlMode("swipe"); showFiringModeMenu = false }
                     )
                 }
@@ -2839,21 +2851,21 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
         BufferedSettingsTextField(
             value = state.settings.customTypingPhrases,
             onCommit = viewModel::updateCustomTypingPhrases,
-            label = { Text("Custom typing phrases", color = TextMuted) },
-            placeholder = { Text("One phrase per line — appended to the built-in list", color = TextMuted) },
+            label = { Text(stringResource(R.string.settings_custom_typing_phrases), color = TextMuted) },
+            placeholder = { Text(stringResource(R.string.settings_custom_typing_phrases_placeholder), color = TextMuted) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
             maxLines = 6
         )
         Text(
-            text = "These are added after the built-in phrase library, so you can make typing challenges sound more like you.",
+            text = stringResource(R.string.settings_custom_typing_phrases_description),
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
 
         SettingsToggle(
-            label = "Challenge accessibility bypass",
-            supportingText = "Allow dismissing after a timed delay without completing the challenge. Helps users who cannot perform physical challenges.",
+            label = stringResource(R.string.settings_challenge_bypass),
+            supportingText = stringResource(R.string.settings_challenge_bypass_description),
             checked = state.settings.challengeBypassEnabled,
             onToggle = { viewModel.updateChallengeBypassEnabled(it) }
         )
@@ -2865,14 +2877,14 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Bypass delay", color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.settings_bypass_delay), color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     listOf(10, 30, 60, 120).forEach { secs ->
                         val selected = state.settings.challengeBypassDelaySeconds == secs
                         AppFilterChip(
                             selected = selected,
                             onClick = { viewModel.updateChallengeBypassDelay(secs) },
-                            label = "${secs}s"
+                            label = stringResource(R.string.settings_seconds_short, secs)
                         )
                     }
                 }
@@ -2880,15 +2892,15 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
         }
 
         SettingsToggle(
-            label = "Quieter audio during challenges",
-            supportingText = "Reduces only this alarm's player volume while you solve a dismiss challenge; calls still mute it completely.",
+            label = stringResource(R.string.settings_challenge_audio_ducking),
+            supportingText = stringResource(R.string.settings_challenge_audio_ducking_description),
             checked = state.settings.challengeAudioDuckingEnabled,
             onToggle = viewModel::updateChallengeAudioDuckingEnabled
         )
         if (state.settings.challengeAudioDuckingEnabled) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    text = "Challenge volume: ${state.settings.challengeAudioDuckPercent}%",
+                    text = stringResource(R.string.settings_challenge_volume, state.settings.challengeAudioDuckPercent),
                     color = TextPrimary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -2900,7 +2912,7 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
                         AppFilterChip(
                             selected = state.settings.challengeAudioDuckPercent == percent,
                             onClick = { viewModel.updateChallengeAudioDuckPercent(percent) },
-                            label = "$percent%"
+                            label = stringResource(R.string.settings_percent, percent)
                         )
                     }
                 }
@@ -2911,14 +2923,14 @@ private fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsVi
         BufferedSettingsTextField(
             value = state.settings.bedtimeChecklist,
             onCommit = viewModel::updateBedtimeChecklist,
-            label = { Text("Bedtime wind-down checklist", color = TextMuted) },
-            placeholder = { Text("One item per line (e.g. Dim lights, Phone on charger, Set alarm)", color = TextMuted) },
+            label = { Text(stringResource(R.string.settings_bedtime_checklist), color = TextMuted) },
+            placeholder = { Text(stringResource(R.string.settings_bedtime_checklist_placeholder), color = TextMuted) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 2,
             maxLines = 6
         )
         Text(
-            text = "This appears in Bedtime so your routine stays consistent even when the rest of the day feels busy.",
+            text = stringResource(R.string.settings_bedtime_checklist_description),
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
@@ -2931,21 +2943,21 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
     // Listed in the order users tend to reach for them; the first one is
     // the historical default so users always have an obvious "reset" path.
     val palette = listOf(
-        "#5B9EF4" to "Default blue",
-        "#7C5CFF" to "Violet",
-        "#FF6F8A" to "Coral",
-        "#FFB347" to "Amber",
-        "#5BD49A" to "Mint",
-        "#E0E4EA" to "Mono"
+        "#5B9EF4" to R.string.settings_accent_default_blue,
+        "#7C5CFF" to R.string.settings_accent_violet,
+        "#FF6F8A" to R.string.settings_accent_coral,
+        "#FFB347" to R.string.settings_accent_amber,
+        "#5BD49A" to R.string.settings_accent_mint,
+        "#E0E4EA" to R.string.settings_accent_mono
     )
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            text = "Accent color",
+            text = stringResource(R.string.settings_accent_color),
             color = TextPrimary,
             style = MaterialTheme.typography.titleSmall
         )
         Text(
-            text = "Used for the primary alarm tint, dashboard chips, and switches.",
+            text = stringResource(R.string.settings_accent_color_description),
             color = TextSecondary,
             style = MaterialTheme.typography.bodySmall
         )
@@ -2953,8 +2965,13 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            palette.forEach { (hex, label) ->
+            palette.forEach { (hex, labelRes) ->
                 val isSelected = hex.equals(currentHex, ignoreCase = true)
+                val label = stringResource(labelRes)
+                val accentContentDescription = stringResource(R.string.settings_accent_semantics, label)
+                val accentStateDescription = stringResource(
+                    if (isSelected) R.string.settings_selected else R.string.settings_not_selected
+                )
                 val color = runCatching { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(hex)) }
                     .getOrDefault(androidx.compose.ui.graphics.Color.Gray)
                 val swatchShape = RoundedCornerShape(8.dp)
@@ -2966,13 +2983,13 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
                         .background(color)
                         .clickable(
                             role = Role.RadioButton,
-                            onClickLabel = "Use $label accent",
+                            onClickLabel = stringResource(R.string.settings_use_accent, label),
                             onClick = { onPick(hex) }
                         )
                         .semantics {
-                            contentDescription = "$label accent color"
+                            contentDescription = accentContentDescription
                             selected = isSelected
-                            stateDescription = if (isSelected) "Selected" else "Not selected"
+                            stateDescription = accentStateDescription
                         }
                         .then(
                             if (isSelected) {
