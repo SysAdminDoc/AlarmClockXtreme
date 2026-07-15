@@ -411,6 +411,21 @@ java.lang.NullPointerException: Attempt to invoke virtual method
         hasCallPhonePermission = false
     )
 
+    @Test
+    fun `commute diagnostics expose aggregates but no route identifiers`() {
+        val text = diagnosticsText(
+            sdkInt = 36,
+            fullScreenIntentAllowed = true,
+            learnedCommuteRouteCount = 2,
+            learnedCommuteSampleCount = 11
+        )
+
+        assertTrue(text.contains("Learned commute routes: 2"))
+        assertTrue(text.contains("Learned commute samples: 11"))
+        assertTrue(text.contains("omits") && text.contains("learned commute route keys"))
+        assertFalse(text.contains("123 Main"))
+    }
+
     private fun diagnosticsText(
         sdkInt: Int,
         fullScreenIntentAllowed: Boolean?,
@@ -424,7 +439,9 @@ java.lang.NullPointerException: Attempt to invoke virtual method
         latestIncidentStatus: String? = null,
         latestIncidentReason: String? = null,
         localNetworkPermissionGranted: Boolean? = null,
-        guardianReadiness: GuardianReadiness = defaultGuardianReadiness()
+        guardianReadiness: GuardianReadiness = defaultGuardianReadiness(),
+        learnedCommuteRouteCount: Int = 0,
+        learnedCommuteSampleCount: Int = 0
     ): String = SupportDiagnosticsFormatter.diagnosticsText(
         generatedAt = Instant.EPOCH,
         appVersion = "test",
@@ -456,6 +473,8 @@ java.lang.NullPointerException: Attempt to invoke virtual method
         latestIncidentType = latestIncidentType,
         latestIncidentStatus = latestIncidentStatus,
         latestIncidentReason = latestIncidentReason,
-        stats = AlarmStats()
+        stats = AlarmStats(),
+        learnedCommuteRouteCount = learnedCommuteRouteCount,
+        learnedCommuteSampleCount = learnedCommuteSampleCount
     )
 }

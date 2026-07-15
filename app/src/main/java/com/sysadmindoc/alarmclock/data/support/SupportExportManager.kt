@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProofStore
+import com.sysadmindoc.alarmclock.data.local.CommuteHistoryStore
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
@@ -44,7 +45,8 @@ class SupportExportManager @Inject constructor(
     private val alarmEventRepository: AlarmEventRepository,
     private val actigraphyRepository: ActigraphyRepository,
     private val alarmIncidentRepository: AlarmIncidentRepository,
-    private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+    private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager,
+    private val commuteHistoryStore: CommuteHistoryStore
 ) {
     suspend fun createSupportExport(): SupportExportFile {
         val generatedAt = Instant.now()
@@ -82,6 +84,7 @@ class SupportExportManager @Inject constructor(
         val testAlarmProof = TestAlarmProofStore.lastProof(context)
         val sdkInt = Build.VERSION.SDK_INT
         val appSettings = preferencesManager.getCachedSettings()
+        val commuteHistorySummary = commuteHistoryStore.summary()
 
         val includedFiles = mutableListOf(
             "support_manifest.json",
@@ -175,7 +178,9 @@ class SupportExportManager @Inject constructor(
                     showNewsTab = appSettings.showNewsTab,
                     webhookEnabled = appSettings.webhookEnabled,
                     hueBridgeConfigured = appSettings.hueBridgeIp.isNotBlank(),
-                    healthConnectEnabled = appSettings.healthConnectEnabled
+                    healthConnectEnabled = appSettings.healthConnectEnabled,
+                    learnedCommuteRouteCount = commuteHistorySummary.routeCount,
+                    learnedCommuteSampleCount = commuteHistorySummary.sampleCount
                 )
             )
             zip.writeTextEntry("alarms_redacted.csv", SupportDiagnosticsFormatter.alarmCsv(alarms))

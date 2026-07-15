@@ -6,6 +6,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- Commute-aware calendar alarms now retain a bounded, 45-day on-device history
+  of successful live route durations and can use a conservative learned
+  estimate during transient API failures. Route keys are hashed, sparse/stale
+  data falls back normally, Settings can clear the history, and support bundles
+  expose aggregate counts only.
 - A device-local accessibility preference and Android's system Remove
   animations setting now stop decorative alarm, challenge, timer, weather,
   loading, and Night Clock loops. The same policy prevents optional flashlight

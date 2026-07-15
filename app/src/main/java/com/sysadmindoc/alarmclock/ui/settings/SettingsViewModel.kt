@@ -22,6 +22,7 @@ import com.sysadmindoc.alarmclock.data.backup.BackupManager
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
+import com.sysadmindoc.alarmclock.data.local.CommuteHistoryStore
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
@@ -153,7 +154,8 @@ class SettingsViewModel @Inject constructor(
     private val alarmRepository: AlarmRepository,
     private val alarmIncidentRepository: AlarmIncidentRepository,
     private val hueBridgeClient: HueBridgeClient,
-    private val hueTrustStore: HueTrustStore
+    private val hueTrustStore: HueTrustStore,
+    private val commuteHistoryStore: CommuteHistoryStore
 ) : AndroidViewModel(application) {
 
     private val _batteryState = MutableStateFlow(
@@ -369,6 +371,9 @@ class SettingsViewModel @Inject constructor(
     }
     fun updateCalendarCommuteWeatherExtraMinutes(minutes: Int) = updateCalendarAutoAlarmSettings {
         it.copy(calendarCommuteWeatherExtraMinutes = minutes.coerceIn(0, 120))
+    }
+    fun clearLearnedCommuteHistory() {
+        viewModelScope.launch(Dispatchers.IO) { commuteHistoryStore.clear() }
     }
     fun updateGoogleRoutesApiKey(key: String) = updateCalendarAutoAlarmSettings {
         it.copy(googleRoutesApiKey = key.trim())

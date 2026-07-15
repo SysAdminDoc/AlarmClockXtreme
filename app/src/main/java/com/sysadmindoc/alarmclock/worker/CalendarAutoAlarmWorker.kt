@@ -15,6 +15,7 @@ import androidx.work.WorkerParameters
 import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.local.CommuteHistoryStore
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.remote.WeatherResponse
@@ -62,7 +63,8 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
     private val repository: AlarmRepository,
     private val scheduler: AlarmScheduler,
     private val weatherRepository: WeatherRepository,
-    private val commuteRouteRepository: CommuteRouteRepository
+    private val commuteRouteRepository: CommuteRouteRepository,
+    private val commuteHistoryStore: CommuteHistoryStore
 ) : CoroutineWorker(context, workerParams) {
 
     companion object {
@@ -145,8 +147,10 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
             return Result.success()
         }
 
-        val commuteAdjustment = resolveCommuteAdjustment(settings, firstEvent, minutesBefore)
-        val alarmInstant = Instant.ofEpochMilli(firstEvent.startMs - commuteAdjustment.totalLeadMinutes * 60_000L)
+        val commuteResolution = resolveCommuteAdjustment(settings, firstEvent, minutesBefore)
+        val alarmInstant = Instant.ofEpochMilli(
+            firstEvent.startMs - commuteResolution.adjustment.totalLeadMinutes * 60_000L
+        )
         val alarmZdt = alarmInstant.atZone(ZoneId.systemDefault())
         val alarmDate = alarmZdt.toLocalDate()
 
@@ -154,7 +158,10 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
             id = existing?.id ?: 0,
             hour = alarmZdt.hour,
             minute = alarmZdt.minute,
-            label = "Before: ${firstEvent.title}",
+            label = buildString {
+                append("Before: ${firstEvent.title}")
+                if (commuteResolution.usedLearnedEstimate) append(" • learned commute")
+            },
             isEnabled = true,
             group = GROUP,
             profileName = AUTO_PROFILE,
@@ -182,34 +189,56 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
         settings: AppSettings,
         event: CalEvent,
         baseLeadMinutes: Int
-    ) = if (!settings.calendarCommuteAwareEnabled || event.location.isBlank()) {
-        CommuteAlarmPolicy.adjustLeadMinutes(
+    ): CommuteResolution = if (!settings.calendarCommuteAwareEnabled || event.location.isBlank()) {
+        CommuteResolution(CommuteAlarmPolicy.adjustLeadMinutes(
             baseLeadMinutes = baseLeadMinutes,
             routeDurationMinutes = null,
             baselineCommuteMinutes = settings.calendarCommuteBaselineMinutes,
             weatherExtraMinutes = 0,
             forecastDate = Instant.ofEpochMilli(event.startMs).atZone(ZoneId.systemDefault()).toLocalDate(),
             weather = null
-        )
+        ))
     } else {
         val eventDate = Instant.ofEpochMilli(event.startMs).atZone(ZoneId.systemDefault()).toLocalDate()
         val weather = loadWeather(settings)
-        val routeDurationMinutes = commuteRouteRepository.estimateTransitMinutes(
+        val liveRouteDurationMinutes = commuteRouteRepository.estimateTransitMinutes(
             apiKey = settings.googleRoutesApiKey,
             originLatitude = settings.lastKnownLatitude,
             originLongitude = settings.lastKnownLongitude,
             destinationQuery = event.location,
             arrivalTime = Instant.ofEpochMilli(event.startMs)
         ).getOrNull()
-        CommuteAlarmPolicy.adjustLeadMinutes(
+        if (liveRouteDurationMinutes != null) {
+            commuteHistoryStore.record(
+                originLatitude = settings.lastKnownLatitude,
+                originLongitude = settings.lastKnownLongitude,
+                destination = event.location,
+                minutes = liveRouteDurationMinutes
+            )
+        }
+        val learnedEstimate = if (liveRouteDurationMinutes == null) {
+            commuteHistoryStore.estimate(
+                originLatitude = settings.lastKnownLatitude,
+                originLongitude = settings.lastKnownLongitude,
+                destination = event.location
+            )
+        } else {
+            null
+        }
+        CommuteResolution(CommuteAlarmPolicy.adjustLeadMinutes(
             baseLeadMinutes = baseLeadMinutes,
-            routeDurationMinutes = routeDurationMinutes,
+            routeDurationMinutes = liveRouteDurationMinutes ?: learnedEstimate?.minutes,
             baselineCommuteMinutes = settings.calendarCommuteBaselineMinutes,
             weatherExtraMinutes = settings.calendarCommuteWeatherExtraMinutes,
             forecastDate = eventDate,
             weather = weather
-        )
+        ), usedLearnedEstimate = learnedEstimate != null)
     }
+
+    private data class CommuteResolution(
+        val adjustment: com.sysadmindoc.alarmclock.domain.CommuteAlarmAdjustment,
+        val usedLearnedEstimate: Boolean = false
+    )
 
     private suspend fun loadWeather(settings: AppSettings): WeatherResponse? {
         val haveLocation = settings.lastKnownLatitude != 0.0 || settings.lastKnownLongitude != 0.0

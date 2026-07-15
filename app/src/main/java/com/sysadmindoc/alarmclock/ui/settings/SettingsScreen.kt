@@ -232,6 +232,7 @@ fun SettingsScreen(
     var showCalendarLeadMenu by remember { mutableStateOf(false) }
     var showCommuteBaselineMenu by remember { mutableStateOf(false) }
     var showCommuteWeatherMenu by remember { mutableStateOf(false) }
+    var showClearCommuteHistoryDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val screenScope = rememberCoroutineScope()
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -571,12 +572,19 @@ fun SettingsScreen(
                 )
                 if (state.settings.calendarCommuteAwareEnabled && state.settings.googleRoutesApiKey.isBlank()) {
                     AppInlineNotice(
-                        title = "Weather-only commute mode",
-                        message = "Transit ETA is skipped without a Routes key. Events with locations still get the bad-weather buffer when the forecast degrades.",
+                        title = "Offline commute fallback",
+                        message = "After three successful route estimates, failures can use a conservative 45-day on-device history plus the weather buffer.",
                         icon = Icons.Default.Cloud,
                         color = AccentBlue
                     )
                 }
+                SettingsActionRow(
+                    label = "Learned commute history",
+                    value = "Clear",
+                    supportingText = "Stores only hashed route keys and up to eight recent durations per route on this device; locations are excluded from support bundles.",
+                    onClick = { showClearCommuteHistoryDialog = true },
+                    enabled = state.settings.calendarCommuteAwareEnabled
+                )
                 SettingsActionRow(
                     label = "Temperature unit",
                     value = if (state.settings.temperatureUnit == "celsius") "Celsius (\u00B0C)" else "Fahrenheit (\u00B0F)",
@@ -598,6 +606,23 @@ fun SettingsScreen(
                             }
                         )
                     }
+                }
+
+                if (showClearCommuteHistoryDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showClearCommuteHistoryDialog = false },
+                        title = { Text("Clear learned commute history?") },
+                        text = { Text("Calendar auto-alarms will use live Routes estimates or your manual baseline until enough new local samples are learned.") },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                viewModel.clearLearnedCommuteHistory()
+                                showClearCommuteHistoryDialog = false
+                            }) { Text("Clear history") }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showClearCommuteHistoryDialog = false }) { Text("Cancel") }
+                        }
+                    )
                 }
             }
 
