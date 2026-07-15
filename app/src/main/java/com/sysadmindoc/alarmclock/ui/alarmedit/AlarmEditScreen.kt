@@ -2222,7 +2222,10 @@ fun AlarmEditScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         ringtonePoolEntries.forEach { uri ->
-                            val shortName = ringtoneShortName(uri)
+                            val shortName = ringtoneShortName(
+                                uri,
+                                stringResource(R.string.alarm_edit_empty_ringtone)
+                            )
                             AppFilterChip(
                                 label = shortName,
                                 selected = true,
@@ -3288,9 +3291,9 @@ private fun List<String>.moveItem(fromIndex: Int, toIndex: Int): List<String> {
  *   - "file:///storage/emulated/0/Music/sun.mp3" → "sun.mp3"
  * Anything pathologically long gets truncated with an ellipsis.
  */
-private fun ringtoneShortName(uri: String): String {
+private fun ringtoneShortName(uri: String, emptyLabel: String): String {
     val trimmed = uri.trim()
-    if (trimmed.isEmpty()) return "(empty)"
+    if (trimmed.isEmpty()) return emptyLabel
     val fileName = trimmed
         .substringAfterLast('/')
         .substringAfterLast('\\')

@@ -8,7 +8,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Loading..."
+        android:text="@string/widget_loading"
         android:textColor="#8A9BB5"
         android:textSize="14sp"
         android:layout_gravity="center" />

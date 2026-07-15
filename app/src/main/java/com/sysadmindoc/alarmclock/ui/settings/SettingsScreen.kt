@@ -91,7 +91,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -1074,13 +1076,15 @@ private fun IncidentTimelineSection(
                     )
                 }
             )
+            val incidentTimestamp = formatIncidentTimestamp(timeline.latestEventAt, use24Hour)
+            val incidentElapsed = formatIncidentElapsed(timeline.latestElapsedMs)
             SettingsInfo(
                 label = incidentLabel(timeline.latestType),
-                description = buildString {
-                    append(formatIncidentTimestamp(timeline.latestEventAt, use24Hour))
-                    append(" - ")
-                    append(formatIncidentElapsed(timeline.latestElapsedMs))
-                }
+                description = stringResource(
+                    R.string.settings_incident_timing,
+                    incidentTimestamp,
+                    incidentElapsed
+                )
             )
             SettingsInfo(
                 label = stringResource(R.string.settings_reason_code),
@@ -1451,10 +1455,11 @@ private fun testAlarmProofDescription(
 @Composable
 private fun formatTestAlarmProofTime(epochMillis: Long, is24HourFormat: Boolean): String {
     if (epochMillis <= 0L) return stringResource(R.string.settings_unknown_time)
+    val locale = LocalConfiguration.current.locales[0]
     val pattern = if (is24HourFormat) "EEE HH:mm" else "EEE h:mm a"
     return Instant.ofEpochMilli(epochMillis)
         .atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
+        .format(DateTimeFormatter.ofPattern(pattern, locale))
 }
 
 @Composable
@@ -2209,17 +2214,25 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
  * Render a stored "<ISO instant> <status>" delivery-log line as a friendly
  * local time. Falls back to the raw line if the leading token isn't an instant.
  */
+@Composable
 private fun formatWebhookLogLine(line: String): String {
     val spaceIdx = line.indexOf(' ')
     if (spaceIdx <= 0) return line
+    val locale = LocalConfiguration.current.locales[0]
     val instantPart = line.substring(0, spaceIdx)
     val rest = line.substring(spaceIdx + 1)
-    return runCatching {
+    val local = runCatching {
         val local = Instant.parse(instantPart)
             .atZone(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.US))
-        "$local — $rest"
-    }.getOrDefault(line)
+            .format(
+                DateTimeFormatter.ofLocalizedDateTime(
+                    java.time.format.FormatStyle.MEDIUM,
+                    java.time.format.FormatStyle.SHORT
+                ).withLocale(locale)
+            )
+        local
+    }.getOrNull() ?: return line
+    return stringResource(R.string.settings_webhook_log_line, local, rest)
 }
 
 @Composable
@@ -3026,7 +3039,7 @@ private val lightAccentSwatches = setOf("#FFB347", "#5BD49A", "#E0E4EA")
 
 @Composable
 private fun BackupRestoreSection(viewModel: SettingsViewModel) {
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val unexpectedError = stringResource(R.string.settings_unexpected_error)
     val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
     val backupBusy by viewModel.backupBusy.collectAsStateWithLifecycle()
@@ -3110,7 +3123,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                     .onSuccess { preview -> pendingFossifyImport = PendingFossifyImport(uri, preview) }
                     .onFailure { error ->
                         viewModel.showBackupResult(
-                            context.getString(
+                            resources.getString(
                                 R.string.settings_fossify_preview_failed,
                                 error.message ?: unexpectedError
                             )
@@ -3156,7 +3169,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
             }.getOrElse { error ->
                 BackupExportWarning(
                     listOf(
-                        context.getString(
+                        resources.getString(
                             R.string.settings_backup_inspection_failed,
                             error.message ?: unexpectedError
                         )
@@ -3631,9 +3644,10 @@ private fun BackupImportPreviewDialog(
 @Composable
 private fun formatBackupExportedAt(exportedAt: Long): String {
     if (exportedAt <= 0L) return stringResource(R.string.settings_export_time_unknown)
+    val locale = LocalConfiguration.current.locales[0]
     val formatted = runCatching {
         DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.MEDIUM, java.time.format.FormatStyle.SHORT)
-            .withLocale(Locale.getDefault())
+            .withLocale(locale)
             .withZone(ZoneId.systemDefault())
             .format(Instant.ofEpochMilli(exportedAt))
     }.getOrNull()
@@ -3760,76 +3774,104 @@ private fun UtilityShortcutCard(
     }
 }
 
+@Composable
 private fun dashboardSummary(state: SettingsUiState): String {
     val base = when {
-        state.settings.showWeatherOnDashboard && state.settings.showCalendarOnDashboard -> "Weather + calendar"
-        state.settings.showWeatherOnDashboard -> "Weather only"
-        state.settings.showCalendarOnDashboard -> "Calendar only"
-        else -> "Minimal"
+        state.settings.showWeatherOnDashboard && state.settings.showCalendarOnDashboard ->
+            stringResource(R.string.settings_dashboard_weather_calendar)
+        state.settings.showWeatherOnDashboard -> stringResource(R.string.settings_dashboard_weather_only)
+        state.settings.showCalendarOnDashboard -> stringResource(R.string.settings_dashboard_calendar_only)
+        else -> stringResource(R.string.settings_dashboard_minimal)
     }
-    return if (state.settings.calendarAutoAlarmEnabled) "$base + auto-alarm" else base
+    return if (state.settings.calendarAutoAlarmEnabled) {
+        stringResource(R.string.settings_dashboard_auto_alarm, base)
+    } else {
+        base
+    }
 }
 
+@Composable
 private fun incidentLabel(type: String?): String {
-    val token = type.orEmpty().ifBlank { "UNKNOWN" }
+    val unknown = stringResource(R.string.settings_unknown_code)
+    val token = type.orEmpty().ifBlank { unknown }
     return token
         .replace('_', ' ')
         .lowercase(Locale.US)
         .replaceFirstChar { it.titlecase(Locale.US) }
 }
 
+@Composable
 private fun formatIncidentTimestamp(eventAt: Long?, use24Hour: Boolean): String {
-    if (eventAt == null || eventAt <= 0L) return "Time unknown"
+    if (eventAt == null || eventAt <= 0L) return stringResource(R.string.settings_time_unknown)
+    val locale = LocalConfiguration.current.locales[0]
     val pattern = if (use24Hour) "MMM d, HH:mm" else "MMM d, h:mm a"
-    return DateTimeFormatter.ofPattern(pattern, Locale.US)
+    return DateTimeFormatter.ofPattern(pattern, locale)
         .withZone(ZoneId.systemDefault())
         .format(Instant.ofEpochMilli(eventAt))
 }
 
+@Composable
 private fun formatIncidentElapsed(elapsedMs: Long?): String {
-    if (elapsedMs == null) return "No schedule delta"
+    if (elapsedMs == null) return stringResource(R.string.settings_no_schedule_delta)
     val absoluteSeconds = kotlin.math.abs(elapsedMs) / 1000L
-    if (absoluteSeconds < 60L) return "within 1 min of schedule"
-    val minutes = absoluteSeconds / 60L
-    val label = if (minutes == 1L) "1 min" else "$minutes min"
-    return if (elapsedMs < 0L) "$label before schedule" else "$label after schedule"
+    if (absoluteSeconds < 60L) return stringResource(R.string.settings_within_minute_schedule)
+    val minutes = (absoluteSeconds / 60L).toInt()
+    return pluralStringResource(
+        if (elapsedMs < 0L) R.plurals.settings_minutes_before_schedule
+        else R.plurals.settings_minutes_after_schedule_plural,
+        minutes,
+        minutes
+    )
 }
 
+@Composable
 private fun wakeReadinessSummary(state: SettingsUiState): String {
+    val locale = LocalConfiguration.current.locales[0]
+    val exactAlarms = stringResource(R.string.settings_readiness_exact_alarms)
+    val notifications = stringResource(R.string.settings_readiness_notifications)
+    val fullScreenAlarmAccess = stringResource(R.string.settings_readiness_fullscreen_alarm)
+    val localNetworkAccess = stringResource(R.string.settings_readiness_local_network)
+    val battery = stringResource(R.string.settings_readiness_battery)
+    val standbyBucket = stringResource(R.string.settings_readiness_standby_bucket)
     val missing = buildList {
-        if (!state.canScheduleExactAlarms) add("exact alarms")
-        if (!state.hasNotificationPermission) add("notifications")
+        if (!state.canScheduleExactAlarms) add(exactAlarms)
+        if (!state.hasNotificationPermission) add(notifications)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE &&
             state.canUseFullScreenIntent != true
         ) {
-            add("full-screen alarm access")
+            add(fullScreenAlarmAccess)
         }
         if (requiresLocalNetworkAccess(state) && !state.hasLocalNetworkPermission) {
-            add("local network access")
+            add(localNetworkAccess)
         }
-        if (!state.isIgnoringBatteryOptimizations) add("battery")
+        if (!state.isIgnoringBatteryOptimizations) add(battery)
         // v1.11.3 (roadmap N3): include standby-bucket throttling in the
         // top-tile summary so the user sees it without expanding the section.
         if (state.appStandbyBucket != AppStandbyBucket.UNKNOWN &&
             AppStandbyBucket.isDegraded(state.appStandbyBucket)
         ) {
-            add("standby bucket")
+            add(standbyBucket)
         }
     }
     return if (missing.isEmpty()) {
+        val fullScreenAccess = stringResource(R.string.settings_readiness_fullscreen)
+        val lanAccess = stringResource(R.string.settings_readiness_lan)
+        val standby = stringResource(R.string.settings_readiness_standby)
         val optionalChecks = buildList {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                add("full-screen access")
+                add(fullScreenAccess)
             }
             if (requiresLocalNetworkAccess(state)) {
-                add("LAN access")
+                add(lanAccess)
             }
-            add("battery")
-            add("standby")
-        }.joinToString(", ")
-        "Exact alarms, alerts, $optionalChecks are ready"
+            add(battery)
+            add(standby)
+        }
+        val formattedChecks = android.icu.text.ListFormatter.getInstance(locale).format(optionalChecks)
+        stringResource(R.string.settings_readiness_ready, formattedChecks)
     } else {
-        "Review ${missing.joinToString(", ")}"
+        val formattedMissing = android.icu.text.ListFormatter.getInstance(locale).format(missing)
+        stringResource(R.string.settings_readiness_review, formattedMissing)
     }
 }
 
@@ -3839,15 +3881,22 @@ private fun requiresLocalNetworkAccess(state: SettingsUiState): Boolean {
         LocalNetworkPermission.isLikelyLocalEndpoint(state.settings.webhookUrl)
 }
 
+@Composable
 private fun formatWebhookDeliveryStatus(settings: AppSettings): String? {
     val status = settings.webhookLastDeliveryStatus.takeIf { it.isNotBlank() } ?: return null
+    val locale = LocalConfiguration.current.locales[0]
     val timestamp = settings.webhookLastDeliveryAtMillis.takeIf { it > 0 }
         ?.let {
             Instant.ofEpochMilli(it)
                 .atZone(ZoneId.systemDefault())
-                .format(DateTimeFormatter.ofPattern("MMM d, h:mm a", Locale.US))
-        } ?: "recently"
-    return "Last delivery $timestamp: $status"
+                .format(
+                    DateTimeFormatter.ofLocalizedDateTime(
+                        java.time.format.FormatStyle.MEDIUM,
+                        java.time.format.FormatStyle.SHORT
+                    ).withLocale(locale)
+                )
+        } ?: stringResource(R.string.settings_recently)
+    return stringResource(R.string.settings_last_delivery, timestamp, status)
 }
 
 @Composable
@@ -3928,6 +3977,8 @@ private fun DateField(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val onClickDescription = stringResource(R.string.settings_change_date, label.lowercase())
+    val fieldDescription = stringResource(R.string.settings_date_field_description, label, value)
     Box(
         modifier = modifier
             .background(
@@ -3936,13 +3987,13 @@ private fun DateField(
             )
             .border(1.dp, TextMuted.copy(alpha = 0.16f), RoundedCornerShape(10.dp))
             .clickable(
-                onClickLabel = "Change ${label.lowercase()} date",
+                onClickLabel = onClickDescription,
                 role = Role.Button,
                 onClick = onClick
             )
             // Merge the label + value into one actionable announcement so TalkBack
             // reads "Starts: Jun 14, 2026, button" instead of two separate nodes.
-            .semantics(mergeDescendants = true) { contentDescription = "$label: $value" }
+            .semantics(mergeDescendants = true) { contentDescription = fieldDescription }
             .padding(horizontal = 14.dp, vertical = 12.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -3952,13 +4003,14 @@ private fun DateField(
     }
 }
 
+@Composable
 private fun formatSeconds(totalSeconds: Int): String {
-    if (totalSeconds == 0) return "Off"
+    if (totalSeconds == 0) return stringResource(R.string.settings_off)
     val m = totalSeconds / 60
     val s = totalSeconds % 60
     return when {
-        m == 0  -> "${s}s"
-        s == 0  -> "${m}m"
-        else    -> "${m}m ${s}s"
+        m == 0 -> stringResource(R.string.settings_seconds_short, s)
+        s == 0 -> stringResource(R.string.settings_minutes_compact, m)
+        else -> stringResource(R.string.settings_minutes_seconds_compact, m, s)
     }
 }

@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import org.gradle.api.GradleException
 
 // AlarmClockXtreme v1.15.28
 plugins {
@@ -108,6 +109,10 @@ android {
         }
     }
 
+    lint {
+        error += "HardcodedText"
+    }
+
     // v1.7.1: yt-dlp needs `libpython.zip.so` extracted to the lib/ABI dir so
     // it can read the bundled Python source on first init. AGP 8 defaults to
     // packing native libs *inside* the APK (faster start, smaller installs)
@@ -122,6 +127,53 @@ android {
     sourceSets {
         getByName("androidTest").assets.srcDir("$projectDir/schemas")
     }
+}
+
+val primaryComposeScreenFiles = listOf(
+    file("src/main/java/com/sysadmindoc/alarmclock/ui/alarmfiring/AlarmFiringScreen.kt"),
+    file("src/main/java/com/sysadmindoc/alarmclock/ui/alarmedit/AlarmEditScreen.kt"),
+    file("src/main/java/com/sysadmindoc/alarmclock/ui/settings/SettingsScreen.kt")
+)
+
+val verifyLocalizedPrimaryScreens by tasks.registering {
+    group = "verification"
+    description = "Rejects new hardcoded user-facing text in the primary Compose screens."
+    inputs.files(primaryComposeScreenFiles)
+
+    doLast {
+        val directUiLiteralPatterns = listOf(
+            Regex("""\bText\s*\(\s*"([A-Za-z][^"\r\n]*)"""),
+            Regex(
+                """\b(?:text|contentDescription|title|description|supportingText|onClickLabel|stateDescription|label)\s*=\s*"([A-Za-z][^"\r\n]*)"""
+            )
+        )
+        val nonUiComposeLabels = setOf("alarmPulse", "pulseScale", "pulseAlpha")
+        val violations = mutableSetOf<String>()
+
+        primaryComposeScreenFiles.forEach { sourceFile ->
+            val source = sourceFile.readText()
+            directUiLiteralPatterns.forEach { pattern ->
+                pattern.findAll(source).forEach { match ->
+                    val literal = match.groupValues[1]
+                    if (literal !in nonUiComposeLabels) {
+                        val line = source.take(match.range.first).count { it == '\n' } + 1
+                        violations += "${sourceFile.relativeTo(projectDir)}:$line: \"$literal\""
+                    }
+                }
+            }
+        }
+
+        if (violations.isNotEmpty()) {
+            throw GradleException(
+                "Hardcoded primary-screen UI text must use stringResource(...):\n" +
+                    violations.sorted().joinToString("\n")
+            )
+        }
+    }
+}
+
+tasks.matching { it.name == "check" || it.name.startsWith("lint") }.configureEach {
+    dependsOn(verifyLocalizedPrimaryScreens)
 }
 
 dependencies {

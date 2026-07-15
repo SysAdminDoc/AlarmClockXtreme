@@ -55,6 +55,13 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   dismisses (using circular statistics so times either side of midnight are
   handled correctly). No cloud, no extra permissions.
 
+### Changed
+
+- Alarm firing, alarm editing, and Settings text and accessibility labels now
+  use Android string resources, including localized dynamic summaries and
+  locale-aware dates. XML lint and a primary-screen Compose verification task
+  now reject new hardcoded UI copy.
+
 ### Fixed
 
 - Alarm reliability checks now run immediately after boot and app updates as
