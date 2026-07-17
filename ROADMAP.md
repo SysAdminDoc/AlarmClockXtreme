@@ -16,10 +16,10 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.28)
+## Current snapshot (v1.15.29)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
-  Material 3 (1.4.x), Room 2.6.1 / DB v22, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
+  Material 3 (1.4.x), Room 2.6.1 / DB v23, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
   DataStore 1.1.1, Glance 1.1.1, OkHttp 5.4.0, WorkManager 2.9.1, Wear Tiles
   1.6.0 / protolayout 1.4.0, Wear Data Layer, Wear Watchface complications
   data-source 1.3.0, Health Connect client 1.1.0 (Play flavor), ML Kit Digital
@@ -27,7 +27,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 130`, `versionName 1.15.28`.
+  `versionCode 131`, `versionName 1.15.29`.
 - **Surface area:** 186 Kotlin files in `:app` + 4 in `:wear`, two phone
   flavors (`play`, `fdroid`), **30 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -39,6 +39,43 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   on-device ML sleep-sound classifier. The good news: the alarm-clock core
   (scheduling, reliability, challenges, weather, bedtime DND, encrypted
   backup) is best-in-class for FOSS Android.
+
+---
+
+## Audit backlog (v1.15.29 deep-audit pass)
+
+Verified findings deliberately NOT fixed in the v1.15.29 pass — each needs
+design judgment, a large refactor, or on-device confirmation rather than a
+surgical change.
+
+- [ ] **P3 — AlarmService uses `START_NOT_STICKY`; process death mid-ring
+  permanently silences the alarm.** `START_REDELIVER_INTENT` would resume
+  ringing after an LMK/OEM kill. AOSP DeskClock shares the current choice, so
+  this is parity-level, but for this app's worst-failure axis redelivery is the
+  stronger option. Needs device testing of the restart-intent path (audio
+  re-acquire, notification, snooze/dismiss state) before flipping.
+  Where: `service/AlarmService.kt` onStartCommand return.
+- [ ] **P3 — Direct-Boot fallback cache can be displaced by a later trigger of
+  the same alarm id.** `DirectBootAlarmCache.saveIfEarlier` overwrites
+  unconditionally on same-id; editing alarm A to a later time while alarm B is
+  the true next can drop B from the pre-unlock fallback until the next full
+  reschedule. CLAUDE.md documents the same-id overwrite as intentional for the
+  common case — reconcile the two: after a same-id overwrite that moves later,
+  rebuild the cache from all enabled alarms. Needs a Direct-Boot device test.
+  Where: `directboot/DirectBootAlarmCache.kt`.
+- [ ] **P2/debt — God files.** `SettingsScreen.kt` (~4.1k lines),
+  `AlarmEditScreen.kt` (~3.5k), `BedtimeScreen.kt` (~2.3k) hold every page /
+  pane / dialog. The section enums already give clean seams; extract per-page
+  files (`AlarmEditSoundPage.kt`, `SettingsReadinessPane.kt`,
+  `JetLagPlannerSection.kt`, …). Effort: M.
+- [ ] **P3/debt — ~63 orphaned string resources** (pre-split editor summaries,
+  onboarding_*, some challenge_* / *_notification_channel). Zero references
+  after the localization sweep; safe to delete once double-checked against
+  dynamic `getIdentifier` usage (none found). Effort: S.
+- [ ] **P3/tests — Coverage gaps:** `WebhookRetryWorker` outcome→Result / cap
+  mapping has no unit test; `JetLagPlannerTest` AUTO-resolves-to-DELAY, the 12h
+  tie-break, and a requested direction opposing the shorter arc are untested.
+  Effort: S.
 
 ---
 
