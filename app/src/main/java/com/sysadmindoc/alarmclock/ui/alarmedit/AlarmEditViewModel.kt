@@ -1,8 +1,10 @@
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
@@ -10,6 +12,7 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -139,6 +142,7 @@ data class ForecastEntry(
 @HiltViewModel
 class AlarmEditViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
+    @ApplicationContext private val context: Context,
     private val repository: AlarmRepository,
     private val scheduler: AlarmScheduler,
     private val calculator: NextAlarmCalculator,
@@ -565,13 +569,15 @@ class AlarmEditViewModel @Inject constructor(
         }
     }
 
-    private fun String.toChallengeReferenceLabel(): String = when (this) {
-        "NFC_SCAN" -> "an NFC tag"
-        "BARCODE_SCAN" -> "a barcode value"
-        "PHOTO_MATCH" -> "a reference photo"
-        "WIFI_CONNECT" -> "a Wi-Fi network name"
-        else -> "challenge details"
-    }
+    private fun String.toChallengeReferenceLabel(): String = context.getString(
+        when (this) {
+            "NFC_SCAN" -> R.string.alarm_edit_challenge_ref_nfc
+            "BARCODE_SCAN" -> R.string.alarm_edit_challenge_ref_barcode
+            "PHOTO_MATCH" -> R.string.alarm_edit_challenge_ref_photo
+            "WIFI_CONNECT" -> R.string.alarm_edit_challenge_ref_wifi
+            else -> R.string.alarm_edit_challenge_ref_generic
+        }
+    )
 
     fun save(onComplete: () -> Unit) {
         // Re-entrancy guard: a fast double-tap on the Save button would otherwise
@@ -600,7 +606,7 @@ class AlarmEditViewModel @Inject constructor(
                 val labels = missingReferences.joinToString(", ") { it.toChallengeReferenceLabel() }
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    saveError = "Finish the challenge setup first: missing $labels."
+                    saveError = context.getString(R.string.alarm_edit_save_error_missing_refs, labels)
                 )
                 return@launch
             }
@@ -610,7 +616,7 @@ class AlarmEditViewModel @Inject constructor(
             ) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    saveError = "Save your current place before enabling location dismissal."
+                    saveError = context.getString(R.string.alarm_edit_save_error_location)
                 )
                 return@launch
             }
@@ -704,7 +710,7 @@ class AlarmEditViewModel @Inject constructor(
             } catch (_: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    saveError = "Could not save this alarm. Check the details and try again."
+                    saveError = context.getString(R.string.alarm_edit_save_error_generic)
                 )
             }
         }

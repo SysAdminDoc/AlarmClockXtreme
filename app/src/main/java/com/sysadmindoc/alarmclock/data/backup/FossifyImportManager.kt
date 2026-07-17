@@ -2,6 +2,7 @@ package com.sysadmindoc.alarmclock.data.backup
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import com.squareup.moshi.Moshi
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
@@ -11,6 +12,23 @@ import java.security.MessageDigest
 import java.time.DayOfWeek
 import javax.inject.Inject
 import javax.inject.Singleton
+
+/**
+ * Fixed, user-presentable failure categories for Fossify import. Raw exception
+ * text (JSON parser internals, storage paths) stays in the log only — the UI
+ * maps each kind to a calm string resource.
+ */
+enum class FossifyImportErrorKind {
+    NOT_FOSSIFY_EXPORT,
+    UNREADABLE,
+    CHANGED_AFTER_PREVIEW,
+    NO_ALARMS
+}
+
+class FossifyImportException(
+    val kind: FossifyImportErrorKind,
+    cause: Throwable? = null
+) : Exception(kind.name, cause)
 
 data class FossifyAlarmPreview(
     val hour: Int,
@@ -133,18 +151,24 @@ class FossifyImportManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val repository: AlarmRepository
 ) {
+    private companion object {
+        const val TAG = "FossifyImport"
+    }
+
     suspend fun inspect(uri: Uri): Result<FossifyImportPreview> = runCatching {
-        val bytes = readBounded(uri)
-        buildPreview(FossifyImportCodec.parse(bytes.toString(Charsets.UTF_8)), fingerprint(bytes))
+        val bytes = readBoundedSanitized(uri)
+        buildPreview(parseSanitized(bytes), fingerprint(bytes))
     }
 
     suspend fun import(uri: Uri, expectedFingerprint: String): Result<Int> = runCatching {
-        val bytes = readBounded(uri)
-        require(fingerprint(bytes) == expectedFingerprint) {
-            "The selected Fossify file changed after preview; inspect it again"
+        val bytes = readBoundedSanitized(uri)
+        if (fingerprint(bytes) != expectedFingerprint) {
+            throw FossifyImportException(FossifyImportErrorKind.CHANGED_AFTER_PREVIEW)
         }
-        val parsed = FossifyImportCodec.parse(bytes.toString(Charsets.UTF_8))
-        require(parsed.alarms.isNotEmpty()) { "No valid Fossify alarms to import" }
+        val parsed = parseSanitized(bytes)
+        if (parsed.alarms.isEmpty()) {
+            throw FossifyImportException(FossifyImportErrorKind.NO_ALARMS)
+        }
         val alarms = parsed.alarms.map { candidate ->
             FossifyImportMapper.toAlarm(
                 candidate,
@@ -186,9 +210,29 @@ class FossifyImportManager @Inject constructor(
         }.getOrDefault(false)
     }
 
+    /** Detailed read failures go to the log; callers get a fixed sanitized kind. */
+    private fun readBoundedSanitized(uri: Uri): ByteArray = try {
+        readBounded(uri)
+    } catch (error: IllegalArgumentException) {
+        // Size-cap violation: a real Fossify Clock export is far under 1 MiB.
+        Log.w(TAG, "Fossify file rejected by size cap", error)
+        throw FossifyImportException(FossifyImportErrorKind.NOT_FOSSIFY_EXPORT, error)
+    } catch (error: Exception) {
+        Log.w(TAG, "Fossify file could not be read", error)
+        throw FossifyImportException(FossifyImportErrorKind.UNREADABLE, error)
+    }
+
+    /** Detailed parse failures go to the log; callers get a fixed NOT_FOSSIFY_EXPORT kind. */
+    private fun parseSanitized(bytes: ByteArray): ParsedFossifyImport = try {
+        FossifyImportCodec.parse(bytes.toString(Charsets.UTF_8))
+    } catch (error: Exception) {
+        Log.w(TAG, "Selected file is not a readable Fossify export", error)
+        throw FossifyImportException(FossifyImportErrorKind.NOT_FOSSIFY_EXPORT, error)
+    }
+
     private fun readBounded(uri: Uri): ByteArray {
         val input = context.contentResolver.openInputStream(uri)
-            ?: throw IllegalArgumentException("Unable to read Fossify file")
+            ?: throw java.io.FileNotFoundException("Unable to read Fossify file")
         return input.use { stream ->
             val output = ByteArrayOutputStream()
             val buffer = ByteArray(8_192)

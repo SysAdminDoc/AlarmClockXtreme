@@ -17,8 +17,11 @@ import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.backup.BackupImportOptions
 import com.sysadmindoc.alarmclock.data.backup.BackupImportPreview
 import com.sysadmindoc.alarmclock.BuildConfig
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.backup.BackupManager
+import com.sysadmindoc.alarmclock.data.backup.FossifyImportErrorKind
+import com.sysadmindoc.alarmclock.data.backup.FossifyImportException
 import com.sysadmindoc.alarmclock.data.backup.FossifyImportManager
 import com.sysadmindoc.alarmclock.data.backup.FossifyImportPreview
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
@@ -648,7 +651,15 @@ class SettingsViewModel @Inject constructor(
             _backupBusy.value = true
             try {
                 backupManager.exportToUri(uri)
-                    .onSuccess { count -> setBackupResult(backupSuccessMessage(BackupStatusKind.PlainExport, count)) }
+                    .onSuccess { count ->
+                        setBackupResult(
+                            backupSuccessMessage(
+                                getApplication<Application>().resources,
+                                BackupStatusKind.PlainExport,
+                                count
+                            )
+                        )
+                    }
                     .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.PlainExport, it)) }
             } catch (e: Exception) {
                 setBackupResult(backupFailureMessage(BackupStatusKind.PlainExport, e))
@@ -663,7 +674,15 @@ class SettingsViewModel @Inject constructor(
             _backupBusy.value = true
             try {
                 backupManager.exportEncryptedToUri(uri, passphrase)
-                    .onSuccess { count -> setBackupResult(backupSuccessMessage(BackupStatusKind.EncryptedExport, count)) }
+                    .onSuccess { count ->
+                        setBackupResult(
+                            backupSuccessMessage(
+                                getApplication<Application>().resources,
+                                BackupStatusKind.EncryptedExport,
+                                count
+                            )
+                        )
+                    }
                     .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedExport, it)) }
             } catch (e: Exception) {
                 setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedExport, e))
@@ -681,7 +700,15 @@ class SettingsViewModel @Inject constructor(
             _backupBusy.value = true
             try {
                 backupManager.importFromUri(uri, options)
-                    .onSuccess { count -> setBackupResult(backupSuccessMessage(BackupStatusKind.PlainImport, count)) }
+                    .onSuccess { count ->
+                        setBackupResult(
+                            backupSuccessMessage(
+                                getApplication<Application>().resources,
+                                BackupStatusKind.PlainImport,
+                                count
+                            )
+                        )
+                    }
                     .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.PlainImport, it)) }
             } catch (e: Exception) {
                 setBackupResult(backupFailureMessage(BackupStatusKind.PlainImport, e))
@@ -700,7 +727,15 @@ class SettingsViewModel @Inject constructor(
             _backupBusy.value = true
             try {
                 backupManager.importEncryptedFromUri(uri, passphrase, options)
-                    .onSuccess { count -> setBackupResult(backupSuccessMessage(BackupStatusKind.EncryptedImport, count)) }
+                    .onSuccess { count ->
+                        setBackupResult(
+                            backupSuccessMessage(
+                                getApplication<Application>().resources,
+                                BackupStatusKind.EncryptedImport,
+                                count
+                            )
+                        )
+                    }
                     .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedImport, it)) }
             } catch (e: Exception) {
                 setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedImport, e))
@@ -716,15 +751,36 @@ class SettingsViewModel @Inject constructor(
             try {
                 fossifyImportManager.import(uri, expectedFingerprint)
                     .onSuccess { count ->
-                        setBackupResult("Imported $count Fossify alarm${if (count == 1) "" else "s"} as disabled for review.")
+                        setBackupResult(
+                            getApplication<Application>().resources.getQuantityString(
+                                R.plurals.settings_fossify_import_success,
+                                count,
+                                count
+                            )
+                        )
                     }
-                    .onFailure { setBackupResult("Fossify import failed: ${it.message ?: "unexpected error"}") }
+                    .onFailure { setBackupResult(fossifyImportFailureMessage(it)) }
             } catch (e: Exception) {
-                setBackupResult("Fossify import failed: ${e.message ?: "unexpected error"}")
+                setBackupResult(fossifyImportFailureMessage(e))
             } finally {
                 _backupBusy.value = false
             }
         }
+    }
+
+    /**
+     * Fixed calm copy per sanitized failure kind — raw exception text (JSON
+     * parser internals, storage paths) never reaches a user-facing notice.
+     */
+    private fun fossifyImportFailureMessage(error: Throwable?): String {
+        val res = when ((error as? FossifyImportException)?.kind) {
+            FossifyImportErrorKind.NOT_FOSSIFY_EXPORT -> R.string.settings_fossify_import_failed_not_export
+            FossifyImportErrorKind.UNREADABLE -> R.string.settings_fossify_import_failed_unreadable
+            FossifyImportErrorKind.CHANGED_AFTER_PREVIEW -> R.string.settings_fossify_import_failed_changed
+            FossifyImportErrorKind.NO_ALARMS -> R.string.settings_fossify_import_failed_no_alarms
+            null -> R.string.settings_fossify_import_failed_generic
+        }
+        return getApplication<Application>().getString(res)
     }
 
     fun showBackupResult(message: String) {

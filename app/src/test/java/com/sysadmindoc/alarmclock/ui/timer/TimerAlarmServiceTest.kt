@@ -35,6 +35,13 @@ class TimerAlarmServiceTest {
     fun setUp() {
         context = ApplicationProvider.getApplicationContext<Application>()
         context.getSharedPreferences("timer_state", Context.MODE_PRIVATE).edit().clear().commit()
+        // Robolectric reuses the Application (and its ShadowAlarmManager)
+        // across methods in a class, so a prior test that scheduled a timer
+        // alarm would otherwise inflate scheduledAlarms.size assertions here.
+        val alarmManager = shadowOf(context.getSystemService(AlarmManager::class.java))
+        while (alarmManager.peekNextScheduledAlarm() != null) {
+            alarmManager.getNextScheduledAlarm()
+        }
         controller = Robolectric.buildService(TimerAlarmService::class.java).create()
         service = controller.get()
     }

@@ -126,10 +126,10 @@ class AlarmService : Service() {
 
             val alarmChannel = NotificationChannel(
                 CHANNEL_ALARM,
-                "Alarm",
+                context.getString(R.string.alarm_notification_channel),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Alarm notifications"
+                description = context.getString(R.string.notif_channel_alarm_desc)
                 setBypassDnd(true)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setSound(null, null)
@@ -139,19 +139,19 @@ class AlarmService : Service() {
 
             val upcomingChannel = NotificationChannel(
                 CHANNEL_UPCOMING,
-                "Upcoming Alarms",
+                context.getString(R.string.upcoming_notification_channel),
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Shows upcoming alarm information"
+                description = context.getString(R.string.notif_channel_upcoming_desc)
             }
             nm.createNotificationChannel(upcomingChannel)
 
             val missedChannel = NotificationChannel(
                 CHANNEL_MISSED,
-                "Missed Alarms",
+                context.getString(R.string.missed_notification_channel),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notifications for alarms that were auto-silenced"
+                description = context.getString(R.string.notif_channel_missed_desc)
             }
 
             // v1.12.1 (roadmap N8): timer-finished channel. IMPORTANCE_HIGH
@@ -162,10 +162,10 @@ class AlarmService : Service() {
             // user-isn't-looking-at-the-app surface.
             val timerChannel = NotificationChannel(
                 CHANNEL_TIMER,
-                "Timer Finished",
+                context.getString(R.string.notif_channel_timer_finished),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Notifies when one of your countdown timers reaches zero."
+                description = context.getString(R.string.notif_channel_timer_finished_desc)
                 setSound(null, null)
                 enableVibration(false)
             }

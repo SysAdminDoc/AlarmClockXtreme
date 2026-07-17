@@ -76,11 +76,4 @@ class JetLagPlannerTest {
         assertEquals(0, plan.dailyShiftMinutes)
         assertEquals(List(5) { 7 * 60 }, plan.days.map { it.wakeMinutes })
     }
-
-    @Test
-    fun shiftLabelsStayCompact() {
-        assertEquals("2h 15m earlier", formatJetLagShift(-135))
-        assertEquals("45m later", formatJetLagShift(45))
-        assertEquals("No shift", formatJetLagShift(0))
-    }
 }

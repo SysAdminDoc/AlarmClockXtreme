@@ -37,8 +37,8 @@
     <string name="quick_alarm">Quick alarm</string>
 
     <!-- Alarm edit -->
-    <string name="edit_alarm">Edit Alarm</string>
-    <string name="new_alarm">New Alarm</string>
+    <string name="edit_alarm">Edit alarm</string>
+    <string name="new_alarm">New alarm</string>
     <string name="save">Save</string>
     <string name="label">Label</string>
     <string name="ringtone">Ringtone</string>
@@ -59,13 +59,13 @@
     <string name="dismiss">Dismiss</string>
     <string name="snooze">Snooze</string>
     <string name="dismiss_alarm">Dismiss alarm</string>
-    <string name="missed_alarm">Missed Alarm</string>
+    <string name="missed_alarm">Missed alarm</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="format_24h">24-hour format</string>
     <string name="auto_silence">Auto-silence</string>
-    <string name="vacation_mode">Vacation Mode</string>
+    <string name="vacation_mode">Vacation mode</string>
     <string name="temperature_unit">Temperature unit</string>
     <string name="show_weather">Show weather</string>
     <string name="show_calendar">Show calendar</string>
@@ -74,10 +74,10 @@
     <string name="about">About</string>
 
     <!-- Bedtime -->
-    <string name="bedtime_reminder">Bedtime Reminder</string>
+    <string name="bedtime_reminder">Bedtime reminder</string>
     <string name="bedtime_wind_down">Time to wind down</string>
     <string name="bedtime_approaching">Your bedtime is approaching. Start getting ready for sleep.</string>
-    <string name="sleep_goal">Sleep Goal</string>
+    <string name="sleep_goal">Sleep goal</string>
     <string name="no_alarm_set">No alarm set</string>
 
     <!-- Dashboard -->
@@ -109,8 +109,8 @@
     <string name="notif_dismiss_action">Dismiss</string>
     <string name="notif_skip_action">Skip this alarm</string>
     <string name="notif_next_alarm_title">Next: %1$s</string>
-    <string name="notif_missed_title">Missed Alarm</string>
-    <string name="notif_smart_alarm_title">Smart Alarm Active</string>
+    <string name="notif_missed_title">Missed alarm</string>
+    <string name="notif_smart_alarm_title">Smart alarm active</string>
     <string name="notif_smart_alarm_text">Monitoring sleep quality…</string>
     <string name="notif_sonar_title">Sleep tracking active</string>
     <string name="notif_sonar_text">Sonar monitoring in progress</string>
@@ -130,6 +130,10 @@
     </plurals>
     <string name="notif_channel_running_timers">Running timers</string>
     <string name="notif_channel_running_timers_desc">Shows active countdown timers</string>
+    <string name="alarm_list_move_up">Move up</string>
+    <string name="alarm_list_move_down">Move down</string>
+    <string name="alarm_edit_numpad_entry_desc">Time entry: %1$s</string>
+    <string name="alarm_edit_numpad_entry_empty_desc">Time entry: empty</string>
 
     <!-- Wake confirmation -->
     <string name="wake_confirm_title">Wake confirmation</string>
@@ -266,7 +270,7 @@
     <string name="firing_challenge_date_support">Reading + typing cognitive gate — hard to do half-asleep.</string>
     <string name="firing_challenge_stroop_support">Classic interference test — pick the ink, ignore the word.</string>
     <string name="firing_challenge_rps_support">Best-of-5 against the computer — first to 3 wins.</string>
-    <string name="firing_challenge_emoji_support">Memorise 8 pairs while they’re face-up, then find them all.</string>
+    <string name="firing_challenge_emoji_support">Memorize 8 pairs while they’re face-up, then find them all.</string>
     <string name="firing_challenge_speed_support">Groggy fingers slow you down — prove you can type at speed.</string>
     <string name="firing_challenge_wordle_support">Find the hidden 5-letter word in up to 6 guesses.</string>
     <string name="firing_challenge_pvt_support">Tap fast when the target appears — average under 500 ms.</string>
@@ -589,7 +593,7 @@
     <string name="alarm_edit_challenge_date_description">Type the displayed date backwards exactly.</string>
     <string name="alarm_edit_challenge_stroop_description">Pick the ink color while ignoring the word.</string>
     <string name="alarm_edit_challenge_rps_description">Win 3 rounds of RPS against the computer to dismiss.</string>
-    <string name="alarm_edit_challenge_emoji_description">Memorise 8 pairs on a 4x4 grid, then find them all face-down.</string>
+    <string name="alarm_edit_challenge_emoji_description">Memorize 8 pairs on a 4x4 grid, then find them all face-down.</string>
     <string name="alarm_edit_challenge_speed_description">Type a short phrase at 15+ wpm with at most 2 word errors.</string>
     <string name="alarm_edit_challenge_wordle_description">Guess a hidden 5-letter word in up to 6 tries.</string>
     <string name="alarm_edit_challenge_pvt_description">Tap a target 5 times as fast as you can. Average under 500 ms to dismiss.</string>
@@ -1102,7 +1106,6 @@
 
     <!-- Settings backup and restore -->
     <string name="settings_unexpected_error">unexpected error</string>
-    <string name="settings_fossify_preview_failed">Fossify preview failed: %1$s</string>
     <string name="settings_backup_inspection_failed">Backup contents could not be inspected: %1$s</string>
     <string name="settings_backup_restore">Backup and restore</string>
     <string name="settings_backup_restore_description">Keep a portable copy of alarms and app preferences for new devices or peace of mind.</string>
@@ -1127,13 +1130,13 @@
     <string name="settings_backup_attention">Backup needs attention</string>
     <string name="settings_backup_complete">Backup complete</string>
     <string name="settings_review_fossify_alarms">Review Fossify alarms</string>
-    <string name="settings_fossify_preview_counts">%1$d valid alarms; %2$d invalid rows skipped.</string>
-    <string name="settings_fossify_import_disabled_summary">All imports will be disabled. %1$d were enabled in Fossify.</string>
+    <string name="settings_fossify_preview_counts">Valid alarms: %1$d. Invalid rows skipped: %2$d.</string>
+    <string name="settings_fossify_import_disabled_summary">All imports will be disabled. Enabled in Fossify: %1$d.</string>
     <plurals name="settings_fossify_unreadable_ringtones"><item quantity="one">%1$d ringtone URI is not readable on this device and will use the default alarm sound.</item><item quantity="other">%1$d ringtone URIs are not readable on this device and will use the default alarm sound.</item></plurals>
-    <string name="settings_fossify_days_suffix"> • %1$s</string>
-    <string name="settings_fossify_alarm_summary">%1$02d:%2$02d  %3$s%4$s</string>
+    <string name="settings_fossify_days_suffix">" • %1$s"</string>
+    <string name="settings_fossify_alarm_summary">"%1$s  %2$s%3$s"</string>
     <plurals name="settings_more_items"><item quantity="one">+ %1$d more</item><item quantity="other">+ %1$d more</item></plurals>
-    <string name="settings_import_disabled">Import disabled</string>
+    <string name="settings_import_disabled">Import as disabled</string>
     <string name="settings_review_backup">Review backup before restore</string>
     <string name="settings_review_backup_description">Nothing changes until you choose how to restore this backup.</string>
     <string name="settings_backup_version">Backup v%1$d from app %2$s</string>
@@ -1215,4 +1218,75 @@
     <string name="onboarding_battery">Battery protection</string>
     <string name="onboarding_test_alarm">Test alarm</string>
     <string name="onboarding_step_of">Step %1$d of %2$d</string>
+
+    <!-- Bedtime jet-lag planner -->
+    <string name="bedtime_jetlag_title">Jet lag planner</string>
+    <string name="bedtime_jetlag_aligned_description">Target wake already matches the linked wake time; keep light cues steady.</string>
+    <string name="bedtime_jetlag_shift_description">Shift wake and bedtime gradually, then use bright-light and dim-light windows as timing cues.</string>
+    <string name="bedtime_jetlag_current_chip">Current %1$s</string>
+    <string name="bedtime_jetlag_target_chip">Target %1$s</string>
+    <plurals name="bedtime_jetlag_days"><item quantity="one">%1$d day</item><item quantity="other">%1$d days</item></plurals>
+    <string name="bedtime_jetlag_current_title">Current</string>
+    <string name="bedtime_jetlag_target_title">Target</string>
+    <string name="bedtime_jetlag_daily_move_title">Daily move</string>
+    <string name="bedtime_jetlag_helper_next_alarm">Next alarm</string>
+    <string name="bedtime_jetlag_helper_sleep_target">Sleep target</string>
+    <string name="bedtime_jetlag_helper_tap_to_edit">Tap to edit</string>
+    <string name="bedtime_jetlag_direction">Direction</string>
+    <string name="bedtime_jetlag_direction_auto">Auto</string>
+    <string name="bedtime_jetlag_direction_earlier">Earlier</string>
+    <string name="bedtime_jetlag_direction_later">Later</string>
+    <string name="bedtime_jetlag_adjustment_days">Adjustment days</string>
+    <string name="bedtime_jetlag_day_number">Day %1$d</string>
+    <string name="bedtime_jetlag_wake_chip">Wake %1$s</string>
+    <string name="bedtime_jetlag_bed_chip">Bed %1$s</string>
+    <string name="bedtime_jetlag_bright_chip">Bright %1$s</string>
+    <string name="bedtime_jetlag_dim_chip">Dim %1$s</string>
+    <string name="bedtime_jetlag_time_range">%1$s-%2$s</string>
+    <string name="bedtime_jetlag_no_shift">No shift</string>
+    <string name="bedtime_jetlag_shift_earlier">%1$s earlier</string>
+    <string name="bedtime_jetlag_shift_later">%1$s later</string>
+    <string name="bedtime_jetlag_duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="bedtime_jetlag_duration_hours">%1$dh</string>
+    <string name="bedtime_jetlag_duration_minutes">%1$dm</string>
+    <string name="bedtime_jetlag_save_target">Save target</string>
+    <string name="bedtime_picker_keep_current">Keep current</string>
+    <string name="bedtime_jetlag_travel_target">Travel target</string>
+    <string name="bedtime_jetlag_choose_target_wake">Choose target wake time</string>
+
+    <!-- Fossify import feedback -->
+    <plurals name="settings_fossify_import_success"><item quantity="one">Imported %1$d Fossify alarm as disabled for review.</item><item quantity="other">Imported %1$d Fossify alarms as disabled for review.</item></plurals>
+    <string name="settings_fossify_preview_not_export">Couldn\'t preview this file. It doesn\'t look like a Fossify Clock export — choose the JSON file exported by Fossify Clock.</string>
+    <string name="settings_fossify_preview_unreadable">Couldn\'t preview this file. Check that it is still accessible on this device and try again.</string>
+    <string name="settings_fossify_import_failed_not_export">Couldn\'t import Fossify alarms. The file doesn\'t look like a Fossify Clock export.</string>
+    <string name="settings_fossify_import_failed_unreadable">Couldn\'t import Fossify alarms. Check that the file is still accessible and try again.</string>
+    <string name="settings_fossify_import_failed_changed">Couldn\'t import Fossify alarms. The file changed after preview — choose it again to re-check.</string>
+    <string name="settings_fossify_import_failed_no_alarms">Couldn\'t import Fossify alarms. The file has no valid alarms.</string>
+    <string name="settings_fossify_import_failed_generic">Couldn\'t import Fossify alarms. Check the file and try again.</string>
+
+    <!-- Backup status copy -->
+    <plurals name="settings_backup_alarm_count"><item quantity="one">%1$d alarm</item><item quantity="other">%1$d alarms</item></plurals>
+
+    <!-- Webhook delivery log -->
+    <string name="settings_webhook_log_empty">No deliveries yet. Events appear here after the next alarm or a test.</string>
+
+    <!-- Alarm editor save errors -->
+    <string name="alarm_edit_save_error_missing_refs">Finish the challenge setup first: missing %1$s.</string>
+    <string name="alarm_edit_save_error_location">Save your current place before enabling location dismissal.</string>
+    <string name="alarm_edit_save_error_generic">Could not save this alarm. Check the details and try again.</string>
+    <string name="alarm_edit_challenge_ref_nfc">an NFC tag</string>
+    <string name="alarm_edit_challenge_ref_barcode">a barcode value</string>
+    <string name="alarm_edit_challenge_ref_photo">a reference photo</string>
+    <string name="alarm_edit_challenge_ref_wifi">a Wi-Fi network name</string>
+    <string name="alarm_edit_challenge_ref_generic">challenge details</string>
+
+    <!-- Notification channel names and descriptions (visible in system settings) -->
+    <string name="notif_channel_alarm_desc">Alarm notifications</string>
+    <string name="notif_channel_upcoming_desc">Shows upcoming alarm information</string>
+    <string name="notif_channel_missed_desc">Notifications for alarms that were auto-silenced</string>
+    <string name="notif_channel_timer_finished">Timer Finished</string>
+    <string name="notif_channel_timer_finished_desc">Notifies when one of your countdown timers reaches zero.</string>
+    <string name="notif_channel_bedtime_desc">Reminds you when it\'s time to sleep</string>
+    <string name="notif_channel_bedtime_countdown">Bedtime Countdown</string>
+    <string name="notif_channel_bedtime_countdown_desc">Shows the final-hour countdown before the bedtime reminder</string>
 </resources>

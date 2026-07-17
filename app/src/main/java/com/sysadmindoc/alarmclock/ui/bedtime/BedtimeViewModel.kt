@@ -300,11 +300,15 @@ class BedtimeViewModel @Inject constructor(
     }
 
     fun updateSleepGoal(hours: Int, minutes: Int) {
+        // Only keep the previous wake anchor while an alarm actually links one;
+        // otherwise let withJetLagPlan() re-infer the wake from bedtime + goal.
+        val linkedWake = _uiState.value.jetLagPlan.currentWakeMinutes
+            .takeIf { _uiState.value.wakeTimeFormatted.isNotBlank() }
         _uiState.value = _uiState.value.copy(
             sleepGoalHours = hours,
             sleepGoalMinutes = minutes,
             sleepDurationFormatted = "${hours}h ${minutes}m"
-        ).withJetLagPlan(_uiState.value.jetLagPlan.currentWakeMinutes)
+        ).withJetLagPlan(linkedWake)
         refreshChronotypeRecommendation()
         viewModelScope.launch {
             persistSettings()

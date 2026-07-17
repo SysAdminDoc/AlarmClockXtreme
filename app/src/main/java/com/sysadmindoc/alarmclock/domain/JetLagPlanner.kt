@@ -1,15 +1,11 @@
 package com.sysadmindoc.alarmclock.domain
 
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
-enum class JetLagDirection(
-    val storageKey: String,
-    val label: String
-) {
-    AUTO("auto", "Auto"),
-    ADVANCE("advance", "Earlier"),
-    DELAY("delay", "Later");
+enum class JetLagDirection(val storageKey: String) {
+    AUTO("auto"),
+    ADVANCE("advance"),
+    DELAY("delay");
 
     companion object {
         fun fromKey(key: String): JetLagDirection =
@@ -163,20 +159,4 @@ object JetLagPlanner {
 
     private fun roundToNearestFive(minutes: Int): Int =
         (minutes / 5.0).roundToInt() * 5
-}
-
-fun formatJetLagShift(minutes: Int): String {
-    val absolute = abs(minutes)
-    val hours = absolute / 60
-    val mins = absolute % 60
-    val duration = when {
-        hours > 0 && mins > 0 -> "${hours}h ${mins}m"
-        hours > 0 -> "${hours}h"
-        else -> "${mins}m"
-    }
-    return when {
-        minutes < 0 -> "$duration earlier"
-        minutes > 0 -> "$duration later"
-        else -> "No shift"
-    }
 }

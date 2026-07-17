@@ -114,32 +114,28 @@ fun NightClockScreen(onExit: () -> Unit) {
     }
     val amPm = if (is24Hour) "" else currentTime.format(DateTimeFormatter.ofPattern("a"))
 
-    val driftX: Float
-    val driftY: Float
-    if (motionEnabled) {
-        val driftTransition = rememberInfiniteTransition(label = "burnInDrift")
-        driftX = driftTransition.animateFloat(
-            initialValue = -24f,
-            targetValue = 24f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 120_000),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "driftX"
-        ).value
-        driftY = driftTransition.animateFloat(
-            initialValue = 18f,
-            targetValue = -18f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 90_000),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "driftY"
-        ).value
-    } else {
-        driftX = 0f
-        driftY = 0f
-    }
+    // Burn-in drift is a hardware safeguard (imperceptibly slow pixel shifting), not
+    // decorative motion, so it deliberately ignores the reduce-motion gate. Only the
+    // glow pulse above stays gated behind motionEnabled.
+    val driftTransition = rememberInfiniteTransition(label = "burnInDrift")
+    val driftX = driftTransition.animateFloat(
+        initialValue = -24f,
+        targetValue = 24f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 120_000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "driftX"
+    ).value
+    val driftY = driftTransition.animateFloat(
+        initialValue = 18f,
+        targetValue = -18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 90_000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "driftY"
+    ).value
 
     Box(
         modifier = Modifier

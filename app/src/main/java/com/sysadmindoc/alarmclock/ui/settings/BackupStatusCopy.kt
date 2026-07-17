@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.settings
 
+import android.content.res.Resources
+import com.sysadmindoc.alarmclock.R
 import java.io.FileNotFoundException
 import java.io.IOException
 import javax.crypto.AEADBadTagException
@@ -14,8 +16,8 @@ internal enum class BackupStatusKind {
     SupportExport
 }
 
-internal fun backupSuccessMessage(kind: BackupStatusKind, count: Int): String {
-    val alarmCount = "$count alarm${if (count == 1) "" else "s"}"
+internal fun backupSuccessMessage(resources: Resources, kind: BackupStatusKind, count: Int): String {
+    val alarmCount = resources.getQuantityString(R.plurals.settings_backup_alarm_count, count, count)
     return when (kind) {
         BackupStatusKind.PlainExport -> "Backup exported: $alarmCount."
         BackupStatusKind.EncryptedExport -> "Encrypted backup exported: $alarmCount."

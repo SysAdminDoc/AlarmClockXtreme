@@ -168,7 +168,7 @@ class BedtimeReceiver : BroadcastReceiver() {
 
         val notificationManager = context.getSystemService(NotificationManager::class.java)
 
-        createChannel(notificationManager)
+        createChannel(context, notificationManager)
 
         when (action) {
             ACTION_BEDTIME_REMINDER -> handleReminder(context, intent, notificationManager)
@@ -176,20 +176,20 @@ class BedtimeReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun createChannel(notificationManager: NotificationManager) {
+    private fun createChannel(context: Context, notificationManager: NotificationManager) {
         val reminderChannel = NotificationChannel(
             CHANNEL_BEDTIME,
-            "Bedtime Reminder",
+            context.getString(R.string.bedtime_notification_channel),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
-            description = "Reminds you when it's time to sleep"
+            description = context.getString(R.string.notif_channel_bedtime_desc)
         }
         val countdownChannel = NotificationChannel(
             CHANNEL_BEDTIME_COUNTDOWN,
-            "Bedtime Countdown",
+            context.getString(R.string.notif_channel_bedtime_countdown),
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Shows the final-hour countdown before the bedtime reminder"
+            description = context.getString(R.string.notif_channel_bedtime_countdown_desc)
             setShowBadge(false)
             enableLights(false)
             enableVibration(false)

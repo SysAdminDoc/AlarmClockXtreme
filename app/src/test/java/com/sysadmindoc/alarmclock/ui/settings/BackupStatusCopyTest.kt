@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.settings
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import java.io.FileNotFoundException
 import java.io.IOException
 import javax.crypto.AEADBadTagException
@@ -7,15 +9,22 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [30])
 class BackupStatusCopyTest {
+    private val resources = ApplicationProvider.getApplicationContext<Context>().resources
+
     @Test
     fun successMessagesUsePlainHumanCounts() {
-        assertEquals("Backup exported: 1 alarm.", backupSuccessMessage(BackupStatusKind.PlainExport, 1))
-        assertEquals("Backup imported: 3 alarms.", backupSuccessMessage(BackupStatusKind.PlainImport, 3))
+        assertEquals("Backup exported: 1 alarm.", backupSuccessMessage(resources, BackupStatusKind.PlainExport, 1))
+        assertEquals("Backup imported: 3 alarms.", backupSuccessMessage(resources, BackupStatusKind.PlainImport, 3))
         assertEquals(
             "Encrypted backup exported: 2 alarms.",
-            backupSuccessMessage(BackupStatusKind.EncryptedExport, 2)
+            backupSuccessMessage(resources, BackupStatusKind.EncryptedExport, 2)
         )
     }
 

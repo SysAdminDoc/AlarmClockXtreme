@@ -34,9 +34,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -100,12 +102,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
@@ -585,6 +589,35 @@ fun AlarmListScreen(
                                     AlarmReorderHandle(
                                         enabled = canReorderAlarms,
                                         alarmLabel = alarm.label.ifBlank { formatAlarmTime(alarm, state.is24HourFormat) },
+                                        // v1.13.15: TalkBack-reachable reorder — same persistence path as drag.
+                                        onMoveUp = {
+                                            val ids = currentVisibleAlarmIds
+                                            val index = ids.indexOf(alarm.id)
+                                            if (index > 0) {
+                                                viewModel.moveAlarm(
+                                                    movedAlarmId = alarm.id,
+                                                    targetAlarmId = ids[index - 1],
+                                                    visibleAlarmIds = ids
+                                                )
+                                                true
+                                            } else {
+                                                false
+                                            }
+                                        },
+                                        onMoveDown = {
+                                            val ids = currentVisibleAlarmIds
+                                            val index = ids.indexOf(alarm.id)
+                                            if (index in 0 until ids.lastIndex) {
+                                                viewModel.moveAlarm(
+                                                    movedAlarmId = alarm.id,
+                                                    targetAlarmId = ids[index + 1],
+                                                    visibleAlarmIds = ids
+                                                )
+                                                true
+                                            } else {
+                                                false
+                                            }
+                                        },
                                         modifier = Modifier.pointerInput(canReorderAlarms, alarm.id) {
                                             if (canReorderAlarms) {
                                                 detectDragGesturesAfterLongPress(
@@ -1119,8 +1152,13 @@ private fun GroupFilterRow(
 private fun AlarmReorderHandle(
     enabled: Boolean,
     alarmLabel: String,
+    onMoveUp: () -> Boolean,
+    onMoveDown: () -> Boolean,
     modifier: Modifier = Modifier
 ) {
+    // v1.13.15: WCAG 2.5.7 — expose drag-equivalent moves as accessibility actions.
+    val moveUpLabel = stringResource(R.string.alarm_list_move_up)
+    val moveDownLabel = stringResource(R.string.alarm_list_move_down)
     Box(
         modifier = modifier
             .size(44.dp)
@@ -1139,6 +1177,12 @@ private fun AlarmReorderHandle(
                     "Drag handle unavailable"
                 }
                 stateDescription = if (enabled) "Ready" else "Disabled"
+                if (enabled) {
+                    customActions = listOf(
+                        CustomAccessibilityAction(moveUpLabel) { onMoveUp() },
+                        CustomAccessibilityAction(moveDownLabel) { onMoveDown() }
+                    )
+                }
             },
         contentAlignment = Alignment.Center
     ) {

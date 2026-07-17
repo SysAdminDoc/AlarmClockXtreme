@@ -133,6 +133,8 @@ import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
 import com.sysadmindoc.alarmclock.data.backup.BackupImportMode
 import com.sysadmindoc.alarmclock.data.backup.BackupImportOptions
 import com.sysadmindoc.alarmclock.data.backup.BackupImportPreview
+import com.sysadmindoc.alarmclock.data.backup.FossifyImportErrorKind
+import com.sysadmindoc.alarmclock.data.backup.FossifyImportException
 import com.sysadmindoc.alarmclock.data.backup.FossifyImportPreview
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
@@ -154,7 +156,9 @@ import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
+import java.time.DayOfWeek
 import java.time.Instant
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -783,7 +787,7 @@ fun SettingsScreen(
             }
             if (showAllSettings || selectedPane.id == "backup") {
             settingsItem("backup-restore") {
-                BackupRestoreSection(viewModel)
+                BackupRestoreSection(viewModel, is24HourFormat = state.settings.is24HourFormat)
             }
             }
 
@@ -2265,13 +2269,36 @@ private fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewM
                 Text(
                     text = formatWebhookLogLine(line),
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (line.contains("OK")) DismissGreen else AccentRed,
+                    color = if (isWebhookLogLineSuccess(line)) DismissGreen else AccentRed,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
+        } else if (state.settings.webhookEnabled) {
+            Spacer(modifier = Modifier.size(10.dp))
+            Text(
+                text = stringResource(R.string.settings_recent_deliveries),
+                style = MaterialTheme.typography.labelMedium,
+                color = TextMuted
+            )
+            Spacer(modifier = Modifier.size(4.dp))
+            Text(
+                text = stringResource(R.string.settings_webhook_log_empty),
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }
+
+/**
+ * Delivery-log lines are stored by WebhookService as
+ * "<ISO instant> <event wire name> <OK|failed>[ (code)][: Reason]", so the
+ * third whitespace token is the structured status — never key success off a
+ * substring match (a failure reason could legitimately contain "OK").
+ */
+private fun isWebhookLogLineSuccess(line: String): Boolean =
+    line.split(' ').getOrNull(2) == "OK"
 
 /**
  * Render a stored "<ISO instant> <status>" delivery-log line as a friendly
@@ -3101,7 +3128,7 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
 private val lightAccentSwatches = setOf("#FFB347", "#5BD49A", "#E0E4EA")
 
 @Composable
-private fun BackupRestoreSection(viewModel: SettingsViewModel) {
+private fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: Boolean) {
     val resources = LocalResources.current
     val unexpectedError = stringResource(R.string.settings_unexpected_error)
     val backupResult by viewModel.backupResult.collectAsStateWithLifecycle()
@@ -3185,11 +3212,10 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
                 viewModel.inspectFossifyImport(uri)
                     .onSuccess { preview -> pendingFossifyImport = PendingFossifyImport(uri, preview) }
                     .onFailure { error ->
+                        // Fixed calm copy only — the raw exception detail stays in the log
+                        // (see FossifyImportManager), never in a user-facing notice.
                         viewModel.showBackupResult(
-                            resources.getString(
-                                R.string.settings_fossify_preview_failed,
-                                error.message ?: unexpectedError
-                            )
+                            resources.getString(fossifyPreviewFailureRes(error))
                         )
                     }
             } finally {
@@ -3413,6 +3439,7 @@ private fun BackupRestoreSection(viewModel: SettingsViewModel) {
     pendingFossifyImport?.let { pending ->
         FossifyImportPreviewDialog(
             pending = pending,
+            is24HourFormat = is24HourFormat,
             onDismiss = { pendingFossifyImport = null },
             onImport = {
                 pendingFossifyImport = null
@@ -3487,14 +3514,38 @@ private data class PendingFossifyImport(
     val preview: FossifyImportPreview
 )
 
+/** Maps a sanitized Fossify inspect failure to its fixed user-facing copy. */
+private fun fossifyPreviewFailureRes(error: Throwable): Int =
+    when ((error as? FossifyImportException)?.kind) {
+        FossifyImportErrorKind.UNREADABLE -> R.string.settings_fossify_preview_unreadable
+        else -> R.string.settings_fossify_preview_not_export
+    }
+
+@Composable
+private fun fossifyShortDayLabels(): Map<DayOfWeek, String> = mapOf(
+    DayOfWeek.MONDAY to stringResource(R.string.alarm_edit_day_monday_short),
+    DayOfWeek.TUESDAY to stringResource(R.string.alarm_edit_day_tuesday_short),
+    DayOfWeek.WEDNESDAY to stringResource(R.string.alarm_edit_day_wednesday_short),
+    DayOfWeek.THURSDAY to stringResource(R.string.alarm_edit_day_thursday_short),
+    DayOfWeek.FRIDAY to stringResource(R.string.alarm_edit_day_friday_short),
+    DayOfWeek.SATURDAY to stringResource(R.string.alarm_edit_day_saturday_short),
+    DayOfWeek.SUNDAY to stringResource(R.string.alarm_edit_day_sunday_short)
+)
+
 @Composable
 private fun FossifyImportPreviewDialog(
     pending: PendingFossifyImport,
+    is24HourFormat: Boolean,
     onDismiss: () -> Unit,
     onImport: () -> Unit
 ) {
     val preview = pending.preview
     val defaultAlarmLabel = stringResource(R.string.direct_boot_alarm_title)
+    val dayLabels = fossifyShortDayLabels()
+    val locale = LocalConfiguration.current.locales[0]
+    val timeFormatter = remember(is24HourFormat, locale) {
+        DateTimeFormatter.ofPattern(if (is24HourFormat) "HH:mm" else "h:mm a", locale)
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Restore, contentDescription = null) },
@@ -3529,7 +3580,7 @@ private fun FossifyImportPreviewDialog(
                     )
                 }
                 preview.alarms.take(5).forEach { alarm ->
-                    val days = alarm.repeatDays.joinToString(", ") { it.name.take(3) }
+                    val days = alarm.repeatDays.mapNotNull(dayLabels::get).joinToString(", ")
                     val daySummary = if (days.isBlank()) {
                         ""
                     } else {
@@ -3538,8 +3589,7 @@ private fun FossifyImportPreviewDialog(
                     Text(
                         stringResource(
                             R.string.settings_fossify_alarm_summary,
-                            alarm.hour,
-                            alarm.minute,
+                            LocalTime.of(alarm.hour, alarm.minute).format(timeFormatter),
                             alarm.label.ifBlank { defaultAlarmLabel },
                             daySummary
                         ),

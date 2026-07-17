@@ -82,12 +82,64 @@ class AlarmEditDraftTest {
 
     @Test
     fun `every settings section is assigned to a focused page`() {
-        assertEquals(AlarmEditorPage.OVERVIEW, alarmEditorPageForSection("Label"))
-        assertEquals(AlarmEditorPage.SOUND, alarmEditorPageForSection("Vibration"))
-        assertEquals(AlarmEditorPage.DISMISS, alarmEditorPageForSection("Mission chaining"))
-        assertEquals(AlarmEditorPage.SCHEDULE, alarmEditorPageForSection("Smart alarm"))
-        assertEquals(AlarmEditorPage.WAKE, alarmEditorPageForSection("Morning routine"))
-        assertEquals(AlarmEditorPage.INTEGRATIONS, alarmEditorPageForSection("Guardian Angel"))
-        assertEquals(AlarmEditorPage.ADVANCED, alarmEditorPageForSection("Advanced"))
+        val expected = mapOf(
+            AlarmEditorSection.LABEL to AlarmEditorPage.OVERVIEW,
+            AlarmEditorSection.GROUP to AlarmEditorPage.OVERVIEW,
+            AlarmEditorSection.SOUND to AlarmEditorPage.SOUND,
+            AlarmEditorSection.VIBRATION to AlarmEditorPage.SOUND,
+            AlarmEditorSection.SNOOZE to AlarmEditorPage.DISMISS,
+            AlarmEditorSection.UPCOMING to AlarmEditorPage.SCHEDULE,
+            AlarmEditorSection.DISMISS_CHALLENGE to AlarmEditorPage.DISMISS,
+            AlarmEditorSection.LOCATION to AlarmEditorPage.DISMISS,
+            AlarmEditorSection.WAKE_EFFECTS to AlarmEditorPage.WAKE,
+            AlarmEditorSection.ANNOUNCEMENT to AlarmEditorPage.WAKE,
+            AlarmEditorSection.WAKE_CONFIRM to AlarmEditorPage.WAKE,
+            AlarmEditorSection.SMART_ALARM to AlarmEditorPage.SCHEDULE,
+            AlarmEditorSection.HOLIDAYS to AlarmEditorPage.SCHEDULE,
+            AlarmEditorSection.SPOTIFY to AlarmEditorPage.INTEGRATIONS,
+            AlarmEditorSection.HUE to AlarmEditorPage.INTEGRATIONS,
+            AlarmEditorSection.CHAIN to AlarmEditorPage.DISMISS,
+            AlarmEditorSection.ANTI_SNOOZE to AlarmEditorPage.DISMISS,
+            AlarmEditorSection.SUNRISE to AlarmEditorPage.WAKE,
+            AlarmEditorSection.RADIO to AlarmEditorPage.INTEGRATIONS,
+            AlarmEditorSection.GUARDIAN to AlarmEditorPage.INTEGRATIONS,
+            AlarmEditorSection.ROUTINE to AlarmEditorPage.WAKE,
+            AlarmEditorSection.ADVANCED to AlarmEditorPage.ADVANCED
+        )
+
+        // Exhaustive: a new section must be added to the expected map deliberately.
+        assertEquals(expected.keys, AlarmEditorSection.entries.toSet())
+        AlarmEditorSection.entries.forEach { section ->
+            assertEquals("Section $section routes to the wrong page", expected.getValue(section), section.page)
+        }
+        // Every editor page is reachable from at least one section.
+        assertEquals(
+            AlarmEditorPage.entries.toSet(),
+            AlarmEditorSection.entries.map { it.page }.toSet()
+        )
+    }
+
+    @Test
+    fun `numpad prefill digits round-trip through the parser`() {
+        for (hour in 0..23) {
+            for (minute in intArrayOf(0, 9, 30, 59)) {
+                assertEquals(
+                    AlarmNumpadTime(hour, minute),
+                    parseAlarmNumpadTime(
+                        formatAlarmNumpadDigits(hour, minute, is24Hour = true),
+                        is24Hour = true,
+                        isPm = false
+                    )
+                )
+                assertEquals(
+                    AlarmNumpadTime(hour, minute),
+                    parseAlarmNumpadTime(
+                        formatAlarmNumpadDigits(hour, minute, is24Hour = false),
+                        is24Hour = false,
+                        isPm = hour >= 12
+                    )
+                )
+            }
+        }
     }
 }

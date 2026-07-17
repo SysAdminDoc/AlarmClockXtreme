@@ -39,8 +39,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -86,7 +88,7 @@ internal enum class AlarmEditorPage(
     ADVANCED(R.string.alarm_edit_page_advanced, R.string.alarm_edit_page_advanced_subtitle)
 }
 
-private enum class AlarmEditorSection(
+internal enum class AlarmEditorSection(
     val page: AlarmEditorPage,
     @StringRes val titleRes: Int,
     @StringRes val descriptionRes: Int
@@ -141,18 +143,14 @@ internal fun parseAlarmNumpadTime(
     return AlarmNumpadTime(hour, minute)
 }
 
-internal fun alarmEditorPageForSection(title: String): AlarmEditorPage = when (title) {
-    "Label", "Group" -> AlarmEditorPage.OVERVIEW
-    "Sound", "Vibration" -> AlarmEditorPage.SOUND
-    "Snooze", "Dismiss challenge", "Location dismissal lock", "Mission chaining",
-    "Anti-snooze" -> AlarmEditorPage.DISMISS
-    "Upcoming fire dates", "Smart alarm", "Holidays" -> AlarmEditorPage.SCHEDULE
-    "Wake effects", "Morning announcement", "Wake confirmation", "Sunrise simulation",
-    "Morning routine" -> AlarmEditorPage.WAKE
-    "Spotify ringtone", "Philips Hue sunrise", "Internet radio", "Guardian Angel" ->
-        AlarmEditorPage.INTEGRATIONS
-    else -> AlarmEditorPage.ADVANCED
-}
+// v1.13.15: seed the numpad buffer from an existing time so sticky numpad mode
+// round-trips through parseAlarmNumpadTime (12h entry uses display hours 1-12).
+internal fun formatAlarmNumpadDigits(hour: Int, minute: Int, is24Hour: Boolean): String =
+    if (is24Hour) {
+        "%02d%02d".format(hour, minute)
+    } else {
+        "%02d%02d".format(if (hour % 12 == 0) 12 else hour % 12, minute)
+    }
 
 internal enum class AlarmEditorExitDecision {
     SHOW_OVERVIEW,
@@ -436,7 +434,7 @@ fun AlarmEditScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         if (state.isSaving) {
@@ -515,7 +513,13 @@ fun AlarmEditScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable(role = Role.Button) {
-                            timeNumpadDigits = ""
+                            // v1.13.15: sticky numpad mode opens prefilled with the
+                            // current time instead of empty digits + disabled Save.
+                            timeNumpadDigits = if (useTimeNumpad) {
+                                formatAlarmNumpadDigits(state.hour, state.minute, state.is24HourFormat)
+                            } else {
+                                ""
+                            }
                             timeNumpadIsPm = state.hour >= 12
                             showTimePicker = true
                         }
@@ -573,7 +577,7 @@ fun AlarmEditScreen(
                     }
                     Text(
                         text = stringResource(R.string.alarm_edit_rings_in, remaining),
-                        color = AccentBlue,
+                        color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.titleSmall,
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)
@@ -657,7 +661,7 @@ fun AlarmEditScreen(
                                     text = {
                                         Text(
                                             groupLabel,
-                                            color = if (group == state.group) AccentBlue else TextPrimary
+                                            color = if (group == state.group) MaterialTheme.colorScheme.primary else TextPrimary
                                         )
                                     },
                                     onClick = {
@@ -670,7 +674,7 @@ fun AlarmEditScreen(
                                 text = {
                                     Text(
                                         stringResource(R.string.alarm_edit_group_custom),
-                                        color = if (isCustomGroup) AccentBlue else TextMuted
+                                        color = if (isCustomGroup) MaterialTheme.colorScheme.primary else TextMuted
                                     )
                                 },
                                 onClick = {
@@ -716,8 +720,8 @@ fun AlarmEditScreen(
                     OutlinedButton(
                         onClick = viewModel::applyDontWakePartnerProfile,
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, AccentBlue.copy(alpha = 0.42f)),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.VolumeOff,
@@ -736,7 +740,7 @@ fun AlarmEditScreen(
                     AppStatusChip(
                         label = stringResource(R.string.alarm_edit_haptic_profile_active),
                         icon = Icons.AutoMirrored.Filled.VolumeOff,
-                        color = AccentBlue,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
                 }
@@ -774,7 +778,7 @@ fun AlarmEditScreen(
                             } else {
                                 stringResource(R.string.alarm_edit_percent, state.volume)
                             },
-                            color = AccentBlue
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                     Slider(
@@ -783,8 +787,8 @@ fun AlarmEditScreen(
                         valueRange = 0f..100f,
                         modifier = Modifier.padding(horizontal = 16.dp),
                         colors = SliderDefaults.colors(
-                            thumbColor = AccentBlue,
-                            activeTrackColor = AccentBlue
+                            thumbColor = MaterialTheme.colorScheme.primary,
+                            activeTrackColor = MaterialTheme.colorScheme.primary
                         )
                     )
                 }
@@ -872,7 +876,7 @@ fun AlarmEditScreen(
                                         text = {
                                             Text(
                                                 label,
-                                                color = if (key == state.vibrationPattern) AccentBlue else TextPrimary
+                                                color = if (key == state.vibrationPattern) MaterialTheme.colorScheme.primary else TextPrimary
                                             )
                                         },
                                         onClick = {
@@ -909,7 +913,7 @@ fun AlarmEditScreen(
                                                 Text(
                                                     label,
                                                     color = if (intensity == state.vibrationIntensity) {
-                                                        AccentBlue
+                                                        MaterialTheme.colorScheme.primary
                                                     } else {
                                                         TextPrimary
                                                     }
@@ -959,7 +963,7 @@ fun AlarmEditScreen(
                                                     in 1..59 -> pluralStringResource(R.plurals.alarm_edit_seconds, secs, secs)
                                                     else -> pluralStringResource(R.plurals.alarm_edit_minutes, secs / 60, secs / 60)
                                                 },
-                                                color = if (secs == state.vibrationDelaySeconds) AccentBlue else TextPrimary
+                                                color = if (secs == state.vibrationDelaySeconds) MaterialTheme.colorScheme.primary else TextPrimary
                                             )
                                         },
                                         onClick = {
@@ -992,7 +996,7 @@ fun AlarmEditScreen(
                                     text = {
                                         Text(
                                             pluralStringResource(R.plurals.alarm_edit_minutes, mins, mins),
-                                            color = if (mins == state.snoozeDurationMinutes) AccentBlue else TextPrimary
+                                            color = if (mins == state.snoozeDurationMinutes) MaterialTheme.colorScheme.primary else TextPrimary
                                         )
                                     },
                                     onClick = {
@@ -1052,7 +1056,7 @@ fun AlarmEditScreen(
                                     text = {
                                         Text(
                                             label,
-                                            color = if (type == state.challengeType) AccentBlue else TextPrimary
+                                            color = if (type == state.challengeType) MaterialTheme.colorScheme.primary else TextPrimary
                                         )
                                     },
                                     onClick = {
@@ -1121,7 +1125,7 @@ fun AlarmEditScreen(
                                         text = {
                                             Text(
                                                 pluralStringResource(R.plurals.alarm_edit_steps, steps, steps),
-                                                color = if (steps == state.walkStepsRequired) AccentBlue else TextPrimary
+                                                color = if (steps == state.walkStepsRequired) MaterialTheme.colorScheme.primary else TextPrimary
                                             )
                                         },
                                         onClick = { viewModel.updateWalkSteps(steps); showStepsMenu = false }
@@ -1154,7 +1158,7 @@ fun AlarmEditScreen(
                                         text = {
                                             Text(
                                                 pluralStringResource(R.plurals.alarm_edit_squats, count, count),
-                                                color = if (count == state.requiredSquats) AccentBlue else TextPrimary
+                                                color = if (count == state.requiredSquats) MaterialTheme.colorScheme.primary else TextPrimary
                                             )
                                         },
                                         onClick = { viewModel.updateRequiredSquats(count); showSquatsMenu = false }
@@ -1228,7 +1232,7 @@ fun AlarmEditScreen(
                         OutlinedButton(
                             onClick = captureReferencePhoto,
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue)
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PhotoCamera,
@@ -1308,7 +1312,7 @@ fun AlarmEditScreen(
                                         text = {
                                             Text(
                                                 pluralStringResource(R.plurals.alarm_edit_meters, radius, radius),
-                                                color = if (radius == state.locationDismissRadius) AccentBlue else TextPrimary
+                                                color = if (radius == state.locationDismissRadius) MaterialTheme.colorScheme.primary else TextPrimary
                                             )
                                         },
                                         onClick = {
@@ -1323,7 +1327,7 @@ fun AlarmEditScreen(
                     OutlinedButton(
                         onClick = requestLocationDismissTarget,
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentBlue),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                     ) {
                         Icon(
@@ -1381,7 +1385,7 @@ fun AlarmEditScreen(
                     },
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = if (isGentleWake) DismissGreen else AccentBlue
+                        contentColor = if (isGentleWake) DismissGreen else MaterialTheme.colorScheme.primary
                     ),
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
@@ -1520,7 +1524,7 @@ fun AlarmEditScreen(
                                         text = {
                                             Text(
                                                 pluralStringResource(R.plurals.alarm_edit_minutes, mins, mins),
-                                                color = if (mins == state.wakeConfirmDelayMinutes) AccentBlue else TextPrimary
+                                                color = if (mins == state.wakeConfirmDelayMinutes) MaterialTheme.colorScheme.primary else TextPrimary
                                             )
                                         },
                                         onClick = { viewModel.updateWakeConfirm(true, mins); showDelayMenu = false }
@@ -1565,7 +1569,7 @@ fun AlarmEditScreen(
                                         text = {
                                             Text(
                                                 stringResource(R.string.alarm_edit_minutes_before_alarm, mins),
-                                                color = if (mins == state.smartAlarmWindowMinutes) AccentBlue else TextPrimary
+                                                color = if (mins == state.smartAlarmWindowMinutes) MaterialTheme.colorScheme.primary else TextPrimary
                                             )
                                         },
                                         onClick = { viewModel.updateSmartAlarm(true, mins); showWindowMenu = false }
@@ -1646,7 +1650,7 @@ fun AlarmEditScreen(
                                         text = {
                                             Text(
                                                 stringResource(R.string.alarm_edit_minutes_before, mins),
-                                                color = if (mins == state.huePreWakeMinutes) AccentBlue else TextPrimary
+                                                color = if (mins == state.huePreWakeMinutes) MaterialTheme.colorScheme.primary else TextPrimary
                                             )
                                         },
                                         onClick = { viewModel.updateHue(true, mins); showHueMenu = false }
@@ -2414,7 +2418,7 @@ fun AlarmEditScreen(
                     selectedTime?.let { viewModel.updateTime(it.hour, it.minute) }
                     showTimePicker = false
                 }, enabled = !useTimeNumpad || numpadTime != null) {
-                    Text(stringResource(R.string.alarm_edit_save_time), color = AccentBlue)
+                    Text(stringResource(R.string.alarm_edit_save_time), color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
@@ -2453,7 +2457,15 @@ fun AlarmEditScreen(
                         AppFilterChip(
                             label = stringResource(R.string.alarm_edit_numpad_entry),
                             selected = useTimeNumpad,
-                            onClick = { useTimeNumpad = true },
+                            onClick = {
+                                if (!useTimeNumpad && timeNumpadDigits.isEmpty()) {
+                                    timeNumpadDigits = formatAlarmNumpadDigits(
+                                        state.hour, state.minute, state.is24HourFormat
+                                    )
+                                    timeNumpadIsPm = state.hour >= 12
+                                }
+                                useTimeNumpad = true
+                            },
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -2504,13 +2516,28 @@ private fun AlarmTimeNumpad(
     val displayDigits = digits.padEnd(4, '–')
     val parsedTime = parseAlarmNumpadTime(digits, is24Hour, isPm)
     val keys = listOf('1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫')
+    // v1.13.15: TalkBack reads the en-dash placeholder as dash fragments — describe
+    // the entry state explicitly and announce updates politely.
+    val entryDescription = if (digits.isEmpty()) {
+        stringResource(R.string.alarm_edit_numpad_entry_empty_desc)
+    } else {
+        stringResource(
+            R.string.alarm_edit_numpad_entry_desc,
+            if (digits.length > 2) "${digits.take(2)}:${digits.drop(2)}" else digits
+        )
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             text = "${displayDigits.take(2)}:${displayDigits.takeLast(2)}",
             style = ClockTimeLarge,
             color = if (digits.length == 4 && parsedTime == null) AccentRed else TextPrimary,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .semantics {
+                    contentDescription = entryDescription
+                    liveRegion = LiveRegionMode.Polite
+                }
         )
         Text(
             text = if (digits.length == 4 && parsedTime == null) {
@@ -2524,7 +2551,9 @@ private fun AlarmTimeNumpad(
             color = if (digits.length == 4 && parsedTime == null) AccentRed else TextSecondary,
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { liveRegion = LiveRegionMode.Polite }
         )
         if (!is24Hour) {
             Row(
@@ -3183,7 +3212,7 @@ private fun ChallengeChainPickerSheet(
                                 }
                             } else {
                                 TextButton(onClick = { draftChain = draftChain + type }) {
-                                    Text(stringResource(R.string.alarm_edit_add), color = AccentBlue)
+                                    Text(stringResource(R.string.alarm_edit_add), color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -3211,7 +3240,7 @@ private fun ChallengeChainPickerSheet(
                     Button(
                         onClick = { onApply(draftChain) },
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text(
                             stringResource(
