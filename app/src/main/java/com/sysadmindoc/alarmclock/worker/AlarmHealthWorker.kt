@@ -122,7 +122,9 @@ class AlarmHealthWorker @AssistedInject constructor(
     }
 
     companion object {
-        const val NOTIFICATION_ID = 9001
+        // Outside the open-ended 7000+timerId notification band (the old 9001
+        // collided with a running timer's notification at timer id 2001).
+        const val NOTIFICATION_ID = 6_503
         const val IMMEDIATE_WORK_NAME = "alarm_health_check_now"
 
         fun enqueueImmediate(context: Context) {

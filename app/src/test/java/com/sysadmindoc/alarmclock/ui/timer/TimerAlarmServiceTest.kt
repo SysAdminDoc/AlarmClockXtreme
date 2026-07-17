@@ -117,6 +117,45 @@ class TimerAlarmServiceTest {
     }
 
     @Test
+    fun `two ringing timers offer labeled restart actions`() {
+        service.onStartCommand(fireIntent(1, "Tea"), 0, 1)
+        service.onStartCommand(fireIntent(2, "Rice"), 0, 2)
+
+        val notification = service.buildNotification(hidePublicLabel = false)
+
+        assertEquals(
+            listOf("Stop", "Restart Tea", "Restart Rice"),
+            notification.actions.map { it.title.toString() }
+        )
+    }
+
+    @Test
+    fun `late joining timer re-arms the auto-stop window`() {
+        service.onStartCommand(fireIntent(1, "Tea"), 0, 1)
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(2))
+        service.onStartCommand(fireIntent(2, "Rice"), 0, 2)
+
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(2))
+        assertTrue(!shadowOf(service).isStoppedBySelf)
+
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMinutes(1))
+        assertTrue(shadowOf(service).isStoppedBySelf)
+    }
+
+    @Test
+    fun `ui start allocates ids from the store so a restarted timer survives`() {
+        // A finished timer restarted from its notification allocates store-side.
+        TimerStore(context).upsert(
+            PersistedTimerRecord(1, "Tea", 60, 0, TimerState.FINISHED)
+        )
+        service.onStartCommand(restartIntent(1), 0, 1)
+        val restartedId = TimerStore(context).loadRecords().single().id
+
+        // The UI's next allocation must not reuse the restarted timer's id.
+        assertEquals(restartedId + 1, TimerStore(context).nextId())
+    }
+
+    @Test
     fun `restart action creates and schedules exactly one fresh timer without ui`() {
         TimerStore(context).upsert(
             PersistedTimerRecord(3, "Pasta", 60, 0, TimerState.FINISHED)

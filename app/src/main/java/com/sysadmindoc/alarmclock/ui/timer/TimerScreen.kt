@@ -89,6 +89,20 @@ fun TimerScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
+    // Notification Restart, Assistant SET_TIMER, and notification dismissals
+    // write the persisted store directly while this ViewModel stays alive;
+    // resync whenever the screen returns to the foreground.
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_START) {
+                viewModel.resyncFromStore()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     // v1.7.5: switched to verticalScroll so the build-a-timer card is
     // always visible. The previous weight(1f)-on-AppSurfaceCard layout
     // depended on the Card honoring the weight allocation, but Card wraps

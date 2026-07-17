@@ -93,7 +93,6 @@ class TimerViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(TimerUiState())
     val uiState: StateFlow<TimerUiState> = _uiState.asStateFlow()
 
-    private var nextId = 1
     private val countdownJobs = mutableMapOf<Int, Job>()
     private val runningEndTimes = mutableMapOf<Int, Long>()
 
@@ -139,7 +138,11 @@ class TimerViewModel @Inject constructor(
                 current.inputSeconds
         if (totalSecs <= 0) return
 
-        val id = nextId++
+        // Allocate under the store's write lock: external writers (notification
+        // Restart, Assistant SET_TIMER) also insert records, and a cached
+        // in-memory counter here once reused their id, silently overwriting
+        // the externally created timer's record and AlarmManager deadline.
+        val id = timerStore.nextId()
         val totalMillis = totalSecs * 1000L
         val label = formatTimerLabel(current.inputHours, current.inputMinutes, current.inputSeconds)
         val timer = TimerInstance(
@@ -271,6 +274,47 @@ class TimerViewModel @Inject constructor(
         countdownJobs[id] = countdownJob
     }
 
+    /**
+     * Reconciles UI state with the persisted store after external writers
+     * mutate timers while this ViewModel is alive: notification Restart,
+     * Assistant SET_TIMER, and notification-side dismissals all write the
+     * store directly. Without this the Timer tab keeps rendering its stale
+     * in-memory list until process death.
+     */
+    fun resyncFromStore() {
+        val snapshot = timerStore.restoreSnapshot()
+        // Failsafe: restoreSnapshot atomically claims overdue running timers;
+        // markFinished single-ownership makes this a no-op when the service
+        // or a countdown job already alerted for them.
+        snapshot.newlyFinished.forEach { finished ->
+            TimerAlarmService.fire(appContext, finished.id, finished.label)
+        }
+        val records = snapshot.records
+        val recordIds = records.mapTo(mutableSetOf()) { it.id }
+        (countdownJobs.keys - recordIds).toList().forEach { removedId ->
+            countdownJobs.remove(removedId)?.cancel()
+            runningEndTimes.remove(removedId)
+        }
+        _uiState.value = _uiState.value.copy(activeTimers = records.map { it.toTimerInstance() })
+        records.forEach { record ->
+            when (record.state) {
+                TimerState.RUNNING -> {
+                    // The external writer already armed AlarmManager and posted
+                    // the running notification; only the countdown UI needs to
+                    // start tracking it here.
+                    if (runningEndTimes[record.id] != record.endElapsedRealtime) {
+                        runningEndTimes[record.id] = record.endElapsedRealtime
+                        startCountdownUntil(record.id, record.endElapsedRealtime)
+                    }
+                }
+                else -> {
+                    countdownJobs.remove(record.id)?.cancel()
+                    runningEndTimes.remove(record.id)
+                }
+            }
+        }
+    }
+
     private fun restorePersistedTimers() {
         val snapshot = timerStore.restoreSnapshot()
         snapshot.newlyFinished.forEach { finished ->
@@ -278,7 +322,6 @@ class TimerViewModel @Inject constructor(
         }
         val records = snapshot.records
         val timers = records.map { it.toTimerInstance() }
-        nextId = ((records.maxOfOrNull { it.id } ?: 0) + 1).coerceAtLeast(1)
         if (timers.isEmpty()) return
 
         _uiState.value = _uiState.value.copy(activeTimers = timers)

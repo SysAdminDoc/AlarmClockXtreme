@@ -22,12 +22,12 @@ import com.sysadmindoc.alarmclock.service.PromotedOngoingNotification
 object TimerNotifications {
     private const val TAG = "TimerNotifications"
     private const val TIMER_NOTIFICATION_BASE_ID = 7_000
-    private const val TIMER_REBOOT_NOTIFICATION_ID = 7_999
+
+    // Kept outside the open-ended 7000+timerId band (the old 7_999 collided
+    // with a running timer's notification at timer id 999).
+    private const val TIMER_REBOOT_NOTIFICATION_ID = 6_502
     private const val CHANNEL_RUNNING_TIMER = "running_timer_channel"
     private const val ANDROID_16_API = 36
-    internal const val FINISHED_TITLE = "Timer finished"
-    internal const val GENERIC_TIMER_TEXT = "Timer"
-    internal const val RUNNING_TEXT = "Countdown in progress"
 
     fun postRunning(
         context: Context,
@@ -96,13 +96,13 @@ object TimerNotifications {
     ): Notification {
         val privateBuilder = compatRunningBuilder(
             context = context,
-            title = timer.label.ifBlank { GENERIC_TIMER_TEXT },
+            title = timer.label.ifBlank { context.getString(R.string.notif_timer_generic) },
             endWallClock = endWallClock,
             contentIntent = contentIntent
         )
         val publicVersion = compatRunningBuilder(
             context = context,
-            title = GENERIC_TIMER_TEXT,
+            title = context.getString(R.string.notif_timer_generic),
             endWallClock = endWallClock,
             contentIntent = contentIntent
         ).setVisibility(NotificationCompat.VISIBILITY_PUBLIC).build()
@@ -117,7 +117,7 @@ object TimerNotifications {
     ): NotificationCompat.Builder = NotificationCompat.Builder(context, CHANNEL_RUNNING_TIMER)
         .setSmallIcon(R.drawable.ic_alarm)
         .setContentTitle(title)
-        .setContentText(RUNNING_TEXT)
+        .setContentText(context.getString(R.string.notif_timer_running_text))
         .setPriority(NotificationCompat.PRIORITY_LOW)
         .setCategory(NotificationCompat.CATEGORY_PROGRESS)
         .setOngoing(true)
@@ -147,14 +147,14 @@ object TimerNotifications {
         )
         val publicVersion = platformRunningBuilder(
             context = context,
-            title = GENERIC_TIMER_TEXT,
+            title = context.getString(R.string.notif_timer_generic),
             endWallClock = endWallClock,
             contentIntent = contentIntent,
             progress = progress
         ).setVisibility(Notification.VISIBILITY_PUBLIC).build()
         val builder = platformRunningBuilder(
             context = context,
-            title = timer.label.ifBlank { GENERIC_TIMER_TEXT },
+            title = timer.label.ifBlank { context.getString(R.string.notif_timer_generic) },
             endWallClock = endWallClock,
             contentIntent = contentIntent,
             progress = progress
@@ -180,8 +180,8 @@ object TimerNotifications {
     ): Notification.Builder = Notification.Builder(context, CHANNEL_RUNNING_TIMER)
         .setSmallIcon(R.drawable.ic_alarm)
         .setContentTitle(title)
-        .setContentText(RUNNING_TEXT)
-        .setSubText(GENERIC_TIMER_TEXT)
+        .setContentText(context.getString(R.string.notif_timer_running_text))
+        .setSubText(context.getString(R.string.notif_timer_generic))
         .setCategory(Notification.CATEGORY_PROGRESS)
         .setOngoing(true)
         .setAutoCancel(false)
@@ -198,10 +198,10 @@ object TimerNotifications {
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_RUNNING_TIMER,
-                "Running timers",
+                context.getString(R.string.notif_channel_running_timers),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows active countdown timers"
+                description = context.getString(R.string.notif_channel_running_timers_desc)
                 setShowBadge(false)
                 enableLights(false)
                 enableVibration(false)
@@ -240,8 +240,8 @@ object TimerNotifications {
         val restartIntent = restartPendingIntent(context, timerId, notificationId(timerId))
         val privateBuilder = NotificationCompat.Builder(context, AlarmService.CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle(FINISHED_TITLE)
-            .setContentText(label.ifBlank { GENERIC_TIMER_TEXT })
+            .setContentTitle(context.getString(R.string.notif_timer_finished_title))
+            .setContentText(label.ifBlank { context.getString(R.string.notif_timer_generic) })
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
@@ -250,8 +250,8 @@ object TimerNotifications {
             .addAction(R.drawable.ic_alarm, context.getString(R.string.timer_restart), restartIntent)
         val publicVersion = NotificationCompat.Builder(context, AlarmService.CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle(FINISHED_TITLE)
-            .setContentText(GENERIC_TIMER_TEXT)
+            .setContentTitle(context.getString(R.string.notif_timer_finished_title))
+            .setContentText(context.getString(R.string.notif_timer_generic))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -292,13 +292,13 @@ object TimerNotifications {
                 TIMER_REBOOT_NOTIFICATION_ID,
                 NotificationCompat.Builder(context, AlarmService.CHANNEL_TIMER)
                     .setSmallIcon(R.drawable.ic_alarm)
-                    .setContentTitle("Timers canceled after restart")
+                    .setContentTitle(context.getString(R.string.notif_timers_canceled_title))
                     .setContentText(
-                        if (canceledCount == 1) {
-                            "A running timer could not survive the device restart."
-                        } else {
-                            "$canceledCount running timers could not survive the device restart."
-                        }
+                        context.resources.getQuantityString(
+                            R.plurals.notif_timers_canceled_text,
+                            canceledCount,
+                            canceledCount
+                        )
                     )
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setCategory(NotificationCompat.CATEGORY_STATUS)

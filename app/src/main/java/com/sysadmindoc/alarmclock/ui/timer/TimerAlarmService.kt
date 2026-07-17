@@ -43,15 +43,21 @@ internal class TimerAlertBatch {
 
     fun clear(): List<TimerAlert> = snapshot().also { alerts.clear() }
 
-    fun notificationText(): String = when {
-        count > 1 -> "$count timers finished"
-        count == 1 -> alerts.values.first().label.ifBlank { "Timer" }
-        else -> "Timer"
+    fun notificationText(context: Context): String = when {
+        count > 1 -> context.resources.getQuantityString(
+            R.plurals.notif_timers_finished_count, count, count
+        )
+        count == 1 -> alerts.values.first().label.ifBlank {
+            context.getString(R.string.notif_timer_generic)
+        }
+        else -> context.getString(R.string.notif_timer_generic)
     }
 
-    fun publicNotificationText(): String = when {
-        count > 1 -> "$count timers finished"
-        else -> TimerNotifications.GENERIC_TIMER_TEXT
+    fun publicNotificationText(context: Context): String = when {
+        count > 1 -> context.resources.getQuantityString(
+            R.plurals.notif_timers_finished_count, count, count
+        )
+        else -> context.getString(R.string.notif_timer_generic)
     }
 }
 
@@ -151,39 +157,58 @@ class TimerAlarmService : Service() {
             Intent(this, TimerAlarmService::class.java).setAction(ACTION_DISMISS_ALL),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val restart = alerts.snapshot().singleOrNull()?.let { alert ->
-            TimerNotifications.restartPendingIntent(this, alert.id, NOTIFICATION_ID + 2)
-        }
+        // Up to two per-timer Restart actions (three-action notification limit
+        // with Stop). Single timer keeps the plain "Restart" label; with two,
+        // private actions carry the timer label so they're distinguishable.
+        // The public version keeps Restart only for the unambiguous single case.
+        val restartAlerts = alerts.snapshot().takeLast(2)
         val privateBuilder = NotificationCompat.Builder(this, AlarmService.CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle(TimerNotifications.FINISHED_TITLE)
-            .setContentText(alerts.notificationText())
+            .setContentTitle(getString(R.string.notif_timer_finished_title))
+            .setContentText(alerts.notificationText(this))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setOngoing(true)
             .setAutoCancel(false)
             .setFullScreenIntent(fullScreen, true)
             .setContentIntent(fullScreen)
-            .addAction(R.drawable.ic_alarm, "Stop", stop)
+            .addAction(R.drawable.ic_alarm, getString(R.string.notif_timer_stop_action), stop)
             .also { builder ->
-                if (restart != null) {
-                    builder.addAction(R.drawable.ic_alarm, getString(R.string.timer_restart), restart)
+                restartAlerts.forEach { alert ->
+                    val label = if (restartAlerts.size > 1 && alert.label.isNotBlank()) {
+                        getString(R.string.notif_timer_restart_labeled, alert.label)
+                    } else {
+                        getString(R.string.timer_restart)
+                    }
+                    builder.addAction(
+                        R.drawable.ic_alarm,
+                        label,
+                        TimerNotifications.restartPendingIntent(
+                            this, alert.id, TimerNotifications.notificationId(alert.id)
+                        )
+                    )
                 }
             }
         val publicBuilder = NotificationCompat.Builder(this, AlarmService.CHANNEL_TIMER)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle(TimerNotifications.FINISHED_TITLE)
-            .setContentText(alerts.publicNotificationText())
+            .setContentTitle(getString(R.string.notif_timer_finished_title))
+            .setContentText(alerts.publicNotificationText(this))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
             .setAutoCancel(false)
             .setContentIntent(fullScreen)
-            .addAction(R.drawable.ic_alarm, "Stop", stop)
+            .addAction(R.drawable.ic_alarm, getString(R.string.notif_timer_stop_action), stop)
             .also { builder ->
-                if (restart != null) {
-                    builder.addAction(R.drawable.ic_alarm, getString(R.string.timer_restart), restart)
+                restartAlerts.singleOrNull()?.let { alert ->
+                    builder.addAction(
+                        R.drawable.ic_alarm,
+                        getString(R.string.timer_restart),
+                        TimerNotifications.restartPendingIntent(
+                            this, alert.id, TimerNotifications.notificationId(alert.id)
+                        )
+                    )
                 }
             }
         val publicVersion = publicBuilder.build()
@@ -196,19 +221,25 @@ class TimerAlarmService : Service() {
 
     private fun ensureSoundPlaying() {
         if (mediaPlayer != null) return
+        // Build into a local so a setDataSource/prepare failure can release
+        // the half-configured player; assigning the field inside apply {}
+        // would leak it (the assignment never happens when apply throws).
+        var player: MediaPlayer? = null
         runCatching {
             val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 ?: return
-            mediaPlayer = MediaPlayer().apply {
+            player = MediaPlayer()
+            player?.apply {
                 setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
                 setDataSource(this@TimerAlarmService, uri)
                 isLooping = true
                 prepare()
                 start()
             }
+            mediaPlayer = player
         }.onFailure {
-            runCatching { mediaPlayer?.release() }
+            runCatching { player?.release() }
             mediaPlayer = null
             Log.w(TAG, "Failed to play timer alert sound", it)
         }
@@ -225,11 +256,11 @@ class TimerAlarmService : Service() {
         }
     }
 
-    private var autoStopScheduled = false
     private fun scheduleAutoStop() {
-        if (autoStopScheduled) return
-        autoStopScheduled = true
-        // Don't ring forever if nobody dismisses it.
+        // Don't ring forever if nobody dismisses it. Re-armed on every new
+        // expiry so a timer joining the batch late still gets a full audible
+        // window instead of inheriting the first timer's nearly-spent one.
+        handler.removeCallbacks(autoStop)
         handler.postDelayed(autoStop, AUTO_STOP_MS)
     }
 
@@ -257,7 +288,6 @@ class TimerAlarmService : Service() {
 
     private fun stopEverything() {
         handler.removeCallbacks(autoStop)
-        autoStopScheduled = false
         runCatching {
             mediaPlayer?.let { if (it.isPlaying) it.stop(); it.release() }
         }
@@ -270,7 +300,6 @@ class TimerAlarmService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(autoStop)
-        autoStopScheduled = false
         runCatching { mediaPlayer?.release() }
         mediaPlayer = null
         runCatching { vibrator?.cancel() }
@@ -279,7 +308,11 @@ class TimerAlarmService : Service() {
 
     companion object {
         private const val TAG = "TimerAlarmService"
-        const val NOTIFICATION_ID = 7_500
+
+        // Below the open-ended 7000+timerId per-timer band: heavy timer users
+        // reach id 500+, where the old 7_500 collided with notificationId(500)
+        // and silently replaced the ringing foreground alert.
+        const val NOTIFICATION_ID = 6_501
         private const val AUTO_STOP_MS = 3L * 60 * 1000
         const val ACTION_FIRED = "com.sysadmindoc.alarmclock.action.TIMER_ALARM_FIRED"
         const val ACTION_DISMISS = "com.sysadmindoc.alarmclock.action.TIMER_ALARM_DISMISS"

@@ -114,6 +114,22 @@
     <string name="notif_smart_alarm_text">Monitoring sleep quality…</string>
     <string name="notif_sonar_title">Sleep tracking active</string>
     <string name="notif_sonar_text">Sonar monitoring in progress</string>
+    <string name="notif_timer_finished_title">Timer finished</string>
+    <string name="notif_timer_generic">Timer</string>
+    <string name="notif_timer_running_text">Countdown in progress</string>
+    <string name="notif_timer_stop_action">Stop</string>
+    <string name="notif_timer_restart_labeled">Restart %1$s</string>
+    <plurals name="notif_timers_finished_count">
+        <item quantity="one">%1$d timer finished</item>
+        <item quantity="other">%1$d timers finished</item>
+    </plurals>
+    <string name="notif_timers_canceled_title">Timers canceled after restart</string>
+    <plurals name="notif_timers_canceled_text">
+        <item quantity="one">A running timer could not survive the device restart.</item>
+        <item quantity="other">%1$d running timers could not survive the device restart.</item>
+    </plurals>
+    <string name="notif_channel_running_timers">Running timers</string>
+    <string name="notif_channel_running_timers_desc">Shows active countdown timers</string>
 
     <!-- Wake confirmation -->
     <string name="wake_confirm_title">Wake confirmation</string>
