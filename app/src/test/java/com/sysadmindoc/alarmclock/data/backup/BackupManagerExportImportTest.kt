@@ -94,6 +94,9 @@ class BackupManagerExportImportTest {
         assertEquals("routes-test-key", settings.googleRoutesApiKey)
         assertEquals("webhook-signing-secret", settings.webhookSigningSecret)
         assertEquals("0,1,2,3,4", settings.chronotypeAnswers)
+        assertEquals(5 * 60 + 45, settings.jetLagTargetWakeMinutes)
+        assertEquals(5, settings.jetLagAdjustmentDays)
+        assertEquals("advance", settings.jetLagDirection)
     }
 
     @Test
@@ -130,7 +133,10 @@ class BackupManagerExportImportTest {
                     calendarCommuteAwareEnabled = true,
                     calendarCommuteBaselineMinutes = 35,
                     calendarCommuteWeatherExtraMinutes = 20,
-                    googleRoutesApiKey = "routes-test-key"
+                    googleRoutesApiKey = "routes-test-key",
+                    jetLagTargetWakeMinutes = 5 * 60 + 45,
+                    jetLagAdjustmentDays = 5,
+                    jetLagDirection = "advance"
                 )
             )
         )
@@ -157,6 +163,9 @@ class BackupManagerExportImportTest {
         assertEquals("routes-test-key", restoredSettings!!.googleRoutesApiKey)
         assertEquals("webhook-signing-secret", restoredSettings!!.webhookSigningSecret)
         assertEquals("0,1,2,3,4", restoredSettings!!.chronotypeAnswers)
+        assertEquals(5 * 60 + 45, restoredSettings!!.jetLagTargetWakeMinutes)
+        assertEquals(5, restoredSettings!!.jetLagAdjustmentDays)
+        assertEquals("advance", restoredSettings!!.jetLagDirection)
         coVerify {
             repository.save(
                 match {
@@ -299,6 +308,9 @@ class BackupManagerExportImportTest {
         calendarCommuteBaselineMinutes = 35,
         calendarCommuteWeatherExtraMinutes = 20,
         googleRoutesApiKey = "routes-test-key",
-        chronotypeAnswers = "0,1,2,3,4"
+        chronotypeAnswers = "0,1,2,3,4",
+        jetLagTargetWakeMinutes = 5 * 60 + 45,
+        jetLagAdjustmentDays = 5,
+        jetLagDirection = "advance"
     )
 }

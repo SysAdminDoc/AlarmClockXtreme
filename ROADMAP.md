@@ -16,7 +16,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
 
 ---
 
-## Current snapshot (v1.15.27)
+## Current snapshot (v1.15.28)
 
 - **Stack:** Kotlin 2.1, AGP 8.11.1 / Gradle 8.13, Compose BOM 2026.06.00 /
   Material 3 (1.4.x), Room 2.6.1 / DB v22, Hilt 2.56.2, Retrofit 2.11 + Moshi (codegen),
@@ -27,7 +27,7 @@ and [CHANGELOG.md](CHANGELOG.md). Last research refresh: **2026-06-25**.
   yt-dlp (`youtubedl-android` 0.18.1) + NewPipe Extractor
   0.26.3 (Play flavor only).
 - **Targets:** `minSdk 26`, `targetSdk 36`, `compileSdk 36`,
-  `versionCode 129`, `versionName 1.15.27`.
+  `versionCode 130`, `versionName 1.15.28`.
 - **Surface area:** 186 Kotlin files in `:app` + 4 in `:wear`, two phone
   flavors (`play`, `fdroid`), **30 user-facing dismiss challenges** (all now
   whitelisted by `Alarm.sanitized()` after N1), 50+ alarm fields, 35+
@@ -61,7 +61,6 @@ items. New entries from this pass are tagged **NEW**.
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-WS2 | Jet-lag re-entrainment schedule (gradual shift over N days, light-exposure timing). | [Timeshifter](https://www.timeshifter.com/), [Roenneberg MEQ](https://www.thewep.org/documentations/mctq) | L |
 | L-WS3 | On-call rotation mode (override DND silent). | [PagerDuty](https://www.pagerduty.com/) | M |
 
 ### Household / relationships
@@ -401,22 +400,50 @@ M / L. Update this file on every release alongside CHANGELOG.md.*
 
 ---
 
-## Research-Driven Additions (2026-06-25)
+## Research-Driven Additions (2026-07-12)
 
-Items below are new findings from the 2026-06-25 exhaustive research pass.
-Deduplicated against all existing ROADMAP.md and Roadmap_Blocked.md items.
+New findings from the 2026-07-12 pass (code audit + ecosystem scan). Deduplicated
+against all existing ROADMAP.md and Roadmap_Blocked.md items. The prior pass's top
+five (signed webhooks, backup import preview, cached stale weather/news, adaptive
+wide layouts, AlarmService controller extraction) are done and removed. See
+RESEARCH.md for evidence detail.
 
-### P2 — Medium
+### P1 — Reliability / correctness
 
 
-### P3 — Low
+### P2 — Accessibility / platform / polish
+
+## Research-Driven Additions — Pass 2 (2026-07-12, subsystem audit)
+
+Second 2026-07-12 pass auditing the timer/stopwatch/Sonar/news/restore
+subsystems the prior pass skipped, plus net-new ecosystem opportunities.
+Deduplicated against all existing ROADMAP.md / Roadmap_Blocked.md items and
+against already-shipped features (mission chaining, wake-confirm, holiday
+auto-skip, vibrate-only). See RESEARCH.md for evidence detail.
+
+### P1 — Reliability / correctness / data-safety
+
+### P2 — Correctness / reliability / platform
+
+
+
+
+
+### P3 — Nice-to-have / polish / hygiene
+
+## Research-Driven Additions — Pass 3 (2026-07-12, quality/i18n/performance)
+
+Third 2026-07-12 pass covering the cross-cutting dimensions the prior two
+(alarm-firing correctness; subsystem reliability) under-weighted. Both items are
+verified against current code and deduplicated against L-U5 (per-app-language
+picker), the i18n cross-cutting note, and the blocked Baseline-Profile item.
 
 ## Research-Driven Additions
 
-### P1
+### P0 — Now
 
-### P2
+### P1 — Next
 
-## Research-Driven Additions
+### P2 — Later
 
-### P2 — Medium
+### P3 — Under Consideration

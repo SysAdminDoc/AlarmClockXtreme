@@ -92,8 +92,11 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.domain.BreathingPattern
 import com.sysadmindoc.alarmclock.domain.ChronotypeEstimator
+import com.sysadmindoc.alarmclock.domain.JetLagDayPlan
+import com.sysadmindoc.alarmclock.domain.JetLagDirection
 import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
 import com.sysadmindoc.alarmclock.domain.formatBreathingDuration
+import com.sysadmindoc.alarmclock.domain.formatJetLagShift
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
@@ -125,6 +128,7 @@ fun BedtimeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTimePicker by remember { mutableStateOf(false) }
+    var showJetLagWakePicker by remember { mutableStateOf(false) }
     var breathingPattern by remember { mutableStateOf(BreathingPattern.FOUR_SEVEN_EIGHT) }
     var breathingElapsedSeconds by remember { mutableStateOf(0) }
     var breathingRunning by remember { mutableStateOf(false) }
@@ -627,6 +631,18 @@ fun BedtimeScreen(
             )
         }
 
+        item {
+            JetLagPlannerSection(
+                state = state,
+                onTargetWakeClick = { showJetLagWakePicker = true },
+                onDaysChange = viewModel::updateJetLagAdjustmentDays,
+                onDirectionChange = viewModel::updateJetLagDirection,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+        }
+
         if (state.healthConnectEnabled) {
             item {
                 HealthConnectSleepSection(
@@ -862,6 +878,51 @@ fun BedtimeScreen(
             shape = RoundedCornerShape(12.dp)
         )
     }
+
+    if (showJetLagWakePicker) {
+        val targetWake = state.jetLagTargetWakeMinutes
+        val timePickerState = rememberTimePickerState(
+            initialHour = targetWake / 60,
+            initialMinute = targetWake % 60,
+            is24Hour = state.is24HourFormat
+        )
+        AlertDialog(
+            onDismissRequest = { showJetLagWakePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.updateJetLagTargetWake(timePickerState.hour, timePickerState.minute)
+                        showJetLagWakePicker = false
+                    }
+                ) {
+                    Text("Save target", color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showJetLagWakePicker = false }) {
+                    Text("Keep current", color = TextSecondary)
+                }
+            },
+            title = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppStatusChip(
+                        label = "Travel target",
+                        icon = Icons.Default.WbSunny,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text("Choose target wake time", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+                }
+            },
+            text = {
+                TimePicker(
+                    state = timePickerState,
+                    colors = TimePickerDefaults.colors(containerColor = SurfaceCard)
+                )
+            },
+            containerColor = SurfaceMedium,
+            shape = RoundedCornerShape(12.dp)
+        )
+    }
 }
 
 private data class SleepSound(
@@ -879,6 +940,207 @@ private val SLEEP_SOUNDS = listOf(
     SleepSound("Pink Noise", Icons.Default.GraphicEq, SleepNoisePreset.PINK),
     SleepSound("Violet Noise", Icons.Default.Waves, SleepNoisePreset.VIOLET),
 )
+
+@Composable
+private fun JetLagPlannerSection(
+    state: BedtimeUiState,
+    onTargetWakeClick: () -> Unit,
+    onDaysChange: (Int) -> Unit,
+    onDirectionChange: (JetLagDirection) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val plan = state.jetLagPlan
+    AppSurfaceCard(
+        modifier = modifier,
+        highlighted = !plan.alreadyAligned
+    ) {
+        AppSectionTitle(
+            title = "Jet lag planner",
+            description = if (plan.alreadyAligned) {
+                "Target wake already matches the linked wake time; keep light cues steady."
+            } else {
+                "Shift wake and bedtime gradually, then use bright-light and dim-light windows as timing cues."
+            }
+        )
+
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AppStatusChip(
+                label = "Current ${formatClockMinute(plan.currentWakeMinutes, state.is24HourFormat)}",
+                icon = Icons.Default.Schedule,
+                color = TextMuted
+            )
+            AppStatusChip(
+                label = "Target ${formatClockMinute(plan.targetWakeMinutes, state.is24HourFormat)}",
+                icon = Icons.Default.WbSunny,
+                color = MaterialTheme.colorScheme.primary
+            )
+            AppStatusChip(
+                label = "${plan.adjustmentDays} days",
+                icon = Icons.Default.CheckCircle,
+                color = if (plan.alreadyAligned) TextMuted else DismissGreen
+            )
+        }
+
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp)
+        ) {
+            item {
+                BedtimeMetricCard(
+                    title = "Current",
+                    value = formatClockMinute(plan.currentWakeMinutes, state.is24HourFormat),
+                    icon = Icons.Default.Schedule,
+                    accent = TextSecondary,
+                    modifier = Modifier.width(144.dp),
+                    helper = if (state.wakeTimeFormatted.isNotBlank()) "Next alarm" else "Sleep target"
+                )
+            }
+            item {
+                BedtimeMetricCard(
+                    title = "Target",
+                    value = formatClockMinute(plan.targetWakeMinutes, state.is24HourFormat),
+                    icon = Icons.Default.WbSunny,
+                    accent = SnoozeYellow,
+                    modifier = Modifier.width(144.dp),
+                    helper = "Tap to edit",
+                    onClick = onTargetWakeClick
+                )
+            }
+            item {
+                BedtimeMetricCard(
+                    title = "Daily move",
+                    value = formatJetLagShift(plan.dailyShiftMinutes),
+                    icon = Icons.Default.Lightbulb,
+                    accent = DismissGreen,
+                    modifier = Modifier.width(168.dp),
+                    helper = plan.resolvedDirection.label
+                )
+            }
+        }
+
+        Text(
+            text = "Direction",
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelLarge
+        )
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            JetLagDirection.entries.forEach { direction ->
+                AppFilterChip(
+                    label = direction.label,
+                    selected = state.jetLagDirection == direction,
+                    onClick = { onDirectionChange(direction) },
+                    selectionSemantics = true
+                )
+            }
+        }
+
+        Text(
+            text = "Adjustment days",
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelLarge
+        )
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf(2, 3, 4, 5, 7, 10).forEach { days ->
+                AppFilterChip(
+                    label = "$days days",
+                    selected = plan.adjustmentDays == days,
+                    onClick = { onDaysChange(days) },
+                    selectionSemantics = true
+                )
+            }
+        }
+
+        HorizontalDivider(color = TextMuted.copy(alpha = 0.12f))
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            plan.days.forEach { day ->
+                JetLagDayRow(day = day, is24Hour = state.is24HourFormat)
+            }
+        }
+    }
+}
+
+@Composable
+private fun JetLagDayRow(
+    day: JetLagDayPlan,
+    is24Hour: Boolean
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = SurfaceCard.copy(alpha = 0.72f)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Day ${day.dayNumber}",
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = "Wake ${formatClockMinute(day.wakeMinutes, is24Hour)}",
+                    color = SnoozeYellow,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AppStatusChip(
+                    label = "Bed ${formatClockMinute(day.bedtimeMinutes, is24Hour)}",
+                    icon = Icons.Default.NightsStay,
+                    color = BlueLight
+                )
+                AppStatusChip(
+                    label = "Bright ${formatTimeRange(day.brightLightStartMinutes, day.brightLightEndMinutes, is24Hour)}",
+                    icon = Icons.Default.WbSunny,
+                    color = SnoozeYellow
+                )
+                AppStatusChip(
+                    label = "Dim ${formatTimeRange(day.dimLightStartMinutes, day.dimLightEndMinutes, is24Hour)}",
+                    icon = Icons.Default.Lightbulb,
+                    color = TextMuted
+                )
+            }
+        }
+    }
+}
+
+private fun formatTimeRange(startMinutes: Int, endMinutes: Int, is24Hour: Boolean): String =
+    "${formatClockMinute(startMinutes, is24Hour)}-${formatClockMinute(endMinutes, is24Hour)}"
+
+private fun formatClockMinute(minutes: Int, is24Hour: Boolean): String {
+    val normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60)
+    val hour = normalized / 60
+    val minute = normalized % 60
+    return if (is24Hour) {
+        "${String.format("%02d", hour)}:${String.format("%02d", minute)}"
+    } else {
+        val h = if (hour % 12 == 0) 12 else hour % 12
+        val amPm = if (hour < 12) "AM" else "PM"
+        "$h:${String.format("%02d", minute)} $amPm"
+    }
+}
 
 @Composable
 private fun PreSleepTagSection(

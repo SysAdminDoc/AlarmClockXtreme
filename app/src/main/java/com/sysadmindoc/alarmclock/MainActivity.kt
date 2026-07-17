@@ -176,10 +176,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Alarm Edit now supports rotating shift patterns: DDNNO, 4-on-4-off, Panama, DuPont, and Pitman.",
-            "Shift patterns can act as the recurring schedule by themselves or narrow selected weekdays.",
-            "Alarm cards show a compact shift chip so rotation-gated alarms are easy to spot.",
-            "Room database schema is now v22 and backups are now format v16 for shift schedules."
+            "Bedtime now includes a local jet-lag planner with gradual wake and bedtime shifts.",
+            "Set a target wake time, adjustment days, and earlier/later travel direction.",
+            "Each plan shows bright-light and dim-light timing cues for every adjustment day.",
+            "Backups are now format v17 so jet-lag planner settings restore with the rest of Bedtime."
         )
     }
 }

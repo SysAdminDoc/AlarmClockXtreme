@@ -15,6 +15,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sysadmindoc.alarmclock.domain.ChronotypeEstimator
+import com.sysadmindoc.alarmclock.domain.JetLagDirection
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -64,6 +65,9 @@ data class AppSettings(
     val sleepGoalMinutes: Int = 0,
     val bedtimeReminderMinutes: Int = 30,
     val chronotypeAnswers: String = "",
+    val jetLagTargetWakeMinutes: Int = 8 * 60,
+    val jetLagAdjustmentDays: Int = 4,
+    val jetLagDirection: String = JetLagDirection.AUTO.storageKey,
     // v1.10.5: Own an app-created alarms-only DND rule for the sleep window.
     val bedtimeDndEnabled: Boolean = false,
     // v1.15.0: "Stay up late tonight" — delay tonight's bedtime reminder
@@ -224,6 +228,9 @@ private fun AppSettings.sanitized(): AppSettings {
         sleepGoalMinutes = sleepGoalMinutes.coerceIn(0, 59),
         bedtimeReminderMinutes = bedtimeReminderMinutes.coerceIn(0, 180),
         chronotypeAnswers = ChronotypeEstimator.sanitizeAnswers(chronotypeAnswers),
+        jetLagTargetWakeMinutes = jetLagTargetWakeMinutes.coerceIn(0, 1_439),
+        jetLagAdjustmentDays = jetLagAdjustmentDays.coerceIn(1, 14),
+        jetLagDirection = JetLagDirection.fromKey(jetLagDirection).storageKey,
         webhookUrl = webhookUrl.trim(),
         webhookSigningSecret = webhookSigningSecret.trim().take(256),
         webhookLastDeliveryStatus = normalizedWebhookStatus,
@@ -308,6 +315,9 @@ class PreferencesManager @Inject constructor(
         val SLEEP_GOAL_MINUTES = intPreferencesKey("sleep_goal_minutes")
         val BEDTIME_REMINDER_MINUTES = intPreferencesKey("bedtime_reminder_minutes")
         val CHRONOTYPE_ANSWERS = stringPreferencesKey("chronotype_answers")
+        val JET_LAG_TARGET_WAKE_MINUTES = intPreferencesKey("jet_lag_target_wake_minutes")
+        val JET_LAG_ADJUSTMENT_DAYS = intPreferencesKey("jet_lag_adjustment_days")
+        val JET_LAG_DIRECTION = stringPreferencesKey("jet_lag_direction")
         val BEDTIME_DND_ENABLED = booleanPreferencesKey("bedtime_dnd_enabled")
         val FLIP_TO_SNOOZE = booleanPreferencesKey("flip_to_snooze")
         val WEBHOOK_ENABLED = booleanPreferencesKey("webhook_enabled")
@@ -451,6 +461,9 @@ class PreferencesManager @Inject constructor(
         sleepGoalMinutes = this[Keys.SLEEP_GOAL_MINUTES] ?: 0,
         bedtimeReminderMinutes = this[Keys.BEDTIME_REMINDER_MINUTES] ?: 30,
         chronotypeAnswers = this[Keys.CHRONOTYPE_ANSWERS] ?: "",
+        jetLagTargetWakeMinutes = this[Keys.JET_LAG_TARGET_WAKE_MINUTES] ?: 8 * 60,
+        jetLagAdjustmentDays = this[Keys.JET_LAG_ADJUSTMENT_DAYS] ?: 4,
+        jetLagDirection = this[Keys.JET_LAG_DIRECTION] ?: JetLagDirection.AUTO.storageKey,
         bedtimeDndEnabled = this[Keys.BEDTIME_DND_ENABLED] ?: false,
         bedtimeStayUpLateUntilMillis = this[Keys.BEDTIME_STAY_UP_LATE_UNTIL] ?: 0L,
         flipToSnoozeEnabled = this[Keys.FLIP_TO_SNOOZE] ?: false,
@@ -540,6 +553,9 @@ class PreferencesManager @Inject constructor(
         this[Keys.SLEEP_GOAL_MINUTES] = s.sleepGoalMinutes
         this[Keys.BEDTIME_REMINDER_MINUTES] = s.bedtimeReminderMinutes
         this[Keys.CHRONOTYPE_ANSWERS] = s.chronotypeAnswers
+        this[Keys.JET_LAG_TARGET_WAKE_MINUTES] = s.jetLagTargetWakeMinutes
+        this[Keys.JET_LAG_ADJUSTMENT_DAYS] = s.jetLagAdjustmentDays
+        this[Keys.JET_LAG_DIRECTION] = s.jetLagDirection
         this[Keys.BEDTIME_DND_ENABLED] = s.bedtimeDndEnabled
         this[Keys.BEDTIME_STAY_UP_LATE_UNTIL] = s.bedtimeStayUpLateUntilMillis
         this[Keys.FLIP_TO_SNOOZE] = s.flipToSnoozeEnabled

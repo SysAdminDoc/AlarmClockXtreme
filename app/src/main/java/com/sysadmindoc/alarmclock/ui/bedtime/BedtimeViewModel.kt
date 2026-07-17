@@ -17,6 +17,9 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.PreSleepTagRepository
 import com.sysadmindoc.alarmclock.data.repository.SnoreEventRepository
 import com.sysadmindoc.alarmclock.domain.EnvironmentalNoiseBaselinePolicy
+import com.sysadmindoc.alarmclock.domain.JetLagDirection
+import com.sysadmindoc.alarmclock.domain.JetLagPlan
+import com.sysadmindoc.alarmclock.domain.JetLagPlanner
 import com.sysadmindoc.alarmclock.domain.PreSleepTagAnalytics
 import com.sysadmindoc.alarmclock.domain.PreSleepTagCorrelation
 import com.sysadmindoc.alarmclock.domain.PreSleepTags
@@ -87,6 +90,16 @@ data class BedtimeUiState(
     val chronotypeTimingLabel: String = "Answer 5 prompts",
     val chronotypeHelper: String = "Private estimate",
     val chronotypeComplete: Boolean = false,
+    val jetLagTargetWakeMinutes: Int = 8 * 60,
+    val jetLagAdjustmentDays: Int = 4,
+    val jetLagDirection: JetLagDirection = JetLagDirection.AUTO,
+    val jetLagPlan: JetLagPlan = JetLagPlanner.plan(
+        currentWakeMinutes = 7 * 60,
+        targetWakeMinutes = 8 * 60,
+        sleepGoalMinutes = 8 * 60,
+        adjustmentDays = 4,
+        direction = JetLagDirection.AUTO
+    ),
     val sonarTrackingActive: Boolean = false,
     val sonarTrackingStatus: String = "Ready to monitor local movement during sleep.",
     val sonarLastSessionLabel: String = "",
@@ -199,8 +212,11 @@ class BedtimeViewModel @Inject constructor(
                 chronotypeCategoryLabel = chronotype.categoryLabel,
                 chronotypeTimingLabel = chronotype.timingLabel,
                 chronotypeHelper = chronotype.helper,
-                chronotypeComplete = chronotype.complete
-            )
+                chronotypeComplete = chronotype.complete,
+                jetLagTargetWakeMinutes = settings.jetLagTargetWakeMinutes,
+                jetLagAdjustmentDays = settings.jetLagAdjustmentDays,
+                jetLagDirection = JetLagDirection.fromKey(settings.jetLagDirection)
+            ).withJetLagPlan()
             refreshSonarTrackingStatus()
             refreshAlarmInfo()
             refreshHealthConnectSleep()
@@ -218,6 +234,7 @@ class BedtimeViewModel @Inject constructor(
                 minute = wakeTime.minute,
                 is24h = _uiState.value.is24HourFormat
             )
+            val wakeMinutes = wakeTime.hour * 60 + wakeTime.minute
 
             val sleepMinutes = _uiState.value.sleepGoalHours * 60 + _uiState.value.sleepGoalMinutes
             val suggestedBedtime = wakeTime.minusMinutes(sleepMinutes.toLong())
@@ -236,7 +253,7 @@ class BedtimeViewModel @Inject constructor(
                     wakeTimeFormatted = wakeFormatted,
                     suggestedBedtime = suggestedFormatted,
                     sleepCycleOptions = cycles
-                )
+                ).withJetLagPlan(wakeMinutes)
             }
         } else {
             _uiState.update {
@@ -245,7 +262,7 @@ class BedtimeViewModel @Inject constructor(
                     wakeTimeFormatted = "",
                     suggestedBedtime = "",
                     sleepCycleOptions = emptyList()
-                )
+                ).withJetLagPlan()
             }
         }
         syncBedtimeDndRule(nextAlarm?.nextTriggerTime)
@@ -272,11 +289,13 @@ class BedtimeViewModel @Inject constructor(
     }
 
     fun updateBedtime(hour: Int, minute: Int) {
+        val linkedWake = _uiState.value.jetLagPlan.currentWakeMinutes
+            .takeIf { _uiState.value.wakeTimeFormatted.isNotBlank() }
         _uiState.value = _uiState.value.copy(
             bedtimeHour = hour,
             bedtimeMinute = minute,
             bedtimeFormatted = formatTime(hour, minute, _uiState.value.is24HourFormat)
-        )
+        ).withJetLagPlan(linkedWake)
         persistAndSchedule()
     }
 
@@ -285,7 +304,7 @@ class BedtimeViewModel @Inject constructor(
             sleepGoalHours = hours,
             sleepGoalMinutes = minutes,
             sleepDurationFormatted = "${hours}h ${minutes}m"
-        )
+        ).withJetLagPlan(_uiState.value.jetLagPlan.currentWakeMinutes)
         refreshChronotypeRecommendation()
         viewModelScope.launch {
             persistSettings()
@@ -296,6 +315,38 @@ class BedtimeViewModel @Inject constructor(
     fun updateReminderMinutes(minutes: Int) {
         _uiState.value = _uiState.value.copy(reminderMinutesBefore = minutes)
         persistAndSchedule()
+    }
+
+    fun updateJetLagTargetWake(hour: Int, minute: Int) {
+        val targetWake = (hour * 60 + minute).coerceIn(0, 1_439)
+        val currentWake = _uiState.value.jetLagPlan.currentWakeMinutes
+        _uiState.update {
+            it.copy(jetLagTargetWakeMinutes = targetWake).withJetLagPlan(currentWake)
+        }
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(jetLagTargetWakeMinutes = targetWake) }
+        }
+    }
+
+    fun updateJetLagAdjustmentDays(days: Int) {
+        val clamped = days.coerceIn(1, 14)
+        val currentWake = _uiState.value.jetLagPlan.currentWakeMinutes
+        _uiState.update {
+            it.copy(jetLagAdjustmentDays = clamped).withJetLagPlan(currentWake)
+        }
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(jetLagAdjustmentDays = clamped) }
+        }
+    }
+
+    fun updateJetLagDirection(direction: JetLagDirection) {
+        val currentWake = _uiState.value.jetLagPlan.currentWakeMinutes
+        _uiState.update {
+            it.copy(jetLagDirection = direction).withJetLagPlan(currentWake)
+        }
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(jetLagDirection = direction.storageKey) }
+        }
     }
 
     private fun persistAndSchedule() {
@@ -321,6 +372,9 @@ class BedtimeViewModel @Inject constructor(
                 sleepGoalMinutes = s.sleepGoalMinutes,
                 bedtimeReminderMinutes = s.reminderMinutesBefore,
                 chronotypeAnswers = ChronotypeEstimator.encodeAnswers(s.chronotypeAnswers),
+                jetLagTargetWakeMinutes = s.jetLagTargetWakeMinutes,
+                jetLagAdjustmentDays = s.jetLagAdjustmentDays,
+                jetLagDirection = s.jetLagDirection.storageKey,
                 bedtimeDndEnabled = s.bedtimeDndEnabled
             )
         }
@@ -720,6 +774,22 @@ class BedtimeViewModel @Inject constructor(
         val time = java.time.Instant.ofEpochMilli(untilMillis)
             .atZone(ZoneId.systemDefault()).toLocalTime()
         return "Delayed until ${formatTime(time.hour, time.minute, is24h)}"
+    }
+
+    private fun BedtimeUiState.withJetLagPlan(currentWakeMinutes: Int? = null): BedtimeUiState {
+        val sleepMinutes = sleepGoalHours * 60 + sleepGoalMinutes
+        val inferredWake = JetLagPlanner.normalizeMinuteOfDay(
+            bedtimeHour * 60 + bedtimeMinute + sleepMinutes
+        )
+        return copy(
+            jetLagPlan = JetLagPlanner.plan(
+                currentWakeMinutes = currentWakeMinutes ?: inferredWake,
+                targetWakeMinutes = jetLagTargetWakeMinutes,
+                sleepGoalMinutes = sleepMinutes,
+                adjustmentDays = jetLagAdjustmentDays,
+                direction = jetLagDirection
+            )
+        )
     }
 
     private fun hasRecordAudioPermission(): Boolean {
