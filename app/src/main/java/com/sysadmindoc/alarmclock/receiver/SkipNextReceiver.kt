@@ -53,7 +53,6 @@ class SkipNextReceiver : BroadcastReceiver() {
                     )
                     val repo = ep.alarmRepository()
                     val scheduler = ep.alarmScheduler()
-                    val calculator = ep.nextAlarmCalculator()
                     val eventRepo = ep.alarmEventRepository()
                     val webhookService = ep.webhookService()
 
@@ -90,12 +89,13 @@ class SkipNextReceiver : BroadcastReceiver() {
                         scheduler.cancel(alarm.id)
                     } else {
                         scheduler.cancel(alarm.id)
-                        val nextFromMs = alarm.nextTriggerTime.coerceAtLeast(System.currentTimeMillis()) + 60_000L
-                        val nextFrom = Instant.ofEpochMilli(nextFromMs)
-                            .atZone(ZoneId.systemDefault())
-                        val nextTrigger = calculator.calculate(alarm, nextFrom)
-                        repo.updateNextTrigger(alarm.id, nextTrigger)
-                        scheduler.scheduleAt(alarm.copy(nextTriggerTime = nextTrigger), nextTrigger)
+                        // Route through the full scheduling policy so the
+                        // replacement occurrence honors holiday auto-skip,
+                        // vacation mode, and weather lead adjustments instead
+                        // of landing raw on a policy-skipped day.
+                        val skipFloorMs = alarm.nextTriggerTime
+                            .coerceAtLeast(System.currentTimeMillis()) + 60_000L
+                        scheduler.schedule(alarm, notBeforeMillis = skipFloorMs)
                     }
                 }
             } catch (e: TimeoutCancellationException) {

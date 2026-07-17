@@ -528,7 +528,7 @@ class AlarmService : Service() {
                 currentSnoozeCount = 0
                 currentAlarmId = -1
                 activeAlarm.set(null)
-                alarmScheduler.handleAlarmFired(alarmId)
+                alarmScheduler.handleAlarmFired(alarmId, currentScheduledAt)
                 stopAlarmPlayback()
                 if (isForeground.compareAndSet(true, false)) {
                     stopForeground(STOP_FOREGROUND_REMOVE)
@@ -1515,7 +1515,7 @@ class AlarmService : Service() {
                 currentSnoozeCount = 0
                 currentAlarmId = -1
                 activeAlarm.set(null)
-                alarmScheduler.handleAlarmFired(alarmId)
+                alarmScheduler.handleAlarmFired(alarmId, currentScheduledAt)
                 webhookEvent = WebhookEvent.AlarmDismissed
             } else {
                 currentSnoozeCount = nextSnoozeCount
@@ -1651,7 +1651,7 @@ class AlarmService : Service() {
             currentAlarmId = -1
             activeAlarm.set(null)
         }
-        alarmScheduler.handleAlarmFired(alarmId)
+        alarmScheduler.handleAlarmFired(alarmId, currentScheduledAt)
         wearNextAlarmBridge.publishAlarmIdle(alarmId)
         if (isForeground.compareAndSet(true, false)) {
             stopForeground(STOP_FOREGROUND_REMOVE)

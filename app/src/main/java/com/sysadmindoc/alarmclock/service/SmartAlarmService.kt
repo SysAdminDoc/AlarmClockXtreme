@@ -246,6 +246,11 @@ class SmartAlarmService : Service(), SensorEventListener {
         val intent = Intent(this, AlarmService::class.java).apply {
             action = AlarmService.ACTION_START_ALARM
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
+            // Thread the original occurrence through so the post-dismiss
+            // reschedule floors "next" past it. Without this a recurring
+            // alarm dismissed after an early fire recomputes today's
+            // still-future original minute and rings a second time.
+            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, targetTimeMs)
         }
         try {
             startForegroundService(intent)

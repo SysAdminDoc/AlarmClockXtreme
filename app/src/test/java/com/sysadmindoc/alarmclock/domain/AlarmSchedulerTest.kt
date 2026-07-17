@@ -21,12 +21,14 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkAll
 import io.mockk.verify
 import java.time.DayOfWeek
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -130,6 +132,62 @@ class AlarmSchedulerTest {
 
         assertEquals(0, alarmManager.scheduledAlarms.size)
         coVerify { repository.setEnabled(55L, false, 0L) }
+    }
+
+    @Test
+    fun handleAlarmFiredRecurringAfterEarlyFireSkipsTheOriginalMinute() = runTest {
+        // Smart-wake fires a recurring alarm early; the user dismisses before
+        // the original minute. The reschedule must floor "next" past the
+        // original occurrence or the alarm rings a second time at it.
+        val originalTrigger = System.currentTimeMillis() + 10 * 60_000L
+        val nextDay = originalTrigger + 24 * 3_600_000L
+        val recurring = enabledAlarm(id = 66L)
+        coEvery { repository.getById(66L) } returns recurring
+        val fromSlot = slot<java.time.ZonedDateTime>()
+        every { calculator.calculate(any<Alarm>(), capture(fromSlot)) } returns nextDay
+
+        scheduler.handleAlarmFired(66L, firedScheduledAt = originalTrigger)
+
+        assertTrue(fromSlot.captured.toInstant().toEpochMilli() >= originalTrigger + 60_000L)
+        coVerify { repository.updateNextTrigger(66L, nextDay) }
+    }
+
+    @Test
+    fun oneShotHolidaySuppressionStoresZeroTrigger() = runTest {
+        // Storing the suppressed future trigger let reboot/app-update
+        // reschedules re-arm the alarm without a holiday check, so it fired
+        // on the holiday the user asked to skip.
+        val triggerTime = System.currentTimeMillis() + 20 * 60_000L
+        val oneShot = enabledAlarm(id = 88L).copy(repeatDays = emptySet(), skipOnHolidays = true)
+        every { calculator.calculate(any<Alarm>(), any()) } returns triggerTime
+        coEvery { preferencesManager.getCurrentSettings() } returns
+            AppSettings(holidayAutoSkipEnabled = true)
+        coEvery { holidayRepository.isHoliday(any()) } returns true
+
+        scheduler.schedule(oneShot, requestWidgetUpdate = false)
+
+        coVerify { repository.updateNextTrigger(88L, 0L) }
+        assertEquals(
+            0,
+            shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms.size
+        )
+    }
+
+    @Test
+    fun forceRecalculatePreservesLiveSnoozeTrigger() = runTest {
+        // Automatic forced reschedules (dashboard location/solar refresh,
+        // TIME_SET) must not silently un-snooze: a stored trigger earlier
+        // than the natural next occurrence is a live snooze.
+        val now = System.currentTimeMillis()
+        val snoozeAt = now + 5 * 60_000L
+        val naturalNext = now + 20 * 3_600_000L
+        val alarm = enabledAlarm(id = 9L).copy(nextTriggerTime = snoozeAt)
+        coEvery { repository.getEnabled() } returns listOf(alarm)
+        every { calculator.calculate(any<Alarm>(), any()) } returns naturalNext
+
+        scheduler.rescheduleAllInBatches(forceRecalculate = true, batchSize = 5)
+
+        coVerify { repository.updateNextTrigger(9L, snoozeAt) }
     }
 
     @Test

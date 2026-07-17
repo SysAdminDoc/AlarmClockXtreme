@@ -54,8 +54,18 @@ class AlarmScheduler @Inject constructor(
      * Schedule an alarm using setAlarmClock() for maximum reliability.
      * Checks vacation mode and holiday skip before scheduling.
      * Also starts SmartAlarmService window and enqueues HueSunriseWorker if enabled.
+     *
+     * @param notBeforeMillis Floor for the computed occurrence. Used after a
+     * fire/dismiss/skip of a known occurrence so the recomputed trigger can
+     * never land back on that same occurrence — a smart-wake early fire
+     * dismissed at 06:45 for a 07:00 repeating alarm would otherwise
+     * recompute "next" as today's still-future 07:00 and ring again.
      */
-    suspend fun schedule(alarm: Alarm, requestWidgetUpdate: Boolean = true) {
+    suspend fun schedule(
+        alarm: Alarm,
+        requestWidgetUpdate: Boolean = true,
+        notBeforeMillis: Long = 0L
+    ) {
         val sanitizedAlarm = alarm.sanitized()
         if (!sanitizedAlarm.isEnabled) {
             cancel(sanitizedAlarm.id)
@@ -82,7 +92,14 @@ class AlarmScheduler @Inject constructor(
             return
         }
 
-        var triggerTime = calculator.calculate(sanitizedAlarm)
+        var triggerTime = if (notBeforeMillis > System.currentTimeMillis()) {
+            calculator.calculate(
+                sanitizedAlarm,
+                Instant.ofEpochMilli(notBeforeMillis).atZone(ZoneId.systemDefault())
+            )
+        } else {
+            calculator.calculate(sanitizedAlarm)
+        }
         if (triggerTime <= System.currentTimeMillis()) {
             cancelScheduledEntries(sanitizedAlarm.id)
             if (sanitizedAlarm.isRecurringSchedule) {
@@ -105,45 +122,54 @@ class AlarmScheduler @Inject constructor(
         )
         triggerTime = vacationAdjustment.triggerTime
 
-        // F13: Holiday auto-skip
+        // F13: Holiday auto-skip. Dates are resolved in the alarm's scheduling
+        // zone: a fixed-zone alarm whose local fire time is across midnight
+        // from the device zone would otherwise check the wrong calendar day.
         if (sanitizedAlarm.skipOnHolidays && settings.holidayAutoSkipEnabled) {
+            val holidayZone = sanitizedAlarm.schedulingZone(ZoneId.systemDefault())
             if (!sanitizedAlarm.isRecurringSchedule) {
-                // One-shot alarm: if the day is a holiday, don't fire at all
+                // One-shot alarm: if the day is a holiday, don't fire at all.
+                // Store 0, not the suppressed future trigger — a stored future
+                // trigger survives reboot/app-update reschedules (which re-arm
+                // any valid-looking nextTriggerTime without holiday checks)
+                // and the alarm would fire on the holiday after a reboot.
                 val triggerDate = Instant.ofEpochMilli(triggerTime)
-                    .atZone(ZoneId.systemDefault()).toLocalDate()
+                    .atZone(holidayZone).toLocalDate()
                 if (holidayRepository.isHoliday(triggerDate)) {
                     cancelScheduledEntries(sanitizedAlarm.id)
-                    repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
+                    repository.updateNextTrigger(sanitizedAlarm.id, 0)
                     requestWidgetUpdateIfNeeded(requestWidgetUpdate)
                     return
                 }
             } else {
-                // Repeating alarm: advance past consecutive holidays to the next valid day.
-                // v1.5.1: bumped from 14 to 30 attempts so regional 2-week
-                // national holiday clusters don't fall through to firing on a holiday.
-                var attempts = 0
-                while (attempts < 30) {
-                    val triggerDate = Instant.ofEpochMilli(triggerTime)
-                        .atZone(ZoneId.systemDefault()).toLocalDate()
-                    if (!holidayRepository.isHoliday(triggerDate)) break
-                    val nextFrom = triggerDate.plusDays(1).atStartOfDay(ZoneId.systemDefault())
-                    triggerTime = calculator.calculate(sanitizedAlarm, nextFrom)
-                    attempts++
-                }
-                // If all 30 candidates were holidays (corrupt data or an unusually
-                // long public-holiday run), suppress this occurrence rather than
-                // schedule on a holiday. The alarm stays enabled; it will reschedule
-                // correctly once holiday data is refreshed or the user re-saves.
-                if (attempts >= 30) {
-                    val finalDate = Instant.ofEpochMilli(triggerTime)
-                        .atZone(ZoneId.systemDefault()).toLocalDate()
-                    if (holidayRepository.isHoliday(finalDate)) {
-                        cancelScheduledEntries(sanitizedAlarm.id)
-                        repository.updateNextTrigger(sanitizedAlarm.id, 0)
-                        requestWidgetUpdateIfNeeded(requestWidgetUpdate)
-                        return
+                var advanced = advanceTriggerPastHolidays(sanitizedAlarm, triggerTime, holidayZone)
+                if (advanced != null && advanced != triggerTime) {
+                    // Holiday advancement can push the occurrence inside the
+                    // vacation window; re-apply vacation, then clear holidays
+                    // once more from the vacation-adjusted date.
+                    val revacationed = VacationAlarmPolicy.adjustTrigger(
+                        alarm = sanitizedAlarm,
+                        initialTriggerTime = advanced,
+                        settings = settings,
+                        calculateFrom = calculator::calculate
+                    ).triggerTime
+                    if (revacationed != advanced) {
+                        advanced = advanceTriggerPastHolidays(
+                            sanitizedAlarm, revacationed, holidayZone
+                        )
                     }
                 }
+                if (advanced == null) {
+                    // All candidates were holidays (corrupt data or an unusually
+                    // long public-holiday run): suppress this occurrence rather
+                    // than fire on a holiday. The alarm stays enabled; it
+                    // reschedules once holiday data refreshes or the user re-saves.
+                    cancelScheduledEntries(sanitizedAlarm.id)
+                    repository.updateNextTrigger(sanitizedAlarm.id, 0)
+                    requestWidgetUpdateIfNeeded(requestWidgetUpdate)
+                    return
+                }
+                triggerTime = advanced
             }
         }
 
@@ -169,7 +195,13 @@ class AlarmScheduler @Inject constructor(
                 if (dayIndex >= 0) {
                     val code = weather.daily?.weatherCode?.getOrNull(dayIndex)
                     if (code != null && isSnowOrIceCode(code)) {
-                        triggerTime -= sanitizedAlarm.weatherEarlyMinutes * 60_000L
+                        // Saving an alarm inside its weather-lead window must
+                        // not produce a past trigger — setAlarmClock() fires a
+                        // past time immediately. Keep at least a minute out.
+                        triggerTime = maxOf(
+                            triggerTime - sanitizedAlarm.weatherEarlyMinutes * 60_000L,
+                            System.currentTimeMillis() + 60_000L
+                        )
                     }
                 }
             }
@@ -196,10 +228,40 @@ class AlarmScheduler @Inject constructor(
      * @param customMinutes Override snooze duration (null = use alarm's default)
      */
     suspend fun scheduleSnooze(alarm: Alarm, customMinutes: Int? = null) {
-        if (!canScheduleExactAlarms()) return
-
         val minutes = customMinutes ?: alarm.snoozeDurationMinutes
         val snoozeTime = System.currentTimeMillis() + (minutes * 60 * 1000L)
+        if (!canScheduleExactAlarms()) {
+            // Exact-alarm access was revoked mid-ring. The service has already
+            // recorded and announced the snooze, so silently dropping it is
+            // the worst outcome — arm an inexact wakeup (fires within the Doze
+            // maintenance window) and leave an incident record.
+            val sanitizedAlarm = alarm.sanitized()
+            val fireId = AlarmIncidentEvent.fireIdFor(sanitizedAlarm.id, snoozeTime)
+            repository.updateNextTrigger(sanitizedAlarm.id, snoozeTime)
+            try {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    snoozeTime,
+                    createPendingIntent(sanitizedAlarm.id, snoozeTime, fireId)
+                )
+                recordScheduleIncident(
+                    alarmId = sanitizedAlarm.id,
+                    fireId = fireId,
+                    triggerTime = snoozeTime,
+                    status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                    reasonCode = "SNOOZE_INEXACT_NO_EXACT_PERMISSION"
+                )
+            } catch (e: Exception) {
+                recordScheduleIncident(
+                    alarmId = sanitizedAlarm.id,
+                    fireId = fireId,
+                    triggerTime = snoozeTime,
+                    status = AlarmIncidentEvent.STATUS_FAILED,
+                    reasonCode = "SNOOZE_INEXACT_FAILED_${e.javaClass.simpleName}"
+                )
+            }
+            return
+        }
         scheduleAt(alarm, snoozeTime)
     }
 
@@ -274,6 +336,20 @@ class AlarmScheduler @Inject constructor(
                         triggerTime = alarm.nextTriggerTime,
                         requestWidgetUpdate = false
                     )
+                } else if (forceRecalculate && alarm.nextTriggerTime > now &&
+                    alarm.nextTriggerTime < calculator.calculate(alarm.sanitized())
+                ) {
+                    // A stored trigger earlier than the natural next occurrence
+                    // is a live snooze (or weather/smart early fire). Forced
+                    // recalculation passes — including the automatic dashboard
+                    // location/solar refresh — must not silently un-snooze it.
+                    // Snoozes are epoch-anchored, so they stay correct across
+                    // TIME_SET/TIMEZONE_CHANGED too.
+                    scheduleExistingTrigger(
+                        alarm = alarm,
+                        triggerTime = alarm.nextTriggerTime,
+                        requestWidgetUpdate = false
+                    )
                 } else {
                     // Needs recalculation (past or unset trigger time)
                     schedule(alarm, requestWidgetUpdate = false)
@@ -320,8 +396,14 @@ class AlarmScheduler @Inject constructor(
     /**
      * After an alarm fires: if repeating, schedule next occurrence.
      * If one-shot, disable it.
+     *
+     * @param firedScheduledAt The occurrence that just completed (0 when
+     * unknown). For repeating alarms the next occurrence is computed no
+     * earlier than one minute past it: a smart-wake early fire dismissed
+     * before the original minute would otherwise recompute "next" as the
+     * same still-future occurrence and ring again minutes later.
      */
-    suspend fun handleAlarmFired(alarmId: Long) {
+    suspend fun handleAlarmFired(alarmId: Long, firedScheduledAt: Long = 0L) {
         val alarm = repository.getById(alarmId) ?: return
 
         if (!alarm.isRecurringSchedule) {
@@ -336,7 +418,10 @@ class AlarmScheduler @Inject constructor(
         } else {
             // Repeating alarm: schedule next occurrence (FLAG_UPDATE_CURRENT
             // replaces any stale early-fire PendingIntent with the same requestCode).
-            schedule(alarm)
+            schedule(
+                alarm,
+                notBeforeMillis = if (firedScheduledAt > 0L) firedScheduledAt + 60_000L else 0L
+            )
         }
     }
 
@@ -366,6 +451,28 @@ class AlarmScheduler @Inject constructor(
         }
         val nextAlarmTrigger = repository.getNextAlarm()?.nextTriggerTime
         BedtimeZenRuleManager.syncRule(context, settings, nextAlarmTrigger)
+    }
+
+    /**
+     * Walks a repeating alarm's trigger past consecutive holidays (max 30
+     * candidates, covering multi-week national holiday clusters). Returns null
+     * when every candidate was a holiday — the caller suppresses that occurrence.
+     */
+    private suspend fun advanceTriggerPastHolidays(
+        alarm: Alarm,
+        startTrigger: Long,
+        zone: ZoneId
+    ): Long? {
+        var trigger = startTrigger
+        var attempts = 0
+        while (attempts < 30) {
+            val date = Instant.ofEpochMilli(trigger).atZone(zone).toLocalDate()
+            if (!holidayRepository.isHoliday(date)) return trigger
+            trigger = calculator.calculate(alarm, date.plusDays(1).atStartOfDay(zone))
+            attempts++
+        }
+        val finalDate = Instant.ofEpochMilli(trigger).atZone(zone).toLocalDate()
+        return if (holidayRepository.isHoliday(finalDate)) null else trigger
     }
 
     private fun canScheduleExactAlarms(): Boolean {
