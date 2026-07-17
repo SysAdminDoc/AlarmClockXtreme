@@ -87,8 +87,12 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
 
                     // Policy has already cleared the record above; if the DB
                     // row vanished between the record write and now, we just
-                    // silently drop the replay.
-                    val alarm = ep.alarmRepository().getById(id) ?: return@withTimeout
+                    // silently drop the replay. Same for an alarm the user
+                    // disabled after it auto-silenced — re-firing a disabled
+                    // alarm would override an explicit user decision.
+                    val alarm = ep.alarmRepository().getById(id)
+                        ?.takeIf { it.isEnabled }
+                        ?: return@withTimeout
 
                     val fireId = AlarmFireDismissContract.fireId(alarm.id, at)
                     val fireIntent = AlarmFireDismissContract.startServiceIntent(context, alarm.id, at, fireId)
@@ -120,7 +124,13 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                         // let the replay vanish silently, post a high-importance
                         // full-screen-intent notification so the alarm still
                         // surfaces over the lock screen / as a heads-up.
-                        val fallbackPosted = postFullScreenReplayFallback(context, alarm, at, fireId)
+                        val fallbackPosted = postFullScreenReplayFallback(
+                            context = context,
+                            alarm = alarm,
+                            scheduledAt = at,
+                            fireId = fireId,
+                            hideLabel = settings.hideAlarmLabelsOnPublicSurfaces
+                        )
                         ep.alarmIncidentRepository().record(
                             alarmId = alarm.id,
                             fireId = fireId,
@@ -154,7 +164,8 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
         context: Context,
         alarm: Alarm,
         scheduledAt: Long,
-        fireId: String
+        fireId: String,
+        hideLabel: Boolean
     ): Boolean {
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -172,20 +183,39 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                 firingIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            val notification = NotificationCompat.Builder(context, AlarmService.CHANNEL_ALARM)
+            val builder = NotificationCompat.Builder(context, AlarmService.CHANNEL_ALARM)
                 .setSmallIcon(R.drawable.ic_alarm)
                 .setContentTitle(context.getString(R.string.notif_alarm_title))
                 .setContentText(alarm.label.ifBlank { context.getString(R.string.notif_alarm_title) })
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setFullScreenIntent(fullScreenPi, true)
                 .setContentIntent(fullScreenPi)
                 .setAutoCancel(true)
                 .setOngoing(false)
-                .build()
+            // Honor the hide-labels-on-public-surfaces setting like every
+            // other alarm/timer notification: keep the label private and
+            // publish a generic lockscreen version.
+            if (hideLabel) {
+                val publicVersion = NotificationCompat.Builder(context, AlarmService.CHANNEL_ALARM)
+                    .setSmallIcon(R.drawable.ic_alarm)
+                    .setContentTitle(context.getString(R.string.notif_alarm_title))
+                    .setContentText(context.getString(R.string.notif_alarm_ringing))
+                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setCategory(NotificationCompat.CATEGORY_ALARM)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setContentIntent(fullScreenPi)
+                    .setAutoCancel(true)
+                    .setOngoing(false)
+                    .build()
+                builder
+                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                    .setPublicVersion(publicVersion)
+            } else {
+                builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            }
             NotificationManagerCompat.from(context)
-                .notify(AlarmService.NOTIFICATION_ID, notification)
+                .notify(AlarmService.NOTIFICATION_ID, builder.build())
             true
         } catch (e: Exception) {
             Log.e("MissedAlarmUnlockReceiver", "Full-screen replay fallback failed for ${alarm.id}", e)

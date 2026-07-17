@@ -13,6 +13,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.receiver.MissedAlarmUnlockReceiver
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.service.NextAlarmNotifier
 import com.sysadmindoc.alarmclock.service.YouTubeDownloadInitializer
@@ -51,6 +52,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
     private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var unlockedStartupComplete = false
     private var unlockReceiver: BroadcastReceiver? = null
+    private var missedReplayReceiver: BroadcastReceiver? = null
     private var startedNextAlarmNotifier: NextAlarmNotifier? = null
 
     override val workManagerConfiguration: Configuration
@@ -93,6 +95,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
         // Install crash logger for debugging
         com.sysadmindoc.alarmclock.util.CrashLogger.install(this)
         AlarmService.createNotificationChannels(this)
+        registerMissedAlarmReplayReceiver()
 
         // F13: Schedule weekly holiday sync
         val holidaySync = PeriodicWorkRequestBuilder<HolidaySyncWorker>(7, TimeUnit.DAYS).build()
@@ -163,6 +166,8 @@ class AlarmClockApp : Application(), Configuration.Provider {
     override fun onTerminate() {
         startedNextAlarmNotifier?.stopObserving()
         startedNextAlarmNotifier = null
+        missedReplayReceiver?.let { runCatching { unregisterReceiver(it) } }
+        missedReplayReceiver = null
         if (::wearNextAlarmBridge.isInitialized) {
             wearNextAlarmBridge.stop()
         }
@@ -175,6 +180,30 @@ class AlarmClockApp : Application(), Configuration.Provider {
     private fun isUserUnlocked(): Boolean {
         val userManager = getSystemService(UserManager::class.java)
         return userManager?.isUserUnlocked != false
+    }
+
+    /**
+     * The repeat-missed-alarm safety net must be context-registered:
+     * USER_PRESENT and ACTION_POWER_DISCONNECTED are not on the
+     * implicit-broadcast exception list, so a manifest-declared receiver
+     * never receives them on API 26+ and the replay feature silently
+     * dead-ends. Registered for the process lifetime once user storage is
+     * unlocked — the missed-alarm record is written by AlarmService, so the
+     * process is alive whenever a replay could become due.
+     */
+    private fun registerMissedAlarmReplayReceiver() {
+        if (missedReplayReceiver != null) return
+        val receiver = MissedAlarmUnlockReceiver()
+        missedReplayReceiver = receiver
+        ContextCompat.registerReceiver(
+            this,
+            receiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_USER_PRESENT)
+                addAction(Intent.ACTION_POWER_DISCONNECTED)
+            },
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     private fun registerPostUnlockInitializer() {

@@ -218,7 +218,6 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
-                <action android:name="android.intent.action.DATE_CHANGED" />
             </intent-filter>
         </receiver>
 
@@ -406,17 +405,10 @@
             </intent-filter>
         </service>
 
-        <!-- v1.4.0/v1.15.20: Repeat-missed-alarm handler — fires on screen
-             unlock or charge disconnect if the last alarm auto-silenced within
-             the configured window. -->
-        <receiver
-            android:name=".receiver.MissedAlarmUnlockReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.USER_PRESENT" />
-                <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED" />
-            </intent-filter>
-        </receiver>
+        <!-- v1.4.0/v1.15.20: Repeat-missed-alarm handler. USER_PRESENT and
+             ACTION_POWER_DISCONNECTED are not exempt implicit broadcasts, so
+             a manifest intent-filter is never delivered on API 26+; the
+             receiver is context-registered in AlarmClockApp instead. -->
 
     </application>
 

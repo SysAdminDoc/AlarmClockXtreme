@@ -16,8 +16,10 @@ import kotlinx.coroutines.launch
 
 /**
  * Reschedules all enabled alarms after device boot, app update, or a clock
- * change (TIME_SET / TIMEZONE_CHANGED / DATE_CHANGED). AlarmManager intents
- * are lost on reboot, so this is essential.
+ * change (TIME_SET / TIMEZONE_CHANGED). AlarmManager intents are lost on
+ * reboot, so this is essential. DATE_CHANGED was dropped: it is not an
+ * exempt implicit broadcast, so the manifest registration never delivered
+ * it — manual date changes also raise TIME_SET, which does arrive.
  *
  * v1.5.1 additions:
  * - Clears the `missed_alarm_state` prefs on BOOT_COMPLETED so a stale
@@ -49,8 +51,7 @@ class BootReceiver : BroadcastReceiver() {
             action != Intent.ACTION_BOOT_COMPLETED &&
             action != Intent.ACTION_MY_PACKAGE_REPLACED &&
             action != Intent.ACTION_TIME_CHANGED &&
-            action != Intent.ACTION_TIMEZONE_CHANGED &&
-            action != Intent.ACTION_DATE_CHANGED) return
+            action != Intent.ACTION_TIMEZONE_CHANGED) return
 
         val appContext = context.applicationContext
         val pendingResult = goAsync()
@@ -78,8 +79,7 @@ class BootReceiver : BroadcastReceiver() {
                 }
 
                 val forceRecalculate = action == Intent.ACTION_TIME_CHANGED ||
-                    action == Intent.ACTION_TIMEZONE_CHANGED ||
-                    action == Intent.ACTION_DATE_CHANGED
+                    action == Intent.ACTION_TIMEZONE_CHANGED
                 BootRescheduleWorker.enqueue(
                     context = appContext,
                     sourceAction = action,
