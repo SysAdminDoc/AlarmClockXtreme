@@ -272,6 +272,29 @@ class AlarmService : Service() {
                     val scheduledAt = intent.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, 0L)
                     val fireId = intent.getStringExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID)
                         ?: AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt)
+                    // A different alarm still mid-ring is being preempted (two
+                    // alarms in the same minute, or one firing inside another's
+                    // auto-silence window). Finalize it first: record the missed
+                    // outcome and re-arm its next occurrence — otherwise a
+                    // repeating alarm is left with a stale past nextTriggerTime
+                    // and no armed PendingIntent, silently losing every future
+                    // occurrence until the next full reschedule pass.
+                    val preemptedAlarmId = currentAlarmId
+                    if (preemptedAlarmId != -1L && preemptedAlarmId != alarmId) {
+                        val preemptedScheduledAt = currentScheduledAt
+                        val preemptedFiredAt = alarmFiredAt
+                        val preemptedSnoozeCount = currentSnoozeCount
+                        val preemptedFireId = currentFireId
+                        serviceScope.launch {
+                            finalizePreemptedAlarm(
+                                alarmId = preemptedAlarmId,
+                                scheduledAt = preemptedScheduledAt,
+                                firedAt = preemptedFiredAt,
+                                snoozeCount = preemptedSnoozeCount,
+                                fireId = preemptedFireId
+                            )
+                        }
+                    }
                     // Cancel any prior auto-silence/fade jobs before starting new alarm
                     autoSilenceJob?.cancel()
                     volumeJob?.cancel()
@@ -1382,6 +1405,11 @@ class AlarmService : Service() {
 
     private fun seekToRandomPoolOffset(alarm: Alarm, playback: AlarmPlaybackPlayer?) {
         if (alarm.ringtonePool.isBlank() || playback == null) return
+        // Dismiss-at-ringtone-end auto-dismisses when the track finishes;
+        // combined with a random start offset the guaranteed ring window
+        // shrinks to the ~15 s seek tail — far too short to wake anyone.
+        // A pool alarm with that mode always plays from the top.
+        if (alarm.dismissAtRingtoneEnd) return
         val offset = randomRingtoneStartOffsetMs(
             durationMs = playback.durationMs(),
             randomUnit = kotlin.random.Random.nextDouble()
@@ -1511,6 +1539,16 @@ class AlarmService : Service() {
                     source = "AlarmService",
                     alarmId = alarm.id
                 )
+                // A user who snoozed to the cap is the strongest still-asleep
+                // signal there is — the cap-exhaustion auto-dismiss must not
+                // skip the wake-confirmation follow-up a real dismiss gets.
+                if (AlarmPostDismissController.shouldScheduleWakeConfirmation(alarm)) {
+                    scheduleWakeConfirmation(
+                        alarm = alarm,
+                        fireId = currentFireId,
+                        scheduledAt = currentScheduledAt
+                    )
+                }
                 clearAlarmRuntimeState(alarmId)
                 currentSnoozeCount = 0
                 currentAlarmId = -1
@@ -1806,6 +1844,51 @@ class AlarmService : Service() {
             val h = if (time.hour % 12 == 0) 12 else time.hour % 12
             val amPm = if (time.hour < 12) "AM" else "PM"
             String.format(Locale.US, "%d:%02d %s", h, time.minute, amPm)
+        }
+    }
+
+    /**
+     * Completes the lifecycle of an alarm that was still ringing when a
+     * different alarm's ACTION_START_ALARM preempted it: records the missed
+     * outcome with the *preempted* fire's identifiers (the service fields
+     * already hold the new alarm's) and re-arms the next occurrence.
+     */
+    private suspend fun finalizePreemptedAlarm(
+        alarmId: Long,
+        scheduledAt: Long,
+        firedAt: Long,
+        snoozeCount: Int,
+        fireId: String
+    ) {
+        try {
+            val alarm = repository.getById(alarmId)
+            if (alarm != null) {
+                eventRepository.record(
+                    AlarmFireDismissContract.alarmEvent(
+                        alarm = alarm,
+                        scheduledAt = scheduledAt,
+                        firedAt = firedAt,
+                        action = AlarmEvent.ACTION_MISSED,
+                        actionAt = System.currentTimeMillis(),
+                        challengeRetryCount = 0,
+                        challengeSolveTimeMs = 0L,
+                        snoozeCount = snoozeCount
+                    )
+                )
+            }
+            alarmIncidentRepository.recordAsync(
+                alarmId = alarmId,
+                fireId = fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) },
+                scheduledAt = scheduledAt,
+                type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = "PREEMPTED_BY_OVERLAPPING_ALARM",
+                source = "AlarmService"
+            )
+            clearAlarmRuntimeState(alarmId)
+            alarmScheduler.handleAlarmFired(alarmId, scheduledAt)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to finalize preempted alarm $alarmId", e)
         }
     }
 

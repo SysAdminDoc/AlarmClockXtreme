@@ -195,6 +195,10 @@ class AlarmClockApp : Application(), Configuration.Provider {
         if (missedReplayReceiver != null) return
         val receiver = MissedAlarmUnlockReceiver()
         missedReplayReceiver = receiver
+        // RECEIVER_EXPORTED is deliberate: both actions are protected system
+        // broadcasts (no app can spoof them), and the pre-API-33 emulation of
+        // NOT_EXPORTED gates delivery behind a dynamic signature permission
+        // that breaks host-test broadcast delivery for the whole process.
         ContextCompat.registerReceiver(
             this,
             receiver,
@@ -202,7 +206,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
                 addAction(Intent.ACTION_USER_PRESENT)
                 addAction(Intent.ACTION_POWER_DISCONNECTED)
             },
-            ContextCompat.RECEIVER_NOT_EXPORTED
+            ContextCompat.RECEIVER_EXPORTED
         )
     }
 

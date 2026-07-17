@@ -353,6 +353,19 @@ class AlarmFiringActivity : ComponentActivity() {
                 val tagId = it.id.joinToString("") { byte -> "%02x".format(byte) }
                 viewModel.onNfcTagDetected(tagId)
             }
+            return
+        }
+
+        // An overlapping alarm preempted the one on screen: this activity is
+        // singleInstance, so the second alarm's launch lands here instead of
+        // creating a new instance. The ViewModel binds its alarm id from
+        // SavedStateHandle at construction, so relaunch cleanly for the new
+        // alarm — leaving the old screen up would show (and dismiss) an alarm
+        // the service has already finalized as missed.
+        val incomingAlarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1L)
+        if (incomingAlarmId != -1L && incomingAlarmId != alarmId) {
+            finish()
+            startActivity(Intent(intent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
     }
 

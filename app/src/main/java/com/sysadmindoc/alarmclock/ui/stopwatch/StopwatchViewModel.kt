@@ -159,13 +159,17 @@ class StopwatchViewModel @Inject constructor(
                         .put("t", lap.totalMillis)
                 )
             }
-            prefs.edit()
+            val editor = prefs.edit()
                 .putString("state", state.state.name)
                 .putLong("accumulated", accumulatedTime)
                 .putLong("startTime", startTime)
                 .putLong("bootToken", bootToken())
                 .putString("laps", laps.toString())
-                .apply()
+            val bootCount = currentBootCount()
+            if (bootCount >= 0L) {
+                editor.putLong("bootCount", bootCount)
+            }
+            editor.apply()
         }
     }
 
@@ -180,7 +184,18 @@ class StopwatchViewModel @Inject constructor(
             val laps = parseLaps(prefs.getString("laps", null))
 
             if (restoredState == StopwatchState.RUNNING) {
-                val rebooted = kotlin.math.abs(bootToken() - prefs.getLong("bootToken", 0L)) > BOOT_TOKEN_TOLERANCE_MS
+                // Prefer the OS boot counter: the wall-vs-monotonic delta
+                // false-positives on any >5 s wall-clock adjustment (NTP,
+                // carrier time while traveling, manual set) and silently
+                // dropped the running segment. Legacy token kept as fallback
+                // for records persisted before bootCount existed.
+                val storedBootCount = prefs.getLong("bootCount", -1L)
+                val liveBootCount = currentBootCount()
+                val rebooted = if (storedBootCount >= 0L && liveBootCount >= 0L) {
+                    storedBootCount != liveBootCount
+                } else {
+                    kotlin.math.abs(bootToken() - prefs.getLong("bootToken", 0L)) > BOOT_TOKEN_TOLERANCE_MS
+                }
                 val delta = SystemClock.elapsedRealtime() - startTime
                 if (rebooted || delta < 0) {
                     // Reboot reset the monotonic clock; the running segment can't be
@@ -223,6 +238,14 @@ class StopwatchViewModel @Inject constructor(
     }
 
     private fun bootToken(): Long = System.currentTimeMillis() - SystemClock.elapsedRealtime()
+
+    /** Monotonic per-boot counter (API 24+). Returns -1 when unavailable. */
+    private fun currentBootCount(): Long = runCatching {
+        android.provider.Settings.Global.getLong(
+            context.contentResolver,
+            android.provider.Settings.Global.BOOT_COUNT
+        )
+    }.getOrDefault(-1L)
 
     override fun onCleared() {
         tickerJob?.cancel()
