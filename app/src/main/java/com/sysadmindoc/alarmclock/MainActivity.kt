@@ -176,10 +176,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Bedtime now includes a local jet-lag planner with gradual wake and bedtime shifts.",
-            "Set a target wake time, adjustment days, and earlier/later travel direction.",
-            "Each plan shows bright-light and dim-light timing cues for every adjustment day.",
-            "Backups are now format v17 so jet-lag planner settings restore with the rest of Bedtime."
+            "Reliability audit: overlapping alarms and the repeat-missed safety net are fixed.",
+            "Timers restarted from a notification can no longer be lost by the in-app timer list.",
+            "Manual alarm reordering now works with TalkBack, and the editor follows your accent color.",
+            "Holiday-skip, snooze, smart-wake, and DST edge cases across the scheduler were hardened."
         )
     }
 }

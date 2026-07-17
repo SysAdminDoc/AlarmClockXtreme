@@ -4,6 +4,74 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+## [1.15.29] - 2026-07-17
+
+Deep audit pass over the never-audited work since v1.15.27 (timer restart,
+fixed-zone alarms, Fossify import, jet-lag planner, the localization sweep)
+plus the core alarm and firing paths.
+
+### Fixed
+
+- Overlapping alarms no longer strand one another: an alarm firing while
+  another is still ringing now finalizes the preempted alarm (records the
+  missed outcome and re-arms its next occurrence) instead of leaving a
+  recurring alarm with a stale past trigger and no armed alarm, silently
+  losing every future occurrence until the next reboot.
+- The repeat-missed-alarm safety net works again. Its unlock/unplug triggers
+  were declared only in the manifest, where Android never delivers them on
+  modern versions, so the whole feature was dead; the receiver is now
+  registered at runtime. Replay also skips alarms disabled after the miss and
+  honors the hide-labels-on-public-surfaces setting on its fallback notice.
+- A timer created from a notification Restart or a voice assistant can no
+  longer be silently destroyed by the in-app timer screen reusing its id;
+  timer ids are now allocated under the shared store lock, and the Timer tab
+  resyncs external changes when it returns to the foreground.
+- A recurring alarm dismissed after a smart-wake early fire no longer rings a
+  second time at its original minute.
+- A one-shot alarm suppressed by holiday auto-skip no longer resurrects and
+  fires on the holiday after a reboot or app update.
+- Holiday auto-skip now evaluates the date in a fixed-zone alarm's own time
+  zone and can no longer land a skipped occurrence inside a vacation window.
+- Saving an alarm inside its snow/ice weather-lead window no longer produces a
+  past trigger that fires immediately.
+- Snoozing after exact-alarm permission was revoked mid-ring now arms an
+  inexact wake-up instead of silently vanishing while the UI shows "snoozed".
+- Automatic reschedules (dashboard weather/location refresh, clock changes) no
+  longer silently cancel a live snooze.
+- Hitting the snooze cap now schedules the same wake-confirmation follow-up a
+  manual dismiss gets.
+- A ringtone pool combined with dismiss-at-ringtone-end no longer shrinks the
+  guaranteed ring to a ~15 second tail.
+- The stopwatch no longer drops its running segment when the wall clock is
+  adjusted (NTP, travel, manual set); reboot detection now uses the OS boot
+  counter.
+- Timer alert sound no longer leaks a MediaPlayer when preparation fails, and
+  fixed notification ids were moved out of the per-timer id band to stop
+  collisions with running-timer notifications.
+
+### Changed
+
+- The alarm editor follows your chosen accent color instead of always showing
+  blue for selected values and sliders.
+- Timer, bedtime-reminder, and missed-alarm notification copy and channel
+  names, jet-lag planner text, and several Fossify-import and webhook strings
+  are now localizable resources; count-dependent text uses proper plurals.
+- The webhook delivery log shows an empty-state hint and colors success from
+  the structured status token rather than a substring match.
+- Fossify import previews show localized weekday names, respect the 12/24-hour
+  setting, and report failures with calm fixed copy instead of raw errors.
+
+### Accessibility
+
+- Manual alarm reordering is now reachable with TalkBack through Move up / Move
+  down actions on the drag handle.
+- The numpad time entry announces its readout and validation errors and, when
+  it is the sticky entry mode, opens prefilled with the current time instead of
+  empty with a disabled Save.
+- Night Clock's OLED burn-in drift is no longer disabled by the reduce-motion
+  setting — it is a hardware safeguard, not decorative motion — while the glow
+  pulse stays gated.
+
 ### Added
 
 - Finished timer notifications now offer Restart. The action stops that alert,
