@@ -176,10 +176,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Reliability audit: overlapping alarms and the repeat-missed safety net are fixed.",
-            "Timers restarted from a notification can no longer be lost by the in-app timer list.",
-            "Manual alarm reordering now works with TalkBack, and the editor follows your accent color.",
-            "Holiday-skip, snooze, smart-wake, and DST edge cases across the scheduler were hardened."
+            "Maintenance release — your alarms, settings, and backups are unchanged.",
+            "Expanded the automated test suite around webhook retries and the jet-lag planner.",
+            "Removed unused internal resources and began tidying the largest screens under the hood.",
+            "No new permissions and no changes to how alarms fire."
         )
     }
 }

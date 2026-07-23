@@ -2,7 +2,18 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
-## Unreleased
+## [1.15.30] - 2026-07-22
+
+Maintenance release: test-coverage expansion, dead-resource cleanup, and the
+start of the god-file refactor. No user-facing behavior changes.
+
+### Changed
+
+- Began splitting the oversized `BedtimeScreen.kt` into focused sibling files:
+  extracted the jet-lag planner, chronotype, and guided-breathing sections into
+  `BedtimeJetLagSection.kt`, `BedtimeChronotypeSection.kt`, and
+  `BedtimeBreathingSection.kt` (screen shrank from ~2.1k to ~1.65k lines with no
+  behavior change). Settings and alarm-edit screens are next.
 
 ### Removed
 
