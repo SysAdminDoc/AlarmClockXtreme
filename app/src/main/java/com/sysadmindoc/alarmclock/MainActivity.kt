@@ -176,10 +176,10 @@ class MainActivity : ComponentActivity() {
          * the app, not stale text from two versions ago.
          */
         private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "Maintenance release — your alarms, settings, and backups are unchanged.",
-            "Expanded the automated test suite around webhook retries and the jet-lag planner.",
-            "Removed unused internal resources and began tidying the largest screens under the hood.",
-            "No new permissions and no changes to how alarms fire."
+            "New reliability net: if an alarm is silently suppressed by the system, it now re-fires a couple of minutes later.",
+            "Wake readiness warns you when total-silence Do Not Disturb would mute even your alarms.",
+            "Fixed a small background resource leak in the Quick Settings skip-alarm tile.",
+            "No new permissions."
         )
     }
 }

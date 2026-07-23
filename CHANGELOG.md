@@ -2,7 +2,10 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
-## Unreleased
+## [1.15.31] - 2026-07-22
+
+Reliability release: proactive recovery for silently-missed alarms and a
+Do-Not-Disturb mute warning.
 
 ### Added
 
