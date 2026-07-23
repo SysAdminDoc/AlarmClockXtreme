@@ -14,6 +14,7 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -36,6 +37,15 @@ class SkipNextAlarmTileService : TileService() {
     override fun onStartListening() {
         super.onStartListening()
         refreshTile()
+    }
+
+    override fun onDestroy() {
+        // The system creates/destroys tile service instances around the QS shade;
+        // cancel the scope so in-flight DB reads (onClick/refreshTile) can't leak.
+        // Cancel here rather than in onStopListening so a skip started on tap
+        // isn't killed when the shade closes mid-broadcast.
+        scope.cancel()
+        super.onDestroy()
     }
 
     override fun onClick() {

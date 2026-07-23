@@ -474,16 +474,6 @@ and Roadmap_Blocked item. Full evidence in RESEARCH.md.
 
 ### P2 — reliability / platform / UX
 
-- [ ] P2 — SkipNextAlarmTileService coroutine-scope leak
-  Why: `service/SkipNextAlarmTileService.kt:34` creates a `SupervisorJob` scope
-  and launches DB reads (`:43`, `:69`) but never cancels it; TileService
-  instances churn as the QS shade opens, leaking the scope.
-  Evidence: RESEARCH.md (verified 2026-07-22); other services cancel correctly.
-  Touches: `service/SkipNextAlarmTileService.kt`.
-  Acceptance: `onStopListening()`/`onDestroy()` calls `scope.cancel()`; no
-  in-flight coroutine survives tile teardown.
-  Complexity: S.
-
 - [ ] P2 — Media3 alarm-audio stall detection
   Why: the Media3 ring path has no stall/timeout detection, so a stalled ring
   relies only on the delayed backup-sound escalation to recover.
