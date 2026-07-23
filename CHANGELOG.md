@@ -6,6 +6,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Added
 
+- Do Not Disturb mute warning: the wake-readiness screen now flags when the
+  device is in total-silence Do Not Disturb, which mutes even alarms, with a
+  one-tap link to Do Not Disturb settings. Priority and Alarms-only modes are
+  correctly treated as safe (alarm audio bypasses them).
 - Proactive fire watchdog: a check is now enqueued two minutes after every
   scheduled alarm and, if AlarmManager silently failed to deliver the fire (no
   `BROADCAST` incident for that occurrence), re-fires the alarm through the same

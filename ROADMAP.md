@@ -485,18 +485,6 @@ and Roadmap_Blocked item. Full evidence in RESEARCH.md.
   rather than waiting for the backup-sound timer; incident reason code recorded.
   Complexity: M.
 
-- [ ] P2 — DND / OEM bedtime-schedule conflict detection & warning
-  Why: `service/BedtimeZenRuleManager.kt` manages only its own
-  `INTERRUPTION_FILTER_ALARMS` rule and never warns when a conflicting user or
-  OEM bedtime/DND schedule could mute the alarm.
-  Evidence: RESEARCH.md; alarmy-android.zendesk.com/hc/en-us/articles/4592128972313--Xiaomi.
-  Touches: wake-readiness settings surface, `service/BedtimeZenRuleManager.kt`,
-  `NotificationManager` policy read.
-  Acceptance: when a next alarm is armed and the current interruption filter or a
-  detectable OEM bedtime schedule would suppress alarms, the Reliability/wake-
-  readiness surface shows a specific warning with a deep-link to fix it.
-  Complexity: M.
-
 - [ ] P2 — Snooze to a specific time (scheduled snooze)
   Why: snooze is fixed-interval + progressive only; users want to re-fire at a
   chosen clock time (e.g. "again at 07:15").

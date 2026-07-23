@@ -36,6 +36,7 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.data.support.SupportExportManager
+import com.sysadmindoc.alarmclock.domain.AlarmMuteRiskPolicy
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.integration.hue.HueBridgeClient
 import com.sysadmindoc.alarmclock.integration.hue.HueConnectionResult
@@ -79,6 +80,7 @@ data class SettingsUiState(
     val hasNotificationPermission: Boolean = true,
     val canScheduleExactAlarms: Boolean = true,
     val canUseFullScreenIntent: Boolean? = null,
+    val alarmMutedByDnd: Boolean = false,
     val hasLocalNetworkPermission: Boolean = true,
     val guardianReadiness: GuardianReadiness = GuardianReadiness(
         enabledAlarmCount = 0,
@@ -221,6 +223,7 @@ class SettingsViewModel @Inject constructor(
             canScheduleExactAlarms = wakeReadiness.canScheduleExactAlarms,
             canUseFullScreenIntent = wakeReadiness.canUseFullScreenIntent,
             hasLocalNetworkPermission = wakeReadiness.hasLocalNetworkPermission,
+            alarmMutedByDnd = wakeReadiness.alarmMutedByDnd,
             guardianReadiness = GuardianEscalationPolicy.readiness(
                 flavor = BuildConfig.FLAVOR,
                 enabledAlarmCount = auxiliary.guardianAlarmCount,
@@ -257,6 +260,25 @@ class SettingsViewModel @Inject constructor(
             context.startActivity(
                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+        }
+    }
+
+    fun requestDndAccess() {
+        val context = getApplication<Application>()
+        try {
+            // ACTION_ZEN_MODE_SETTINGS has no public SDK constant; the action
+            // string is stable and documented.
+            context.startActivity(
+                Intent("android.settings.ZEN_MODE_SETTINGS").apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+            )
+        } catch (_: Exception) {
+            context.startActivity(
+                Intent(Settings.ACTION_SETTINGS).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
             )
@@ -859,6 +881,7 @@ class SettingsViewModel @Inject constructor(
         val hasSendSmsPermission: Boolean,
         val hasCallPhonePermission: Boolean,
         val appStandbyBucket: Int,
+        val alarmMutedByDnd: Boolean,
         val testAlarmProof: TestAlarmProof
     ) {
         companion object {
@@ -905,6 +928,14 @@ class SettingsViewModel @Inject constructor(
                 } else {
                     AppStandbyBucket.UNKNOWN
                 }
+                // Total-silence DND mutes even USAGE_ALARM streams. Reading the
+                // current filter needs no policy-access grant; treat a failed or
+                // unknown read as no-risk so we never nag on a bad read.
+                val alarmMutedByDnd = runCatching {
+                    val filter = context.getSystemService(NotificationManager::class.java)
+                        ?.currentInterruptionFilter ?: 0
+                    AlarmMuteRiskPolicy.alarmsMutedByDnd(filter)
+                }.getOrDefault(false)
                 return WakeReadinessState(
                     hasNotificationPermission = notificationsReady,
                     canScheduleExactAlarms = exactAlarmsReady,
@@ -913,6 +944,7 @@ class SettingsViewModel @Inject constructor(
                     hasSendSmsPermission = sendSmsGranted,
                     hasCallPhonePermission = callPhoneGranted,
                     appStandbyBucket = bucket,
+                    alarmMutedByDnd = alarmMutedByDnd,
                     testAlarmProof = TestAlarmProofStore.lastProof(context)
                 )
             }

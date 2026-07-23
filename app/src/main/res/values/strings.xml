@@ -840,6 +840,9 @@
     <string name="settings_battery_protection">Battery protection</string>
     <string name="settings_battery_protection_description">Reduces the chance of OEM battery rules delaying alarm work.</string>
     <string name="settings_open_battery">Open battery settings</string>
+    <string name="settings_dnd_conflict_title">Do Not Disturb: total silence</string>
+    <string name="settings_dnd_conflict_description">Total-silence Do Not Disturb can mute even alarms. Switch to Priority or Alarms-only so your alarms still sound.</string>
+    <string name="settings_open_dnd">Open Do Not Disturb settings</string>
     <string name="settings_standby_bucket">App Standby bucket</string>
     <string name="settings_guardian_escalation">Guardian Angel escalation</string>
     <string name="settings_standby_unknown">Standby bucket unknown on this device.</string>

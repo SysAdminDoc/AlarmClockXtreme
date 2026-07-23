@@ -384,6 +384,7 @@ fun SettingsScreen(
                 onRequestGuardianCallPermission = {
                     guardianCallPermissionLauncher.launch(Manifest.permission.CALL_PHONE)
                 },
+                onRequestDndSettings = viewModel::requestDndAccess,
                 onOpenOnboardingChecklist = onOpenOnboardingChecklist
             )
             }
@@ -1324,6 +1325,7 @@ private fun WakeReadinessSection(
     onRequestBatteryExemption: () -> Unit,
     onRequestGuardianSmsPermission: () -> Unit,
     onRequestGuardianCallPermission: () -> Unit,
+    onRequestDndSettings: () -> Unit,
     onOpenOnboardingChecklist: () -> Unit
 ) {
     // v1.11.3 (roadmap N3): Standby bucket is only surfaced when the API is
@@ -1347,6 +1349,9 @@ private fun WakeReadinessSection(
         if (fullScreenRowVisible) add(state.canUseFullScreenIntent == true)
         if (localNetworkRowVisible) add(state.hasLocalNetworkPermission)
         add(state.isIgnoringBatteryOptimizations)
+        // Only counts against readiness while the risk is actually present, so
+        // it surfaces as a warning without permanently changing the X/Y count.
+        if (state.alarmMutedByDnd) add(false)
         if (standbyRowVisible) add(standbyReady)
         if (state.guardianReadiness.hasEnabledAlarms) {
             add(!state.guardianReadiness.needsUserAction)
@@ -1441,6 +1446,16 @@ private fun WakeReadinessSection(
             actionLabel = stringResource(R.string.settings_open_battery),
             onAction = onRequestBatteryExemption
         )
+        if (state.alarmMutedByDnd) {
+            WakeReadinessRow(
+                icon = Icons.Default.Warning,
+                title = stringResource(R.string.settings_dnd_conflict_title),
+                description = stringResource(R.string.settings_dnd_conflict_description),
+                ready = false,
+                actionLabel = stringResource(R.string.settings_open_dnd),
+                onAction = onRequestDndSettings
+            )
+        }
         if (standbyRowVisible) {
             WakeReadinessRow(
                 icon = Icons.Default.BatteryAlert,
