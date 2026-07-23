@@ -464,3 +464,114 @@ picker), the i18n cross-cutting note, and the blocked Baseline-Profile item.
 ### P2 — Later
 
 ### P3 — Under Consideration
+
+## Research-Driven Additions — Pass 4 (2026-07-22, post-v1.15.30 reliability & platform)
+
+All 2026-07-14 RESEARCH.md findings are now fixed (verified against live code
+2026-07-22); this pass is grounded in fresh competitor/platform/community
+research and current-code verification. Deduplicated against every prior ROADMAP
+and Roadmap_Blocked item. Full evidence in RESEARCH.md.
+
+### P1 — reliability / correctness
+
+- [ ] P1 — Proactive post-fire confirmation watchdog
+  Why: nothing confirms an alarm actually rang shortly after its scheduled time;
+  this is the exact failure class of the Pixel "missed alarm — unknown reason"
+  bug and OEM Doze kills, and ACX only recovers reactively on unlock/unplug.
+  Evidence: RESEARCH.md; androidpolice.com/pixel-alarm-bug-is-back; WorkManager
+  `setNextScheduleTimeOverride`/expedited jobs (developer.android.com/jetpack/androidx/releases/work).
+  Touches: `domain/AlarmScheduler.kt`, new `worker/FireConfirmationWorker.kt`,
+  `data/local/AlarmIncidentRepository.kt` + `alarm_events`, `AlarmClockApp.kt`.
+  Acceptance: an expedited check enqueued ~2 min after each scheduled fire reads
+  the incident/event log; if no fire record exists for that fire id and the alarm
+  is still due, it immediately re-fires and records a `WATCHDOG_REFIRE` incident.
+  Unit test simulates a suppressed fire and asserts one re-fire + incident.
+  Complexity: M (Likely — validate the re-fire path on a device).
+
+### P2 — reliability / platform / UX
+
+- [ ] P2 — SkipNextAlarmTileService coroutine-scope leak
+  Why: `service/SkipNextAlarmTileService.kt:34` creates a `SupervisorJob` scope
+  and launches DB reads (`:43`, `:69`) but never cancels it; TileService
+  instances churn as the QS shade opens, leaking the scope.
+  Evidence: RESEARCH.md (verified 2026-07-22); other services cancel correctly.
+  Touches: `service/SkipNextAlarmTileService.kt`.
+  Acceptance: `onStopListening()`/`onDestroy()` calls `scope.cancel()`; no
+  in-flight coroutine survives tile teardown.
+  Complexity: S.
+
+- [ ] P2 — Media3 alarm-audio stall detection
+  Why: the Media3 ring path has no stall/timeout detection, so a stalled ring
+  relies only on the delayed backup-sound escalation to recover.
+  Evidence: Media3 1.9 `StuckPlayerException` + stalled-ready timeouts
+  (developer.android.com/jetpack/androidx/releases/media3); ACX on Media3 1.10.1.
+  Touches: `service/AlarmService.kt` audio path, `service/AlarmAudioRouting.kt`.
+  Acceptance: a stalled/failed player is detected within a bounded window and
+  escalates immediately (built-in speaker + max volume, then legacy fallback)
+  rather than waiting for the backup-sound timer; incident reason code recorded.
+  Complexity: M.
+
+- [ ] P2 — DND / OEM bedtime-schedule conflict detection & warning
+  Why: `service/BedtimeZenRuleManager.kt` manages only its own
+  `INTERRUPTION_FILTER_ALARMS` rule and never warns when a conflicting user or
+  OEM bedtime/DND schedule could mute the alarm.
+  Evidence: RESEARCH.md; alarmy-android.zendesk.com/hc/en-us/articles/4592128972313--Xiaomi.
+  Touches: wake-readiness settings surface, `service/BedtimeZenRuleManager.kt`,
+  `NotificationManager` policy read.
+  Acceptance: when a next alarm is armed and the current interruption filter or a
+  detectable OEM bedtime schedule would suppress alarms, the Reliability/wake-
+  readiness surface shows a specific warning with a deep-link to fix it.
+  Complexity: M.
+
+- [ ] P2 — Snooze to a specific time (scheduled snooze)
+  Why: snooze is fixed-interval + progressive only; users want to re-fire at a
+  chosen clock time (e.g. "again at 07:15").
+  Evidence: yuriykulikov/AlarmClock; vicolo-dev/chrono.
+  Touches: `service/AlarmService.kt` snooze path, `ui/alarmfiring/AlarmFiringActivity.kt`.
+  Acceptance: the firing screen offers a "snooze until…" time picker that arms an
+  exact re-fire at the chosen time; round-trips through the existing snooze
+  scheduling and survives process death.
+  Complexity: M.
+
+- [ ] P2 — Extend Live Updates (ProgressStyle) to the snooze countdown
+  Why: ACX already uses Android 16 `Notification.ProgressStyle` for the bedtime
+  countdown only; the snooze interval is an ideal second start-to-end journey.
+  Evidence: developer.android.com/about/versions/16/features/progress-centric-notifications.
+  Touches: snooze notification path in `service/AlarmService.kt`, notification builders.
+  Acceptance: while snoozed, an ongoing progress notification shows time-until-
+  re-fire; clears on re-fire/dismiss; gated to API 36+ with graceful fallback.
+  Complexity: M.
+
+- [ ] P2 — OEM reliability doctor (per-manufacturer deep-links + post-OTA re-check)
+  Why: OEM Doze/autostart kills are the #1 real-world missed-alarm cause; ACX
+  surfaces wake-readiness but not per-OEM autostart/battery deep-links or a
+  re-prompt after an OTA silently resets permissions.
+  Evidence: dontkillmyapp.com; github.com/WrichikBasu/ShakeAlarmClock/discussions/61.
+  Touches: wake-readiness settings group, a small per-OEM intent map, an
+  OTA/build-fingerprint change detector.
+  Acceptance: on Xiaomi/Samsung/Oppo/Vivo/OnePlus/Realme the readiness card deep-
+  links to the correct autostart/battery screen; a detected OS build-fingerprint
+  change re-surfaces the reliability checklist. Tradeoff (maintenance burden of
+  per-OEM intents) accepted and documented inline.
+  Complexity: M.
+
+### P3 — polish / UX
+
+- [ ] P3 — Reduce ring volume while solving a dismiss challenge (opt-in)
+  Why: a lower ring during a math/typing/maze mission lets users concentrate;
+  Media3 1.10 `mute()`/`unmute()` is now stable, making it cheap.
+  Evidence: vicolo-dev/chrono; Media3 1.10 (developer.android.com/jetpack/androidx/releases/media3).
+  Touches: `ui/alarmfiring/AlarmFiringActivity.kt`, `service/AlarmService.kt`.
+  Acceptance: an opt-in per-alarm/global toggle drops ring volume while a
+  challenge is active and restores it on solve/fail; the backup-sound escalation
+  still fires so a user cannot fall back asleep in silence. Default off.
+  Complexity: S.
+
+- [ ] P3 — Random ringtone start position
+  Why: starting a ringtone at a random offset each fire keeps long-time users
+  from habituating to the same opening seconds.
+  Evidence: vicolo-dev/chrono.
+  Touches: `service/AlarmService.kt` startAudio, per-alarm setting.
+  Acceptance: an opt-in per-alarm flag seeks the ring player to a random valid
+  offset at fire time; ignored for streams/short tones; round-trips through backup.
+  Complexity: S.

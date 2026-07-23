@@ -1,103 +1,184 @@
 # Research — AlarmClockXtreme
-Date: 2026-07-14 — replaces all prior research.
+Date: 2026-07-22 — replaces all prior research.
 
 ## Executive Summary
 
-AlarmClockXtreme is a local-first Android alarm, bedtime, timer, and wake-readiness suite whose strongest shape is its native exact-alarm engine, Direct Boot fallback, unusually deep dismiss/scheduling options, encrypted backup, Play/F-Droid split, and no-account/no-telemetry stance. Recent commits repaired several process-death, cache, and playback failures, so the highest-value direction is to finish eliminating split ownership and exposed trust boundaries before adding more wake features. In priority order: make `TimerAlarmService` the sole expiry-alert owner; complete and permission-protect the Android `AlarmClock` intent contract; reuse production TOFU for the Hue connection test; add dependency verification and release locks; redact timer labels on public lock-screen surfaces; restore release-metadata drift checks as a local gate; split the 2,629-line alarm editor into summarized subscreens; honor reduced-motion/flashing preferences; add a privacy-bounded learned commute fallback; and provide safe external-clock migration plus explicit per-alarm timezone policy. **Confidence: Verified** from live source, history, official platform guidance, and current competitor releases.
+AlarmClockXtreme (v1.15.30, versionCode 132) is a local-first Android alarm /
+bedtime / timer / wake-readiness suite whose strongest shape is a native
+`setAlarmClock()` engine with Direct Boot fallback, 30+ dismiss challenges,
+mission chaining, encrypted backup, a Play/F-Droid split, and a strict
+no-account/no-telemetry stance. **Every finding from the 2026-07-14 research pass
+is now fixed** (Hue TOFU test path, the four-action `AlarmClock` intent contract
+behind a permission-protected activity, single-owner timer alerts, redacted
+public timer labels, `gradle/verification-metadata.xml` with 857 pinned
+components, a real reduced-motion policy, and a per-alarm timezone policy) —
+verified against live code on 2026-07-22. The remaining high-value direction is
+**reliability-first differentiation**: the incumbents (including Google's own
+Pixel Clock) are visibly failing to fire alarms, and community signal in 2026 is
+dominated by "the alarm didn't go off." The top opportunities, in order:
+(1) a proactive post-fire confirmation watchdog that catches silent misses;
+(2) Media3 stall detection so a stalled ring escalates instead of going silent;
+(3) DND / OEM-bedtime-schedule conflict detection; (4) fix the one new leak in
+`SkipNextAlarmTileService`; (5) snooze-to-a-specific-time; (6) extend Android 16
+Live Updates to the snooze countdown; (7) an OEM "reliability doctor" of
+per-manufacturer autostart/battery deep-links with post-OTA re-checks.
+**Confidence: Verified** unless a specific item is marked otherwise.
 
 ## Product Map
 
-- **Core workflows:** create, schedule, skip, snooze, dismiss, and recover alarms; run timers/stopwatch/world clocks; plan bedtime and inspect local sleep/wake statistics; auto-create alarms from calendar, commute, holidays, shifts, weather, and solar time; back up, restore, share, and diagnose locally.
-- **User personas:** heavy sleepers and challenge users; shift/on-call workers; privacy-focused F-Droid users; travelers; accessibility users; and power users integrating Wear OS, Hue, webhooks, calendars, Health Connect, or custom audio.
-- **Platforms and distribution:** Android 8+ phone/tablet/foldable (`minSdk 26`, `targetSdk 36`) in Play and F-Droid flavors, plus a companion Wear OS tile/complication app; releases and security gates are intentionally local-only.
-- **Key integrations:** Android `AlarmManager`, Direct Boot storage, notifications/full-screen intents, Room DB v22, DataStore, Media3, Google Routes, Open-Meteo, Health Connect, Hue, Wear Data Layer, yt-dlp/NewPipe, SAF backup, webhooks, widgets, and Quick Settings.
-- **Data flow:** Room owns alarm/history records; DataStore owns preferences; device-protected storage carries the minimal locked-boot alarm snapshot; external data is cached locally; backup/share codecs sanitize before user-confirmed import.
+- **Core workflows:** create/schedule/skip/snooze/dismiss/recover alarms; run
+  timers/stopwatch/world clocks; plan bedtime and view local sleep/wake stats;
+  auto-create alarms from calendar/commute/holiday/shift/weather/solar inputs;
+  back up, restore, share, and locally diagnose.
+- **Personas:** heavy sleepers & challenge users; shift/on-call workers;
+  privacy-focused F-Droid users; travelers; accessibility users; power users
+  wiring Wear OS/Hue/webhooks/calendars/Health Connect/custom audio.
+- **Platforms & distribution:** Android 8+ phone/tablet/foldable (`minSdk 26`,
+  `targetSdk 36`) in Play and F-Droid flavors + a companion Wear OS
+  tile/complication; releases and security gates are intentionally local-only.
+- **Key integrations & data flow:** `AlarmManager`, Direct Boot storage, FSI/
+  notifications, Room DB v23, DataStore, Media3 1.10.1, Google Routes,
+  Open-Meteo, Health Connect (Play), Hue (TOFU-pinned), Wear Data Layer,
+  yt-dlp/NewPipe (Play), SAF backup, webhooks (HMAC-signed), widgets, Quick
+  Settings. Room owns records; DataStore owns prefs; device-protected storage
+  carries the minimal locked-boot snapshot; external data is cached locally;
+  backup/share codecs sanitize before user-confirmed import.
 
 ## Competitive Landscape
 
-- **ClockYou:** does rapid, practical clock UX well, including 2026-07-13 timezone adjustment, Fossify JSON import, and timer-notification actions. Learn explicit migration previews and timezone semantics; avoid direct external writes without ACX's disabled-by-default review boundary.
-- **Blacky Clock:** does per-timer behavior, audio-state recovery, small-screen/RTL fixes, and frequent OEM regression releases well. Learn its narrow recovery fixes; avoid backup-format changes that invalidate older exports.
-- **Fossify Clock:** does a small, private, permission-light baseline well. Preserve ACX's local-first positioning and offer a safe import path; avoid reducing ACX to parity-only clock features.
-- **Chrono:** does tags, filtering, date ranges, timers, and responsive Compose presentation well. Learn its compact information hierarchy; avoid its explicit work-in-progress posture for alarm-critical use.
-- **Alarmy:** does missions, wake checks, and readiness messaging well, but commercializes restriction and last-minute controls. Keep ACX's already-shipped cancellation lock and safe escape paths; avoid coercive AccessibilityService/device-admin/anti-uninstall patterns.
-- **Sleep as Android:** does sleep analysis, wearable/smart-home integration, and staged feature presentation well. Learn progressive disclosure; avoid accounts, subscriptions, and cloud analytics that contradict ACX's privacy model.
-- **EarlyBird:** does offline resilience well through local Trip Duration Memory. Learn a bounded historical commute estimate with explicit stale/fallback labels; never present cached history as live traffic.
+- **BlackyHawky/Clock (v2.30):** strong at per-timer behavior, OEM-regression
+  fixes, label-synced alarms, ring-only-when-headset. Learn its narrow recovery
+  fixes; avoid backup-format changes that break older exports.
+- **you-apps/ClockYou:** clean, fast clock UX with multi-select, numpad entry,
+  timezone auto-adjust, Fossify import. Learn nothing net-new here — ACX already
+  ships multi-select (`ui/alarmlist/AlarmListScreen.kt`), numpad, timezone policy,
+  and Fossify import.
+- **vicolo-dev/chrono:** date-range/every-N-day recurrence, ringtone shuffle /
+  random start offset, reduce-volume-during-task, max-snooze. Learn the
+  volume-during-challenge and random-start ideas; avoid its explicit WIP posture
+  for wake-critical use.
+- **yuriykulikov/AlarmClock:** signature gentle pre-alarm (already tracked as
+  L-A10) and snooze-to-specific-time. Learn scheduled snooze.
+- **Alarmy / Sleep as Android / Turbo Alarm (commercial):** paywall physical-
+  activity missions, smart-light sunrise/dismiss, meditation, Wear complication
+  control, sleep-stage smart-wake. Keep ACX's shipped equivalents free; avoid
+  their subscription model and the accessibility complaints their gated missions
+  attract.
+- **Google Clock / Pixel:** watch-sync + screen-brightening Sunrise Alarm are now
+  platform table-stakes — but Pixel's unresolved "missed alarm — unknown reason"
+  bug is the single biggest acquisition opportunity for a reliability-first app.
 
 ## Security, Privacy, and Reliability
 
-- **Verified — Hue credential exposure:** `ui/settings/SettingsViewModel.kt:417-470` creates a trust-all `X509TrustManager`, accepts every hostname, sends `hue-application-key`, and automatically falls back to HTTP. Production `worker/HueSunriseWorker.kt:61-124,239-263` already has TOFU pinning and an explicit `hueLegacyHttpEnabled` gate; the test path must share that client and pin state.
-- **Verified — exported intent contract is incomplete:** `app/src/main/AndroidManifest.xml:139-154` advertises four `AlarmClock` actions, while `MainActivity.kt:178-213` implements only `SET_ALARM`; dismiss/snooze are no-ops, `SET_TIMER` is absent, and `onNewIntent()` at `:116-120` does not call the handler. Android documents a permission-protected activity for receivers of alarm/timer set actions; the launcher activity cannot safely carry that component permission.
-- **Verified — split timer alert ownership:** `ui/timer/TimerExpiryReceiver.kt:20-27` trusts a process-wide UI-alive flag; `TimerViewModel.kt:313-347` and `TimerAlarmService.kt:44-145` each own separate players/vibration. A delayed or cleared UI owner can still produce a silent/cut-off alert, and Android 17 further restricts background audio outside a visible activity or qualifying foreground service.
-- **Verified — timer labels are public:** `TimerNotifications.kt:18-33` and `TimerAlarmService.kt:92-125` use `VISIBILITY_PUBLIC` and expose labels on secure lock screens/screen sharing. Alarm label redaction exists elsewhere but is not applied to timers; use private content plus a generic public version.
-- **Verified — supply-chain integrity gap:** versions and transitive constraints are pinned, and `scripts/osv_gradle_audit.py` checks known advisories, but no `gradle/verification-metadata.xml` or dependency lock state exists. The Play flavor's JitPack/downloader/native graph makes reviewed checksums and release-classpath locks complementary to OSV scanning.
-- **Verified — recovery boundary:** append/replace restore is well reviewed, but atomic replacement remains in `Roadmap_Blocked.md`; do not duplicate or weaken that blocker. External imports should reuse preview, size-limit, disabled-by-default, sanitization, and transactional-write patterns.
+- **Verified — new coroutine-scope leak:** `service/SkipNextAlarmTileService.kt:34`
+  creates `CoroutineScope(Dispatchers.IO + SupervisorJob())` and launches DB
+  reads at `:43` and `:69` but never cancels it — no `onStopListening()` /
+  `onDestroy()` override. TileService instances churn as the QS shade opens; the
+  scope leaks. Low severity, real. All other services cancel correctly.
+- **Verified — no proactive fire verification:** the engine survives process
+  death (`setAlarmClock()` + Direct Boot), and missed alarms replay reactively on
+  `USER_PRESENT`/`POWER_DISCONNECTED`, but nothing confirms shortly *after* a
+  scheduled fire time that the alarm actually rang. This is exactly the failure
+  class of the Pixel "unknown reason" bug and OEM Doze kills.
+- **Verified — alarm audio can stall silently:** the Media3 ring path has no
+  stall/timeout detection. Media3 1.9 exposes `StuckPlayerException` and stalled-
+  ready timeouts; a stalled ring currently relies only on the delayed
+  backup-sound escalation to recover.
+- **Verified-safe — protobuf CVE-2026-0994 (GHSA-7gcm-g887-7qv7, CVSS 8.2):** the
+  transitive protobuf (via Glance/Wear/DataStore) resolves through
+  `protobuf-bom-4.35.0` in `gradle/verification-metadata.xml`, past the fix line.
+  No action; keep the OSV gate watching it.
+- **Verified — Android 17 background-audio exemption holds:** every ring path
+  uses `AudioAttributes.USAGE_ALARM` and the app holds exact-alarm permission, so
+  the API 37 while-in-use FGS requirement is waived (already documented in
+  CLAUDE.md). Re-verify on an API 37 device at targetSdk bump (tracked, blocked).
+- **Verified — DND/Zen self-management only:** `service/BedtimeZenRuleManager.kt`
+  sets its own `INTERRUPTION_FILTER_ALARMS` rule but does not detect a
+  *conflicting* user or OEM bedtime/DND schedule that could mute the alarm.
 
 ## Architecture Assessment
 
-- `ui/alarmedit/AlarmEditScreen.kt` is 2,629 lines with 22 major `SettingsSection` groups. Android's settings guidance favors grouped subscreens for this scale; preserve one `AlarmEditViewModel` draft and make the existing unsaved-change guard a prerequisite, rather than merely virtualizing the same giant form.
-- `ui/timer/TimerViewModel.kt`, `TimerExpiryReceiver.kt`, `TimerAlarmService.kt`, and `TimerNotifications.kt` need one persisted expiry state machine and one audible-alert owner. UI countdowns should observe state, not decide whether the alarm-critical service runs.
-- `data/model/Alarm.kt` has no timezone policy and scheduling/display paths use `ZoneId.systemDefault()`. A fixed-zone option must migrate as `LOCAL` by default and flow through calculator, scheduler, Direct Boot, backup/share, Wear, widgets, and DST tests.
-- `worker/CalendarAutoAlarmWorker.kt:181-210` uses live Google Routes or a manual/weather baseline. A capped, app-private route-duration history can add offline resilience without storing raw itinerary text or claiming live traffic.
-- `ui/alarmfiring/AlarmFiringScreen.kt`, `ui/alarmfiring/challenges/ChallengeViews.kt`, `ui/components/WeatherSkyBackground.kt`, `ui/timer/TimerScreen.kt`, and `ui/nightclock/NightClockActivity.kt` contain nonessential infinite motion; no reduced-motion policy was found. Essential progress needs a static equivalent, and optional strobe needs explicit warning/control.
-- Tests are concentrated in JVM suites; no tests cover `AlarmClock` intent routing, Hue changed-certificate rejection, timer single-owner behavior, or public timer notification content. The existing full-suite-health roadmap item remains the prerequisite; a local run on 2026-07-14 did not establish suite health because Gradle's ASM transform directory was locked.
-- Release/version facts are duplicated across app/Wear Gradle files, README/metadata, verifier constants, DB, and backup declarations. The previous CI guard was removed with all workflows; `build.gradle.kts:1` already says `v1.15.26` while runtime metadata is `1.15.28`, so the equivalent check belongs in the local release gate.
-- Coverage disposition: new work below covers security, accessibility, offline resilience, migration, testing, distribution, and upgrade integrity. Existing roadmap tracks cover i18n/l10n, local observability, docs, Wear/mobile validation, and webhook-based integrations; a plugin SDK remains unjustified. Multi-user cloud state remains out of scope, while local partner profiles/LAN sync already sit in Later.
+- **God files (tracked, in progress):** `ui/settings/SettingsScreen.kt` (4129),
+  `ui/alarmedit/AlarmEditScreen.kt` (3487), `ui/alarmfiring/challenges/ChallengeViews.kt`
+  (2736), `service/AlarmService.kt` (2164), `ui/alarmlist/AlarmListScreen.kt`
+  (1767). `BedtimeScreen.kt` is being drained section-by-section (now ~1652).
+  Continue the seam-extraction pattern; the ROADMAP "Audit backlog" item covers it.
+- **Reliability layering:** a proactive fire-confirmation watchdog and Media3
+  stall detection are additive to — not duplicative of — the existing reactive
+  replay and backup-sound escalation. Frame them as post-fire verification and
+  in-ring stall recovery respectively.
+- **Testing gaps:** no tests cover the TileService lifecycle, a simulated silent
+  miss + watchdog re-fire, or DND-conflict detection. New items below carry their
+  own acceptance tests; the JVM-suite discipline (Robolectric + drift guards)
+  already exists.
+- **Coverage disposition:** items below cover security, reliability, offline
+  resilience, accessibility, platform, and UX. i18n/l10n (L-U5), local
+  observability, docs, Wear/mobile validation, and webhook integrations are
+  tracked elsewhere; a plugin SDK stays unjustified; multi-user cloud stays out
+  of scope (local partner profiles/LAN sync remain in Later).
 
 ## Rejected Ideas
 
-- **Force-stop/anti-uninstall prevention** — Android challenge-app discussions and Alarmy complaints show demand, but AccessibilityService, overlay, or device-admin coercion is unsafe, policy-sensitive, and contrary to user control.
-- **Cloud accounts, social alarm feeds, or cloud AI coaching** — commercial competitors monetize these, but they contradict the repository's no-account/no-telemetry philosophy and add breach/operations burden.
-- **Replace the native alarm engine with Flutter or a generic alarm library** — Ultimate Alarm Clock moved wake-critical scheduling toward native Kotlin; ACX's existing engine, Direct Boot path, and migration history are already deeper than reusable libraries.
-- **More puzzles, badges, fonts, or weather cosmetics** — competitor scans found no value exceeding the current 30 challenges while reliability, i18n, editor hierarchy, and accessibility remain unfinished.
-- **Mandatory live route service or bundled traffic provider** — cost, API-key, privacy, and offline failure modes are worse than a clearly labeled local historical fallback.
-- **Per-timer ringtone/vibration/flash/auto-delete matrix now** — Blacky Clock validates the feature, but it should wait until one service owns timer expiry; adding variants first multiplies the split-brain state space.
-- **Reproducible-build roadmap item** — already implemented by `scripts/verify-reproducible-build.sh`; dependency verification/locking is the remaining distinct integrity gap.
-- **Post-dismiss briefing or last-minute cancellation lock** — both are already shipped (`MorningBriefingActivity` and `cancellationLockMinutes`); re-adding them would duplicate working behavior.
+- **Multi-select bulk alarm ops** — already shipped (`ui/alarmlist/AlarmListScreen.kt`
+  `isSelectionMode`/`selectMany`/bulk delete). Source: you-apps/ClockYou.
+- **Media-button / Bluetooth dismiss-snooze** — already shipped via per-alarm
+  `hardwareButtonAction` handling `KEYCODE_HEADSETHOOK`/volume/camera in
+  `AlarmFiringActivity.onKeyDown` (`:629-660`). Source: BlackyHawky #642.
+- **Headphone-unplug re-routing (AudioBecomingNoisy)** — already handled proactively:
+  `service/AlarmAudioRouting.shouldForceBuiltInSpeaker` forces the built-in
+  speaker so a headset can't swallow the alarm. Source: Media3 1.9.
+- **Ring-only-when-headphones-connected** — directly contradicts the above
+  reliability guarantee (ACX intentionally forces the speaker so alarms can't be
+  silently swallowed); niche silent-partner use case not worth reversing it.
+  Source: BlackyHawky #631.
+- **Power-off guard / accessibility anti-uninstall lock** — coercive, Play-policy
+  sensitive, contrary to user control; already Rejected. Source: qralarm-android.
+- **protobuf CVE-2026-0994 remediation item** — transitive protobuf already
+  resolves to 4.35.0, past the fix line. Source: GHSA-7gcm-g887-7qv7.
+- **Replace AlarmManager with a WorkManager periodic scheduler** — `setAlarmClock()`
+  is the correct wake-critical primitive; a WorkManager *watchdog* (see roadmap)
+  is the right shape, not a replacement. Source: WorkManager release notes.
+- **Material3 1.5 Expressive TimePicker adoption now** — UX-only, needs a Compose
+  BOM bump entangled with the blocked AGP 8→9 chain; low value vs. the existing
+  dial + numpad. Revisit post-AGP9. Source: compose-material3 release notes.
 
 ## Sources
 
-### Platform, standards, and security
-
-- https://developer.android.com/reference/android/provider/AlarmClock
+### Platform, standards, security
+- https://developer.android.com/about/versions/16/features/progress-centric-notifications
 - https://developer.android.com/about/versions/17/changes/bg-audio
-- https://developer.android.com/media/media3/session/background-playback
-- https://developer.android.com/privacy-and-security/risks/unsafe-hostname
-- https://developer.android.com/reference/android/app/Notification#VISIBILITY_PUBLIC
-- https://developer.android.com/design/ui/mobile/guides/patterns/settings
-- https://support.google.com/accessibility/android/answer/16635954
-- https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions
-- https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold
-- https://docs.gradle.org/current/userguide/dependency_verification.html
-- https://docs.gradle.org/current/userguide/dependency_locking.html
-- https://osv.dev/
+- https://developer.android.com/about/versions/17/behavior-changes-17
+- https://developer.android.com/develop/ui/compose/system/predictive-back-progress
+- https://developer.android.com/health-and-fitness/health-connect/experiences/sleep
+- https://support.google.com/googleplay/android-developer/answer/16926792
+- https://developer.android.com/guide/practices/page-sizes
+- https://github.com/advisories/GHSA-7gcm-g887-7qv7
 
-### Dependencies and ecosystem
-
-- https://developer.android.com/jetpack/androidx/releases/room
-- https://developer.android.com/jetpack/androidx/releases/work
+### Dependencies / ecosystem
 - https://developer.android.com/jetpack/androidx/releases/media3
-- https://github.com/google/dagger/releases
-- https://github.com/TeamNewPipe/NewPipeExtractor/releases
-- https://github.com/yausername/youtubedl-android/releases
+- https://developer.android.com/jetpack/androidx/releases/work
+- https://developer.android.com/jetpack/androidx/releases/glance
+- https://developer.android.com/jetpack/androidx/releases/compose-material3
 
-### Competitors, commercial products, and discovery lists
-
-- https://github.com/you-apps/ClockYou/releases
-- https://github.com/you-apps/ClockYou/commit/8f03e8bba921bc55014492a0e4a68fbcccf6c21f
+### Competitors, commercial, community
 - https://github.com/BlackyHawky/Clock/releases
-- https://github.com/FossifyOrg/Clock
+- https://github.com/BlackyHawky/Clock/issues/631
+- https://github.com/BlackyHawky/Clock/issues/642
+- https://github.com/you-apps/ClockYou/releases
 - https://github.com/vicolo-dev/chrono
-- https://alarmy-android.zendesk.com/hc/en-us/articles/900001614846-Let-me-introduce-to-you-Alarmy-Premium-features
+- https://github.com/yuriykulikov/AlarmClock
+- https://github.com/sweakpl/qralarm-android
+- https://play.google.com/store/apps/details?id=com.turbo.alarm
 - https://sleep.urbandroid.org/docs/general/release_notes.html
-- https://www.earlybirdalarm.net/
-- https://github.com/offa/android-foss
-
-### Community and research
-
-- https://www.reddit.com/r/androidapps/comments/1lx50rp/i_need_a_better_alarm_app_because_alarmy_has_now/
-- https://www.reddit.com/r/androidapps/comments/jn7i82/searching_for_a_alarm_clock_with_extended/
-- https://pubmed.ncbi.nlm.nih.gov/40389592/
+- https://www.androidpolice.com/pixel-alarm-bug-is-back/
+- https://support.google.com/pixelphone/thread/318525822/missed-alarm-alarm-did-not-fire-due-to-an-unknown-reason
+- https://github.com/WrichikBasu/ShakeAlarmClock/discussions/61
+- https://dontkillmyapp.com/
+- https://alarmy-android.zendesk.com/hc/en-us/articles/4592128972313--Xiaomi
 
 ## Open Questions
 
-None. The roadmap items can be implemented and validated from the inspected code and cited public contracts; device/API-37/credential-dependent work remains in `Roadmap_Blocked.md`.
+None that block prioritization. The watchdog and stall-detection items need
+device/emulator validation (marked Likely) and should land their instrumented
+checks in the already-blocked device-test tracks; all other items are
+implementable from inspected code and cited public contracts.
