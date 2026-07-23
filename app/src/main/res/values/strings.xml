@@ -9,57 +9,35 @@
     <string name="bedtime_notification_channel">Bedtime Reminder</string>
     <string name="bedtime_dnd_rule_name">AlarmClockXtreme Bedtime DND</string>
     <string name="bedtime_dnd_rule_type">Bedtime DND</string>
-    <string name="persistent_notification_channel">Next Alarm</string>
 
     <!-- Widget -->
     <string name="widget_description">Shows the next scheduled alarm time and countdown</string>
-    <string name="widget_no_alarm">No alarm set</string>
     <string name="widget_loading">Loading…</string>
     <string name="direct_boot_alarm_title">Alarm</string>
     <string name="direct_boot_alarm_message">Device is still locked after reboot. Stop this fallback alarm, then unlock to restore full alarm controls.</string>
     <string name="direct_boot_alarm_stop">Stop alarm</string>
 
     <!-- Navigation -->
-    <string name="nav_my_day">My Day</string>
-    <string name="nav_alarms">Alarms</string>
-    <string name="nav_timer">Timer</string>
     <string name="timer_restart">Restart</string>
     <string name="nav_stopwatch">Stopwatch</string>
     <string name="nav_bedtime">Bedtime</string>
-    <string name="nav_settings">Settings</string>
 
     <!-- Alarm list -->
-    <string name="no_alarms_title">No alarms yet</string>
-    <string name="no_alarms_subtitle">Tap + to add your first alarm</string>
-    <string name="alarm_enabled">Alarm enabled</string>
-    <string name="alarm_disabled">Alarm disabled</string>
-    <string name="add_alarm">Add alarm</string>
-    <string name="quick_alarm">Quick alarm</string>
 
     <!-- Alarm edit -->
     <string name="edit_alarm">Edit alarm</string>
     <string name="new_alarm">New alarm</string>
     <string name="save">Save</string>
     <string name="label">Label</string>
-    <string name="ringtone">Ringtone</string>
     <string name="vibration">Vibration</string>
     <string name="volume">Volume</string>
     <string name="snooze_duration">Snooze duration</string>
     <string name="dismiss_challenge">Dismiss challenge</string>
-    <string name="repeat">Repeat</string>
 
     <!-- Challenges -->
-    <string name="challenge_math">Math Problem</string>
-    <string name="challenge_shake">Shake Phone</string>
-    <string name="challenge_memory">Memory Sequence</string>
-    <string name="challenge_none">None</string>
-    <string name="solve_to_dismiss">Solve to Dismiss</string>
 
     <!-- Alarm firing -->
-    <string name="dismiss">Dismiss</string>
-    <string name="snooze">Snooze</string>
     <string name="dismiss_alarm">Dismiss alarm</string>
-    <string name="missed_alarm">Missed alarm</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -69,27 +47,14 @@
     <string name="temperature_unit">Temperature unit</string>
     <string name="show_weather">Show weather</string>
     <string name="show_calendar">Show calendar</string>
-    <string name="backup">Backup</string>
-    <string name="restore">Restore</string>
     <string name="about">About</string>
 
     <!-- Bedtime -->
-    <string name="bedtime_reminder">Bedtime reminder</string>
-    <string name="bedtime_wind_down">Time to wind down</string>
-    <string name="bedtime_approaching">Your bedtime is approaching. Start getting ready for sleep.</string>
-    <string name="sleep_goal">Sleep goal</string>
-    <string name="no_alarm_set">No alarm set</string>
 
     <!-- Dashboard -->
-    <string name="weather_unavailable">Weather unavailable</string>
-    <string name="grant_location">Grant location access for weather</string>
 
     <!-- General -->
     <string name="cancel">Cancel</string>
-    <string name="ok">OK</string>
-    <string name="delete">Delete</string>
-    <string name="undo">Undo</string>
-    <string name="alarm_deleted">Alarm deleted</string>
 
     <!-- v1.4.0: Quick Settings tile -->
     <string name="qs_tile_skip_next_alarm">Skip next alarm</string>
@@ -112,8 +77,6 @@
     <string name="notif_missed_title">Missed alarm</string>
     <string name="notif_smart_alarm_title">Smart alarm active</string>
     <string name="notif_smart_alarm_text">Monitoring sleep quality…</string>
-    <string name="notif_sonar_title">Sleep tracking active</string>
-    <string name="notif_sonar_text">Sonar monitoring in progress</string>
     <string name="notif_timer_finished_title">Timer finished</string>
     <string name="notif_timer_generic">Timer</string>
     <string name="notif_timer_running_text">Countdown in progress</string>
@@ -144,7 +107,6 @@
     <string name="wake_confirm_final_label">Final check — no more re-fires</string>
 
     <!-- Alarm firing screen -->
-    <string name="firing_ready_to_dismiss">Alarm ready to dismiss</string>
     <string name="firing_controls_title">Alarm controls</string>
     <string name="firing_snooze_hint">Long-press Snooze for exact minutes. Your saved default stays unchanged.</string>
     <string name="firing_exact_snooze">Exact snooze</string>
@@ -460,9 +422,6 @@
     <string name="alarm_edit_vacation_skip_date">%1$s %2$s (vacation skip)</string>
     <string name="alarm_edit_fire_date">%1$s %2$s</string>
     <string name="alarm_edit_will_not_ring">This alarm will not ring with the current settings.</string>
-    <string name="alarm_edit_dismiss_and_wake">Dismiss and wake</string>
-    <string name="alarm_edit_location_lock_short">Location lock</string>
-    <string name="alarm_edit_wake_confirm_short">Wake confirm</string>
     <string name="alarm_edit_settings_title">Alarm settings</string>
     <string name="alarm_edit_settings_description">Open a category to adjust it. Your current choices stay visible here.</string>
     <string name="alarm_edit_feature_flash">Flash</string>
@@ -623,11 +582,6 @@
     <string name="alarm_edit_light_sleep">Wake during light sleep</string>
     <string name="alarm_edit_detection_window">Detection window</string>
     <string name="alarm_edit_smart_alarm_hint">Uses conservative phone-motion scoring and waits for enough evidence before firing early.</string>
-    <string name="alarm_edit_extras_integrations">Extras and integrations</string>
-    <string name="alarm_edit_holiday_skip_short">Holiday skip</string>
-    <string name="alarm_edit_hue_short">Hue</string>
-    <string name="alarm_edit_guardian_short">Guardian</string>
-    <string name="alarm_edit_progressive_snooze_short">Progressive snooze</string>
     <string name="alarm_edit_skip_holidays">Skip on public holidays</string>
     <string name="alarm_edit_holidays_hint">Requires holiday auto-skip and country code configured in Settings → Integrations.</string>
     <string name="alarm_edit_spotify_uri">Spotify URI (for example, spotify:track:…)</string>
@@ -1203,21 +1157,6 @@
     <string name="alarm_edit_delete_digit">Delete digit</string>
 
     <!-- Onboarding -->
-    <string name="onboarding_app_title">Alarm Clock Xtreme</string>
-    <string name="onboarding_tagline">Dependable mornings with less friction</string>
-    <string name="onboarding_welcome">Welcome</string>
-    <string name="onboarding_page_reliable">Reliable wake-ups</string>
-    <string name="onboarding_page_wake">Wake up for real</string>
-    <string name="onboarding_page_informed">Start the day informed</string>
-    <string name="onboarding_page_privacy">Private by default</string>
-    <string name="onboarding_recommended">Recommended setup</string>
-    <string name="onboarding_optional">Optional</string>
-    <string name="onboarding_exact_alarm">Exact alarm access</string>
-    <string name="onboarding_notifications">Alarm notifications</string>
-    <string name="onboarding_fullscreen">Full-screen alarm access</string>
-    <string name="onboarding_battery">Battery protection</string>
-    <string name="onboarding_test_alarm">Test alarm</string>
-    <string name="onboarding_step_of">Step %1$d of %2$d</string>
 
     <!-- Bedtime jet-lag planner -->
     <string name="bedtime_jetlag_title">Jet lag planner</string>

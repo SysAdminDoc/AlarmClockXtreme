@@ -4,6 +4,14 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+### Removed
+
+- Deleted 61 orphaned string resources (pre-split alarm-edit summaries,
+  onboarding copy, unused challenge/nav/notification labels) left unreferenced
+  after the localization sweep. Verified zero `R.string`/`@string` references
+  across the app and wear modules and no dynamic `getIdentifier` lookups before
+  removal; both flavors and the wear module still build clean.
+
 ### Tests
 
 - Added `WebhookRetryWorkerTest` covering the `WebhookRetryWorker.doWork()`

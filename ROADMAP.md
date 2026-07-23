@@ -53,10 +53,6 @@ surgical change.
   pane / dialog. The section enums already give clean seams; extract per-page
   files (`AlarmEditSoundPage.kt`, `SettingsReadinessPane.kt`,
   `JetLagPlannerSection.kt`, …). Effort: M.
-- [ ] **P3/debt — ~63 orphaned string resources** (pre-split editor summaries,
-  onboarding_*, some challenge_* / *_notification_channel). Zero references
-  after the localization sweep; safe to delete once double-checked against
-  dynamic `getIdentifier` usage (none found). Effort: S.
 
 ---
 
