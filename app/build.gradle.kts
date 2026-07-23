@@ -305,6 +305,9 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.17")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
     testImplementation("org.robolectric:robolectric:4.14.1")
+    // WorkManager test harness: drives WebhookRetryWorker.doWork() in the JVM so
+    // the outcome->Result / retry-cap mapping is unit-tested without a device.
+    testImplementation("androidx.work:work-testing:2.9.1")
     // Drift guard: BackupManagerSettingsDriftTest reflects over AppSettings /
     // SettingsBackup constructor parameters so a new settings field can't ship
     // without a backup round-trip again.

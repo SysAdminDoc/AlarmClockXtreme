@@ -45,6 +45,56 @@ class JetLagPlannerTest {
     }
 
     @Test
+    fun autoChoosesDelayWhenTargetIsClosestByDelay() {
+        // 07:00 -> 09:00: delay is +120, advance is -1320, so AUTO resolves DELAY.
+        val plan = JetLagPlanner.plan(
+            currentWakeMinutes = 7 * 60,
+            targetWakeMinutes = 9 * 60,
+            sleepGoalMinutes = 8 * 60,
+            adjustmentDays = 4,
+            direction = JetLagDirection.AUTO
+        )
+
+        assertEquals(JetLagDirection.DELAY, plan.resolvedDirection)
+        assertEquals(120, plan.totalShiftMinutes)
+        assertEquals(30, plan.dailyShiftMinutes)
+        assertEquals(9 * 60, plan.days.last().wakeMinutes)
+    }
+
+    @Test
+    fun autoBreaksTwelveHourTieTowardDelay() {
+        // Exactly 12h apart: delay == advance == 720. `delay <= advance` picks DELAY.
+        val plan = JetLagPlanner.plan(
+            currentWakeMinutes = 0,
+            targetWakeMinutes = 12 * 60,
+            sleepGoalMinutes = 8 * 60,
+            adjustmentDays = 6,
+            direction = JetLagDirection.AUTO
+        )
+
+        assertEquals(JetLagDirection.DELAY, plan.resolvedDirection)
+        assertEquals(720, plan.totalShiftMinutes)
+        assertEquals(12 * 60, plan.days.last().wakeMinutes)
+    }
+
+    @Test
+    fun requestedDirectionOverridesShorterAutoArc() {
+        // Shorter arc for 07:00 -> 09:00 is DELAY (+120), but the user forces
+        // ADVANCE, so the planner takes the long -1320 route instead.
+        val plan = JetLagPlanner.plan(
+            currentWakeMinutes = 7 * 60,
+            targetWakeMinutes = 9 * 60,
+            sleepGoalMinutes = 8 * 60,
+            adjustmentDays = 3,
+            direction = JetLagDirection.ADVANCE
+        )
+
+        assertEquals(JetLagDirection.ADVANCE, plan.resolvedDirection)
+        assertEquals(-1_320, plan.totalShiftMinutes)
+        assertEquals(9 * 60, plan.days.last().wakeMinutes)
+    }
+
+    @Test
     fun clampsInputsToUsableBounds() {
         val plan = JetLagPlanner.plan(
             currentWakeMinutes = -30,

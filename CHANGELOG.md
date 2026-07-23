@@ -4,6 +4,16 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+### Tests
+
+- Added `WebhookRetryWorkerTest` covering the `WebhookRetryWorker.doWork()`
+  outcome-to-Result mapping (delivered/skipped succeed, failed retries under the
+  cap and gives up at it) plus the input-validation fast-fail paths, driven in
+  the JVM via `androidx.work:work-testing`.
+- Extended `JetLagPlannerTest` with the previously-uncovered AUTO-resolves-to-
+  DELAY case, the exact 12-hour advance/delay tie-break, and a user-forced
+  direction that opposes the shorter automatic arc.
+
 ## [1.15.29] - 2026-07-17
 
 Deep audit pass over the never-audited work since v1.15.27 (timer restart,

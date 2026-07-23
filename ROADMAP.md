@@ -48,21 +48,6 @@ Verified findings deliberately NOT fixed in the v1.15.29 pass — each needs
 design judgment, a large refactor, or on-device confirmation rather than a
 surgical change.
 
-- [ ] **P3 — AlarmService uses `START_NOT_STICKY`; process death mid-ring
-  permanently silences the alarm.** `START_REDELIVER_INTENT` would resume
-  ringing after an LMK/OEM kill. AOSP DeskClock shares the current choice, so
-  this is parity-level, but for this app's worst-failure axis redelivery is the
-  stronger option. Needs device testing of the restart-intent path (audio
-  re-acquire, notification, snooze/dismiss state) before flipping.
-  Where: `service/AlarmService.kt` onStartCommand return.
-- [ ] **P3 — Direct-Boot fallback cache can be displaced by a later trigger of
-  the same alarm id.** `DirectBootAlarmCache.saveIfEarlier` overwrites
-  unconditionally on same-id; editing alarm A to a later time while alarm B is
-  the true next can drop B from the pre-unlock fallback until the next full
-  reschedule. CLAUDE.md documents the same-id overwrite as intentional for the
-  common case — reconcile the two: after a same-id overwrite that moves later,
-  rebuild the cache from all enabled alarms. Needs a Direct-Boot device test.
-  Where: `directboot/DirectBootAlarmCache.kt`.
 - [ ] **P2/debt — God files.** `SettingsScreen.kt` (~4.1k lines),
   `AlarmEditScreen.kt` (~3.5k), `BedtimeScreen.kt` (~2.3k) hold every page /
   pane / dialog. The section enums already give clean seams; extract per-page
@@ -72,10 +57,6 @@ surgical change.
   onboarding_*, some challenge_* / *_notification_channel). Zero references
   after the localization sweep; safe to delete once double-checked against
   dynamic `getIdentifier` usage (none found). Effort: S.
-- [ ] **P3/tests — Coverage gaps:** `WebhookRetryWorker` outcome→Result / cap
-  mapping has no unit test; `JetLagPlannerTest` AUTO-resolves-to-DELAY, the 12h
-  tie-break, and a requested direction opposing the shorter arc are untested.
-  Effort: S.
 
 ---
 
