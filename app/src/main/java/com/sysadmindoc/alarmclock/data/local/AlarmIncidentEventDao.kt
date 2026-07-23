@@ -17,6 +17,18 @@ interface AlarmIncidentEventDao {
     @Query("SELECT * FROM alarm_incident_events ORDER BY eventAt DESC, id DESC LIMIT :limit")
     suspend fun getRecent(limit: Int = 25): List<AlarmIncidentEvent>
 
+    /**
+     * Count incidents of a given [type] for a specific alarm occurrence. The
+     * fire watchdog uses this with [AlarmIncidentEvent.TYPE_BROADCAST] to detect
+     * whether AlarmManager ever delivered the fire for `(alarmId, scheduledAt)`:
+     * zero broadcast rows means the alarm was silently suppressed.
+     */
+    @Query(
+        "SELECT COUNT(*) FROM alarm_incident_events " +
+            "WHERE alarmId = :alarmId AND scheduledAt = :scheduledAt AND type = :type"
+    )
+    suspend fun countByOccurrenceAndType(alarmId: Long, scheduledAt: Long, type: String): Int
+
     @Query("DELETE FROM alarm_incident_events WHERE eventAt < :beforeMs")
     suspend fun deleteOlderThan(beforeMs: Long)
 

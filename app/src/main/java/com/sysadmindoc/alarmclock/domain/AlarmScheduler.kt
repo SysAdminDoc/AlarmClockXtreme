@@ -20,6 +20,8 @@ import com.sysadmindoc.alarmclock.receiver.AlarmReceiver
 import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
 import com.sysadmindoc.alarmclock.service.SmartAlarmService
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
+import com.sysadmindoc.alarmclock.worker.FireWatchdogPolicy
+import com.sysadmindoc.alarmclock.worker.FireWatchdogWorker
 import com.sysadmindoc.alarmclock.worker.HueSunriseWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.yield
@@ -592,6 +594,32 @@ class AlarmScheduler @Inject constructor(
     private fun scheduleSupportingWork(alarm: Alarm, triggerTime: Long) {
         scheduleSmartAlarmStart(alarm, triggerTime)
         scheduleHueSunrise(alarm, triggerTime)
+        scheduleFireWatchdog(alarm, triggerTime)
+    }
+
+    /**
+     * Enqueue a proactive fire-verification check shortly after the scheduled
+     * fire. [FireWatchdogWorker] re-fires the alarm if AlarmManager silently
+     * failed to deliver it. The "repeat missed alarms" opt-in is checked at run
+     * time by the worker, so toggling the setting needs no rescheduling.
+     */
+    private fun scheduleFireWatchdog(alarm: Alarm, triggerTime: Long) {
+        val workManager = WorkManager.getInstance(context)
+        val checkAtMs = triggerTime + FireWatchdogPolicy.WATCHDOG_DELAY_MS
+        val delayMs = (checkAtMs - System.currentTimeMillis()).coerceAtLeast(0)
+        val inputData = Data.Builder()
+            .putLong(FireWatchdogWorker.KEY_ALARM_ID, alarm.id)
+            .putLong(FireWatchdogWorker.KEY_SCHEDULED_AT, triggerTime)
+            .build()
+        val workRequest = OneTimeWorkRequestBuilder<FireWatchdogWorker>()
+            .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
+            .setInputData(inputData)
+            .build()
+        workManager.enqueueUniqueWork(
+            FireWatchdogWorker.uniqueName(alarm.id),
+            ExistingWorkPolicy.REPLACE,
+            workRequest
+        )
     }
 
     private fun scheduleSmartAlarmStart(alarm: Alarm, triggerTime: Long) {
@@ -671,6 +699,7 @@ class AlarmScheduler @Inject constructor(
 
         val workManager = WorkManager.getInstance(context)
         workManager.cancelUniqueWork("hue_sunrise_$alarmId")
+        workManager.cancelUniqueWork(FireWatchdogWorker.uniqueName(alarmId))
         if (includeFollowUpWorkers) {
             workManager.cancelUniqueWork("guardian_$alarmId")
             workManager.cancelUniqueWork("wake_confirm_$alarmId")

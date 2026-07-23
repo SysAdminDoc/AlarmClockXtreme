@@ -134,6 +134,14 @@ class AlarmIncidentRepositoryTest {
             return recent(limit)
         }
 
+        override suspend fun countByOccurrenceAndType(
+            alarmId: Long,
+            scheduledAt: Long,
+            type: String
+        ): Int = inserted.count {
+            it.alarmId == alarmId && it.scheduledAt == scheduledAt && it.type == type
+        }
+
         override suspend fun deleteOlderThan(beforeMs: Long) {
             deleteOlderThanCalled = true
             deletedBeforeMs = beforeMs

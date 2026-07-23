@@ -472,22 +472,6 @@ All 2026-07-14 RESEARCH.md findings are now fixed (verified against live code
 research and current-code verification. Deduplicated against every prior ROADMAP
 and Roadmap_Blocked item. Full evidence in RESEARCH.md.
 
-### P1 — reliability / correctness
-
-- [ ] P1 — Proactive post-fire confirmation watchdog
-  Why: nothing confirms an alarm actually rang shortly after its scheduled time;
-  this is the exact failure class of the Pixel "missed alarm — unknown reason"
-  bug and OEM Doze kills, and ACX only recovers reactively on unlock/unplug.
-  Evidence: RESEARCH.md; androidpolice.com/pixel-alarm-bug-is-back; WorkManager
-  `setNextScheduleTimeOverride`/expedited jobs (developer.android.com/jetpack/androidx/releases/work).
-  Touches: `domain/AlarmScheduler.kt`, new `worker/FireConfirmationWorker.kt`,
-  `data/local/AlarmIncidentRepository.kt` + `alarm_events`, `AlarmClockApp.kt`.
-  Acceptance: an expedited check enqueued ~2 min after each scheduled fire reads
-  the incident/event log; if no fire record exists for that fire id and the alarm
-  is still due, it immediately re-fires and records a `WATCHDOG_REFIRE` incident.
-  Unit test simulates a suppressed fire and asserts one re-fire + incident.
-  Complexity: M (Likely — validate the re-fire path on a device).
-
 ### P2 — reliability / platform / UX
 
 - [ ] P2 — SkipNextAlarmTileService coroutine-scope leak

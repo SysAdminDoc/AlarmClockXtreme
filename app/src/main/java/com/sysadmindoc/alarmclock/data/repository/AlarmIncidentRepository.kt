@@ -43,6 +43,20 @@ class AlarmIncidentRepository @Inject constructor(
         dao.deleteAll()
     }
 
+    /**
+     * Number of `BROADCAST` incidents recorded for a specific alarm occurrence.
+     * `AlarmReceiver` is the only writer of that type, and only on actual
+     * AlarmManager delivery, so a zero here means the fire never reached the
+     * receiver — the signal the fire watchdog acts on.
+     */
+    suspend fun broadcastDeliveryCount(alarmId: Long, scheduledAt: Long): Int {
+        return dao.countByOccurrenceAndType(
+            alarmId = alarmId,
+            scheduledAt = scheduledAt,
+            type = AlarmIncidentEvent.TYPE_BROADCAST
+        )
+    }
+
     fun recordAsync(
         alarmId: Long,
         fireId: String,

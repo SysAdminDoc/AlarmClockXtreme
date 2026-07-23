@@ -2,6 +2,20 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- Proactive fire watchdog: a check is now enqueued two minutes after every
+  scheduled alarm and, if AlarmManager silently failed to deliver the fire (no
+  `BROADCAST` incident for that occurrence), re-fires the alarm through the same
+  service path as wake-confirmation. This catches the failure class the reactive
+  on-unlock replay can't see — the alarm that never rang at all (Pixel "missed
+  alarm — unknown reason", OEM Doze kills). It shares the existing "repeat missed
+  alarms" opt-in and can never double-fire a working alarm, since a delivered
+  fire always leaves a broadcast record. Device validation of the live re-fire
+  under Doze remains a follow-up.
+
 ## [1.15.30] - 2026-07-22
 
 Maintenance release: test-coverage expansion, dead-resource cleanup, and the
