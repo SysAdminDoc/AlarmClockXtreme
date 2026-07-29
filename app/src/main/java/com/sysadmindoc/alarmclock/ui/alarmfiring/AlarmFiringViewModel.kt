@@ -15,6 +15,19 @@ import javax.inject.Inject
 
 data class FiringUiState(
     val alarm: Alarm? = null,
+    /**
+     * False until [AlarmFiringViewModel.loadAlarm] has resolved the alarm row and
+     * decided whether a challenge is required.
+     *
+     * Dismiss MUST stay locked while this is false. The initial state has
+     * `challenge == null`, which reads as "no challenge configured" — so before
+     * this flag existed, Dismiss was live during the whole load window (a Room
+     * read plus DataStore, event-stats and weather-cache reads). Tapping Dismiss
+     * the instant the ringing screen appeared — exactly what a person reaching
+     * for a screaming phone does — turned the alarm off without ever showing the
+     * challenge (issue #43).
+     */
+    val alarmLoaded: Boolean = false,
     val challenge: Challenge? = null,
     val challengeSolved: Boolean = false,
     val shakeCount: Int = 0,
@@ -112,7 +125,11 @@ data class FiringUiState(
             type != "NONE" ||
             requiresLocationDismiss
     }
-    val wakeChallengeReady: Boolean get() = challengeSolved || challenge == null || challengeBypassAvailable
+    // The accessibility bypass is deliberately outside the alarmLoaded gate: its
+    // timer only starts once a challenge exists, and it is the escape hatch that
+    // guarantees an alarm can always eventually be turned off.
+    val wakeChallengeReady: Boolean get() =
+        challengeBypassAvailable || (alarmLoaded && (challengeSolved || challenge == null))
     val canDismiss: Boolean get() {
         val locationReady = !requiresLocationDismiss || locationDismissReady || challengeBypassAvailable
         return wakeChallengeReady && locationReady
@@ -123,6 +140,29 @@ data class ChallengeAudioDuckingPreference(
     val enabled: Boolean = false,
     val volumePercent: Int = 35
 )
+
+/**
+ * Builds the challenge for one chain step.
+ *
+ * Pure and top-level so the `customPhrases` wiring is directly testable — the
+ * generator has always merged the user's phrases, but the firing path used to
+ * call it without them, leaving `Settings → Custom typing phrases` inert (issue #43).
+ */
+internal fun buildChallenge(
+    type: ChallengeType,
+    alarm: Alarm,
+    customPhrases: String
+): Challenge? = when (type) {
+    ChallengeType.NONE -> null
+    ChallengeType.WALK_STEPS -> Challenge.WalkChallenge(requiredSteps = alarm.walkStepsRequired)
+    ChallengeType.NFC_SCAN -> Challenge.NfcChallenge(registeredTagId = alarm.nfcTagId)
+    ChallengeType.BARCODE_SCAN -> Challenge.BarcodeChallenge(registeredValue = alarm.barcodeValue)
+    ChallengeType.PHOTO_MATCH -> Challenge.PhotoMatchChallenge(referencePhotoUri = alarm.photoMatchUri)
+    ChallengeType.SQUAT -> Challenge.SquatChallenge(requiredSquats = alarm.requiredSquats)
+    ChallengeType.PUSH_UP -> Challenge.PushUpChallenge(requiredPushUps = 10)
+    ChallengeType.PLANK_HOLD -> Challenge.PlankHoldChallenge(requiredSeconds = 30)
+    else -> ChallengeGenerator.generate(type, customPhrases)
+}
 
 @HiltViewModel
 class AlarmFiringViewModel @Inject constructor(
@@ -196,111 +236,127 @@ class AlarmFiringViewModel @Inject constructor(
 
     private fun loadAlarm() {
         viewModelScope.launch {
-            // v1.5.1: Signal the activity to finish if the row disappeared
-            // between schedule and fire. Also sanitise the row so corrupt
-            // challengeType / vibrationPattern don't make it into the UI.
-            val alarm = repository.getById(alarmId)?.sanitized() ?: run {
-                _finish.tryEmit(Unit)
-                return@launch
+            // Dismiss is locked until alarmLoaded flips true, so any failure to
+            // resolve the alarm MUST still unlock it. A ringing alarm the user
+            // cannot turn off is far worse than a skipped challenge — fail open.
+            try {
+                loadAlarmInternal()
+            } catch (error: Exception) {
+                android.util.Log.e("AlarmFiringViewModel", "Failed to load firing alarm", error)
+                _uiState.value = _uiState.value.copy(alarmLoaded = true)
             }
-            currentAlarm = alarm
-            val challengeType = try {
-                ChallengeType.valueOf(alarm.challengeType)
-            } catch (_: Exception) {
-                ChallengeType.NONE
-            }
+        }
+    }
 
-            // v1.2.0: Build challenge chain or single challenge
-            val chainTypes = if (alarm.challengeChain.isNotBlank()) {
-                alarm.challengeChain.split(",").mapNotNull { name ->
-                    try { ChallengeType.valueOf(name.trim()) } catch (_: Exception) { null }
-                }
-            } else if (challengeType != ChallengeType.NONE) {
-                listOf(challengeType)
-            } else {
-                emptyList()
+    private suspend fun loadAlarmInternal() {
+        // v1.5.1: Signal the activity to finish if the row disappeared
+        // between schedule and fire. Also sanitise the row so corrupt
+        // challengeType / vibrationPattern don't make it into the UI.
+        val alarm = repository.getById(alarmId)?.sanitized() ?: run {
+            _uiState.value = _uiState.value.copy(alarmLoaded = true)
+            _finish.tryEmit(Unit)
+            return
+        }
+        currentAlarm = alarm
+        val challengeType = try {
+            ChallengeType.valueOf(alarm.challengeType)
+        } catch (_: Exception) {
+            ChallengeType.NONE
+        }
+
+        // v1.2.0: Build challenge chain or single challenge
+        val chainTypes = if (alarm.challengeChain.isNotBlank()) {
+            alarm.challengeChain.split(",").mapNotNull { name ->
+                try { ChallengeType.valueOf(name.trim()) } catch (_: Exception) { null }
             }
-            // v1.2.0: Adaptive difficulty — escalate if user snoozes a lot
-            // Read recent events to decide if we should bump difficulty
-            val adaptiveDifficultyEnabled = preferencesManager.getCurrentSettings().adaptiveDifficultyEnabled
-            val adaptedChain = if (adaptiveDifficultyEnabled && chainTypes.isNotEmpty()) {
-                try {
-                    val recentStats = eventRepository.getStats()
-                    if (recentStats.snoozeRate > 50) {
-                        chainTypes.map { type ->
-                            when (type) {
-                                ChallengeType.MATH_EASY -> ChallengeType.MATH_MEDIUM
-                                ChallengeType.MATH_MEDIUM -> ChallengeType.MATH_HARD
-                                else -> type
-                            }
+        } else if (challengeType != ChallengeType.NONE) {
+            listOf(challengeType)
+        } else {
+            emptyList()
+        }
+        // v1.2.0: Adaptive difficulty — escalate if user snoozes a lot
+        // Read recent events to decide if we should bump difficulty
+        val firingSettings = preferencesManager.getCurrentSettings()
+        customPhrases = firingSettings.customTypingPhrases
+        val adaptiveDifficultyEnabled = firingSettings.adaptiveDifficultyEnabled
+        val adaptedChain = if (adaptiveDifficultyEnabled && chainTypes.isNotEmpty()) {
+            try {
+                val recentStats = eventRepository.getStats()
+                if (recentStats.snoozeRate > 50) {
+                    chainTypes.map { type ->
+                        when (type) {
+                            ChallengeType.MATH_EASY -> ChallengeType.MATH_MEDIUM
+                            ChallengeType.MATH_MEDIUM -> ChallengeType.MATH_HARD
+                            else -> type
                         }
-                    } else chainTypes
-                } catch (_: Exception) { chainTypes }
-            } else chainTypes
-            challengeChainTypes = adaptedChain
+                    }
+                } else chainTypes
+            } catch (_: Exception) { chainTypes }
+        } else chainTypes
+        challengeChainTypes = adaptedChain
 
-            val firstChallenge = if (adaptedChain.isNotEmpty()) {
-                buildChallengeForType(adaptedChain[0], alarm)
-            } else {
-                null
-            }
-            val hasLocationDismissTarget = LocationDismissPolicy.hasTarget(
-                alarm.locationDismissLat,
-                alarm.locationDismissLng
-            )
-            val locationDismissActive = alarm.locationDismissEnabled && hasLocationDismissTarget
+        val firstChallenge = if (adaptedChain.isNotEmpty()) {
+            buildChallengeForType(adaptedChain[0], alarm)
+        } else {
+            null
+        }
+        val hasLocationDismissTarget = LocationDismissPolicy.hasTarget(
+            alarm.locationDismissLat,
+            alarm.locationDismissLng
+        )
+        val locationDismissActive = alarm.locationDismissEnabled && hasLocationDismissTarget
 
-            val quote = MOTIVATIONAL_QUOTES.random()
+        val quote = MOTIVATIONAL_QUOTES.random()
 
-            val weatherSettings = preferencesManager.getCachedSettings()
-            val haveLocation = weatherSettings.lastKnownLatitude != 0.0 || weatherSettings.lastKnownLongitude != 0.0
-            val cached = weatherRepository.getCachedWeather(
-                latitude = weatherSettings.lastKnownLatitude.takeIf { haveLocation },
-                longitude = weatherSettings.lastKnownLongitude.takeIf { haveLocation }
-            )
-            val weatherTemp = cached?.current?.temperature?.let { temp ->
-                val unit = cached.currentUnits?.temperature ?: ""
-                "${temp.toInt()}$unit"
-            }
-            val weatherDesc = cached?.current?.weatherCode?.let { code ->
-                com.sysadmindoc.alarmclock.data.remote.WeatherCodes.describe(code)
-            }
+        val weatherSettings = preferencesManager.getCachedSettings()
+        val haveLocation = weatherSettings.lastKnownLatitude != 0.0 || weatherSettings.lastKnownLongitude != 0.0
+        val cached = weatherRepository.getCachedWeather(
+            latitude = weatherSettings.lastKnownLatitude.takeIf { haveLocation },
+            longitude = weatherSettings.lastKnownLongitude.takeIf { haveLocation }
+        )
+        val weatherTemp = cached?.current?.temperature?.let { temp ->
+            val unit = cached.currentUnits?.temperature ?: ""
+            "${temp.toInt()}$unit"
+        }
+        val weatherDesc = cached?.current?.weatherCode?.let { code ->
+            com.sysadmindoc.alarmclock.data.remote.WeatherCodes.describe(code)
+        }
 
-            _uiState.value = FiringUiState(
-                alarm = alarm,
-                challenge = firstChallenge,
-                challengeSolved = adaptedChain.isEmpty(),
-                challengeStartedAtMillis = if (firstChallenge != null) System.currentTimeMillis() else 0L,
-                totalChallenges = maxOf(adaptedChain.size, 1),
-                currentChallengeIndex = 0,
-                motivationalQuote = quote,
-                mazeCurrentPos = (firstChallenge as? Challenge.MazeChallenge)?.startPos ?: 0,
-                locationDismissReady = !locationDismissActive,
-                locationDismissStatus = when {
-                    !alarm.locationDismissEnabled -> ""
-                    !hasLocationDismissTarget -> "No saved place is set, so location dismissal is not locked."
-                    else -> "Waiting for a location fix. Leave the saved ${LocationDismissPolicy.coerceRadius(alarm.locationDismissRadius)} m area to unlock dismiss."
-                },
-                weatherTemp = weatherTemp,
-                weatherDescription = weatherDesc,
-                firedEarlyForWeather = alarm.weatherEarlyMinutes > 0 && weatherDesc != null &&
-                    com.sysadmindoc.alarmclock.domain.AlarmScheduler.isSnowOrIceCode(
-                        cached?.current?.weatherCode ?: 0
-                    )
-            )
-            // Start Simon sequence playback when Simon is the very first challenge.
-            if (firstChallenge is Challenge.SimonSaysChallenge) {
-                playSimonSequence(firstChallenge)
-            }
-            // Start emoji reveal when emoji memory is the very first challenge.
-            if (firstChallenge is Challenge.EmojiMemoryChallenge) {
-                startEmojiReveal(firstChallenge)
-            }
-            if (firstChallenge != null) {
-                launchChallengeBypassTimer()
-            } else if (locationDismissActive) {
-                launchChallengeBypassTimer()
-            }
+        _uiState.value = FiringUiState(
+            alarm = alarm,
+            alarmLoaded = true,
+            challenge = firstChallenge,
+            challengeSolved = adaptedChain.isEmpty(),
+            challengeStartedAtMillis = if (firstChallenge != null) System.currentTimeMillis() else 0L,
+            totalChallenges = maxOf(adaptedChain.size, 1),
+            currentChallengeIndex = 0,
+            motivationalQuote = quote,
+            mazeCurrentPos = (firstChallenge as? Challenge.MazeChallenge)?.startPos ?: 0,
+            locationDismissReady = !locationDismissActive,
+            locationDismissStatus = when {
+                !alarm.locationDismissEnabled -> ""
+                !hasLocationDismissTarget -> "No saved place is set, so location dismissal is not locked."
+                else -> "Waiting for a location fix. Leave the saved ${LocationDismissPolicy.coerceRadius(alarm.locationDismissRadius)} m area to unlock dismiss."
+            },
+            weatherTemp = weatherTemp,
+            weatherDescription = weatherDesc,
+            firedEarlyForWeather = alarm.weatherEarlyMinutes > 0 && weatherDesc != null &&
+                com.sysadmindoc.alarmclock.domain.AlarmScheduler.isSnowOrIceCode(
+                    cached?.current?.weatherCode ?: 0
+                )
+        )
+        // Start Simon sequence playback when Simon is the very first challenge.
+        if (firstChallenge is Challenge.SimonSaysChallenge) {
+            playSimonSequence(firstChallenge)
+        }
+        // Start emoji reveal when emoji memory is the very first challenge.
+        if (firstChallenge is Challenge.EmojiMemoryChallenge) {
+            startEmojiReveal(firstChallenge)
+        }
+        if (firstChallenge != null) {
+            launchChallengeBypassTimer()
+        } else if (locationDismissActive) {
+            launchChallengeBypassTimer()
         }
     }
 
@@ -321,17 +377,17 @@ class AlarmFiringViewModel @Inject constructor(
         }
     }
 
-    private fun buildChallengeForType(type: ChallengeType, alarm: Alarm): Challenge? = when (type) {
-        ChallengeType.NONE -> null
-        ChallengeType.WALK_STEPS -> Challenge.WalkChallenge(requiredSteps = alarm.walkStepsRequired)
-        ChallengeType.NFC_SCAN -> Challenge.NfcChallenge(registeredTagId = alarm.nfcTagId)
-        ChallengeType.BARCODE_SCAN -> Challenge.BarcodeChallenge(registeredValue = alarm.barcodeValue)
-        ChallengeType.PHOTO_MATCH -> Challenge.PhotoMatchChallenge(referencePhotoUri = alarm.photoMatchUri)
-        ChallengeType.SQUAT -> Challenge.SquatChallenge(requiredSquats = alarm.requiredSquats)
-        ChallengeType.PUSH_UP -> Challenge.PushUpChallenge(requiredPushUps = 10)
-        ChallengeType.PLANK_HOLD -> Challenge.PlankHoldChallenge(requiredSeconds = 30)
-        else -> ChallengeGenerator.generate(type)
-    }
+    /**
+     * Custom typing/voice phrases from Settings. Cached once per firing so the
+     * DataStore read never lands on the alarm hot path. Before this was plumbed
+     * through, `Settings → Custom typing phrases` was written to DataStore and
+     * round-tripped through backup but never reached the generator, so TYPING /
+     * VOICE_PHRASE always drew from the built-in list only (issue #43).
+     */
+    private var customPhrases: String = ""
+
+    private fun buildChallengeForType(type: ChallengeType, alarm: Alarm): Challenge? =
+        buildChallenge(type, alarm, customPhrases)
 
     fun proceedToNextChallenge() {
         val nextIndex = _uiState.value.currentChallengeIndex + 1
