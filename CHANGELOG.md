@@ -2,6 +2,33 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.32] - 2026-07-29
+
+Fix release for GitHub issue #43.
+
+### Fixed
+
+- **Dismiss could bypass the challenge entirely.** The ringing screen's initial
+  state has no challenge object yet, which the dismiss gate read as "no challenge
+  configured" — so Dismiss was live for the whole of the alarm load (a Room read
+  plus DataStore, event-stats and weather-cache reads). Tapping Dismiss the instant
+  the screen appeared turned the alarm off without ever showing the challenge.
+  Dismiss now stays locked until the alarm row has loaded and the challenge
+  requirement is known. The accessibility bypass is deliberately outside that gate,
+  and a failed load fails open, so an alarm can never become undismissable.
+- **Custom typing phrases had no effect.** `Settings → Custom typing phrases` was
+  written to DataStore and round-tripped through backup, but the firing screen
+  called the challenge generator without it, so Type a Phrase and Voice Phrase
+  always drew from the built-in list. The setting is now read at fire time and
+  passed through.
+
+### Internal
+
+- Challenge construction moved to a pure top-level `buildChallenge()` so the
+  custom-phrase wiring is directly testable.
+- Added the missing `guava-parent` 33.3.1-jre dependency-verification entry, which
+  was failing every Gradle invocation in the repo.
+
 ## [1.15.31] - 2026-07-22
 
 Reliability release: proactive recovery for silently-missed alarms and a
