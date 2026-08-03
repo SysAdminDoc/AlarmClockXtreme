@@ -245,10 +245,11 @@ fun AppNavigation(
                                     Text(
                                         text = item.label,
                                         maxLines = 1,
+                                        style = MaterialTheme.typography.labelSmall,
                                     )
                                 },
                                 selected = selected,
-                                alwaysShowLabel = false,
+                                alwaysShowLabel = true,
                                 onClick = { onTabClick(item.screen) },
                                 colors = NavigationBarItemDefaults.colors(
                                     indicatorColor = Color.Transparent,
@@ -379,7 +380,13 @@ private fun AppNavHost(
         }
 
         composable(Screen.Dashboard.route) {
-            DashboardScreen()
+            DashboardScreen(
+                onOpenAlarms = {
+                    navController.navigate(Screen.AlarmList.route) {
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
 
         composable(Screen.AlarmList.route) {
@@ -431,7 +438,9 @@ private fun AppNavHost(
         }
 
         composable(Screen.Timer.route) {
-            TimerScreen()
+            TimerScreen(
+                onOpenStopwatch = { navController.navigate(Screen.Stopwatch.route) }
+            )
         }
 
         composable(Screen.Bedtime.route) {

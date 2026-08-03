@@ -386,22 +386,7 @@ fun AlarmListScreen(
                             AlarmSortOrder.ENABLED_FIRST -> "Active first"
                         },
                         onCycleSort = viewModel::cycleSortOrder,
-                        onOpenSettings = onOpenSettings
                     )
-                }
-
-                // v1.7.1: Top-level YouTube downloader card. Sits ABOVE the
-                // alarm list so users see it as a first-class action, not
-                // something hidden behind "create new alarm." Tapping the
-                // card opens the same dialog as the picker; the saved tone
-                // becomes available in every alarm's sound picker.
-                if (youTubeAvailable) {
-                    item {
-                        YouTubeDownloadCard(
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
-                            onClick = { showYouTubeDialog = true }
-                        )
-                    }
                 }
 
                 if (state.groups.any { it.isNotBlank() } || state.alarms.size > 3) {
@@ -512,42 +497,6 @@ fun AlarmListScreen(
                     }
 
                     else -> {
-                        item {
-                            // v1.7.1: Dropped the "Saved alarms" section title +
-                            // description — the hero subtitle already says
-                            // "Tap an alarm to edit it." Keeping just the
-                            // action row reclaims another ~50dp of vertical
-                            // space so the first alarm card lands above the
-                            // fold on standard phones.
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                    OutlinedButton(
-                                        onClick = { showTemplates = true },
-                                        shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.outlinedButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.primary
-                                        )
-                                    ) {
-                                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Templates")
-                                    }
-                                    Button(
-                                        onClick = onAddAlarm,
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("New alarm")
-                                    }
-                            }
-                        }
                         val conflictTimes = filteredAlarms
                             .filter { it.isEnabled }
                             .groupBy { it.hour * 60 + it.minute }
@@ -711,6 +660,31 @@ fun AlarmListScreen(
                                 }
                             }
                         }
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                TextButton(
+                                    onClick = { showTemplates = true },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Templates")
+                                }
+                                TextButton(
+                                    onClick = onAddAlarm,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("New alarm")
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -719,6 +693,14 @@ fun AlarmListScreen(
                         QuickAlarmRow(
                             onQuickAlarm = viewModel::createQuickAlarm,
                             napDefaultMinutes = state.napDefaultMinutes
+                        )
+                    }
+                }
+                if (youTubeAvailable) {
+                    item {
+                        YouTubeDownloadCard(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            onClick = { showYouTubeDialog = true }
                         )
                     }
                 }
@@ -1064,54 +1046,34 @@ private fun AlarmHeader(
     vacationActive: Boolean,
     sortLabel: String,
     onCycleSort: () -> Unit,
-    onOpenSettings: () -> Unit
 ) {
     AlarmClockHeroHeader(
-        title = when {
-            hasAlarms && remainingTime.isNotBlank() -> "Next alarm in $remainingTime"
+        title = "Alarms",
+        subtitle = when {
+            hasAlarms && remainingTime.isNotBlank() -> "Next alarm · $remainingTime"
             alarmCount > 0 -> "All alarms paused"
             else -> "No alarms scheduled"
         },
-        subtitle = when {
-            hasAlarms && remainingTime.isNotBlank() -> "Tap an alarm to edit, or add a new one below."
-            alarmCount > 0 -> "Enable a saved alarm when you want it back in rotation."
-            else -> "Create your first wake-up, or start from a template."
-        },
-        badge = {
-            AppStatusChip(
-                label = when (alarmCount) {
-                    0 -> "Ready to schedule"
-                    1 -> "1 alarm"
-                    else -> "$alarmCount alarms"
-                },
-                icon = if (alarmCount == 0) Icons.Default.AlarmAdd else Icons.Default.Notifications
-            )
-            if (!hasAlarms && alarmCount > 0) {
-                AppStatusChip(
-                    label = "Paused",
-                    icon = Icons.Default.NotificationsOff,
-                    color = TextMuted
+        actions = {
+            IconButton(onClick = onCycleSort) {
+                Icon(
+                    Icons.AutoMirrored.Filled.Sort,
+                    contentDescription = sortLabel,
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
-            // v1.7.1: The sort chip is now tappable so the standalone "Sort"
-            // button (which used to live in the actions slot at the very top
-            // right of the hero) can go away entirely. The gear icon next to
-            // it duplicated the Settings tab and was likewise removed. This
-            // claws back ~70dp of vertical space at the top of the screen.
-            AppStatusChip(
-                label = sortLabel,
-                icon = Icons.AutoMirrored.Filled.Sort,
-                onClick = onCycleSort
-            )
-            if (vacationActive) {
+        },
+        badge = if (vacationActive) {
+            {
                 AppStatusChip(
                     label = "Vacation mode",
                     icon = Icons.Default.BeachAccess,
                     color = SnoozeYellow
                 )
             }
+        } else {
+            null
         }
-        // actions slot intentionally left null — see badge comment above.
     )
 }
 
@@ -1201,8 +1163,7 @@ private fun QuickAlarmRow(
 ) {
     AppSurfaceCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp)) {
         AppSectionTitle(
-            title = "Quick alarms",
-            description = "Tap a duration to schedule it now."
+            title = "Quick alarms"
         )
         Row(
             modifier = Modifier
@@ -1289,16 +1250,10 @@ private fun AlarmCard(
             },
         shape = shapeTokens.card,
         colors = CardDefaults.cardColors(
-            containerColor = if (alarm.isEnabled) SurfaceCard else SurfaceCard.copy(alpha = 0.55f)
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            width = if (isActivePaneSelection) 2.dp else 1.dp,
-            color = if (isActivePaneSelection) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.58f)
-            } else if (alarm.isEnabled) {
-                com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
-            } else {
-                com.sysadmindoc.alarmclock.ui.theme.BorderSubtle.copy(alpha = 0.5f)
+            containerColor = when {
+                isActivePaneSelection -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                alarm.isEnabled -> SurfaceCard
+                else -> SurfaceCard.copy(alpha = 0.55f)
             }
         )
     ) {
@@ -1323,7 +1278,7 @@ private fun AlarmCard(
                     Text(
                         text = alarm.label.ifBlank { alarm.repeatLabel },
                         color = if (alarm.isEnabled) TextSecondary else TextMuted,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
 
@@ -1406,59 +1361,21 @@ private fun AlarmCard(
                 style = MaterialTheme.typography.bodySmall
             )
 
-            // One unified chip row — previously two separate horizontal-scroll
-            // rows, which made cards stack a little taller and produced
-            // mismatched gaps when only one row had content.
-            val showChipRow = suppressedByVacation ||
-                alarm.repeatLabel.isNotBlank() ||
-                alarm.shiftPatternChipLabel() != null ||
-                alarm.usesFixedTimezone ||
-                alarm.group.isNotBlank() ||
-                alarm.challengeType != "NONE" ||
-                alarm.ringtoneUri == "silent"
-            if (showChipRow) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    if (suppressedByVacation) {
-                        AppStatusChip(
-                            label = "Paused by vacation",
-                            icon = Icons.Default.BeachAccess,
-                            color = SnoozeYellow
-                        )
-                    }
-                    if (alarm.repeatLabel.isNotBlank()) {
-                        AppStatusChip(
-                            label = alarm.repeatLabel,
-                            icon = Icons.Default.CheckCircle,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    alarm.shiftPatternChipLabel()?.let { label ->
-                        AppStatusChip(
-                            label = label,
-                            color = SnoozeYellow
-                        )
-                    }
-                    if (alarm.usesFixedTimezone) {
-                        AppStatusChip(label = alarm.fixedTimezoneId, color = SnoozeYellow)
-                    }
-                    if (alarm.group.isNotBlank()) {
-                        AppStatusChip(label = alarm.group)
-                    }
-                    if (alarm.challengeType != "NONE") {
-                        AppStatusChip(
-                            label = challengeTypeLabel(alarm.challengeType),
-                            color = SnoozeYellow
-                        )
-                    }
-                    if (alarm.ringtoneUri == "silent") {
-                        AppStatusChip(label = "Silent", color = TextMuted)
-                    }
-                }
+            val metadata = buildList {
+                if (alarm.label.isNotBlank() && alarm.repeatLabel.isNotBlank()) add(alarm.repeatLabel)
+                alarm.shiftPatternChipLabel()?.let(::add)
+                if (alarm.usesFixedTimezone) add(alarm.fixedTimezoneId)
+                if (alarm.group.isNotBlank()) add(alarm.group)
+                if (alarm.challengeType != "NONE") add(challengeTypeLabel(alarm.challengeType))
+                if (alarm.ringtoneUri == "silent") add("Silent")
+            }
+            if (metadata.isNotEmpty()) {
+                Text(
+                    text = metadata.joinToString(" · "),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2
+                )
             }
         }
     }
@@ -1715,11 +1632,7 @@ private fun YouTubeDownloadCard(
             .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick),
         shape = shapeTokens.card,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
-        ),
-        border = androidx.compose.foundation.BorderStroke(
-            width = 1.dp,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
+            containerColor = SurfaceCard
         )
     ) {
         Row(
@@ -1746,13 +1659,13 @@ private fun YouTubeDownloadCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
-                    text = "Download alarm sound from YouTube",
+                    text = "Alarm sounds",
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "Paste a URL — the sound is added to your library, ready to use on any alarm.",
+                    text = "YouTube downloads",
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodySmall
                 )

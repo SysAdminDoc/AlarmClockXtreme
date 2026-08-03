@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Air
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Bolt
@@ -98,6 +99,7 @@ import java.util.concurrent.TimeUnit
 
 @Composable
 fun DashboardScreen(
+    onOpenAlarms: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -123,8 +125,8 @@ fun DashboardScreen(
             DashboardHeader(state)
 
             Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (!state.showWeather && !state.showCalendar) {
                     AppSurfaceCard {
@@ -160,6 +162,13 @@ fun DashboardScreen(
                 if (state.showCalendar) {
                     CalendarSection(state)
                 }
+
+                if (state.nextAlarmTime.isNotBlank()) {
+                    NextAlarmSection(
+                        state = state,
+                        onOpenAlarms = onOpenAlarms
+                    )
+                }
             }
         }
     }
@@ -177,16 +186,60 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardHeader(state: DashboardUiState) {
-    val greeting = remember {
-        when (LocalTime.now().hour) {
-            in 0..4 -> "Rest well."
-            in 5..11 -> "Good morning."
-            in 12..17 -> "Good afternoon."
-            else -> "Good evening."
+private fun NextAlarmSection(
+    state: DashboardUiState,
+    onOpenAlarms: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AppSectionTitle(title = "Next alarm")
+        AppSurfaceCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onOpenAlarms),
+            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Alarm,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
+                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = state.nextAlarmTime,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                    Text(
+                        text = listOf(
+                            state.nextAlarmLabel,
+                            state.nextAlarmSchedule
+                        ).filter { it.isNotBlank() }.joinToString(" · "),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1
+                    )
+                }
+                Text(
+                    text = "View",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
         }
     }
+}
 
+@Composable
+private fun DashboardHeader(state: DashboardUiState) {
     // v1.7.5: Hero used to also show "Current Location" + "Nothing booked"
     // chips, but the same info is right below in the weather card and the
     // calendar card respectively. The chips were just doubling-up.
@@ -199,28 +252,17 @@ private fun DashboardHeader(state: DashboardUiState) {
     // shows through. Active tornado warnings surface as a hero chip so the
     // signal is visible immediately, before the user scrolls.
     val hasTornadoChip = state.tornadoAlertActive
-    val hasCalendarChip = state.showCalendar && state.calendarPermissionNeeded
     AlarmClockHeroHeader(
         transparent = true,
-        title = "Weather",
-        subtitle = "$greeting ${state.todayDate}",
-        overline = "Daily overview",
-        badge = if (hasTornadoChip || hasCalendarChip) {
+        title = "Today",
+        subtitle = state.todayDate,
+        badge = if (hasTornadoChip) {
             {
-                if (hasTornadoChip) {
-                    AppStatusChip(
-                        label = "Tornado warning",
-                        icon = Icons.Default.Warning,
-                        color = AccentRed,
-                    )
-                }
-                if (hasCalendarChip) {
-                    AppStatusChip(
-                        label = "Calendar needs permission",
-                        icon = Icons.Default.CalendarMonth,
-                        color = SnoozeYellow,
-                    )
-                }
+                AppStatusChip(
+                    label = "Tornado warning",
+                    icon = Icons.Default.Warning,
+                    color = AccentRed,
+                )
             }
         } else null,
     )
@@ -242,25 +284,38 @@ private fun WeatherSection(
             }
 
             state.weatherError != null -> {
-                AppSurfaceCard {
-                    AppEmptyState(
-                        icon = Icons.Default.CloudOff,
-                        title = "Weather isn’t ready yet",
-                        description = state.weatherError,
-                        footer = {
-                            OutlinedButton(
-                                onClick = onChangeLocation,
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Icon(Icons.Default.LocationOn, null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.size(8.dp))
-                                Text("Choose location")
-                            }
+                AppSurfaceCard(contentPadding = PaddingValues(16.dp)) {
+                    AppSectionTitle(title = "Weather")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                        ) {
+                            Text(
+                                text = "Set your location",
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = "Get local conditions and forecasts.",
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
-                    )
+                        TextButton(onClick = onChangeLocation) {
+                            Text("Choose")
+                        }
+                    }
                 }
             }
 
@@ -307,10 +362,22 @@ private fun WeatherSection(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            AppStatusChip(
-                                label = state.locationName.ifBlank { "Weather" },
-                                icon = Icons.Default.LocationOn
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = state.locationName.ifBlank { "Weather" },
+                                    color = TextSecondary,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                             Icon(
                                 imageVector = weatherIconFor(state.weatherIcon),
                                 contentDescription = state.weatherDescription,
@@ -805,26 +872,26 @@ private fun CalendarSection(state: DashboardUiState) {
     // section title floated outside the card, looking like a stray label.
     AppSurfaceCard {
         Text(
-            "Today's schedule",
+            "Schedule",
             color = TextPrimary,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
         )
         when {
             state.calendarPermissionNeeded -> {
-                AppEmptyState(
+                CompactDashboardRow(
                     icon = Icons.Default.CalendarMonth,
-                    title = "Calendar access needed",
-                    description = "Grant permission to surface today's events here.",
+                    title = "Calendar access",
+                    description = "Allow calendar access to see today’s events.",
                     accent = SnoozeYellow
                 )
             }
 
             state.calendarEvents.isEmpty() -> {
-                AppEmptyState(
+                CompactDashboardRow(
                     icon = Icons.Default.EventAvailable,
                     title = "Nothing scheduled today",
-                    description = "Events from your calendar will appear here.",
+                    description = "Your day is clear.",
                     accent = DismissGreen
                 )
             }
@@ -837,6 +904,36 @@ private fun CalendarSection(state: DashboardUiState) {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun CompactDashboardRow(
+    icon: ImageVector,
+    title: String,
+    description: String,
+    accent: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = accent,
+            modifier = Modifier.size(24.dp)
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(title, color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+            Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
         }
     }
 }

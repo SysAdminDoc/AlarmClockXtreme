@@ -11,13 +11,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -28,6 +27,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -73,6 +73,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.ClockTimeLarge
 import com.sysadmindoc.alarmclock.ui.theme.ClockTimeDisplay
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
@@ -85,6 +86,7 @@ import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 
 @Composable
 fun TimerScreen(
+    onOpenStopwatch: () -> Unit = {},
     viewModel: TimerViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -115,19 +117,15 @@ fun TimerScreen(
             .verticalScroll(androidx.compose.foundation.rememberScrollState())
     ) {
         AlarmClockHeroHeader(
-            title = if (state.activeTimers.isEmpty()) "Timer" else "${state.activeTimers.size} timer${if (state.activeTimers.size == 1) "" else "s"} running",
+            title = "Timer",
             subtitle = if (state.activeTimers.isEmpty()) {
-                "Build a countdown in seconds and start it without digging through menus."
+                ""
             } else {
-                "Stack multiple countdowns and keep every one of them visible."
+                "${state.activeTimers.size} timer${if (state.activeTimers.size == 1) "" else "s"} active"
             },
-            badge = {
-                if (state.activeTimers.any { it.state == TimerState.FINISHED }) {
-                    AppStatusChip(label = "Attention needed", icon = Icons.Default.TimerOff, color = AccentRed)
-                } else if (state.activeTimers.any { it.state == TimerState.PAUSED }) {
-                    AppStatusChip(label = "Paused timer", icon = Icons.Default.Pause, color = SnoozeYellow)
-                } else {
-                    AppStatusChip(label = "Ready to start", icon = Icons.Default.Timer)
+            actions = {
+                TextButton(onClick = onOpenStopwatch) {
+                    Text("Stopwatch")
                 }
             }
         )
@@ -144,8 +142,7 @@ fun TimerScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 AppSectionTitle(
-                    title = "Active timers",
-                    description = "Pause, resume, or dismiss countdowns without losing context."
+                    title = "Active timers"
                 )
                 state.activeTimers.forEach { timer ->
                     ActiveTimerCard(
@@ -300,72 +297,38 @@ private fun TimerProgressRing(timer: TimerInstance, pulseAlpha: Float) {
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modifier: Modifier = Modifier) {
-    AppSurfaceCard(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        AppSectionTitle(
-            title = "Build a timer",
-            description = if (state.activeTimers.isEmpty()) {
-                "Enter a duration or choose a preset to get moving quickly."
-            } else {
-                "Start another countdown without interrupting the ones already running."
-            }
+        Text(
+            text = String.format(
+                "%02d:%02d:%02d",
+                state.inputHours,
+                state.inputMinutes,
+                state.inputSeconds
+            ),
+            modifier = Modifier.fillMaxWidth(),
+            style = ClockTimeLarge,
+            color = TextPrimary,
+            textAlign = TextAlign.Center
         )
 
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            TimeUnit(state.inputHours, "h")
-            TimeUnit(state.inputMinutes, "m")
-            TimeUnit(state.inputSeconds, "s")
-        }
-
         if (state.inputDigits.isNotBlank()) {
-            AppStatusChip(
-                label = String.format(
-                    "%02d:%02d:%02d selected",
-                    state.inputHours,
-                    state.inputMinutes,
-                    state.inputSeconds
-                ),
-                icon = Icons.Default.Timer,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = if (state.inputDigits.isBlank()) {
-                    "Use the keypad below or start from a preset."
-                } else {
-                    "Tap 00 for quick entries, or clear and start fresh."
-                },
-                color = TextSecondary,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.weight(1f)
-            )
-            if (state.inputDigits.isNotBlank()) {
-                TextButton(onClick = viewModel::clearInput) {
-                    Text("Clear", color = TextMuted)
-                }
+            TextButton(onClick = viewModel::clearInput) {
+                Text("Clear entry", color = TextMuted)
             }
         }
 
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             defaultPresets.forEach { preset ->
                 AppFilterChip(
@@ -386,16 +349,18 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             onClick = viewModel::start,
             enabled = state.canStart,
             modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .size(76.dp),
-            shape = RoundedCornerShape(12.dp),
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(10.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
                 disabledContentColor = TextMuted
             )
         ) {
-            Icon(Icons.Default.PlayArrow, contentDescription = "Start timer", modifier = Modifier.size(34.dp))
+            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(22.dp))
+            Spacer(modifier = Modifier.size(8.dp))
+            Text("Start", style = MaterialTheme.typography.labelLarge)
         }
     }
 }
@@ -452,7 +417,7 @@ private fun NumPad(
                     Surface(
                         modifier = Modifier
                             .weight(1f)
-                            .aspectRatio(1.12f)
+                            .aspectRatio(1.55f)
                             .semantics { contentDescription = keyLabel }
                             .graphicsLayer {
                                 scaleX = pressScale
@@ -468,13 +433,9 @@ private fun NumPad(
                                     -2 -> onDoubleZero()
                                     else -> onDigit(key)
                                 }
-                            },
+                        },
                         shape = RoundedCornerShape(12.dp),
-                        color = if (key < 0) SurfaceCard.copy(alpha = 0.88f) else SurfaceMedium,
-                        border = BorderStroke(
-                            1.dp,
-                            if (key < 0) accent.copy(alpha = 0.22f) else TextMuted.copy(alpha = 0.12f)
-                        )
+                        color = if (key < 0) SurfaceCard else SurfaceMedium
                     ) {
                         Box(
                             modifier = Modifier

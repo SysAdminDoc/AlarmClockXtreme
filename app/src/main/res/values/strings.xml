@@ -809,6 +809,7 @@
     <string name="settings_clear_diagnostics_message">This deletes the redacted incident timeline only. Alarm statistics, alarms, backups, and crash logs are not changed.</string>
     <string name="settings_at_a_glance">At a glance</string>
     <string name="settings_at_a_glance_description">The highest-impact preferences, without digging through every category.</string>
+    <string name="settings_preferences">Preferences</string>
     <string name="settings_reliability">Reliability</string>
     <string name="settings_ready">Ready</string>
     <string name="settings_needs_review">Needs review</string>

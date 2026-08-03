@@ -14,6 +14,7 @@ import com.sysadmindoc.alarmclock.data.remote.HourlyWeather
 import com.sysadmindoc.alarmclock.data.remote.WeatherCodes
 import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
 import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
+import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.util.LocationHelper
@@ -30,6 +31,9 @@ import javax.inject.Inject
 
 data class DashboardUiState(
     val todayDate: String = "",
+    val nextAlarmTime: String = "",
+    val nextAlarmLabel: String = "",
+    val nextAlarmSchedule: String = "",
     val showWeather: Boolean = true,
     val showCalendar: Boolean = true,
     // v1.8.0: Windy radar embed toggle (lifted from settings) + lat/lon so
@@ -149,6 +153,7 @@ class DashboardViewModel @Inject constructor(
     private val weatherRepository: WeatherRepository,
     private val weatherAlertsRepository: com.sysadmindoc.alarmclock.data.repository.WeatherAlertsRepository,
     private val calendarRepository: CalendarRepository,
+    private val alarmRepository: AlarmRepository,
     private val preferencesManager: PreferencesManager,
     private val alarmScheduler: AlarmScheduler,
     private val geocodingApi: GeocodingApi
@@ -166,6 +171,31 @@ class DashboardViewModel @Inject constructor(
         _uiState.update { it.copy(
             todayDate = today.format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
         ) }
+        viewModelScope.launch {
+            combine(
+                alarmRepository.observeNextAlarm(),
+                preferencesManager.settings
+            ) { alarm, settings ->
+                if (alarm == null) {
+                    Triple("", "", "")
+                } else {
+                    val pattern = if (settings.is24HourFormat) "HH:mm" else "h:mm a"
+                    Triple(
+                        alarm.time.format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault())),
+                        alarm.label.ifBlank { "Alarm" },
+                        alarm.repeatLabel
+                    )
+                }
+            }.collect { (time, label, schedule) ->
+                _uiState.update {
+                    it.copy(
+                        nextAlarmTime = time,
+                        nextAlarmLabel = label,
+                        nextAlarmSchedule = schedule
+                    )
+                }
+            }
+        }
         loadData()
     }
 

@@ -11,10 +11,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
@@ -24,6 +27,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -45,7 +49,6 @@ import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppIconSize
 import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
-import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppSkeletonBlock
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -87,20 +90,10 @@ fun NewsScreen(
                 item {
                     AlarmClockHeroHeader(
                         title = "News",
-                        subtitle = "Headlines from your selected feed.",
-                        overline = "Headlines",
-                        badge = {
-                            AppStatusChip(
-                                label = activeFeedLabel,
-                                icon = Icons.Default.RssFeed
-                            )
-                            state.lastUpdatedMillis?.let {
-                                AppStatusChip(
-                                    label = formatRelativeShort(it),
-                                    icon = Icons.Default.Schedule
-                                )
-                            }
-                        },
+                        subtitle = buildList {
+                            add(activeFeedLabel)
+                            state.lastUpdatedMillis?.let { add(formatRelativeShort(it)) }
+                        }.joinToString(" · "),
                         actions = {
                             IconButton(onClick = viewModel::refresh) {
                                 Icon(
@@ -122,12 +115,31 @@ fun NewsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         state.feeds.forEach { feed ->
-                            AppFilterChip(
-                                label = feed.label,
-                                selected = feed.key == state.activeFeedKey,
-                                onClick = { viewModel.selectFeed(feed.key) },
-                                selectionSemantics = true,
-                            )
+                            val selected = feed.key == state.activeFeedKey
+                            Column(
+                                modifier = Modifier
+                                    .clickable(role = Role.Button) {
+                                        viewModel.selectFeed(feed.key)
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(7.dp)
+                            ) {
+                                Text(
+                                    text = feed.label.substringAfter("— ", feed.label),
+                                    color = if (selected) MaterialTheme.colorScheme.primary else TextSecondary,
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .width(30.dp)
+                                        .height(3.dp)
+                                        .background(
+                                            if (selected) MaterialTheme.colorScheme.primary
+                                            else androidx.compose.ui.graphics.Color.Transparent
+                                        )
+                                )
+                            }
                         }
                     }
                 }
@@ -206,34 +218,26 @@ fun NewsScreen(
                     }
 
                     else -> {
-                        item {
-                            Box(
-                                modifier = Modifier.padding(
-                                    start = 16.dp,
-                                    end = 16.dp,
-                                    top = 4.dp,
-                                    bottom = 8.dp,
-                                )
-                            ) {
-                                AppSectionTitle(title = "Top stories")
-                            }
-                        }
-
-                        items(state.items, key = { it.id }) { item ->
+                        itemsIndexed(state.items, key = { _, item -> item.id }) { index, item ->
                             Box(
                                 modifier = Modifier.padding(
                                     horizontal = 16.dp,
-                                    vertical = 6.dp,
+                                    vertical = 0.dp,
                                 )
                             ) {
-                                NewsCard(
-                                    item = item,
-                                    onClick = {
-                                        if (item.hasOpenableLink) {
-                                            runCatching { uriHandler.openUri(item.link) }
-                                        }
-                                    },
-                                )
+                                Column {
+                                    NewsCard(
+                                        item = item,
+                                        onClick = {
+                                            if (item.hasOpenableLink) {
+                                                runCatching { uriHandler.openUri(item.link) }
+                                            }
+                                        },
+                                    )
+                                    if (index < state.items.lastIndex) {
+                                        HorizontalDivider(color = TextMuted.copy(alpha = 0.18f))
+                                    }
+                                }
                             }
                         }
                     }
@@ -251,90 +255,101 @@ private fun NewsCard(
     val cleanedDescription = remember(item.description) {
         if (item.description.isBlank()) "" else stripHtml(item.description).trim()
     }
+    val meaningfulDescription = remember(item.title, cleanedDescription) {
+        val titleLead = item.title
+            .substringBefore(" - ")
+            .substringBefore(" – ")
+            .normalizeNewsComparisonText()
+        val descriptionLead = cleanedDescription.normalizeNewsComparisonText()
+        if (titleLead.length >= 24 && descriptionLead.startsWith(titleLead)) {
+            ""
+        } else {
+            cleanedDescription
+                .replaceFirst(
+                    Regex("^${Regex.escape(item.title)}\\s*", RegexOption.IGNORE_CASE),
+                    ""
+                )
+                .trim()
+                .takeIf { it.length >= 24 }
+                .orEmpty()
+        }
+    }
     val linkModifier = if (item.hasOpenableLink) {
         Modifier.clickable(role = Role.Button, onClick = onClick)
     } else {
         Modifier
     }
 
-    AppSurfaceCard(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .then(linkModifier)
+            .padding(horizontal = 8.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = item.title,
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 3,
+        )
+
+        if (meaningfulDescription.isNotBlank()) {
             Text(
-                text = item.title,
-                color = TextPrimary,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 3,
+                text = meaningfulDescription,
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodyMedium,
+                maxLines = 2
             )
+        }
 
-            if (cleanedDescription.isNotBlank()) {
-                Text(
-                    text = cleanedDescription,
-                    color = TextSecondary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 3
-                )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (item.source.isNotBlank()) {
-                    AppStatusChip(
-                        label = item.source,
-                        icon = Icons.Default.RssFeed,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                item.publishedAtMillis?.let {
-                    AppStatusChip(
-                        label = formatRelativeShort(it),
-                        icon = Icons.Default.Schedule
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                    contentDescription = "Open article",
-                    tint = TextMuted,
-                    modifier = Modifier.size(AppIconSize.sm)
-                )
-            }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = buildList {
+                    if (item.source.isNotBlank()) add(item.source)
+                    item.publishedAtMillis?.let { add(formatRelativeShort(it)) }
+                }.joinToString(" · "),
+                color = TextMuted,
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                contentDescription = "Open article",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(AppIconSize.sm)
+            )
         }
     }
 }
 
 @Composable
 private fun NewsCardSkeleton() {
-    AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            AppSkeletonBlock(modifier = Modifier.fillMaxWidth(0.78f), height = 18.dp)
-            AppSkeletonBlock(modifier = Modifier.fillMaxWidth())
-            AppSkeletonBlock(modifier = Modifier.fillMaxWidth(0.62f))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                AppSkeletonBlock(
-                    modifier = Modifier.fillMaxWidth(0.32f),
-                    height = 22.dp,
-                    cornerRadius = 8.dp,
-                )
-                AppSkeletonBlock(
-                    modifier = Modifier.fillMaxWidth(0.22f),
-                    height = 22.dp,
-                    cornerRadius = 8.dp,
-                )
-            }
-        }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        AppSkeletonBlock(modifier = Modifier.fillMaxWidth(0.78f), height = 18.dp)
+        AppSkeletonBlock(modifier = Modifier.fillMaxWidth())
+        AppSkeletonBlock(modifier = Modifier.fillMaxWidth(0.62f))
+        AppSkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth(0.28f)
+                .padding(top = 4.dp),
+            height = 14.dp,
+            cornerRadius = 6.dp,
+        )
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 6.dp),
+            color = TextMuted.copy(alpha = 0.18f)
+        )
     }
 }
 
@@ -344,6 +359,7 @@ private val tagBeforeTextBoundaryRegex = Regex("(?<=>)\\s*(?=[\\p{L}\\p{N}])")
 private val htmlTagRegex = Regex("<[^>]+>")
 private val htmlEntityRegex = Regex("&(#x?[0-9A-Fa-f]+|[A-Za-z][A-Za-z0-9]+);")
 private val whitespaceRegex = Regex("\\s+")
+private val comparisonPunctuationRegex = Regex("[^\\p{L}\\p{N}]+")
 private val namedHtmlEntities = mapOf(
     "amp" to "&",
     "apos" to "'",
@@ -373,6 +389,11 @@ internal fun stripHtml(raw: String): String {
         .replace(whitespaceRegex, " ")
         .trim()
 }
+
+private fun String.normalizeNewsComparisonText(): String =
+    lowercase()
+        .replace(comparisonPunctuationRegex, " ")
+        .trim()
 
 private fun decodeHtmlEntities(raw: String): String =
     htmlEntityRegex.replace(raw) { match ->

@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
@@ -30,6 +32,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -80,23 +83,19 @@ fun WorldClockScreen(
         // budget, no nested scrollables fighting for space.
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 96.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             item {
                 AlarmClockHeroHeader(
-                    title = "World Clock",
-                    subtitle = "Track the cities that matter without doing time-zone math in your head.",
-                    overline = "Global time",
-                    badge = {
-                        AppStatusChip(
-                            label = "${state.localZone} • ${state.localTime}",
-                            icon = Icons.Default.Schedule
-                        )
-                        if (state.clocks.isNotEmpty()) {
-                            AppStatusChip(
-                                label = "${state.clocks.size} cities",
-                                icon = Icons.Default.Public
+                    title = "World clock",
+                    subtitle = "${state.localZone} · ${state.localTime}",
+                    actions = {
+                        IconButton(onClick = viewModel::showAddDialog) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add city",
+                                tint = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -134,42 +133,29 @@ fun WorldClockScreen(
                 }
             } else {
                 item {
-                    Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
-                        AppSectionTitle(
-                            title = "Saved cities",
-                            description = "Offsets update live so you can compare times instantly."
-                        )
-                    }
-                }
-
-                items(state.clocks, key = { it.zoneId }) { entry ->
                     Box(
-                        modifier = Modifier.padding(
-                            horizontal = 16.dp,
-                            vertical = 6.dp
-                        )
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     ) {
-                        WorldClockCard(
-                            entry = entry,
-                            onRemove = { pendingRemoval = entry }
-                        )
+                        AppSurfaceCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            state.clocks.forEachIndexed { index, entry ->
+                                WorldClockCard(
+                                    entry = entry,
+                                    onRemove = { pendingRemoval = entry }
+                                )
+                                if (index < state.clocks.lastIndex) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        color = TextMuted.copy(alpha = 0.16f)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
-
-        ExtendedFloatingActionButton(
-            onClick = viewModel::showAddDialog,
-            shape = RoundedCornerShape(12.dp),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = TextPrimary,
-            modifier = Modifier
-                .align(androidx.compose.ui.Alignment.BottomEnd)
-                .padding(16.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(modifier = Modifier.size(8.dp))
-            Text("Add city")
         }
     }
 
@@ -234,61 +220,46 @@ private fun WorldClockCard(
     entry: WorldClockEntry,
     onRemove: () -> Unit
 ) {
-    AppSurfaceCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    entry.cityName,
-                    color = TextPrimary,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    entry.date,
-                    color = TextSecondary,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Text(
-                    entry.zoneId,
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                AppStatusChip(
-                    label = entry.offsetLabel,
-                    icon = Icons.Default.Language,
-                    color = worldClockAccent(entry)
-                )
-            }
+            Text(
+                entry.cityName,
+                color = TextPrimary,
+                style = MaterialTheme.typography.titleLarge
+            )
+            Text(
+                "${entry.date} · ${entry.zoneId}",
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1
+            )
+            Text(
+                entry.offsetLabel,
+                color = worldClockAccent(entry),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
 
-            Column(
-                horizontalAlignment = androidx.compose.ui.Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    entry.time,
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.headlineSmall
-                )
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = SurfaceCard.copy(alpha = 0.72f),
-                    border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
-                ) {
-                    IconButton(onClick = onRemove) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "Remove ${entry.cityName}",
-                            tint = TextMuted
-                        )
-                    }
-                }
-            }
+        Text(
+            entry.time,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.headlineSmall
+        )
+        IconButton(onClick = onRemove) {
+            Icon(
+                Icons.Default.MoreVert,
+                contentDescription = "Remove ${entry.cityName}",
+                tint = TextMuted
+            )
         }
     }
 }

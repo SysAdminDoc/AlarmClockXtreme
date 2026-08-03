@@ -30,6 +30,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -76,8 +77,8 @@ import com.sysadmindoc.alarmclock.ui.theme.ToggleOff
 import com.sysadmindoc.alarmclock.ui.theme.ToggleTrackOff
 
 // ─── Shared shape tokens ───────────────────────────────────────────────────
-val AppCardShape = RoundedCornerShape(8.dp)
-val AppTileShape = RoundedCornerShape(8.dp)
+val AppCardShape = RoundedCornerShape(12.dp)
+val AppTileShape = RoundedCornerShape(10.dp)
 val AppChipShape = RoundedCornerShape(8.dp)
 val AppInputShape = RoundedCornerShape(8.dp)
 
@@ -108,11 +109,6 @@ fun AlarmClockHeroHeader(
      */
     transparent: Boolean = false,
 ) {
-    // A premium hero header is a single confident gradient, not a stack of
-    // washes. We keep one vertical fade (deep blue → app surface) plus a
-    // single off-center accent radial that the primary color drives. The
-    // earlier 4-stop gradient + nested overlay box created banding and
-    // muddied the brand on AMOLED.
     Box(
         modifier = if (transparent) {
             modifier.fillMaxWidth()
@@ -122,66 +118,62 @@ fun AlarmClockHeroHeader(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            HeaderTop.copy(alpha = 0.55f),
+                            SurfaceMedium,
                             HeaderBottom
                         )
                     )
                 )
         }
     ) {
-        if (!transparent) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                                Color.Transparent
-                            ),
-                            radius = 720f
-                        )
-                    )
-            )
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                // v1.7.1: vertical 18dp → 12dp, gap 14dp → 10dp. The hero
-                // takes ~70dp less now, so the first alarm card lands above
-                // the fold on standard phones.
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (actions != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                    content = actions
-                )
-            }
-
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (!overline.isNullOrBlank()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    if (!overline.isNullOrBlank()) {
+                        Text(
+                            text = overline,
+                            color = TextMuted,
+                            style = MaterialTheme.typography.labelMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                     Text(
-                        text = overline.uppercase(),
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelSmall
+                        text = title,
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.headlineMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (subtitle.isNotBlank()) {
+                        Text(
+                            text = subtitle,
+                            color = TextSecondary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+                if (actions != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                        content = actions
                     )
                 }
-                Text(
-                    text = title,
-                    color = TextPrimary,
-                    style = MaterialTheme.typography.headlineMedium
-                )
-                Text(
-                    text = subtitle,
-                    color = TextSecondary,
-                    style = MaterialTheme.typography.bodyLarge
-                )
             }
 
             if (badge != null) {
@@ -212,18 +204,10 @@ fun AppSurfaceCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shapeTokens = LocalAppShapeTokens.current
-    // One container, one stroke, one soft sheen. The previous version stacked
-    // a vertical white wash AND a radial accent on top of the base color,
-    // which made cards feel busy and inconsistent on dark surfaces.
     val containerColor = if (highlighted) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     } else {
         SurfaceCard
-    }
-    val borderColor = if (highlighted) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.32f)
-    } else {
-        BorderSubtle
     }
 
     Card(
@@ -231,32 +215,16 @@ fun AppSurfaceCard(
             animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
         ),
         shape = shapeTokens.card,
-        border = BorderStroke(1.dp, borderColor),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (highlighted) 3.dp else 0.dp
-        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.cardColors(containerColor = containerColor)
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = if (highlighted) 0.04f else 0.02f),
-                            Color.Transparent
-                        )
-                    )
-                )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(contentPadding),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                content = content
-            )
-        }
+                .padding(contentPadding),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            content = content
+        )
     }
 }
 
@@ -358,8 +326,8 @@ fun AppStatusChip(
     onClick: (() -> Unit)? = null
 ) {
     val shapeTokens = LocalAppShapeTokens.current
-    val minHeight = if (onClick != null) 40.dp else 30.dp
-    val horizontalPadding = if (onClick != null) 13.dp else 11.dp
+    val minHeight = if (onClick != null) 40.dp else 28.dp
+    val horizontalPadding = if (onClick != null) 12.dp else 9.dp
     val chipContent: @Composable () -> Unit = {
         Row(
             modifier = Modifier
@@ -393,7 +361,6 @@ fun AppStatusChip(
                 },
             shape = shapeTokens.chip,
             color = color.copy(alpha = 0.12f),
-            border = BorderStroke(1.dp, color.copy(alpha = 0.30f)),
             tonalElevation = 0.dp,
             onClick = onClick,
             content = chipContent
@@ -403,7 +370,6 @@ fun AppStatusChip(
             modifier = modifier,
             shape = shapeTokens.chip,
             color = color.copy(alpha = 0.10f),
-            border = BorderStroke(1.dp, color.copy(alpha = 0.22f)),
             tonalElevation = 0.dp,
             content = chipContent
         )
@@ -535,7 +501,6 @@ fun AppFeedbackCard(
                     modifier = Modifier.minimumInteractiveComponentSize(),
                     shape = shapeTokens.chip,
                     color = SurfaceLight,
-                    border = BorderStroke(1.dp, BorderSubtle),
                     tonalElevation = 0.dp,
                     onClick = onDismiss
                 ) {
@@ -569,7 +534,6 @@ fun AppInlineNotice(
             },
         shape = shapeTokens.tile,
         color = color.copy(alpha = 0.10f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.24f)),
         tonalElevation = 0.dp,
     ) {
         Row(
@@ -701,7 +665,6 @@ fun AppFilterChip(
     val shapeTokens = LocalAppShapeTokens.current
     val accent = MaterialTheme.colorScheme.primary
     val containerColor = if (isSelected) accent.copy(alpha = 0.16f) else SurfaceLight
-    val borderColor = if (isSelected) accent.copy(alpha = 0.32f) else BorderSubtle
     val labelColor = if (isSelected) accent else TextSecondary
 
     Surface(
@@ -719,7 +682,6 @@ fun AppFilterChip(
             },
         shape = shapeTokens.chip,
         color = containerColor,
-        border = BorderStroke(1.dp, borderColor),
         tonalElevation = 0.dp,
         onClick = onClick,
     ) {
@@ -818,40 +780,32 @@ fun appSwitchColors() = SwitchDefaults.colors(
 )
 
 /**
- * Floating bottom-nav container. Restrained: a single surface, a single
- * stroke, a faint inner sheen at the very top to suggest depth without the
- * old radial+gradient sandwich.
+ * Edge-aligned bottom navigation. A single divider is enough separation from
+ * content; removing the floating outlined shell keeps navigation subordinate
+ * to the page.
  */
 @Composable
 fun BottomNavContainer(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val shapeTokens = LocalAppShapeTokens.current
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        shape = shapeTokens.bottomNav,
+            .navigationBarsPadding(),
+        shape = RoundedCornerShape(0.dp),
         color = SurfaceMedium,
-        border = BorderStroke(1.dp, BorderSubtle),
-        shadowElevation = 12.dp
+        shadowElevation = 0.dp
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.04f),
-                            Color.Transparent
-                        )
-                    )
-                )
-                .padding(horizontal = 6.dp, vertical = 4.dp)
-        ) {
-            content()
+        Column {
+            HorizontalDivider(color = BorderSubtle)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 2.dp, vertical = 2.dp)
+            ) {
+                content()
+            }
         }
     }
 }

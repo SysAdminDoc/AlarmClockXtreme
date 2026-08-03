@@ -73,6 +73,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -318,10 +319,10 @@ fun SettingsScreen(
             .background(SurfaceDark)
     ) {
         val useTwoPane = shouldUseTwoPaneLayout(maxWidth.value)
-        var selectedPaneId by rememberSaveable { mutableStateOf(settingsPaneCategories.first().id) }
+        var selectedPaneId by rememberSaveable { mutableStateOf<String?>(null) }
         val selectedPane = settingsPaneCategories.firstOrNull { it.id == selectedPaneId }
             ?: settingsPaneCategories.first()
-        val showAllSettings = !useTwoPane
+        val showSettingsHome = !useTwoPane && selectedPaneId == null
         val settingsListState = rememberLazyListState()
 
         androidx.compose.runtime.LaunchedEffect(useTwoPane, selectedPane.id) {
@@ -332,59 +333,48 @@ fun SettingsScreen(
             LazyColumn(
                 modifier = contentModifier,
                 state = settingsListState,
-                verticalArrangement = Arrangement.spacedBy(18.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 if (useTwoPane) {
                     item(key = "pane-header-${selectedPane.id}") {
                         SettingsPaneHeader(selectedPane, state)
                     }
-                } else {
+                } else if (showSettingsHome) {
                     item(key = "settings-hero") {
-                    AlarmClockHeroHeader(
-                        title = stringResource(R.string.settings_title),
-                        subtitle = stringResource(R.string.settings_subtitle),
-                        badge = {
-                            AppStatusChip(
-                                label = stringResource(
-                                    if (state.isIgnoringBatteryOptimizations) {
-                                        R.string.settings_battery_protected
-                                    } else {
-                                        R.string.settings_battery_setup_needed
-                                    }
-                                ),
-                                icon = if (state.isIgnoringBatteryOptimizations) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
-                                color = if (state.isIgnoringBatteryOptimizations) DismissGreen else SnoozeYellow
-                            )
-                            AppStatusChip(
-                                label = state.appVersion,
-                                icon = Icons.Default.AutoAwesome
-                            )
-                        }
-                    )
+                        AlarmClockHeroHeader(
+                            title = stringResource(R.string.settings_title),
+                            subtitle = state.appVersion
+                        )
+                    }
+                    settingsItem("settings-home-readiness") {
+                        WakeReadinessSection(
+                            state = state,
+                            onOpenOnboardingChecklist = onOpenOnboardingChecklist
+                        )
+                    }
+                    settingsItem("settings-home-categories") {
+                        SettingsCategoryHome(
+                            categories = settingsPaneCategories.filterNot { it.id == "readiness" },
+                            onSelect = { selectedPaneId = it }
+                        )
+                    }
+                } else {
+                    item(key = "settings-pane-header-${selectedPane.id}") {
+                        AlarmClockHeroHeader(
+                            title = stringResource(selectedPane.titleRes),
+                            subtitle = "",
+                            actions = {
+                                TextButton(onClick = { selectedPaneId = null }) {
+                                    Text(stringResource(R.string.settings_title))
+                                }
+                            }
+                        )
                     }
                 }
-            if (showAllSettings || selectedPane.id == "readiness") {
+            if (!showSettingsHome && selectedPane.id == "readiness") {
             settingsItem("readiness-wake") {
             WakeReadinessSection(
                 state = state,
-                onRequestNotifications = {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
-                },
-                onRequestExactAlarms = viewModel::requestExactAlarmAccess,
-                onRequestFullScreenAlarms = viewModel::requestFullScreenAlarmAccess,
-                onRequestLocalNetworkPermission = {
-                    localNetworkPermissionLauncher.launch(LocalNetworkPermission.ACCESS_LOCAL_NETWORK)
-                },
-                onRequestBatteryExemption = viewModel::requestBatteryExemption,
-                onRequestGuardianSmsPermission = {
-                    guardianSmsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
-                },
-                onRequestGuardianCallPermission = {
-                    guardianCallPermissionLauncher.launch(Manifest.permission.CALL_PHONE)
-                },
-                onRequestDndSettings = viewModel::requestDndAccess,
                 onOpenOnboardingChecklist = onOpenOnboardingChecklist
             )
             }
@@ -417,7 +407,7 @@ fun SettingsScreen(
             }
             }
 
-            if (showAllSettings || selectedPane.id == "defaults") {
+            if (!showSettingsHome && selectedPane.id == "defaults") {
             settingsItem("defaults-alarm") {
             SettingsGroup(
                 title = stringResource(R.string.settings_alarm_defaults),
@@ -760,7 +750,7 @@ fun SettingsScreen(
             }
             }
 
-            if (showAllSettings || selectedPane.id == "integrations") {
+            if (!showSettingsHome && selectedPane.id == "integrations") {
             settingsItem("integrations-services") {
                 IntegrationsSection(state, viewModel)
             }
@@ -781,18 +771,18 @@ fun SettingsScreen(
                 ConnectionsSection(state)
             }
             }
-            if (showAllSettings || selectedPane.id == "personalization") {
+            if (!showSettingsHome && selectedPane.id == "personalization") {
             settingsItem("personalization") {
                 PersonalizationSection(state, viewModel)
             }
             }
-            if (showAllSettings || selectedPane.id == "backup") {
+            if (!showSettingsHome && selectedPane.id == "backup") {
             settingsItem("backup-restore") {
                 BackupRestoreSection(viewModel, is24HourFormat = state.settings.is24HourFormat)
             }
             }
 
-            if (showAllSettings || selectedPane.id == "utilities") {
+            if (!showSettingsHome && selectedPane.id == "utilities") {
             settingsItem("utilities-shortcuts") {
             SettingsGroup(
                 title = stringResource(R.string.settings_utilities),
@@ -937,6 +927,60 @@ fun SettingsScreen(
                 Modifier
                     .fillMaxSize()
             )
+        }
+    }
+}
+
+@Composable
+private fun SettingsCategoryHome(
+    categories: List<SettingsPaneCategory>,
+    onSelect: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.settings_preferences),
+            color = TextSecondary,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+        AppSurfaceCard(
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                horizontal = 12.dp,
+                vertical = 4.dp
+            )
+        ) {
+            categories.forEachIndexed { index, category ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button) { onSelect(category.id) }
+                        .padding(horizontal = 4.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = category.icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = stringResource(category.titleRes),
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = TextMuted,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                if (index < categories.lastIndex) {
+                    HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
+                }
+            }
         }
     }
 }
@@ -1318,14 +1362,6 @@ private fun SettingsOverviewTile(
 @Composable
 private fun WakeReadinessSection(
     state: SettingsUiState,
-    onRequestNotifications: () -> Unit,
-    onRequestExactAlarms: () -> Unit,
-    onRequestFullScreenAlarms: () -> Unit,
-    onRequestLocalNetworkPermission: () -> Unit,
-    onRequestBatteryExemption: () -> Unit,
-    onRequestGuardianSmsPermission: () -> Unit,
-    onRequestGuardianCallPermission: () -> Unit,
-    onRequestDndSettings: () -> Unit,
     onOpenOnboardingChecklist: () -> Unit
 ) {
     // v1.11.3 (roadmap N3): Standby bucket is only surfaced when the API is
@@ -1361,128 +1397,28 @@ private fun WakeReadinessSection(
     val total = checks.size
     val allReady = readyCount == total
 
-    AppSurfaceCard(highlighted = !allReady) {
+    AppSurfaceCard(highlighted = false) {
         AppSectionTitle(
             title = stringResource(R.string.settings_wake_readiness),
-            description = stringResource(R.string.settings_wake_readiness_description),
             action = {
-                AppStatusChip(
-                    label = stringResource(R.string.settings_ready_count, readyCount, total),
-                    icon = if (allReady) Icons.Default.CheckCircle else Icons.Default.Warning,
-                    color = if (allReady) DismissGreen else SnoozeYellow
-                )
+                TextButton(onClick = onOpenOnboardingChecklist) {
+                    Text(stringResource(R.string.settings_review))
+                }
             }
         )
-
-        OutlinedButton(
-            onClick = onOpenOnboardingChecklist,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.primary
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f))
-        ) {
-            Text(stringResource(R.string.settings_open_setup_checklist))
-        }
-
-        WakeReadinessRow(
-            icon = Icons.Default.Alarm,
-            title = stringResource(R.string.settings_real_test_alarm),
-            description = testAlarmProofDescription(
-                proof = state.testAlarmProof,
-                is24HourFormat = state.settings.is24HourFormat
-            ),
-            ready = testAlarmProofReady,
-            statusLabel = testAlarmProofStatusLabel(state.testAlarmProof),
-            actionLabel = stringResource(R.string.settings_run_setup_checklist),
-            onAction = onOpenOnboardingChecklist
+        Text(
+            text = stringResource(R.string.settings_ready_count, readyCount, total),
+            color = if (allReady) DismissGreen else SnoozeYellow,
+            style = MaterialTheme.typography.bodyMedium
         )
-        WakeReadinessRow(
-            icon = Icons.Default.Alarm,
-            title = stringResource(R.string.settings_exact_alarm_access),
-            description = stringResource(R.string.settings_exact_alarm_description),
-            ready = state.canScheduleExactAlarms,
-            actionLabel = stringResource(R.string.settings_open_alarm_access),
-            onAction = onRequestExactAlarms
+        LinearProgressIndicator(
+            progress = { if (total == 0) 1f else readyCount.toFloat() / total.toFloat() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(4.dp),
+            color = if (allReady) DismissGreen else SnoozeYellow,
+            trackColor = TextMuted.copy(alpha = 0.18f)
         )
-        WakeReadinessRow(
-            icon = Icons.Default.NotificationsActive,
-            title = stringResource(R.string.settings_alarm_notifications),
-            description = stringResource(R.string.settings_alarm_notifications_description),
-            ready = state.hasNotificationPermission,
-            actionLabel = stringResource(R.string.settings_allow_notifications),
-            onAction = onRequestNotifications
-        )
-        if (fullScreenRowVisible) {
-            WakeReadinessRow(
-                icon = Icons.Default.NotificationsActive,
-                title = stringResource(R.string.settings_fullscreen_access),
-                description = when (state.canUseFullScreenIntent) {
-                    true -> stringResource(R.string.settings_fullscreen_allowed)
-                    false -> stringResource(R.string.settings_fullscreen_blocked)
-                    null -> stringResource(R.string.settings_fullscreen_unknown)
-                },
-                ready = state.canUseFullScreenIntent == true,
-                actionLabel = stringResource(R.string.settings_open_fullscreen),
-                onAction = onRequestFullScreenAlarms
-            )
-        }
-        if (localNetworkRowVisible) {
-            WakeReadinessRow(
-                icon = Icons.Default.Link,
-                title = stringResource(R.string.settings_local_network_access),
-                description = stringResource(R.string.settings_local_network_description),
-                ready = state.hasLocalNetworkPermission,
-                actionLabel = stringResource(R.string.settings_allow_local_network),
-                onAction = onRequestLocalNetworkPermission
-            )
-        }
-        WakeReadinessRow(
-            icon = Icons.Default.BatteryAlert,
-            title = stringResource(R.string.settings_battery_protection),
-            description = stringResource(R.string.settings_battery_protection_description),
-            ready = state.isIgnoringBatteryOptimizations,
-            actionLabel = stringResource(R.string.settings_open_battery),
-            onAction = onRequestBatteryExemption
-        )
-        if (state.alarmMutedByDnd) {
-            WakeReadinessRow(
-                icon = Icons.Default.Warning,
-                title = stringResource(R.string.settings_dnd_conflict_title),
-                description = stringResource(R.string.settings_dnd_conflict_description),
-                ready = false,
-                actionLabel = stringResource(R.string.settings_open_dnd),
-                onAction = onRequestDndSettings
-            )
-        }
-        if (standbyRowVisible) {
-            WakeReadinessRow(
-                icon = Icons.Default.BatteryAlert,
-                title = stringResource(R.string.settings_standby_bucket),
-                description = standbyBucketDescription(state.appStandbyBucket),
-                ready = standbyReady,
-                actionLabel = stringResource(R.string.settings_open_battery),
-                onAction = onRequestBatteryExemption
-            )
-        }
-        if (state.guardianReadiness.hasEnabledAlarms) {
-            WakeReadinessRow(
-                icon = Icons.Default.Security,
-                title = stringResource(R.string.settings_guardian_escalation),
-                description = guardianReadinessDescription(state.guardianReadiness),
-                ready = !state.guardianReadiness.needsUserAction,
-                statusLabel = guardianReadinessStatusLabel(state.guardianReadiness),
-                actionLabel = guardianReadinessActionLabel(state.guardianReadiness),
-                onAction = {
-                    if (state.guardianReadiness.needsSmsPermission) {
-                        onRequestGuardianSmsPermission()
-                    } else {
-                        onRequestGuardianCallPermission()
-                    }
-                }
-            )
-        }
     }
 }
 
@@ -1620,68 +1556,55 @@ private fun WakeReadinessRow(
     val resolvedStatusLabel = statusLabel ?: stringResource(
         if (ready) R.string.settings_ready else R.string.settings_review
     )
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
-        color = if (ready) SurfaceCard.copy(alpha = 0.34f) else accent.copy(alpha = 0.08f),
-        border = BorderStroke(
-            1.dp,
-            if (ready) TextMuted.copy(alpha = 0.12f) else accent.copy(alpha = 0.24f)
-        )
+    Column(
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 2.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = accent,
+                modifier = Modifier.size(22.dp)
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = accent.copy(alpha = 0.14f)
-                ) {
-                    Box(
-                        modifier = Modifier.size(40.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = accent,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    Text(title, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
-                    Text(description, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
-                }
-                AppStatusChip(
-                    label = resolvedStatusLabel,
-                    icon = if (ready) Icons.Default.CheckCircle else Icons.Default.Warning,
-                    color = accent
+                Text(title, color = TextPrimary, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    description,
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            if (!ready) {
-                OutlinedButton(
+            if (ready) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = resolvedStatusLabel,
+                    tint = DismissGreen,
+                    modifier = Modifier.size(22.dp)
+                )
+            } else {
+                TextButton(
                     onClick = onAction,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f))
+                    modifier = Modifier.semantics {
+                        contentDescription = actionLabel
+                    }
                 ) {
-                    Text(actionLabel)
+                    Text(resolvedStatusLabel)
                 }
             }
         }
+        HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
     }
 }
 
@@ -1973,12 +1896,14 @@ private fun SettingsGroup(
     description: String? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        AppSectionTitle(
-            title = title,
-            description = description
-        )
-        AppSurfaceCard {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        AppSectionTitle(title = title)
+        AppSurfaceCard(
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                horizontal = 4.dp,
+                vertical = 4.dp
+            )
+        ) {
             content()
         }
     }
@@ -1995,7 +1920,7 @@ private fun SettingsToggle(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp)
+            .heightIn(min = 58.dp)
             .toggleable(
                 value = checked,
                 enabled = enabled,
@@ -2003,34 +1928,18 @@ private fun SettingsToggle(
                 onValueChange = onToggle
             ),
         shape = RoundedCornerShape(10.dp),
-        color = if (!enabled) {
-            SurfaceLight.copy(alpha = 0.34f)
-        } else if (checked) {
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
-        } else {
-            SurfaceLight.copy(alpha = 0.58f)
-        },
-        border = BorderStroke(
-            1.dp,
-            if (!enabled) {
-                BorderSubtle.copy(alpha = 0.55f)
-            } else if (checked) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.28f)
-            } else {
-                BorderSubtle
-            }
-        )
+        color = androidx.compose.ui.graphics.Color.Transparent
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 13.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 Text(
                     text = label,
@@ -2043,7 +1952,9 @@ private fun SettingsToggle(
                     Text(
                         supportingText,
                         color = if (enabled) TextSecondary else TextMuted,
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -2070,15 +1981,14 @@ private fun SettingsActionRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 64.dp)
+            .heightIn(min = 58.dp)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         shape = RoundedCornerShape(10.dp),
-        color = if (enabled) SurfaceLight.copy(alpha = 0.58f) else SurfaceLight.copy(alpha = 0.34f),
-        border = BorderStroke(1.dp, if (enabled) BorderSubtle else BorderSubtle.copy(alpha = 0.55f))
+        color = androidx.compose.ui.graphics.Color.Transparent
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 13.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2093,39 +2003,31 @@ private fun SettingsActionRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (enabled) {
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                    } else {
-                        TextMuted.copy(alpha = 0.10f)
-                    }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            value,
-                            color = if (enabled) MaterialTheme.colorScheme.primary else TextMuted,
-                            style = MaterialTheme.typography.labelLarge,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Icon(
-                            Icons.Default.ChevronRight,
-                            null,
-                            tint = if (enabled) MaterialTheme.colorScheme.primary else TextMuted
-                        )
-                    }
+                    Text(
+                        value,
+                        color = if (enabled) MaterialTheme.colorScheme.primary else TextMuted,
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        null,
+                        tint = if (enabled) MaterialTheme.colorScheme.primary else TextMuted
+                    )
                 }
             }
             if (!supportingText.isNullOrBlank()) {
                 Text(
                     supportingText,
                     color = if (enabled) TextSecondary else TextMuted,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -2136,8 +2038,7 @@ private fun SettingsActionRow(
 private fun SettingsInfo(label: String, description: String) {
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = SurfaceCard.copy(alpha = 0.24f),
-        border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
+        color = SurfaceCard.copy(alpha = 0.24f)
     ) {
         Column(
             modifier = Modifier
