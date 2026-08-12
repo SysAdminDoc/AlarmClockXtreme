@@ -175,6 +175,7 @@ fun AlarmFiringScreen(
     val showQuotes by viewModel.showMotivationalQuotes.collectAsStateWithLifecycle()
     val flipToSnoozeEnabled by viewModel.flipToSnoozeEnabled.collectAsStateWithLifecycle()
     val holdToDismissMillis by viewModel.holdToDismissMillis.collectAsStateWithLifecycle()
+    val holdDurationSeconds = holdToDismissMillis / 1000f
     val firingControlMode by viewModel.firingControlMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val accessibilityManager = remember {
@@ -280,15 +281,16 @@ fun AlarmFiringScreen(
     }
     val statusLine = when {
         state.canDismiss && holdToDismissEnabled ->
-            stringResource(R.string.firing_status_hold_or_snooze)
+            stringResource(R.string.firing_status_hold_or_snooze, holdDurationSeconds)
         state.canDismiss -> stringResource(R.string.firing_status_swipe_or_snooze)
         locationDismissActive && state.wakeChallengeReady -> locationDismissMessage
-        challenge == null && holdToDismissEnabled -> stringResource(R.string.firing_status_hold_to_stop)
+        challenge == null && holdToDismissEnabled ->
+            stringResource(R.string.firing_status_hold_to_stop, holdDurationSeconds)
         challenge == null -> stringResource(R.string.firing_status_swipe_to_stop)
         else -> challenge.statusDescription()
     }
-    val holdButtonHint = stringResource(R.string.firing_hold_button_hint)
-    val holdDismissHint = stringResource(R.string.firing_hold_dismiss_short)
+    val holdButtonHint = stringResource(R.string.firing_hold_button_hint, holdDurationSeconds)
+    val holdDismissHint = stringResource(R.string.firing_hold_dismiss_short, holdDurationSeconds)
     val releaseDismissHint = stringResource(R.string.firing_release_dismiss)
     val releaseSnoozeHint = stringResource(R.string.firing_release_snooze)
     val swipeProtectedHint = stringResource(R.string.firing_swipe_protected)
@@ -568,7 +570,7 @@ fun AlarmFiringScreen(
                     }
                     if (holdToDismissEnabled) {
                         AppStatusChip(
-                            label = stringResource(R.string.firing_hold_dismiss),
+                            label = stringResource(R.string.firing_hold_dismiss, holdDurationSeconds),
                             icon = Icons.Default.AlarmOff,
                             color = DismissGreen
                         )
@@ -941,9 +943,12 @@ fun AlarmFiringScreen(
                         text = if (swipeHint.isBlank()) {
                             if (state.canDismiss) {
                                 if (holdToDismissEnabled && flipToSnoozeEnabled) {
-                                    stringResource(R.string.firing_swipe_hold_flip_hint)
+                                    stringResource(
+                                        R.string.firing_swipe_hold_flip_hint,
+                                        holdDurationSeconds
+                                    )
                                 } else if (holdToDismissEnabled) {
-                                    stringResource(R.string.firing_swipe_hold_hint)
+                                    stringResource(R.string.firing_swipe_hold_hint, holdDurationSeconds)
                                 } else if (flipToSnoozeEnabled) {
                                     stringResource(R.string.firing_swipe_flip_hint)
                                 } else {
@@ -1360,7 +1365,8 @@ private fun HoldToDismissButton(
     var isHolding by remember(enabled) { mutableStateOf(false) }
     var holdProgress by remember(enabled) { mutableFloatStateOf(0f) }
     val holdDescription = stringResource(
-        if (enabled) R.string.firing_hold_accessibility else R.string.firing_challenge_before_dismiss
+        if (enabled) R.string.firing_hold_accessibility else R.string.firing_challenge_before_dismiss,
+        durationMillis / 1000f
     )
     val holdStateDescription = stringResource(
         if (enabled) R.string.firing_dismiss_ready else R.string.firing_dismiss_locked
@@ -1447,7 +1453,10 @@ private fun HoldToDismissButton(
                     text = when {
                         !enabled -> stringResource(R.string.firing_finish_challenge)
                         isHolding -> stringResource(R.string.firing_keep_holding)
-                        else -> stringResource(R.string.firing_hold_to_dismiss_short)
+                        else -> stringResource(
+                            R.string.firing_hold_to_dismiss_short,
+                            durationMillis / 1000f
+                        )
                     },
                     color = if (enabled) DismissGreen else TextMuted,
                     fontWeight = FontWeight.SemiBold,
