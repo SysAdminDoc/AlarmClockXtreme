@@ -8,7 +8,7 @@ import org.junit.Test
 class LazyScreenArchitectureTest {
     @Test
     fun `settings content is split into stable keyed lazy items`() {
-        val source = sourceFile("ui/settings/SettingsScreen.kt").readText()
+        val source = sourceFile("ui/settings/SettingsScreen.kt").readText().normalizeLineEndings()
         val content = source.substringAfter("val settingsContent:")
             .substringBefore("\n        if (useTwoPane) {\n            Row(")
 
@@ -20,14 +20,15 @@ class LazyScreenArchitectureTest {
 
     @Test
     fun `alarm editor registers stable keyed page sections in a lazy column`() {
-        val source = sourceFile("ui/alarmedit/AlarmEditScreen.kt").readText()
+        val source = sourceFile("ui/alarmedit/AlarmEditScreen.kt").readText().normalizeLineEndings()
+        val support = sourceFile("ui/alarmedit/AlarmEditSupport.kt").readText().normalizeLineEndings()
         val content = source.substringAfter(") { padding ->")
             .substringBefore("// Time Picker Dialog")
 
         assertTrue(content.contains("LazyColumn("))
         assertTrue(content.contains("state = editorScrollState"))
-        assertTrue(source.contains("if (section.page != activePage) return"))
-        assertTrue(source.contains("item(key = \"alarm-editor-\${section.name.lowercase()}\")"))
+        assertTrue(support.contains("if (section.page != activePage) return"))
+        assertTrue(support.contains("item(key = \"alarm-editor-\${section.name.lowercase()}\")"))
         assertFalse(content.contains(".verticalScroll(editorScrollState)"))
     }
 
@@ -42,4 +43,6 @@ class LazyScreenArchitectureTest {
 
     private fun String.countOccurrences(token: String): Int =
         windowed(token.length).count { it == token }
+
+    private fun String.normalizeLineEndings(): String = replace("\r\n", "\n")
 }

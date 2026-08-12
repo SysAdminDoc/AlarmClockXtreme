@@ -12,6 +12,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Split the Settings screen's readiness, integrations, personalization, and
   backup/restore categories into focused sibling files while preserving its
   adaptive pane shell and shared controls.
+- Split the AlarmEdit screen into focused Overview, Sound, Dismiss, Schedule,
+  Wake, Integrations, Advanced, and shared-support files while preserving its
+  existing page routing and callbacks.
 
 ## [1.15.32] - 2026-07-29
 

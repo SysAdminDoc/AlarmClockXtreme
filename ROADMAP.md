@@ -6,14 +6,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ---
 
-- [ ] **P2/debt — God files.** `AlarmEditScreen.kt` (~3.5k lines) still holds
-  every page / pane / dialog. Its section enum gives clean seams; extract
-  per-page files. Effort: M. `BedtimeScreen.kt` and `SettingsScreen.kt` are
-  now drained into focused sibling sections; remaining: split
-  `AlarmEditScreen.kt`.
-
----
-
 | # | Item | Source | Effort |
 |---|------|--------|--------|
 | L-WS3 | On-call rotation mode (override DND silent). | [PagerDuty](https://www.pagerduty.com/) | M |
