@@ -83,6 +83,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Added folder-based ringtone import through the system document-tree picker;
   granted audio folders are persisted as content URIs and their supported
   files appear alongside system tones for preview and selection.
+- Switched alarm-edit navigation to Compose's predictive-back handler so an
+  unsaved editor keeps its discard guard while participating in the system
+  back gesture.
 
 ## [1.15.32] - 2026-07-29
 

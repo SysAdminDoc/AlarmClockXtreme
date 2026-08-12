@@ -4,7 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.annotation.StringRes
-import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -74,6 +74,7 @@ import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.DayOfWeek
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 
 internal enum class AlarmEditorPage(
     @StringRes val titleRes: Int,
@@ -212,7 +213,14 @@ fun AlarmEditScreen(
             AlarmEditorExitDecision.STAY -> Unit
         }
     }
-    BackHandler(enabled = !state.notFound) { requestNavigateBack() }
+    PredictiveBackHandler(enabled = !state.notFound) { progress ->
+        try {
+            progress.collect { }
+            requestNavigateBack()
+        } catch (_: CancellationException) {
+            // The user cancelled the gesture; keep the editor open.
+        }
+    }
 
     LaunchedEffect(editorPage) {
         editorScrollState.scrollToItem(0)
