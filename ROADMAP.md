@@ -80,8 +80,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 | L-X6 | Per-user long-press thresholds on challenge buttons. | Android a11y guidelines | S |
 
 
-- [ ] Two flavors today: `play` (with YT downloader + Wear Data Layer), `fdroid` (without). Maintain parity on every other surface. Build, test, signing, OSV audit, release artifact creation, and SHA-256 generation happen locally; do not add GitHub Actions.
-
 - [ ] AAB for Play Store, signed APK for GitHub Releases; never ship unsigned artifacts.
 
 - [ ] F-Droid users expect APK under **~40 MB**. Any TFLite-model or Matter-SDK work must respect this budget (downloadable models, not bundled).

@@ -58,6 +58,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Added an About-screen “Share crash log” action that creates a locally scrubbed
   text export and opens the system share sheet; crash logs are never uploaded
   automatically.
+- Revalidated the local-only release workflow: Play and F-Droid variants share
+  the common surface, their unit-test/lint gates pass together, and signing,
+  metadata, OSV, reproducibility, and checksum scripts remain local with no
+  GitHub Actions workflow added.
 
 ## [1.15.32] - 2026-07-29
 
