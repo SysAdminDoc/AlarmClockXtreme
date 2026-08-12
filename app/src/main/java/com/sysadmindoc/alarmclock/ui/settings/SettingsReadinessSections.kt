@@ -908,4 +908,3 @@ internal fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Setti
         }
     }
 }
-

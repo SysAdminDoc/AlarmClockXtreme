@@ -828,4 +828,3 @@ internal fun ConnectionsSection(state: SettingsUiState) {
         }
     }
 }
-

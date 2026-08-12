@@ -493,4 +493,3 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
 }
 
 private val lightAccentSwatches = setOf("#FFB347", "#5BD49A", "#E0E4EA")
-
