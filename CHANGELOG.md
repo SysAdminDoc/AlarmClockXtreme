@@ -52,6 +52,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   alarm audio stays on the exempt `mediaPlayback` path, delivery is bounded to
   15 seconds, and non-exempt smart wake is capped at 65 minutes per session and
   released during teardown.
+- Verified Hue sunrise uses v2 `hue-application-key` authentication over HTTPS
+  with TOFU certificate pinning; the legacy v1 HTTP fallback remains explicit
+  and disabled by default.
 
 ## [1.15.32] - 2026-07-29
 
