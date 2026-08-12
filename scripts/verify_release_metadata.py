@@ -121,6 +121,17 @@ def verify_release_metadata(root: Path) -> ReleaseSnapshot:
     for artifact_version in artifact_versions:
         expect("README.md Play release artifact", artifact_version, version_name)
 
+    changelog = read_text(root, "CHANGELOG.md")
+    changelog_versions = re.findall(
+        rf"^## \[({VERSION_PATTERN})\]",
+        changelog,
+        re.MULTILINE,
+    )
+    if not changelog_versions:
+        errors.append("CHANGELOG.md: no semantic release heading found")
+    else:
+        expect("CHANGELOG.md latest release", changelog_versions[0], version_name)
+
     verifier = read_text(root, "scripts/verify_api37_release.py")
     verifier_name = extract_one(
         verifier,

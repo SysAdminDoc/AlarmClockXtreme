@@ -1,7 +1,7 @@
 import java.io.File
 import java.util.Properties
 
-// AlarmClockXtreme v1.15.31
+// AlarmClockXtreme v1.15.32
 // Top-level build file
 plugins {
     id("com.android.application") version "8.11.1" apply false
@@ -43,6 +43,23 @@ val verifyReleaseSigning = tasks.register("verifyReleaseSigning") {
         }
         check(candidates.any(File::isFile)) {
             "Refusing unsigned release artifacts: signing keystore was not found at the configured storeFile path."
+        }
+    }
+}
+
+val verifyReleaseMetadata = tasks.register("verifyReleaseMetadata") {
+    group = "verification"
+    description = "Verify the release version across manifests, metadata, README, and changelog."
+
+    doLast {
+        val pythonCommand = if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) {
+            "python"
+        } else {
+            "python3"
+        }
+        exec {
+            commandLine(pythonCommand, rootProject.file("scripts/verify_release_metadata.py").absolutePath)
+            workingDir(rootProject.rootDir)
         }
     }
 }

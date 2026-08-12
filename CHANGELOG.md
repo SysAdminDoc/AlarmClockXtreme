@@ -75,6 +75,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Added an emulator smoke that schedules the onboarding test alarm through
   `AlarmManager`, turns the screen off, and verifies the lock-screen activity
   wakes and resumes with the expected window flag.
+- Wired release metadata verification into Gradle release/check tasks and
+  extended it to require the latest changelog heading to match the app version.
 
 ## [1.15.32] - 2026-07-29
 

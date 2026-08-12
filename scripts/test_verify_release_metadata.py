@@ -22,6 +22,7 @@ class ReleaseMetadataVerificationTest(unittest.TestCase):
                 "https://img.shields.io/badge/version-1.2.3-blue\n"
                 "AlarmClockXtreme-v1.2.3-play-release.apk\n"
             ),
+            "CHANGELOG.md": "## [1.2.3] - 2026-01-01\n",
             "scripts/verify_api37_release.py": (
                 'EXPECTED_VERSION_CODE = "42"\n'
                 'EXPECTED_VERSION_NAME = "1.2.3"\n'
@@ -74,6 +75,7 @@ class ReleaseMetadataVerificationTest(unittest.TestCase):
         mismatches = (
             ("wear/build.gradle.kts", "1.2.3", "1.2.2", "wear/build.gradle.kts"),
             ("README.md", "1.2.3", "1.2.2", "README.md"),
+            ("CHANGELOG.md", "## [1.2.3]", "## [1.2.2]", "CHANGELOG.md"),
             (
                 "scripts/verify_api37_release.py",
                 'EXPECTED_VERSION_CODE = "42"',

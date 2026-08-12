@@ -140,6 +140,7 @@ val releaseArtifactTasks = setOf(
 
 tasks.matching { it.name in releaseArtifactTasks }.configureEach {
     dependsOn(rootProject.tasks.named("verifyReleaseSigning"))
+    dependsOn(rootProject.tasks.named("verifyReleaseMetadata"))
 }
 
 val fdroidReleaseApk = layout.buildDirectory.file("outputs/apk/fdroid/release/app-fdroid-release.apk")
@@ -240,6 +241,7 @@ tasks.matching { it.name == "check" || it.name.startsWith("lint") }.configureEac
 
 tasks.matching { it.name == "check" }.configureEach {
     dependsOn(verifyRoomSchemaExports)
+    dependsOn(rootProject.tasks.named("verifyReleaseMetadata"))
 }
 
 dependencies {

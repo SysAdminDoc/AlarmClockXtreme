@@ -267,7 +267,7 @@ Before a local release, run:
 
 ```bash
 bash scripts/check-signing-hygiene.sh
-python scripts/verify_release_metadata.py
+./gradlew verifyReleaseMetadata
 ./gradlew verifyDependencyIntegrity
 ./gradlew :app:verifyRoomSchemaExports
 python scripts/osv_gradle_audit.py

@@ -62,6 +62,7 @@ android {
 
 tasks.matching { it.name == "assembleRelease" }.configureEach {
     dependsOn(rootProject.tasks.named("verifyReleaseSigning"))
+    dependsOn(rootProject.tasks.named("verifyReleaseMetadata"))
 }
 
 dependencies {
