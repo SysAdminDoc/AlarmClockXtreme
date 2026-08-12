@@ -6,14 +6,11 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ---
 
-- [ ] **P2/debt — God files.** `SettingsScreen.kt` (~4.1k lines),
-  `AlarmEditScreen.kt` (~3.5k), `BedtimeScreen.kt` hold every page /
-  pane / dialog. The section enums already give clean seams; extract per-page
-  files. Effort: M. **In progress:** `BedtimeScreen.kt` is being drained
-  section-by-section (`BedtimeJetLagSection.kt`, `BedtimeChronotypeSection.kt`,
-  `BedtimeBreathingSection.kt` extracted so far, ~2.1k → ~1.65k lines).
-  Remaining: finish the BedtimeScreen sleep-tracking / sleep-sounds / wind-down
-  sections, then split `SettingsScreen.kt` and `AlarmEditScreen.kt`.
+- [ ] **P2/debt — God files.** `SettingsScreen.kt` (~4.1k lines) and
+  `AlarmEditScreen.kt` (~3.5k) hold every page / pane / dialog. The section
+  enums already give clean seams; extract per-page files. Effort: M.
+  `BedtimeScreen.kt` is now drained into focused sibling sections; remaining:
+  split `SettingsScreen.kt` and `AlarmEditScreen.kt`.
 
 ---
 

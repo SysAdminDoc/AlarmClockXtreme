@@ -2,6 +2,14 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [Unreleased]
+
+### Internal
+
+- Continued the god-file refactor by extracting Bedtime sleep tracking,
+  sleep sounds, sleep-cycle rows, and wind-down checklist sections into focused
+  sibling files without changing the screen behavior or public entry point.
+
 ## [1.15.32] - 2026-07-29
 
 Fix release for GitHub issue #43.
