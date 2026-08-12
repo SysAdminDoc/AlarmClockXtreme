@@ -34,8 +34,11 @@ class AlarmReceiver : BroadcastReceiver() {
         )
 
         val serviceIntent = AlarmFireDismissContract.startServiceIntent(context, alarmId, scheduledAt, fireId)
+        val deliveryWakeLock = AlarmDeliveryWakeLock.acquire(context)
+        var serviceStartSucceeded = false
         try {
             context.startForegroundService(serviceIntent)
+            serviceStartSucceeded = true
             incidents += ReceiverAlarmIncident(
                 alarmId = alarmId,
                 fireId = fireId,
@@ -61,6 +64,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 source = "AlarmReceiver"
             )
         } finally {
+            if (!serviceStartSucceeded) AlarmDeliveryWakeLock.release(deliveryWakeLock)
             recordAlarmIncidentsAsync(context, incidents)
         }
     }

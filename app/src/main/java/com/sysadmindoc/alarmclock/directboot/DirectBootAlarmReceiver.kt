@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.sysadmindoc.alarmclock.receiver.AlarmDeliveryWakeLock
 
 class DirectBootAlarmReceiver : BroadcastReceiver() {
 
@@ -21,10 +22,15 @@ class DirectBootAlarmReceiver : BroadcastReceiver() {
             putExtra(EXTRA_VIBRATION_ENABLED, intent.getBooleanExtra(EXTRA_VIBRATION_ENABLED, true))
         }
 
+        val deliveryWakeLock = AlarmDeliveryWakeLock.acquire(context)
+        var serviceStartSucceeded = false
         try {
             context.startForegroundService(serviceIntent)
+            serviceStartSucceeded = true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start direct-boot alarm service", e)
+        } finally {
+            if (!serviceStartSucceeded) AlarmDeliveryWakeLock.release(deliveryWakeLock)
         }
     }
 

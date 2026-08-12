@@ -41,6 +41,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   re-registers enabled alarms with the selected path.
 - Verified alarm-related foreground services remain on the `mediaPlayback` type;
   no `shortService` migration is used, avoiding Android 15's short-service timeout.
+- Added a bounded 15-second partial wake lock around normal and Direct Boot
+  alarm receiver-to-foreground-service handoffs, covering OEM Doze delays without
+  extending receiver work or holding a long-lived delivery lock.
 
 ## [1.15.32] - 2026-07-29
 
