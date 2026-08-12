@@ -38,6 +38,7 @@ import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.data.support.SupportExportManager
 import com.sysadmindoc.alarmclock.domain.AlarmMuteRiskPolicy
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.domain.LongPressThreshold
 import com.sysadmindoc.alarmclock.integration.hue.HueBridgeClient
 import com.sysadmindoc.alarmclock.integration.hue.HueConnectionResult
 import com.sysadmindoc.alarmclock.integration.hue.HuePinResult
@@ -346,6 +347,8 @@ class SettingsViewModel @Inject constructor(
         updateSettings { it.copy(repeatMissedAlarms = enabled) }
     fun updateCancellationLockMinutes(minutes: Int) =
         updateSettings { it.copy(cancellationLockMinutes = minutes.coerceIn(0, 120)) }
+    fun updateHoldToDismissMillis(millis: Int) =
+        updateSettings { it.copy(holdToDismissMillis = LongPressThreshold.coerceMillis(millis)) }
     fun updateFiringControlMode(mode: String) =
         updateSettings { it.copy(firingControlMode = mode) }
     fun updateChallengeBypassEnabled(enabled: Boolean) =

@@ -1059,6 +1059,9 @@
     <string name="settings_cancellation_lock_description">Prevent disabling alarms close to fire time</string>
     <string name="settings_disabled">Disabled</string>
     <string name="settings_lock_before_fire">Lock %1$d min before fire</string>
+    <string name="settings_long_press_threshold">Dismiss hold duration</string>
+    <string name="settings_long_press_threshold_description">Choose how long the firing-screen dismiss button must be held. 0.5–5 seconds.</string>
+    <string name="settings_hold_duration_short">%1$.1f s</string>
     <string name="settings_firing_controls">Firing controls</string>
     <string name="settings_firing_controls_description">How you dismiss and snooze alarms. Buttons mode is recommended for screen readers.</string>
     <string name="settings_firing_buttons">Buttons</string>

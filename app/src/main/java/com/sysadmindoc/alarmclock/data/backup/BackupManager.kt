@@ -9,6 +9,7 @@ import com.sysadmindoc.alarmclock.data.preferences.DEFAULT_NEWS_FEED_URL
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.domain.LongPressThreshold
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -201,6 +202,7 @@ data class SettingsBackup(
     val showNewsTab: Boolean = true,
     val showRadarEmbed: Boolean = true,
     val cancellationLockMinutes: Int = 0,
+    val holdToDismissMillis: Int = LongPressThreshold.DEFAULT_MILLIS,
     val hueBridgeCertFingerprint: String = "",
     val hueLegacyHttpEnabled: Boolean = false,
     val firingControlMode: String = "hybrid",
@@ -417,6 +419,7 @@ class BackupManager @Inject constructor(
                 showNewsTab = settings.showNewsTab,
                 showRadarEmbed = settings.showRadarEmbed,
                 cancellationLockMinutes = settings.cancellationLockMinutes,
+                holdToDismissMillis = settings.holdToDismissMillis,
                 hueBridgeCertFingerprint = settings.hueBridgeCertFingerprint,
                 hueLegacyHttpEnabled = settings.hueLegacyHttpEnabled,
                 firingControlMode = settings.firingControlMode,
@@ -640,6 +643,7 @@ class BackupManager @Inject constructor(
         showNewsTab = s.showNewsTab,
         showRadarEmbed = s.showRadarEmbed,
         cancellationLockMinutes = s.cancellationLockMinutes,
+        holdToDismissMillis = s.holdToDismissMillis,
         hueBridgeCertFingerprint = s.hueBridgeCertFingerprint,
         hueLegacyHttpEnabled = s.hueLegacyHttpEnabled,
         firingControlMode = s.firingControlMode,

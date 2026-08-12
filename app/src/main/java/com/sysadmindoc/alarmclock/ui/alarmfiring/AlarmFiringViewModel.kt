@@ -7,6 +7,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
+import com.sysadmindoc.alarmclock.domain.LongPressThreshold
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -202,6 +203,10 @@ class AlarmFiringViewModel @Inject constructor(
     val reduceMotionAndFlashing: StateFlow<Boolean> = preferencesManager.settings
         .map { it.reduceMotionAndFlashing }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val holdToDismissMillis: StateFlow<Int> = preferencesManager.settings
+        .map { it.holdToDismissMillis }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, LongPressThreshold.DEFAULT_MILLIS)
 
     /** v1.4.0: Whether "cover the phone" snooze is enabled globally. */
     val coverToSnoozeEnabled: StateFlow<Boolean> = preferencesManager.settings

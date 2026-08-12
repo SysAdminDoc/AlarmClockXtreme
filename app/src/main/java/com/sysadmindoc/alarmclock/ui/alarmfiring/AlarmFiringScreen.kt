@@ -174,6 +174,7 @@ fun AlarmFiringScreen(
     // mid-alarm (rare, but possible if user pulls down quick settings).
     val showQuotes by viewModel.showMotivationalQuotes.collectAsStateWithLifecycle()
     val flipToSnoozeEnabled by viewModel.flipToSnoozeEnabled.collectAsStateWithLifecycle()
+    val holdToDismissMillis by viewModel.holdToDismissMillis.collectAsStateWithLifecycle()
     val firingControlMode by viewModel.firingControlMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val accessibilityManager = remember {
@@ -1022,6 +1023,7 @@ fun AlarmFiringScreen(
                     if (holdToDismissEnabled) {
                         HoldToDismissButton(
                             enabled = state.canDismiss,
+                            durationMillis = holdToDismissMillis.toLong(),
                             onDismiss = onDismiss
                         )
                     } else {
@@ -1347,12 +1349,12 @@ private fun calculateSampleSize(width: Int, height: Int, maxSide: Int): Int {
 private val EaseInOutCubic = CubicBezierEasing(0.65f, 0f, 0.35f, 1f)
 private const val MIN_CUSTOM_SNOOZE_MINUTES = 1
 private const val MAX_CUSTOM_SNOOZE_MINUTES = 120
-private const val HOLD_TO_DISMISS_MS = 1_500L
 private const val HOLD_PROGRESS_FRAME_MS = 16L
 
 @Composable
 private fun HoldToDismissButton(
     enabled: Boolean,
+    durationMillis: Long,
     onDismiss: () -> Unit
 ) {
     var isHolding by remember(enabled) { mutableStateOf(false) }
@@ -1364,7 +1366,7 @@ private fun HoldToDismissButton(
         if (enabled) R.string.firing_dismiss_ready else R.string.firing_dismiss_locked
     )
 
-    LaunchedEffect(enabled, isHolding) {
+    LaunchedEffect(enabled, isHolding, durationMillis) {
         if (!enabled) {
             holdProgress = 0f
             return@LaunchedEffect
@@ -1375,10 +1377,10 @@ private fun HoldToDismissButton(
         }
 
         var elapsedMs = 0L
-        while (isHolding && elapsedMs < HOLD_TO_DISMISS_MS) {
+        while (isHolding && elapsedMs < durationMillis) {
             delay(HOLD_PROGRESS_FRAME_MS)
             elapsedMs += HOLD_PROGRESS_FRAME_MS
-            holdProgress = (elapsedMs.toFloat() / HOLD_TO_DISMISS_MS).coerceIn(0f, 1f)
+            holdProgress = (elapsedMs.toFloat() / durationMillis.coerceAtLeast(1L)).coerceIn(0f, 1f)
         }
         if (isHolding) {
             holdProgress = 1f

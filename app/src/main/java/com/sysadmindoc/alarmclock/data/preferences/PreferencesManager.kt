@@ -16,6 +16,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sysadmindoc.alarmclock.domain.ChronotypeEstimator
 import com.sysadmindoc.alarmclock.domain.JetLagDirection
+import com.sysadmindoc.alarmclock.domain.LongPressThreshold
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -169,6 +170,7 @@ data class AppSettings(
     // is tracked alongside (roadmap N13).
     val healthConnectEnabled: Boolean = false,
     val cancellationLockMinutes: Int = 0,
+    val holdToDismissMillis: Int = LongPressThreshold.DEFAULT_MILLIS,
     val firingControlMode: String = "hybrid",
     val challengeBypassEnabled: Boolean = false,
     val challengeBypassDelaySeconds: Int = 30,
@@ -261,6 +263,7 @@ private fun AppSettings.sanitized(): AppSettings {
         napDefaultMinutes = napDefaultMinutes.coerceIn(1, 180),
         pauseUntilMillis = normalizedPauseUntil,
         cancellationLockMinutes = cancellationLockMinutes.coerceIn(0, 120),
+        holdToDismissMillis = LongPressThreshold.coerceMillis(holdToDismissMillis),
         firingControlMode = firingControlMode.takeIf {
             it in setOf("hybrid", "buttons", "swipe")
         } ?: "hybrid",
@@ -374,6 +377,7 @@ class PreferencesManager @Inject constructor(
         val BEDTIME_STAY_UP_LATE_UNTIL = longPreferencesKey("bedtime_stay_up_late_until_millis")
         val HEALTH_CONNECT_ENABLED = booleanPreferencesKey("health_connect_enabled")
         val CANCELLATION_LOCK_MINUTES = intPreferencesKey("cancellation_lock_minutes")
+        val HOLD_TO_DISMISS_MILLIS = intPreferencesKey("hold_to_dismiss_millis")
         val FIRING_CONTROL_MODE = stringPreferencesKey("firing_control_mode")
         val CHALLENGE_BYPASS_ENABLED = booleanPreferencesKey("challenge_bypass_enabled")
         val CHALLENGE_BYPASS_DELAY = intPreferencesKey("challenge_bypass_delay_seconds")
@@ -522,6 +526,7 @@ class PreferencesManager @Inject constructor(
         pauseUntilMillis = this[Keys.PAUSE_UNTIL] ?: 0L,
         healthConnectEnabled = this[Keys.HEALTH_CONNECT_ENABLED] ?: false,
         cancellationLockMinutes = this[Keys.CANCELLATION_LOCK_MINUTES] ?: 0,
+        holdToDismissMillis = this[Keys.HOLD_TO_DISMISS_MILLIS] ?: LongPressThreshold.DEFAULT_MILLIS,
         firingControlMode = this[Keys.FIRING_CONTROL_MODE] ?: "hybrid",
         challengeBypassEnabled = this[Keys.CHALLENGE_BYPASS_ENABLED] ?: false,
         challengeBypassDelaySeconds = this[Keys.CHALLENGE_BYPASS_DELAY] ?: 30,
@@ -616,6 +621,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.PAUSE_UNTIL] = s.pauseUntilMillis
         this[Keys.HEALTH_CONNECT_ENABLED] = s.healthConnectEnabled
         this[Keys.CANCELLATION_LOCK_MINUTES] = s.cancellationLockMinutes
+        this[Keys.HOLD_TO_DISMISS_MILLIS] = s.holdToDismissMillis
         this[Keys.FIRING_CONTROL_MODE] = s.firingControlMode
         this[Keys.CHALLENGE_BYPASS_ENABLED] = s.challengeBypassEnabled
         this[Keys.CHALLENGE_BYPASS_DELAY] = s.challengeBypassDelaySeconds

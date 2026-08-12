@@ -274,6 +274,56 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
             }
         }
 
+        var showHoldThresholdMenu by remember { mutableStateOf(false) }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.settings_long_press_threshold), color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    stringResource(R.string.settings_long_press_threshold_description),
+                    color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            Box {
+                TextButton(onClick = { showHoldThresholdMenu = true }) {
+                    Text(
+                        stringResource(
+                            R.string.settings_hold_duration_short,
+                            state.settings.holdToDismissMillis / 1000f
+                        ),
+                        color = AccentBlue
+                    )
+                }
+                DropdownMenu(
+                    expanded = showHoldThresholdMenu,
+                    onDismissRequest = { showHoldThresholdMenu = false }
+                ) {
+                    listOf(500, 1_000, 1_500, 2_500, 4_000, 5_000).forEach { millis ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    stringResource(
+                                        R.string.settings_hold_duration_short,
+                                        millis / 1000f
+                                    )
+                                )
+                            },
+                            onClick = {
+                                viewModel.updateHoldToDismissMillis(millis)
+                                showHoldThresholdMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+
         var showFiringModeMenu by remember { mutableStateOf(false) }
         Row(
             modifier = Modifier
