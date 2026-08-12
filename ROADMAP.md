@@ -38,5 +38,4 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-X3 | TalkBack audit — large double-tap buttons on firing screen. | [Android accessibility overview](https://support.google.com/accessibility/android/answer/6006564) | S |
 | L-X4 | Pure-black / mono-color WCAG AAA high-contrast theme. | [WCAG 2.2 / 2.1 AAA](https://www.w3.org/WAI/WCAG22/quickref/) | S |

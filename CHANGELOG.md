@@ -41,6 +41,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   re-registers enabled alarms with the selected path.
 - Added a configurable firing-screen dismiss hold duration, from 0.5 to 5
   seconds, with backup/restore support and a live preference on the alarm UI.
+- Completed the firing-screen TalkBack audit: touch exploration selects button
+  controls, dismiss/snooze actions use large targets with explicit semantic
+  labels and states, and challenge progress is announced as it changes.
 - Verified alarm-related foreground services remain on the `mediaPlayback` type;
   no `shortService` migration is used, avoiding Android 15's short-service timeout.
 - Added a bounded 15-second partial wake lock around normal and Direct Boot
