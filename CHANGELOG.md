@@ -15,6 +15,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Split the AlarmEdit screen into focused Overview, Sound, Dismiss, Schedule,
   Wake, Integrations, Advanced, and shared-support files while preserving its
   existing page routing and callbacks.
+- Completed the Media3 alarm-audio stall path for both local tones and internet
+  radio: bounded READY watchdogs now force eligible speaker/max-volume routing,
+  record the failure, and fall back immediately to the legacy player.
 
 ## [1.15.32] - 2026-07-29
 

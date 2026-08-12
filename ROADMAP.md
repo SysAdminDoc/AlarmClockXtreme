@@ -135,17 +135,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 - [ ] Webhooks (Tasker / MacroDroid / Home Assistant) cover the integration surface we want to expose. A "real" plugin SDK is rejected (UC) until webhook gaps are documented.
 
-- [ ] P2 — Media3 alarm-audio stall detection
-  Why: the Media3 ring path has no stall/timeout detection, so a stalled ring
-  relies only on the delayed backup-sound escalation to recover.
-  Evidence: Media3 1.9 `StuckPlayerException` + stalled-ready timeouts
-  (developer.android.com/jetpack/androidx/releases/media3); ACX on Media3 1.10.1.
-  Touches: `service/AlarmService.kt` audio path, `service/AlarmAudioRouting.kt`.
-  Acceptance: a stalled/failed player is detected within a bounded window and
-  escalates immediately (built-in speaker + max volume, then legacy fallback)
-  rather than waiting for the backup-sound timer; incident reason code recorded.
-  Complexity: M.
-
 - [ ] P2 — Snooze to a specific time (scheduled snooze)
   Why: snooze is fixed-interval + progressive only; users want to re-fire at a
   chosen clock time (e.g. "again at 07:15").

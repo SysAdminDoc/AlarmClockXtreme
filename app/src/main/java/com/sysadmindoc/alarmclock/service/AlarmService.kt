@@ -182,6 +182,8 @@ class AlarmService : Service() {
     // Fires the guaranteed default tone if the Media3 player never actually
     // starts (stuck buffering with no onPlayerError) so the alarm can't ring silently.
     private var playbackWatchdogJob: Job? = null
+    @Volatile
+    private var forceBuiltInSpeakerForFallback: Boolean = false
     private var currentAlarmId: Long = -1
     private var currentFireId: String = ""
     private var currentScheduledAt: Long = 0L
@@ -921,6 +923,7 @@ class AlarmService : Service() {
     private fun startMedia3Radio(alarm: Alarm, radioUrl: String): Boolean {
         return try {
             var playbackRef: AlarmPlaybackPlayer? = null
+            val playbackStarted = AtomicBoolean(false)
             val playback = createMedia3Playback(
                 mediaItem = MediaItem.fromUri(radioUrl),
                 audioAttributes = AlarmAudioRouting.media3AlarmMusicAttributes(),
@@ -932,6 +935,8 @@ class AlarmService : Service() {
                     rampGain = 1f
                 ),
                 onReady = {
+                    playbackStarted.set(true)
+                    cancelPlaybackWatchdog()
                     updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
                     recordIncidentAsync(
                         type = AlarmIncidentEvent.TYPE_AUDIO,
@@ -947,6 +952,7 @@ class AlarmService : Service() {
                 },
                 onEnded = {},
                 onError = { error ->
+                    cancelPlaybackWatchdog()
                     playbackRef?.let { releasePlaybackIfCurrent(it) }
                     recordIncidentAsync(
                         type = AlarmIncidentEvent.TYPE_AUDIO,
@@ -954,13 +960,12 @@ class AlarmService : Service() {
                         reasonCode = "MEDIA3_INTERNET_RADIO_ERROR_${error.javaClass.simpleName}",
                         source = "AlarmService"
                     )
-                    serviceScope.launch {
-                        startAudio(alarm.copy(internetRadioUrl = ""))
-                    }
+                    serviceScope.launch { escalateMedia3PlaybackFailure(alarm) }
                 }
             )
             playbackRef = playback
             alarmPlayback = playback
+            armMedia3PlaybackWatchdog(alarm, playback, playbackStarted)
             recordIncidentAsync(
                 type = AlarmIncidentEvent.TYPE_AUDIO,
                 status = AlarmIncidentEvent.STATUS_REQUESTED,
@@ -1003,6 +1008,7 @@ class AlarmService : Service() {
                 initialVolume = initialVolume,
                 onReady = {
                     playbackStarted.set(true)
+                    cancelPlaybackWatchdog()
                     seekToRandomPoolOffset(alarm, playbackRef)
                     if (alarm.overrideSystemVolume) {
                         setConfiguredAlarmStreamVolume(alarm)
@@ -1025,6 +1031,7 @@ class AlarmService : Service() {
                     }
                 },
                 onError = { error ->
+                    cancelPlaybackWatchdog()
                     playbackRef?.let { releasePlaybackIfCurrent(it) }
                     recordIncidentAsync(
                         type = AlarmIncidentEvent.TYPE_AUDIO,
@@ -1032,7 +1039,7 @@ class AlarmService : Service() {
                         reasonCode = "MEDIA3_PLAYER_FAILED_${error.javaClass.simpleName}",
                         source = "AlarmService"
                     )
-                    startMedia3DefaultFallback(alarm)
+                    escalateMedia3PlaybackFailure(alarm)
                 }
             )
             playbackRef = playback
@@ -1044,24 +1051,10 @@ class AlarmService : Service() {
                 source = "AlarmService"
             )
 
-            // Stall watchdog: if the player never reaches READY within the
-            // timeout (e.g. a stuck stream or a decoder that hangs without
-            // emitting onPlayerError), fall back to the guaranteed default tone
-            // rather than letting the alarm ring silently.
-            playbackWatchdogJob?.cancel()
-            playbackWatchdogJob = serviceScope.launch {
-                delay(PLAYBACK_START_TIMEOUT_MS)
-                if (!playbackStarted.get() && currentAlarmId == alarm.id) {
-                    recordIncidentAsync(
-                        type = AlarmIncidentEvent.TYPE_AUDIO,
-                        status = AlarmIncidentEvent.STATUS_FAILED,
-                        reasonCode = "MEDIA3_PLAYER_STALL_TIMEOUT",
-                        source = "AlarmService"
-                    )
-                    playbackRef?.let { releasePlaybackIfCurrent(it) }
-                    startMedia3DefaultFallback(alarm)
-                }
-            }
+            // If the player never reaches READY (for example, a stream stuck
+            // buffering with no onPlayerError), escalate before the delayed
+            // backup-sound timer gets a chance to fire.
+            armMedia3PlaybackWatchdog(alarm, playback, playbackStarted)
 
             if (fadeInMs > 0) {
                 volumeJob = serviceScope.launch {
@@ -1085,11 +1078,69 @@ class AlarmService : Service() {
             )
             try { alarmPlayback?.stopAndRelease() } catch (_: Exception) {}
             alarmPlayback = null
-            startMedia3DefaultFallback(alarm)
+            escalateMedia3PlaybackFailure(alarm)
         }
     }
 
+    private fun armMedia3PlaybackWatchdog(
+        alarm: Alarm,
+        playback: AlarmPlaybackPlayer,
+        playbackStarted: AtomicBoolean
+    ) {
+        cancelPlaybackWatchdog()
+        playbackWatchdogJob = serviceScope.launch {
+            delay(PLAYBACK_START_TIMEOUT_MS)
+            if (!playbackStarted.get() && currentAlarmId == alarm.id && alarmPlayback === playback) {
+                recordIncidentAsync(
+                    type = AlarmIncidentEvent.TYPE_AUDIO,
+                    status = AlarmIncidentEvent.STATUS_FAILED,
+                    reasonCode = "MEDIA3_PLAYER_STALL_TIMEOUT",
+                    source = "AlarmService"
+                )
+                releasePlaybackIfCurrent(playback)
+                escalateMedia3PlaybackFailure(alarm)
+            }
+        }
+    }
+
+    private fun cancelPlaybackWatchdog() {
+        playbackWatchdogJob?.cancel()
+        playbackWatchdogJob = null
+    }
+
+    private fun escalateMedia3PlaybackFailure(alarm: Alarm) {
+        cancelPlaybackWatchdog()
+        forceBuiltInSpeakerForFallback = true
+        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager
+        if (audioManager != null) {
+            runCatching {
+                backupSoundOriginalAlarmVolume = backupSoundOriginalAlarmVolume
+                    ?: audioManager.getStreamVolume(AudioManager.STREAM_ALARM)
+                audioManager.setStreamVolume(
+                    AudioManager.STREAM_ALARM,
+                    audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM),
+                    0
+                )
+            }.onFailure { error ->
+                recordIncidentAsync(
+                    type = AlarmIncidentEvent.TYPE_AUDIO,
+                    status = AlarmIncidentEvent.STATUS_FAILED,
+                    reasonCode = "MEDIA3_FALLBACK_VOLUME_FAILED_${error.javaClass.simpleName}",
+                    source = "AlarmService"
+                )
+            }
+        }
+        recordIncidentAsync(
+            type = AlarmIncidentEvent.TYPE_AUDIO,
+            status = AlarmIncidentEvent.STATUS_FAILED,
+            reasonCode = "MEDIA3_FALLBACK_ROUTING_FORCED",
+            source = "AlarmService"
+        )
+        startMedia3DefaultFallback(alarm)
+    }
+
     private fun startMedia3DefaultFallback(alarm: Alarm) {
+        cancelPlaybackWatchdog()
         recordIncidentAsync(
             type = AlarmIncidentEvent.TYPE_AUDIO,
             status = AlarmIncidentEvent.STATUS_REQUESTED,
@@ -1155,12 +1206,14 @@ class AlarmService : Service() {
      * system-managed hearing-aid / BLE devices.
      */
     private fun forcedSpeakerDevice(): android.media.AudioDeviceInfo? {
-        if (!preferencesManager.getCachedSettings().usePhoneSpeakers) return null
+        val usePhoneSpeakers = forceBuiltInSpeakerForFallback ||
+            preferencesManager.getCachedSettings().usePhoneSpeakers
+        if (!usePhoneSpeakers) return null
         val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return null
         val outputTypes = audioManager
             .getDevices(AudioManager.GET_DEVICES_OUTPUTS)
             .map { it.type }
-        if (!AlarmAudioRouting.shouldForceBuiltInSpeaker(usePhoneSpeakers = true, outputDeviceTypes = outputTypes)) {
+        if (!AlarmAudioRouting.shouldForceBuiltInSpeaker(usePhoneSpeakers, outputTypes)) {
             return null
         }
         return AlarmAudioRouting.builtInSpeaker(audioManager)
@@ -2047,6 +2100,7 @@ class AlarmService : Service() {
         vibrator = null
         unregisterCallObserver()
         callMutedAudio = false
+        forceBuiltInSpeakerForFallback = false
         challengeAudioDuckingActive = false
         challengeAudioDuckPercent = 35
         playbackRampGain = 1f
