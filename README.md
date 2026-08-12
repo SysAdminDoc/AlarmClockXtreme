@@ -232,7 +232,7 @@ cd AlarmClockXtreme
 1. Generate a keystore: `keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias alarm`
 2. Copy `keystore.properties.template` to `keystore.properties`
 3. Fill in your keystore path and credentials
-4. Build: `./gradlew :app:bundlePlayRelease :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease`
+4. Build: `./gradlew :app:bundlePlayRelease :app:assemblePlayRelease :app:verifyFdroidReleaseSize :wear:assembleRelease`
 
 Local release builds use `keystore.properties`. If you mirror this setup in
 another environment, use either the preferred `ANDROID_*` names or the legacy
@@ -248,7 +248,8 @@ short names for the same values:
 Release artifact tasks depend on the root `verifyReleaseSigning` check and fail
 closed when `keystore.properties` or its configured keystore is missing. This
 prevents an unsigned AAB or APK from being mistaken for a publishable artifact.
-Release builds produce signed Play, F-Droid, and Wear APKs locally; the Play
+Release builds produce signed Play, F-Droid, and Wear APKs locally; the F-Droid
+size check also builds its release APK and enforces the 40 MiB budget. The Play
 bundle is written under `app/build/outputs/bundle/playRelease/`. Verify
 signatures with `apksigner`, write `SHA256SUMS.txt` and
 `APK-CERT-FINGERPRINTS.txt`, and attach the artifacts to the GitHub Release.

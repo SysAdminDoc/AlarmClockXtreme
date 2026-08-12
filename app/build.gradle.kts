@@ -142,6 +142,25 @@ tasks.matching { it.name in releaseArtifactTasks }.configureEach {
     dependsOn(rootProject.tasks.named("verifyReleaseSigning"))
 }
 
+val fdroidReleaseApk = layout.buildDirectory.file("outputs/apk/fdroid/release/app-fdroid-release.apk")
+val verifyFdroidReleaseSize by tasks.registering {
+    group = "verification"
+    description = "Keep the F-Droid release APK below the documented 40 MiB budget."
+    dependsOn("assembleFdroidRelease")
+    inputs.file(fdroidReleaseApk)
+
+    doLast {
+        val apk = fdroidReleaseApk.get().asFile
+        check(apk.isFile) {
+            "F-Droid release APK was not produced: ${apk.path}"
+        }
+        val maxBytes = 40L * 1024L * 1024L
+        check(apk.length() <= maxBytes) {
+            "F-Droid release APK is ${apk.length() / (1024.0 * 1024.0)} MiB; maximum is 40 MiB."
+        }
+    }
+}
+
 val primaryComposeScreenFiles = listOf(
     file("src/main/java/com/sysadmindoc/alarmclock/ui/alarmfiring/AlarmFiringScreen.kt"),
     file("src/main/java/com/sysadmindoc/alarmclock/ui/alarmedit/AlarmEditScreen.kt"),

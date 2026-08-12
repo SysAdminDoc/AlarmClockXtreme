@@ -65,6 +65,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Added a fail-closed signing check to the Play, F-Droid, and Wear release
   artifact tasks, including the Play AAB path, so missing signing material
   cannot produce a publishable unsigned artifact.
+- Added a release verification task that builds the F-Droid APK and rejects
+  artifacts above the documented 40 MiB size budget.
 
 ## [1.15.32] - 2026-07-29
 
