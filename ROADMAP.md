@@ -135,19 +135,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 - [ ] Webhooks (Tasker / MacroDroid / Home Assistant) cover the integration surface we want to expose. A "real" plugin SDK is rejected (UC) until webhook gaps are documented.
 
-- [ ] P2 — OEM reliability doctor (per-manufacturer deep-links + post-OTA re-check)
-  Why: OEM Doze/autostart kills are the #1 real-world missed-alarm cause; ACX
-  surfaces wake-readiness but not per-OEM autostart/battery deep-links or a
-  re-prompt after an OTA silently resets permissions.
-  Evidence: dontkillmyapp.com; github.com/WrichikBasu/ShakeAlarmClock/discussions/61.
-  Touches: wake-readiness settings group, a small per-OEM intent map, an
-  OTA/build-fingerprint change detector.
-  Acceptance: on Xiaomi/Samsung/Oppo/Vivo/OnePlus/Realme the readiness card deep-
-  links to the correct autostart/battery screen; a detected OS build-fingerprint
-  change re-surfaces the reliability checklist. Tradeoff (maintenance burden of
-  per-OEM intents) accepted and documented inline.
-  Complexity: M.
-
 - [ ] P3 — Reduce ring volume while solving a dismiss challenge (opt-in)
   Why: a lower ring during a math/typing/maze mission lets users concentrate;
   Media3 1.10 `mute()`/`unmute()` is now stable, making it cheap.

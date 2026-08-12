@@ -145,10 +145,14 @@ private enum class TestAlarmNoticeTone {
 
 @Composable
 fun OnboardingScreen(
-    onComplete: () -> Unit
+    onComplete: () -> Unit,
+    openReadinessChecklist: Boolean = false
 ) {
     val context = LocalContext.current
-    val pagerState = rememberPagerState(pageCount = { onboardingPages.size })
+    val pagerState = rememberPagerState(
+        initialPage = if (openReadinessChecklist) onboardingPages.lastIndex else 0,
+        pageCount = { onboardingPages.size }
+    )
     val scope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == onboardingPages.lastIndex
     var readiness by remember { mutableStateOf(OnboardingReadiness.from(context)) }
@@ -337,7 +341,7 @@ fun OnboardingScreen(
                             title = "Battery protection",
                             ready = readiness.batteryReady,
                             actionLabel = "Open",
-                            onAction = { ManufacturerCompat.requestBatteryOptimizationExemption(context) }
+                            onAction = { ManufacturerCompat.openBatterySettings(context) }
                         )
                         ReadinessMiniRow(
                             icon = Icons.Default.Alarm,

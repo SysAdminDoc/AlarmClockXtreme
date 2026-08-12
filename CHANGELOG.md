@@ -25,6 +25,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   `ProgressStyle` live updates, while older versions get a chronometer
   fallback; the notification is cleared when the alarm re-fires or is
   dismissed.
+- Added per-OEM battery/autostart settings candidates for Samsung, Xiaomi,
+  Oppo/Realme, Vivo/iQOO, and OnePlus, with safe generic fallbacks when a
+  vendor activity is unavailable. OS build-fingerprint changes now re-open
+  the final wake-readiness checklist after an OTA.
 
 ## [1.15.32] - 2026-07-29
 

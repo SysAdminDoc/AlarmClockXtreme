@@ -17,6 +17,7 @@ import com.sysadmindoc.alarmclock.receiver.MissedAlarmUnlockReceiver
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.service.NextAlarmNotifier
 import com.sysadmindoc.alarmclock.service.YouTubeDownloadInitializer
+import com.sysadmindoc.alarmclock.util.ReliabilityDoctor
 import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
 import com.sysadmindoc.alarmclock.worker.AlarmHealthWorker
 import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
@@ -87,6 +88,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
     private fun initializeUnlockedApp() {
         if (unlockedStartupComplete) return
         unlockedStartupComplete = true
+        ReliabilityDoctor.recordCurrentBuildFingerprint(this)
         unlockReceiver?.let { receiver ->
             runCatching { unregisterReceiver(receiver) }
             unlockReceiver = null

@@ -48,6 +48,7 @@ import com.sysadmindoc.alarmclock.ui.theme.*
 import com.sysadmindoc.alarmclock.ui.timer.TimerScreen
 import com.sysadmindoc.alarmclock.ui.worldclock.WorldClockScreen
 import com.sysadmindoc.alarmclock.ui.news.NewsScreen
+import com.sysadmindoc.alarmclock.util.ReliabilityDoctor
 
 sealed class Screen(val route: String) {
     data object Dashboard : Screen("dashboard")
@@ -142,7 +143,12 @@ fun AppNavigation(
     // can re-show the flow to existing users by bumping the version.
     val prefs = remember { context.getSharedPreferences("app_prefs", 0) }
     val hasCompletedOnboarding = remember { prefs.getBoolean(ONBOARDING_DONE_KEY, false) }
-    val startDest = if (hasCompletedOnboarding) Screen.AlarmList.route else Screen.Onboarding.route
+    val reliabilityChecklistDue = remember { ReliabilityDoctor.isChecklistDue(context) }
+    val startDest = if (hasCompletedOnboarding && !reliabilityChecklistDue) {
+        Screen.AlarmList.route
+    } else {
+        Screen.Onboarding.route
+    }
 
     // v1.7.1: User-controlled tab visibility. We grab the cached snapshot
     // straight from PreferencesManager via Hilt so the nav bar updates the
@@ -307,6 +313,7 @@ fun AppNavigation(
                         navController = navController,
                         startDest = startDest,
                         prefs = prefs,
+                        openReadinessChecklist = reliabilityChecklistDue,
                         sharedAlarmDraft = sharedAlarmDraft,
                         onSharedAlarmConsumed = onSharedAlarmConsumed
                     )
@@ -319,6 +326,7 @@ fun AppNavigation(
         navController = navController,
         startDest = startDest,
         prefs = prefs,
+        openReadinessChecklist = reliabilityChecklistDue,
         sharedAlarmDraft = sharedAlarmDraft,
         onSharedAlarmConsumed = onSharedAlarmConsumed,
         modifier = Modifier.padding(padding)
@@ -339,10 +347,13 @@ private fun AppNavHost(
     navController: NavHostController,
     startDest: String,
     prefs: android.content.SharedPreferences,
+    openReadinessChecklist: Boolean,
     sharedAlarmDraft: Alarm?,
     onSharedAlarmConsumed: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+
     LaunchedEffect(sharedAlarmDraft) {
         if (sharedAlarmDraft != null) {
             navController.navigate(Screen.SharedAlarmImport.route) {
@@ -370,7 +381,9 @@ private fun AppNavHost(
     ) {
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
+                openReadinessChecklist = openReadinessChecklist,
                 onComplete = {
+                    ReliabilityDoctor.markChecklistReviewed(context)
                     prefs.edit().putBoolean(ONBOARDING_DONE_KEY, true).apply()
                     navController.navigate(Screen.AlarmList.route) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }

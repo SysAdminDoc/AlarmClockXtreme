@@ -19,6 +19,10 @@ class ManufacturerCompatTest {
         "huawei", "honor", "oppo", "realme", "vivo", "iqoo"
     )
 
+    private val deepLinkedOems = listOf(
+        "samsung", "xiaomi", "redmi", "poco", "oneplus", "oppo", "realme", "vivo", "iqoo"
+    )
+
     @Test
     fun everyAggressiveOemHasCompleteGuidance() {
         aggressiveOems.forEach { oem ->
@@ -61,5 +65,24 @@ class ManufacturerCompatTest {
     fun colorOsVendorUrlMatchesVendor() {
         assertEquals("https://dontkillmyapp.com/oppo", ManufacturerCompat.getGuidance("oppo")?.dontKillMyAppUrl)
         assertEquals("https://dontkillmyapp.com/realme", ManufacturerCompat.getGuidance("realme")?.dontKillMyAppUrl)
+    }
+
+    @Test
+    fun supportedAutostartOemsHaveVendorSettingsCandidates() {
+        deepLinkedOems.forEach { oem ->
+            val guidance = requireNotNull(ManufacturerCompat.getGuidance(oem))
+            assertTrue("$oem should have a vendor settings candidate", guidance.settingsIntents.isNotEmpty())
+        }
+    }
+
+    @Test
+    fun samsungCandidateTargetsNeverSleepingApps() {
+        val intent = requireNotNull(ManufacturerCompat.getGuidance("samsung"))
+            .settingsIntents
+            .first()
+
+        assertEquals("com.samsung.android.sm.ACTION_OPEN_CHECKABLE_LISTACTIVITY", intent.action)
+        assertEquals("com.samsung.android.lool", intent.packageName)
+        assertEquals(2, intent.intExtras["activity_type"])
     }
 }

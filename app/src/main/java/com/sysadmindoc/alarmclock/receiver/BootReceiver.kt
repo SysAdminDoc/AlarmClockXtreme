@@ -7,6 +7,7 @@ import android.util.Log
 import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
 import com.sysadmindoc.alarmclock.ui.timer.TimerNotifications
 import com.sysadmindoc.alarmclock.ui.timer.TimerStore
+import com.sysadmindoc.alarmclock.util.ReliabilityDoctor
 import com.sysadmindoc.alarmclock.worker.BootRescheduleWorker
 import com.sysadmindoc.alarmclock.worker.AlarmHealthWorker
 import kotlinx.coroutines.CoroutineScope
@@ -68,6 +69,7 @@ class BootReceiver : BroadcastReceiver() {
                 // deliberately.
                 if (action == Intent.ACTION_BOOT_COMPLETED ||
                     action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+                    ReliabilityDoctor.recordCurrentBuildFingerprint(appContext)
                     try {
                         appContext.getSharedPreferences("missed_alarm_state", Context.MODE_PRIVATE)
                             .edit().clear().apply()

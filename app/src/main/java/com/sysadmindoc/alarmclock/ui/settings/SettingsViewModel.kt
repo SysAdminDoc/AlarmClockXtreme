@@ -243,7 +243,7 @@ class SettingsViewModel @Inject constructor(
 
     fun requestBatteryExemption() {
         val context = getApplication<Application>()
-        ManufacturerCompat.requestBatteryOptimizationExemption(context)
+        ManufacturerCompat.openBatterySettings(context)
     }
 
     fun requestExactAlarmAccess() {

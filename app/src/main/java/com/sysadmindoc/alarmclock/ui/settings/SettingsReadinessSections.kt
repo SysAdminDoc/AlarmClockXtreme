@@ -864,13 +864,22 @@ internal fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Setti
             }
         )
 
-        if (!state.isIgnoringBatteryOptimizations) {
+        if (!state.isIgnoringBatteryOptimizations || state.needsBatteryGuidance) {
             Button(
                 onClick = viewModel::requestBatteryExemption,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text(stringResource(R.string.settings_open_battery))
+                Text(
+                    if (state.needsBatteryGuidance) {
+                        stringResource(
+                            R.string.settings_open_manufacturer_battery,
+                            state.manufacturerName
+                        )
+                    } else {
+                        stringResource(R.string.settings_open_battery)
+                    }
+                )
             }
         }
 

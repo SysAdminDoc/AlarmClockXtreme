@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.util
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -17,13 +18,33 @@ import android.net.Uri
  */
 object ManufacturerCompat {
 
+    /** Platform-neutral description of one best-effort OEM settings target. */
+    data class SettingsIntentSpec(
+        val action: String? = null,
+        val packageName: String? = null,
+        val componentPackage: String? = null,
+        val componentClass: String? = null,
+        val intExtras: Map<String, Int> = emptyMap()
+    ) {
+        fun toIntent(): Intent {
+            val intent = if (action == null) Intent() else Intent(action)
+            packageName?.let { intent.setPackage(it) }
+            if (componentPackage != null && componentClass != null) {
+                intent.component = ComponentName(componentPackage, componentClass)
+            }
+            intExtras.forEach { (key, value) -> intent.putExtra(key, value) }
+            return intent
+        }
+    }
+
     data class BatteryGuidance(
         val manufacturer: String,
         val title: String,
         val steps: List<String>,
         /** Vendor-specific DontKillMyApp page with up-to-date remediation. */
         val dontKillMyAppUrl: String,
-        val settingsIntent: Intent? = null
+        /** Best-effort vendor settings candidates; every launch has a generic fallback. */
+        val settingsIntents: List<SettingsIntentSpec> = emptyList()
     )
 
     fun getManufacturer(): String = Build.MANUFACTURER.lowercase()
@@ -41,7 +62,24 @@ object ManufacturerCompat {
         return pm.isIgnoringBatteryOptimizations(context.packageName)
     }
 
-    fun requestBatteryOptimizationExemption(context: Context) {
+    /**
+     * OEM activity names are undocumented and change between vendor releases.
+     * Keep this list best-effort, retain the generic Android fallback, and keep
+     * the public DontKillMyApp guide available when a candidate is stale.
+     */
+    fun openBatterySettings(context: Context): Boolean {
+        getGuidance()?.settingsIntents?.forEach { candidate ->
+            val launched = runCatching {
+                context.startActivity(
+                    candidate.toIntent().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
+            }.isSuccess
+            if (launched) return true
+        }
+        return requestBatteryOptimizationExemption(context)
+    }
+
+    fun requestBatteryOptimizationExemption(context: Context): Boolean {
         try {
             if (!isIgnoringBatteryOptimizations(context)) {
                 val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
@@ -49,7 +87,9 @@ object ManufacturerCompat {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(intent)
+                return true
             }
+            return true
         } catch (e: Exception) {
             // Fallback to general battery settings if direct request fails
             try {
@@ -57,7 +97,10 @@ object ManufacturerCompat {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(fallback)
-            } catch (_: Exception) { /* Device doesn't support this */ }
+                return true
+            } catch (_: Exception) {
+                return false
+            }
         }
     }
 
@@ -72,7 +115,14 @@ object ManufacturerCompat {
                     "Tap 'Never sleeping apps'",
                     "Add AlarmClockXtreme to the list"
                 ),
-                dontKillMyAppUrl = "https://dontkillmyapp.com/samsung"
+                dontKillMyAppUrl = "https://dontkillmyapp.com/samsung",
+                settingsIntents = listOf(
+                    SettingsIntentSpec(
+                        action = "com.samsung.android.sm.ACTION_OPEN_CHECKABLE_LISTACTIVITY",
+                        packageName = "com.samsung.android.lool",
+                        intExtras = mapOf("activity_type" to 2)
+                    )
+                )
             )
             "xiaomi", "redmi", "poco" -> BatteryGuidance(
                 manufacturer = "Xiaomi",
@@ -83,7 +133,17 @@ object ManufacturerCompat {
                     "Enable 'Autostart'",
                     "Set Battery saver to 'No restrictions'"
                 ),
-                dontKillMyAppUrl = "https://dontkillmyapp.com/xiaomi"
+                dontKillMyAppUrl = "https://dontkillmyapp.com/xiaomi",
+                settingsIntents = listOf(
+                    componentIntent(
+                        "com.miui.securitycenter",
+                        "com.miui.permcenter.autostart.AutoStartManagementActivity"
+                    ),
+                    SettingsIntentSpec(
+                        action = "miui.intent.action.OP_AUTO_START",
+                        packageName = "com.miui.securitycenter"
+                    )
+                )
             )
             "oneplus" -> BatteryGuidance(
                 manufacturer = "OnePlus",
@@ -93,7 +153,17 @@ object ManufacturerCompat {
                     "Find AlarmClockXtreme",
                     "Select 'Don't optimize'"
                 ),
-                dontKillMyAppUrl = "https://dontkillmyapp.com/oneplus"
+                dontKillMyAppUrl = "https://dontkillmyapp.com/oneplus",
+                settingsIntents = listOf(
+                    componentIntent(
+                        "com.oneplus.security",
+                        "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity"
+                    ),
+                    componentIntent(
+                        "com.android.settings",
+                        "com.android.settings.Settings\$HighPowerApplicationsActivity"
+                    )
+                )
             )
             "huawei", "honor" -> BatteryGuidance(
                 manufacturer = "Huawei",
@@ -115,7 +185,8 @@ object ManufacturerCompat {
                     "Enable 'Allow background activity' and 'Allow auto-launch'",
                     "Set Battery optimization to 'Don't optimize'"
                 ),
-                dontKillMyAppUrl = "https://dontkillmyapp.com/${manufacturer.lowercase()}"
+                dontKillMyAppUrl = "https://dontkillmyapp.com/${manufacturer.lowercase()}",
+                settingsIntents = colorOsStartupIntents()
             )
             "vivo", "iqoo" -> BatteryGuidance(
                 manufacturer = "Vivo",
@@ -125,11 +196,50 @@ object ManufacturerCompat {
                     "Find AlarmClockXtreme and allow high background power",
                     "Open Settings > Apps > Auto-start and enable AlarmClockXtreme"
                 ),
-                dontKillMyAppUrl = "https://dontkillmyapp.com/vivo"
+                dontKillMyAppUrl = "https://dontkillmyapp.com/vivo",
+                settingsIntents = listOf(
+                    componentIntent(
+                        "com.vivo.permissionmanager",
+                        "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"
+                    ),
+                    componentIntent(
+                        "com.iqoo.secure",
+                        "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"
+                    ),
+                    componentIntent(
+                        "com.iqoo.secure",
+                        "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager"
+                    )
+                )
             )
             else -> null
         }
     }
+
+    private fun colorOsStartupIntents(): List<SettingsIntentSpec> = listOf(
+        componentIntent(
+            "com.coloros.safecenter",
+            "com.coloros.safecenter.permission.startup.StartupAppListActivity"
+        ),
+        componentIntent(
+            "com.coloros.safecenter",
+            "com.coloros.safecenter.startupapp.StartupAppListActivity"
+        ),
+        componentIntent(
+            "com.oppo.safe",
+            "com.oppo.safe.permission.startup.StartupAppListActivity"
+        ),
+        componentIntent(
+            "com.coloros.safecenter",
+            "com.coloros.safecenter.permission.startupmanager.StartupAppListActivity"
+        )
+    )
+
+    private fun componentIntent(packageName: String, className: String): SettingsIntentSpec =
+        SettingsIntentSpec(
+            componentPackage = packageName,
+            componentClass = className
+        )
 
     fun isPackageInstalled(context: Context, packageName: String): Boolean {
         return try {
