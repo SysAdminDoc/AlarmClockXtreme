@@ -825,13 +825,26 @@ class SettingsViewModel @Inject constructor(
 
     fun clearBackupResult() { _backupResult.value = null }
 
-    suspend fun createSupportExport(): Result<SupportExportFile> {
+    suspend fun createSupportExport(): Result<SupportExportFile> = createDiagnosticExport(
+        successMessage = "Support bundle ready to share",
+        exporter = supportExportManager::createSupportExport
+    )
+
+    suspend fun createCrashLogExport(): Result<SupportExportFile> = createDiagnosticExport(
+        successMessage = "Crash log ready to share",
+        exporter = supportExportManager::createCrashLogExport
+    )
+
+    private suspend fun createDiagnosticExport(
+        successMessage: String,
+        exporter: suspend () -> SupportExportFile
+    ): Result<SupportExportFile> {
         _supportExportBusy.value = true
         return try {
             val export = withContext(Dispatchers.IO) {
-                supportExportManager.createSupportExport()
+                exporter()
             }
-            setSupportExportResult("Support bundle ready to share")
+            setSupportExportResult(successMessage)
             Result.success(export)
         } catch (e: Exception) {
             val message = backupFailureMessage(BackupStatusKind.SupportExport, e)

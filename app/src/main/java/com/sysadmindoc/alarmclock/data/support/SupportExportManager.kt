@@ -38,6 +38,25 @@ data class SupportExportFile(
     val mimeType: String = "application/zip"
 )
 
+internal data class CrashLogExportEntry(
+    val fileName: String,
+    val text: String
+)
+
+internal object CrashLogExportFormatter {
+    fun format(entries: List<CrashLogExportEntry>): String {
+        if (entries.isEmpty()) return "No local crash logs were present.\n"
+
+        return buildString {
+            entries.forEachIndexed { index, entry ->
+                if (index > 0) append('\n')
+                append("===== ").append(entry.fileName).append(" =====\n")
+                append(CrashLogScrubber.scrub(entry.text).trimEnd()).append('\n')
+            }
+        }
+    }
+}
+
 @Singleton
 class SupportExportManager @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -207,6 +226,34 @@ class SupportExportManager @Inject constructor(
         return SupportExportFile(uri = uri, fileName = fileName)
     }
 
+    suspend fun createCrashLogExport(): SupportExportFile {
+        val generatedAt = Instant.now()
+        val exportDir = File(context.cacheDir, EXPORT_DIR_NAME).apply { mkdirs() }
+        exportDir.listFiles()
+            ?.filter { it.isFile && it.name.startsWith(CRASH_LOG_FILE_PREFIX) }
+            ?.forEach { runCatching { it.delete() } }
+
+        val fileName = "$CRASH_LOG_FILE_PREFIX-${FILE_TIMESTAMP.format(generatedAt)}.txt"
+        val entries = CrashLogger.getLogFiles(context)
+            .take(MAX_CRASH_LOGS)
+            .map { file ->
+                CrashLogExportEntry(
+                    fileName = file.name,
+                    text = runCatching { file.readText() }
+                        .getOrElse { "Unable to read crash log: ${it.message}\n" }
+                )
+            }
+        val exportFile = File(exportDir, fileName).apply {
+            writeText(CrashLogExportFormatter.format(entries))
+        }
+        val uri = FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            exportFile
+        )
+        return SupportExportFile(uri = uri, fileName = fileName, mimeType = "text/plain")
+    }
+
     private fun hasNotificationPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             hasPermission(Manifest.permission.POST_NOTIFICATIONS)
@@ -270,6 +317,7 @@ class SupportExportManager @Inject constructor(
     private companion object {
         const val EXPORT_DIR_NAME = "support_exports"
         const val FILE_PREFIX = "alarmclockxtreme-support"
+        const val CRASH_LOG_FILE_PREFIX = "alarmclockxtreme-crash-logs"
         const val MAX_CRASH_LOGS = 10
         const val MAX_INCIDENTS = 25
         val FILE_TIMESTAMP: DateTimeFormatter = DateTimeFormatter

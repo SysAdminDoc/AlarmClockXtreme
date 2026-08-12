@@ -793,8 +793,13 @@
     <string name="settings_packaging_diagnostics">Packaging local crash logs and redacted diagnostics…</string>
     <string name="settings_support_bundle_description">Share local crash logs plus redacted wake, incident, and alarm diagnostics.</string>
     <string name="settings_packaging_support_bundle">Packaging support bundle</string>
+    <string name="settings_packaging_export">Packaging local diagnostic export</string>
     <string name="settings_support_export_failed">Support export failed</string>
     <string name="settings_support_bundle_ready">Support bundle ready</string>
+    <string name="settings_export_ready">Export ready</string>
+    <string name="settings_share_crash_log">Share crash log</string>
+    <string name="settings_share_crash_log_description">Redact and share local crash logs. Nothing is uploaded automatically.</string>
+    <string name="settings_crash_log_subject">AlarmClockXtreme crash log</string>
     <string name="settings_about_description">A quick reference for what’s running on this device.</string>
     <string name="settings_version">Version</string>
     <string name="settings_device">Device</string>

@@ -264,6 +264,8 @@ fun SettingsScreen(
     val screenScope = rememberCoroutineScope()
     val supportBundleSubject = stringResource(R.string.settings_support_bundle_subject)
     val shareSupportBundleTitle = stringResource(R.string.settings_share_support_bundle)
+    val crashLogSubject = stringResource(R.string.settings_crash_log_subject)
+    val shareCrashLogTitle = stringResource(R.string.settings_share_crash_log)
     val shareUnavailableMessage = stringResource(R.string.settings_share_unavailable)
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -298,15 +300,19 @@ fun SettingsScreen(
     } else {
         null
     }
-    fun shareSupportExport(export: SupportExportFile) {
+    fun shareSupportExport(
+        export: SupportExportFile,
+        subject: String = supportBundleSubject,
+        chooserTitle: String = shareSupportBundleTitle
+    ) {
         val sendIntent = Intent(Intent.ACTION_SEND).apply {
             type = export.mimeType
             putExtra(Intent.EXTRA_STREAM, export.uri)
-            putExtra(Intent.EXTRA_SUBJECT, supportBundleSubject)
+            putExtra(Intent.EXTRA_SUBJECT, subject)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         try {
-            context.startActivity(Intent.createChooser(sendIntent, shareSupportBundleTitle))
+            context.startActivity(Intent.createChooser(sendIntent, chooserTitle))
         } catch (_: Exception) {
             viewModel.setSupportExportShareFailed()
             Toast.makeText(context, shareUnavailableMessage, Toast.LENGTH_SHORT).show()
@@ -865,7 +871,7 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = stringResource(R.string.settings_packaging_support_bundle),
+                            text = stringResource(R.string.settings_packaging_export),
                             color = TextPrimary,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -879,7 +885,7 @@ fun SettingsScreen(
                 val failed = isFailureStatusMessage(message)
                 AppFeedbackCard(
                     title = stringResource(
-                        if (failed) R.string.settings_support_export_failed else R.string.settings_support_bundle_ready
+                        if (failed) R.string.settings_support_export_failed else R.string.settings_export_ready
                     ),
                     message = message,
                     icon = if (failed) Icons.Default.Warning else Icons.Default.BugReport,
@@ -899,6 +905,30 @@ fun SettingsScreen(
                 SettingsInfo(stringResource(R.string.settings_android), state.androidVersion)
                 SettingsInfo(stringResource(R.string.settings_license), stringResource(R.string.settings_license_value))
                 SettingsInfo(stringResource(R.string.settings_source), stringResource(R.string.settings_source_value))
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
+                UtilityShortcutCard(
+                    icon = Icons.Default.BugReport,
+                    title = stringResource(R.string.settings_share_crash_log),
+                    description = if (supportExportBusy) {
+                        stringResource(R.string.settings_packaging_diagnostics)
+                    } else {
+                        stringResource(R.string.settings_share_crash_log_description)
+                    },
+                    onClick = {
+                        if (!supportExportBusy) {
+                            screenScope.launch {
+                                viewModel.createCrashLogExport()
+                                    .onSuccess { export ->
+                                        shareSupportExport(
+                                            export = export,
+                                            subject = crashLogSubject,
+                                            chooserTitle = shareCrashLogTitle
+                                        )
+                                    }
+                            }
+                        }
+                    }
+                )
             }
             }
             }

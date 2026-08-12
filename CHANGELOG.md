@@ -55,6 +55,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Verified Hue sunrise uses v2 `hue-application-key` authentication over HTTPS
   with TOFU certificate pinning; the legacy v1 HTTP fallback remains explicit
   and disabled by default.
+- Added an About-screen “Share crash log” action that creates a locally scrubbed
+  text export and opens the system share sheet; crash logs are never uploaded
+  automatically.
 
 ## [1.15.32] - 2026-07-29
 
