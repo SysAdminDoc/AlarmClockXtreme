@@ -96,6 +96,14 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   weather-aware scheduler already advances snow/ice alarms by the configured
   early-wake interval.
 
+## [1.15.33] - 2026-08-12
+
+### Changed
+
+- Drained the actionable roadmap: completed items are archived above, while
+  behavior requiring product, safety, visual, or device decisions is recorded
+  in `Roadmap_Blocked.md`.
+
 ## [1.15.32] - 2026-07-29
 
 Fix release for GitHub issue #43.
