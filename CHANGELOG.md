@@ -44,6 +44,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Added a bounded 15-second partial wake lock around normal and Direct Boot
   alarm receiver-to-foreground-service handoffs, covering OEM Doze delays without
   extending receiver work or holding a long-lived delivery lock.
+- Audited the Android 16 Pixel “missed alarm — unknown reason” report against
+  the current QPR notes. ACX now promotes the alarm foreground service
+  synchronously, bridges cold-start delivery with a bounded wake lock, and has a
+  post-fire watchdog; Pixel/QPR device confirmation remains external.
 
 ## [1.15.32] - 2026-07-29
 
