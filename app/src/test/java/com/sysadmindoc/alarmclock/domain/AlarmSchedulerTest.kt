@@ -104,6 +104,20 @@ class AlarmSchedulerTest {
     }
 
     @Test
+    fun scheduleSnoozeAtPersistsSelectedTriggerAndRegistersAlarmClock() = runTest {
+        val target = System.currentTimeMillis() + 15 * 60_000L
+        val alarm = enabledAlarm(id = 43L)
+
+        scheduler.scheduleSnoozeAt(alarm, target)
+
+        coVerify { repository.updateNextTrigger(43L, target) }
+        assertEquals(
+            1,
+            shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms.size
+        )
+    }
+
+    @Test
     fun cancelRemovesFollowUpWorkersAndRequestsWidgetRefresh() {
         scheduler.cancel(42L)
 

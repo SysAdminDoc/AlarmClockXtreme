@@ -303,6 +303,7 @@ class AlarmFiringActivity : ComponentActivity() {
                     onDismiss = { dismiss() },
                     onSnooze = { snooze() },
                     onSnoozeCustom = { minutes -> snooze(minutes) },
+                    onSnoozeUntil = { snoozeAtMillis -> snooze(snoozeAtMillis = snoozeAtMillis) },
                     onTakePhoto = { launchPhotoCapture() },
                     viewModel = viewModel
                 )
@@ -653,20 +654,25 @@ class AlarmFiringActivity : ComponentActivity() {
         }
     }
 
-    private fun snooze(customMinutes: Int? = null) {
+    private fun snooze(customMinutes: Int? = null, snoozeAtMillis: Long? = null) {
         val intent = AlarmFireDismissContract.snoozeServiceIntent(
             context = this,
             alarmId = alarmId,
             scheduledAt = scheduledAt,
             fireId = fireId,
-            customMinutes = customMinutes
+            customMinutes = customMinutes,
+            snoozeAtMillis = snoozeAtMillis
         )
         try {
             startForegroundService(intent)
             recordIncidentAsync(
                 type = AlarmIncidentEvent.TYPE_USER_ACTION,
                 status = AlarmIncidentEvent.STATUS_REQUESTED,
-                reasonCode = if (customMinutes != null) "UI_CUSTOM_SNOOZE_REQUESTED" else "UI_SNOOZE_REQUESTED"
+                reasonCode = when {
+                    snoozeAtMillis != null -> "UI_SNOOZE_UNTIL_REQUESTED"
+                    customMinutes != null -> "UI_CUSTOM_SNOOZE_REQUESTED"
+                    else -> "UI_SNOOZE_REQUESTED"
+                }
             )
         } catch (e: Exception) {
             android.util.Log.e("AlarmFiringActivity", "startForegroundService(snooze) failed", e)

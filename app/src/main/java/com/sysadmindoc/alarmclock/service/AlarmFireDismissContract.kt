@@ -32,7 +32,8 @@ object AlarmFireDismissContract {
         alarmId: Long,
         scheduledAt: Long,
         fireId: String = fireId(alarmId, scheduledAt),
-        customMinutes: Int? = null
+        customMinutes: Int? = null,
+        snoozeAtMillis: Long? = null
     ): Intent = Intent(context, AlarmService::class.java).apply {
         action = AlarmService.ACTION_SNOOZE
         putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
@@ -40,6 +41,9 @@ object AlarmFireDismissContract {
         putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
         if (customMinutes != null) {
             putExtra(AlarmService.EXTRA_CUSTOM_SNOOZE_MINUTES, customMinutes)
+        }
+        if (snoozeAtMillis != null) {
+            putExtra(AlarmService.EXTRA_SNOOZE_UNTIL_MILLIS, snoozeAtMillis)
         }
     }
 

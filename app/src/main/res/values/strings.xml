@@ -108,7 +108,7 @@
 
     <!-- Alarm firing screen -->
     <string name="firing_controls_title">Alarm controls</string>
-    <string name="firing_snooze_hint">Long-press Snooze for exact minutes. Your saved default stays unchanged.</string>
+    <string name="firing_snooze_hint">Long-press Snooze for exact minutes, or choose a clock time. Your saved default stays unchanged.</string>
     <string name="firing_exact_snooze">Exact snooze</string>
     <string name="firing_exact_snooze_hint">Applies once to this alarm.</string>
     <string name="firing_flip_to_snooze">Flip to snooze</string>
@@ -169,6 +169,10 @@
     <string name="firing_finish_challenge">Finish wake-up challenge</string>
     <string name="firing_hide_snooze_choices">Hide snooze choices</string>
     <string name="firing_choose_snooze">Choose preset or exact minutes</string>
+    <string name="firing_choose_snooze_until">Snooze until a time</string>
+    <string name="firing_snooze_until_title">Snooze until…</string>
+    <string name="firing_snooze_until_hint">The alarm will fire at the next occurrence of this time.</string>
+    <string name="firing_snooze_until_save">Schedule snooze</string>
     <string name="firing_hold_accessibility">Hold Dismiss for 1.5 seconds</string>
     <string name="firing_challenge_before_dismiss">Finish the wake-up challenge before dismissing</string>
     <string name="firing_keep_holding">Keep holding</string>

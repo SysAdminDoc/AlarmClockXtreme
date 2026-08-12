@@ -18,6 +18,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Completed the Media3 alarm-audio stall path for both local tones and internet
   radio: bounded READY watchdogs now force eligible speaker/max-volume routing,
   record the failure, and fall back immediately to the legacy player.
+- Added a one-off “snooze until” clock-time picker. The selected next
+  occurrence is carried through the service contract and persisted as the
+  alarm's next trigger, with exact-alarm scheduling and an inexact fallback.
 
 ## [1.15.32] - 2026-07-29
 

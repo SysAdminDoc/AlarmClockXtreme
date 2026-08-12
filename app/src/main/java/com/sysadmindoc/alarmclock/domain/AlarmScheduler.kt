@@ -268,6 +268,45 @@ class AlarmScheduler @Inject constructor(
     }
 
     /**
+     * Schedule a one-off snooze at a user-selected wall-clock time. The target
+     * is stored in the alarm row before returning, so a service restart or
+     * reboot reschedules the same occurrence instead of reverting to the
+     * alarm's normal repeat calculation.
+     */
+    suspend fun scheduleSnoozeAt(alarm: Alarm, snoozeAtMillis: Long) {
+        val snoozeTime = snoozeAtMillis.coerceAtLeast(System.currentTimeMillis() + 1_000L)
+        if (!canScheduleExactAlarms()) {
+            val sanitizedAlarm = alarm.sanitized()
+            val fireId = AlarmIncidentEvent.fireIdFor(sanitizedAlarm.id, snoozeTime)
+            repository.updateNextTrigger(sanitizedAlarm.id, snoozeTime)
+            try {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    snoozeTime,
+                    createPendingIntent(sanitizedAlarm.id, snoozeTime, fireId)
+                )
+                recordScheduleIncident(
+                    alarmId = sanitizedAlarm.id,
+                    fireId = fireId,
+                    triggerTime = snoozeTime,
+                    status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                    reasonCode = "SNOOZE_AT_INEXACT_NO_EXACT_PERMISSION"
+                )
+            } catch (e: Exception) {
+                recordScheduleIncident(
+                    alarmId = sanitizedAlarm.id,
+                    fireId = fireId,
+                    triggerTime = snoozeTime,
+                    status = AlarmIncidentEvent.STATUS_FAILED,
+                    reasonCode = "SNOOZE_AT_INEXACT_FAILED_${e.javaClass.simpleName}"
+                )
+            }
+            return
+        }
+        scheduleAt(alarm, snoozeTime)
+    }
+
+    /**
      * Register a precomputed trigger time without recalculating it.
      * Useful for snooze, skip-next, quick alarms, and restored exact alarms.
      */

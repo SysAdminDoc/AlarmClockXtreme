@@ -81,6 +81,7 @@ class AlarmService : Service() {
         const val ACTION_SET_CHALLENGE_DUCKING =
             "com.sysadmindoc.alarmclock.SET_CHALLENGE_DUCKING"
         const val EXTRA_CUSTOM_SNOOZE_MINUTES = "custom_snooze_minutes"
+        const val EXTRA_SNOOZE_UNTIL_MILLIS = "snooze_until_millis"
         const val EXTRA_CHALLENGE_RETRY_COUNT = "challenge_retry_count"
         const val EXTRA_CHALLENGE_SOLVE_TIME_MS = "challenge_solve_time_ms"
         const val EXTRA_WAKE_CONFIRM_REFIRE_COUNT = "wake_confirm_refire_count"
@@ -337,6 +338,8 @@ class AlarmService : Service() {
                 val customMinutes = intent.getIntExtra(EXTRA_CUSTOM_SNOOZE_MINUTES, -1)
                     .takeIf { it > 0 }
                     ?.coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES)
+                val snoozeAtMillis = intent.getLongExtra(EXTRA_SNOOZE_UNTIL_MILLIS, -1L)
+                    .takeIf { it > System.currentTimeMillis() }
                 // v1.5.1: If the service was killed+restarted between fire and
                 // snooze, currentSnoozeCount is 0 (fresh instance). Re-read the
                 // persisted count so the progressive-snooze ladder doesn't reset.
@@ -346,7 +349,7 @@ class AlarmService : Service() {
                     currentFireId = fireId
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId)
                 }
-                serviceScope.launch { snoozeAlarm(alarmId, customMinutes) }
+                serviceScope.launch { snoozeAlarm(alarmId, customMinutes, snoozeAtMillis) }
             }
             ACTION_SET_CHALLENGE_DUCKING -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1L)
@@ -1558,7 +1561,11 @@ class AlarmService : Service() {
         return AlarmAudioRouting.alarmSonificationAttributes()
     }
 
-    private suspend fun snoozeAlarm(alarmId: Long, customMinutes: Int? = null) {
+    private suspend fun snoozeAlarm(
+        alarmId: Long,
+        customMinutes: Int? = null,
+        snoozeAtMillis: Long? = null
+    ) {
         autoSilenceJob?.cancel()
         backupSoundJob?.cancel()
         flashlightJob?.cancel()
@@ -1611,10 +1618,14 @@ class AlarmService : Service() {
             } else {
                 currentSnoozeCount = nextSnoozeCount
                 persistSnoozeCount(alarmId, currentSnoozeCount)
-                val effectiveSnooze = if (alarm.progressiveSnooze && customMinutes == null) {
+                val effectiveSnooze = if (alarm.progressiveSnooze && customMinutes == null && snoozeAtMillis == null) {
                     (alarm.snoozeDurationMinutes - currentSnoozeCount).coerceAtLeast(1)
                 } else customMinutes
-                alarmScheduler.scheduleSnooze(alarm, effectiveSnooze)
+                if (snoozeAtMillis != null) {
+                    alarmScheduler.scheduleSnoozeAt(alarm, snoozeAtMillis)
+                } else {
+                    alarmScheduler.scheduleSnooze(alarm, effectiveSnooze)
+                }
                 recordEvent(alarm, AlarmEvent.ACTION_SNOOZED)
                 recordIncident(
                     type = AlarmIncidentEvent.TYPE_USER_ACTION,

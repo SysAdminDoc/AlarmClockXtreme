@@ -135,16 +135,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 - [ ] Webhooks (Tasker / MacroDroid / Home Assistant) cover the integration surface we want to expose. A "real" plugin SDK is rejected (UC) until webhook gaps are documented.
 
-- [ ] P2 — Snooze to a specific time (scheduled snooze)
-  Why: snooze is fixed-interval + progressive only; users want to re-fire at a
-  chosen clock time (e.g. "again at 07:15").
-  Evidence: yuriykulikov/AlarmClock; vicolo-dev/chrono.
-  Touches: `service/AlarmService.kt` snooze path, `ui/alarmfiring/AlarmFiringActivity.kt`.
-  Acceptance: the firing screen offers a "snooze until…" time picker that arms an
-  exact re-fire at the chosen time; round-trips through the existing snooze
-  scheduling and survives process death.
-  Complexity: M.
-
 - [ ] P2 — Extend Live Updates (ProgressStyle) to the snooze countdown
   Why: ACX already uses Android 16 `Notification.ProgressStyle` for the bedtime
   countdown only; the snooze interval is an ideal second start-to-end journey.

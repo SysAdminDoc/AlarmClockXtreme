@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.sysadmindoc.alarmclock.ui.alarmfiring
 
 import android.content.Context
@@ -55,6 +57,7 @@ import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,6 +68,9 @@ import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.TimePickerDefaults
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -135,7 +141,9 @@ import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.LocalMotionEnabled
@@ -144,7 +152,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.Instant
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.math.roundToInt
@@ -154,6 +164,7 @@ fun AlarmFiringScreen(
     onDismiss: () -> Unit,
     onSnooze: () -> Unit,
     onSnoozeCustom: (Int) -> Unit = { onSnooze() },
+    onSnoozeUntil: (Long) -> Unit = { onSnooze() },
     onTakePhoto: () -> Unit = {},
     viewModel: AlarmFiringViewModel = hiltViewModel()
 ) {
@@ -232,6 +243,7 @@ fun AlarmFiringScreen(
     }
 
     var showSnoozeOptions by remember { mutableStateOf(false) }
+    var showSnoozeUntilPicker by remember { mutableStateOf(false) }
     var swipeHint by remember { mutableStateOf("") }
     var swipeCumulativeDrag by remember { mutableFloatStateOf(0f) }
     val swipeThreshold = 200f
@@ -1095,10 +1107,104 @@ fun AlarmFiringScreen(
                             },
                             onSnooze = { onSnoozeCustom(customSnoozeMinutes) }
                         )
+
+                        OutlinedButton(
+                            onClick = { showSnoozeUntilPicker = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.2.dp, SnoozeYellow.copy(alpha = 0.74f)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = SnoozeYellow)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccessTime,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(stringResource(R.string.firing_choose_snooze_until))
+                        }
                     }
                 }
             }
         }
+    }
+
+    if (showSnoozeUntilPicker) {
+        val initialTarget = remember(showSnoozeUntilPicker, defaultSnoozeMinutes) {
+            LocalTime.now().plusMinutes(defaultSnoozeMinutes.toLong())
+        }
+        val timePickerState = rememberTimePickerState(
+            initialHour = initialTarget.hour,
+            initialMinute = initialTarget.minute,
+            is24Hour = is24Hour
+        )
+        AlertDialog(
+            onDismissRequest = { showSnoozeUntilPicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onSnoozeUntil(
+                            nextSnoozeAtMillis(
+                                nowMillis = System.currentTimeMillis(),
+                                hour = timePickerState.hour,
+                                minute = timePickerState.minute
+                            )
+                        )
+                        showSnoozeUntilPicker = false
+                    }
+                ) {
+                    Text(stringResource(R.string.firing_snooze_until_save), color = SnoozeYellow)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSnoozeUntilPicker = false }) {
+                    Text(stringResource(R.string.alarm_edit_keep_current), color = TextSecondary)
+                }
+            },
+            title = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppStatusChip(
+                        label = stringResource(R.string.firing_snooze_until_title),
+                        icon = Icons.Default.AccessTime,
+                        color = SnoozeYellow
+                    )
+                    Text(
+                        stringResource(R.string.firing_snooze_until_hint),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            text = {
+                TimePicker(
+                    state = timePickerState,
+                    colors = TimePickerDefaults.colors(containerColor = SurfaceCard)
+                )
+            },
+            containerColor = SurfaceMedium,
+            shape = RoundedCornerShape(12.dp)
+        )
+    }
+}
+
+internal fun nextSnoozeAtMillis(
+    nowMillis: Long,
+    hour: Int,
+    minute: Int,
+    zoneId: ZoneId = ZoneId.systemDefault()
+): Long {
+    val safeHour = hour.coerceIn(0, 23)
+    val safeMinute = minute.coerceIn(0, 59)
+    val now = Instant.ofEpochMilli(nowMillis).atZone(zoneId)
+    val today = now.toLocalDate().atTime(safeHour, safeMinute).atZone(zoneId).toInstant().toEpochMilli()
+    return if (today > nowMillis) {
+        today
+    } else {
+        now.toLocalDate().plusDays(1)
+            .atTime(safeHour, safeMinute)
+            .atZone(zoneId)
+            .toInstant()
+            .toEpochMilli()
     }
 }
 
