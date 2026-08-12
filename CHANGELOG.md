@@ -77,6 +77,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   wakes and resumes with the expected window flag.
 - Wired release metadata verification into Gradle release/check tasks and
   extended it to require the latest changelog heading to match the app version.
+- Documented the complete webhook contract for Tasker, MacroDroid, and Home
+  Assistant, including event coverage, signed payload verification, stable
+  retry identities, and delivery semantics.
 
 ## [1.15.32] - 2026-07-29
 

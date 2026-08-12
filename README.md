@@ -387,6 +387,8 @@ When Settings > Webhooks > Signing secret is set, ACX adds:
 
 Reject signed payloads whose timestamp differs from receiver time by more than five minutes. Settings also shows the most recent webhook delivery result so failed automations can be diagnosed without blocking alarm dismissal.
 
+Delivery is asynchronous and never blocks alarm UI or dismissal. The initial request uses a five-second connect/read timeout. `alarm_fired` and `alarm_missed` retry up to three times through WorkManager when the first request fails, with approximately 30-, 60-, and 120-second exponential backoff; `eventId` and `occurredAt` remain unchanged so receivers can deduplicate. Snooze, dismiss, skip, and test events are best-effort single attempts. A successful HTTP 2xx-3xx response is recorded as delivered; a non-2xx response or transport error is recorded in the recent-delivery log.
+
 ### Home Assistant
 
 Create a webhook automation in your `automations.yaml`:
