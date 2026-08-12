@@ -6,11 +6,11 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 ---
 
-- [ ] **P2/debt — God files.** `SettingsScreen.kt` (~4.1k lines) and
-  `AlarmEditScreen.kt` (~3.5k) hold every page / pane / dialog. The section
-  enums already give clean seams; extract per-page files. Effort: M.
-  `BedtimeScreen.kt` is now drained into focused sibling sections; remaining:
-  split `SettingsScreen.kt` and `AlarmEditScreen.kt`.
+- [ ] **P2/debt — God files.** `AlarmEditScreen.kt` (~3.5k lines) still holds
+  every page / pane / dialog. Its section enum gives clean seams; extract
+  per-page files. Effort: M. `BedtimeScreen.kt` and `SettingsScreen.kt` are
+  now drained into focused sibling sections; remaining: split
+  `AlarmEditScreen.kt`.
 
 ---
 
