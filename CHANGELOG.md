@@ -80,6 +80,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Documented the complete webhook contract for Tasker, MacroDroid, and Home
   Assistant, including event coverage, signed payload verification, stable
   retry identities, and delivery semantics.
+- Added folder-based ringtone import through the system document-tree picker;
+  granted audio folders are persisted as content URIs and their supported
+  files appear alongside system tones for preview and selection.
 
 ## [1.15.32] - 2026-07-29
 

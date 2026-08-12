@@ -1,9 +1,12 @@
 package com.sysadmindoc.alarmclock.ui.ringtone
 
 import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
 import android.media.RingtoneManager
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -26,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
@@ -123,6 +127,25 @@ fun RingtonePickerSheet(
     var youTubeStatus by remember { mutableStateOf("") }
     var youTubeStatusIsError by remember { mutableStateOf(false) }
     var lastDownloadedTitle by remember { mutableStateOf<String?>(null) }
+    var folderStatus by remember { mutableStateOf("") }
+
+    val folderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }.onSuccess {
+            RingtoneFolderStore.addFolder(context, uri)
+            ringtoneLoad = loadRingtones(context)
+            folderStatus = "Folder added. Its audio files are now available below."
+        }.onFailure {
+            folderStatus = "Could not keep access to that folder. Choose it again if needed."
+        }
+    }
 
     // The shared YouTubeDownloadDialog handles its own Hilt lookup — we just
     // need a quick "is the engine up?" probe to decide whether to show the
@@ -230,25 +253,42 @@ fun RingtonePickerSheet(
             AppSectionTitle(
                 title = "Alarm Sound",
                 description = "Preview tones before applying them. Default and silent options stay available at the top.",
-                action = if (youTubeAvailable) {
-                    {
-                        OutlinedButton(
-                            onClick = { showYouTubeDialog = true },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Icon(
-                                Icons.Default.CloudDownload,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.size(6.dp))
-                            Text("From YouTube", fontWeight = FontWeight.SemiBold)
-                        }
+                action = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(
+                                onClick = { folderLauncher.launch(null) },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Icon(
+                                    Icons.Default.FolderOpen,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.size(6.dp))
+                                Text("From folder", fontWeight = FontWeight.SemiBold)
+                            }
+                            if (youTubeAvailable) {
+                                OutlinedButton(
+                                    onClick = { showYouTubeDialog = true },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.CloudDownload,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.size(6.dp))
+                                    Text("From YouTube", fontWeight = FontWeight.SemiBold)
+                                }
+                            }
                     }
-                } else null
+                }
             )
 
             if (youTubeStatus.isNotBlank()) {
@@ -257,6 +297,15 @@ fun RingtonePickerSheet(
                     message = youTubeStatus,
                     icon = if (youTubeStatusIsError) Icons.Default.Warning else Icons.Default.CheckCircle,
                     color = if (youTubeStatusIsError) AccentRed else DismissGreen
+                )
+            }
+
+            if (folderStatus.isNotBlank()) {
+                AppInlineNotice(
+                    title = "Folder source",
+                    message = folderStatus,
+                    icon = Icons.Default.FolderOpen,
+                    color = DismissGreen
                 )
             }
 
@@ -560,6 +609,8 @@ private fun loadRingtones(context: Context): RingtoneLoadResult {
     } catch (_: Exception) {
         enumerationFailed = true
     }
+
+    ringtones += RingtoneFolderStore.loadItems(context)
 
     return RingtoneLoadResult(items = ringtones, enumerationFailed = enumerationFailed)
 }

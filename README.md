@@ -129,7 +129,7 @@ cd AlarmClockXtreme
 ### Sound & Vibration
 | Feature | Description |
 |---------|-------------|
-| Ringtone Picker | Browse and preview system ringtones |
+| Ringtone Picker | Browse and preview system ringtones, import an audio folder through the system document picker, and keep its access without broad storage permission |
 | Hearing-Aid Routing | Alarm tones, previews, Direct Boot fallback, and setup test alarms use `AudioAttributes.USAGE_ALARM` so Android's system hearing-aid/speaker routing can apply |
 | Media3 Alarm Playback | App-owned alarm tones and internet radio use Media3/ExoPlayer, with a build-flagged legacy MediaPlayer fallback for platform ringtone providers |
 | YouTube Alarm Sounds | Search YouTube or paste a URL, preview before downloading, save the audio straight to your alarm library (Play flavor only) |
