@@ -86,6 +86,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Switched alarm-edit navigation to Compose's predictive-back handler so an
   unsaved editor keeps its discard guard while participating in the system
   back gesture.
+- Closed two roadmap gaps through existing generalized paths: per-alarm
+  morning-routine checklists cover dismiss-time pet-feeding chains, and the
+  weather-aware scheduler already advances snow/ice alarms by the configured
+  early-wake interval.
 
 ## [1.15.32] - 2026-07-29
 
