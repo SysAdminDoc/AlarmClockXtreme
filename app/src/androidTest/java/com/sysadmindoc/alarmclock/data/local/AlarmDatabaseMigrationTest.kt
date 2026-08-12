@@ -57,6 +57,30 @@ class AlarmDatabaseMigrationTest {
     }
 
     @Test
+    fun everyExportedSchemaCanMigrateToLatest() {
+        exportedSchemaVersions()
+            .filter { it < LATEST_SCHEMA_VERSION }
+            .forEach { startVersion ->
+                var db = helper.createDatabase(
+                    "migration-$startVersion-to-latest.db",
+                    startVersion,
+                )
+                insertSyntheticAlarm(db)
+                db.close()
+
+                db = helper.runMigrationsAndValidate(
+                    "migration-$startVersion-to-latest.db",
+                    LATEST_SCHEMA_VERSION,
+                    true,
+                    *AlarmDatabase.ALL_MIGRATIONS.fromVersion(startVersion),
+                )
+
+                assertEquals(1, db.queryLong("SELECT COUNT(*) FROM alarms"))
+                db.close()
+            }
+    }
+
+    @Test
     fun migrationNineToTenAddsVibrationDelayDefaultZero() {
         var db = helper.createDatabase("migration-9-to-10.db", 9)
         insertSyntheticAlarm(db)
@@ -429,8 +453,17 @@ class AlarmDatabaseMigrationTest {
     }
 
     private fun latestExportedSchemaVersion(): Int {
-        val assets = InstrumentationRegistry.getInstrumentation().context.assets
-        val schemaDir = requireNotNull(AlarmDatabase::class.qualifiedName)
+        val versions = exportedSchemaVersions()
+        val latest = versions.max()
+        assetsForSchemas().open(File(schemaAssetDirectory(), "$latest.json").path).use { input ->
+            assertTrue("Latest exported schema is empty", input.read() >= 0)
+        }
+        return latest
+    }
+
+    private fun exportedSchemaVersions(): List<Int> {
+        val assets = assetsForSchemas()
+        val schemaDir = schemaAssetDirectory()
         val versions = assets.list(schemaDir)
             ?.mapNotNull { fileName ->
                 fileName.removeSuffix(".json").toIntOrNull()
@@ -438,11 +471,13 @@ class AlarmDatabaseMigrationTest {
             .orEmpty()
 
         assertTrue("No exported Room schemas found in androidTest assets", versions.isNotEmpty())
-        val latest = versions.max()
-        assets.open(File(schemaDir, "$latest.json").path).use { input ->
-            assertTrue("Latest exported schema is empty", input.read() >= 0)
-        }
-        return latest
+        return versions
+    }
+
+    private fun assetsForSchemas() = InstrumentationRegistry.getInstrumentation().context.assets
+
+    private fun schemaAssetDirectory(): String {
+        return requireNotNull(AlarmDatabase::class.qualifiedName)
     }
 
     private fun SupportSQLiteDatabase.queryLong(sql: String): Long {

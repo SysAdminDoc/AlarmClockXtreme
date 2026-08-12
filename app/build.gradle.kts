@@ -161,6 +161,36 @@ val verifyFdroidReleaseSize by tasks.registering {
     }
 }
 
+val verifyRoomSchemaExports by tasks.registering {
+    group = "verification"
+    description = "Reject Room schema exports changed by a debug build until they are reviewed and committed."
+    dependsOn("kspFdroidDebugKotlin", "kspPlayDebugKotlin")
+
+    doLast {
+        fun runGit(vararg arguments: String): Pair<Int, String> {
+            val process = ProcessBuilder(listOf("git") + arguments.toList())
+                .directory(rootProject.rootDir)
+                .redirectErrorStream(true)
+                .start()
+            val output = process.inputStream.bufferedReader().use { it.readText() }
+            return process.waitFor() to output
+        }
+
+        val (workingTreeExit, workingTreeDiff) = runGit("diff", "--exit-code", "--", "app/schemas")
+        check(workingTreeExit == 0) {
+            "Room schema exports changed after the debug build. Review and commit app/schemas before continuing.\n$workingTreeDiff"
+        }
+        val (stagedExit, stagedDiff) = runGit("diff", "--cached", "--exit-code", "--", "app/schemas")
+        check(stagedExit == 0) {
+            "Room schema exports are staged but not committed. Review and commit app/schemas before continuing.\n$stagedDiff"
+        }
+        val (statusExit, status) = runGit("status", "--short", "--untracked-files=all", "--", "app/schemas")
+        check(statusExit == 0 && status.isBlank()) {
+            "Room schema exports contain untracked changes. Review and commit app/schemas before continuing.\n$status"
+        }
+    }
+}
+
 val primaryComposeScreenFiles = listOf(
     file("src/main/java/com/sysadmindoc/alarmclock/ui/alarmfiring/AlarmFiringScreen.kt"),
     file("src/main/java/com/sysadmindoc/alarmclock/ui/alarmedit/AlarmEditScreen.kt"),
@@ -206,6 +236,10 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
 
 tasks.matching { it.name == "check" || it.name.startsWith("lint") }.configureEach {
     dependsOn(verifyLocalizedPrimaryScreens)
+}
+
+tasks.matching { it.name == "check" }.configureEach {
+    dependsOn(verifyRoomSchemaExports)
 }
 
 dependencies {

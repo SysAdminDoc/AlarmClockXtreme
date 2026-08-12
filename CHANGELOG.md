@@ -69,6 +69,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   artifacts above the documented 40 MiB size budget.
 - Added an Android 13+ app-language picker backed by `LocaleManager`, with a
   system-default reset and English as the first declared bundled locale.
+- Expanded `AlarmDatabaseMigrationTest` to exercise every exported schema path
+  through the latest version and added a debug-build schema-diff verification
+  task so reviewed Room exports cannot be left uncommitted.
 
 ## [1.15.32] - 2026-07-29
 

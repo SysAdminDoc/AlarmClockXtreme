@@ -269,6 +269,7 @@ Before a local release, run:
 bash scripts/check-signing-hygiene.sh
 python scripts/verify_release_metadata.py
 ./gradlew verifyDependencyIntegrity
+./gradlew :app:verifyRoomSchemaExports
 python scripts/osv_gradle_audit.py
 python scripts/verify_api37_release.py --device <api37-16kb-serial> --run-test-alarm --fresh-install
 ```
