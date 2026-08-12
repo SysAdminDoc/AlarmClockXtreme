@@ -72,6 +72,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Expanded `AlarmDatabaseMigrationTest` to exercise every exported schema path
   through the latest version and added a debug-build schema-diff verification
   task so reviewed Room exports cannot be left uncommitted.
+- Added an emulator smoke that schedules the onboarding test alarm through
+  `AlarmManager`, turns the screen off, and verifies the lock-screen activity
+  wakes and resumes with the expected window flag.
 
 ## [1.15.32] - 2026-07-29
 

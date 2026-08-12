@@ -115,6 +115,22 @@ object OnboardingTestAlarm {
         }
         TestAlarmProofStore.recordScheduled(context, triggerAt)
     }
+
+    fun cancel(context: Context) {
+        val alarmManager = context.getSystemService(AlarmManager::class.java)
+        val intent = Intent(context, OnboardingTestAlarmReceiver::class.java).apply {
+            action = ACTION_RING
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager?.cancel(pendingIntent)
+        pendingIntent.cancel()
+        context.getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
+    }
 }
 
 class OnboardingTestAlarmReceiver : BroadcastReceiver() {
