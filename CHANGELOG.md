@@ -29,6 +29,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   Oppo/Realme, Vivo/iQOO, and OnePlus, with safe generic fallbacks when a
   vendor activity is unavailable. OS build-fingerprint changes now re-open
   the final wake-readiness checklist after an OTA.
+- Added opt-in on-call mode for rotating-shift alarms. With notification-policy
+  access, total-silence DND is temporarily moved to Alarms-only during the
+  ring and restored afterward; the device-local setting is never copied by
+  backup.
 
 ## [1.15.32] - 2026-07-29
 

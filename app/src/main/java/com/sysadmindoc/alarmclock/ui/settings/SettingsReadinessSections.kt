@@ -6,6 +6,7 @@ import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
@@ -142,6 +143,7 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
+import com.sysadmindoc.alarmclock.domain.OnCallDndOverride
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
@@ -438,6 +440,56 @@ internal fun WakeReadinessSection(
             color = if (allReady) DismissGreen else SnoozeYellow,
             trackColor = TextMuted.copy(alpha = 0.18f)
         )
+    }
+}
+
+@Composable
+internal fun OnCallModeSection(
+    state: SettingsUiState,
+    viewModel: SettingsViewModel
+) {
+    val context = LocalContext.current
+    val policyAccessGranted = OnCallDndOverride.isPolicyAccessGranted(context)
+    AppSurfaceCard(highlighted = state.settings.onCallModeEnabled) {
+        AppSectionTitle(
+            title = stringResource(R.string.settings_on_call_mode),
+            description = stringResource(R.string.settings_on_call_mode_description),
+            action = {
+                AppStatusChip(
+                    label = stringResource(
+                        if (state.settings.onCallModeEnabled) R.string.settings_active else R.string.settings_off
+                    ),
+                    icon = Icons.Default.NotificationsActive,
+                    color = if (state.settings.onCallModeEnabled) SnoozeYellow else TextMuted
+                )
+            }
+        )
+        SettingsToggle(
+            label = stringResource(R.string.settings_on_call_mode),
+            supportingText = stringResource(R.string.settings_on_call_mode_toggle_description),
+            checked = state.settings.onCallModeEnabled,
+            onToggle = viewModel::toggleOnCallMode
+        )
+        if (state.settings.onCallModeEnabled && !policyAccessGranted) {
+            AppInlineNotice(
+                title = stringResource(R.string.settings_on_call_access_needed),
+                message = stringResource(R.string.settings_on_call_access_description),
+                icon = Icons.Default.Warning,
+                color = SnoozeYellow
+            )
+            Button(
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                        )
+                    }
+                },
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(stringResource(R.string.settings_open_dnd))
+            }
+        }
     }
 }
 

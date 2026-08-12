@@ -103,6 +103,7 @@ cd AlarmClockXtreme
 |---------|-------------|
 | Progressive Snooze | Each snooze shortens by 1 minute (10 -> 9 -> 8 -> ...) |
 | Backup Sound Escalation | Ultra-loud volume boost if no interaction within configurable delay |
+| On-call Mode | Opt-in DND override for on-call alarms; temporarily moves total silence to Alarms-only and restores it after the ring |
 | Max Snooze Count | Auto-dismiss after N snoozes reached |
 | Guardian Angel | Emergency-contact escalation if an alarm is not dismissed; F-Droid can auto-send SMS, Play opens a prefilled SMS composer |
 | Wake Confirmation | Re-fires alarm if user doesn't confirm they're awake |

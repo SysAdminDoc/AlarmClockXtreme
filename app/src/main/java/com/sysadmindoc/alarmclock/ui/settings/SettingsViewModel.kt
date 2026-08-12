@@ -356,6 +356,8 @@ class SettingsViewModel @Inject constructor(
         updateSettings { it.copy(challengeAudioDuckingEnabled = enabled) }
     fun updateChallengeAudioDuckPercent(percent: Int) =
         updateSettings { it.copy(challengeAudioDuckPercent = percent.coerceIn(10, 80)) }
+    fun toggleOnCallMode(enabled: Boolean) =
+        updateSettings { it.copy(onCallModeEnabled = enabled) }
     fun updateBedtimeChecklist(items: String) =
         updateSettings { it.copy(bedtimeChecklist = items) }
     fun updateSleepSoundTimer(minutes: Int) =

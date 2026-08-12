@@ -70,6 +70,9 @@ data class AppSettings(
     val jetLagDirection: String = JetLagDirection.AUTO.storageKey,
     // v1.10.5: Own an app-created alarms-only DND rule for the sleep window.
     val bedtimeDndEnabled: Boolean = false,
+    // On-call mode is device-local: it temporarily changes this device's DND
+    // filter and must not silently migrate that policy to another device.
+    val onCallModeEnabled: Boolean = false,
     // v1.15.0: "Stay up late tonight" — delay tonight's bedtime reminder
     // by N hours. Stored as an epoch-millis deadline; once System.currentTimeMillis()
     // exceeds this value the field is treated as expired and the next reminder
@@ -319,6 +322,7 @@ class PreferencesManager @Inject constructor(
         val JET_LAG_ADJUSTMENT_DAYS = intPreferencesKey("jet_lag_adjustment_days")
         val JET_LAG_DIRECTION = stringPreferencesKey("jet_lag_direction")
         val BEDTIME_DND_ENABLED = booleanPreferencesKey("bedtime_dnd_enabled")
+        val ON_CALL_MODE_ENABLED = booleanPreferencesKey("on_call_mode_enabled")
         val FLIP_TO_SNOOZE = booleanPreferencesKey("flip_to_snooze")
         val WEBHOOK_ENABLED = booleanPreferencesKey("webhook_enabled")
         val WEBHOOK_URL = stringPreferencesKey("webhook_url")
@@ -465,6 +469,7 @@ class PreferencesManager @Inject constructor(
         jetLagAdjustmentDays = this[Keys.JET_LAG_ADJUSTMENT_DAYS] ?: 4,
         jetLagDirection = this[Keys.JET_LAG_DIRECTION] ?: JetLagDirection.AUTO.storageKey,
         bedtimeDndEnabled = this[Keys.BEDTIME_DND_ENABLED] ?: false,
+        onCallModeEnabled = this[Keys.ON_CALL_MODE_ENABLED] ?: false,
         bedtimeStayUpLateUntilMillis = this[Keys.BEDTIME_STAY_UP_LATE_UNTIL] ?: 0L,
         flipToSnoozeEnabled = this[Keys.FLIP_TO_SNOOZE] ?: false,
         webhookEnabled = this[Keys.WEBHOOK_ENABLED] ?: false,
@@ -557,6 +562,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.JET_LAG_ADJUSTMENT_DAYS] = s.jetLagAdjustmentDays
         this[Keys.JET_LAG_DIRECTION] = s.jetLagDirection
         this[Keys.BEDTIME_DND_ENABLED] = s.bedtimeDndEnabled
+        this[Keys.ON_CALL_MODE_ENABLED] = s.onCallModeEnabled
         this[Keys.BEDTIME_STAY_UP_LATE_UNTIL] = s.bedtimeStayUpLateUntilMillis
         this[Keys.FLIP_TO_SNOOZE] = s.flipToSnoozeEnabled
         this[Keys.WEBHOOK_ENABLED] = s.webhookEnabled

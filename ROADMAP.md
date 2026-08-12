@@ -8,10 +8,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-WS3 | On-call rotation mode (override DND silent). | [PagerDuty](https://www.pagerduty.com/) | M |
-
-| # | Item | Source | Effort |
-|---|------|--------|--------|
 | L-H1 | Partner profiles (two users, separate alarms / ringtones). | Sleep as Android couples | M |
 | L-H2 | Paired-phone LAN sync (partner-dismiss → you snooze). Strict privacy: LAN-only, no cloud. | — | M |
 | L-H3 | Kid-friendly green-light mode. | [OK to Wake](https://www.amazon.com/dp/B003O15A1G), [Hatch](https://www.hatch.co/) | M |

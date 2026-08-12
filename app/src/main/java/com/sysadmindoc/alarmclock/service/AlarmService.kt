@@ -38,6 +38,7 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
+import com.sysadmindoc.alarmclock.domain.OnCallDndOverride
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.receiver.DismissReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeCountdownReceiver
@@ -239,6 +240,7 @@ class AlarmService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        OnCallDndOverride.restoreStale(this)
         createNotificationChannels(this)
 
         // v1.5.4: Safe cast + defensive try around acquire(); rare OEM builds
@@ -416,6 +418,9 @@ class AlarmService : Service() {
             return
         }
 
+        val settings = preferencesManager.getCurrentSettings()
+        OnCallDndOverride.begin(this, settings.onCallModeEnabled)
+
         // v1.5.4: startForeground() was already called synchronously in
         // onStartCommand with a placeholder to satisfy Android 14+ timing.
         // Update the notification in-place with the fully-labelled version.
@@ -507,7 +512,6 @@ class AlarmService : Service() {
         )
 
         // Auto-silence after timeout - records as missed
-        val settings = preferencesManager.getCurrentSettings()
         val autoSilenceMinutes = settings.autoSilenceMinutes.toLong()
         if (autoSilenceMinutes > 0) {
             autoSilenceJob = serviceScope.launch {
@@ -2101,6 +2105,7 @@ class AlarmService : Service() {
     }
 
     private fun stopAlarmPlayback() {
+        OnCallDndOverride.end(this)
         volumeJob?.cancel()
         volumeJob = null
         playbackWatchdogJob?.cancel()

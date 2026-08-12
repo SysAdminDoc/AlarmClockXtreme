@@ -37,6 +37,9 @@ class BackupManagerSettingsDriftTest {
         // loudness when a backup moves to hardware with different speakers.
         "challengeAudioDuckingEnabled",
         "challengeAudioDuckPercent",
+        // DND policy access and on-call override state are device-local; a
+        // restore must not silently change the destination device's DND mode.
+        "onCallModeEnabled",
         // Accessibility behavior follows each device's display/animation
         // needs and Android system setting instead of migrating blindly.
         "reduceMotionAndFlashing",

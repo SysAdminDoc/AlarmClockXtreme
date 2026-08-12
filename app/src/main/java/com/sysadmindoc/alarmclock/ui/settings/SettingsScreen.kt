@@ -378,6 +378,9 @@ fun SettingsScreen(
                 onOpenOnboardingChecklist = onOpenOnboardingChecklist
             )
             }
+            settingsItem("readiness-on-call") {
+                OnCallModeSection(state, viewModel)
+            }
             settingsItem("readiness-incidents") {
             IncidentTimelineSection(
                 timeline = state.incidentTimeline,
