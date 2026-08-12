@@ -212,11 +212,17 @@ object DirectBootAlarmCache {
             )
         } catch (e: SecurityException) {
             Log.w(TAG, "setAlarmClock denied during Direct Boot; using exact fallback", e)
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                snapshot.triggerTime,
-                operation
-            )
+            try {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    snapshot.triggerTime,
+                    operation
+                )
+            } catch (fallback: Exception) {
+                Log.e(TAG, "Direct-Boot exact fallback also failed", fallback)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Direct-Boot alarm registration failed", e)
         }
     }
 

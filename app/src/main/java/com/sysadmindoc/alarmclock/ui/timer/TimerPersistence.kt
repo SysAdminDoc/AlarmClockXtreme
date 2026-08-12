@@ -277,11 +277,17 @@ object TimerAlarmScheduler {
             )
         } catch (security: SecurityException) {
             Log.w("TimerAlarmScheduler", "Exact timer expiry denied; using inexact fallback", security)
-            alarmManager.setAndAllowWhileIdle(
-                AlarmManager.ELAPSED_REALTIME_WAKEUP,
-                endElapsedRealtime,
-                pendingIntent
-            )
+            try {
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    endElapsedRealtime,
+                    pendingIntent
+                )
+            } catch (fallback: Exception) {
+                Log.e("TimerAlarmScheduler", "Inexact timer fallback also failed", fallback)
+            }
+        } catch (e: Exception) {
+            Log.e("TimerAlarmScheduler", "Timer expiry registration failed", e)
         }
     }
 

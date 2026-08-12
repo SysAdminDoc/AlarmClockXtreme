@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.MainActivity
@@ -137,11 +138,15 @@ class BedtimeReceiver : BroadcastReceiver() {
             triggerAtMillis: Long,
             reminderTimeMillis: Long
         ) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                triggerAtMillis,
-                pendingIntent(context, action, requestCode, reminderTimeMillis)
-            )
+            try {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerAtMillis,
+                    pendingIntent(context, action, requestCode, reminderTimeMillis)
+                )
+            } catch (e: Exception) {
+                Log.w("BedtimeReceiver", "Bedtime countdown registration failed", e)
+            }
         }
 
         private fun pendingIntent(

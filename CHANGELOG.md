@@ -33,6 +33,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   access, total-silence DND is temporarily moved to Alarms-only during the
   ring and restored afterward; the device-local setting is never copied by
   backup.
+- Hardened every AlarmManager registration fallback, including Direct Boot,
+  smart-wake, timers, bedtime countdowns, and snoozes, so OEM or permission
+  failures are logged without crashing the host path.
 
 ## [1.15.32] - 2026-07-29
 

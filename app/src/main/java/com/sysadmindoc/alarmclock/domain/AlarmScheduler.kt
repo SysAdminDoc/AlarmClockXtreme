@@ -693,18 +693,34 @@ class AlarmScheduler @Inject constructor(
             try {
                 context.startForegroundService(smartIntent)
             } catch (_: Exception) {
-                alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    System.currentTimeMillis() + 1_000L,
-                    smartPending
-                )
+                try {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        System.currentTimeMillis() + 1_000L,
+                        smartPending
+                    )
+                } catch (fallback: Exception) {
+                    android.util.Log.e(
+                        "AlarmScheduler",
+                        "Smart-alarm immediate fallback failed for alarm ${alarm.id}",
+                        fallback
+                    )
+                }
             }
         } else {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                serviceStartTime,
-                smartPending
-            )
+            try {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    serviceStartTime,
+                    smartPending
+                )
+            } catch (e: Exception) {
+                android.util.Log.e(
+                    "AlarmScheduler",
+                    "Smart-alarm window registration failed for alarm ${alarm.id}",
+                    e
+                )
+            }
         }
     }
 
