@@ -381,6 +381,8 @@ class SettingsViewModel @Inject constructor(
     fun toggle24Hour(enabled: Boolean) = updateSettings { it.copy(is24HourFormat = enabled) }
     fun togglePhoneSpeakers(enabled: Boolean) = updateSettings { it.copy(usePhoneSpeakers = enabled) }
     fun toggleLockScreen(enabled: Boolean) = updateSettings { it.copy(showOnLockScreen = enabled) }
+    fun toggleAlarmClockIcon(enabled: Boolean) =
+        updateSettingsAndReschedule { it.copy(showAlarmClockIcon = enabled) }
     fun toggleHideAlarmLabelsOnPublicSurfaces(enabled: Boolean) =
         updateSettings { it.copy(hideAlarmLabelsOnPublicSurfaces = enabled) }
     fun updateDefaultSnooze(minutes: Int) = updateSettings { it.copy(defaultSnoozeDuration = minutes) }

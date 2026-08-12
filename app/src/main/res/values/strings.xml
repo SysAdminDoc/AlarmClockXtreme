@@ -720,6 +720,8 @@
     <string name="settings_24h_description">Use military time everywhere in the app.</string>
     <string name="settings_show_lock_screen">Show on lock screen</string>
     <string name="settings_show_lock_screen_description">Keep alarm controls visible without unlocking.</string>
+    <string name="settings_alarm_status_icon">Show next-alarm status icon</string>
+    <string name="settings_alarm_status_icon_description">Keeps the next alarm visible in the status bar. Turn it off for a quieter status bar; exact idle scheduling remains enabled.</string>
     <string name="settings_hide_public_labels">Hide public alarm and timer labels</string>
     <string name="settings_hide_public_labels_description">Use neutral text on lock screen, timer notifications, widget, quick settings, and Wear surfaces.</string>
     <string name="settings_phone_speakers">Use phone speakers</string>

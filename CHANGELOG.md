@@ -36,6 +36,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Hardened every AlarmManager registration fallback, including Direct Boot,
   smart-wake, timers, bedtime countdowns, and snoozes, so OEM or permission
   failures are logged without crashing the host path.
+- Added a default-on alarm status-icon preference. Users can disable the icon
+  while retaining exact idle scheduling, and changing the preference immediately
+  re-registers enabled alarms with the selected path.
 
 ## [1.15.32] - 2026-07-29
 

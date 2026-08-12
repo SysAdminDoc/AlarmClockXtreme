@@ -195,6 +195,7 @@ cd AlarmClockXtreme
 | Local Support Bundle | Settings can package crash logs plus redacted version, device, wake-readiness, smart-wake, incident-timeline, and alarm diagnostics into a shareable ZIP without telemetry |
 | Alarm Diagnostics | Settings shows the latest redacted incident event and can clear incident history separately from Statistics |
 | Sleep/Wake Analytics | Statistics correlates local alarm history with Health Connect sleep duration, snoozes, dismiss response, and challenge retries |
+| Alarm Status Icon | Keeps the next alarm visible in the status bar by default; can be disabled for quieter exact-idle scheduling |
 | Auto-Silence | Configurable timeout (0/5/10/15/30 min), records as missed |
 | Webhook Reliability | Application-lived dispatch scope keeps automation events moving even when the alarm service stops mid-flight; payloads use a versioned schema |
 

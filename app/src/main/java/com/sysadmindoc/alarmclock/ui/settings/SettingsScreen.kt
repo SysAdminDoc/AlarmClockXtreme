@@ -429,6 +429,12 @@ fun SettingsScreen(
                     onToggle = viewModel::toggleLockScreen
                 )
                 SettingsToggle(
+                    label = stringResource(R.string.settings_alarm_status_icon),
+                    checked = state.settings.showAlarmClockIcon,
+                    supportingText = stringResource(R.string.settings_alarm_status_icon_description),
+                    onToggle = viewModel::toggleAlarmClockIcon
+                )
+                SettingsToggle(
                     label = stringResource(R.string.settings_hide_public_labels),
                     checked = state.settings.hideAlarmLabelsOnPublicSurfaces,
                     supportingText = stringResource(R.string.settings_hide_public_labels_description),

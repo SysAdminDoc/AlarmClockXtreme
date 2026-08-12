@@ -6,6 +6,7 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.Operation
 import androidx.work.WorkManager
+import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
@@ -67,6 +68,7 @@ class AlarmSchedulerTest {
         every { WidgetUpdater.requestUpdate(any()) } just Runs
 
         coEvery { preferencesManager.getCurrentSettings() } returns AppSettings()
+        every { preferencesManager.getCachedSettings() } returns AppSettings()
         coEvery { holidayRepository.isHoliday(any()) } returns false
 
         weatherRepository = mockk(relaxed = true)
@@ -101,6 +103,35 @@ class AlarmSchedulerTest {
             1,
             shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms.size
         )
+    }
+
+    @Test
+    fun scheduleFutureAlarmCanHideStatusIconWithExactIdleRegistration() = runTest {
+        val triggerTime = System.currentTimeMillis() + 15 * 60_000L
+        val alarm = enabledAlarm(id = 44L)
+        every { preferencesManager.getCachedSettings() } returns
+            AppSettings(showAlarmClockIcon = false)
+        every { calculator.calculate(any<Alarm>(), any()) } returns triggerTime
+
+        scheduler.schedule(alarm, requestWidgetUpdate = false)
+
+        val scheduledAlarm = shadowOf(context.getSystemService(AlarmManager::class.java))
+            .scheduledAlarms
+            .single()
+        assertEquals(null, scheduledAlarm.alarmClockInfo)
+        assertTrue(scheduledAlarm.isAllowWhileIdle)
+        verify {
+            incidentRepository.recordAsync(
+                alarmId = 44L,
+                fireId = any(),
+                scheduledAt = triggerTime,
+                eventAt = any(),
+                type = AlarmIncidentEvent.TYPE_SCHEDULE,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = "SET_EXACT_ALLOW_WHILE_IDLE",
+                source = "AlarmScheduler"
+            )
+        }
     }
 
     @Test
