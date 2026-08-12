@@ -62,6 +62,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   the common surface, their unit-test/lint gates pass together, and signing,
   metadata, OSV, reproducibility, and checksum scripts remain local with no
   GitHub Actions workflow added.
+- Added a fail-closed signing check to the Play, F-Droid, and Wear release
+  artifact tasks, including the Play AAB path, so missing signing material
+  cannot produce a publishable unsigned artifact.
 
 ## [1.15.32] - 2026-07-29
 

@@ -1,3 +1,6 @@
+import java.io.File
+import java.util.Properties
+
 // AlarmClockXtreme v1.15.31
 // Top-level build file
 plugins {
@@ -6,6 +9,42 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") version "2.1.0" apply false
     id("com.google.devtools.ksp") version "2.1.0-1.0.29" apply false
     id("com.google.dagger.hilt.android") version "2.56.2" apply false
+}
+
+val verifyReleaseSigning = tasks.register("verifyReleaseSigning") {
+    group = "verification"
+    description = "Require local release signing material before release artifacts are built."
+
+    val propertiesFile = rootProject.file("keystore.properties")
+    inputs.file(propertiesFile)
+
+    doLast {
+        check(propertiesFile.isFile) {
+            "Refusing unsigned release artifacts: create keystore.properties from keystore.properties.template."
+        }
+
+        val properties = Properties()
+        propertiesFile.inputStream().use(properties::load)
+        val requiredProperties = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+        val missingProperties = requiredProperties.filter { properties.getProperty(it).orEmpty().isBlank() }
+        check(missingProperties.isEmpty()) {
+            "Refusing unsigned release artifacts: missing signing properties: ${missingProperties.joinToString(", ")}."
+        }
+
+        val configuredStoreFile = properties.getProperty("storeFile").trim()
+        val configuredPath = File(configuredStoreFile)
+        val candidates = if (configuredPath.isAbsolute) {
+            listOf(configuredPath)
+        } else {
+            listOf(
+                rootProject.file(configuredStoreFile),
+                rootProject.file("app").resolve(configuredStoreFile)
+            )
+        }
+        check(candidates.any(File::isFile)) {
+            "Refusing unsigned release artifacts: signing keystore was not found at the configured storeFile path."
+        }
+    }
 }
 
 val resolveDependencyIntegrity = tasks.register("resolveDependencyIntegrity") {

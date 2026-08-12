@@ -129,6 +129,19 @@ android {
     }
 }
 
+val releaseArtifactTasks = setOf(
+    "assembleRelease",
+    "assemblePlayRelease",
+    "bundleRelease",
+    "bundlePlayRelease",
+    "assembleFdroidRelease",
+    "bundleFdroidRelease"
+)
+
+tasks.matching { it.name in releaseArtifactTasks }.configureEach {
+    dependsOn(rootProject.tasks.named("verifyReleaseSigning"))
+}
+
 val primaryComposeScreenFiles = listOf(
     file("src/main/java/com/sysadmindoc/alarmclock/ui/alarmfiring/AlarmFiringScreen.kt"),
     file("src/main/java/com/sysadmindoc/alarmclock/ui/alarmedit/AlarmEditScreen.kt"),

@@ -60,6 +60,10 @@ android {
     }
 }
 
+tasks.matching { it.name == "assembleRelease" }.configureEach {
+    dependsOn(rootProject.tasks.named("verifyReleaseSigning"))
+}
+
 dependencies {
     implementation("androidx.core:core-ktx:1.18.0")
     implementation("androidx.concurrent:concurrent-futures:1.3.0")
