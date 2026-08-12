@@ -8,7 +8,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 | # | Item | Source | Effort |
 |---|------|--------|--------|
-| L-H1 | Partner profiles (two users, separate alarms / ringtones). | Sleep as Android couples | M |
 | L-H2 | Paired-phone LAN sync (partner-dismiss → you snooze). Strict privacy: LAN-only, no cloud. | — | M |
 | L-H3 | Kid-friendly green-light mode. | [OK to Wake](https://www.amazon.com/dp/B003O15A1G), [Hatch](https://www.hatch.co/) | M |
 | L-H4 | Pet-feeding reminder chain on dismiss. | — | S |
@@ -80,8 +79,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 | L-X4 | Pure-black / mono-color WCAG AAA high-contrast theme. | [WCAG 2.2 / 2.1 AAA](https://www.w3.org/WAI/WCAG22/quickref/) | S |
 | L-X6 | Per-user long-press thresholds on challenge buttons. | Android a11y guidelines | S |
 
-- [ ] **`USE_EXACT_ALARM` (install-time grant) instead of `SCHEDULE_EXACT_ALARM` (runtime).** ACX is alarm-clock-category — verify manifest each release. ([FossifyOrg/Calendar #217](https://github.com/FossifyOrg/Calendar/issues/217))
-
 - [ ] **Try-catch every `AlarmManager.set*` call.** `setInexactAllowWhileIdle` can still throw if the device's exact-alarm fallback path engages. ([flutter_local_notifications #2248](https://github.com/MaikuB/flutter_local_notifications/issues/2248))
 
 - [ ] **Android 15 short-type FGS auto-timeout (3 min cap).** Stay on `mediaPlayback` type, do NOT migrate to `shortService`. ([Android 15 behavior changes](https://developer.android.com/about/versions/15/behavior-changes-15))
@@ -90,27 +87,14 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 - [ ] **`setAlarmClock()` always shows status-bar icon.** Already mitigated with a settings toggle that falls back to `setExactAndAllowWhileIdle` (with disclaimer); keep the toggle in the UI.
 
-- [ ] **`READ_CALENDAR` runtime denial.** `CalendarAutoAlarmWorker` must early-return on denial. Verify each release.
-
-- [ ] **`Configuration.Provider` + manifest initializer removal.** WorkManager + Hilt regression vector; CI check exists, keep it.
-
 - [ ] **Android 16 "missed alarm — unknown reason" notification regression on Pixel.** Track the QPR fix and confirm ACX's foreground-service start path is not the cause. ([Android Police Pixel alarm bug](https://www.androidpolice.com/pixel-alarm-bug-is-back/))
 
 - [ ] **Play wake-lock policy (March 2026).** N4 covers the audit; keep the wake-lock acquisition window inside the 2 h / 24 h non-exempt budget. ([9to5Google March 2026](https://9to5google.com/2026/03/05/google-starts-calling-out-android-apps-that-drain-your-battery-before-you-download-them/))
 
-- [ ] Shareable-alarm import is **disabled by default** until reviewed — keep that. Never silently schedule a received link's alarm.
-
 - [ ] Hue v1 username endpoints are deprecated — **migrate `HueSunriseWorker` to v2 `application_key` + HTTPS pinning. Tracked as N5 above.** ([Philips Hue API v2](https://developers.meethue.com/new-hue-api/))
-
-- [ ] Webhook URL is user-supplied and never auto-validated — document this as part of the threat model rather than retrofitting validation that won't catch a determined misuse.
-
-- [ ] Crash logger writes to local files only; we don't ship a remote sink and won't (privacy). Ensure rotation cap remains in place so a runaway loop can't fill storage.
-
 - [ ] Add a "share crash log" button on the About screen (does not auto-upload — copies to clipboard or invokes share sheet). **S, not yet tiered.**
 
 - [ ] Two flavors today: `play` (with YT downloader + Wear Data Layer), `fdroid` (without). Maintain parity on every other surface. Build, test, signing, OSV audit, release artifact creation, and SHA-256 generation happen locally; do not add GitHub Actions.
-
-- [ ] F-Droid lint passes — anti-feature flag for the YT downloader is documented in `metadata/`. Re-verify on each release. Crash-log local-file disclosure is documented in README and F-Droid metadata.
 
 - [ ] AAB for Play Store, signed APK for GitHub Releases; never ship unsigned artifacts.
 
@@ -121,8 +105,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 - [ ] Room migration tests: every schema bump requires a migration test path in `AlarmDatabaseMigrationTest`; CI also runs `git diff --exit-code -- app/schemas` after debug builds to catch uncommitted exports (whakaara discipline — [ahudson20/whakaara](https://github.com/ahudson20/whakaara)).
 
 - [ ] Remaining alarm-fire proof gap: add a device/emulator smoke that fires through AlarmManager/test broadcast and asserts the firing window shows over lock screen. **S, not yet tiered.**
-
-- [ ] Add a `sanitized()` round-trip property test that asserts every value in `ChallengeType.entries.map(Enum::name)` is preserved through `Alarm.sanitized()`. Directly prevents the N1 class of regression in the future.
 
 - [ ] README, CHANGELOG, ROADMAP, and the version badge must all match on every release. **N10 makes this enforced in CI instead of manual.**
 
