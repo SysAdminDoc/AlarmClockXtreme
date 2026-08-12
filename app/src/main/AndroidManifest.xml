@@ -235,6 +235,15 @@
             android:name=".receiver.SnoozeReceiver"
             android:exported="false" />
 
+        <!-- Ongoing countdown for the currently snoozed alarm -->
+        <receiver
+            android:name=".receiver.SnoozeCountdownReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.sysadmindoc.alarmclock.SNOOZE_COUNTDOWN_UPDATE" />
+            </intent-filter>
+        </receiver>
+
         <!-- Dismiss Receiver (from notification actions) -->
         <receiver
             android:name=".receiver.DismissReceiver"

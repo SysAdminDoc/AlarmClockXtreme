@@ -135,15 +135,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 - [ ] Webhooks (Tasker / MacroDroid / Home Assistant) cover the integration surface we want to expose. A "real" plugin SDK is rejected (UC) until webhook gaps are documented.
 
-- [ ] P2 — Extend Live Updates (ProgressStyle) to the snooze countdown
-  Why: ACX already uses Android 16 `Notification.ProgressStyle` for the bedtime
-  countdown only; the snooze interval is an ideal second start-to-end journey.
-  Evidence: developer.android.com/about/versions/16/features/progress-centric-notifications.
-  Touches: snooze notification path in `service/AlarmService.kt`, notification builders.
-  Acceptance: while snoozed, an ongoing progress notification shows time-until-
-  re-fire; clears on re-fire/dismiss; gated to API 36+ with graceful fallback.
-  Complexity: M.
-
 - [ ] P2 — OEM reliability doctor (per-manufacturer deep-links + post-OTA re-check)
   Why: OEM Doze/autostart kills are the #1 real-world missed-alarm cause; ACX
   surfaces wake-readiness but not per-OEM autostart/battery deep-links or a

@@ -229,7 +229,7 @@ class AlarmScheduler @Inject constructor(
      * Schedule a snoozed alarm to fire after the snooze duration.
      * @param customMinutes Override snooze duration (null = use alarm's default)
      */
-    suspend fun scheduleSnooze(alarm: Alarm, customMinutes: Int? = null) {
+    suspend fun scheduleSnooze(alarm: Alarm, customMinutes: Int? = null): Boolean {
         val minutes = customMinutes ?: alarm.snoozeDurationMinutes
         val snoozeTime = System.currentTimeMillis() + (minutes * 60 * 1000L)
         if (!canScheduleExactAlarms()) {
@@ -240,7 +240,7 @@ class AlarmScheduler @Inject constructor(
             val sanitizedAlarm = alarm.sanitized()
             val fireId = AlarmIncidentEvent.fireIdFor(sanitizedAlarm.id, snoozeTime)
             repository.updateNextTrigger(sanitizedAlarm.id, snoozeTime)
-            try {
+            return try {
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     snoozeTime,
@@ -253,6 +253,7 @@ class AlarmScheduler @Inject constructor(
                     status = AlarmIncidentEvent.STATUS_SUCCEEDED,
                     reasonCode = "SNOOZE_INEXACT_NO_EXACT_PERMISSION"
                 )
+                true
             } catch (e: Exception) {
                 recordScheduleIncident(
                     alarmId = sanitizedAlarm.id,
@@ -261,10 +262,10 @@ class AlarmScheduler @Inject constructor(
                     status = AlarmIncidentEvent.STATUS_FAILED,
                     reasonCode = "SNOOZE_INEXACT_FAILED_${e.javaClass.simpleName}"
                 )
+                false
             }
-            return
         }
-        scheduleAt(alarm, snoozeTime)
+        return scheduleAt(alarm, snoozeTime)
     }
 
     /**
@@ -273,13 +274,13 @@ class AlarmScheduler @Inject constructor(
      * reboot reschedules the same occurrence instead of reverting to the
      * alarm's normal repeat calculation.
      */
-    suspend fun scheduleSnoozeAt(alarm: Alarm, snoozeAtMillis: Long) {
+    suspend fun scheduleSnoozeAt(alarm: Alarm, snoozeAtMillis: Long): Boolean {
         val snoozeTime = snoozeAtMillis.coerceAtLeast(System.currentTimeMillis() + 1_000L)
         if (!canScheduleExactAlarms()) {
             val sanitizedAlarm = alarm.sanitized()
             val fireId = AlarmIncidentEvent.fireIdFor(sanitizedAlarm.id, snoozeTime)
             repository.updateNextTrigger(sanitizedAlarm.id, snoozeTime)
-            try {
+            return try {
                 alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     snoozeTime,
@@ -292,6 +293,7 @@ class AlarmScheduler @Inject constructor(
                     status = AlarmIncidentEvent.STATUS_SUCCEEDED,
                     reasonCode = "SNOOZE_AT_INEXACT_NO_EXACT_PERMISSION"
                 )
+                true
             } catch (e: Exception) {
                 recordScheduleIncident(
                     alarmId = sanitizedAlarm.id,
@@ -300,10 +302,10 @@ class AlarmScheduler @Inject constructor(
                     status = AlarmIncidentEvent.STATUS_FAILED,
                     reasonCode = "SNOOZE_AT_INEXACT_FAILED_${e.javaClass.simpleName}"
                 )
+                false
             }
-            return
         }
-        scheduleAt(alarm, snoozeTime)
+        return scheduleAt(alarm, snoozeTime)
     }
 
     /**
@@ -314,13 +316,13 @@ class AlarmScheduler @Inject constructor(
         alarm: Alarm,
         triggerTime: Long,
         requestWidgetUpdate: Boolean = true
-    ) {
+    ): Boolean {
         val sanitizedAlarm = alarm.sanitized()
         if (!canScheduleExactAlarms()) {
             cancelScheduledEntries(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
             requestWidgetUpdateIfNeeded(requestWidgetUpdate)
-            return
+            return false
         }
         // v1.11.6 (roadmap N6): respect "Pause alarms" for snooze + quick-add
         // paths too — snoozing inside a pause window shouldn't sneak past it.
@@ -328,7 +330,7 @@ class AlarmScheduler @Inject constructor(
             cancelScheduledEntries(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
             requestWidgetUpdateIfNeeded(requestWidgetUpdate)
-            return
+            return false
         }
 
         repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
@@ -337,6 +339,7 @@ class AlarmScheduler @Inject constructor(
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
         requestWidgetUpdateIfNeeded(requestWidgetUpdate)
         syncBedtimeDndRule()
+        return true
     }
 
     /**

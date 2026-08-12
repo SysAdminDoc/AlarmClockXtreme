@@ -21,6 +21,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Added a one-off “snooze until” clock-time picker. The selected next
   occurrence is carried through the service contract and persisted as the
   alarm's next trigger, with exact-alarm scheduling and an inexact fallback.
+- Added an ongoing snooze countdown notification. Android 16 uses
+  `ProgressStyle` live updates, while older versions get a chronometer
+  fallback; the notification is cleared when the alarm re-fires or is
+  dismissed.
 
 ## [1.15.32] - 2026-07-29
 

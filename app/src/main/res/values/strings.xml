@@ -71,6 +71,13 @@
     <string name="notif_alarm_title">Alarm</string>
     <string name="notif_alarm_ringing">Alarm ringing</string>
     <string name="notif_snooze_action">Snooze %1$dm</string>
+    <string name="notif_snooze_countdown_title">Snoozed alarm</string>
+    <string name="notif_snooze_countdown_text">Rings again in %1$s</string>
+    <string name="notif_snooze_countdown_subtext">Snooze countdown</string>
+    <plurals name="notif_snooze_countdown_minutes">
+        <item quantity="one">1 minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
     <string name="notif_dismiss_action">Dismiss</string>
     <string name="notif_skip_action">Skip this alarm</string>
     <string name="notif_next_alarm_title">Next: %1$s</string>
@@ -1236,4 +1243,6 @@
     <string name="notif_channel_bedtime_desc">Reminds you when it\'s time to sleep</string>
     <string name="notif_channel_bedtime_countdown">Bedtime Countdown</string>
     <string name="notif_channel_bedtime_countdown_desc">Shows the final-hour countdown before the bedtime reminder</string>
+    <string name="notif_channel_snooze_countdown">Snooze Countdown</string>
+    <string name="notif_channel_snooze_countdown_desc">Shows the time until a snoozed alarm rings again</string>
 </resources>

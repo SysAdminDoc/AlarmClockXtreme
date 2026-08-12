@@ -40,6 +40,7 @@ import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.receiver.DismissReceiver
+import com.sysadmindoc.alarmclock.receiver.SnoozeCountdownReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeReceiver
 import com.sysadmindoc.alarmclock.ui.alarmfiring.MorningBriefingActivity
 import com.sysadmindoc.alarmclock.util.AlarmPublicText
@@ -396,6 +397,7 @@ class AlarmService : Service() {
     }
 
     private suspend fun startAlarm(alarmId: Long) {
+        SnoozeCountdownReceiver.cancel(this)
         // v1.5.1: Sanitise before any downstream logic touches the row. This
         // catches corrupt challengeType / vibrationPattern / specificDate /
         // ringtonePool entries so a bad backup restore or buggy older-version
@@ -1566,6 +1568,7 @@ class AlarmService : Service() {
         customMinutes: Int? = null,
         snoozeAtMillis: Long? = null
     ) {
+        SnoozeCountdownReceiver.cancel(this)
         autoSilenceJob?.cancel()
         backupSoundJob?.cancel()
         flashlightJob?.cancel()
@@ -1621,10 +1624,18 @@ class AlarmService : Service() {
                 val effectiveSnooze = if (alarm.progressiveSnooze && customMinutes == null && snoozeAtMillis == null) {
                     (alarm.snoozeDurationMinutes - currentSnoozeCount).coerceAtLeast(1)
                 } else customMinutes
-                if (snoozeAtMillis != null) {
-                    alarmScheduler.scheduleSnoozeAt(alarm, snoozeAtMillis)
-                } else {
-                    alarmScheduler.scheduleSnooze(alarm, effectiveSnooze)
+                val snoozeStartedAt = System.currentTimeMillis()
+                val defaultSnoozeEndAt = snoozeStartedAt +
+                    (effectiveSnooze ?: alarm.snoozeDurationMinutes)
+                        .coerceAtLeast(1) * 60_000L
+                val snoozeEndAt = (snoozeAtMillis ?: defaultSnoozeEndAt)
+                    .coerceAtLeast(snoozeStartedAt + 1_000L)
+                if (alarmScheduler.scheduleSnoozeAt(alarm, snoozeEndAt)) {
+                    SnoozeCountdownReceiver.schedule(
+                        context = this@AlarmService,
+                        startAtMillis = snoozeStartedAt,
+                        endAtMillis = snoozeEndAt
+                    )
                 }
                 recordEvent(alarm, AlarmEvent.ACTION_SNOOZED)
                 recordIncident(
@@ -1674,6 +1685,7 @@ class AlarmService : Service() {
         challengeRetryCount: Int = 0,
         challengeSolveTimeMs: Long = 0L
     ) {
+        SnoozeCountdownReceiver.cancel(this)
         autoSilenceJob?.cancel()
         backupSoundJob?.cancel()
         flashlightJob?.cancel()
