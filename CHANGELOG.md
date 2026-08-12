@@ -67,6 +67,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   cannot produce a publishable unsigned artifact.
 - Added a release verification task that builds the F-Droid APK and rejects
   artifacts above the documented 40 MiB size budget.
+- Added an Android 13+ app-language picker backed by `LocaleManager`, with a
+  system-default reset and English as the first declared bundled locale.
 
 ## [1.15.32] - 2026-07-29
 

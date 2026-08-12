@@ -789,6 +789,12 @@
     <string name="settings_bedtime_description">Set a sleep goal and keep your routine feeling intentional.</string>
     <string name="settings_night_clock">Night clock</string>
     <string name="settings_night_clock_description">Full-screen bedside clock with a warm low-light glow for bedside use.</string>
+    <string name="settings_language">App language</string>
+    <string name="settings_language_description">Choose the app language. English is the only bundled language today.</string>
+    <string name="settings_language_android_required">Per-app language choices are available on Android 13 and newer.</string>
+    <string name="settings_language_dialog_title">Choose app language</string>
+    <string name="settings_language_system_default">System default</string>
+    <string name="settings_language_english">English</string>
     <string name="settings_export_support_bundle">Export support bundle</string>
     <string name="settings_packaging_diagnostics">Packaging local crash logs and redacted diagnostics…</string>
     <string name="settings_support_bundle_description">Share local crash logs plus redacted wake, incident, and alarm diagnostics.</string>

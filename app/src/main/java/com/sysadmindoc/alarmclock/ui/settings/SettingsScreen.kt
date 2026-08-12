@@ -77,6 +77,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -156,6 +157,8 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
+import com.sysadmindoc.alarmclock.util.AppLanguageManager
+import com.sysadmindoc.alarmclock.util.AppLanguageOption
 import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
 import java.time.DayOfWeek
 import java.time.Instant
@@ -260,7 +263,12 @@ fun SettingsScreen(
     var showCommuteBaselineMenu by remember { mutableStateOf(false) }
     var showCommuteWeatherMenu by remember { mutableStateOf(false) }
     var showClearCommuteHistoryDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
+    var selectedLanguageOption by remember(context) {
+        mutableStateOf(AppLanguageManager.currentOption(context))
+    }
+    val languagePickerSupported = AppLanguageManager.isSupported()
     val screenScope = rememberCoroutineScope()
     val supportBundleSubject = stringResource(R.string.settings_support_bundle_subject)
     val shareSupportBundleTitle = stringResource(R.string.settings_share_support_bundle)
@@ -803,6 +811,25 @@ fun SettingsScreen(
                 title = stringResource(R.string.settings_utilities),
                 description = stringResource(R.string.settings_utilities_description)
             ) {
+                SettingsActionRow(
+                    label = stringResource(R.string.settings_language),
+                    value = stringResource(
+                        when (selectedLanguageOption) {
+                            AppLanguageOption.SYSTEM_DEFAULT -> R.string.settings_language_system_default
+                            AppLanguageOption.ENGLISH -> R.string.settings_language_english
+                        }
+                    ),
+                    supportingText = stringResource(
+                        if (languagePickerSupported) {
+                            R.string.settings_language_description
+                        } else {
+                            R.string.settings_language_android_required
+                        }
+                    ),
+                    enabled = languagePickerSupported,
+                    onClick = { showLanguageDialog = true }
+                )
+                HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
                 UtilityShortcutCard(
                     icon = Icons.Default.BarChart,
                     title = stringResource(R.string.settings_alarm_statistics),
@@ -967,6 +994,40 @@ fun SettingsScreen(
                     .fillMaxSize()
             )
         }
+    }
+
+    if (showLanguageDialog) {
+        AlertDialog(
+            onDismissRequest = { showLanguageDialog = false },
+            title = { Text(stringResource(R.string.settings_language_dialog_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    AppLanguageOptionRow(
+                        label = stringResource(R.string.settings_language_system_default),
+                        selected = selectedLanguageOption == AppLanguageOption.SYSTEM_DEFAULT,
+                        onSelect = {
+                            selectedLanguageOption = AppLanguageOption.SYSTEM_DEFAULT
+                            AppLanguageManager.setOption(context, AppLanguageOption.SYSTEM_DEFAULT)
+                            showLanguageDialog = false
+                        }
+                    )
+                    AppLanguageOptionRow(
+                        label = stringResource(R.string.settings_language_english),
+                        selected = selectedLanguageOption == AppLanguageOption.ENGLISH,
+                        onSelect = {
+                            selectedLanguageOption = AppLanguageOption.ENGLISH
+                            AppLanguageManager.setOption(context, AppLanguageOption.ENGLISH)
+                            showLanguageDialog = false
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showLanguageDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }
 
@@ -1327,6 +1388,29 @@ internal fun SettingsActionRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AppLanguageOptionRow(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onSelect)
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onSelect)
+        Text(
+            text = label,
+            color = TextPrimary,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(start = 8.dp)
+        )
     }
 }
 

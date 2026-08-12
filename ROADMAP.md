@@ -80,12 +80,6 @@ Actionable work only. Historical and completed roadmap material is archived in C
 | L-X6 | Per-user long-press thresholds on challenge buttons. | Android a11y guidelines | S |
 
 
-- [ ] AAB for Play Store, signed APK for GitHub Releases; never ship unsigned artifacts.
-
-- [ ] F-Droid users expect APK under **~40 MB**. Any TFLite-model or Matter-SDK work must respect this budget (downloadable models, not bundled).
-
-- [ ] English-only today. **Per-app language picker (L-U5) lands first**, THEN community translation. No machine-translation-only strings — better to remain English than ship broken translations.
-
 - [ ] Room migration tests: every schema bump requires a migration test path in `AlarmDatabaseMigrationTest`; CI also runs `git diff --exit-code -- app/schemas` after debug builds to catch uncommitted exports (whakaara discipline — [ahudson20/whakaara](https://github.com/ahudson20/whakaara)).
 
 - [ ] Remaining alarm-fire proof gap: add a device/emulator smoke that fires through AlarmManager/test broadcast and asserts the firing window shows over lock screen. **S, not yet tiered.**
