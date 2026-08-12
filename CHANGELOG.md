@@ -48,6 +48,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   the current QPR notes. ACX now promotes the alarm foreground service
   synchronously, bridges cold-start delivery with a bounded wake lock, and has a
   post-fire watchdog; Pixel/QPR device confirmation remains external.
+- Revalidated partial wake-lock use against Play's excessive-wake-lock metric:
+  alarm audio stays on the exempt `mediaPlayback` path, delivery is bounded to
+  15 seconds, and non-exempt smart wake is capped at 65 minutes per session and
+  released during teardown.
 
 ## [1.15.32] - 2026-07-29
 
