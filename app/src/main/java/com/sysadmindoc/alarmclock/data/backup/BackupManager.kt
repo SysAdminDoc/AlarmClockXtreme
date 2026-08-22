@@ -497,7 +497,6 @@ class BackupManager @Inject constructor(
                 cancellationLockMinutes = settings.cancellationLockMinutes,
                 holdToDismissMillis = settings.holdToDismissMillis,
                 hueBridgeCertFingerprint = settings.hueBridgeCertFingerprint,
-                hueLegacyHttpEnabled = settings.hueLegacyHttpEnabled,
                 firingControlMode = settings.firingControlMode,
                 challengeBypassEnabled = settings.challengeBypassEnabled,
                 challengeBypassDelaySeconds = settings.challengeBypassDelaySeconds
@@ -734,7 +733,6 @@ class BackupManager @Inject constructor(
         cancellationLockMinutes = s.cancellationLockMinutes,
         holdToDismissMillis = s.holdToDismissMillis,
         hueBridgeCertFingerprint = s.hueBridgeCertFingerprint,
-        hueLegacyHttpEnabled = s.hueLegacyHttpEnabled,
         firingControlMode = s.firingControlMode,
         challengeBypassEnabled = s.challengeBypassEnabled,
         challengeBypassDelaySeconds = s.challengeBypassDelaySeconds

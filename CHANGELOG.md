@@ -6,6 +6,13 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Removed the "Allow legacy Hue API v1 over HTTP" setting and the code behind
+  it. Android blocks plain HTTP for this app, so that path could never connect
+  and the toggle only promised something impossible. Hue works over the
+  encrypted v2 API as before.
+- Internet radio requires an https address, says so in the editor, and flags
+  one that is not. An http stream used to sit silently until the alarm fell
+  back to the default tone.
 - The alarm event history is pruned to a year and indexed, so the Stats screen
   stays quick instead of scanning a table that only ever grew.
 - Replace-mode restore saves the new alarms before removing the old ones and

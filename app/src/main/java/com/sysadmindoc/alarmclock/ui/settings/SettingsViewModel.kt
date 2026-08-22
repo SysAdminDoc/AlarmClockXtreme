@@ -467,9 +467,6 @@ class SettingsViewModel @Inject constructor(
     fun updateHueBridgeIp(ip: String) = updateSettings { it.copy(hueBridgeIp = ip.trim()) }
     fun updateHueApiKey(key: String) = updateSettings { it.copy(hueApiKey = key.trim()) }
     fun updateHueLightIds(ids: String) = updateSettings { it.copy(hueLightIds = ids.trim()) }
-    fun toggleHueLegacyHttp(enabled: Boolean) = updateSettings {
-        it.copy(hueLegacyHttpEnabled = enabled)
-    }
     fun clearHueCertificatePin() = updateSettings {
         it.copy(hueBridgeCertFingerprint = "")
     }
@@ -494,8 +491,7 @@ class SettingsViewModel @Inject constructor(
             val connection = hueBridgeClient.testConnection(
                 rawBridgeHost = settings.hueBridgeIp,
                 rawApiKey = settings.hueApiKey,
-                pinnedFingerprint = settings.hueBridgeCertFingerprint,
-                allowLegacyHttp = settings.hueLegacyHttpEnabled
+                pinnedFingerprint = settings.hueBridgeCertFingerprint
             )
             val result = when (connection) {
                 is HueConnectionResult.V2Reachable -> when (
@@ -510,17 +506,12 @@ class SettingsViewModel @Inject constructor(
                         "Hue certificate changed — verify the bridge, then forget the saved certificate"
                     HuePinResult.Invalid -> "Hue bridge returned an invalid certificate fingerprint"
                 }
-                HueConnectionResult.V1Reachable ->
-                    "Hue bridge reachable (legacy API v1 over HTTP)"
                 is HueConnectionResult.CertificateChanged ->
                     "Hue certificate changed — verify the bridge, then forget the saved certificate"
                 HueConnectionResult.InvalidConfiguration ->
                     "Hue bridge not checked — enter a valid IP and API key"
-                is HueConnectionResult.Unreachable -> if (settings.hueLegacyHttpEnabled) {
-                    "Hue bridge not found — check IP and key"
-                } else {
-                    "Hue API v2 not reachable — legacy HTTP is off"
-                }
+                is HueConnectionResult.Unreachable ->
+                    "Hue bridge not found — check the IP and the API key"
             }
             _hueTestState.value = IntegrationTestState(message = result, isRunning = false)
             kotlinx.coroutines.delay(4000)

@@ -630,8 +630,9 @@
     <string name="alarm_edit_screen_sunrise">Screen sunrise (color transition)</string>
     <string name="alarm_edit_duration">Duration</string>
     <string name="alarm_edit_sunrise_hint">Transitions the screen from deep red to warm yellow to simulate sunrise.</string>
-    <string name="alarm_edit_stream_url">Stream URL (http://…)</string>
-    <string name="alarm_edit_radio_hint">Streams internet radio as the alarm sound and falls back to the default ringtone on failure.</string>
+    <string name="alarm_edit_stream_url">Stream URL (https://…)</string>
+    <string name="alarm_edit_radio_https_required">Only https stream addresses can play. Android blocks plain http.</string>
+    <string name="alarm_edit_radio_hint">Streams internet radio as the alarm sound and falls back to the default ringtone on failure. The address has to be https.</string>
     <string name="alarm_edit_emergency_alert">Emergency contact alert</string>
     <string name="alarm_edit_emergency_phone">Emergency phone number</string>
     <string name="alarm_edit_alert_after">Alert after</string>
@@ -990,8 +991,6 @@
     <string name="settings_hue_api_placeholder">Press the Hue bridge button first</string>
     <string name="settings_hue_light_ids">Light IDs</string>
     <string name="settings_hue_light_ids_placeholder" translatable="false">1,2,3</string>
-    <string name="settings_hue_legacy">Allow legacy Hue API v1 over HTTP</string>
-    <string name="settings_hue_legacy_description">Off by default. Enable only for an older bridge that cannot use encrypted API v2.</string>
     <string name="settings_hue_cert_pinned">Bridge certificate pinned</string>
     <string name="settings_forget">Forget</string>
     <string name="settings_hue_network_description">Android 17+ requires local network access before ACX can reach this Hue bridge.</string>

@@ -942,7 +942,9 @@ class AlarmService : Service() {
 
     private fun startMedia3AudioInternal(alarm: Alarm) {
         val radioUrl = alarm.internetRadioUrl.trim()
-        if (radioUrl.isNotBlank() && (radioUrl.startsWith("http://", true) || radioUrl.startsWith("https://", true))) {
+        // https only: cleartext is blocked at this targetSdk, so an http stream
+        // would stall until the watchdog escalated instead of failing fast.
+        if (radioUrl.startsWith("https://", ignoreCase = true)) {
             if (startMedia3Radio(alarm, radioUrl)) {
                 return
             }
@@ -1331,7 +1333,9 @@ class AlarmService : Service() {
         // v1.2.0: Internet radio stream. Defensive: only accept http(s) URLs so a
         // malformed setting can't crash MediaPlayer with an unknown scheme.
         val radioUrl = alarm.internetRadioUrl.trim()
-        if (radioUrl.isNotBlank() && (radioUrl.startsWith("http://", true) || radioUrl.startsWith("https://", true))) {
+        // https only: cleartext is blocked at this targetSdk, so an http stream
+        // would stall until the watchdog escalated instead of failing fast.
+        if (radioUrl.startsWith("https://", ignoreCase = true)) {
             try {
                 val player = MediaPlayer()
                 val playback = MediaPlayerAlarmPlaybackPlayer(player)

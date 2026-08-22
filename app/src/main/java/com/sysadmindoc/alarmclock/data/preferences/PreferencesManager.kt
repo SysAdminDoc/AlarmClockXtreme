@@ -98,7 +98,6 @@ data class AppSettings(
     val hueApiKey: String = "",
     val hueLightIds: String = "",         // Comma-separated Hue light IDs
     val hueBridgeCertFingerprint: String = "",  // SHA-256 hex of bridge TLS cert (TOFU)
-    val hueLegacyHttpEnabled: Boolean = false,  // Allow v1 plain HTTP (deprecated)
     // v1.2.0: Accent color (hex)
     val accentColor: String = "#5B9EF4",
     // v1.2.0: Adaptive challenge difficulty
@@ -340,7 +339,6 @@ class PreferencesManager @Inject constructor(
         val HUE_API_KEY = stringPreferencesKey("hue_api_key")
         val HUE_LIGHT_IDS = stringPreferencesKey("hue_light_ids")
         val HUE_BRIDGE_CERT_FINGERPRINT = stringPreferencesKey("hue_bridge_cert_fingerprint")
-        val HUE_LEGACY_HTTP_ENABLED = booleanPreferencesKey("hue_legacy_http_enabled")
         val ACCENT_COLOR = stringPreferencesKey("accent_color")
         val ADAPTIVE_DIFFICULTY = booleanPreferencesKey("adaptive_difficulty")
         val CALENDAR_AUTO_ALARM = booleanPreferencesKey("calendar_auto_alarm")
@@ -484,7 +482,6 @@ class PreferencesManager @Inject constructor(
         hueApiKey = this[Keys.HUE_API_KEY] ?: "",
         hueLightIds = this[Keys.HUE_LIGHT_IDS] ?: "",
         hueBridgeCertFingerprint = this[Keys.HUE_BRIDGE_CERT_FINGERPRINT] ?: "",
-        hueLegacyHttpEnabled = this[Keys.HUE_LEGACY_HTTP_ENABLED] ?: false,
         accentColor = this[Keys.ACCENT_COLOR] ?: "#5B9EF4",
         adaptiveDifficultyEnabled = this[Keys.ADAPTIVE_DIFFICULTY] ?: false,
         calendarAutoAlarmEnabled = this[Keys.CALENDAR_AUTO_ALARM] ?: false,
@@ -573,7 +570,6 @@ class PreferencesManager @Inject constructor(
         this[Keys.HUE_API_KEY] = s.hueApiKey
         this[Keys.HUE_LIGHT_IDS] = s.hueLightIds
         this[Keys.HUE_BRIDGE_CERT_FINGERPRINT] = s.hueBridgeCertFingerprint
-        this[Keys.HUE_LEGACY_HTTP_ENABLED] = s.hueLegacyHttpEnabled
         this[Keys.ACCENT_COLOR] = s.accentColor
         this[Keys.ADAPTIVE_DIFFICULTY] = s.adaptiveDifficultyEnabled
         this[Keys.CALENDAR_AUTO_ALARM] = s.calendarAutoAlarmEnabled

@@ -234,16 +234,27 @@ internal fun LazyListScope.alarmEditIntegrationSections(
 
     // v1.2.0: Sound Source
     SettingsSection(editorPage, AlarmEditorSection.RADIO) {
+        // Cleartext is blocked at this targetSdk, so an http stream silently
+        // fell back to the default tone with nothing said about why.
+        val radioNeedsHttps = state.internetRadioUrl.isNotBlank() &&
+            !state.internetRadioUrl.trim().startsWith("https://", ignoreCase = true)
         OutlinedTextField(
             value = state.internetRadioUrl,
             onValueChange = viewModel::updateInternetRadioUrl,
             label = { Text(stringResource(R.string.alarm_edit_stream_url), color = TextMuted) },
             placeholder = { Text(stringResource(R.string.alarm_edit_default_ringtone_placeholder), color = TextMuted) },
+            isError = radioNeedsHttps,
             colors = appOutlinedTextFieldColors(),
             shape = AppInputShape,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             singleLine = true
         )
+        if (radioNeedsHttps) {
+            SettingsHint(
+                stringResource(R.string.alarm_edit_radio_https_required),
+                tone = HintTone.Warning
+            )
+        }
         SettingsHint(
             stringResource(R.string.alarm_edit_radio_hint),
             tone = HintTone.Warning

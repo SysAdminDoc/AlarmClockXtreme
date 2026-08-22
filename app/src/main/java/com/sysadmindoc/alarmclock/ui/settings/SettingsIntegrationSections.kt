@@ -430,12 +430,6 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
-        SettingsToggle(
-            label = stringResource(R.string.settings_hue_legacy),
-            checked = state.settings.hueLegacyHttpEnabled,
-            supportingText = stringResource(R.string.settings_hue_legacy_description),
-            onToggle = viewModel::toggleHueLegacyHttp
-        )
         if (state.settings.hueBridgeCertFingerprint.isNotBlank()) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

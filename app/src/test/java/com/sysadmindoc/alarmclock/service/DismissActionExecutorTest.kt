@@ -107,18 +107,6 @@ class DismissActionExecutorTest {
     }
 
     @Test
-    fun hueV1RequestUsesGroupActionFallback() {
-        val request = DismissActionExecutor.buildHueSceneRequestV1(
-            bridgeIp = "bridge.local",
-            apiKey = "app_key",
-            target = HueSceneTarget(sceneId = "scene_123", groupId = "5")
-        )
-
-        assertEquals("PUT", request.method)
-        assertEquals("http://bridge.local/api/app_key/groups/5/action", request.url.toString())
-    }
-
-    @Test
     fun hueSceneExecutesV2Request() = runTest {
         val requests = mutableListOf<Request>()
         val executor = executorWith(

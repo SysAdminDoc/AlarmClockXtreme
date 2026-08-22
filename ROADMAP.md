@@ -12,15 +12,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P2 — correctness and reliability
 
-- [ ] P2 — Hue legacy v1 (HTTP) path and `http://` internet-radio URLs are dead on this targetSdk, yet the UI offers them
-  Category: correctness
-  Where: integration/hue/HueBridgeClient.kt:140, worker/HueSunriseWorker.kt:159, service/DismissActionExecutor.kt:201 (`http://$bridgeIp/api/$apiKey/...`); ui/settings/SettingsViewModel.kt:471-515 (`hueLegacyHttpEnabled` toggle and "reachable (legacy API v1 over HTTP)" message); service/AlarmService.kt:907-908 (`http://` accepted for radio); res/values/strings.xml:614 ("Stream URL (http://…)")
-  Problem: no `usesCleartextTraffic` or network security config exists, so cleartext is blocked platform-wide; the v1 Hue calls throw `UnknownServiceException` and are swallowed, and `http://` radio streams always fall back to the default tone. Users are offered settings that can never work.
-  Fix: either add `res/xml/network_security_config.xml` with `cleartextTrafficPermitted="true"` scoped to the Hue bridge host (set at runtime via `domain-config` cannot be dynamic, so prefer removing the v1 path as HueSunriseWorker.kt:34-35 already plans) and reject non-HTTPS radio URLs in `Alarm.sanitized()` with an editor error; update the label to "Stream URL (https://…)".
-  Acceptance: the legacy HTTP toggle is gone or works; typing `http://` in the radio field shows a validation error.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — Half of the user-facing strings bypass localisation, so the new language picker has nothing to switch
   Category: ux
   Where: app/build.gradle.kts:195-203 (`verifyLocalizedPrimaryScreens` guards only three files); ~81 literals in ui/alarmfiring/challenges/ChallengeViews.kt (e.g. :122, :165, :486, :694, :1361), ~52 in ui/stats/StatsScreen.kt (:129, :152, :372, :467), ~52 in ui/alarmlist/AlarmListScreen.kt (:1051, :1022, :1033, :1248, :1561), ~40 in ui/dashboard/DashboardScreen.kt, ~37 in ui/bedtime/BedtimeScreen.kt, plus service/AlarmService.kt:2072, service/NextAlarmNotifier.kt:210/249, receiver/BedtimeReceiver.kt:216/296, worker/WakeConfirmWorker.kt:214-254, widget/NextAlarmWidget.kt:243, directboot/DirectBootAlarmService.kt:122/131 (resources `direct_boot_alarm_title`/`_stop` exist but are unused), ui/navigation/AppNavigation.kt:88-93 (tab labels), and the whole wear module (wear strings.xml has 5 entries; NextAlarmTileService.kt:106-242, WearAlarmData.kt:76-130)

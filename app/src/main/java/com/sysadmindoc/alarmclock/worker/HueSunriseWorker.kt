@@ -61,12 +61,6 @@ class HueSunriseWorker @AssistedInject constructor(
         fun uniqueName(alarmId: Long): String = "hue_sunrise_$alarmId"
     }
 
-    private val httpV1: OkHttpClient by lazy {
-        OkHttpClient.Builder()
-            .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
-            .build()
-    }
 
     override suspend fun doWork(): Result {
         // WorkManager's ten-minute clock starts here, not after the bridge
@@ -106,9 +100,11 @@ class HueSunriseWorker @AssistedInject constructor(
             is HueV2ProbeResult.CertificateChanged -> return Result.failure()
             is HueV2ProbeResult.Failed -> null
         }
-        val useV2 = effectivePin != null
-        if (!useV2 && !settings.hueLegacyHttpEnabled) return Result.failure()
+        // HTTPS only. targetSdk 36 blocks cleartext and no network security
+        // config permits it, so a bridge that fails the v2 probe is simply
+        // unreachable; the old v1 fallback could not have connected either.
         val v2Client = effectivePin?.let { hueBridgeClient.buildTofuClient(it).client }
+            ?: return Result.failure()
 
         val segmentStart = System.currentTimeMillis()
         val rampStart = inputData.getLong(KEY_RAMP_START, 0L).takeIf { it > 0L } ?: segmentStart
@@ -128,8 +124,8 @@ class HueSunriseWorker @AssistedInject constructor(
         val openingBrightness =
             HueSunriseRampPlan.brightnessAt(rampStart, rampEnd, segmentStart)
         if (lightIds.any { id ->
-                !putLightState(
-                    useV2, v2Client, bridgeIp, apiKey, id,
+                !putLightStateV2(
+                    v2Client, bridgeIp, apiKey, id,
                     on = true, bri = openingBrightness, ct = WARM_CT
                 )
             }
@@ -163,8 +159,8 @@ class HueSunriseWorker @AssistedInject constructor(
                     rampStart, rampEnd, System.currentTimeMillis()
                 )
                 if (lightIds.any { id ->
-                        !putLightState(
-                            useV2, v2Client, bridgeIp, apiKey, id,
+                        !putLightStateV2(
+                            v2Client, bridgeIp, apiKey, id,
                             on = true, bri = bri, ct = WARM_CT
                         )
                     }
@@ -208,37 +204,6 @@ class HueSunriseWorker @AssistedInject constructor(
             androidx.work.ExistingWorkPolicy.APPEND,
             request
         )
-    }
-
-    private fun putLightState(
-        useV2: Boolean,
-        v2Client: OkHttpClient?,
-        bridgeIp: String, apiKey: String, lightId: String,
-        on: Boolean, bri: Int, ct: Int
-    ): Boolean {
-        return if (useV2 && v2Client != null) {
-            putLightStateV2(v2Client, bridgeIp, apiKey, lightId, on, bri, ct)
-        } else if (!useV2) {
-            putLightStateV1(bridgeIp, apiKey, lightId, on, bri, ct)
-        } else {
-            false
-        }
-    }
-
-    private fun putLightStateV1(
-        bridgeIp: String, apiKey: String, lightId: String,
-        on: Boolean, bri: Int, ct: Int
-    ): Boolean {
-        return try {
-            val body = """{"on":$on,"bri":$bri,"ct":$ct}"""
-            val request = Request.Builder()
-                .url("http://$bridgeIp/api/$apiKey/lights/$lightId/state")
-                .put(body.toRequestBody(JSON))
-                .build()
-            httpV1.newCall(request).execute().use { it.isSuccessful }
-        } catch (_: Exception) {
-            false
-        }
     }
 
     private fun putLightStateV2(

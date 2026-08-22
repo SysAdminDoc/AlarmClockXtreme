@@ -25,7 +25,6 @@ sealed interface HueV2ProbeResult {
 
 sealed interface HueConnectionResult {
     data class V2Reachable(val observedFingerprint: String) : HueConnectionResult
-    data object V1Reachable : HueConnectionResult
     data class CertificateChanged(
         val expectedFingerprint: String,
         val observedFingerprint: String
@@ -46,8 +45,7 @@ class HueBridgeClient @Inject constructor(
     fun testConnection(
         rawBridgeHost: String,
         rawApiKey: String,
-        pinnedFingerprint: String,
-        allowLegacyHttp: Boolean
+        pinnedFingerprint: String
     ): HueConnectionResult {
         val bridgeHost = sanitiseHost(rawBridgeHost)
             ?: return HueConnectionResult.InvalidConfiguration
@@ -59,9 +57,7 @@ class HueBridgeClient @Inject constructor(
             resourcePath = "light",
             pinnedFingerprint = pinnedFingerprint
         )
-        return resolveConnection(v2, allowLegacyHttp) {
-            probeV1(bridgeHost, apiKey)
-        }
+        return resolveConnection(v2)
     }
 
     fun probeV2(
@@ -114,10 +110,13 @@ class HueBridgeClient @Inject constructor(
         return HueTofuClient(client, trustManager)
     }
 
+    /**
+     * The bridge is only reachable over HTTPS now. targetSdk 36 blocks cleartext
+     * and the app declares no network security config, so the old v1 HTTP probe
+     * could never connect; keeping it only produced a setting that lied.
+     */
     internal fun resolveConnection(
-        v2Result: HueV2ProbeResult,
-        allowLegacyHttp: Boolean,
-        legacyProbe: () -> Boolean
+        v2Result: HueV2ProbeResult
     ): HueConnectionResult = when (v2Result) {
         is HueV2ProbeResult.Reachable ->
             HueConnectionResult.V2Reachable(v2Result.observedFingerprint)
@@ -126,28 +125,8 @@ class HueBridgeClient @Inject constructor(
                 v2Result.expectedFingerprint,
                 v2Result.observedFingerprint
             )
-        is HueV2ProbeResult.Failed -> {
-            if (allowLegacyHttp && legacyProbe()) {
-                HueConnectionResult.V1Reachable
-            } else {
-                HueConnectionResult.Unreachable(v2Result.reason)
-            }
-        }
+        is HueV2ProbeResult.Failed -> HueConnectionResult.Unreachable(v2Result.reason)
     }
-
-    private fun probeV1(bridgeHost: String, apiKey: String): Boolean = runCatching {
-        val request = Request.Builder()
-            .url("http://$bridgeHost/api/$apiKey/lights")
-            .get()
-            .build()
-        baseClient.newBuilder()
-            .connectTimeout(5, TimeUnit.SECONDS)
-            .readTimeout(5, TimeUnit.SECONDS)
-            .build()
-            .newCall(request)
-            .execute()
-            .use { it.isSuccessful }
-    }.getOrDefault(false)
 
     companion object {
         fun certFingerprint(cert: X509Certificate): String {

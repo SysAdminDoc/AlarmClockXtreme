@@ -114,17 +114,12 @@ class DismissActionExecutor @Inject constructor(
         val target = HueSceneTarget.parse(payload)
             ?: return DismissActionResult.Failure("HUE_SCENE_REJECTED")
 
-        val v2Request = buildHueSceneRequestV2(bridgeIp, apiKey, target.sceneId)
-        val v2Result = executeHueRequestV2(v2Request, settings)
-        if (v2Result == DismissActionResult.Success ||
-            !settings.hueLegacyHttpEnabled ||
-            (v2Result is DismissActionResult.Failure &&
-                v2Result.reason == "HUE_CERTIFICATE_CHANGED")
-        ) {
-            return v2Result
-        }
-
-        return executeRequest(buildHueSceneRequestV1(bridgeIp, apiKey, target))
+        // HTTPS only: cleartext is blocked at this targetSdk, so the old v1
+        // fallback could never have connected.
+        return executeHueRequestV2(
+            buildHueSceneRequestV2(bridgeIp, apiKey, target.sceneId),
+            settings
+        )
     }
 
     private suspend fun executeHueRequestV2(
@@ -186,18 +181,6 @@ class DismissActionExecutor @Inject constructor(
             return Request.Builder()
                 .url("https://$bridgeIp/clip/v2/resource/scene/$sceneId")
                 .header("hue-application-key", apiKey)
-                .put(body.toRequestBody(JSON))
-                .build()
-        }
-
-        internal fun buildHueSceneRequestV1(
-            bridgeIp: String,
-            apiKey: String,
-            target: HueSceneTarget
-        ): Request {
-            val body = """{"scene":"${target.sceneId}"}"""
-            return Request.Builder()
-                .url("http://$bridgeIp/api/$apiKey/groups/${target.groupId}/action")
                 .put(body.toRequestBody(JSON))
                 .build()
         }
