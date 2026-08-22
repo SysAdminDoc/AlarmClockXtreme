@@ -80,17 +80,6 @@ internal fun <T> callOnPlaybackMainThread(block: () -> T): T {
     return PlaybackMainThread.callBlocking(block)
 }
 
-internal enum class AlarmPlaybackBackend {
-    MEDIA_PLAYER,
-    MEDIA3;
-
-    companion object {
-        fun fromBuildFlag(useMedia3: Boolean): AlarmPlaybackBackend {
-            return if (useMedia3) MEDIA3 else MEDIA_PLAYER
-        }
-    }
-}
-
 internal class MediaPlayerAlarmPlaybackPlayer(
     private val player: MediaPlayer
 ) : AlarmPlaybackPlayer {

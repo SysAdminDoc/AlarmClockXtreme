@@ -21,7 +21,6 @@ android {
         targetSdk = 36
         versionCode = 135
         versionName = "1.15.33"
-        buildConfigField("boolean", "USE_MEDIA3_ALARM_PLAYER", "true")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -388,8 +387,8 @@ dependencies {
 
     // Coroutines (unified with the :wear module on 1.11.0)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
-    // Media3 / ExoPlayer alarm backend. Kept behind USE_MEDIA3_ALARM_PLAYER
-    // for one release so the service can fall back to the legacy MediaPlayer path.
+    // Media3 / ExoPlayer is the alarm audio backend. When it cannot play,
+    // startMedia3DefaultFallback drops into the MediaPlayer path in AlarmService.
     implementation("androidx.media3:media3-exoplayer:1.10.1")
 
     // YouTube alarm-sound download (play flavor only — bundles a native Python

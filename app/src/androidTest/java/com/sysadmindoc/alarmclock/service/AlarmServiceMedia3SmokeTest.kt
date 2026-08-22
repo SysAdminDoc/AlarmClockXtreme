@@ -8,14 +8,12 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.sysadmindoc.alarmclock.AlarmClockApp
-import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -27,8 +25,6 @@ class AlarmServiceMedia3SmokeTest {
 
     @Test
     fun alarmServiceStartsWithMedia3PlaybackBackend() = runBlocking {
-        assumeTrue(BuildConfig.USE_MEDIA3_ALARM_PLAYER)
-
         val context = ApplicationProvider.getApplicationContext<Context>()
         grantNotificationPermission(context)
 

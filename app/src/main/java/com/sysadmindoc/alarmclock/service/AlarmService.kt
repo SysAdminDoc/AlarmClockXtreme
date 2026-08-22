@@ -28,7 +28,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.core.app.NotificationCompat
 import androidx.work.*
-import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
@@ -934,10 +933,11 @@ class AlarmService : Service() {
             }
         }
 
-        when (AlarmPlaybackBackend.fromBuildFlag(BuildConfig.USE_MEDIA3_ALARM_PLAYER)) {
-            AlarmPlaybackBackend.MEDIA3 -> startMedia3AudioInternal(alarm)
-            AlarmPlaybackBackend.MEDIA_PLAYER -> startMediaPlayerAudioInternal(alarm)
-        }
+        // Media3 is the only entry point. The MediaPlayer path below is not
+        // dead: startMedia3DefaultFallback drops into it whenever Media3
+        // cannot play, which is the safety net for the app's whole reason to
+        // exist.
+        startMedia3AudioInternal(alarm)
     }
 
     private fun startMedia3AudioInternal(alarm: Alarm) {
