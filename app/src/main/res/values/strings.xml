@@ -2167,4 +2167,53 @@
         <item quantity="one">First to %1$d win. Pick your move:</item>
         <item quantity="other">First to %1$d wins. Pick your move:</item>
     </plurals>
+    <string name="readiness_ready">Ready to use.</string>
+    <string name="readiness_no_motion_sensor_shake">This device has no motion sensor for the shake challenge.</string>
+    <string name="readiness_no_motion_sensor_squat">This device has no motion sensor for the squat challenge.</string>
+    <string name="readiness_no_motion_sensor_pushup">This device has no motion sensor for the push-up challenge.</string>
+    <string name="readiness_no_motion_sensor_plank">This device has no motion sensor for the plank hold challenge.</string>
+    <string name="readiness_no_step_counter">This device has no step-counter sensor for the walk challenge.</string>
+    <string name="readiness_needs_activity_permission">Grant physical-activity permission so steps can be counted.</string>
+    <string name="readiness_no_speech_recognition">Android speech recognition is unavailable. The typed fallback still works.</string>
+    <string name="readiness_needs_microphone">Grant microphone permission so the phrase can be recognized.</string>
+    <string name="readiness_no_handwriting">Handwriting recognition is unavailable in this build. The typed fallback still works.</string>
+    <string name="readiness_no_nfc">This device has no NFC hardware for the tag challenge.</string>
+    <string name="readiness_needs_nfc_tag">Register an NFC tag before saving.</string>
+    <string name="readiness_nfc_off">Turn on NFC before this alarm fires.</string>
+    <string name="readiness_no_camera_barcode">This device has no camera to scan the barcode.</string>
+    <string name="readiness_needs_barcode">Register a barcode value before saving.</string>
+    <string name="readiness_needs_camera_barcode">Grant camera permission to scan the barcode.</string>
+    <string name="readiness_no_camera_photo">This device has no camera for the photo-match challenge.</string>
+    <string name="readiness_needs_photo">Capture a reference photo before saving.</string>
+    <string name="readiness_needs_camera_photo">Grant camera permission to match the photo.</string>
+    <string name="readiness_no_wifi">This device has no Wi-Fi for the network challenge.</string>
+    <string name="readiness_needs_ssid">Enter the Wi-Fi network name before saving.</string>
+    <string name="readiness_needs_location_wifi">Grant location permission so the Wi-Fi network can be detected.</string>
+    <string name="alarmlist_set_power_nap">Set %1$d-minute power nap</string>
+    <string name="alarmlist_set_power_nap_default">Set %1$d-minute power nap, the default length</string>
+    <string name="alarmlist_bulk_scope_all">Bulk actions apply to everything currently on screen</string>
+    <string name="alarmlist_bulk_scope_selected">Bulk actions apply only to the alarms you selected</string>
+    <string name="alarmlist_copy_of">%1$s (copy)</string>
+    <string name="timer_default_name">Timer</string>
+    <plurals name="stats_alarms_recorded">
+        <item quantity="one">%1$d alarm recorded</item>
+        <item quantity="other">%1$d alarms recorded</item>
+    </plurals>
+    <string-array name="motivational_quotes">
+        <item>The secret of getting ahead is getting started.</item>
+        <item>Today is a new beginning. Make the most of it.</item>
+        <item>Your future is created by what you do today.</item>
+        <item>Rise up, start fresh, see the bright opportunity in each new day.</item>
+        <item>Every morning brings new potential.</item>
+        <item>Do something today that your future self will thank you for.</item>
+        <item>The only way to do great work is to love what you do.</item>
+        <item>Believe you can and you are halfway there.</item>
+        <item>Success is not final, failure is not fatal: it is the courage to continue that counts.</item>
+        <item>The best time for new beginnings is now.</item>
+        <item>You are never too old to set another goal or to dream a new dream.</item>
+        <item>What you do today can improve all your tomorrows.</item>
+        <item>Start where you are. Use what you have. Do what you can.</item>
+        <item>It does not matter how slowly you go as long as you do not stop.</item>
+        <item>Act as if what you do makes a difference. It does.</item>
+    </string-array>
 </resources>

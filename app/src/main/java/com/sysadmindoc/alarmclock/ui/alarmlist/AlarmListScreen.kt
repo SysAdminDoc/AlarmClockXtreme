@@ -1276,7 +1276,11 @@ private fun QuickAlarmRow(
                     selected = isDefault,
                     leadingIcon = if (isDefault) Icons.Default.CheckCircle else null,
                     selectionSemantics = false,
-                    accessibilityLabel = "Set $minutes-minute power nap${if (isDefault) stringResource(R.string.alarmlist_default_length) else ""}",
+                    accessibilityLabel = if (isDefault) {
+                        stringResource(R.string.alarmlist_set_power_nap_default, minutes)
+                    } else {
+                        stringResource(R.string.alarmlist_set_power_nap, minutes)
+                    },
                     onClick = { onQuickAlarm(minutes) },
                 )
             }
@@ -1498,9 +1502,9 @@ private fun SelectionActionBar(
                         Text(stringResource(R.string.alarmlist_selected, selectedCount), color = TextPrimary, style = MaterialTheme.typography.titleSmall)
                         Text(
                             if (selectedCount == totalCount) {
-                                "Bulk actions apply to everything currently on screen"
+                                stringResource(R.string.alarmlist_bulk_scope_all)
                             } else {
-                                "Bulk actions apply only to the alarms you selected"
+                                stringResource(R.string.alarmlist_bulk_scope_selected)
                             },
                             color = TextSecondary,
                             style = MaterialTheme.typography.bodySmall

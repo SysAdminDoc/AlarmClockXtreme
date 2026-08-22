@@ -423,7 +423,11 @@ class AlarmListViewModel @Inject constructor(
         viewModelScope.launch {
             val duplicate = alarm.copy(
                 id = 0,
-                label = if (alarm.label.isBlank()) context.getString(R.string.alarmlist_copy) else "${alarm.label} (copy)",
+                label = if (alarm.label.isBlank()) {
+                    context.getString(R.string.alarmlist_copy)
+                } else {
+                    context.getString(R.string.alarmlist_copy_of, alarm.label)
+                },
                 isEnabled = true,
                 createdAt = System.currentTimeMillis(),
                 nextTriggerTime = 0,

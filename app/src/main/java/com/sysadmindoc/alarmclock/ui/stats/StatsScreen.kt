@@ -331,7 +331,13 @@ fun StatsScreen(
                             style = MaterialTheme.typography.headlineSmall
                         )
                         Text(
-                            text = busiest?.let { "${it.value} alarms recorded" } ?: stringResource(R.string.stats_alarm_history_will_fill_this_in),
+                            text = busiest?.let {
+                                pluralStringResource(
+                                    R.plurals.stats_alarms_recorded,
+                                    it.value,
+                                    it.value
+                                )
+                            } ?: stringResource(R.string.stats_alarm_history_will_fill_this_in),
                             color = TextSecondary,
                             style = MaterialTheme.typography.bodyMedium
                         )

@@ -357,7 +357,9 @@ class AlarmFiringViewModel @Inject constructor(
         )
         val locationDismissActive = alarm.locationDismissEnabled && hasLocationDismissTarget
 
-        val quote = MOTIVATIONAL_QUOTES.random()
+        // A translation supplies its own set rather than translating ours.
+        val quotes = appContext.resources.getStringArray(R.array.motivational_quotes)
+        val quote = quotes.randomOrNull().orEmpty()
 
         val weatherSettings = preferencesManager.getCachedSettings()
         val haveLocation = weatherSettings.lastKnownLatitude != 0.0 || weatherSettings.lastKnownLongitude != 0.0
@@ -1296,22 +1298,5 @@ class AlarmFiringViewModel @Inject constructor(
         /** Stand-in when the Wi-Fi check cannot run at all. */
         private val WIFI_SUBSTITUTE_CHALLENGE = ChallengeType.MATH_MEDIUM
 
-        private val MOTIVATIONAL_QUOTES = listOf(
-            "The secret of getting ahead is getting started.",
-            "Today is a new beginning. Make the most of it.",
-            "Your future is created by what you do today.",
-            "Rise up, start fresh, see the bright opportunity in each new day.",
-            "Every morning brings new potential.",
-            "Do something today that your future self will thank you for.",
-            "The only way to do great work is to love what you do.",
-            "Believe you can and you are halfway there.",
-            "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-            "The best time for new beginnings is now.",
-            "You are never too old to set another goal or to dream a new dream.",
-            "What you do today can improve all your tomorrows.",
-            "Start where you are. Use what you have. Do what you can.",
-            "It does not matter how slowly you go as long as you do not stop.",
-            "Act as if what you do makes a difference. It does."
-        )
     }
 }

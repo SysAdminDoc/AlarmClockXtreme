@@ -221,6 +221,7 @@ private fun ActiveTimerCard(
     onDismiss: () -> Unit
 ) {
     val isFinished = timer.state == TimerState.FINISHED
+    val defaultTimerName = stringResource(R.string.timer_default_name)
     val pulseAlpha = if (LocalMotionEnabled.current) {
         rememberInfiniteTransition(label = stringResource(R.string.timer_screen_timer_finished)).animateFloat(
             initialValue = 0.52f,
@@ -270,7 +271,10 @@ private fun ActiveTimerCard(
                     // signalled only by a colour change and a pulse.
                     if (isFinished) {
                         Text(
-                            text = stringResource(R.string.timer_finished, timer.label.ifBlank { "Timer" }),
+                            text = stringResource(
+                                R.string.timer_finished,
+                                timer.label.ifBlank { defaultTimerName }
+                            ),
                             color = AccentRed,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.semantics {
