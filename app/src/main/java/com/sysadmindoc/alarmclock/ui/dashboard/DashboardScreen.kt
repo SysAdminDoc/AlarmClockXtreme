@@ -933,7 +933,7 @@ private fun CalendarSection(
 
             else -> {
                 state.calendarEvents.forEachIndexed { index, event ->
-                    EventRow(event)
+                    EventRow(event, state.is24HourFormat)
                     if (index != state.calendarEvents.lastIndex) {
                         HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
                     }
@@ -982,7 +982,7 @@ private fun CompactDashboardRow(
 }
 
 @Composable
-private fun EventRow(event: CalendarEvent) {
+private fun EventRow(event: CalendarEvent, is24Hour: Boolean) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top,
@@ -1002,7 +1002,15 @@ private fun EventRow(event: CalendarEvent) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
-                label = event.timeRange,
+                label = if (event.allDay) {
+                    stringResource(R.string.calendar_all_day)
+                } else {
+                    stringResource(
+                        R.string.calendar_time_range,
+                        event.startFormatted(is24Hour),
+                        event.endFormatted(is24Hour)
+                    )
+                },
                 icon = Icons.Default.Schedule,
                 color = if (event.calendarColor != 0) Color(event.calendarColor) else MaterialTheme.colorScheme.primary
             )

@@ -39,6 +39,7 @@ data class DashboardUiState(
     val nextAlarmSchedule: String = "",
     val showWeather: Boolean = true,
     val showCalendar: Boolean = true,
+    val is24HourFormat: Boolean = false,
     // v1.8.0: Windy radar embed toggle (lifted from settings) + lat/lon so
     // the WebView centers the radar over the user's actual weather location.
     val showRadar: Boolean = true,
@@ -212,6 +213,7 @@ class DashboardViewModel @Inject constructor(
             _uiState.update { it.copy(
                 showWeather = settings.showWeatherOnDashboard,
                 showCalendar = settings.showCalendarOnDashboard,
+                is24HourFormat = settings.is24HourFormat,
                 showRadar = settings.showRadarEmbed
             ) }
 
@@ -584,7 +586,11 @@ class DashboardViewModel @Inject constructor(
     private fun formatTimeOfDay(iso: String?): String {
         if (iso.isNullOrBlank()) return ""
         val parsed = runCatching { LocalDateTime.parse(iso) }.getOrNull() ?: return ""
-        return parsed.format(DateTimeFormatter.ofPattern("h:mm a"))
+        return parsed.format(
+            AlarmTimeFormatter.formatter(
+                preferencesManager.getCachedSettings().is24HourFormat
+            )
+        )
     }
 
     /**

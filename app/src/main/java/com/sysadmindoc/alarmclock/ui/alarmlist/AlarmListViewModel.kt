@@ -13,6 +13,7 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.domain.VacationAlarmPolicy
 import com.sysadmindoc.alarmclock.ui.templates.AlarmTemplate
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -575,7 +576,13 @@ class AlarmListViewModel @Inject constructor(
 
             val skippedDate = Instant.ofEpochMilli(afterSkip)
                 .atZone(ZoneId.systemDefault())
-                .format(DateTimeFormatter.ofPattern("EEE, MMM d 'at' h:mm a"))
+                .format(
+                    DateTimeFormatter.ofPattern(
+                        "EEE, MMM d 'at' " + AlarmTimeFormatter.pattern(
+                            preferencesManager.getCachedSettings().is24HourFormat
+                        )
+                    )
+                )
             emitFeedback("Next occurrence skipped — resuming $skippedDate")
         }
     }
@@ -584,11 +591,10 @@ class AlarmListViewModel @Inject constructor(
         _feedback.tryEmit(message)
     }
 
-    private fun formatFeedbackTime(triggerTime: Long): String {
-        return Instant.ofEpochMilli(triggerTime)
-            .atZone(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("h:mm a"))
-    }
+    private fun formatFeedbackTime(triggerTime: Long): String = AlarmTimeFormatter.format(
+        triggerTime,
+        preferencesManager.getCachedSettings().is24HourFormat
+    )
 
     private fun formatTemplateTime(template: AlarmTemplate): String {
         return Instant.ofEpochMilli(
@@ -596,6 +602,10 @@ class AlarmListViewModel @Inject constructor(
         ).atZone(ZoneId.systemDefault()).withHour(template.hour).withMinute(template.minute)
             .withSecond(0)
             .withNano(0)
-            .format(DateTimeFormatter.ofPattern("h:mm a"))
+            .format(
+                AlarmTimeFormatter.formatter(
+                    preferencesManager.getCachedSettings().is24HourFormat
+                )
+            )
     }
 }

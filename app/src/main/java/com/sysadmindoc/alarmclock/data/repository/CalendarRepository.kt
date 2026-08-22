@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.database.Cursor
 import android.provider.CalendarContract
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import java.time.LocalDate
@@ -21,21 +22,21 @@ data class CalendarEvent(
     val location: String,
     val calendarColor: Int
 ) {
-    val startFormatted: String get() {
-        if (allDay) return "All day"
-        val instant = Instant.ofEpochMilli(startTime)
-        val local = instant.atZone(ZoneId.systemDefault()).toLocalTime()
-        return local.format(DateTimeFormatter.ofPattern("h:mm a"))
-    }
-
-    val endFormatted: String get() {
+    /**
+     * These take the preference rather than reading it, because a calendar row
+     * is a plain data class with no settings and no Context. They used to
+     * hardcode "h:mm a", so a 24-hour phone still saw "6:30 AM" on the
+     * dashboard's calendar strip. The all-day case is the caller's to name.
+     */
+    fun startFormatted(is24Hour: Boolean): String {
         if (allDay) return ""
-        val instant = Instant.ofEpochMilli(endTime)
-        val local = instant.atZone(ZoneId.systemDefault()).toLocalTime()
-        return local.format(DateTimeFormatter.ofPattern("h:mm a"))
+        return AlarmTimeFormatter.format(startTime, is24Hour)
     }
 
-    val timeRange: String get() = if (allDay) "All day" else "$startFormatted - $endFormatted"
+    fun endFormatted(is24Hour: Boolean): String {
+        if (allDay) return ""
+        return AlarmTimeFormatter.format(endTime, is24Hour)
+    }
 }
 
 @Singleton

@@ -91,7 +91,8 @@ internal object AlarmPostDismissController {
 
     fun nextCalendarEventSummary(
         events: List<CalendarEvent>,
-        nowMillis: Long = System.currentTimeMillis()
+        nowMillis: Long = System.currentTimeMillis(),
+        is24Hour: Boolean = false
     ): String {
         val next = events
             .asSequence()
@@ -99,7 +100,7 @@ internal object AlarmPostDismissController {
             .minByOrNull { it.startTime }
             ?: return ""
         val title = next.title.trim().take(80).ifBlank { "Calendar event" }
-        return if (next.allDay) "$title · All day" else "$title · ${next.startFormatted}"
+        return if (next.allDay) "$title · All day" else "$title · ${next.startFormatted(is24Hour)}"
     }
 
     fun shouldScheduleWakeConfirmation(alarm: Alarm): Boolean = alarm.wakeConfirmEnabled

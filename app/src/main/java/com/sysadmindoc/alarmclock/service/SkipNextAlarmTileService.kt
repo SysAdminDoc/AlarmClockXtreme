@@ -5,11 +5,13 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import android.text.format.DateFormat
 import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.receiver.SkipNextReceiver
 import com.sysadmindoc.alarmclock.util.AlarmPublicText
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -97,7 +99,11 @@ class SkipNextAlarmTileService : TileService() {
                     Instant.ofEpochMilli(next.nextTriggerTime),
                     ZoneId.systemDefault()
                 )
-                val timeLabel = time.format(DateTimeFormatter.ofPattern("EEE h:mm a"))
+                val timeLabel = time.format(
+                    DateTimeFormatter.ofPattern(
+                        "EEE " + AlarmTimeFormatter.pattern(DateFormat.is24HourFormat(applicationContext))
+                    )
+                )
                 label = getString(R.string.tile_skip, timeLabel)
                 subtitleCandidate = AlarmPublicText.quickSettingsSubtitle(next.label, hideLabel)
                 state = Tile.STATE_ACTIVE

@@ -266,6 +266,7 @@ fun StatsScreen(
 
             item {
                 ActigraphyBucketsCard(
+                    is24Hour = is24Hour,
                     sessions = state.actigraphySessions,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1146,6 +1147,7 @@ private fun ChartLegend(label: String, color: Color) {
 @Composable
 private fun ActigraphyBucketsCard(
     sessions: List<ActigraphySession>,
+    is24Hour: Boolean,
     modifier: Modifier = Modifier
 ) {
     val latest = sessions.firstOrNull()
@@ -1212,7 +1214,7 @@ private fun ActigraphyBucketsCard(
         StageDistributionBar(session = latest)
 
         sessions.take(3).forEachIndexed { index, session ->
-            ActigraphySessionRow(session = session)
+            ActigraphySessionRow(session = session, is24Hour = is24Hour)
             if (index != sessions.take(3).lastIndex) {
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
             }
@@ -1258,12 +1260,14 @@ private fun RowScope.StageSegment(minutes: Int, total: Int, color: Color) {
 }
 
 @Composable
-private fun ActigraphySessionRow(session: ActigraphySession) {
+private fun ActigraphySessionRow(session: ActigraphySession, is24Hour: Boolean) {
     val sonar = session.isSonarSession()
-    val ended = remember(session.endedAt) {
+    val ended = remember(session.endedAt, is24Hour) {
         Instant.ofEpochMilli(session.endedAt)
             .atZone(ZoneId.systemDefault())
-            .format(DateTimeFormatter.ofPattern("MMM d, h:mm a"))
+            .format(
+                DateTimeFormatter.ofPattern("MMM d, " + AlarmTimeFormatter.pattern(is24Hour))
+            )
     }
     Row(
         modifier = Modifier

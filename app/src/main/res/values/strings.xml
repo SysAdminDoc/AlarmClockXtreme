@@ -2271,4 +2271,6 @@
     <string name="alarm_repeat_weekdays">Weekdays</string>
     <string name="alarm_repeat_weekend">Weekend</string>
     <string name="share_import_saved_off">Saved off until reviewed</string>
+    <string name="calendar_all_day">All day</string>
+    <string name="calendar_time_range">%1$s – %2$s</string>
 </resources>
