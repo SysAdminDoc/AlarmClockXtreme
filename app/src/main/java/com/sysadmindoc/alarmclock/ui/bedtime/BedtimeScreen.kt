@@ -557,7 +557,7 @@ fun BedtimeScreen(
                     item {
                         BedtimeMetricCard(
                             title = stringResource(R.string.bedtime_reminder),
-                            value = "${state.reminderMinutesBefore} min",
+                            value = stringResource(R.string.bedtime_reminder_minutes_value, state.reminderMinutesBefore),
                             icon = Icons.Default.Schedule,
                             accent = DismissGreen,
                             modifier = Modifier.width(152.dp),

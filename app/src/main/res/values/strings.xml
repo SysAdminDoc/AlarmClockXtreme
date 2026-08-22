@@ -2299,4 +2299,7 @@
     <string name="ringtone_folder_lost">Could not keep access to that folder. Choose it again if needed.</string>
     <string name="stats_default_alarm_label">Alarm</string>
     <string name="timer_default_label">Timer</string>
+    <string name="bedtime_reminder_minutes_value">%1$d min</string>
+    <string name="dashboard_pollen_not_reported">Not reported</string>
+    <string name="dashboard_pollen_band_unavailable">Unavailable</string>
 </resources>

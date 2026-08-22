@@ -35,15 +35,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P3
 
-- [ ] P3 — Three literal shapes the localisation guard still cannot see
-  Category: i18n
-  Where: app/build.gradle.kts, `verifyLocalizedPrimaryScreens`
-  Problem: a literal inside a lambda block (`ifBlank { "Alarm details" }`), a literal assigned to a local `var` that a `Text` reads later (the whole speech-recogniser commentary in ChallengeViews was invisible this way), and a literal passed to a parameter named `value`. All three shipped English past a green guard run during the 2026-08-22 pass and were found by review, not by the task.
-  Fix: add the shapes, then fix what they catch. `value =` is the risky one: it is a common parameter name, so measure the false-positive rate before keeping it.
-  Acceptance: each shape is covered by a pattern, and the guard still passes.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P3 — The round and square launcher icons are byte identical at xhdpi
   Category: visual
   Where: app/src/main/res/mipmap-xhdpi/ic_launcher.png and ic_launcher_round.png (lint `IconDuplicates`); the other four densities differ

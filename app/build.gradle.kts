@@ -252,7 +252,7 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
             "text", "contentDescription", "title", "description", "supportingText",
             "onClickLabel", "stateDescription", "overline", "actionLabel", "summary",
             "statusLabel", "subtitle", "headline", "message", "placeholder", "hint",
-            "caption", "helperText", "errorText", "emptyText"
+            "caption", "helperText", "errorText", "emptyText", "value"
         ).joinToString("|")
         // Assigning a literal to one of those attributes is unambiguously UI.
         // `\bText\(` needs a word boundary, so a composable whose name merely

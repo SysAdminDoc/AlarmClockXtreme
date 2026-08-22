@@ -666,8 +666,10 @@ class DashboardViewModel @Inject constructor(
         if (value == null) {
             return PollenMetric(
                 label = label,
-                value = "Not reported",
-                band = "Unavailable",
+                value = getApplication<Application>()
+                    .getString(R.string.dashboard_pollen_not_reported),
+                band = getApplication<Application>()
+                    .getString(R.string.dashboard_pollen_band_unavailable),
                 level = PollenLevel.UNAVAILABLE
             )
         }
