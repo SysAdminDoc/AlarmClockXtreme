@@ -1982,6 +1982,7 @@ class AlarmService : Service() {
         }
         val payload = AlarmPostDismissController.morningBriefingPayload(
             alarm = alarm,
+            is24Hour = preferencesManager.getCachedSettings().is24HourFormat,
             weather = AlarmPostDismissController.cachedWeatherSummary(cachedWeather),
             nextEvent = AlarmPostDismissController.nextCalendarEventSummary(
                 events = events,

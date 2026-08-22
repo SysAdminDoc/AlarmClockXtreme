@@ -36,6 +36,8 @@ import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -580,12 +582,20 @@ class BedtimeViewModel @Inject constructor(
         }
     }
 
-    private fun refreshNoiseBaselineStatus() {
-        // Sampling happens here, with the Bedtime screen on top, because this
-        // is the only moment the app is in the foreground and allowed to hear
-        // anything. It is a 700 ms read and nothing is written to disk but the
-        // loudness.
-        BedtimeNoiseBaselineSampler.sampleAndPersist(context)
+    /**
+     * Takes the room measurement, then shows it.
+     *
+     * Sampling belongs here because this is the only moment the app is in the
+     * foreground and allowed to hear anything: a broadcast receiver is handed
+     * silence from API 30. But `sampleAndPersist` opens an AudioRecord and
+     * busy-reads it against a 700 ms deadline, so it goes on the IO dispatcher.
+     * Its caller resumes on Main, and this runs on every ON_RESUME of the
+     * Bedtime screen, which is exactly where a 700 ms block is a visible freeze.
+     */
+    private suspend fun refreshNoiseBaselineStatus() {
+        withContext(Dispatchers.IO) {
+            BedtimeNoiseBaselineSampler.sampleAndPersist(context)
+        }
         val snapshot = BedtimeNoiseBaselineSampler.readSnapshot(context)
         _uiState.update {
             it.copy(

@@ -7,6 +7,7 @@ import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.remote.WeatherCodes
 import com.sysadmindoc.alarmclock.data.remote.WeatherResponse
 import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import java.time.LocalDate
 import java.time.LocalTime
@@ -55,9 +56,14 @@ internal object AlarmPostDismissController {
         weather: String = "",
         nextEvent: String = "",
         now: LocalTime = LocalTime.now(),
-        today: LocalDate = LocalDate.now()
+        today: LocalDate = LocalDate.now(),
+        is24Hour: Boolean = false
     ): MorningBriefingPayload {
-        val time = "${if (now.hour % 12 == 0) 12 else now.hour % 12}:${String.format("%02d", now.minute)} ${if (now.hour < 12) "AM" else "PM"}"
+        // Takes the preference for the same reason nextCalendarEventSummary
+        // does: the header and the next-event line under it are one screen, and
+        // this one used to hand-roll 12-hour time with literal AM/PM, so a
+        // 24-hour phone read "7:05 AM" above "Standup, 07:30".
+        val time = AlarmTimeFormatter.format(now.hour, now.minute, is24Hour)
         val date = today.format(DateTimeFormatter.ofPattern("EEEE, MMMM d"))
         return MorningBriefingPayload(
             time = time,

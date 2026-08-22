@@ -5,7 +5,6 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import android.text.format.DateFormat
 import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
@@ -84,9 +83,12 @@ class SkipNextAlarmTileService : TileService() {
                 AlarmClockApp.AppEntryPoint::class.java
             )
             val next = ep.alarmRepository().getNextAlarm()
-            val hideLabel = ep.preferencesManager()
-                .getCurrentSettings()
-                .hideAlarmLabelsOnPublicSurfaces
+            // One read, two settings. The tile used to take the clock format
+            // from DateFormat.is24HourFormat, which is the platform setting,
+            // not the app's own toggle. Those disagree by default: the app's
+            // is24HourFormat starts false and is never seeded from the system.
+            val settings = ep.preferencesManager().getCurrentSettings()
+            val hideLabel = settings.hideAlarmLabelsOnPublicSurfaces
             val label: String
             val subtitleCandidate: String?
             val state: Int
@@ -101,7 +103,7 @@ class SkipNextAlarmTileService : TileService() {
                 )
                 val timeLabel = time.format(
                     DateTimeFormatter.ofPattern(
-                        "EEE " + AlarmTimeFormatter.pattern(DateFormat.is24HourFormat(applicationContext))
+                        "EEE " + AlarmTimeFormatter.pattern(settings.is24HourFormat)
                     )
                 )
                 label = getString(R.string.tile_skip, timeLabel)

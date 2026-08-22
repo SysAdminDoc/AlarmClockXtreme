@@ -52,6 +52,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -206,14 +207,21 @@ fun YouTubeDownloadDialog(
     val stringResourceUpdatingEngine = stringResource(R.string.youtube_updating_engine)
     var statusMessage by rememberSaveable { mutableStateOf("") }
     var statusIsError by rememberSaveable { mutableStateOf(false) }
+    // The engine result is kept as its resource id and argument rather
+    // than as a rendered sentence. statusMessage survives the activity
+    // recreation a language change causes, so a sentence resolved once in
+    // an effect would still be in the old language afterwards. Resolving
+    // it during composition also keeps LocalContext.current out of a
+    // resource lookup, which compose-ui lint rejects outright.
+    var engineStatusRes by rememberSaveable { mutableIntStateOf(0) }
+    var engineStatusArg by rememberSaveable { mutableStateOf<String?>(null) }
 
-    val engineUpdateContext = LocalContext.current
     LaunchedEffect(engineUpdate) {
         engineUpdate?.let { update ->
             downloadViewModel.consumeEngineUpdateMessage()
-            statusMessage = update.afterVersionName
-                ?.let { engineUpdateContext.getString(update.userMessageRes, it) }
-                ?: engineUpdateContext.getString(update.userMessageRes)
+            engineStatusRes = update.userMessageRes
+            engineStatusArg = update.afterVersionName
+            statusMessage = ""
             statusIsError = false
         }
     }
@@ -229,6 +237,8 @@ fun YouTubeDownloadDialog(
 
     fun setStatus(message: String, isError: Boolean = false) {
         statusMessage = message
+        engineStatusRes = 0
+        engineStatusArg = null
         statusIsError = isError
     }
 
@@ -336,10 +346,16 @@ fun YouTubeDownloadDialog(
                     }
                 )
 
-                if (statusMessage.isNotBlank()) {
+                val shownStatus = when {
+                    engineStatusRes == 0 -> statusMessage
+                    engineStatusArg != null ->
+                        stringResource(engineStatusRes, engineStatusArg!!)
+                    else -> stringResource(engineStatusRes)
+                }
+                if (shownStatus.isNotBlank()) {
                     AppFeedbackCard(
                         title = if (statusIsError) stringResource(R.string.components_action_needed) else stringResource(R.string.components_downloader_status),
-                        message = statusMessage,
+                        message = shownStatus,
                         icon = if (statusIsError) Icons.Default.Warning else Icons.Default.CheckCircle,
                         color = if (statusIsError) AccentRed else MaterialTheme.colorScheme.primary
                     )

@@ -2165,7 +2165,7 @@
     <string name="bedtime_sonar_loud_bursts">; %1$d loud bursts, peak %2$d dB est.</string>
     <string name="bedtime_sonar_no_loud_bursts">; no loud bursts</string>
     <string name="bedtime_noise_no_baseline">No baseline</string>
-    <string name="bedtime_noise_checks_at_reminder">Checks at reminder</string>
+    <string name="bedtime_noise_checks_at_reminder">Measured when you open Bedtime</string>
     <string name="bedtime_noise_mic_permission_needed">Mic permission needed</string>
     <string name="bedtime_noise_last_measured">Last %1$s; no audio saved</string>
     <string name="bedtime_noise_level_quiet">Quiet</string>
