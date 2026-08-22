@@ -1,6 +1,8 @@
 package com.sysadmindoc.alarmclock.service
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NextAlarmNotificationTimingTest {
@@ -56,5 +58,30 @@ class NextAlarmNotificationTimingTest {
         assertEquals(0, NextAlarmNotificationTiming.liveUpdateProgress(now, twoHours))
         assertEquals(500, NextAlarmNotificationTiming.liveUpdateProgress(now, oneHour))
         assertEquals(NextAlarmNotificationTiming.LIVE_UPDATE_PROGRESS_MAX, NextAlarmNotificationTiming.liveUpdateProgress(now, nowTrigger))
+    }
+
+    @Test
+    fun `an early dismiss window hides Skip until the alarm is close`() {
+        val now = 1_000_000L
+        val trigger = now + 60 * 60_000L
+
+        // 15 minute window: still an hour out, so no Skip.
+        assertFalse(NextAlarmNotificationTiming.showsSkipAction(15, now, trigger))
+        // Inside the window it appears.
+        assertTrue(
+            NextAlarmNotificationTiming.showsSkipAction(15, trigger - 14 * 60_000L, trigger)
+        )
+        assertTrue(
+            NextAlarmNotificationTiming.showsSkipAction(15, trigger - 15 * 60_000L, trigger)
+        )
+    }
+
+    @Test
+    fun `a disabled window keeps Skip available the whole time`() {
+        val now = 1_000_000L
+        val trigger = now + 24 * 60 * 60_000L
+
+        assertTrue(NextAlarmNotificationTiming.showsSkipAction(0, now, trigger))
+        assertTrue(NextAlarmNotificationTiming.showsSkipAction(-5, now, trigger))
     }
 }

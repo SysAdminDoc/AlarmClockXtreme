@@ -12,16 +12,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P2 — correctness and reliability
 
-- [ ] P2 — "Early dismiss window" dropdown does nothing
-  Category: correctness
-  Where: ui/alarmedit/AlarmEditAdvancedSection.kt:259-275 (0/15/30/60 picker), res/values/strings.xml:653 hint; service/NextAlarmNotifier.kt:151-157, :220 (Skip action added unconditionally)
-  Problem: `earlyDismissMinutes` has no consumer outside the DB migration; the upcoming-alarm notification always offers Skip, so the setting is a no-op.
-  Evidence: `grep -rni earlydismiss app/src/main/java` outside alarmedit/backup/model returns only AlarmDatabase.kt:116.
-  Fix: in `NextAlarmNotifier.showNotification` add the Skip action only when `alarm.earlyDismissMinutes == 0 || nextTriggerTime - now <= earlyDismissMinutes * 60_000L`, and schedule a notification refresh at the window boundary (the notifier already has a refresh loop). Or remove the row and the column. Test `NextAlarmNotifierTest` for both branches.
-  Acceptance: with 15 min selected, the Skip action appears on the notification only inside the last 15 minutes.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — Calendar auto-alarm can create duplicate auto-alarm rows and never asks for READ_CALENDAR
   Category: reliability
   Where: worker/CalendarAutoAlarmWorker.kt:81-106 (periodic `WORK_NAME` with UPDATE policy and one-shot `REFRESH_WORK_NAME` run the same `doWork()` concurrently), :122-123 (silent `Result.success()` without permission), :135 (unbounded `Result.retry()`), :176-186 (`findExistingAutoAlarm` scan then `save(id = 0)`); AlarmClockApp.kt:123-131 and ui/settings/SettingsViewModel.kt:644-650 (both enqueue back-to-back); ui/dashboard/DashboardScreen.kt:881-887 (calendar-permission row has no click handler); ui/settings/SettingsScreen.kt:569-577 (toggle never checks permission)

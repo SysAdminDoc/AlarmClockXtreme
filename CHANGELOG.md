@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- The per-alarm early dismiss window now controls when the upcoming-alarm
+  notification offers Skip. The setting had no effect and Skip was always
+  there.
 - The per-alarm dismiss action (webhook, Hue scene or broadcast) has an editor
   and survives a save. The field existed but nothing wrote to it, and every
   save silently cleared whatever a backup had put there.

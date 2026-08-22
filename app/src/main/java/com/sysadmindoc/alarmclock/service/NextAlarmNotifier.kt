@@ -158,6 +158,12 @@ class NextAlarmNotifier @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val showsSkip = NextAlarmNotificationTiming.showsSkipAction(
+            earlyDismissMinutes = alarm.earlyDismissMinutes,
+            nowMillis = System.currentTimeMillis(),
+            triggerTimeMillis = alarm.nextTriggerTime
+        )
+
         // Format time
         val triggerInstant = Instant.ofEpochMilli(alarm.nextTriggerTime)
         val localDateTime = triggerInstant.atZone(ZoneId.systemDefault()).toLocalDateTime()
@@ -181,7 +187,7 @@ class NextAlarmNotifier @Inject constructor(
                 timeStr = timeStr,
                 remaining = remaining,
                 pendingIntent = pendingIntent,
-                skipPi = skipPi,
+                skipPi = skipPi.takeIf { showsSkip },
                 now = now
             )
         } else {
@@ -190,7 +196,7 @@ class NextAlarmNotifier @Inject constructor(
                 timeStr = timeStr,
                 remaining = remaining,
                 pendingIntent = pendingIntent,
-                skipPi = skipPi
+                skipPi = skipPi.takeIf { showsSkip }
             )
         }
 
@@ -202,7 +208,7 @@ class NextAlarmNotifier @Inject constructor(
         timeStr: String,
         remaining: String,
         pendingIntent: PendingIntent,
-        skipPi: PendingIntent
+        skipPi: PendingIntent?
     ): Notification {
         return NotificationCompat.Builder(context, CHANNEL_PERSISTENT)
             .setSmallIcon(R.drawable.ic_alarm)
@@ -217,7 +223,15 @@ class NextAlarmNotifier @Inject constructor(
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(pendingIntent)
-            .addAction(R.drawable.ic_alarm, context.getString(R.string.notif_skip_action), skipPi)
+            .apply {
+                if (skipPi != null) {
+                    addAction(
+                        R.drawable.ic_alarm,
+                        context.getString(R.string.notif_skip_action),
+                        skipPi
+                    )
+                }
+            }
             .build()
     }
 
@@ -228,7 +242,7 @@ class NextAlarmNotifier @Inject constructor(
         timeStr: String,
         remaining: String,
         pendingIntent: PendingIntent,
-        skipPi: PendingIntent,
+        skipPi: PendingIntent?,
         now: Long
     ): Notification {
         val progressStyle = Notification.ProgressStyle()
@@ -259,13 +273,17 @@ class NextAlarmNotifier @Inject constructor(
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setContentIntent(pendingIntent)
             .setStyle(progressStyle)
-            .addAction(
-                Notification.Action.Builder(
-                    Icon.createWithResource(context, R.drawable.ic_alarm),
-                    context.getString(R.string.notif_skip_action),
-                    skipPi
-                ).build()
-            )
+            .apply {
+                if (skipPi != null) {
+                    addAction(
+                        Notification.Action.Builder(
+                            Icon.createWithResource(context, R.drawable.ic_alarm),
+                            context.getString(R.string.notif_skip_action),
+                            skipPi
+                        ).build()
+                    )
+                }
+            }
 
         PromotedOngoingNotification.request(notification)
         return notification.build()

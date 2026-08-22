@@ -20,6 +20,24 @@ internal object NextAlarmNotificationTiming {
         return untilDisplayedMinuteChanges.coerceIn(MIN_REFRESH_MS, ONE_MINUTE_MS)
     }
 
+    /**
+     * Whether the upcoming-alarm notification should offer Skip.
+     *
+     * The per-alarm "Early dismiss window" exists so a skip has to be a
+     * deliberate act close to the alarm rather than something available all
+     * evening. It had no consumer, so Skip was always offered and the setting
+     * did nothing. Zero keeps the old always-on behaviour.
+     */
+    fun showsSkipAction(
+        earlyDismissMinutes: Int,
+        nowMillis: Long,
+        triggerTimeMillis: Long
+    ): Boolean {
+        if (earlyDismissMinutes <= 0) return true
+        val remaining = triggerTimeMillis - nowMillis
+        return remaining <= earlyDismissMinutes * ONE_MINUTE_MS
+    }
+
     fun shouldUseLiveUpdate(nowMillis: Long, triggerTimeMillis: Long): Boolean {
         val remaining = triggerTimeMillis - nowMillis
         return remaining in 1L..LIVE_UPDATE_WINDOW_MS
