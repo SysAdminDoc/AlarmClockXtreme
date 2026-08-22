@@ -354,11 +354,14 @@ internal fun AlarmEditorCategoryOverview(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 categories.chunked(columns).forEach { rowCategories ->
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        // Cards wrap their content now, so a multi-column row
+                        // has to equalise heights itself or a two-line summary
+                        // next to a one-line one leaves the shorter card short.
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         rowCategories.forEach { category ->
-                            Box(modifier = Modifier.weight(1f)) {
+                            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                                 AlarmEditorCategoryCard(category, onSelect)
                             }
                         }
@@ -387,7 +390,7 @@ private fun AlarmEditorCategoryCard(
     AppSurfaceCard(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 104.dp)
+            .fillMaxHeight()
             .semantics(mergeDescendants = true) {
                 contentDescription = "${category.title}. ${category.summary}"
             }
