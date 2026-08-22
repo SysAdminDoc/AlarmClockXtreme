@@ -117,7 +117,7 @@ fun SharedAlarmImportScreen(
 
         AppSurfaceCard {
             Text(
-                text = alarm.label.ifBlank { "Shared alarm" },
+                text = alarm.label.ifBlank { stringResource(R.string.share_default_alarm_label) },
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold

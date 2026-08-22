@@ -502,7 +502,7 @@ class BedtimeViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     sonarTrackingActive = false,
-                    sonarTrackingStatus = "Grant microphone permission to use local sonar sleep tracking."
+                    sonarTrackingStatus = context.getString(R.string.bedtime_sonar_needs_mic)
                 )
             }
             return
@@ -520,7 +520,7 @@ class BedtimeViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     sonarTrackingActive = false,
-                    sonarTrackingStatus = "Starting sonar and confirming microphone monitoring."
+                    sonarTrackingStatus = context.getString(R.string.bedtime_sonar_starting)
                 )
             }
             confirmSonarTrackingStarted()
@@ -528,7 +528,10 @@ class BedtimeViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     sonarTrackingActive = false,
-                    sonarTrackingStatus = "Sonar could not start: ${error.message ?: context.getString(R.string.bedtime_service_unavailable)}"
+                    sonarTrackingStatus = context.getString(
+                        R.string.bedtime_sonar_start_failed,
+                        error.message ?: context.getString(R.string.bedtime_service_unavailable)
+                    )
                 )
             }
         }
@@ -543,7 +546,7 @@ class BedtimeViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         sonarTrackingActive = false,
-                        sonarTrackingStatus = "Stopping sonar tracking and saving a local summary."
+                        sonarTrackingStatus = context.getString(R.string.bedtime_sonar_stopping)
                     )
                 }
                 refreshSonarTrackingStatusAfterStop()
@@ -551,7 +554,10 @@ class BedtimeViewModel @Inject constructor(
             .onFailure { error ->
                 _uiState.update {
                     it.copy(
-                        sonarTrackingStatus = "Sonar could not stop cleanly: ${error.message ?: context.getString(R.string.bedtime_service_unavailable)}"
+                        sonarTrackingStatus = context.getString(
+                            R.string.bedtime_sonar_stop_failed,
+                            error.message ?: context.getString(R.string.bedtime_service_unavailable)
+                        )
                     )
                 }
             }
@@ -562,7 +568,7 @@ class BedtimeViewModel @Inject constructor(
         _uiState.update {
             it.copy(
                 sonarTrackingActive = false,
-                sonarTrackingStatus = "Microphone permission was denied. Sonar stays off."
+                sonarTrackingStatus = context.getString(R.string.bedtime_sonar_mic_denied)
             )
         }
     }
@@ -641,7 +647,7 @@ class BedtimeViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 sonarTrackingActive = true,
-                                sonarTrackingStatus = "Monitoring movement and loud sleep sounds. No raw audio is recorded.",
+                                sonarTrackingStatus = context.getString(R.string.bedtime_sonar_monitoring),
                                 sonarLastSessionLabel = sonarLastSessionLabel(snapshot)
                             )
                         }
@@ -652,7 +658,7 @@ class BedtimeViewModel @Inject constructor(
                         _uiState.update {
                             it.copy(
                                 sonarTrackingActive = false,
-                                sonarTrackingStatus = "Sonar could not confirm microphone monitoring. Try again."
+                                sonarTrackingStatus = context.getString(R.string.bedtime_sonar_unconfirmed)
                             )
                         }
                         return@launch
@@ -851,7 +857,11 @@ class BedtimeViewModel @Inject constructor(
         return SnoreTimelineItem(
             id = event.id,
             timeLabel = formatTime(start.hour, start.minute, _uiState.value.is24HourFormat),
-            intensityLabel = "Peak ${event.peakDb.roundToInt()} dB est. / avg ${event.averageDb.roundToInt()}",
+            intensityLabel = context.getString(
+            R.string.bedtime_snore_peak_average,
+            event.peakDb.roundToInt(),
+            event.averageDb.roundToInt()
+        ),
             durationLabel = formatDurationMillis(event.durationMillis)
         )
     }

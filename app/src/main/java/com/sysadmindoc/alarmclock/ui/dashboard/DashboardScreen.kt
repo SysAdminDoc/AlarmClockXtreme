@@ -166,7 +166,7 @@ fun DashboardScreen(
                     WindyRadarCard(
                         latitude = state.latitude,
                         longitude = state.longitude,
-                        locationLabel = state.locationName.ifBlank { "your area" }
+                        locationLabel = state.locationName.ifBlank { stringResource(R.string.dashboard_your_area) }
                     )
                 }
 
@@ -405,7 +405,7 @@ private fun WeatherSection(
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Text(
-                                    text = state.locationName.ifBlank { "Weather" },
+                                    text = state.locationName.ifBlank { stringResource(R.string.dashboard_weather_fallback_title) },
                                     color = TextSecondary,
                                     style = MaterialTheme.typography.bodyMedium
                                 )

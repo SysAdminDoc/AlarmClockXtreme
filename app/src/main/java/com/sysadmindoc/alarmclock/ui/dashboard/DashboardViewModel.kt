@@ -301,7 +301,9 @@ class DashboardViewModel @Inject constructor(
                 } else {
                     lat = settings.lastKnownLatitude
                     lon = settings.lastKnownLongitude
-                    locName = settings.locationName.ifBlank { "Last Location" }
+                    locName = settings.locationName.ifBlank {
+                        getApplication<Application>().getString(R.string.dashboard_last_location)
+                    }
                 }
 
                 val shouldRescheduleSolarAlarms = shouldRescheduleSolarAlarms(

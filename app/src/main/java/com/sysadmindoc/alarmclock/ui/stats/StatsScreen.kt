@@ -1441,7 +1441,7 @@ private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = event.alarmLabel.ifBlank { "Alarm" },
+                text = event.alarmLabel.ifBlank { stringResource(R.string.stats_default_alarm_label) },
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleSmall
             )

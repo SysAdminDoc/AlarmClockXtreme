@@ -250,7 +250,7 @@ private fun ActiveTimerCard(
                 TimerProgressRing(timer = timer, pulseAlpha = pulseAlpha)
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        timer.label.ifBlank { "Timer" },
+                        timer.label.ifBlank { stringResource(R.string.timer_default_label) },
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodySmall
                     )

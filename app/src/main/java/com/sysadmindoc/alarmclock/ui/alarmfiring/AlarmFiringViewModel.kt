@@ -724,7 +724,7 @@ class AlarmFiringViewModel @Inject constructor(
             proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
-                nfcScanStatus = "Wrong tag - try the registered tag",
+                nfcScanStatus = appContext.getString(R.string.alarmfiring_nfc_wrong_tag),
                 wrongAttempts = _uiState.value.wrongAttempts + 1,
                 totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
@@ -738,7 +738,7 @@ class AlarmFiringViewModel @Inject constructor(
             proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
-                barcodeScanStatus = "Wrong code - scan the registered barcode",
+                barcodeScanStatus = appContext.getString(R.string.alarmfiring_barcode_wrong_code),
                 wrongAttempts = _uiState.value.wrongAttempts + 1,
                 totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
@@ -813,7 +813,7 @@ class AlarmFiringViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(
                 locationDismissReady = true,
                 locationDismissDistanceMeters = null,
-                locationDismissStatus = "No saved place is set, so location dismissal is not locked."
+                locationDismissStatus = appContext.getString(R.string.alarmfiring_location_not_locked)
             )
             return
         }
@@ -1163,7 +1163,10 @@ class AlarmFiringViewModel @Inject constructor(
             proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
-                photoMatchStatus = "Not a match — try again (${(similarityScore * 100).toInt()}% similar)",
+                photoMatchStatus = appContext.getString(
+                    R.string.alarmfiring_photo_no_match,
+                    (similarityScore * 100).toInt()
+                ),
                 wrongAttempts = _uiState.value.wrongAttempts + 1,
                 totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )

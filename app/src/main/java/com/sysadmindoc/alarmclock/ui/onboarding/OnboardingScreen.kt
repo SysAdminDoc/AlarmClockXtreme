@@ -172,12 +172,15 @@ fun OnboardingScreen(
         readiness = OnboardingReadiness.from(context)
     }
 
+    val testAlarmCompletedText = stringResource(R.string.onboarding_test_alarm_completed_detail)
+    val testAlarmScheduledText = stringResource(R.string.onboarding_test_alarm_scheduled_detail)
+
     DisposableEffect(lifecycleOwner, context) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 val updatedReadiness = OnboardingReadiness.from(context)
                 if (updatedReadiness.testAlarmReady && !readiness.testAlarmReady) {
-                    testAlarmStatus = "Test alarm completed. Your device opened the alarm screen successfully."
+                    testAlarmStatus = testAlarmCompletedText
                     testAlarmNoticeTone = TestAlarmNoticeTone.Success
                 }
                 readiness = updatedReadiness
@@ -357,7 +360,7 @@ fun OnboardingScreen(
                             onAction = {
                                 OnboardingTestAlarm.schedule(context).fold(
                                     onSuccess = {
-                                        testAlarmStatus = "Test alarm scheduled. It will ring in 10 seconds."
+                                        testAlarmStatus = testAlarmScheduledText
                                         testAlarmNoticeTone = TestAlarmNoticeTone.Scheduled
                                         readiness = OnboardingReadiness.from(context)
                                     },
@@ -376,7 +379,7 @@ fun OnboardingScreen(
                                 TestAlarmNoticeTone.Error -> stringResource(R.string.onboarding_test_alarm_unavailable)
                             },
                             message = testAlarmStatus.ifBlank {
-                                "Review exact alarms, notifications, battery access, and the test alarm before relying on an overnight wake-up."
+                                stringResource(R.string.onboarding_readiness_review)
                             },
                             icon = when (testAlarmNoticeTone) {
                                 TestAlarmNoticeTone.Guidance -> Icons.Default.Shield

@@ -1,11 +1,14 @@
 package com.sysadmindoc.alarmclock.ui.share
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +22,7 @@ data class SharedAlarmImportUiState(
 
 @HiltViewModel
 class SharedAlarmImportViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val repository: AlarmRepository
 ) : ViewModel() {
 
@@ -38,7 +42,10 @@ class SharedAlarmImportViewModel @Inject constructor(
             } else {
                 alarm
             }
-            val imported = AlarmShareCodec.prepareImportedAlarm(candidate)
+            val imported = AlarmShareCodec.prepareImportedAlarm(
+                alarm = candidate,
+                defaultLabel = context.getString(R.string.share_default_alarm_label)
+            )
             try {
                 val id = repository.save(imported)
                 _uiState.value = SharedAlarmImportUiState()

@@ -83,10 +83,19 @@ object AlarmShareCodec {
         return "${token.length}:$hash"
     }
 
-    fun prepareImportedAlarm(alarm: Alarm, nowMillis: Long = System.currentTimeMillis()): Alarm {
+    /**
+     * @param defaultLabel what an unlabelled shared alarm is called. Passed in
+     * rather than hardcoded because this object has no Context and the label is
+     * shown to the person doing the import.
+     */
+    fun prepareImportedAlarm(
+        alarm: Alarm,
+        defaultLabel: String,
+        nowMillis: Long = System.currentTimeMillis()
+    ): Alarm {
         return alarm.copy(
             id = 0,
-            label = alarm.label.ifBlank { "Shared alarm" },
+            label = alarm.label.ifBlank { defaultLabel },
             isEnabled = false,
             createdAt = nowMillis,
             nextTriggerTime = 0

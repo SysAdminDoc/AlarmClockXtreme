@@ -147,9 +147,9 @@ fun RingtonePickerSheet(
         }.onSuccess {
             RingtoneFolderStore.addFolder(context, uri)
             ringtoneLoad = loadRingtones(context)
-            folderStatus = "Folder added. Its audio files are now available below."
+            folderStatus = context.getString(R.string.ringtone_folder_added)
         }.onFailure {
-            folderStatus = "Could not keep access to that folder. Choose it again if needed."
+            folderStatus = context.getString(R.string.ringtone_folder_lost)
         }
     }
 

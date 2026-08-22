@@ -279,6 +279,11 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
         // like copy: a capitalised word, or more than one word. That lets a
         // lowercase single-word label through ("low", "moderate"), which is the
         // price of not flagging every "celsius"/"kmh"/"unknown" wire value.
+        // Two shapes the guard was blind to until 2026-08-22, each of
+        // which had shipped English past a green run: a lambda whose
+        // entire body is a literal, and a literal assigned to a name
+        // that reads like display state.
+        val uiStateNames = "[A-Za-z]*(?:Status|Label|Message|Title|Hint|Summary|Caption)"
         val branchLiteralPatterns = listOf(
             Regex("""(?:->|\belse\b|\?|:)\s*"([^"\r\n]*)"\s*(?:\r?\n|,|\)|\})"""),
             Regex("""\bif\s*\([^()]*(?:\([^()]*\)[^()]*)*\)\s*"([^"\r\n]*)""""),
@@ -287,7 +292,15 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
             // Text(); this shape was missed until 2026-08-22 and hid the alarm
             // card's next-occurrence line, four Bedtime room-noise labels and
             // the voice and handwriting challenge statuses.
-            Regex("""\breturn(?:@[A-Za-z_][A-Za-z0-9_]*)?\s+"([^"\r\n]*)"""")
+            Regex("""\breturn(?:@[A-Za-z_][A-Za-z0-9_]*)?\s+"([^"\r\n]*)""""),
+            // `ifBlank { "Alarm details" }`: a fallback whose whole body is
+            // copy. Deliberately only ifBlank/ifEmpty, not any lambda: a
+            // bare `{ "..." }` also matches every require/check message,
+            // which is a developer diagnostic and not a translator's
+            // problem.
+            Regex("""\bif(?:Blank|Empty)\s*\{\s*"([^"\r\n]*)"\s*\}"""),
+            // `localStatus = "Listening."`: a local a Text reads later.
+            Regex("""\b$uiStateNames\s*=\s*"([^"\r\n]*)"""")
         )
         val looksLikeCopy = Regex("""^[A-Z].*|.*\s.*""")
         // Animation debug names passed as `label = ...` to animateFloat and

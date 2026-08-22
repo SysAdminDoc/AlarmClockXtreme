@@ -1253,7 +1253,7 @@ private fun QuickAlarmRow(
                 AppFilterChip(
                     label = label,
                     selected = false,
-                    accessibilityLabel = "Set quick alarm for $label",
+                    accessibilityLabel = stringResource(R.string.alarm_list_quick_alarm_for, label),
                     onClick = { onQuickAlarm(minutes) },
                 )
             }
@@ -1648,7 +1648,9 @@ private fun SelectableAlarmCard(
 
 private fun shareAlarm(context: Context, alarm: Alarm, is24Hour: Boolean) {
     val deepLink = AlarmShareCodec.createDeepLink(alarm)
-    val title = alarm.label.ifBlank { "Alarm ${formatAlarmTime(alarm, is24Hour)}" }
+    val title = alarm.label.ifBlank {
+        context.getString(R.string.alarm_list_share_default_title, formatAlarmTime(alarm, is24Hour))
+    }
     val shareText = buildString {
         appendLine("AlarmClockXtreme alarm: $title")
         appendLine("Time: ${formatAlarmTime(alarm, is24Hour)}")

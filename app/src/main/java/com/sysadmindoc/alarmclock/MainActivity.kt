@@ -142,7 +142,10 @@ class MainActivity : ComponentActivity() {
         decoded.fold(
             onSuccess = { alarm ->
                 pendingSharedAlarmToken = token
-                pendingSharedAlarmDraft = AlarmShareCodec.prepareImportedAlarm(alarm)
+                pendingSharedAlarmDraft = AlarmShareCodec.prepareImportedAlarm(
+                    alarm = alarm,
+                    defaultLabel = getString(R.string.share_default_alarm_label)
+                )
                 if (showReadyToast) {
                     Toast.makeText(
                         this,
