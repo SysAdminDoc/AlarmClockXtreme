@@ -4,6 +4,18 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Alarms now arm on Android 12 and 12L. The app declared only
+  `USE_EXACT_ALARM`, which the platform ignores below API 33, so exact
+  scheduling was refused and every alarm, bedtime reminder and snooze
+  countdown was cancelled instead of set.
+- `acx://navigate` links from other apps are matched against an allowlist
+  before they reach the navigation graph. An unknown path used to throw out of
+  the navigation host and take the process with it.
+- The Wi-Fi dismiss challenge checks the network you saved on the alarm.
+  Any connected network used to unlock it.
+
 ### Internal
 
 - Continued the god-file refactor by extracting Bedtime sleep tracking,

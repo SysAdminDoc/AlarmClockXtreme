@@ -12,16 +12,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P1
 
-- [ ] P1 — Exported deep link `acx://navigate/<anything>` crashes MainActivity from any third-party app
-  Category: security
-  Where: app/src/main/AndroidManifest.xml:121-137 (MainActivity exported, unpermissioned VIEW filter for scheme `acx` host `navigate`); ui/navigation/AppNavigation.kt:176-188 (`navController.navigate(data.pathSegments.joinToString("/"))`); MainActivity.kt:39-44, 111-125 (intent passed through unvalidated)
-  Problem: the path segments are handed straight to `NavController.navigate()` with no allowlist and no try/catch. Navigation Compose 2.8.5 throws `IllegalArgumentException("Navigation destination … cannot be found")` for an unknown route (and for `alarm_edit/abc`, since the Long argument fails to parse and the deep link does not match). The exception escapes the `LaunchedEffect` and kills the process, and because `launchMode` is standard every external `startActivity` re-runs it, so any installed app can crash ACX on demand. Valid routes such as `onboarding`, `settings` or `stats` can also be opened out of context.
-  Evidence: traced MainActivity → AppNavigation; grep for `runCatching|try {` in AppNavigation.kt returns nothing. Refuted-by-fresh-agent: CONFIRMED (same conclusion about the 2.8.x throw path).
-  Fix: in AppNavigation build `val allowedRoutes = bottomNavItems.map { it.screen.route } + Screen.Stats.route + Screen.Bedtime.route + Screen.Stopwatch.route` (the shortcut targets in res/xml/shortcuts.xml), match the joined path against it, parse `alarm_edit/<id>` with `toLongOrNull()`, ignore anything else, and wrap the `navigate` call in `runCatching`. Add a unit test for the route-resolution helper.
-  Acceptance: `adb shell am start -a android.intent.action.VIEW -d "acx://navigate/not_a_route"` and `-d "acx://navigate/alarm_edit/abc"` open the app on the Alarms tab instead of crashing; `acx://navigate/timer` still opens Timer.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P1 — Snooze cap turns a challenge-protected alarm off without the challenge ever being solved, and the cap is invisible and uneditable
   Category: correctness
   Where: service/AlarmService.kt:1598-1612 (`MAX_SNOOZE_DISMISSED` branch of `snoozeAlarm()`), :336-356 (`ACTION_SNOOZE` has no challenge gating), :729 (notification Snooze action always added); data/model/Alarm.kt:31 (`maxSnoozeCount = 3`, no editor anywhere in ui/alarmedit/*); ui/alarmfiring/AlarmFiringScreen.kt:1061-1068 (`LongPressSnoozeButton` has no `enabled` gate, unlike Dismiss at :1028-1033), :958-960 (hint actively advertises snooze as the way out of a challenge)
@@ -32,16 +22,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: M
   Reported: #49 — "I don't see an option to turn off snooze" (v1.15.32, Pixel 4a, Android 13; the reporter also asks for progressive snooze to sit next to the main snooze setting)
-
-- [ ] P1 — Wi-Fi dismiss challenge never enforces the configured network
-  Category: correctness
-  Where: ui/alarmfiring/AlarmFiringViewModel.kt:152-166 `buildChallenge()` (WIFI_CONNECT falls into `else -> ChallengeGenerator.generate(...)`); ui/alarmfiring/challenges/ChallengeGenerator.kt:390 (`WifiChallenge(requiredSsid = "")`); AlarmFiringViewModel.kt:706-718 `updateWifiSsid()` (blank requiredSsid accepts any non-blank SSID)
-  Problem: the editor forces the user to enter an SSID (domain/ChallengeReadiness.kt:133 blocks saving without one) and stores it in `alarm.wifiDismissSsid`, but the firing ViewModel never reads that field, so any connected Wi-Fi network dismisses the alarm. Same bug class as the custom-phrase regression fixed for #43.
-  Evidence: `grep -rn wifiDismissSsid app/src/main/java/com/sysadmindoc/alarmclock/ui/alarmfiring` returns zero hits; only one `WifiChallenge(` constructor call exists and it hardcodes `""`. No test covers fire-time SSID enforcement. Refuted-by-fresh-agent: CONFIRMED.
-  Fix: add `ChallengeType.WIFI_CONNECT -> Challenge.WifiChallenge(requiredSsid = alarm.wifiDismissSsid)` to `buildChallenge()`, and add a `buildChallenge` unit test next to `AlarmFiringViewModelTest` asserting the SSID is carried through and that a different SSID does not call `proceedToNextChallenge()`.
-  Acceptance: an alarm configured for SSID "HomeNet" stays locked while connected to "Neighbour" and unlocks on "HomeNet"; new test passes.
-  Confidence: Verified
-  Effort: S
 
 - [ ] P1 — Spotify alarms can ring silently: delegation has no playback check and no fallback
   Category: reliability
