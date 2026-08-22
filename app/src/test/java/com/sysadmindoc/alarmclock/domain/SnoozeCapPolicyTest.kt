@@ -12,14 +12,16 @@ class SnoozeCapPolicyTest {
     private fun alarm(
         maxSnoozeCount: Int = 3,
         challengeType: String = "NONE",
-        challengeChain: String = ""
+        challengeChain: String = "",
+        locationDismissEnabled: Boolean = false
     ) = Alarm(
         id = 1L,
         hour = 7,
         minute = 0,
         maxSnoozeCount = maxSnoozeCount,
         challengeType = challengeType,
-        challengeChain = challengeChain
+        challengeChain = challengeChain,
+        locationDismissEnabled = locationDismissEnabled
     )
 
     @Test
@@ -57,6 +59,19 @@ class SnoozeCapPolicyTest {
             )
             assertFalse(SnoozeCapPolicy.canSnooze(protectedAlarm, 3))
         }
+    }
+
+    @Test
+    fun `location dismissal counts as a gate the cap must not skip`() {
+        val located = alarm(locationDismissEnabled = true)
+
+        assertTrue(SnoozeCapPolicy.hasDismissGate(located))
+        assertEquals(SnoozeCapOutcome.REFUSE, SnoozeCapPolicy.outcomeFor(located, 3))
+    }
+
+    @Test
+    fun `an alarm with nothing to satisfy has no gate`() {
+        assertFalse(SnoozeCapPolicy.hasDismissGate(alarm()))
     }
 
     @Test

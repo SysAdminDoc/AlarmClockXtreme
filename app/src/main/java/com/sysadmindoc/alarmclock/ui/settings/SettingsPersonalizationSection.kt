@@ -149,7 +149,6 @@ import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
-import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary

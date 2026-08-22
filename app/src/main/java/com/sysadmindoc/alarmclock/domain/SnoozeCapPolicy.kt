@@ -25,8 +25,17 @@ enum class SnoozeCapOutcome {
  */
 object SnoozeCapPolicy {
 
-    fun hasDismissChallenge(alarm: Alarm): Boolean =
-        alarm.challengeType.trim().uppercase() != "NONE" || alarm.challengeChain.isNotBlank()
+    /**
+     * Whether something has to be satisfied before this alarm may be dismissed.
+     *
+     * Location dismissal counts: `FiringUiState.canDismiss` gates on it exactly
+     * like a challenge, so letting the snooze cap auto-dismiss such an alarm
+     * would be the same escape hatch by another name.
+     */
+    fun hasDismissGate(alarm: Alarm): Boolean =
+        alarm.challengeType.trim().uppercase() != "NONE" ||
+            alarm.challengeChain.isNotBlank() ||
+            alarm.locationDismissEnabled
 
     /** True when [alarm] limits snoozes at all (0 means unlimited). */
     fun isCapped(alarm: Alarm): Boolean = alarm.maxSnoozeCount > 0
@@ -46,7 +55,7 @@ object SnoozeCapPolicy {
     fun outcomeFor(alarm: Alarm, snoozeCount: Int): SnoozeCapOutcome {
         val next = snoozeCount.coerceAtLeast(0) + 1
         if (!isCapped(alarm) || next <= alarm.maxSnoozeCount) return SnoozeCapOutcome.SNOOZE
-        return if (hasDismissChallenge(alarm)) {
+        return if (hasDismissGate(alarm)) {
             SnoozeCapOutcome.REFUSE
         } else {
             SnoozeCapOutcome.AUTO_DISMISS

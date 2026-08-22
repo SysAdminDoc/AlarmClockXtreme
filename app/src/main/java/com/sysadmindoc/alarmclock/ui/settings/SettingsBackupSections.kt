@@ -243,7 +243,9 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
             mode = mode,
             importEnabledAsDisabled = importEnabledAsDisabled,
             importSettings = importSettings,
-            keepIntegrationsAndContacts = importSettings && keepIntegrations
+            // Not gated on importSettings: it also governs per-alarm Guardian
+            // numbers, which come across even when the file carries no settings.
+            keepIntegrationsAndContacts = keepIntegrations
         )
         pendingImport = null
         if (pending.encrypted) {
@@ -773,31 +775,31 @@ private fun BackupImportPreviewDialog(
                             onCheckedChange = onImportSettingsChange,
                             label = stringResource(R.string.settings_import_settings)
                         )
-                        if (importSettings && preview.riskyImportValues.isNotEmpty()) {
-                            BackupImportToggle(
-                                checked = keepIntegrations,
-                                onCheckedChange = onKeepIntegrationsChange,
-                                label = stringResource(R.string.settings_keep_integrations)
-                            )
+                    }
+                    if (preview.riskyImportValues.isNotEmpty()) {
+                        BackupImportToggle(
+                            checked = keepIntegrations,
+                            onCheckedChange = onKeepIntegrationsChange,
+                            label = stringResource(R.string.settings_keep_integrations)
+                        )
+                        Text(
+                            text = stringResource(R.string.settings_keep_integrations_warning),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SnoozeYellow,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        preview.riskyImportValues.forEach { value ->
                             Text(
-                                text = stringResource(R.string.settings_keep_integrations_warning),
+                                text = stringResource(R.string.settings_list_item, value),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = SnoozeYellow,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            preview.riskyImportValues.forEach { value ->
-                                Text(
-                                    text = stringResource(R.string.settings_list_item, value),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary
-                                )
-                            }
-                            Text(
-                                text = stringResource(R.string.settings_keep_integrations_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextMuted
+                                color = TextSecondary
                             )
                         }
+                        Text(
+                            text = stringResource(R.string.settings_keep_integrations_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextMuted
+                        )
                     }
                 }
             }

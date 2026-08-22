@@ -284,9 +284,15 @@ class BackupManager @Inject constructor(
          * Values a backup would install into the app's integrations. Named
          * concretely in the import preview so "settings" is not a blank cheque.
          */
-        fun riskyImportValues(settings: SettingsBackup?): List<String> {
-            if (settings == null) return emptyList()
+        fun riskyImportValues(
+            settings: SettingsBackup?,
+            alarms: List<Alarm> = emptyList()
+        ): List<String> {
             return buildList {
+                alarms.mapNotNull { it.guardianPhone.trim().takeIf { p -> p.isNotBlank() } }
+                    .distinct()
+                    .forEach { add("Guardian contact on an alarm: $it") }
+                if (settings == null) return@buildList
                 if (settings.webhookUrl.isNotBlank()) {
                     add("Webhook endpoint ${hostOf(settings.webhookUrl)}")
                 }
@@ -304,6 +310,9 @@ class BackupManager @Inject constructor(
                 }
                 if (settings.guardianContactPhone.isNotBlank()) {
                     add("Guardian contact ${settings.guardianContactPhone}")
+                }
+                if (settings.newsFeedUrl.isCustomFeedUrl()) {
+                    add("News feed ${hostOf(settings.newsFeedUrl)}")
                 }
             }
         }
@@ -325,7 +334,10 @@ class BackupManager @Inject constructor(
                 hueLightIds = "",
                 googleRoutesApiKey = "",
                 guardianContactName = "",
-                guardianContactPhone = ""
+                guardianContactPhone = "",
+                // The app fetches and renders this feed unattended, so a
+                // crafted backup must not be able to point it somewhere else.
+                newsFeedUrl = AppSettings().newsFeedUrl
             )
 
         fun assessExportWarning(
@@ -656,7 +668,7 @@ class BackupManager @Inject constructor(
             invalidAlarmCount = backup.alarms.size - importedAlarms.size,
             settingsIncluded = backup.settings != null,
             privateDataCategories = privateCategories,
-            riskyImportValues = riskyImportValues(backup.settings),
+            riskyImportValues = riskyImportValues(backup.settings, importedAlarms),
             compatibilityStatus = compatibility,
             canImport = canImport
         )

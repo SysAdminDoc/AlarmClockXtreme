@@ -6,6 +6,25 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Timers left running when the phone restarted are dropped instead of ringing
+  by themselves or showing a countdown of days.
+- An alarm that hides Dismiss behind a challenge or a location no longer offers
+  a one-tap Dismiss from the notification shade, which skipped the challenge
+  entirely. Tapping the notification opens the alarm screen as before.
+- Flip-to-snooze, cover-to-snooze and the hardware button no longer close the
+  alarm screen when the snooze limit is spent, which used to leave the alarm
+  ringing with no way back to the challenge.
+- The snooze tally is cleared when an alarm is turned off, so the next ring
+  starts with a full set of snoozes.
+- A location-only alarm counts as challenge-protected for the snooze limit.
+- The Hue sunrise is anchored to the alarm time rather than to whenever the
+  ramp happens to start, will not brighten the lights hours later if it runs
+  late, and stops leaving its progress notification behind when cancelled.
+- A Spotify alarm falls back correctly even when other audio was already
+  playing. The check now looks for a newly started stream rather than any
+  sound at all.
+- Restoring a backup keeps per-alarm Guardian numbers when you opt in, and no
+  longer installs a custom news feed URL without asking.
 - Turning on the first-meeting alarm now asks for calendar access, and the
   Schedule card's "Calendar access" row can be tapped to grant it. Nothing in
   the app ever requested the permission, so the feature could be on and inert.

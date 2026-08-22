@@ -185,14 +185,22 @@ data class AppSettings(
     val ytEngineLastFailureReason: String = ""
 )
 
+private const val LEGACY_VIOLET_ACCENT = "#7C5CFF"
+private const val VIOLET_ACCENT = "#8F73FF"
+
 private fun AppSettings.sanitized(): AppSettings {
     val normalizedVacationStart = vacationStartMillis.coerceAtLeast(0)
     val normalizedVacationEnd = vacationEndMillis.coerceAtLeast(0)
     val vacationWindowValid =
         normalizedVacationStart > 0 && normalizedVacationEnd > normalizedVacationStart
-    val normalizedAccent = accentColor.trim().takeIf {
-        it.startsWith("#") && runCatching { Color.parseColor(it) }.isSuccess
-    } ?: "#5B9EF4"
+    val normalizedAccent = accentColor.trim()
+        // The violet preset was brightened so it clears WCAG AA as label text
+        // on a card. Remap the old value or a user who picked violet sees no
+        // swatch selected and keeps the unreadable shade.
+        .let { if (it.equals(LEGACY_VIOLET_ACCENT, ignoreCase = true)) VIOLET_ACCENT else it }
+        .takeIf {
+            it.startsWith("#") && runCatching { Color.parseColor(it) }.isSuccess
+        } ?: "#5B9EF4"
     val normalizedTemperatureUnit =
         if (temperatureUnit.equals("celsius", ignoreCase = true)) "celsius" else "fahrenheit"
     val normalizedHolidayCountryCode = holidayCountryCode

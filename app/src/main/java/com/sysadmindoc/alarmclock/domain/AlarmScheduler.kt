@@ -19,9 +19,11 @@ import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
 import com.sysadmindoc.alarmclock.receiver.AlarmReceiver
 import com.sysadmindoc.alarmclock.service.BedtimeZenRuleManager
 import com.sysadmindoc.alarmclock.service.SmartAlarmService
+import com.sysadmindoc.alarmclock.service.AlarmRuntimeState
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
 import com.sysadmindoc.alarmclock.worker.FireWatchdogPolicy
 import com.sysadmindoc.alarmclock.worker.FireWatchdogWorker
+import com.sysadmindoc.alarmclock.worker.HueSunriseNotifications
 import com.sysadmindoc.alarmclock.worker.HueSunriseWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.yield
@@ -222,6 +224,10 @@ class AlarmScheduler @Inject constructor(
      */
     fun cancel(alarmId: Long) {
         cancelScheduledEntries(alarmId, includeFollowUpWorkers = true)
+        // The occurrence is over, so its snooze tally must not carry into the
+        // next one. A leftover count at or past the cap would otherwise make a
+        // fresh ring open with snooze already withdrawn.
+        AlarmRuntimeState.clear(context, alarmId)
         WidgetUpdater.requestUpdate(context)
     }
 
@@ -738,13 +744,19 @@ class AlarmScheduler @Inject constructor(
         val workManager = WorkManager.getInstance(context)
         if (!alarm.hueEnabled || alarm.huePreWakeMinutes <= 0) {
             workManager.cancelUniqueWork(HueSunriseWorker.uniqueName(alarm.id))
+            HueSunriseNotifications.cancel(context, alarm.id)
             return
         }
 
         val hueStartMs = triggerTime - (alarm.huePreWakeMinutes * 60_000L)
         val hueDelayMs = (hueStartMs - System.currentTimeMillis()).coerceAtLeast(0)
+        // Anchor the ramp to wall-clock time rather than to whenever the worker
+        // happens to start. setInitialDelay is a floor, so a worker that starts
+        // late would otherwise finish brightening well after the alarm.
         val inputData = Data.Builder()
             .putLong(HueSunriseWorker.KEY_ALARM_ID, alarm.id)
+            .putLong(HueSunriseWorker.KEY_RAMP_START, hueStartMs)
+            .putLong(HueSunriseWorker.KEY_RAMP_END, triggerTime)
             .build()
         val workRequest = OneTimeWorkRequestBuilder<HueSunriseWorker>()
             .setInitialDelay(hueDelayMs, TimeUnit.MILLISECONDS)
@@ -767,6 +779,9 @@ class AlarmScheduler @Inject constructor(
 
         val workManager = WorkManager.getInstance(context)
         workManager.cancelUniqueWork(HueSunriseWorker.uniqueName(alarmId))
+        // A cancelled continuation never runs, so nothing else would clear the
+        // ongoing "Sunrise in progress" notification.
+        HueSunriseNotifications.cancel(context, alarmId)
         workManager.cancelUniqueWork(FireWatchdogWorker.uniqueName(alarmId))
         if (includeFollowUpWorkers) {
             workManager.cancelUniqueWork("guardian_$alarmId")

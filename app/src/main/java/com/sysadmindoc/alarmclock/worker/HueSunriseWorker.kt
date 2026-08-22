@@ -69,6 +69,9 @@ class HueSunriseWorker @AssistedInject constructor(
     }
 
     override suspend fun doWork(): Result {
+        // WorkManager's ten-minute clock starts here, not after the bridge
+        // probe, so the hand-over budget has to be measured from here too.
+        val runStartedAt = System.currentTimeMillis()
         val alarmId = inputData.getLong(KEY_ALARM_ID, -1)
         if (alarmId < 0) return Result.failure()
 
@@ -112,6 +115,13 @@ class HueSunriseWorker @AssistedInject constructor(
         val rampEnd = inputData.getLong(KEY_RAMP_END, 0L).takeIf { it > 0L }
             ?: (rampStart + alarm.huePreWakeMinutes * 60_000L)
 
+        // A run that starts after the alarm has nothing useful to do. Touching
+        // the lights here would snap them to full brightness hours later.
+        if (HueSunriseRampPlan.isComplete(rampEnd, segmentStart)) {
+            HueSunriseNotifications.cancel(applicationContext, alarm.id)
+            return Result.success()
+        }
+
         // Resume at the brightness the wall clock calls for. A first run starts
         // at 1; a continuation, or a run WorkManager deferred, picks up where
         // the ramp actually is instead of replaying it.
@@ -129,7 +139,7 @@ class HueSunriseWorker @AssistedInject constructor(
 
         HueSunriseNotifications.post(applicationContext, alarm.id, rampStart, rampEnd, segmentStart)
         // Hand over before WorkManager's ten-minute execution limit stops us.
-        val handOverAt = HueSunriseRampPlan.segmentEndsAt(rampEnd, segmentStart)
+        val handOverAt = HueSunriseRampPlan.segmentEndsAt(rampEnd, runStartedAt)
         var handingOver = false
         try {
             while (true) {
@@ -140,7 +150,15 @@ class HueSunriseWorker @AssistedInject constructor(
                     break
                 }
                 val nextAt = HueSunriseRampPlan.nextStepAt(rampStart, rampEnd, now) ?: break
-                delay((nextAt - now).coerceAtLeast(0L))
+                // Never sleep past the hand-over point: with a long pre-wake a
+                // single step is minutes long, and waking only at step
+                // boundaries would push the run past WorkManager's limit.
+                val wakeAt = if (handOverAt != null) minOf(nextAt, handOverAt) else nextAt
+                delay((wakeAt - now).coerceAtLeast(0L))
+                if (handOverAt != null && System.currentTimeMillis() >= handOverAt) {
+                    handingOver = true
+                    break
+                }
                 val bri = HueSunriseRampPlan.brightnessAt(
                     rampStart, rampEnd, System.currentTimeMillis()
                 )
@@ -182,9 +200,12 @@ class HueSunriseWorker @AssistedInject constructor(
                     .build()
             )
             .build()
+        // APPEND, not APPEND_OR_REPLACE: if the chain was cancelled while this
+        // segment was finishing, the continuation must stay cancelled rather
+        // than start a fresh ramp for an alarm that no longer exists.
         androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
             uniqueName(alarmId),
-            androidx.work.ExistingWorkPolicy.APPEND_OR_REPLACE,
+            androidx.work.ExistingWorkPolicy.APPEND,
             request
         )
     }

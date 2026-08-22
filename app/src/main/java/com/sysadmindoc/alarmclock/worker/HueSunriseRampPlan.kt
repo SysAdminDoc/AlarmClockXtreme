@@ -21,9 +21,10 @@ object HueSunriseRampPlan {
 
     /**
      * Longest a single worker run may last. WorkManager stops a worker at ten
-     * minutes, so segments end well before that and hand over to the next one.
+     * minutes; the margin covers the bridge probe and the per-step HTTP calls,
+     * which each carry a 5 second connect and read timeout.
      */
-    const val SEGMENT_MS = 8 * 60_000L
+    const val SEGMENT_MS = 6 * 60_000L
 
     /** Brightness for [nowMillis], clamped to the Hue range. */
     fun brightnessAt(startMillis: Long, endMillis: Long, nowMillis: Long): Int {

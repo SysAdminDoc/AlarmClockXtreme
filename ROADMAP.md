@@ -12,14 +12,14 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P2 — correctness and reliability
 
-- [ ] P2 — Timer store has no reboot guard: phantom timers ring or show days remaining after a reboot
-  Category: reliability
-  Where: ui/timer/TimerPersistence.kt:23-31, :69-90, :92-122 (records compared against `elapsedRealtime()` with no boot identity); receiver/BootReceiver.kt:79-80 (the only cleanup, on BOOT_COMPLETED/MY_PACKAGE_REPLACED); ui/timer/TimerViewModel.kt:318-341 `restorePersistedTimers()`; compare ui/stopwatch/StopwatchViewModel.kt:192-207 (uses `Settings.Global.BOOT_COUNT`)
-  Problem: if the app was force-stopped (BOOT_COMPLETED not delivered) or opened before BOOT_COMPLETED arrives, RUNNING records with pre-reboot `endElapsedRealtime` are restored against the new uptime: either `newlyFinished` fires `TimerAlarmService` for a phantom timer, or the UI shows a multi-day countdown and re-arms AlarmManager.
-  Evidence: the stopwatch solves the same problem with BOOT_COUNT; TimerStore does not.
-  Fix: persist `Settings.Global.BOOT_COUNT` in each record and drop RUNNING rows whose boot count differs inside `readStoredRecords()` (post the existing "timers cancelled after restart" notification). Unit test with a fake boot count.
-  Acceptance: start a 10-minute timer, reboot the emulator with the app force-stopped, open the app: no timer is shown and nothing rings.
-  Confidence: Likely
+- [ ] P2 — Denying location turns the Wi-Fi dismiss challenge into a one-tap bypass
+  Category: correctness
+  Where: ui/alarmfiring/AlarmFiringActivity.kt:121 and :492-517 (`onWifiChallengeUnavailable`); ui/alarmfiring/AlarmFiringViewModel.kt:721-728 (`wifiFallbackAllowed = true`); ui/alarmfiring/challenges/ChallengeViews.kt:1528 ("Continue without Wi-Fi check")
+  Problem: Android only reveals the connected SSID to an app holding a location permission. When it is denied the firing screen shows a "Continue without Wi-Fi check" button, so the challenge is satisfied by one tap from anywhere. The SSID is only enforced on the happy path.
+  Evidence: found by the adversarial review of the SSID fix; the fallback predates it.
+  Fix: when the SSID cannot be read, substitute the next chain step (or MATH_MEDIUM) instead of offering a bypass, and say why. Keep an escape hatch only through the existing accessibility bypass timer, which is time-delayed. Same shape as the P3 item about blank NFC/barcode references.
+  Acceptance: with location denied, a Wi-Fi alarm falls back to a solvable challenge rather than a Continue button.
+  Confidence: Verified
   Effort: S
 
 - [ ] P2 — Watchdog and wake-confirm re-fires start a foreground service from a background worker and fail silently on API 31+

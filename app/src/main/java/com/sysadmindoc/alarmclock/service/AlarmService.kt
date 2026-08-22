@@ -735,8 +735,19 @@ class AlarmService : Service() {
                         snoozePi
                     )
                 }
+                // An alarm that gates dismissal behind a challenge or a location
+                // must not hand out a one-tap Dismiss from the shade: that
+                // skipped the gate entirely. Tapping the notification opens the
+                // firing screen, which is where the gate (and its accessibility
+                // bypass timer) lives, so the alarm can always still be stopped.
+                if (!SnoozeCapPolicy.hasDismissGate(alarm)) {
+                    addAction(
+                        R.drawable.ic_alarm,
+                        getString(R.string.notif_dismiss_action),
+                        dismissPi
+                    )
+                }
             }
-            .addAction(R.drawable.ic_alarm, getString(R.string.notif_dismiss_action), dismissPi)
             .build()
     }
 
@@ -915,7 +926,7 @@ class AlarmService : Service() {
                     // open without playing (logged out, offline, free tier).
                     // Either way the alarm would be completely silent, so watch
                     // for real playback and fall back if none arrives.
-                    armSpotifyPlaybackWatchdog(alarm)
+                    armSpotifyPlaybackWatchdog(alarm, mediaStreamsBefore())
                     return
                 }
             } catch (_: Exception) {
@@ -1142,13 +1153,32 @@ class AlarmService : Service() {
      * Falls back to the in-app tone when nothing is actually playing a few
      * seconds after Spotify was handed the alarm.
      */
-    private fun armSpotifyPlaybackWatchdog(alarm: Alarm) {
+    /**
+     * How many media streams are playing right now.
+     *
+     * `isMusicActive` alone is not proof Spotify started: a podcast or
+     * white-noise app the user fell asleep to keeps it true, and the alarm
+     * would stay silent while the watchdog congratulated itself. Counting
+     * active media configurations lets a *new* stream be distinguished from
+     * one that was already running.
+     */
+    private fun mediaStreamsBefore(): Int {
+        val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return 0
+        return runCatching {
+            audioManager.activePlaybackConfigurations.count {
+                it.audioAttributes.usage == AudioAttributes.USAGE_MEDIA
+            }
+        }.getOrDefault(if (audioManager.isMusicActive) 1 else 0)
+    }
+
+    private fun armSpotifyPlaybackWatchdog(alarm: Alarm, mediaStreamsAtLaunch: Int) {
         cancelPlaybackWatchdog()
         playbackWatchdogJob = serviceScope.launch {
             delay(PLAYBACK_START_TIMEOUT_MS)
             if (currentAlarmId != alarm.id || alarmPlayback != null) return@launch
             val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager
-            if (audioManager?.isMusicActive == true) {
+            val started = audioManager != null && mediaStreamsBefore() > mediaStreamsAtLaunch
+            if (started) {
                 recordIncidentAsync(
                     type = AlarmIncidentEvent.TYPE_AUDIO,
                     status = AlarmIncidentEvent.STATUS_SUCCEEDED,

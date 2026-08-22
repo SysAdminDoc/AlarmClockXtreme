@@ -1083,7 +1083,11 @@ fun AlarmFiringScreen(
                         text = when {
                             !state.snoozeAllowed ->
                                 stringResource(R.string.firing_snoozes_none_left)
-                            snoozesLeft != null -> pluralStringResource(
+                            // Zero remaining on an alarm with no dismiss gate
+                            // still snoozes; it just ends the alarm. Saying
+                            // "0 snoozes left" beside a live button would read
+                            // as a contradiction, so fall through to the hint.
+                            snoozesLeft != null && snoozesLeft > 0 -> pluralStringResource(
                                 R.plurals.firing_snoozes_left,
                                 snoozesLeft,
                                 snoozesLeft
