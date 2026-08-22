@@ -61,6 +61,28 @@ class SonarSleepService : Service() {
         private const val WINDOW_MS = 50L
         private const val DEEP_SLEEP_THRESHOLD = 0.004f  // RMS variance below this = deep sleep
         private const val DEEP_SLEEP_WINDOWS = 6          // 6 × 50ms = 300ms of stillness
+
+        /**
+         * Samples after which the tone repeats exactly: gcd(44100, 18750) = 150,
+         * so 44100/150 = 294 samples carry a whole 125 cycles.
+         */
+        internal const val TONE_PERIOD_SAMPLES = 294
+
+        /**
+         * Rounds the device's minimum buffer up to a whole number of tone
+         * periods.
+         *
+         * The emitter fills one buffer from sample index 0 and then writes it
+         * on a loop. If the buffer is not a whole number of periods, the
+         * waveform jumps phase at every wrap, which is a click at
+         * 44100/bufferSize Hz and spreads energy right across the audible band.
+         * The point of an 18.75 kHz carrier is that nobody hears it.
+         */
+        internal fun toneBufferSize(minBufferSize: Int): Int {
+            val atLeastOne = minBufferSize.coerceAtLeast(TONE_PERIOD_SAMPLES)
+            val periods = (atLeastOne + TONE_PERIOD_SAMPLES - 1) / TONE_PERIOD_SAMPLES
+            return periods * TONE_PERIOD_SAMPLES
+        }
         private const val PREFS_NAME = "sonar_sleep_state"
         private const val KEY_ACTIVE = "active"
         private const val KEY_STARTED_AT = "started_at"
@@ -191,7 +213,7 @@ class SonarSleepService : Service() {
             AudioFormat.CHANNEL_OUT_MONO,
             AudioFormat.ENCODING_PCM_16BIT
         )
-        val samples = ShortArray(bufferSize)
+        val samples = ShortArray(toneBufferSize(bufferSize))
         // Pre-fill with a sine wave at TONE_HZ, amplitude ~1% of max (inaudible level)
         val amplitude = 32767 * 0.01f
         for (i in samples.indices) {
@@ -212,7 +234,9 @@ class SonarSleepService : Service() {
                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                     .build()
             )
-            .setBufferSizeInBytes(bufferSize)
+            // Bytes, and the samples are 16-bit, which is why this is not
+            // samples.size. AudioTrack only needs at least the device minimum.
+            .setBufferSizeInBytes(samples.size * 2)
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
             .apply {

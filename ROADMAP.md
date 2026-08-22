@@ -23,6 +23,15 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Needs-repro
   Effort: S
 
+- [ ] P2 — Sonar never listens for its own tone
+  Category: correctness
+  Where: service/SonarSleepService.kt:263-305 (`runReflectionAnalyzer`, `rms`, `variance`)
+  Problem: found by the numerical audit on 2026-08-22. The service emits an 18.75 kHz carrier at 1% amplitude and then decides stillness from the variance of the *broadband* RMS of everything the microphone hears. There is no filter anywhere near 18.75 kHz, so the reflected carrier is a rounding error next to a fan, traffic or a partner breathing. What the feature actually measures is how steady the room's loudness is, which is a reasonable proxy for a still room but is not sonar, and the tone contributes almost nothing to it.
+  Fix: either run a Goertzel filter at TONE_HZ over each 50 ms window and take the variance of that magnitude, which makes the name true, or stop emitting the tone and rename the feature to what it measures. The first is a few dozen lines and testable against a synthesised buffer.
+  Acceptance: with a synthesised window containing loud broadband noise and a steady carrier, the analyser reports still; with a steady room and a modulated carrier, it reports movement. Neither holds today.
+  Confidence: Verified
+  Effort: M
+
 ### P3
 
 - [ ] P3 — The round and square launcher icons are byte identical at xhdpi
@@ -42,6 +51,3 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: M
 
-### Unaudited — needs a pass
-
-- [ ] Unaudited — Actigraphy / Sonar sleep analysis math (data/actigraphy/*, service/SonarSleepService.kt DSP): not reviewed for numerical correctness. This one is not device-gated: the DSP is pure Kotlin and can be checked against hand-computed cases on the JVM. The other five audits moved to Roadmap_Blocked.md on 2026-08-22 because each needs hardware or a live network.

@@ -29,10 +29,20 @@ data class ActigraphySessionSummary(
 /**
  * Experimental phone-actigraphy bucketizer.
  *
- * The binary sleep/wake pass follows the 1-minute Cole-Kripke weighting shape,
- * but the input is phone accelerometer motion, not calibrated ActiGraph counts.
- * DEEP vs LIGHT is therefore a conservative local heuristic over epochs already
- * scored as sleep, not a clinical sleep-stage classifier.
+ * The binary sleep/wake pass is the 1-minute Cole-Kripke (1992) weighting,
+ * reproduced exactly: weights, offsets, the 0.001 scale and the D >= 1 wake
+ * threshold. ActigraphyNumericalAuditTest pins that against hand-computed sums.
+ *
+ * The input is not. Cole-Kripke takes calibrated ActiGraph counts, which
+ * integrate movement across the epoch; this takes the largest 30-second
+ * accelerometer peak in the minute and multiplies it by 10. A peak cannot tell
+ * one sharp movement from sustained restlessness, so the weighting shape
+ * carries over but the absolute threshold does not mean what it means in the
+ * paper. In sensor terms it lands at a peak of about 0.43 m/s2, roughly 4.4%
+ * of gravity.
+ *
+ * DEEP vs LIGHT is a local heuristic over epochs already scored as sleep, not a
+ * clinical sleep-stage classifier.
  */
 object ActigraphySleepClassifier {
     const val ALGORITHM_VERSION = "phone_cole_kripke_experimental_v1"
