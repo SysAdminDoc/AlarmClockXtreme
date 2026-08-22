@@ -70,7 +70,6 @@ data class FiringUiState(
     // v1.2.0: Wi-Fi challenge
     val wifiCurrentSsid: String = "",
     val wifiStatus: String = "",
-    val wifiFallbackAllowed: Boolean = false,
     // v1.4.0: Count-the-Sheep challenge
     val sheepTapped: Int = 0,
     val sheepWrongTaps: Int = 0,
@@ -448,7 +447,6 @@ class AlarmFiringViewModel @Inject constructor(
             mazeCurrentPos = (nextChallenge as? Challenge.MazeChallenge)?.startPos ?: 0,
             wifiCurrentSsid = "",
             wifiStatus = "",
-            wifiFallbackAllowed = false,
             sheepTapped = 0,
             sheepWrongTaps = 0,
             simonPlayingIndex = -1,
@@ -724,7 +722,6 @@ class AlarmFiringViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             wifiCurrentSsid = ssid,
             wifiStatus = "",
-            wifiFallbackAllowed = false
         )
         if (challenge.requiredSsid.isBlank() && ssid.isNotBlank()) {
             proceedToNextChallenge()
@@ -733,18 +730,23 @@ class AlarmFiringViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Android only reveals the connected SSID to an app holding a location
+     * permission, so the check can be impossible through no fault of the user.
+     * Offering "continue anyway" turned the challenge into a one-tap bypass
+     * from anywhere, so swap in a solvable challenge instead and say why.
+     */
     fun onWifiChallengeUnavailable(message: String) {
+        val alarm = currentAlarm ?: _uiState.value.alarm ?: return
         if (_uiState.value.challenge !is Challenge.WifiChallenge) return
+        val substitute = buildChallengeForType(WIFI_SUBSTITUTE_CHALLENGE, alarm) ?: return
         _uiState.value = _uiState.value.copy(
+            challenge = substitute,
+            challengeSolved = false,
+            challengeStartedAtMillis = System.currentTimeMillis(),
+            wifiCurrentSsid = "",
             wifiStatus = message,
-            wifiFallbackAllowed = true
         )
-    }
-
-    fun continueWifiChallengeWithoutSsid() {
-        if (_uiState.value.challenge !is Challenge.WifiChallenge) return
-        if (!_uiState.value.wifiFallbackAllowed) return
-        proceedToNextChallenge()
     }
 
     fun onLocationDismissLocation(latitude: Double, longitude: Double) {
@@ -1258,6 +1260,9 @@ class AlarmFiringViewModel @Inject constructor(
     }
 
     companion object {
+        /** Stand-in when the Wi-Fi check cannot run at all. */
+        private val WIFI_SUBSTITUTE_CHALLENGE = ChallengeType.MATH_MEDIUM
+
         private val MOTIVATIONAL_QUOTES = listOf(
             "The secret of getting ahead is getting started.",
             "Today is a new beginning. Make the most of it.",

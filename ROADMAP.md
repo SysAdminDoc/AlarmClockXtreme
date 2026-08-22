@@ -12,16 +12,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P2 — correctness and reliability
 
-- [ ] P2 — Denying location turns the Wi-Fi dismiss challenge into a one-tap bypass
-  Category: correctness
-  Where: ui/alarmfiring/AlarmFiringActivity.kt:121 and :492-517 (`onWifiChallengeUnavailable`); ui/alarmfiring/AlarmFiringViewModel.kt:721-728 (`wifiFallbackAllowed = true`); ui/alarmfiring/challenges/ChallengeViews.kt:1528 ("Continue without Wi-Fi check")
-  Problem: Android only reveals the connected SSID to an app holding a location permission. When it is denied the firing screen shows a "Continue without Wi-Fi check" button, so the challenge is satisfied by one tap from anywhere. The SSID is only enforced on the happy path.
-  Evidence: found by the adversarial review of the SSID fix; the fallback predates it.
-  Fix: when the SSID cannot be read, substitute the next chain step (or MATH_MEDIUM) instead of offering a bypass, and say why. Keep an escape hatch only through the existing accessibility bypass timer, which is time-delayed. Same shape as the P3 item about blank NFC/barcode references.
-  Acceptance: with location denied, a Wi-Fi alarm falls back to a solvable challenge rather than a Continue button.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — "Pause all alarms" has no banner or Resume on the Alarms tab and the per-card copy is wrong
   Category: ux
   Where: ui/settings/SettingsViewModel.kt:559-576 (`pauseAlarmsForDays`); ui/alarmlist/AlarmListViewModel.kt (never reads `pauseUntilMillis`); ui/alarmlist/AlarmListScreen.kt:1054 (header only says "All alarms paused" because every trigger is 0), :1066 (badge is vacation-only), :1614 ("Paused until you re-enable this alarm")

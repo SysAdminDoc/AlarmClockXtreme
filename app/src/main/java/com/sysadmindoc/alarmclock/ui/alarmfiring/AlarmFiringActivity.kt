@@ -479,7 +479,9 @@ class AlarmFiringActivity : ComponentActivity() {
 
     private fun startWifiPolling() {
         if (wifiPollingJob != null) return
-        if (viewModel.uiState.value.wifiFallbackAllowed) return
+        // The Wi-Fi challenge is swapped out entirely when the SSID cannot
+        // be read, so there is nothing left to poll for once that happens.
+        if (viewModel.uiState.value.challenge !is Challenge.WifiChallenge) return
         // Android 12+ requires ACCESS_FINE_LOCATION for WifiManager.connectionInfo to
         // return a real SSID. Coarse-only always yields "<unknown ssid>" on API 31+.
         val requiredPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

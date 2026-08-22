@@ -614,6 +614,19 @@ fun AlarmFiringScreen(
                     }
                 )
 
+                // When the Wi-Fi check cannot run, the challenge is swapped for
+                // a solvable one; say why rather than leaving an unexplained
+                // maths problem on a Wi-Fi alarm.
+                if (state.wifiStatus.isNotBlank() && challenge !is Challenge.WifiChallenge) {
+                    Text(
+                        text = state.wifiStatus,
+                        color = SnoozeYellow,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -818,9 +831,7 @@ fun AlarmFiringScreen(
                             WifiChallengeView(
                                 challenge = challenge,
                                 currentSsid = state.wifiCurrentSsid,
-                                wifiStatus = state.wifiStatus,
-                                fallbackAllowed = state.wifiFallbackAllowed,
-                                onContinueWithoutSsid = viewModel::continueWifiChallengeWithoutSsid
+                                wifiStatus = state.wifiStatus
                             )
                         }
 

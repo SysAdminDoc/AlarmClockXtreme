@@ -1468,9 +1468,7 @@ fun MazeChallengeView(
 fun WifiChallengeView(
     challenge: Challenge.WifiChallenge,
     currentSsid: String,
-    wifiStatus: String,
-    fallbackAllowed: Boolean,
-    onContinueWithoutSsid: () -> Unit
+    wifiStatus: String
 ) {
     val isConnected = currentSsid.isNotBlank() &&
         (currentSsid == challenge.requiredSsid || challenge.requiredSsid.isBlank())
@@ -1525,17 +1523,6 @@ fun WifiChallengeView(
             )
         }
 
-        if (fallbackAllowed) {
-            OutlinedButton(
-                onClick = onContinueWithoutSsid,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(10.dp)
-            ) {
-                Text("Continue without Wi-Fi check")
-            }
-        }
     }
 }
 

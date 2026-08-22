@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- When Android will not reveal the connected network name, a Wi-Fi dismiss
+  alarm now swaps in a maths problem and says why, instead of showing a
+  "continue without Wi-Fi check" button that dismissed the alarm from anywhere.
 - The missed-alarm watchdog and the wake-confirmation re-fire now fall back to
   a full-screen notification when the system refuses to start the alarm
   service, which happens without a battery-optimisation exemption. Both used to
