@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
@@ -1316,6 +1317,7 @@ private fun AlarmCard(
                         ) {
                             DropdownMenuItem(
                                 text = { Text("Edit") },
+                                leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp)) },
                                 onClick = { showMenu = false; onClick() }
                             )
                             DropdownMenuItem(
