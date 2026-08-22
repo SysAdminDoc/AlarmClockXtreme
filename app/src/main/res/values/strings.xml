@@ -115,6 +115,8 @@
 
     <!-- Alarm firing screen -->
     <string name="firing_controls_title">Alarm controls</string>
+    <plurals name="firing_snoozes_left"><item quantity="one">%1$d snooze left</item><item quantity="other">%1$d snoozes left</item></plurals>
+    <string name="firing_snoozes_none_left">No snoozes left. Solve the challenge to stop the alarm.</string>
     <string name="firing_snooze_hint">Long-press Snooze for exact minutes, or choose a clock time. Your saved default stays unchanged.</string>
     <string name="firing_exact_snooze">Exact snooze</string>
     <string name="firing_exact_snooze_hint">Applies once to this alarm.</string>
@@ -601,6 +603,10 @@
     <string name="alarm_edit_hue_sunrise">Sunrise light simulation</string>
     <string name="alarm_edit_hue_start">Start lights before alarm</string>
     <string name="alarm_edit_hue_hint">Requires Hue bridge IP and API key configured in Settings → Philips Hue.</string>
+    <string name="alarm_edit_snooze_limit">Snooze limit</string>
+    <string name="alarm_edit_snooze_limit_unlimited">Unlimited</string>
+    <string name="alarm_edit_snooze_limit_hint">After the last snooze the alarm stops. On an alarm with a dismiss challenge it keeps ringing until you solve the challenge.</string>
+    <plurals name="alarm_edit_snooze_limit_value"><item quantity="one">%1$d snooze</item><item quantity="other">%1$d snoozes</item></plurals>
     <string name="alarm_edit_progressive_snooze">Progressive snooze (shorter each time)</string>
     <string name="alarm_edit_progressive_snooze_hint">Each snooze shortens by 1 minute, such as 10 → 9 → 8.</string>
     <string name="alarm_edit_backup_sound">Backup sound escalation</string>

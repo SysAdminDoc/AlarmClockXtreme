@@ -8,6 +8,8 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.LongPressThreshold
+import com.sysadmindoc.alarmclock.domain.SnoozeCapPolicy
+import com.sysadmindoc.alarmclock.service.AlarmRuntimeState
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -116,7 +118,11 @@ data class FiringUiState(
     val locationDismissStatus: String = "",
     val weatherTemp: String? = null,
     val weatherDescription: String? = null,
-    val firedEarlyForWeather: Boolean = false
+    val firedEarlyForWeather: Boolean = false,
+    // Snooze cap. snoozesRemaining is null when the alarm is uncapped.
+    val snoozesUsed: Int = 0,
+    val snoozesRemaining: Int? = null,
+    val snoozeAllowed: Boolean = true
 ) {
     val requiresLocationDismiss: Boolean get() = alarm?.locationDismissEnabled == true
     val requiresChallenge: Boolean get() {
@@ -171,6 +177,8 @@ internal fun buildChallenge(
 
 @HiltViewModel
 class AlarmFiringViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext
+    private val appContext: android.content.Context,
     savedStateHandle: SavedStateHandle,
     private val repository: AlarmRepository,
     private val eventRepository: com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository,
@@ -331,9 +339,13 @@ class AlarmFiringViewModel @Inject constructor(
             com.sysadmindoc.alarmclock.data.remote.WeatherCodes.describe(code)
         }
 
+        val snoozesUsed = AlarmRuntimeState.snoozeCount(appContext, alarm.id)
         _uiState.value = FiringUiState(
             alarm = alarm,
             alarmLoaded = true,
+            snoozesUsed = snoozesUsed,
+            snoozesRemaining = SnoozeCapPolicy.snoozesRemaining(alarm, snoozesUsed),
+            snoozeAllowed = SnoozeCapPolicy.canSnooze(alarm, snoozesUsed),
             challenge = firstChallenge,
             challengeSolved = adaptedChain.isEmpty(),
             challengeStartedAtMillis = if (firstChallenge != null) System.currentTimeMillis() else 0L,

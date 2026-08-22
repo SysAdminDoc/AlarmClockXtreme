@@ -12,17 +12,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P1
 
-- [ ] P1 — Snooze cap turns a challenge-protected alarm off without the challenge ever being solved, and the cap is invisible and uneditable
-  Category: correctness
-  Where: service/AlarmService.kt:1598-1612 (`MAX_SNOOZE_DISMISSED` branch of `snoozeAlarm()`), :336-356 (`ACTION_SNOOZE` has no challenge gating), :729 (notification Snooze action always added); data/model/Alarm.kt:31 (`maxSnoozeCount = 3`, no editor anywhere in ui/alarmedit/*); ui/alarmfiring/AlarmFiringScreen.kt:1061-1068 (`LongPressSnoozeButton` has no `enabled` gate, unlike Dismiss at :1028-1033), :958-960 (hint actively advertises snooze as the way out of a challenge)
-  Problem: Snooze is always available, and the fourth snooze (default cap 3) is recorded as a dismiss and stops the alarm. A user who configured a math/typing/NFC challenge can therefore never be forced to solve it: tap Snooze four times across four rings and the alarm is gone. Nothing on the firing screen shows how many snoozes remain, and no screen lets the user raise, lower or disable the cap. Wake confirmation only compensates if separately enabled (default off).
-  Evidence: traced snoozeAlarm(); `grep -rn maxSnoozeCount app/src/main/java` returns only the model, sanitizer, service, and three AlarmEditViewModel passthroughs. CHANGELOG.md:220 only documents adding wake-confirm to the cap path. Refuted-by-fresh-agent: CONFIRMED.
-  Fix: (1) add a "Snooze limit" value row in `alarmEditDismissSections` SNOOZE section (options Off=0, 1, 2, 3, 5, 10) wired to a new `updateMaxSnoozeCount`; (2) when the cap is reached on a challenge alarm, do not auto-dismiss: keep ringing, hide/disable the Snooze button and notification action, and show "No snoozes left" (new `firing_snoozes_left` plural); (3) expose `snoozeCount`/`maxSnoozeCount` in `FiringUiState` and render "x of N snoozes used" under the Snooze button; (4) unit test in `AlarmServiceSnoozeTest` (or a new pure policy object) asserting that with `challengeType != NONE` the cap never produces `ACTION_DISMISSED`.
-  Acceptance: with a TYPING challenge and cap 1, the second Snooze attempt is impossible (button disabled, notification action absent) and the alarm keeps ringing until the phrase is typed; the editor shows and persists the limit.
-  Confidence: Verified
-  Effort: M
-  Reported: #49 — "I don't see an option to turn off snooze" (v1.15.32, Pixel 4a, Android 13; the reporter also asks for progressive snooze to sit next to the main snooze setting)
-
 - [ ] P1 — Spotify alarms can ring silently: delegation has no playback check and no fallback
   Category: reliability
   Where: service/AlarmService.kt:859-898 `startAudioInternal()` (spotify branch `startActivity(...)` then `return`), :401-470 `startAlarm()` ordering, :591-609 backup-sound job (raises STREAM_ALARM volume only, never starts a player); ui/alarmedit/AlarmEditIntegrationSections.kt:86-100 (Spotify section hint promises a fallback "if unavailable")

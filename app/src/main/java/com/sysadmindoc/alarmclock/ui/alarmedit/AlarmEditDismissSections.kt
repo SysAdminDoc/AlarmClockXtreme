@@ -118,6 +118,43 @@ internal fun LazyListScope.alarmEditDismissSections(
                 }
             }
         }
+
+        var showSnoozeLimitMenu by remember { mutableStateOf(false) }
+        SettingsRow(label = stringResource(R.string.alarm_edit_snooze_limit)) {
+            Box {
+                SettingsValueButton(
+                    label = snoozeLimitLabel(state.maxSnoozeCount),
+                    onClick = { showSnoozeLimitMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showSnoozeLimitMenu,
+                    onDismissRequest = { showSnoozeLimitMenu = false }
+                ) {
+                    listOf(0, 1, 2, 3, 5, 10).forEach { limit ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    snoozeLimitLabel(limit),
+                                    color = if (limit == state.maxSnoozeCount) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        TextPrimary
+                                    }
+                                )
+                            },
+                            onClick = {
+                                viewModel.updateMaxSnoozeCount(limit)
+                                showSnoozeLimitMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        SettingsHint(
+            stringResource(R.string.alarm_edit_snooze_limit_hint),
+            tone = HintTone.Neutral
+        )
     }
 
     // Dismiss Challenge
@@ -580,3 +617,14 @@ internal fun LazyListScope.alarmEditDismissSections(
         }
     }
 }
+
+/**
+ * Label for the per-alarm snooze cap. 0 is stored as "no limit".
+ */
+@Composable
+private fun snoozeLimitLabel(limit: Int): String =
+    if (limit <= 0) {
+        stringResource(R.string.alarm_edit_snooze_limit_unlimited)
+    } else {
+        pluralStringResource(R.plurals.alarm_edit_snooze_limit_value, limit, limit)
+    }

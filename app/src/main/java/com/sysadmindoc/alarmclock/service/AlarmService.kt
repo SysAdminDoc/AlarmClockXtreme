@@ -40,6 +40,8 @@ import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 import com.sysadmindoc.alarmclock.domain.OnCallDndOverride
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.domain.SnoozeCapOutcome
+import com.sysadmindoc.alarmclock.domain.SnoozeCapPolicy
 import com.sysadmindoc.alarmclock.receiver.DismissReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeCountdownReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeReceiver
@@ -212,9 +214,6 @@ class AlarmService : Service() {
     // error path — if both the radio and the default fallback fail, we could
     // otherwise leak orphaned playback instances.
     private val audioStarting = AtomicBoolean(false)
-    private val runtimeStatePrefs by lazy {
-        getSharedPreferences("alarm_runtime_state", MODE_PRIVATE)
-    }
 
     // v1.11.2 (roadmap N2): Telephony-aware muting. When a call is OFFHOOK or
     // RINGING during alarm playback the player is muted (vibration and
@@ -726,9 +725,30 @@ class AlarmService : Service() {
             .setContentIntent(fullScreenPi)
             .setOngoing(true)
             .setAutoCancel(false)
-            .addAction(R.drawable.ic_alarm, getString(R.string.notif_snooze_action, alarm.snoozeDurationMinutes), snoozePi)
+            .apply {
+                // Dropped once a challenge alarm has spent its snooze cap, so
+                // the notification cannot offer a way out the screen refuses.
+                if (SnoozeCapPolicy.canSnooze(alarm, currentSnoozeCount)) {
+                    addAction(
+                        R.drawable.ic_alarm,
+                        getString(R.string.notif_snooze_action, alarm.snoozeDurationMinutes),
+                        snoozePi
+                    )
+                }
+            }
             .addAction(R.drawable.ic_alarm, getString(R.string.notif_dismiss_action), dismissPi)
             .build()
+    }
+
+    /**
+     * Re-posts the ongoing alarm notification so its actions match the current
+     * snooze state. The alarm keeps ringing throughout.
+     */
+    private fun refreshFiringNotification(alarm: Alarm) {
+        runCatching {
+            getSystemService(NotificationManager::class.java)
+                .notify(NOTIFICATION_ID, buildAlarmNotification(alarm))
+        }
     }
 
     private fun activateAlarmMediaSession(reasonCode: String) {
@@ -1572,6 +1592,23 @@ class AlarmService : Service() {
         customMinutes: Int? = null,
         snoozeAtMillis: Long? = null
     ) {
+        // A challenge-protected alarm must not be talked out of its challenge
+        // by tapping Snooze past the cap, so check before anything is torn
+        // down: the alarm has to keep ringing exactly as it was.
+        val capped = repository.getById(alarmId)?.sanitized()
+        if (capped != null &&
+            SnoozeCapPolicy.outcomeFor(capped, currentSnoozeCount) == SnoozeCapOutcome.REFUSE
+        ) {
+            recordIncident(
+                type = AlarmIncidentEvent.TYPE_USER_ACTION,
+                status = AlarmIncidentEvent.STATUS_SKIPPED,
+                reasonCode = "SNOOZE_CAP_REACHED",
+                source = "AlarmService",
+                alarmId = capped.id
+            )
+            refreshFiringNotification(capped)
+            return
+        }
         SnoozeCountdownReceiver.cancel(this)
         autoSilenceJob?.cancel()
         backupSoundJob?.cancel()
@@ -1595,7 +1632,9 @@ class AlarmService : Service() {
             // ACTION_DISMISSED when the snooze cap was hit but still fired the
             // "snoozed" webhook — Tasker integrations got the wrong event.
             val webhookEvent: WebhookEvent
-            if (alarm.maxSnoozeCount > 0 && nextSnoozeCount > alarm.maxSnoozeCount) {
+            if (SnoozeCapPolicy.outcomeFor(alarm, currentSnoozeCount) ==
+                SnoozeCapOutcome.AUTO_DISMISS
+            ) {
                 // Max snoozes reached - treat as dismiss
                 currentSnoozeCount = alarm.maxSnoozeCount
                 recordEvent(alarm, AlarmEvent.ACTION_DISMISSED)
@@ -2036,26 +2075,14 @@ class AlarmService : Service() {
         )
     }
 
-    private fun readPersistedSnoozeCount(alarmId: Long): Int {
-        if (alarmId <= 0L) return 0
-        return runtimeStatePrefs.getInt(snoozeCountKey(alarmId), 0).coerceAtLeast(0)
-    }
+    private fun readPersistedSnoozeCount(alarmId: Long): Int =
+        AlarmRuntimeState.snoozeCount(this, alarmId)
 
-    private fun persistSnoozeCount(alarmId: Long, count: Int) {
-        if (alarmId <= 0L) return
-        runtimeStatePrefs.edit()
-            .putInt(snoozeCountKey(alarmId), count.coerceAtLeast(0))
-            .commit()
-    }
+    private fun persistSnoozeCount(alarmId: Long, count: Int) =
+        AlarmRuntimeState.setSnoozeCount(this, alarmId, count)
 
-    private fun clearAlarmRuntimeState(alarmId: Long) {
-        if (alarmId <= 0L) return
-        runtimeStatePrefs.edit()
-            .remove(snoozeCountKey(alarmId))
-            .commit()
-    }
-
-    private fun snoozeCountKey(alarmId: Long): String = "snooze_count_$alarmId"
+    private fun clearAlarmRuntimeState(alarmId: Long) =
+        AlarmRuntimeState.clear(this, alarmId)
 
     private fun showMissedNotification(alarm: Alarm, autoSilenceMinutes: Long = DEFAULT_AUTO_SILENCE_MINUTES) {
         val nm = getSystemService(NotificationManager::class.java)

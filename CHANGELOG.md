@@ -6,6 +6,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- The snooze limit no longer turns off an alarm that still has a dismiss
+  challenge waiting. Once the limit is spent, snooze is withdrawn and the alarm
+  keeps ringing until you solve the challenge.
+- The snooze limit is editable per alarm, under Dismiss, and the firing screen
+  shows how many snoozes are left.
 - Alarms now arm on Android 12 and 12L. The app declared only
   `USE_EXACT_ALARM`, which the platform ignores below API 33, so exact
   scheduling was refused and every alarm, bedtime reminder and snooze

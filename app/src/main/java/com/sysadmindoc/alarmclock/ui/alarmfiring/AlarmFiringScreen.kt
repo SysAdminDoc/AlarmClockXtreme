@@ -293,6 +293,7 @@ fun AlarmFiringScreen(
     val holdDismissHint = stringResource(R.string.firing_hold_dismiss_short, holdDurationSeconds)
     val releaseDismissHint = stringResource(R.string.firing_release_dismiss)
     val releaseSnoozeHint = stringResource(R.string.firing_release_snooze)
+    val noSnoozesLeftHint = stringResource(R.string.firing_snoozes_none_left)
     val swipeProtectedHint = stringResource(R.string.firing_swipe_protected)
     val swipeLeftHint = stringResource(R.string.firing_swipe_left_dismiss)
     val finishStepHint = stringResource(R.string.firing_finish_step_first)
@@ -311,7 +312,7 @@ fun AlarmFiringScreen(
             )
             .let { mod ->
                 if (!showSwipeControls) return@let mod
-                mod.pointerInput(state.canDismiss, holdToDismissEnabled) {
+                mod.pointerInput(state.canDismiss, holdToDismissEnabled, state.snoozeAllowed) {
                 detectHorizontalDragGestures(
                     onDragStart = { swipeCumulativeDrag = 0f },
                     onDragEnd = {
@@ -323,8 +324,12 @@ fun AlarmFiringScreen(
                                 swipeHint = ""
                             }
                         } else if (swipeCumulativeDrag > swipeThreshold) {
-                            onSnooze()
-                            swipeHint = ""
+                            if (state.snoozeAllowed) {
+                                onSnooze()
+                                swipeHint = ""
+                            } else {
+                                swipeHint = noSnoozesLeftHint
+                            }
                         } else {
                             swipeHint = ""
                         }
@@ -956,6 +961,8 @@ fun AlarmFiringScreen(
                                 }
                             } else if (locationDismissActive && state.wakeChallengeReady) {
                                 stringResource(R.string.firing_location_snooze_hint)
+                            } else if (!state.snoozeAllowed) {
+                                noSnoozesLeftHint
                             } else {
                                 stringResource(R.string.firing_challenge_snooze_hint)
                             }
@@ -1014,13 +1021,15 @@ fun AlarmFiringScreen(
                         color = if (state.canDismiss) DismissGreen else TextMuted
                     )
                     AppStatusChip(
-                        label = if (showSwipeControls) {
-                            stringResource(R.string.firing_swipe_right_snooze)
-                        } else {
-                            stringResource(R.string.firing_tap_snooze)
+                        label = when {
+                            !state.snoozeAllowed ->
+                                stringResource(R.string.firing_snoozes_none_left)
+                            showSwipeControls ->
+                                stringResource(R.string.firing_swipe_right_snooze)
+                            else -> stringResource(R.string.firing_tap_snooze)
                         },
                         icon = Icons.Default.Snooze,
-                        color = SnoozeYellow
+                        color = if (state.snoozeAllowed) SnoozeYellow else TextMuted
                     )
                 }
 
@@ -1060,6 +1069,7 @@ fun AlarmFiringScreen(
 
                     LongPressSnoozeButton(
                         minutes = defaultSnoozeMinutes,
+                        enabled = state.snoozeAllowed,
                         onClick = onSnooze,
                         onLongClick = {
                             customSnoozeMinutes = defaultSnoozeMinutes
@@ -1068,8 +1078,18 @@ fun AlarmFiringScreen(
                         }
                     )
 
+                    val snoozesLeft = state.snoozesRemaining
                     Text(
-                        text = stringResource(R.string.firing_snooze_hint),
+                        text = when {
+                            !state.snoozeAllowed ->
+                                stringResource(R.string.firing_snoozes_none_left)
+                            snoozesLeft != null -> pluralStringResource(
+                                R.plurals.firing_snoozes_left,
+                                snoozesLeft,
+                                snoozesLeft
+                            )
+                            else -> stringResource(R.string.firing_snooze_hint)
+                        },
                         color = TextMuted,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
@@ -1078,6 +1098,7 @@ fun AlarmFiringScreen(
 
                     TextButton(
                         onClick = { showSnoozeOptions = !showSnoozeOptions },
+                        enabled = state.snoozeAllowed,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     ) {
                         Text(
@@ -1471,16 +1492,19 @@ private fun HoldToDismissButton(
 @Composable
 private fun LongPressSnoozeButton(
     minutes: Int,
+    enabled: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
     val snoozeLabel = stringResource(R.string.firing_snooze_for_minutes, minutes)
     val exactSnoozeLabel = stringResource(R.string.firing_choose_snooze)
+    val tint = if (enabled) SnoozeYellow else TextMuted
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
             .combinedClickable(
+                enabled = enabled,
                 role = Role.Button,
                 onClickLabel = snoozeLabel,
                 onClick = onClick,
@@ -1489,7 +1513,7 @@ private fun LongPressSnoozeButton(
             ),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
-        border = BorderStroke(1.5.dp, SnoozeYellow.copy(alpha = 0.78f))
+        border = BorderStroke(1.5.dp, tint.copy(alpha = 0.78f))
     ) {
         Row(
             modifier = Modifier.fillMaxSize(),
@@ -1499,13 +1523,13 @@ private fun LongPressSnoozeButton(
             Icon(
                 imageVector = Icons.Default.Snooze,
                 contentDescription = null,
-                tint = SnoozeYellow,
+                tint = tint,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
                 text = snoozeLabel,
-                color = SnoozeYellow,
+                color = tint,
                 fontWeight = FontWeight.SemiBold
             )
         }

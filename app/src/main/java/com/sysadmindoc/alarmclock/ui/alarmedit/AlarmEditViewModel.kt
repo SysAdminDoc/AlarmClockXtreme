@@ -321,6 +321,11 @@ class AlarmEditViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(snoozeDurationMinutes = minutes)
     }
 
+    /** 0 means unlimited. */
+    fun updateMaxSnoozeCount(count: Int) {
+        _uiState.value = _uiState.value.copy(maxSnoozeCount = count.coerceAtLeast(0))
+    }
+
     fun updateChallengeType(type: String) {
         _uiState.value = _uiState.value.copy(challengeType = type)
     }
