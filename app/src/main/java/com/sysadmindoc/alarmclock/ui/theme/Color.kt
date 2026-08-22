@@ -56,3 +56,16 @@ val ToggleTrackOff = Color(0xFF22303F)
 val BorderSubtle = Color(0x1FFFFFFF)   // 12% white — default card stroke
 val BorderStrong = Color(0x33FFFFFF)   // 20% white — focused / selected
 val OverlayHover = Color(0x0FFFFFFF)   // 6% white — hover / pressed wash
+
+// ─── Night Clock ────────────────────────────────────────────────────────────
+// The bedside surface is its own palette: darker than the app's own ladder so
+// it does not light a room, and deliberately low-contrast except for the one
+// thing a person needs to read when they cannot find their way out of it.
+val NightClockTop = Color(0xFF02060D)
+val NightClockBottom = Color(0xFF000000)
+// The wash behind the date pill and the exit hint. 4% white on near-black.
+val NightClockPanel = Color(0x0AFFFFFF)
+// The exit hint. TextMuted at 0.58 measured 2.8:1 on that panel, under the
+// 3:1 WCAG asks of non-text and large text alike, which is a bad place to be
+// for the only instruction on the screen. NightClockContrastTest pins it.
+val NightClockHint = Color(0xB87E93AE)

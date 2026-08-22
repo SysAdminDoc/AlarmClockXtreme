@@ -47,6 +47,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
 import com.sysadmindoc.alarmclock.ui.theme.BlueLight
+import com.sysadmindoc.alarmclock.ui.theme.NightClockBottom
+import com.sysadmindoc.alarmclock.ui.theme.NightClockHint
+import com.sysadmindoc.alarmclock.ui.theme.NightClockPanel
+import com.sysadmindoc.alarmclock.ui.theme.NightClockTop
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.LocalMotionEnabled
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
@@ -152,8 +156,8 @@ fun NightClockScreen(onExit: () -> Unit) {
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF02060D),
-                        Color.Black
+                        NightClockTop,
+                        NightClockBottom
                     )
                 )
             )
@@ -231,7 +235,7 @@ fun NightClockScreen(onExit: () -> Unit) {
 
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color.White.copy(alpha = 0.04f)
+                    color = NightClockPanel
                 ) {
                     Text(
                         text = currentDate.format(DateTimeFormatter.ofPattern("EEEE, MMM d")),
@@ -262,11 +266,11 @@ fun NightClockScreen(onExit: () -> Unit) {
                 )
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = Color.White.copy(alpha = 0.04f)
+                    color = NightClockPanel
                 ) {
                     Text(
                         text = stringResource(R.string.night_clock_long_press_anywhere_exit),
-                        color = TextMuted.copy(alpha = 0.58f),
+                        color = NightClockHint,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
