@@ -22,26 +22,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — Watchdog and wake-confirm re-fires start a foreground service from a background worker and fail silently on API 31+
-  Category: reliability
-  Where: worker/WakeConfirmWorker.kt:185-208; worker/FireWatchdogWorker.kt:81-102 (`context.startForegroundService` from a non-expedited worker, exception only recorded as an incident); compare receiver/MissedAlarmUnlockReceiver.kt:126-144 (already has a full-screen-intent fallback for `ForegroundServiceStartNotAllowedException`)
-  Problem: when the user has not granted the battery-optimisation exemption, the FGS start is refused and the safety net that exists for a silently missed alarm does nothing visible.
-  Evidence: code trace; the fallback pattern exists in one receiver but is not reused.
-  Fix: on failure, arm an immediate exact alarm through `AlarmReceiver` (exact-alarm delivery is FGS-exempt) or post the same FSI fallback notification used by MissedAlarmUnlockReceiver. Unit test the policy branch.
-  Acceptance: with battery optimisation not exempted on an API 34 emulator, a watchdog REFIRE still rings or shows the full-screen fallback.
-  Confidence: Likely
-  Effort: S
-
-- [ ] P2 — Fire watchdog can re-ring an alarm that already fired through the smart-wake early path
-  Category: reliability
-  Where: worker/FireWatchdogPolicy.kt:51-58 (`broadcastCount == 0` treated as "never rang"); service/SmartAlarmService.kt:238-261 (early fire starts AlarmService directly, no `TYPE_BROADCAST` incident, watchdog not cancelled); service/AlarmService.kt:273-333 (no same-alarm guard in `ACTION_START_ALARM`)
-  Problem: a smart-wake early fire that is still ringing or auto-silenced two minutes past the scheduled minute is re-fired by the watchdog, which resets playback, `alarmFiredAt` and the auto-silence timer. The same gap applies to Direct Boot fires (directboot/DirectBootAlarmReceiver.kt:15-28, no incident write).
-  Evidence: grep shows `TYPE_BROADCAST` is written only by the four receivers.
-  Fix: have `AlarmService` `ACTION_START_ALARM` record a delivered incident the policy counts (or let the policy count `FOREGROUND_SERVICE/START_COMMAND_RECEIVED` for the occurrence) and cancel `FireWatchdogWorker.uniqueName(id)` in `SmartAlarmService.startAlarmService`. Extend `FireWatchdogPolicyTest` with the early-fire case.
-  Acceptance: smart-wake early fire followed by a slow challenge does not produce a second `START_COMMAND_RECEIVED` for the same fireId.
-  Confidence: Likely
-  Effort: S
-
 - [ ] P2 — "Pause all alarms" has no banner or Resume on the Alarms tab and the per-card copy is wrong
   Category: ux
   Where: ui/settings/SettingsViewModel.kt:559-576 (`pauseAlarmsForDays`); ui/alarmlist/AlarmListViewModel.kt (never reads `pauseUntilMillis`); ui/alarmlist/AlarmListScreen.kt:1054 (header only says "All alarms paused" because every trigger is 0), :1066 (badge is vacation-only), :1614 ("Paused until you re-enable this alarm")

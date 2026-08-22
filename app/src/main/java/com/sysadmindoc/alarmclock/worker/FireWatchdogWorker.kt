@@ -8,6 +8,7 @@ import androidx.work.WorkerParameters
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
+import com.sysadmindoc.alarmclock.service.AlarmFullScreenFallback
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmService
@@ -45,13 +46,13 @@ class FireWatchdogWorker @AssistedInject constructor(
 
         val alarm = alarmRepository.getById(alarmId)
         val repeatMissedEnabled = preferencesManager.getCurrentSettings().repeatMissedAlarms
-        val broadcastCount = alarmIncidentRepository.broadcastDeliveryCount(alarmId, scheduledAt)
+        val deliveryCount = alarmIncidentRepository.occurrenceDeliveryCount(alarmId, scheduledAt)
 
         val decision = FireWatchdogPolicy.decide(
             repeatMissedEnabled = repeatMissedEnabled,
             alarmExists = alarm != null,
             isEnabled = alarm?.isEnabled == true,
-            broadcastCount = broadcastCount,
+            deliveryCount = deliveryCount,
             scheduledAtMs = scheduledAt,
             nowMs = System.currentTimeMillis()
         )
@@ -90,13 +91,27 @@ class FireWatchdogWorker @AssistedInject constructor(
             )
             Result.success()
         } catch (_: Exception) {
+            // Without the battery-optimisation exemption the platform refuses
+            // the foreground-service start, and the whole point of the watchdog
+            // is that a missed alarm does not stay missed. Surface it as a
+            // full-screen intent instead of failing quietly.
+            val fallbackPosted = alarm != null && AlarmFullScreenFallback.post(
+                context = context,
+                alarm = alarm,
+                scheduledAt = scheduledAt,
+                fireId = fireId,
+                hideLabel = preferencesManager.getCurrentSettings()
+                    .hideAlarmLabelsOnPublicSurfaces
+            )
             recordIncident(
                 alarmId = alarmId,
                 fireId = fireId,
                 scheduledAt = scheduledAt,
                 type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
-                status = AlarmIncidentEvent.STATUS_FAILED,
-                reasonCode = "FIRE_WATCHDOG_REFIRE_START_FAILED"
+                status = if (fallbackPosted) AlarmIncidentEvent.STATUS_SUCCEEDED
+                else AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = if (fallbackPosted) "FIRE_WATCHDOG_FSI_FALLBACK"
+                else "FIRE_WATCHDOG_REFIRE_START_FAILED"
             )
             Result.success()
         }

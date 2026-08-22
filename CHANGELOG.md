@@ -6,6 +6,12 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- The missed-alarm watchdog and the wake-confirmation re-fire now fall back to
+  a full-screen notification when the system refuses to start the alarm
+  service, which happens without a battery-optimisation exemption. Both used to
+  give up silently, which defeated the point of a safety net.
+- A smart-wake or Direct Boot alarm that is already ringing is no longer
+  re-fired by the watchdog two minutes later.
 - The Defaults settings actually apply to new alarms. Default snooze, gradual
   volume and show-on-lock-screen were advertised as defaults but the editor
   ignored them, and the per-alarm lock screen choice did nothing at all.

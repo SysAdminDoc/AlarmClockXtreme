@@ -57,6 +57,23 @@ class AlarmIncidentRepository @Inject constructor(
         )
     }
 
+    /**
+     * How many times this occurrence actually reached the alarm, counting both
+     * AlarmManager delivery and a direct service start.
+     *
+     * Smart wake and Direct Boot start [AlarmService] straight away and never
+     * touch AlarmReceiver, so a broadcast-only count read zero for an alarm
+     * that was already ringing and the fire watchdog re-fired it on top.
+     */
+    suspend fun occurrenceDeliveryCount(alarmId: Long, scheduledAt: Long): Int {
+        return broadcastDeliveryCount(alarmId, scheduledAt) +
+            dao.countByOccurrenceAndType(
+                alarmId = alarmId,
+                scheduledAt = scheduledAt,
+                type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE
+            )
+    }
+
     fun recordAsync(
         alarmId: Long,
         fireId: String,

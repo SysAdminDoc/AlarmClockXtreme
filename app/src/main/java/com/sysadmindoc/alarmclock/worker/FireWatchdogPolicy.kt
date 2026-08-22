@@ -36,7 +36,8 @@ object FireWatchdogPolicy {
      * @param isEnabled whether the alarm is still enabled. A one-shot is
      *   auto-disabled only *after* it fires, so a still-enabled one-shot that
      *   has no broadcast genuinely never rang.
-     * @param broadcastCount BROADCAST incidents for this occurrence (0 = missed).
+     * @param deliveryCount BROADCAST plus FOREGROUND_SERVICE incidents for this
+     *   occurrence (0 = the alarm never reached the user).
      * @param scheduledAtMs the occurrence's scheduled fire time.
      * @param nowMs injected wall clock.
      */
@@ -44,14 +45,14 @@ object FireWatchdogPolicy {
         repeatMissedEnabled: Boolean,
         alarmExists: Boolean,
         isEnabled: Boolean,
-        broadcastCount: Int,
+        deliveryCount: Int,
         scheduledAtMs: Long,
         nowMs: Long
     ): Decision {
         if (!repeatMissedEnabled) return Decision.SKIP_DISABLED_SETTING
         if (!alarmExists) return Decision.SKIP_NO_ALARM
         if (!isEnabled) return Decision.SKIP_DISABLED
-        if (broadcastCount > 0) return Decision.SKIP_ALREADY_FIRED
+        if (deliveryCount > 0) return Decision.SKIP_ALREADY_FIRED
         if (scheduledAtMs <= 0L) return Decision.SKIP_STALE
         val age = nowMs - scheduledAtMs
         if (age < MIN_AGE_MS || age > MAX_AGE_MS) return Decision.SKIP_STALE

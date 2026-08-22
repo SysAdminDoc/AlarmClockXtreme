@@ -13,6 +13,7 @@ import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
+import com.sysadmindoc.alarmclock.service.AlarmFullScreenFallback
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmService
@@ -193,13 +194,27 @@ class WakeConfirmWorker @AssistedInject constructor(
                 reasonCode = "WAKE_CONFIRM_REFIRE_REQUESTED"
             )
         } catch (_: Exception) {
+            // Same background foreground-service restriction as the fire
+            // watchdog: fall back to a full-screen intent so a user who never
+            // confirmed still gets woken.
+            val alarm = alarmRepository.getById(alarmId)
+            val fallbackPosted = alarm != null && AlarmFullScreenFallback.post(
+                context = context,
+                alarm = alarm,
+                scheduledAt = scheduledAt,
+                fireId = fireId,
+                hideLabel = preferencesManager.getCurrentSettings()
+                    .hideAlarmLabelsOnPublicSurfaces
+            )
             recordIncident(
                 alarmId = alarmId,
                 fireId = fireId,
                 scheduledAt = scheduledAt,
                 type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
-                status = AlarmIncidentEvent.STATUS_FAILED,
-                reasonCode = "WAKE_CONFIRM_REFIRE_START_FAILED"
+                status = if (fallbackPosted) AlarmIncidentEvent.STATUS_SUCCEEDED
+                else AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = if (fallbackPosted) "WAKE_CONFIRM_FSI_FALLBACK"
+                else "WAKE_CONFIRM_REFIRE_START_FAILED"
             )
         }
         return Result.success()

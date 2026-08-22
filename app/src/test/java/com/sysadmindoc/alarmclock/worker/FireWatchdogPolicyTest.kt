@@ -15,11 +15,11 @@ class FireWatchdogPolicyTest {
         repeatMissedEnabled: Boolean = true,
         alarmExists: Boolean = true,
         isEnabled: Boolean = true,
-        broadcastCount: Int = 0,
+        deliveryCount: Int = 0,
         scheduledAtMs: Long = scheduledAt,
         nowMs: Long = checkNow
     ) = FireWatchdogPolicy.decide(
-        repeatMissedEnabled, alarmExists, isEnabled, broadcastCount, scheduledAtMs, nowMs
+        repeatMissedEnabled, alarmExists, isEnabled, deliveryCount, scheduledAtMs, nowMs
     )
 
     @Test
@@ -36,9 +36,9 @@ class FireWatchdogPolicyTest {
         // A working alarm always leaves a BROADCAST incident — never double-fire.
         assertEquals(
             FireWatchdogPolicy.Decision.SKIP_ALREADY_FIRED,
-            decide(broadcastCount = 1)
+            decide(deliveryCount = 1)
         )
-        assertFalse(decide(broadcastCount = 3).shouldRefire)
+        assertFalse(decide(deliveryCount = 3).shouldRefire)
     }
 
     @Test
@@ -103,5 +103,15 @@ class FireWatchdogPolicyTest {
             FireWatchdogPolicy.Decision.REFIRE,
             decide(nowMs = scheduledAt + FireWatchdogPolicy.MAX_AGE_MS)
         )
+    }
+
+    @Test
+    fun `a smart-wake early fire counts as delivered`() {
+        // Smart wake and Direct Boot start AlarmService directly, so they write
+        // a FOREGROUND_SERVICE incident and never a BROADCAST one. Counting
+        // only broadcasts made the watchdog re-ring an alarm that was already
+        // ringing, resetting playback and the auto-silence timer.
+        assertFalse(decide(deliveryCount = 1).shouldRefire)
+        assertTrue(decide(deliveryCount = 0).shouldRefire)
     }
 }
