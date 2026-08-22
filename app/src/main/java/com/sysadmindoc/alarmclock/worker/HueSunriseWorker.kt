@@ -46,10 +46,19 @@ class HueSunriseWorker @AssistedInject constructor(
 
     companion object {
         const val KEY_ALARM_ID = "alarm_id"
+
+        /**
+         * Wall-clock bounds of the ramp, carried across segments so a
+         * continuation resumes at the right brightness instead of restarting.
+         * Absent on the first run, which derives them from the alarm.
+         */
+        const val KEY_RAMP_START = "ramp_start"
+        const val KEY_RAMP_END = "ramp_end"
+
         private val JSON = "application/json".toMediaType()
-        private const val STEPS = 20          // brightness increments
         private const val WARM_CT = 500       // ~2000K warm white (Hue range 153-500)
 
+        fun uniqueName(alarmId: Long): String = "hue_sunrise_$alarmId"
     }
 
     private val httpV1: OkHttpClient by lazy {
@@ -98,25 +107,48 @@ class HueSunriseWorker @AssistedInject constructor(
         if (!useV2 && !settings.hueLegacyHttpEnabled) return Result.failure()
         val v2Client = effectivePin?.let { hueBridgeClient.buildTofuClient(it).client }
 
-        val totalMs = alarm.huePreWakeMinutes * 60_000L
-        val stepMs = totalMs / STEPS
+        val segmentStart = System.currentTimeMillis()
+        val rampStart = inputData.getLong(KEY_RAMP_START, 0L).takeIf { it > 0L } ?: segmentStart
+        val rampEnd = inputData.getLong(KEY_RAMP_END, 0L).takeIf { it > 0L }
+            ?: (rampStart + alarm.huePreWakeMinutes * 60_000L)
 
+        // Resume at the brightness the wall clock calls for. A first run starts
+        // at 1; a continuation, or a run WorkManager deferred, picks up where
+        // the ramp actually is instead of replaying it.
+        val openingBrightness =
+            HueSunriseRampPlan.brightnessAt(rampStart, rampEnd, segmentStart)
         if (lightIds.any { id ->
-                !putLightState(useV2, v2Client, bridgeIp, apiKey, id, on = true, bri = 1, ct = WARM_CT)
+                !putLightState(
+                    useV2, v2Client, bridgeIp, apiKey, id,
+                    on = true, bri = openingBrightness, ct = WARM_CT
+                )
             }
         ) {
             return Result.failure()
         }
 
-        val rampStart = System.currentTimeMillis()
-        val rampEnd = rampStart + totalMs
-        HueSunriseNotifications.post(applicationContext, alarm.id, rampStart, rampEnd, rampStart)
-        return try {
-            for (step in 1..STEPS) {
-                delay(stepMs)
-                val bri = (step * 254 / STEPS).coerceIn(1, 254)
+        HueSunriseNotifications.post(applicationContext, alarm.id, rampStart, rampEnd, segmentStart)
+        // Hand over before WorkManager's ten-minute execution limit stops us.
+        val handOverAt = HueSunriseRampPlan.segmentEndsAt(rampEnd, segmentStart)
+        var handingOver = false
+        try {
+            while (true) {
+                val now = System.currentTimeMillis()
+                if (HueSunriseRampPlan.isComplete(rampEnd, now)) break
+                if (handOverAt != null && now >= handOverAt) {
+                    handingOver = true
+                    break
+                }
+                val nextAt = HueSunriseRampPlan.nextStepAt(rampStart, rampEnd, now) ?: break
+                delay((nextAt - now).coerceAtLeast(0L))
+                val bri = HueSunriseRampPlan.brightnessAt(
+                    rampStart, rampEnd, System.currentTimeMillis()
+                )
                 if (lightIds.any { id ->
-                        !putLightState(useV2, v2Client, bridgeIp, apiKey, id, on = true, bri = bri, ct = WARM_CT)
+                        !putLightState(
+                            useV2, v2Client, bridgeIp, apiKey, id,
+                            on = true, bri = bri, ct = WARM_CT
+                        )
                     }
                 ) {
                     return Result.failure()
@@ -128,10 +160,33 @@ class HueSunriseWorker @AssistedInject constructor(
                     endWallClockMillis = rampEnd
                 )
             }
-            Result.success()
         } finally {
-            HueSunriseNotifications.cancel(applicationContext, alarm.id)
+            // The next segment re-posts it; anything else means the ramp is over.
+            if (!handingOver) HueSunriseNotifications.cancel(applicationContext, alarm.id)
         }
+        if (handingOver) enqueueContinuation(alarm.id, rampStart, rampEnd)
+        return Result.success()
+    }
+
+    /**
+     * Queues the next segment of the same ramp under the same unique name, so a
+     * cancel or a reschedule still tears the whole chain down.
+     */
+    private fun enqueueContinuation(alarmId: Long, rampStart: Long, rampEnd: Long) {
+        val request = androidx.work.OneTimeWorkRequestBuilder<HueSunriseWorker>()
+            .setInputData(
+                androidx.work.Data.Builder()
+                    .putLong(KEY_ALARM_ID, alarmId)
+                    .putLong(KEY_RAMP_START, rampStart)
+                    .putLong(KEY_RAMP_END, rampEnd)
+                    .build()
+            )
+            .build()
+        androidx.work.WorkManager.getInstance(applicationContext).enqueueUniqueWork(
+            uniqueName(alarmId),
+            androidx.work.ExistingWorkPolicy.APPEND_OR_REPLACE,
+            request
+        )
     }
 
     private fun putLightState(

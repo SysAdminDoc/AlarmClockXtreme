@@ -6,6 +6,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Hue sunrise now completes for any pre-wake length. The ramp ran as one
+  worker that WorkManager stopped after ten minutes, so a 30-minute sunrise
+  stalled around a third brightness and restarted from the bottom. Brightness
+  is derived from the clock and the ramp hands over between segments.
 - The snooze limit no longer turns off an alarm that still has a dismiss
   challenge waiting. Once the limit is spent, snooze is withdrawn and the alarm
   keeps ringing until you solve the challenge.

@@ -737,7 +737,7 @@ class AlarmScheduler @Inject constructor(
     private fun scheduleHueSunrise(alarm: Alarm, triggerTime: Long) {
         val workManager = WorkManager.getInstance(context)
         if (!alarm.hueEnabled || alarm.huePreWakeMinutes <= 0) {
-            workManager.cancelUniqueWork("hue_sunrise_${alarm.id}")
+            workManager.cancelUniqueWork(HueSunriseWorker.uniqueName(alarm.id))
             return
         }
 
@@ -751,7 +751,7 @@ class AlarmScheduler @Inject constructor(
             .setInputData(inputData)
             .build()
         workManager.enqueueUniqueWork(
-            "hue_sunrise_${alarm.id}",
+            HueSunriseWorker.uniqueName(alarm.id),
             ExistingWorkPolicy.REPLACE,
             workRequest
         )
@@ -766,7 +766,7 @@ class AlarmScheduler @Inject constructor(
         cancelSmartAlarmStart(alarmId)
 
         val workManager = WorkManager.getInstance(context)
-        workManager.cancelUniqueWork("hue_sunrise_$alarmId")
+        workManager.cancelUniqueWork(HueSunriseWorker.uniqueName(alarmId))
         workManager.cancelUniqueWork(FireWatchdogWorker.uniqueName(alarmId))
         if (includeFollowUpWorkers) {
             workManager.cancelUniqueWork("guardian_$alarmId")

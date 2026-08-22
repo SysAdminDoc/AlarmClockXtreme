@@ -23,16 +23,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Effort: M
   Reported: #50 — "I don't find a way to use Spotify … I don't have sound at all, nor a backup alarm sound if Spotify is not working. I pasted a playlist link (https://open.spotify.com/track/… format)"
 
-- [ ] P1 — Hue sunrise ramp is killed by WorkManager's 10-minute worker limit
-  Category: reliability
-  Where: worker/HueSunriseWorker.kt:101-135 (20 × `delay(stepMs)` where total = `huePreWakeMinutes` minutes, default 30, max 180); domain/AlarmScheduler.kt:737-758 `scheduleHueSunrise()` (plain `OneTimeWorkRequest`, no `setExpedited`, no `setForeground`)
-  Problem: WorkManager stops any worker that runs longer than 10 minutes. With the default 30-minute pre-wake the ramp is stopped at roughly one third brightness, the `finally` block cancels the progress notification, and the retry restarts from brightness 1. The feature cannot complete for any pre-wake above 10 minutes.
-  Evidence: no `setForeground`/`getForegroundInfo` call exists in the worker (grep); CHANGELOG documents v2 auth work on this worker but not the execution-time limit. Refuted-by-fresh-agent: see status note at the end of this section.
-  Fix: either promote the worker with `setForeground(ForegroundInfo(notificationId, HueSunriseNotifications.build(...), FOREGROUND_SERVICE_TYPE_DATA_SYNC))` (the notification already exists) and declare `foregroundServiceType="dataSync"` on the WorkManager `SystemForegroundService` via manifest merge, or re-design the ramp as one AlarmManager/short-worker hop per step (`hue_sunrise_<id>_<step>`) with brightness computed from wall time. Add a unit test on a pure `HueSunriseRampPlan` that asserts step brightness for a given elapsed time so the hop design is testable.
-  Acceptance: a 30-minute sunrise reaches brightness 254 at the alarm time on an emulator with a mocked bridge; WorkManager inspector shows no `STOP_REASON_TIMEOUT`.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P1 — Backup import applies secrets, webhook targets and Guardian phone numbers with no per-field consent or size cap
   Category: security
   Where: data/backup/BackupManager.kt:523-526 `readJsonFromUri()` (`readText()` with no cap), :600-618 `applyBackup()` (copies webhookEnabled/webhookUrl/webhookSigningSecret/hueBridgeIp/hueApiKey/googleRoutesApiKey/guardianContactPhone), :677-690 import flow; data/backup/AlarmBackupMappers.kt:127-128 (guardianEnabled/guardianPhone imported verbatim); ui/settings/SettingsBackupSections.kt:667-796 (preview lists categories only, no "skip settings" toggle); service/AlarmService.kt:611-627 (no global Guardian master switch before enqueueing GuardianWorker); data/backup/FossifyImportManager.kt:87-97 (`MAX_BYTES`/`MAX_ALARMS` exist only on the Fossify path)
