@@ -191,10 +191,52 @@ val verifyRoomSchemaExports by tasks.registering {
     }
 }
 
-/** Nothing under ui/ is exempt any more. Kept so an exemption stays visible. */
-val unlocalizedComposeFiles = emptySet<String>()
+/**
+ * Files the guard skips, and the only reason it can be green outside ui/.
+ *
+ * The tree below covers the whole app package now, not just the screens: a
+ * notification channel name, a weather description and a shift-pattern label
+ * are read by exactly the same person as a Text(). Every file listed here has
+ * hardcoded English in it today. The list only shrinks; adding to it means
+ * shipping English that a translator cannot reach, and a new file cannot be
+ * added to it without this comment being edited on purpose.
+ *
+ * Nothing under ui/ is exempt.
+ */
+val unlocalizedComposeFiles = setOf(
+    "AlarmClockApp.kt",
+    "MainActivity.kt",
+    "data/backup/BackupManager.kt",
+    "data/model/Alarm.kt",
+    "data/model/ShiftPattern.kt",
+    "data/remote/GeocodingApi.kt",
+    "data/remote/WeatherApi.kt",
+    "data/repository/CalendarRepository.kt",
+    "data/support/SupportExportManager.kt",
+    "directboot/DirectBootAlarmService.kt",
+    "domain/BreathingExercise.kt",
+    "domain/ChronotypeEstimator.kt",
+    "domain/WakeConsistencyCalculator.kt",
+    "receiver/BedtimeReceiver.kt",
+    "service/AlarmPostDismissController.kt",
+    "service/AlarmService.kt",
+    "service/BedtimeZenRuleManager.kt",
+    "service/NextAlarmNotifier.kt",
+    "service/SkipNextAlarmTileService.kt",
+    "service/SmartAlarmService.kt",
+    "service/SonarSleepService.kt",
+    "service/WebhookService.kt",
+    "service/YouTubeAudioDownloader.kt",
+    "util/ManufacturerCompat.kt",
+    "widget/NextAlarmWidget.kt",
+    "worker/AlarmHealthWorker.kt",
+    "worker/CalendarAutoAlarmWorker.kt",
+    "worker/GuardianWorker.kt",
+    "worker/HueSunriseNotifications.kt",
+    "worker/WakeConfirmWorker.kt"
+)
 
-val primaryComposeScreenFiles: List<File> = fileTree("src/main/java/com/sysadmindoc/alarmclock/ui") {
+val primaryComposeScreenFiles: List<File> = fileTree("src/main/java/com/sysadmindoc/alarmclock") {
     include("**/*.kt")
 }.files
     .sortedBy { it.path }
@@ -213,7 +255,8 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
     // screens hold no English.
     description = "Rejects literals passed to Text(), to a known text attribute, " +
         "to a Toast or a snackbar, or returned from a branch or a return statement " +
-        "that reads like copy, under ui/."
+        "that reads like copy, anywhere in the app package except the files listed " +
+        "in unlocalizedComposeFiles."
     inputs.files(primaryComposeScreenFiles)
 
     doLast {
