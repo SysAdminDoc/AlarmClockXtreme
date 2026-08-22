@@ -212,7 +212,8 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
     // local val. Say what it does, so nobody reads a green run as proof the
     // screens hold no English.
     description = "Rejects literals passed to Text(), to a known text attribute, " +
-        "to a Toast or a snackbar, or returned from a branch that reads like copy, under ui/."
+        "to a Toast or a snackbar, or returned from a branch or a return statement " +
+        "that reads like copy, under ui/."
     inputs.files(primaryComposeScreenFiles)
 
     doLast {
@@ -246,7 +247,13 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
         // price of not flagging every "celsius"/"kmh"/"unknown" wire value.
         val branchLiteralPatterns = listOf(
             Regex("""(?:->|\belse\b|\?|:)\s*"([^"\r\n]*)"\s*(?:\r?\n|,|\)|\})"""),
-            Regex("""\bif\s*\([^()]*(?:\([^()]*\)[^()]*)*\)\s*"([^"\r\n]*)"""")
+            Regex("""\bif\s*\([^()]*(?:\([^()]*\)[^()]*)*\)\s*"([^"\r\n]*)""""),
+            // `return "Next occurrence: $x"`. A helper that hands a sentence
+            // back to its caller is the same violation as one that passes it to
+            // Text(); this shape was missed until 2026-08-22 and hid the alarm
+            // card's next-occurrence line, four Bedtime room-noise labels and
+            // the voice and handwriting challenge statuses.
+            Regex("""\breturn(?:@[A-Za-z_][A-Za-z0-9_]*)?\s+"([^"\r\n]*)"""")
         )
         val looksLikeCopy = Regex("""^[A-Z].*|.*\s.*""")
         // Animation debug names passed as `label = ...` to animateFloat and
@@ -265,6 +272,9 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
         // is English a translator would have to touch.
         val interpolation = Regex("""\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*""")
         val wireConstant = Regex("""^[A-Z0-9_]+$""")
+        // A URL is an address, not copy. Translating "https://www.windy.com/..."
+        // would break the radar card rather than localise it.
+        val urlLiteral = Regex("""^[A-Za-z][A-Za-z0-9+.\-]*://""")
         // SimpleDateFormat / DateTimeFormatter patterns are not prose.
         val dateFormatPattern = Regex("""^[hHmMsSaEdDMyLZzGwWkKubB:./,•\s'\-]+$""")
         // A literal holding a nested one ("${String.format("%02d", n)}") cannot be
@@ -285,6 +295,7 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
                 val bare = interpolation.replace(literal, " ").trim()
                 val isProse = translatableRun.containsMatchIn(bare) &&
                     !wireConstant.matches(bare) &&
+                    !urlLiteral.containsMatchIn(bare) &&
                     !dateFormatPattern.matches(bare) &&
                     !truncatedByNesting.containsMatchIn(literal) &&
                     (!requireCopyShape || looksLikeCopy.matches(bare))

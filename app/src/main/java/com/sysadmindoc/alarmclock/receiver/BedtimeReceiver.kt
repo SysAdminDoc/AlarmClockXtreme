@@ -208,12 +208,14 @@ class BedtimeReceiver : BroadcastReceiver() {
         notificationManager: NotificationManager
     ) {
         notificationManager.cancel(NOTIFICATION_ID_COUNTDOWN)
-        val reminderText = EnvironmentalNoiseBaselinePolicy.notificationText(
-            BedtimeNoiseBaselineSampler.sampleAndPersist(context)
+        val reminderText = context.getString(
+            EnvironmentalNoiseBaselinePolicy.notificationTextRes(
+                BedtimeNoiseBaselineSampler.sampleAndPersist(context)
+            )
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_BEDTIME)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Time to wind down")
+            .setContentTitle(context.getString(R.string.bedtime_reminder_title))
             .setContentText(reminderText)
             .setStyle(NotificationCompat.BigTextStyle().bigText(reminderText))
             .setAutoCancel(true)

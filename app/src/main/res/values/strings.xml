@@ -2163,4 +2163,25 @@
     <string name="youtube_updating_engine">Updating downloader engine…</string>
     <string name="settings_unusable_media_warning">These sounds and images belong to apps this phone cannot read, so they will fall back to the default:</string>
     <string name="ringtone_saved_to_alarms">Saved “%1$s” to your alarms.</string>
+    <string name="alarm_list_all_alarms_paused_until">All alarms paused until %1$s</string>
+    <string name="alarm_list_paused_until_reenabled">Paused until you re-enable this alarm</string>
+    <string name="alarm_list_next_occurrence">Next occurrence: %1$s</string>
+    <string name="bedtime_delayed_until">Delayed until %1$s</string>
+    <string name="bedtime_sonar_last_session">Last session: %1$dm, %2$dm movement, %3$dm restless, %4$dm still</string>
+    <string name="bedtime_sonar_loud_bursts">; %1$d loud bursts, peak %2$d dB est.</string>
+    <string name="bedtime_sonar_no_loud_bursts">; no loud bursts</string>
+    <string name="bedtime_noise_no_baseline">No baseline</string>
+    <string name="bedtime_noise_checks_at_reminder">Checks at reminder</string>
+    <string name="bedtime_noise_mic_permission_needed">Mic permission needed</string>
+    <string name="bedtime_noise_last_measured">Last %1$s; no audio saved</string>
+    <string name="bedtime_noise_level_quiet">Quiet</string>
+    <string name="bedtime_noise_level_moderate">Moderate</string>
+    <string name="bedtime_noise_level_loud">Loud</string>
+    <string name="bedtime_reminder_default">Your bedtime is approaching. Start getting ready for sleep.</string>
+    <string name="bedtime_reminder_title">Time to wind down</string>
+    <string name="bedtime_room_quiet_advice">Room baseline is quiet. Keep lights low and start winding down.</string>
+    <string name="bedtime_room_moderate_advice">Room baseline is moderate. Lower TV, fan, or conversation before sleep.</string>
+    <string name="bedtime_room_loud_advice">Room baseline is loud. Reduce noise before bed if you can.</string>
+    <string name="stats_sonar_decision_detail">Judged from room sound after %1$d min of listening. No audio is kept.</string>
+    <string name="stats_motion_decision_detail">%1$s after %2$d min of watching (%3$s)</string>
 </resources>

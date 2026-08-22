@@ -1315,9 +1315,14 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
 private fun smartWakeDecisionDetail(session: ActigraphySession): String {
     val observed = session.observedMinutesBeforeDecision.coerceAtLeast(0)
     if (session.isSonarSession()) {
-        return "Judged from room sound after ${observed} min of listening. No audio is kept."
+        return stringResource(R.string.stats_sonar_decision_detail, observed)
     }
-    return "${smartWakeDecisionLabel(session.decisionReason)} after ${observed} min of watching (${session.smartWakeMode.lowercase()})"
+    return stringResource(
+        R.string.stats_motion_decision_detail,
+        smartWakeDecisionLabel(session.decisionReason),
+        observed,
+        session.smartWakeMode.lowercase()
+    )
 }
 
 @Composable

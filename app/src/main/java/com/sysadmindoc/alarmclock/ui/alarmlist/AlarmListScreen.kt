@@ -1708,6 +1708,7 @@ private fun Alarm.shiftPatternChipLabel(): String? {
     return pattern.shortLabel
 }
 
+@Composable
 private fun nextOccurrenceLabel(
     alarm: Alarm,
     is24Hour: Boolean,
@@ -1719,16 +1720,16 @@ private fun nextOccurrenceLabel(
         val until = Instant.ofEpochMilli(pausedUntilMillis)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("EEE, MMM d"))
-        return "All alarms paused until $until"
+        return stringResource(R.string.alarm_list_all_alarms_paused_until, until)
     }
     if (!alarm.isEnabled || alarm.nextTriggerTime <= 0) {
-        return "Paused until you re-enable this alarm"
+        return stringResource(R.string.alarm_list_paused_until_reenabled)
     }
     val pattern = "EEE, MMM d • " + AlarmTimeFormatter.pattern(is24Hour)
     val formatted = Instant.ofEpochMilli(alarm.nextTriggerTime)
         .atZone(ZoneId.systemDefault())
         .format(DateTimeFormatter.ofPattern(pattern))
-    return "Next occurrence: $formatted"
+    return stringResource(R.string.alarm_list_next_occurrence, formatted)
 }
 
 @Composable

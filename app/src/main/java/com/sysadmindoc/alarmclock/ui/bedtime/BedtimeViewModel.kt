@@ -782,7 +782,10 @@ class BedtimeViewModel @Inject constructor(
         if (untilMillis <= System.currentTimeMillis()) return ""
         val time = java.time.Instant.ofEpochMilli(untilMillis)
             .atZone(ZoneId.systemDefault()).toLocalTime()
-        return "Delayed until ${formatTime(time.hour, time.minute, is24h)}"
+        return context.getString(
+            R.string.bedtime_delayed_until,
+            formatTime(time.hour, time.minute, is24h)
+        )
     }
 
     private fun BedtimeUiState.withJetLagPlan(currentWakeMinutes: Int? = null): BedtimeUiState {
@@ -809,15 +812,21 @@ class BedtimeViewModel @Inject constructor(
     private fun sonarLastSessionLabel(snapshot: SonarSleepSnapshot): String {
         if (snapshot.lastEndedAt <= 0L || snapshot.lastTotalMinutes <= 0) return ""
         val snore = if (snapshot.lastSnoreEventCount > 0) {
-            "; ${snapshot.lastSnoreEventCount} loud bursts, peak ${snapshot.lastSnorePeakDb.roundToInt()} dB est."
+            context.getString(
+                R.string.bedtime_sonar_loud_bursts,
+                snapshot.lastSnoreEventCount,
+                snapshot.lastSnorePeakDb.roundToInt()
+            )
         } else {
-            "; no loud bursts"
+            context.getString(R.string.bedtime_sonar_no_loud_bursts)
         }
-        return "Last session: ${snapshot.lastTotalMinutes}m, " +
-            "${snapshot.lastAwakeMinutes}m movement, " +
-            "${snapshot.lastLightMinutes}m restless, " +
-            "${snapshot.lastDeepMinutes}m still" +
-            snore
+        return context.getString(
+            R.string.bedtime_sonar_last_session,
+            snapshot.lastTotalMinutes,
+            snapshot.lastAwakeMinutes,
+            snapshot.lastLightMinutes,
+            snapshot.lastDeepMinutes
+        ) + snore
     }
 
     private fun snoreTimelineItem(event: SnoreEvent): SnoreTimelineItem {
@@ -884,23 +893,29 @@ class BedtimeViewModel @Inject constructor(
     }
 
     private fun noiseBaselineLabel(snapshot: BedtimeNoiseBaselineSnapshot): String {
-        val baseline = snapshot.baseline ?: return "No baseline"
-        return EnvironmentalNoiseBaselinePolicy.levelLabel(baseline.level)
+        val baseline = snapshot.baseline
+            ?: return context.getString(R.string.bedtime_noise_no_baseline)
+        return context.getString(EnvironmentalNoiseBaselinePolicy.levelLabelRes(baseline.level))
     }
 
     private fun noiseBaselineHelper(
         snapshot: BedtimeNoiseBaselineSnapshot,
         is24h: Boolean
     ): String {
-        val baseline = snapshot.baseline ?: return if (hasRecordAudioPermission()) {
-            "Checks at reminder"
-        } else {
-            "Mic permission needed"
-        }
+        val baseline = snapshot.baseline ?: return context.getString(
+            if (hasRecordAudioPermission()) {
+                R.string.bedtime_noise_checks_at_reminder
+            } else {
+                R.string.bedtime_noise_mic_permission_needed
+            }
+        )
         val measured = java.time.Instant.ofEpochMilli(snapshot.measuredAtMillis)
             .atZone(ZoneId.systemDefault())
             .toLocalTime()
-        return "Last ${formatTime(measured.hour, measured.minute, is24h)}; no audio saved"
+        return context.getString(
+            R.string.bedtime_noise_last_measured,
+            formatTime(measured.hour, measured.minute, is24h)
+        )
     }
 
     private fun refreshChronotypeRecommendation() {

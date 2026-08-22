@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.domain
 
+import androidx.annotation.StringRes
+import com.sysadmindoc.alarmclock.R
 import kotlin.math.log10
 
 enum class EnvironmentalNoiseLevel {
@@ -18,8 +20,13 @@ object EnvironmentalNoiseBaselinePolicy {
     private const val QUIET_MAX_DBFS = -52f
     private const val MODERATE_MAX_DBFS = -38f
 
-    const val DEFAULT_REMINDER_TEXT =
-        "Your bedtime is approaching. Start getting ready for sleep."
+    /**
+     * Resource ids, not sentences. This object is reached from a broadcast
+     * receiver and from a ViewModel, neither of which is a Compose scope, and
+     * both of which have a Context to resolve with.
+     */
+    @StringRes
+    val DEFAULT_REMINDER_TEXT_RES: Int = R.string.bedtime_reminder_default
 
     fun fromNormalizedRms(rms: Float): EnvironmentalNoiseBaseline? {
         if (!rms.isFinite() || rms <= 0f) return null
@@ -35,23 +42,22 @@ object EnvironmentalNoiseBaselinePolicy {
         )
     }
 
-    fun notificationText(baseline: EnvironmentalNoiseBaseline?): String {
+    @StringRes
+    fun notificationTextRes(baseline: EnvironmentalNoiseBaseline?): Int {
         return when (baseline?.level) {
-            EnvironmentalNoiseLevel.QUIET ->
-                "Room baseline is quiet. Keep lights low and start winding down."
-            EnvironmentalNoiseLevel.MODERATE ->
-                "Room baseline is moderate. Lower TV, fan, or conversation before sleep."
-            EnvironmentalNoiseLevel.LOUD ->
-                "Room baseline is loud. Reduce noise before bed if you can."
-            null -> DEFAULT_REMINDER_TEXT
+            EnvironmentalNoiseLevel.QUIET -> R.string.bedtime_room_quiet_advice
+            EnvironmentalNoiseLevel.MODERATE -> R.string.bedtime_room_moderate_advice
+            EnvironmentalNoiseLevel.LOUD -> R.string.bedtime_room_loud_advice
+            null -> DEFAULT_REMINDER_TEXT_RES
         }
     }
 
-    fun levelLabel(level: EnvironmentalNoiseLevel): String {
+    @StringRes
+    fun levelLabelRes(level: EnvironmentalNoiseLevel): Int {
         return when (level) {
-            EnvironmentalNoiseLevel.QUIET -> "Quiet"
-            EnvironmentalNoiseLevel.MODERATE -> "Moderate"
-            EnvironmentalNoiseLevel.LOUD -> "Loud"
+            EnvironmentalNoiseLevel.QUIET -> R.string.bedtime_noise_level_quiet
+            EnvironmentalNoiseLevel.MODERATE -> R.string.bedtime_noise_level_moderate
+            EnvironmentalNoiseLevel.LOUD -> R.string.bedtime_noise_level_loud
         }
     }
 }
