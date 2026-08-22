@@ -9,6 +9,7 @@ import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import java.io.File
@@ -159,5 +160,47 @@ class BackupManagerImportConsentTest {
         assertTrue(
             result.exceptionOrNull()?.message.orEmpty().contains("too large")
         )
+    }
+
+    @Test
+    fun `replace inserts before it deletes and keeps alarms when nothing imports`() = runTest {
+        val existing = Alarm(id = 44L, hour = 5, minute = 0, label = "Keep me")
+        coEvery { repository.getAll() } returns listOf(existing)
+        val order = mutableListOf<String>()
+        coEvery { repository.save(any()) } coAnswers { order += "save"; 101L }
+        coEvery { repository.deleteById(any()) } coAnswers { order += "delete" }
+
+        val uri = writeBackup(name = "replace-order.json")
+        coEvery { repository.getAll() } returns listOf(existing)
+        val result = backupManager.importFromUri(
+            uri,
+            BackupImportOptions(mode = BackupImportMode.Replace)
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(
+            "The old rows must not be removed until the new ones are on disk",
+            listOf("save", "delete"),
+            order
+        )
+    }
+
+    @Test
+    fun `replace keeps the existing alarms when the file has none`() = runTest {
+        val existing = Alarm(id = 44L, hour = 5, minute = 0, label = "Keep me")
+        coEvery { repository.getAll() } returns emptyList()
+        coEvery { preferencesManager.getCurrentSettings() } returns AppSettings()
+        val emptyJson = backupManager.export()
+        val file = File(context.cacheDir, "empty-backup.json").apply { writeText(emptyJson) }
+
+        coEvery { repository.getAll() } returns listOf(existing)
+        val result = backupManager.importFromUri(
+            Uri.fromFile(file),
+            BackupImportOptions(mode = BackupImportMode.Replace)
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(0, result.getOrThrow())
+        coVerify(exactly = 0) { repository.deleteById(any()) }
     }
 }

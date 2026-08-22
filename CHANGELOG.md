@@ -6,6 +6,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Replace-mode restore saves the new alarms before removing the old ones and
+  keeps what you had if the file turns out to contain nothing usable. It used
+  to delete everything first, so a crash mid-restore left no alarms at all.
+- Backups are stamped v18. A build no longer writes a version it would refuse
+  to read, and changing the format now breaks a test until the stamp moves too.
 - Pausing all alarms shows the date it ends and a Resume chip on the Alarms
   tab. Each card used to claim it had to be re-enabled by hand, which was
   false, and Resume was three screens away.

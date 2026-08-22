@@ -21,15 +21,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — Backup import is not transactional in Replace mode (already tracked as blocked; unblock it)
-  Category: correctness
-  Where: Roadmap_Blocked.md "P1 — Make Replace-mode backup restore atomic" and "P2 — Bump backup version stamp"; data/backup/BackupManager.kt:677-713
-  Problem: both entries are blocked on "uncommitted in-flight BackupManager changes from a parallel session". The working tree is clean and backup v17 shipped, so the blocker no longer exists.
-  Fix: move both items back into this file and implement as written there (insert before delete inside `database.withTransaction`, skip delete when the imported set is empty, surface skipped-row count).
-  Acceptance: items live in ROADMAP.md; a crash injected between delete and insert leaves the original alarms intact.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — `alarm_events` grows without bound and has no indices on the columns the Stats screen filters on
   Category: perf
   Where: data/local/entity/AlarmEvent.kt:10 (no `indices`); data/local/AlarmEventDao.kt:23, :43, :50-60 (filters on `action`, `firedAt`, `alarmId`), :62 (only `deleteAll`); compare data/repository/AlarmIncidentRepository.kt:121-129 (prune on insert)

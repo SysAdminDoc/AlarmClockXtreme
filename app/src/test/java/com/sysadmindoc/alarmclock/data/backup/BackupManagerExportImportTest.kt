@@ -261,7 +261,9 @@ class BackupManagerExportImportTest {
         assertTrue(result.isSuccess)
         assertEquals(1, result.getOrThrow())
         verify { scheduler.cancel(44L) }
-        coVerify { repository.delete(existing) }
+        // Replace now removes the previous rows by id, after the new ones are
+        // saved, so a crash mid-restore can never leave zero alarms.
+        coVerify { repository.deleteById(44L) }
         coVerify {
             repository.save(
                 match {
