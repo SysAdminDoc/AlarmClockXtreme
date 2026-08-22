@@ -12,6 +12,16 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P2 — UX, i18n and visual
 
+- [ ] P2 — `TimerAlarmServiceTest` restart case is flaky
+  Category: testing
+  Where: app/src/test/java/com/sysadmindoc/alarmclock/ui/timer/TimerAlarmServiceTest.kt:164-187 (`restart action creates and schedules exactly one fresh timer without ui`)
+  Problem: the case failed once during this session with `expected:<1> but was:<2>` on the scheduled-alarm count at line 181, then passed on an immediate rerun and in isolation. `records.single()` on the line above succeeded, so the store held one timer while the shadow AlarmManager held two. A test that fails one run in ten hides real regressions behind a shrug.
+  Evidence: one failure in a full-suite run, green on the next full run and on `--tests '*TimerAlarmServiceTest*'`.
+  Fix: find the timing dependence. `TimerStore.startOrReuse` coalesces duplicates inside `DUPLICATE_WINDOW_MS`, so the two back-to-back restarts in the test are only deduplicated while the machine is fast enough; inject the clock instead of relying on wall time, and assert on the scheduler through a fake rather than the shadow.
+  Acceptance: the case passes 20 consecutive runs of the class.
+  Confidence: Needs-repro
+  Effort: S
+
 - [ ] P2 — Restoring a backup detaches every alarm from its own history
   Category: correctness
   Where: data/backup/BackupManager.kt:21-40 (`AlarmBackup` has no `id` field); data/backup/AlarmBackupMappers.kt:82-95 (`toAlarmOrNull` builds `Alarm(...)` with the default id 0); consumers keyed by alarm id: data/local/AlarmEventDao.kt:50-60, data/repository/AlarmIncidentRepository.kt, service/AlarmRuntimeState.kt
