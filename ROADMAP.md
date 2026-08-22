@@ -23,16 +23,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Needs-repro
   Effort: S
 
-- [ ] P2 — Restoring a backup detaches every alarm from its own history
-  Category: correctness
-  Where: data/backup/BackupManager.kt:21-40 (`AlarmBackup` has no `id` field); data/backup/AlarmBackupMappers.kt:82-95 (`toAlarmOrNull` builds `Alarm(...)` with the default id 0); consumers keyed by alarm id: data/local/AlarmEventDao.kt:50-60, data/repository/AlarmIncidentRepository.kt, service/AlarmRuntimeState.kt
-  Problem: the backup format never stored the alarm id, so every restore inserts fresh rows. `alarm_events`, `alarm_incident_events` and the persisted snooze counts are all keyed by the old ids, so after restoring your own backup on the same device the per-alarm stats panel reads zero fires and adaptive difficulty resets to baseline. The alarms come back; everything the app learned about them does not.
-  Evidence: found while checking whether Replace preserved ids — it never could, because the field is absent from the format.
-  Fix: add `id` to `AlarmBackup` (bump the backup version with it), carry it through `toAlarmOrNull`, and in Replace mode save over the same row so history stays attached. In Append mode keep allocating new ids and leave the history behind, which is correct there. Add a round-trip test asserting an alarm's events still resolve after a Replace restore.
-  Acceptance: record some fires against an alarm, export, Replace-import, and the per-alarm stats panel still shows them.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P2 — A YouTube download is cancelled by a rotation
   Category: ux
   Where: ui/components/YouTubeDownloadDialog.kt:345-360 and :380-395 (`scope.launch` on a `rememberCoroutineScope`, cancelled when the composition is destroyed); ui/ringtone/RingtonePickerSheet.kt:126 (the parent flag now survives rotation, so the dialog itself reopens)

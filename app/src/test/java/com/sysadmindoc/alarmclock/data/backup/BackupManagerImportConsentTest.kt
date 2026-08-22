@@ -184,8 +184,11 @@ class BackupManagerImportConsentTest {
             listOf("save", "delete"),
             order
         )
-        // The backup format carries no id, so every imported row is new.
-        assertEquals(0L, saved.captured.id)
+        // The fixture exports an alarm with id 5, and Replace writes over that
+        // same row so alarm_events and the snooze counts keyed to it survive.
+        // This assertion used to demand 0, which recorded the defect: the
+        // format had no id, so a restore could only orphan the history.
+        assertEquals(5L, saved.captured.id)
     }
 
     @Test

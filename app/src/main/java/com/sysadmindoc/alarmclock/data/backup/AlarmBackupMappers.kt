@@ -6,6 +6,7 @@ import java.util.Locale
 
 fun Alarm.toAlarmBackup(): AlarmBackup {
     return AlarmBackup(
+        id = id,
         hour = hour,
         minute = minute,
         label = label,
@@ -82,6 +83,7 @@ fun Alarm.toAlarmBackup(): AlarmBackup {
 fun AlarmBackup.toAlarmOrNull(): Alarm? {
     return runCatching {
         Alarm(
+            id = id,
             hour = hour,
             minute = minute,
             label = label,

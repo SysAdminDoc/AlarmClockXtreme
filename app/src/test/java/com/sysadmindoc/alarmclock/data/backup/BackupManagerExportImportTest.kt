@@ -241,7 +241,7 @@ class BackupManagerExportImportTest {
         val existing = morningAlarm().copy(id = 44L, label = "Old alarm")
         val backupJson = backupAdapter.toJson(
             BackupData(
-                alarms = listOf(morningAlarm().toAlarmBackup()),
+                alarms = listOf(morningAlarm().copy(id = 7L).toAlarmBackup()),
                 settings = null
             )
         )
@@ -268,13 +268,62 @@ class BackupManagerExportImportTest {
             repository.save(
                 match {
                     it.label == "Weekday lift" &&
-                        it.id == 0L &&
+                        // Replace writes over the same row, so alarm_events and
+                        // the snooze counts keyed by this id stay attached.
+                        it.id == 7L &&
                         !it.isEnabled &&
                         it.nextTriggerTime == 0L
                 }
             )
         }
         coVerify(exactly = 0) { scheduler.schedule(any()) }
+    }
+
+    @Test
+    fun appendKeepsAllocatingNewRowsSoAnImportCannotOverwriteALiveAlarm() = runTest {
+        // Append merges someone else's alarms into a list that already has its
+        // own. Reusing the file's ids there would silently replace whatever
+        // happened to share a number.
+        val backupJson = backupAdapter.toJson(
+            BackupData(
+                alarms = listOf(morningAlarm().copy(id = 7L).toAlarmBackup()),
+                settings = null
+            )
+        )
+        val backupFile = File(context.cacheDir, "backup-manager-append-id-test.json")
+            .apply { writeText(backupJson) }
+        coEvery { repository.getAll() } returns emptyList()
+        coEvery { repository.save(any()) } returns 202L
+
+        val result = backupManager.importFromUri(
+            Uri.fromFile(backupFile),
+            BackupImportOptions(mode = BackupImportMode.Append)
+        )
+
+        assertTrue(result.isSuccess)
+        coVerify { repository.save(match { it.label == "Weekday lift" && it.id == 0L }) }
+    }
+
+    @Test
+    fun aBackupWrittenBeforeIdsWereStoredStillImports() = runTest {
+        // Files at version 18 and below carry no id at all, so every alarm
+        // reads back as 0 and behaves the way it always did.
+        val legacy = backupAdapter.toJson(
+            BackupData(version = 18, alarms = listOf(morningAlarm().toAlarmBackup()), settings = null)
+        )
+        val backupFile = File(context.cacheDir, "backup-manager-legacy-id-test.json")
+            .apply { writeText(legacy) }
+        coEvery { repository.getAll() } returns emptyList()
+        coEvery { repository.save(any()) } returns 303L
+
+        val result = backupManager.importFromUri(
+            Uri.fromFile(backupFile),
+            BackupImportOptions(mode = BackupImportMode.Replace)
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, result.getOrThrow())
+        coVerify { repository.save(match { it.id == 0L }) }
     }
 
     private fun morningAlarm(): Alarm = Alarm(

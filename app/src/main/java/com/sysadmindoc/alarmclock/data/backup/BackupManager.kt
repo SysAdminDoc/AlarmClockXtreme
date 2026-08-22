@@ -19,6 +19,18 @@ import javax.inject.Singleton
 
 @JsonClass(generateAdapter = true)
 data class AlarmBackup(
+    /**
+     * The row id this alarm had when the file was written.
+     *
+     * Everything the app learns about an alarm is keyed by it:
+     * `alarm_events`, `alarm_incident_events` and the persisted snooze
+     * counts. Without the id in the file, a restore inserted new rows and
+     * left all of that pointing at alarms that no longer existed.
+     *
+     * Defaulted so a file written before version 19 still reads; those
+     * carry 0 and behave as they always did.
+     */
+    val id: Long = 0L,
     val hour: Int,
     val minute: Int,
     val label: String,
@@ -105,7 +117,7 @@ data class AlarmBackup(
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 18,
+    val version: Int = 19,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -271,7 +283,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 18
+        const val MAX_SUPPORTED_BACKUP_VERSION = 19
 
         /**
          * Ceiling on an imported file. A full export of the maximum alarm count
@@ -945,11 +957,19 @@ class BackupManager @Inject constructor(
     }
 
     private fun Alarm.prepareForImport(options: BackupImportOptions): Alarm {
-        // Always a new row. AlarmBackup carries no id, so `toAlarmOrNull` hands
-        // back 0 regardless of mode; the old `if (Append) 0 else id` read as if
-        // Replace reused the file's ids, and it never did.
+        // Replace means "make this device look like the file", so the alarm
+        // keeps the id it had. Everything the app recorded about it, the fire
+        // history, the incident log and the snooze counts, is keyed by that id
+        // and reattaches. The DAO inserts with REPLACE, so writing a row that
+        // is already there overwrites it rather than colliding, and the tables
+        // holding that history carry no foreign key, so nothing cascades.
+        //
+        // Append is merging someone else's alarms into a list that already has
+        // its own, where reusing an id would overwrite a live alarm. Those get
+        // new rows and start their history fresh, which is correct there.
+        val keepsIdentity = options.mode == BackupImportMode.Replace
         var imported = copy(
-            id = 0L,
+            id = if (keepsIdentity) id else 0L,
             nextTriggerTime = 0L
         )
         if (!options.keepIntegrationsAndContacts) {
