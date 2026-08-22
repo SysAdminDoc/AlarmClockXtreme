@@ -12,15 +12,16 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P2 — UX, i18n and visual
 
-- [ ] P2 — Sonar never listens for its own tone
+- [ ] P2 — Wire the sonar carrier detector into the stillness decision, and raise the carrier
   Category: correctness
-  Where: service/SonarSleepService.kt:263-305 (`runReflectionAnalyzer`, `rms`, `variance`)
-  Problem: found by the numerical audit on 2026-08-22. The service emits an 18.75 kHz carrier at 1% amplitude and then decides stillness from the variance of the *broadband* RMS of everything the microphone hears. There is no filter anywhere near 18.75 kHz, so the reflected carrier is a rounding error next to a fan, traffic or a partner breathing. What the feature actually measures is how steady the room's loudness is, which is a reasonable proxy for a still room but is not sonar, and the tone contributes almost nothing to it.
-  Fix: either run a Goertzel filter at TONE_HZ over each 50 ms window and take the variance of that magnitude, which makes the name true, or stop emitting the tone and rename the feature to what it measures. The first is a few dozen lines and testable against a synthesised buffer.
-  Acceptance: with a synthesised window containing loud broadband noise and a steady carrier, the analyser reports still; with a steady room and a modulated carrier, it reports movement. Neither holds today.
+  Where: service/SonarSleepService.kt:263-305 (`runReflectionAnalyzer`); service/SonarCarrier.kt
+  Problem: the service emits an 18.75 kHz carrier and then decides stillness from the variance of the *broadband* RMS of everything the microphone hears. There is no filter near the carrier, so a fan or traffic dwarfs a tone emitted at 1% amplitude. What it measures is how steady the room's loudness is; the tone contributes almost nothing.
+  Done 2026-08-22: `SonarCarrier` is the Goertzel filter that reads the carrier bin, tested and measured. Its analysis length is 2058 samples because that is the largest multiple of 294 inside the 50 ms read, which puts the carrier exactly on bin 875 with no leakage.
+  What the measurements say, and why it is not wired in yet. Against a synthesised loud room (broadband RMS 0.42), the carrier bin reads about 0.01, so the filter rejects the room by a factor of roughly 40. But the emitter uses 1% amplitude, which reads 0.01 as well: in a loud room the carrier is the same size as the room's own energy in that bin. A 5% carrier reads cleanly through it, a 10% one more so. So the wiring needs two things this machine cannot supply: a carrier amplitude chosen against real rooms, and a stillness threshold calibrated for carrier magnitude rather than the current broadband RMS variance constant (`DEEP_SLEEP_THRESHOLD = 0.004f`).
+  Fix: raise the carrier until it clears a real room's noise floor, keeping it inaudible, then switch the stillness variance onto `SonarCarrier.magnitude` and recalibrate the threshold from a night of recorded data. Keep the broadband RMS for snore detection, which genuinely wants loudness.
+  Acceptance: on a real overnight recording, stillness tracks movement rather than room noise, with the two separable.
   Confidence: Verified
   Effort: M
-
 ### P3
 
 - [ ] P3 — Test gaps for the defects above
