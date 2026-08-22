@@ -2,7 +2,6 @@ package com.sysadmindoc.alarmclock.ui.alarmfiring
 
 import android.content.Context
 import android.os.Bundle
-import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -40,12 +39,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +62,7 @@ import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import dagger.hilt.android.EntryPointAccessors
@@ -74,6 +75,13 @@ class WakeConfirmActivity : ComponentActivity() {
         const val EXTRA_ALARM_FIRE_ID = "alarm_fire_id"
         const val EXTRA_SCHEDULED_AT = "scheduled_at"
         const val EXTRA_COUNTDOWN_SECONDS = "countdown_seconds"
+
+        /**
+         * Wall-clock instant the worker will stop waiting. Shared so the screen
+         * shows the time that is actually left rather than restarting its own
+         * countdown whenever the activity happens to open.
+         */
+        const val EXTRA_DEADLINE_MILLIS = "deadline_millis"
         const val EXTRA_REFIRE_COUNT = "refire_count"
     }
 
@@ -101,6 +109,9 @@ class WakeConfirmActivity : ComponentActivity() {
             EXTRA_COUNTDOWN_SECONDS,
             WakeConfirmWorker.CONFIRM_WAIT_SECONDS
         )
+        val deadlineMillis = intent.getLongExtra(EXTRA_DEADLINE_MILLIS, 0L)
+            .takeIf { it > 0L }
+            ?: (System.currentTimeMillis() + countdownSeconds * 1_000L)
         val refireCount = intent.getIntExtra(EXTRA_REFIRE_COUNT, 0)
         val remainingRefires = WakeConfirmWorker.MAX_REFIRES - refireCount
 
@@ -116,6 +127,7 @@ class WakeConfirmActivity : ComponentActivity() {
             AlarmClockXtremeTheme {
                 WakeConfirmScreen(
                     countdownSeconds = countdownSeconds,
+                    deadlineMillis = deadlineMillis,
                     remainingRefires = remainingRefires,
                     onConfirmAwake = {
                         if (alarmId != -1L) {
@@ -175,23 +187,20 @@ class WakeConfirmActivity : ComponentActivity() {
 @Composable
 private fun WakeConfirmScreen(
     countdownSeconds: Int,
+    deadlineMillis: Long,
     remainingRefires: Int,
     onConfirmAwake: () -> Unit,
     onKeepChecking: () -> Unit
 ) {
-    // Anchored to a fixed instant rather than counted down from the parameter.
-    // Rotating restarted the visible countdown from the full value while the
-    // worker's deadline kept running, so the screen promised more time than
-    // there was.
-    val deadlineElapsedRealtime = rememberSaveable {
-        SystemClock.elapsedRealtime() + countdownSeconds * 1_000L
-    }
+    // Counted against the worker's own deadline. Before this the screen
+    // restarted a full countdown on every open and on every rotation, so it
+    // could promise a minute while the alarm was seconds from re-firing.
     var secondsLeft by remember { mutableIntStateOf(countdownSeconds) }
 
-    LaunchedEffect(deadlineElapsedRealtime) {
+    LaunchedEffect(deadlineMillis) {
         while (true) {
-            val remainingMs = deadlineElapsedRealtime - SystemClock.elapsedRealtime()
-            secondsLeft = ((remainingMs + 999L) / 1_000L).coerceAtLeast(0L).toInt()
+            val remainingMs = deadlineMillis - System.currentTimeMillis()
+            secondsLeft = ((remainingMs + 999L) / 1_000L).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
             if (secondsLeft <= 0) break
             delay(250L)
         }
@@ -261,12 +270,31 @@ private fun WakeConfirmScreen(
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        // Announced when it flips, so a TalkBack user is not
-                        // left waiting on a screen that already gave up.
-                        modifier = Modifier.semantics {
-                            liveRegion = LiveRegionMode.Polite
+                        // Deliberately NOT a live region: the seconds change
+                        // every tick, and announcing the whole sentence sixty
+                        // times would bury every other control. The one thing
+                        // worth announcing is the flip to "time's up", handled
+                        // by the separate live region below.
+                        modifier = Modifier.clearAndSetSemantics {
+                            contentDescription = if (secondsLeft > 0) {
+                                "Confirm within $secondsLeft seconds or the alarm will ring again."
+                            } else {
+                                ""
+                            }
                         }
                     )
+                    // The one transition worth interrupting for.
+                    if (secondsLeft <= 0) {
+                        Text(
+                            text = "Time's up. The alarm is ringing again.",
+                            color = SnoozeYellow,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Assertive
+                            }
+                        )
+                    }
                 }
 
                 AppSectionTitle(

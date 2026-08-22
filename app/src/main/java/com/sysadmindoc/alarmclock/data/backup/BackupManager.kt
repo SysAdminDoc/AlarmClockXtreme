@@ -206,7 +206,6 @@ data class SettingsBackup(
     val cancellationLockMinutes: Int = 0,
     val holdToDismissMillis: Int = LongPressThreshold.DEFAULT_MILLIS,
     val hueBridgeCertFingerprint: String = "",
-    val hueLegacyHttpEnabled: Boolean = false,
     val firingControlMode: String = "hybrid",
     val challengeBypassEnabled: Boolean = false,
     val challengeBypassDelaySeconds: Int = 30
@@ -773,8 +772,8 @@ class BackupManager @Inject constructor(
             // Replace used to delete every alarm and only then start inserting.
             // A crash in that window, or an import whose rows all turn out to be
             // unreadable, left the user with no alarms at all and nothing to
-            // roll back to. Snapshot what is there, insert the new rows first,
-            // and only then remove the old ones.
+            // roll back to. Snapshot what is there, write the new rows over the
+            // old ones, and remove only what the file no longer contains.
             val replacedIds = if (options.mode == BackupImportMode.Replace) {
                 repository.getAll().map { it.id }
             } else {
@@ -804,11 +803,13 @@ class BackupManager @Inject constructor(
             // save+schedule so genuine bad rows are skipped with a log
             // entry while the rest of the backup still lands.
             var count = 0
+            val savedIds = mutableSetOf<Long>()
             val alarmsToSchedule = mutableListOf<Alarm>()
             for (alarm in importedAlarms) {
                 try {
                     val alarmToSave = alarm.prepareForImport(options)
                     val savedId = repository.save(alarmToSave)
+                    savedIds += savedId
                     val savedAlarm = alarmToSave.copy(id = savedId)
                     if (savedAlarm.isEnabled) {
                         alarmsToSchedule += savedAlarm
@@ -820,6 +821,28 @@ class BackupManager @Inject constructor(
                         "Skipped one alarm during import",
                         e
                     )
+                }
+            }
+
+            // Removals first, so a large restore never holds the old and the new
+            // alarms in AlarmManager at once (there is a per-app cap).
+            //
+            // A file that genuinely contains no alarms clears the list, as
+            // Replace should. A file whose rows all failed to parse does not:
+            // that is a broken import, not an instruction to delete everything.
+            val importIsUsable = count > 0 || backup.alarms.isEmpty()
+            if (importIsUsable) {
+                replacedIds.filterNot { it in savedIds }.forEach { id ->
+                    try {
+                        scheduler.cancel(id)
+                        repository.deleteById(id)
+                    } catch (e: Exception) {
+                        android.util.Log.w(
+                            "BackupManager",
+                            "Failed to remove replaced alarm $id",
+                            e
+                        )
+                    }
                 }
             }
 
@@ -837,23 +860,6 @@ class BackupManager @Inject constructor(
                 }
             }
 
-            // Only now that new rows exist on disk. An import that produced
-            // nothing keeps the previous alarms rather than clearing them.
-            if (count > 0) {
-                replacedIds.forEach { id ->
-                    try {
-                        scheduler.cancel(id)
-                        repository.deleteById(id)
-                    } catch (e: Exception) {
-                        android.util.Log.w(
-                            "BackupManager",
-                            "Failed to remove replaced alarm $id",
-                            e
-                        )
-                    }
-                }
-            }
-
             val skipped = importedAlarms.size - count
             if (skipped > 0) {
                 android.util.Log.w("BackupManager", "Skipped $skipped alarm(s) during import")
@@ -865,9 +871,9 @@ class BackupManager @Inject constructor(
     }
 
     private fun Alarm.prepareForImport(options: BackupImportOptions): Alarm {
-        // Always a fresh row, in both modes: Replace inserts before it deletes,
-        // so reusing the backup's ids would overwrite the very rows that are
-        // still the user's only copy until the insert has landed.
+        // Always a new row. AlarmBackup carries no id, so `toAlarmOrNull` hands
+        // back 0 regardless of mode; the old `if (Append) 0 else id` read as if
+        // Replace reused the file's ids, and it never did.
         var imported = copy(
             id = 0L,
             nextTriggerTime = 0L

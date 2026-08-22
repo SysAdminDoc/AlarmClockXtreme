@@ -6,6 +6,17 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- A Replace-mode restore of a backup that genuinely holds no alarms clears the
+  list again, while one whose rows cannot be saved leaves your alarms alone.
+- The alarm event history is capped by row count rather than by age, so the
+  Stats totals and streak no longer shrink behind your back, and the trim only
+  runs when the table is actually oversized.
+- Section headings keep their title readable next to a wide action.
+- The widget is tall enough for its own controls again.
+- The wake-confirmation countdown shows the time the app is really waiting,
+  even when you reach it by tapping the notification, and it announces the
+  moment it expires without reading the whole sentence every second.
+- Previewing a tone that fails to open no longer leaks an audio player.
 - Rotating the phone keeps what you had typed and chosen: the Stats filters
   and search, the Bedtime pickers and breathing session, the ringtone search,
   and the YouTube dialog's mode, URL, query and results.

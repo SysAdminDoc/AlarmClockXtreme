@@ -107,13 +107,19 @@ class WakeConfirmWorker @AssistedInject constructor(
             status = AlarmIncidentEvent.STATUS_REQUESTED,
             reasonCode = "WAKE_CONFIRM_PROMPT_REQUESTED"
         )
+        // One deadline, shared with the screen. Without it the countdown
+        // restarted whenever the activity happened to open, so a user who
+        // tapped the notification 40 seconds in was told they had a full minute
+        // while the alarm was 20 seconds from re-firing.
+        val deadline = System.currentTimeMillis() + CONFIRM_WAIT_MS
         val promptPosted = postPrompt(
             alarmId = alarmId,
             label = alarm.label,
             hideLabel = preferencesManager.getCurrentSettings().hideAlarmLabelsOnPublicSurfaces,
             fireId = fireId,
             scheduledAt = scheduledAt,
-            refireCount = refireCount
+            refireCount = refireCount,
+            deadlineMillis = deadline
         )
         recordIncident(
             alarmId = alarmId,
@@ -123,8 +129,7 @@ class WakeConfirmWorker @AssistedInject constructor(
             reasonCode = if (promptPosted) "WAKE_CONFIRM_PROMPT_POSTED" else "WAKE_CONFIRM_PROMPT_NO_NOTIFICATION_MANAGER"
         )
 
-        // Poll for confirmation up to CONFIRM_WAIT_MS.
-        val deadline = System.currentTimeMillis() + CONFIRM_WAIT_MS
+        // Poll for confirmation up to the shared deadline.
         while (System.currentTimeMillis() < deadline) {
             if (isStopped) {
                 cancelPrompt(alarmId)
@@ -243,7 +248,8 @@ class WakeConfirmWorker @AssistedInject constructor(
         hideLabel: Boolean,
         fireId: String,
         scheduledAt: Long,
-        refireCount: Int
+        refireCount: Int,
+        deadlineMillis: Long
     ): Boolean {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return false
         val activityIntent = Intent(context, WakeConfirmActivity::class.java).apply {
@@ -252,6 +258,7 @@ class WakeConfirmWorker @AssistedInject constructor(
             putExtra(WakeConfirmActivity.EXTRA_ALARM_FIRE_ID, fireId)
             putExtra(WakeConfirmActivity.EXTRA_SCHEDULED_AT, scheduledAt)
             putExtra(WakeConfirmActivity.EXTRA_COUNTDOWN_SECONDS, CONFIRM_WAIT_SECONDS)
+            putExtra(WakeConfirmActivity.EXTRA_DEADLINE_MILLIS, deadlineMillis)
             putExtra(WakeConfirmActivity.EXTRA_REFIRE_COUNT, refireCount)
         }
         val fullScreenPi = PendingIntent.getActivity(

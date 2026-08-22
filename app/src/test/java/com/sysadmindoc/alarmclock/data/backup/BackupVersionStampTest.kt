@@ -18,7 +18,7 @@ class BackupVersionStampTest {
     private companion object {
         /** Bump with [BackupData.version] whenever these change. */
         const val ALARM_BACKUP_FIELDS = 70
-        const val SETTINGS_BACKUP_FIELDS = 78
+        const val SETTINGS_BACKUP_FIELDS = 77
     }
 
     @Test

@@ -89,12 +89,21 @@ class AlarmEventRepository @Inject constructor(
     }
 
     /**
-     * Keeps the history bounded. Stats never look further back than a year, and
-     * the table previously only ever grew.
+     * Keeps the history from growing without limit.
+     *
+     * Deliberately no age cut-off: the Stats screen's totals, day-of-week
+     * breakdown and best-streak queries are all unbounded in time, so deleting
+     * by date would silently shrink numbers the user is looking at. A row cap
+     * is the honest bound, and it only bites after tens of thousands of alarms.
+     *
+     * The count check matters: `record()` runs while the user is dismissing an
+     * alarm, and the trim is a `NOT IN (SELECT ... LIMIT n)` that is not worth
+     * issuing on every dismiss for a table holding a dozen rows.
      */
     private suspend fun prune() {
-        dao.deleteOlderThan(System.currentTimeMillis() - RETENTION_MS)
-        dao.trimToLatest(MAX_ROWS)
+        if (dao.count() > MAX_ROWS) {
+            dao.trimToLatest(MAX_ROWS)
+        }
     }
 
     suspend fun getSince(sinceMs: Long): List<AlarmEvent> = dao.getSince(sinceMs)
@@ -167,10 +176,10 @@ class AlarmEventRepository @Inject constructor(
     suspend fun clearHistory() = dao.deleteAll()
 
     companion object {
-        /** Stats never reach further back than this. */
-        const val RETENTION_MS = 365L * 24L * 60L * 60L * 1000L
-
-        /** Hard ceiling for a user who fires far more alarms than a year's worth. */
-        const val MAX_ROWS = 5_000
+        /**
+         * Roughly 27 years of one alarm a day, so nobody reaches it by using
+         * the app normally. It exists so a runaway loop cannot fill the disk.
+         */
+        const val MAX_ROWS = 20_000
     }
 }

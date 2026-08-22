@@ -23,16 +23,15 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * Gradually ramps up warm-white light from 0->254 brightness over [huePreWakeMinutes] minutes.
  * Input: KEY_ALARM_ID. Reads bridge IP, API key, and comma-separated light IDs from preferences.
  *
- * v1.11.5 (roadmap N5): API v2 (HTTPS, header auth, CLIP v2 resource shape)
- * with an explicit legacy-v1 fallback. Each run proves v2 reachability and the
- * current certificate before sending light commands; a pin mismatch can never
- * downgrade to plain HTTP.
+ * v1.11.5 (roadmap N5): API v2 only (HTTPS, header auth, CLIP v2 resource
+ * shape). Each run proves v2 reachability and the current certificate before
+ * sending light commands.
  *
  * v1.14.x: TOFU (Trust On First Use) certificate pinning for v2 HTTPS.
  * On first successful connection, the bridge cert SHA-256 fingerprint is saved
  * to DataStore. Subsequent connections reject certificate changes, surfacing
- * a blocking warning in Settings. v1 HTTP is behind an explicit legacy toggle
- * (default off) and will be removed in a future release.
+ * a blocking warning in Settings. The v1 plain-HTTP path is gone: cleartext is
+ * blocked at this targetSdk, so it could never have connected.
  */
 @HiltWorker
 class HueSunriseWorker @AssistedInject constructor(

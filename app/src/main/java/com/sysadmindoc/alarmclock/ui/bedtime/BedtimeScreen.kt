@@ -73,6 +73,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -270,10 +272,15 @@ fun BedtimeScreen(
                             }
                         }
                     }
+                    // Named so TalkBack reads "Bedtime reminder, switch, on"
+                    // instead of an unlabelled control.
                     Switch(
                         checked = state.isEnabled,
                         onCheckedChange = viewModel::toggleEnabled,
-                        colors = appSwitchColors()
+                        colors = appSwitchColors(),
+                        modifier = Modifier.semantics {
+                            contentDescription = "Bedtime reminder"
+                        }
                     )
                 }
             }
@@ -366,6 +373,9 @@ fun BedtimeScreen(
                         }
                     }
                     Switch(
+                        modifier = Modifier.semantics {
+                            contentDescription = "Do Not Disturb at bedtime"
+                        },
                         checked = state.bedtimeDndEnabled,
                         onCheckedChange = { enabled ->
                             viewModel.toggleBedtimeDnd(enabled)

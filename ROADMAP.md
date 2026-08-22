@@ -12,6 +12,16 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P2 — UX, i18n and visual
 
+- [ ] P2 — Restoring a backup detaches every alarm from its own history
+  Category: correctness
+  Where: data/backup/BackupManager.kt:21-40 (`AlarmBackup` has no `id` field); data/backup/AlarmBackupMappers.kt:82-95 (`toAlarmOrNull` builds `Alarm(...)` with the default id 0); consumers keyed by alarm id: data/local/AlarmEventDao.kt:50-60, data/repository/AlarmIncidentRepository.kt, service/AlarmRuntimeState.kt
+  Problem: the backup format never stored the alarm id, so every restore inserts fresh rows. `alarm_events`, `alarm_incident_events` and the persisted snooze counts are all keyed by the old ids, so after restoring your own backup on the same device the per-alarm stats panel reads zero fires and adaptive difficulty resets to baseline. The alarms come back; everything the app learned about them does not.
+  Evidence: found while checking whether Replace preserved ids — it never could, because the field is absent from the format.
+  Fix: add `id` to `AlarmBackup` (bump the backup version with it), carry it through `toAlarmOrNull`, and in Replace mode save over the same row so history stays attached. In Append mode keep allocating new ids and leave the history behind, which is correct there. Add a round-trip test asserting an alarm's events still resolve after a Replace restore.
+  Acceptance: record some fires against an alarm, export, Replace-import, and the per-alarm stats panel still shows them.
+  Confidence: Verified
+  Effort: M
+
 - [ ] P2 — Half of the user-facing strings bypass localisation, so the new language picker has nothing to switch
   Category: ux
   Where: app/build.gradle.kts:195-203 (`verifyLocalizedPrimaryScreens` guards only three files); ~81 literals in ui/alarmfiring/challenges/ChallengeViews.kt (e.g. :122, :165, :486, :694, :1361), ~52 in ui/stats/StatsScreen.kt (:129, :152, :372, :467), ~52 in ui/alarmlist/AlarmListScreen.kt (:1051, :1022, :1033, :1248, :1561), ~40 in ui/dashboard/DashboardScreen.kt, ~37 in ui/bedtime/BedtimeScreen.kt, plus service/AlarmService.kt:2072, service/NextAlarmNotifier.kt:210/249, receiver/BedtimeReceiver.kt:216/296, worker/WakeConfirmWorker.kt:214-254, widget/NextAlarmWidget.kt:243, directboot/DirectBootAlarmService.kt:122/131 (resources `direct_boot_alarm_title`/`_stop` exist but are unused), ui/navigation/AppNavigation.kt:88-93 (tab labels), and the whole wear module (wear strings.xml has 5 entries; NextAlarmTileService.kt:106-242, WearAlarmData.kt:76-130)

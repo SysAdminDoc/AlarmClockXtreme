@@ -46,6 +46,9 @@ class NextAlarmWidget : GlanceAppWidget() {
         val load = withContext(Dispatchers.IO) {
             runCatching { loadNextAlarm(context) }
         }
+        // A cancelled widget update is not a load failure; let it propagate
+        // rather than render "Couldn't load alarms".
+        load.exceptionOrNull()?.let { if (it is kotlinx.coroutines.CancellationException) throw it }
 
         provideContent {
             NextAlarmWidgetContent(
@@ -56,7 +59,7 @@ class NextAlarmWidget : GlanceAppWidget() {
     }
 
     private suspend fun loadNextAlarm(context: Context): WidgetAlarmData? {
-        return try {
+        return run {
             val ep = EntryPointAccessors.fromApplication(
                 context.applicationContext,
                 AlarmClockApp.AppEntryPoint::class.java
@@ -86,8 +89,6 @@ class NextAlarmWidget : GlanceAppWidget() {
                     fixedTimezoneId = alarm.fixedTimezoneId.takeIf { alarm.usesFixedTimezone }.orEmpty()
                 )
             } else null
-        } catch (e: Exception) {
-            throw e
         }
     }
 }
@@ -218,7 +219,7 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?, failedToLoad: Boolean
                             modifier = GlanceModifier
                                 .background(WidgetCardBg)
                                 .cornerRadius(6.dp)
-                                .padding(horizontal = 14.dp, vertical = 14.dp)
+                                .padding(horizontal = 14.dp, vertical = 10.dp)
                                 .clickable(actionRunCallback<AdjustAlarmAction>(
                                     actionParametersOf(AdjustMinutesKey to -10)
                                 ))
@@ -234,7 +235,7 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?, failedToLoad: Boolean
                             modifier = GlanceModifier
                                 .background(WidgetCardBg)
                                 .cornerRadius(6.dp)
-                                .padding(horizontal = 14.dp, vertical = 14.dp)
+                                .padding(horizontal = 14.dp, vertical = 10.dp)
                                 .clickable(actionRunCallback<AdjustAlarmAction>(
                                     actionParametersOf(AdjustMinutesKey to 10)
                                 ))

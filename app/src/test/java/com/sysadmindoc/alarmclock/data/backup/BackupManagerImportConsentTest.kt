@@ -163,11 +163,12 @@ class BackupManagerImportConsentTest {
     }
 
     @Test
-    fun `replace inserts before it deletes and keeps alarms when nothing imports`() = runTest {
+    fun `replace writes the new rows before removing the old ones`() = runTest {
         val existing = Alarm(id = 44L, hour = 5, minute = 0, label = "Keep me")
         coEvery { repository.getAll() } returns listOf(existing)
         val order = mutableListOf<String>()
-        coEvery { repository.save(any()) } coAnswers { order += "save"; 101L }
+        val saved = slot<Alarm>()
+        coEvery { repository.save(capture(saved)) } coAnswers { order += "save"; 101L }
         coEvery { repository.deleteById(any()) } coAnswers { order += "delete" }
 
         val uri = writeBackup(name = "replace-order.json")
@@ -183,10 +184,12 @@ class BackupManagerImportConsentTest {
             listOf("save", "delete"),
             order
         )
+        // The backup format carries no id, so every imported row is new.
+        assertEquals(0L, saved.captured.id)
     }
 
     @Test
-    fun `replace keeps the existing alarms when the file has none`() = runTest {
+    fun `replace honours a genuinely empty backup by clearing the list`() = runTest {
         val existing = Alarm(id = 44L, hour = 5, minute = 0, label = "Keep me")
         coEvery { repository.getAll() } returns emptyList()
         coEvery { preferencesManager.getCurrentSettings() } returns AppSettings()
@@ -196,6 +199,25 @@ class BackupManagerImportConsentTest {
         coEvery { repository.getAll() } returns listOf(existing)
         val result = backupManager.importFromUri(
             Uri.fromFile(file),
+            BackupImportOptions(mode = BackupImportMode.Replace)
+        )
+
+        assertTrue(result.isSuccess)
+        assertEquals(0, result.getOrThrow())
+        coVerify { repository.deleteById(44L) }
+    }
+
+    @Test
+    fun `replace keeps the existing alarms when no row can be saved`() = runTest {
+        val existing = Alarm(id = 44L, hour = 5, minute = 0, label = "Keep me")
+        // The file carries a row, but saving it fails: a broken import, not an
+        // instruction to delete everything the user had.
+        val uri = writeBackup(name = "unsavable-backup.json")
+        coEvery { repository.getAll() } returns listOf(existing)
+        coEvery { repository.save(any()) } throws IllegalStateException("bad row")
+
+        val result = backupManager.importFromUri(
+            uri,
             BackupImportOptions(mode = BackupImportMode.Replace)
         )
 

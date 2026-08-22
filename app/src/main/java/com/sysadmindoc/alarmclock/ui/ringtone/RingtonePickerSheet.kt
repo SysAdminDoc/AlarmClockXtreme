@@ -218,28 +218,28 @@ fun RingtonePickerSheet(
 
         stopPreview()
 
+        // prepareAsync, not prepare: a SAF or folder tone reads through a
+        // content provider, and preparing it on the main thread froze the sheet
+        // for as long as that took. Assigned before configuration so a throw
+        // part-way through still releases the native player rather than leaking
+        // one per failed tap.
+        val player = MediaPlayer()
+        mediaPlayer = player
+        playingUri = uri
+        previewError = ""
         try {
-            // prepareAsync, not prepare: a SAF or folder tone reads through a
-            // content provider, and preparing it on the main thread froze the
-            // sheet for as long as that took.
-            mediaPlayer = MediaPlayer().apply {
-                setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
-                setDataSource(context, Uri.parse(uri))
-                isLooping = false
-                setOnPreparedListener { it.start() }
-                setOnErrorListener { _, _, _ ->
-                    stopPreview()
-                    previewError =
-                        "Could not preview that tone. You can still select it for the alarm."
-                    true
-                }
-                setOnCompletionListener {
-                    stopPreview()
-                }
-                prepareAsync()
+            player.setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
+            player.setDataSource(context, Uri.parse(uri))
+            player.isLooping = false
+            player.setOnPreparedListener { it.start() }
+            player.setOnErrorListener { _, _, _ ->
+                stopPreview()
+                previewError =
+                    "Could not preview that tone. You can still select it for the alarm."
+                true
             }
-            playingUri = uri
-            previewError = ""
+            player.setOnCompletionListener { stopPreview() }
+            player.prepareAsync()
         } catch (_: Exception) {
             stopPreview()
             previewError = "Could not preview that tone. You can still select it for the alarm."
