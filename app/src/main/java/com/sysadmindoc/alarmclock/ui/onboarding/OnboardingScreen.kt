@@ -162,6 +162,7 @@ fun OnboardingScreen(
     val isLastPage = pagerState.currentPage == onboardingPages.lastIndex
     var readiness by remember { mutableStateOf(OnboardingReadiness.from(context)) }
     var testAlarmStatus by remember { mutableStateOf("") }
+    val testAlarmFailureText = stringResource(R.string.onboarding_could_not_schedule_the_test_alarm)
     var testAlarmNoticeTone by remember { mutableStateOf(TestAlarmNoticeTone.Guidance) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -270,7 +271,7 @@ fun OnboardingScreen(
                         val dotWidth by animateDpAsState(
                             targetValue = if (isActive) 20.dp else 8.dp,
                             animationSpec = tween(durationMillis = 250),
-                            label = "dotWidth$index"
+                            label = stringResource(R.string.onboarding_dotwidth, index)
                         )
                         Box(
                             modifier = Modifier
@@ -315,14 +316,14 @@ fun OnboardingScreen(
                             icon = Icons.Default.Alarm,
                             title = stringResource(R.string.settings_exact_alarm_access),
                             ready = readiness.exactAlarmReady,
-                            actionLabel = "Open",
+                            actionLabel = stringResource(R.string.onboarding_open),
                             onAction = { context.openExactAlarmSettings() }
                         )
                         ReadinessMiniRow(
                             icon = Icons.Default.NotificationsActive,
                             title = stringResource(R.string.settings_alarm_notifications),
                             ready = readiness.notificationsReady,
-                            actionLabel = "Enable",
+                            actionLabel = stringResource(R.string.alarm_list_enable),
                             onAction = {
                                 val perms = alarmNotificationPermissions()
                                 if (perms.isNotEmpty()) {
@@ -337,7 +338,7 @@ fun OnboardingScreen(
                                 icon = Icons.Default.NotificationsActive,
                                 title = stringResource(R.string.settings_fullscreen_access),
                                 ready = readiness.fullScreenReady == true,
-                                actionLabel = "Open",
+                                actionLabel = stringResource(R.string.onboarding_open),
                                 onAction = { context.openFullScreenAlarmSettings() }
                             )
                         }
@@ -345,14 +346,14 @@ fun OnboardingScreen(
                             icon = Icons.Default.BatteryAlert,
                             title = stringResource(R.string.settings_battery_protection),
                             ready = readiness.batteryReady,
-                            actionLabel = "Open",
+                            actionLabel = stringResource(R.string.onboarding_open),
                             onAction = { ManufacturerCompat.openBatterySettings(context) }
                         )
                         ReadinessMiniRow(
                             icon = Icons.Default.Alarm,
                             title = stringResource(R.string.onboarding_test_alarm),
                             ready = readiness.testAlarmReady,
-                            actionLabel = "Run",
+                            actionLabel = stringResource(R.string.onboarding_run),
                             onAction = {
                                 OnboardingTestAlarm.schedule(context).fold(
                                     onSuccess = {
@@ -361,7 +362,7 @@ fun OnboardingScreen(
                                         readiness = OnboardingReadiness.from(context)
                                     },
                                     onFailure = { error ->
-                                        testAlarmStatus = error.message ?: "Could not schedule the test alarm."
+                                        testAlarmStatus = error.message ?: testAlarmFailureText
                                         testAlarmNoticeTone = TestAlarmNoticeTone.Error
                                     }
                                 )
@@ -369,10 +370,10 @@ fun OnboardingScreen(
                         )
                         AppInlineNotice(
                             title = when (testAlarmNoticeTone) {
-                                TestAlarmNoticeTone.Guidance -> "Before tonight"
-                                TestAlarmNoticeTone.Scheduled -> "Test alarm scheduled"
-                                TestAlarmNoticeTone.Success -> "Test alarm completed"
-                                TestAlarmNoticeTone.Error -> "Test alarm unavailable"
+                                TestAlarmNoticeTone.Guidance -> stringResource(R.string.onboarding_before_tonight)
+                                TestAlarmNoticeTone.Scheduled -> stringResource(R.string.onboarding_test_alarm_scheduled)
+                                TestAlarmNoticeTone.Success -> stringResource(R.string.onboarding_test_alarm_completed)
+                                TestAlarmNoticeTone.Error -> stringResource(R.string.onboarding_test_alarm_unavailable)
                             },
                             message = testAlarmStatus.ifBlank {
                                 "Review exact alarms, notifications, battery access, and the test alarm before relying on an overnight wake-up."
@@ -416,9 +417,9 @@ fun OnboardingScreen(
                 ) {
                     Text(
                         text = when {
-                            !isLastPage -> "Continue"
-                            readiness.notificationsReady -> "Finish setup"
-                            else -> "Enable alarm alerts"
+                            !isLastPage -> stringResource(R.string.whats_new_continue)
+                            readiness.notificationsReady -> stringResource(R.string.onboarding_finish_setup)
+                            else -> stringResource(R.string.onboarding_enable_alarm_alerts)
                         },
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold
@@ -441,7 +442,7 @@ fun OnboardingScreen(
                             }
                     ) {
                         Text(
-                            if (readiness.notificationsReady) "Finish without more changes" else "Skip permissions",
+                            if (readiness.notificationsReady) stringResource(R.string.onboarding_finish_without_more_changes) else stringResource(R.string.onboarding_skip_permissions),
                             color = TextMuted
                         )
                     }
@@ -609,7 +610,7 @@ private fun ReadinessMiniRow(
             modifier = Modifier.weight(1f)
         )
         TextButton(onClick = onAction, enabled = !ready) {
-            Text(if (ready) "Ready" else actionLabel)
+            Text(if (ready) stringResource(R.string.settings_ready) else actionLabel)
         }
     }
 }

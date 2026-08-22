@@ -305,7 +305,7 @@ fun RingtonePickerSheet(
 
             if (youTubeStatus.isNotBlank()) {
                 AppInlineNotice(
-                    title = if (youTubeStatusIsError) "Download needs attention" else "Sound saved",
+                    title = if (youTubeStatusIsError) stringResource(R.string.ringtone_download_needs_attention) else stringResource(R.string.ringtone_sound_saved),
                     message = youTubeStatus,
                     icon = if (youTubeStatusIsError) Icons.Default.Warning else Icons.Default.CheckCircle,
                     color = if (youTubeStatusIsError) AccentRed else DismissGreen
@@ -326,11 +326,11 @@ fun RingtonePickerSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AppStatusChip(
-                    label = currentSelection?.title ?: "Default Alarm",
+                    label = currentSelection?.title ?: stringResource(R.string.ringtone_default_alarm),
                     color = MaterialTheme.colorScheme.primary
                 )
                 AppStatusChip(
-                    label = "${filteredRingtones.size} result${if (filteredRingtones.size == 1) "" else "s"}",
+                    label = stringResource(R.string.ringtone_result, filteredRingtones.size, if (filteredRingtones.size == 1) "" else "s"),
                     color = DismissGreen
                 )
                 AppStatusChip(
@@ -549,7 +549,7 @@ private fun RingtoneRow(
                     IconButton(onClick = onPreview) {
                         Icon(
                             imageVector = if (isPlaying) Icons.Default.Stop else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Stop preview" else "Preview sound",
+                            contentDescription = if (isPlaying) stringResource(R.string.components_stop_preview) else stringResource(R.string.components_preview_sound),
                             tint = if (isPlaying) MaterialTheme.colorScheme.primary else TextMuted
                         )
                     }

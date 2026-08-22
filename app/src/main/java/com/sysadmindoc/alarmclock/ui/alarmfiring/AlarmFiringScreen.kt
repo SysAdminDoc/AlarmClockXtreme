@@ -184,7 +184,7 @@ fun AlarmFiringScreen(
     val effectiveControlMode = if (
         firingControlMode == "hybrid" &&
         accessibilityManager?.isTouchExplorationEnabled == true
-    ) "buttons" else firingControlMode
+    ) stringResource(R.string.alarmfiring_buttons) else firingControlMode
     val showSwipeControls = effectiveControlMode != "buttons"
     val showButtonControls = effectiveControlMode != "swipe"
     val is24Hour = DateFormat.is24HourFormat(context)

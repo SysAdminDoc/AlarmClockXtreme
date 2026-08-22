@@ -48,7 +48,7 @@ internal fun SleepCycleOptionRow(index: Int, option: String) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             AppStatusChip(
-                label = if (index == 0) "Best match" else "${index + 1}",
+                label = if (index == 0) stringResource(R.string.bedtime_best_match) else "${index + 1}",
                 color = if (index == 0) DismissGreen else MaterialTheme.colorScheme.primary
             )
             Text(
@@ -73,7 +73,7 @@ internal fun WindDownChecklistSection(
             description = stringResource(R.string.wind_down_tick_each_step_as_settle),
             action = {
                 AppStatusChip(
-                    label = "${state.bedtimeChecklistDone.size}/${state.bedtimeChecklist.size} done",
+                    label = stringResource(R.string.bedtime_done_2, state.bedtimeChecklistDone.size, state.bedtimeChecklist.size),
                     icon = Icons.Default.CheckCircle,
                     color = if (state.bedtimeChecklistDone.isEmpty()) TextMuted else DismissGreen
                 )
@@ -102,7 +102,7 @@ internal fun WindDownChecklistSection(
                 ) {
                     Icon(
                         imageVector = if (done) Icons.Default.CheckCircle else Icons.Default.Bedtime,
-                        contentDescription = if (done) "Completed" else "Not done",
+                        contentDescription = if (done) stringResource(R.string.bedtime_completed) else stringResource(R.string.bedtime_not_done),
                         tint = if (done) DismissGreen else TextMuted,
                         modifier = Modifier.size(22.dp)
                     )
@@ -113,7 +113,7 @@ internal fun WindDownChecklistSection(
                         modifier = Modifier.weight(1f)
                     )
                     AppStatusChip(
-                        label = if (done) "Done" else "Up next",
+                        label = if (done) stringResource(R.string.bedtime_done) else stringResource(R.string.bedtime_up_next),
                         color = if (done) DismissGreen else MaterialTheme.colorScheme.primary
                     )
                 }

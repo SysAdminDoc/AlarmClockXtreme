@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
 import androidx.compose.runtime.LaunchedEffect
@@ -313,7 +314,11 @@ private fun WakeConfirmScreen(
                     )
                     if (remainingRefires > 0) {
                         AppStatusChip(
-                            label = "$remainingRefires more ${if (remainingRefires == 1) "check" else "checks"} left",
+                            label = pluralStringResource(
+                                R.plurals.alarmfiring_more_checks_left,
+                                remainingRefires,
+                                remainingRefires
+                            ),
                             icon = Icons.Default.WarningAmber,
                             color = AccentRed
                         )

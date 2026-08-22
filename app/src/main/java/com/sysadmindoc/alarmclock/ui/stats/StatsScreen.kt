@@ -121,9 +121,9 @@ fun StatsScreen(
     }
 
     val summaryLine = when {
-        state.isLoading -> "Collecting history and response patterns."
-        state.recentEvents.isEmpty() -> "Your alarm habits will start to appear once you build some history."
-        else -> "Track consistency, snooze behavior, and which mornings are easiest to handle."
+        state.isLoading -> stringResource(R.string.stats_collecting_history_and_response_patterns)
+        state.recentEvents.isEmpty() -> stringResource(R.string.stats_your_alarm_habits_will_start_to)
+        else -> stringResource(R.string.stats_track_consistency_snooze_behavior_and_which)
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -147,7 +147,7 @@ fun StatsScreen(
             AlarmClockHeroHeader(
                 title = stringResource(R.string.stats_statistics),
                 subtitle = summaryLine,
-                overline = "Alarm history",
+                overline = stringResource(R.string.alarmlist_alarm_history),
                 badge = {
                     AppStatusChip(
                         label = wakeStreakBadgeLabel(stats),
@@ -155,12 +155,12 @@ fun StatsScreen(
                         color = if (stats.currentStreak > 0) SnoozeYellow else TextMuted
                     )
                     AppStatusChip(
-                        label = "${stats.alarmsThisWeek} this week",
+                        label = stringResource(R.string.stats_this_week, stats.alarmsThisWeek),
                         icon = Icons.Default.CalendarMonth
                     )
                     if (state.recentEvents.isNotEmpty()) {
                         AppStatusChip(
-                            label = "${state.recentEvents.size} recent events",
+                            label = stringResource(R.string.stats_recent_events, state.recentEvents.size),
                             icon = Icons.Default.BarChart,
                             color = SnoozeYellow
                         )
@@ -324,12 +324,12 @@ fun StatsScreen(
                         )
                         val busiest = stats.dayOfWeekCounts.maxByOrNull { it.value }
                         Text(
-                            text = busiest?.key?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: "No data",
+                            text = busiest?.key?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.stats_no_data),
                             color = TextPrimary,
                             style = MaterialTheme.typography.headlineSmall
                         )
                         Text(
-                            text = busiest?.let { "${it.value} alarms recorded" } ?: "Alarm history will fill this in.",
+                            text = busiest?.let { "${it.value} alarms recorded" } ?: stringResource(R.string.stats_alarm_history_will_fill_this_in),
                             color = TextSecondary,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -341,7 +341,7 @@ fun StatsScreen(
                         Text(
                             text = calmest?.let {
                                 "Fastest responses: ${it.key.name.lowercase().replaceFirstChar { c -> c.uppercase() }} • ${it.value}s"
-                            } ?: "Need more dismiss history for day-by-day response trends.",
+                            } ?: stringResource(R.string.stats_need_more_dismiss_history_for_day),
                             color = TextMuted,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -748,15 +748,15 @@ private fun HealthConnectStatsCard(
             title = stringResource(R.string.stats_sleep_context),
             description = when {
                 summary.availability == HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED ->
-                    "Update Health Connect before sleep sessions can be included."
+                    stringResource(R.string.stats_update_health_connect_before_sleep_sessions)
                 summary.availability == HealthConnectAvailability.UNAVAILABLE ->
-                    "Health Connect is not available on this device."
+                    stringResource(R.string.settings_health_unavailable_description)
                 !summary.permissionGranted ->
-                    "Grant sleep data access in Settings to compare your wake behaviour with recent sleep."
+                    stringResource(R.string.stats_grant_sleep_data_access_in_settings)
                 summary.hasRecentSession ->
-                    "Recent Health Connect sessions stay local and are shown beside alarm history."
+                    stringResource(R.string.stats_recent_health_connect_sessions_stay_local)
                 else ->
-                    "Sleep data access is granted, but no recent sleep sessions were found."
+                    stringResource(R.string.stats_sleep_data_access_is_granted_but)
             }
         )
         Row(
@@ -764,12 +764,12 @@ private fun HealthConnectStatsCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
-                label = if (summary.permissionGranted) "Sleep data access granted" else "Permission needed",
+                label = if (summary.permissionGranted) stringResource(R.string.settings_health_permission_granted) else stringResource(R.string.settings_health_permission_needed),
                 icon = if (summary.permissionGranted) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
                 color = if (summary.permissionGranted) DismissGreen else SnoozeYellow
             )
             AppStatusChip(
-                label = "${summary.sessionsRead} sessions",
+                label = stringResource(R.string.bedtime_sessions, summary.sessionsRead),
                 icon = Icons.Default.BarChart,
                 color = if (summary.sessionsRead > 0) MaterialTheme.colorScheme.primary else TextMuted
             )
@@ -932,7 +932,7 @@ private fun SleepWakeAnalyticsCard(
                 color = if (analytics.totalSnoozes > 0) SnoozeYellow else TextMuted
             )
             AppStatusChip(
-                label = "${analytics.totalChallengeRetries} retries",
+                label = stringResource(R.string.stats_retries, analytics.totalChallengeRetries),
                 icon = Icons.Default.ErrorOutline,
                 color = if (analytics.totalChallengeRetries > 0) AccentRed else TextMuted
             )
@@ -1167,15 +1167,15 @@ private fun ActigraphyBucketsCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
-                label = "${latest.totalMinutes} min",
+                label = stringResource(R.string.alarmlist_min, latest.totalMinutes),
                 icon = Icons.Default.CalendarMonth,
                 color = MaterialTheme.colorScheme.primary
             )
             AppStatusChip(
                 label = when {
-                    latestIsSonar -> "Sonar session"
-                    latest.firedEarly -> "Fired early"
-                    else -> "Reached target"
+                    latestIsSonar -> stringResource(R.string.stats_sonar_session)
+                    latest.firedEarly -> stringResource(R.string.stats_fired_early)
+                    else -> stringResource(R.string.stats_reached_target)
                 },
                 icon = Icons.Default.CheckCircle,
                 color = when {
@@ -1185,7 +1185,7 @@ private fun ActigraphyBucketsCard(
                 }
             )
             AppStatusChip(
-                label = "${if (latestIsSonar) "Movement" else "Motion"} ${"%.0f".format(latest.averageSleepIndex * 100)}%",
+                label = "${if (latestIsSonar) stringResource(R.string.stats_movement) else stringResource(R.string.stats_motion)} ${"%.0f".format(latest.averageSleepIndex * 100)}%",
                 icon = Icons.Default.BarChart,
                 color = TextMuted
             )
@@ -1230,9 +1230,9 @@ private fun StageDistributionBar(session: ActigraphySession) {
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            ChartLegend("${if (sonar) "Movement" else "Awake motion"} ${session.awakeMinutes}m", AccentRed)
-            ChartLegend("${if (sonar) "Restless" else "Light motion"} ${session.lightMinutes}m", SnoozeYellow)
-            ChartLegend("${if (sonar) "Still" else "Still motion"} ${session.deepMinutes}m", DismissGreen)
+            ChartLegend("${if (sonar) stringResource(R.string.stats_movement) else stringResource(R.string.stats_awake_motion)} ${session.awakeMinutes}m", AccentRed)
+            ChartLegend("${if (sonar) stringResource(R.string.stats_restless) else stringResource(R.string.stats_light_motion)} ${session.lightMinutes}m", SnoozeYellow)
+            ChartLegend("${if (sonar) stringResource(R.string.stats_still) else stringResource(R.string.stats_still_motion)} ${session.deepMinutes}m", DismissGreen)
         }
     }
 }
@@ -1267,9 +1267,9 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
             imageVector = Icons.Default.BarChart,
             // Outcome is otherwise conveyed by tint alone on this row.
             contentDescription = when {
-                sonar -> "Sonar session"
-                session.firedEarly -> "Fired early"
-                else -> "Reached target"
+                sonar -> stringResource(R.string.stats_sonar_session)
+                session.firedEarly -> stringResource(R.string.stats_fired_early)
+                else -> stringResource(R.string.stats_reached_target)
             },
             tint = if (session.firedEarly || sonar) DismissGreen else TextMuted,
             modifier = Modifier.size(20.dp)
@@ -1282,13 +1282,13 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
             )
             if (sonar) {
                 Text(
-                    text = "${session.awakeMinutes}m movement · ${session.lightMinutes}m restless · ${session.deepMinutes}m still",
+                    text = stringResource(R.string.stats_m_movement_m_restless_m_still, session.awakeMinutes, session.lightMinutes, session.deepMinutes),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodySmall
                 )
             } else {
             Text(
-                text = "${session.awakeMinutes}m awake motion · ${session.lightMinutes}m light motion · ${session.deepMinutes}m still motion",
+                text = stringResource(R.string.stats_m_awake_motion_m_light_motion, session.awakeMinutes, session.lightMinutes, session.deepMinutes),
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -1453,7 +1453,7 @@ private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
                 }
                 if (event.challengeRetryCount > 0) {
                     AppStatusChip(
-                        label = "${event.challengeRetryCount} retries",
+                        label = stringResource(R.string.stats_retries, event.challengeRetryCount),
                         color = AccentRed
                     )
                 }

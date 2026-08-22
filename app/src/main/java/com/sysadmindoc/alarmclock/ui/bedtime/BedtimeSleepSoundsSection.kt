@@ -109,7 +109,7 @@ internal fun SleepSoundsSection(
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Text(
-                                text = if (isActive) "Playing" else "Tap to preview",
+                                text = if (isActive) stringResource(R.string.bedtime_playing) else stringResource(R.string.bedtime_tap_to_preview),
                                 color = if (isActive) MaterialTheme.colorScheme.primary else TextMuted,
                                 style = MaterialTheme.typography.bodySmall
                             )
@@ -132,7 +132,7 @@ internal fun SleepSoundsSection(
         ) {
             listOf(0, 15, 30, 45, 60).forEach { minutes ->
                 AppFilterChip(
-                    label = if (minutes == 0) "Never" else "$minutes min",
+                    label = if (minutes == 0) stringResource(R.string.settings_never) else stringResource(R.string.alarmlist_min, minutes),
                     selected = state.sleepSoundFadeMinutes == minutes,
                     onClick = { viewModel.setSleepSoundFade(minutes) },
                     selectionSemantics = true,
@@ -156,7 +156,7 @@ internal fun SleepSoundsSection(
                 AppFilterChip(
                     label = when {
                         seconds < 60 -> "${seconds}s"
-                        seconds % 60 == 0 -> "${seconds / 60} min"
+                        seconds % 60 == 0 -> stringResource(R.string.alarmlist_min, seconds / 60)
                         else -> "${seconds}s"
                     },
                     selected = state.sleepSoundFadeSeconds == seconds,

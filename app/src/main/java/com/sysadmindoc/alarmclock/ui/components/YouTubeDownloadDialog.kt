@@ -302,7 +302,7 @@ fun YouTubeDownloadDialog(
 
                 if (statusMessage.isNotBlank()) {
                     AppFeedbackCard(
-                        title = if (statusIsError) "Action needed" else "Downloader status",
+                        title = if (statusIsError) stringResource(R.string.components_action_needed) else stringResource(R.string.components_downloader_status),
                         message = statusMessage,
                         icon = if (statusIsError) Icons.Default.Warning else Icons.Default.CheckCircle,
                         color = if (statusIsError) AccentRed else MaterialTheme.colorScheme.primary
@@ -480,7 +480,7 @@ private fun EngineUpdatePanel(
             Text(
                 text = versionName
                     ?.let { "yt-dlp $it. Update only if YouTube search or downloads stop working." }
-                    ?: "Update yt-dlp only if YouTube search or downloads stop working.",
+                    ?: stringResource(R.string.components_update_yt_dlp_only_if_youtube),
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -710,7 +710,7 @@ private fun SearchResultRow(
                     ) {
                         Icon(
                             imageVector = if (isPlayingPreview) Icons.Default.Stop else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlayingPreview) "Stop preview" else "Preview sound",
+                            contentDescription = if (isPlayingPreview) stringResource(R.string.components_stop_preview) else stringResource(R.string.components_preview_sound),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
@@ -772,7 +772,7 @@ private fun SearchResultRow(
                     }
                 }
                 AppStatusChip(
-                    label = if (highlight) "Tap row to save this preview" else "Tap row to save",
+                    label = if (highlight) stringResource(R.string.components_tap_row_to_save_this_preview) else stringResource(R.string.components_tap_row_to_save),
                     icon = Icons.Default.CloudDownload,
                     color = if (highlight) MaterialTheme.colorScheme.primary else DismissGreen
                 )

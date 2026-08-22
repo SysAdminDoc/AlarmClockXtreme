@@ -238,8 +238,8 @@ fun ShakeChallengeView(
             icon = Icons.Default.PhoneAndroid,
             accent = AccentBlue,
             progress = progress,
-            statusLabel = "$currentShakes / ${challenge.requiredShakes} complete",
-            summary = if (currentShakes == 0) "Start shaking to build momentum." else "$remaining shakes remaining."
+            statusLabel = stringResource(R.string.alarmfiring_complete, currentShakes, challenge.requiredShakes),
+            summary = if (currentShakes == 0) stringResource(R.string.alarmfiring_start_shaking_to_build_momentum) else stringResource(R.string.alarmfiring_shakes_remaining, remaining)
         ) {
             Icon(
                 imageVector = Icons.Default.PhoneAndroid,
@@ -277,7 +277,7 @@ fun SequenceChallengeView(
         )
 
         AppStatusChip(
-            label = "${tappedIndices.size} of ${challenge.numbers.size} tapped",
+            label = stringResource(R.string.alarmfiring_of_tapped, tappedIndices.size, challenge.numbers.size),
             color = AccentBlue
         )
 
@@ -334,9 +334,9 @@ fun MemoryPatternChallengeView(
     ) {
         AppStatusChip(
             label = when (phase) {
-                MemoryPhase.SHOWING -> "Watch"
-                MemoryPhase.INPUT -> "Repeat"
-                MemoryPhase.WRONG -> "Retry"
+                MemoryPhase.SHOWING -> stringResource(R.string.alarmfiring_watch)
+                MemoryPhase.INPUT -> stringResource(R.string.share_import_repeat)
+                MemoryPhase.WRONG -> stringResource(R.string.dashboard_retry)
             },
             color = when (phase) {
                 MemoryPhase.SHOWING -> SnoozeYellow
@@ -347,9 +347,9 @@ fun MemoryPatternChallengeView(
 
         ChallengeSupportText(
             text = when (phase) {
-                MemoryPhase.SHOWING -> "Memorize the highlighted tiles before the pattern disappears."
-                MemoryPhase.INPUT -> "Tap the same tiles in the same order."
-                MemoryPhase.WRONG -> "The pattern will show again in a moment."
+                MemoryPhase.SHOWING -> stringResource(R.string.alarmfiring_memorize_the_highlighted_tiles_before_the)
+                MemoryPhase.INPUT -> stringResource(R.string.alarmfiring_tap_the_same_tiles_in_the)
+                MemoryPhase.WRONG -> stringResource(R.string.alarmfiring_the_pattern_will_show_again_in)
             },
             accent = when (phase) {
                 MemoryPhase.WRONG -> AccentRed
@@ -389,7 +389,7 @@ fun MemoryPatternChallengeView(
 
         if (phase == MemoryPhase.INPUT) {
             AppStatusChip(
-                label = "${tappedIndices.size} of ${challenge.pattern.size} matched",
+                label = stringResource(R.string.alarmfiring_of_matched, tappedIndices.size, challenge.pattern.size),
                 color = AccentBlue
             )
         }
@@ -680,7 +680,7 @@ fun VoicePhraseChallengeView(
             shape = RoundedCornerShape(10.dp)
         ) {
             Text(
-                text = if (isListening) "Listening..." else "Start listening",
+                text = if (isListening) stringResource(R.string.alarmfiring_listening) else stringResource(R.string.alarmfiring_start_listening),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -913,7 +913,7 @@ fun HandwritingChallengeView(
                 colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
                 shape = RoundedCornerShape(10.dp)
             ) {
-                Text(if (busy) "Checking..." else "Check drawing")
+                Text(if (busy) stringResource(R.string.alarmfiring_checking) else stringResource(R.string.alarmfiring_check_drawing))
             }
         }
 
@@ -981,8 +981,8 @@ fun WalkChallengeView(
             icon = Icons.AutoMirrored.Filled.DirectionsWalk,
             accent = DismissGreen,
             progress = progress,
-            statusLabel = "$currentSteps / ${challenge.requiredSteps} steps",
-            summary = if (currentSteps == 0) "Start walking to build progress." else "$remaining steps remaining."
+            statusLabel = stringResource(R.string.alarmfiring_steps, currentSteps, challenge.requiredSteps),
+            summary = if (currentSteps == 0) stringResource(R.string.alarmfiring_start_walking_to_build_progress) else stringResource(R.string.alarmfiring_steps_remaining, remaining)
         )
 
         if (walkStatus.isNotBlank()) {
@@ -1254,8 +1254,8 @@ fun SquatChallengeView(
             icon = Icons.Default.FitnessCenter,
             accent = DismissGreen,
             progress = progress,
-            statusLabel = "$currentSquats / ${challenge.requiredSquats} squats",
-            summary = if (currentSquats == 0) "Start with one clean squat." else "$remaining squats remaining."
+            statusLabel = stringResource(R.string.alarmfiring_squats, currentSquats, challenge.requiredSquats),
+            summary = if (currentSquats == 0) stringResource(R.string.alarmfiring_start_with_one_clean_squat) else stringResource(R.string.alarmfiring_squats_remaining, remaining)
         )
 
         ExerciseSensorFallback(exerciseStatus, fallbackAllowed, "Continue without squat count", onContinueWithoutSensor)
@@ -1286,8 +1286,8 @@ fun PushUpChallengeView(
             icon = Icons.Default.FitnessCenter,
             accent = AccentRed,
             progress = progress,
-            statusLabel = "$currentPushUps / ${challenge.requiredPushUps} push-ups",
-            summary = if (currentPushUps == 0) "Start your first push-up." else "$remaining push-ups remaining."
+            statusLabel = stringResource(R.string.alarmfiring_push_ups, currentPushUps, challenge.requiredPushUps),
+            summary = if (currentPushUps == 0) stringResource(R.string.alarmfiring_start_your_first_push_up) else stringResource(R.string.alarmfiring_push_ups_remaining, remaining)
         )
 
         ExerciseSensorFallback(exerciseStatus, fallbackAllowed, "Continue without push-up count", onContinueWithoutSensor)
@@ -1346,8 +1346,8 @@ fun PlankHoldChallengeView(
             icon = Icons.Default.FitnessCenter,
             accent = AccentBlue,
             progress = progress,
-            statusLabel = "$heldSeconds / ${challenge.requiredSeconds} seconds",
-            summary = if (heldSeconds == 0) "Tap Start and hold position." else "$remaining seconds remaining."
+            statusLabel = stringResource(R.string.alarmfiring_seconds, heldSeconds, challenge.requiredSeconds),
+            summary = if (heldSeconds == 0) stringResource(R.string.alarmfiring_tap_start_and_hold_position) else stringResource(R.string.alarmfiring_seconds_remaining, remaining)
         )
 
         if (!isActive) {
@@ -1506,7 +1506,7 @@ fun WifiChallengeView(
         }
 
         ChallengeNotice(
-            text = if (currentSsid.isBlank()) "Not connected to Wi-Fi yet." else "Connected to: $currentSsid",
+            text = if (currentSsid.isBlank()) stringResource(R.string.alarmfiring_not_connected_to_wi_fi_yet) else stringResource(R.string.alarmfiring_connected_to, currentSsid),
             accent = if (isConnected) DismissGreen else SnoozeYellow,
             icon = Icons.Default.Wifi
         )
@@ -1663,7 +1663,7 @@ private fun ChallengeProgressHero(
 
         if (progress > 0f) {
             Text(
-                text = "${(progress * 100).toInt()}% complete",
+                text = stringResource(R.string.alarmfiring_complete_2, (progress * 100).toInt()),
                 color = TextMuted,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -1819,13 +1819,14 @@ fun SimonSaysChallengeView(
                         val idx = row * 2 + col
                         val lit = idx == playingIndex
                         val alpha = if (lit) 1f else 0.45f
+                        val padDescription = stringResource(R.string.alarmfiring_pad, names[idx])
                         Box(
                             modifier = Modifier
                                 .size(96.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(colors[idx].copy(alpha = alpha))
                                 .clickable(enabled = playingIndex < 0) { onPadTap(idx) }
-                                .semantics { contentDescription = "${names[idx]} pad" },
+                                .semantics { contentDescription = padDescription },
                             contentAlignment = Alignment.Center
                         ) {
                             if (lit) {
@@ -1838,7 +1839,7 @@ fun SimonSaysChallengeView(
         }
 
         AppStatusChip(
-            label = "${inputIndices.size} / ${challenge.sequence.size} correct",
+            label = stringResource(R.string.alarmfiring_correct, inputIndices.size, challenge.sequence.size),
             color = if (inputIndices.size == challenge.sequence.size) DismissGreen else AccentBlue
         )
     }
@@ -1936,13 +1937,14 @@ fun StroopChallengeView(
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             challenge.choices.forEach { idx ->
+                val choiceDescription = stringResource(R.string.alarmfiring_choice, names[idx])
                 Box(
                     modifier = Modifier
                         .size(width = 72.dp, height = 56.dp)
                         .clip(RoundedCornerShape(10.dp))
                         .background(palette[idx])
                         .clickable { onPick(idx) }
-                        .semantics { contentDescription = "${names[idx]} choice" }
+                        .semantics { contentDescription = choiceDescription }
                 )
             }
         }
@@ -2248,7 +2250,7 @@ fun WordleChallengeView(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
         val triesLeft = challenge.maxGuesses - guesses.size
-        ChallengeSupportText("Guess the 5-letter word \u2014 $triesLeft tr${if (triesLeft == 1) "y" else "ies"} left.")
+        ChallengeSupportText("Guess the 5-letter word \u2014 $triesLeft tr${if (triesLeft == 1) "y" else stringResource(R.string.alarmfiring_ies)} left.")
 
         if (gameOver) {
             ChallengeNotice(
@@ -2288,10 +2290,10 @@ fun WordleChallengeView(
                         // so expose it to TalkBack / colorblind users as text instead of
                         // relying on the tile background alone.
                         val tileDescription = when {
-                            displayCh == ' ' -> "empty"
-                            state == WordleLetterState.CORRECT -> "$displayCh, correct position"
-                            state == WordleLetterState.PRESENT -> "$displayCh, in the word, wrong position"
-                            state == WordleLetterState.ABSENT -> "$displayCh, not in the word"
+                            displayCh == ' ' -> stringResource(R.string.alarmfiring_empty)
+                            state == WordleLetterState.CORRECT -> stringResource(R.string.alarmfiring_correct_position, displayCh)
+                            state == WordleLetterState.PRESENT -> stringResource(R.string.alarmfiring_in_the_word_wrong_position, displayCh)
+                            state == WordleLetterState.ABSENT -> stringResource(R.string.alarmfiring_not_in_the_word, displayCh)
                             else -> "$displayCh"
                         }
                         Card(
@@ -2326,7 +2328,7 @@ fun WordleChallengeView(
                 value = currentInput,
                 onValueChange = { onInputChanged(it) },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("5-letter word") },
+                label = { Text(stringResource(R.string.alarmfiring_5_letter_word)) },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { if (currentInput.length == 5) onSubmit() }),
                 colors = appOutlinedTextFieldColors(),
@@ -2413,12 +2415,12 @@ fun PvtChallengeView(
         ) {
             Text(
                 text = when {
-                    failed -> "Too slow\nTry again"
-                    stimulusShown -> "TAP!"
-                    waiting -> "Wait..."
+                    failed -> stringResource(R.string.alarmfiring_too_slow_ntry_again)
+                    stimulusShown -> stringResource(R.string.alarmfiring_tap)
+                    waiting -> stringResource(R.string.alarmfiring_wait)
                     lastReaction != null && lastReaction >= 0 -> "${lastReaction} ms"
-                    lastReaction != null && lastReaction < 0 -> "Too early!"
-                    else -> "Tap to start"
+                    lastReaction != null && lastReaction < 0 -> stringResource(R.string.alarmfiring_too_early)
+                    else -> stringResource(R.string.alarmfiring_tap_to_start)
                 },
                 style = MaterialTheme.typography.headlineMedium,
                 color = when {
@@ -2556,7 +2558,7 @@ fun ChessMateChallengeView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        AppStatusChip(label = "${puzzle.sideToMove} to move", color = AccentBlue)
+        AppStatusChip(label = stringResource(R.string.alarmfiring_to_move, puzzle.sideToMove), color = AccentBlue)
         Text(
             puzzle.title,
             style = MaterialTheme.typography.titleMedium,
@@ -2682,9 +2684,9 @@ fun RsvpReadingChallengeView(
         ) {
             Text(
                 text = when {
-                    showChoices -> "Which word appeared?"
+                    showChoices -> stringResource(R.string.alarmfiring_which_word_appeared)
                     wordIndex >= 0 -> challenge.words[wordIndex]
-                    else -> "Get ready"
+                    else -> stringResource(R.string.alarmfiring_get_ready)
                 },
                 color = TextPrimary,
                 style = MaterialTheme.typography.headlineMedium,

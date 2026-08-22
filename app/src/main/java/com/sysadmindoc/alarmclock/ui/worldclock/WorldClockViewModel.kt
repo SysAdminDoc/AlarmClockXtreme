@@ -21,7 +21,7 @@ data class WorldClockEntry(
     val cityName: String,
     val time: String = "",
     val date: String = "",
-    val offsetLabel: String = "",
+    val offsetHours: Double = 0.0,
     val isAhead: Boolean = true
 )
 
@@ -193,18 +193,12 @@ class WorldClockViewModel @Inject constructor(
         val localOffset = now.offset.totalSeconds
         val offset = zdt.offset.totalSeconds
         val diffHours = (offset - localOffset) / 3600.0
-        val diffLabel = when {
-            diffHours == 0.0 -> "Same time"
-            diffHours > 0 -> "${formatDiff(diffHours)}h ahead"
-            else -> "${formatDiff(diffHours)}h behind"
-        }
-
         return WorldClockEntry(
             zoneId = zoneId,
             cityName = zoneId.substringAfterLast("/").replace("_", " "),
             time = zdt.format(zoneTimeFormatter),
             date = zdt.format(zoneDateFormatter),
-            offsetLabel = diffLabel,
+            offsetHours = diffHours,
             isAhead = diffHours >= 0
         )
     }

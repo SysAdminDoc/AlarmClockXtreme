@@ -138,7 +138,7 @@ fun SharedAlarmImportScreen(
                     modifier = Modifier.weight(1f)
                 )
                 AppStatusChip(
-                    label = if (riskyFields.isEmpty()) "Clean" else "Review",
+                    label = if (riskyFields.isEmpty()) stringResource(R.string.share_clean) else stringResource(R.string.settings_review),
                     icon = if (riskyFields.isEmpty()) Icons.Default.CheckCircle else Icons.Default.Security,
                     color = if (riskyFields.isEmpty()) DismissGreen else SnoozeYellow
                 )
@@ -330,6 +330,7 @@ private fun Alarm.formatSharedImportTime(): String {
     return String.format(Locale.US, "%02d:%02d", hour.coerceIn(0, 23), minute.coerceIn(0, 59))
 }
 
+@Composable
 private fun Alarm.challengeSummary(): String {
     return when {
         challengeChain.isNotBlank() -> challengeChain
@@ -337,18 +338,19 @@ private fun Alarm.challengeSummary(): String {
             .mapNotNull { it.trim().takeIf(String::isNotBlank)?.toSharedImportLabel() }
             .joinToString(" + ")
         challengeType.isNotBlank() && challengeType != "NONE" -> challengeType.toSharedImportLabel()
-        else -> "None"
+        else -> stringResource(R.string.share_challenge_none)
     }
 }
 
+@Composable
 private fun Alarm.soundSummary(): String {
     return when {
-        ringtonePool.isNotBlank() -> "Random ringtone pool"
-        internetRadioUrl.isNotBlank() -> "Internet radio"
-        spotifyUri.isNotBlank() -> "Spotify"
-        ringtoneUri == "silent" -> "Silent alarm"
-        ringtoneUri.isNotBlank() -> "Custom ringtone"
-        else -> "Device default"
+        ringtonePool.isNotBlank() -> stringResource(R.string.share_sound_pool)
+        internetRadioUrl.isNotBlank() -> stringResource(R.string.share_sound_radio)
+        spotifyUri.isNotBlank() -> stringResource(R.string.share_sound_spotify)
+        ringtoneUri == "silent" -> stringResource(R.string.share_sound_silent)
+        ringtoneUri.isNotBlank() -> stringResource(R.string.share_sound_custom)
+        else -> stringResource(R.string.share_sound_default)
     }
 }
 

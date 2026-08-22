@@ -61,7 +61,7 @@ internal fun PreSleepTagSection(
     ) {
         AppSectionTitle(
             title = stringResource(R.string.bedtime_tracking_pre_sleep_factors),
-            description = "${state.preSleepTagDateLabel}: tag the signals that may shape tomorrow's wake-up friction."
+            description = stringResource(R.string.bedtime_tag_the_signals_that_may_shape, state.preSleepTagDateLabel)
         )
 
         Row(
@@ -124,7 +124,7 @@ private fun PreSleepCorrelationChart(items: List<PreSleepCorrelationItem>) {
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = item.averageRestlessMinutes?.let { "${it}m avg" } ?: "No sleep data",
+                        text = item.averageRestlessMinutes?.let { "${it}m avg" } ?: stringResource(R.string.bedtime_no_sleep_data),
                         color = TextMuted,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -208,7 +208,7 @@ internal fun SonarSleepTrackingSection(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AppStatusChip(
-                        label = if (state.sonarTrackingActive) "Active" else "Off",
+                        label = if (state.sonarTrackingActive) stringResource(R.string.settings_active) else stringResource(R.string.alarm_edit_off),
                         icon = if (state.sonarTrackingActive) Icons.Default.CheckCircle else Icons.Default.GraphicEq,
                         color = if (state.sonarTrackingActive) DismissGreen else TextMuted
                     )
@@ -241,7 +241,7 @@ internal fun SonarSleepTrackingSection(
             }
             Spacer(modifier = Modifier.size(12.dp))
             AppFilterChip(
-                label = if (state.sonarTrackingActive) "Stop" else "Start",
+                label = if (state.sonarTrackingActive) stringResource(R.string.notif_timer_stop_action) else stringResource(R.string.challenge_start),
                 selected = state.sonarTrackingActive,
                 onClick = onToggle,
                 selectionSemantics = false,
@@ -307,25 +307,25 @@ internal fun HealthConnectSleepSection(
             title = stringResource(R.string.bedtime_tracking_health_connect_sleep),
             description = when {
                 summary.availability == HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED ->
-                    "Update Health Connect before recent sleep sessions can appear here."
+                    stringResource(R.string.bedtime_update_health_connect_before_recent_sleep)
                 summary.availability == HealthConnectAvailability.UNAVAILABLE ->
-                    "Health Connect is not available on this device."
+                    stringResource(R.string.settings_health_unavailable_description)
                 !summary.permissionGranted ->
-                    "Grant READ_SLEEP in Settings to fold recent sessions into bedtime planning."
+                    stringResource(R.string.bedtime_grant_read_sleep_in_settings_to)
                 summary.hasRecentSession ->
-                    "Recent sessions stay local and help compare your target with actual sleep."
+                    stringResource(R.string.bedtime_recent_sessions_stay_local_and_help)
                 else ->
-                    "READ_SLEEP is granted, but no recent sleep sessions were found in the last 14 days."
+                    stringResource(R.string.bedtime_read_sleep_is_granted_but_no)
             }
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AppStatusChip(
-                label = if (summary.permissionGranted) "READ_SLEEP granted" else "Permission needed",
+                label = if (summary.permissionGranted) stringResource(R.string.bedtime_read_sleep_granted) else stringResource(R.string.settings_health_permission_needed),
                 icon = if (summary.permissionGranted) Icons.Default.CheckCircle else Icons.Default.Warning,
                 color = if (summary.permissionGranted) DismissGreen else SnoozeYellow
             )
             AppStatusChip(
-                label = "${summary.sessionsRead} sessions",
+                label = stringResource(R.string.bedtime_sessions, summary.sessionsRead),
                 icon = Icons.Default.Bedtime,
                 color = if (summary.sessionsRead > 0) MaterialTheme.colorScheme.primary else TextMuted
             )

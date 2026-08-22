@@ -84,13 +84,16 @@ fun StopwatchScreen(
 
     // Reset is immediate, per the project's no-confirmation-dialogs rule, so
     // the safety net is an undo rather than a prompt.
+    // Read inside the coroutine would be outside composition.
+    val resetMessage = stringResource(R.string.stopwatch_stopwatch_reset)
+    val undoLabel = stringResource(R.string.timer_undo)
     val onReset: () -> Unit = {
         viewModel.reset()
         if (viewModel.canUndoReset) {
             scope.launch {
                 val action = snackbarHostState.showSnackbar(
-                    message = "Stopwatch reset",
-                    actionLabel = "Undo",
+                    message = resetMessage,
+                    actionLabel = undoLabel,
                     duration = SnackbarDuration.Short
                 )
                 if (action == SnackbarResult.ActionPerformed) {
@@ -111,17 +114,17 @@ fun StopwatchScreen(
         AlarmClockHeroHeader(
             title = stringResource(R.string.stopwatch_title),
             subtitle = when (state.state) {
-                StopwatchState.IDLE -> "Start a precise running timer and mark laps whenever you need a split."
-                StopwatchState.RUNNING -> "Timing live. Mark laps as the session unfolds."
-                StopwatchState.PAUSED -> "Paused in place. Resume when you are ready or reset for a clean run."
+                StopwatchState.IDLE -> stringResource(R.string.stopwatch_start_a_precise_running_timer_and)
+                StopwatchState.RUNNING -> stringResource(R.string.stopwatch_timing_live_mark_laps_as_the)
+                StopwatchState.PAUSED -> stringResource(R.string.stopwatch_paused_in_place_resume_when_you)
             },
-            overline = "Timing",
+            overline = stringResource(R.string.stopwatch_timing),
             badge = {
                 AppStatusChip(
                     label = when (state.state) {
-                        StopwatchState.IDLE -> "Ready"
-                        StopwatchState.RUNNING -> "Running"
-                        StopwatchState.PAUSED -> "Paused"
+                        StopwatchState.IDLE -> stringResource(R.string.settings_ready)
+                        StopwatchState.RUNNING -> stringResource(R.string.stopwatch_running)
+                        StopwatchState.PAUSED -> stringResource(R.string.settings_paused)
                     },
                     icon = when (state.state) {
                         StopwatchState.IDLE -> Icons.Default.Speed
@@ -135,7 +138,7 @@ fun StopwatchScreen(
                     }
                 )
                 AppStatusChip(
-                    label = "${state.laps.size} laps",
+                    label = stringResource(R.string.stopwatch_laps, state.laps.size),
                     icon = Icons.Default.Flag,
                     color = if (state.laps.isEmpty()) TextMuted else MaterialTheme.colorScheme.primary,
                     // Start, pause, resume and reset all change only the chip
@@ -413,9 +416,9 @@ private fun LapRow(lap: Lap) {
                 )
                 Text(
                     text = when {
-                        lap.isBest -> "Best split"
-                        lap.isWorst -> "Slowest split"
-                        else -> "Split"
+                        lap.isBest -> stringResource(R.string.stopwatch_best_split)
+                        lap.isWorst -> stringResource(R.string.stopwatch_slowest_split)
+                        else -> stringResource(R.string.stopwatch_split)
                     },
                     color = when {
                         lap.isBest -> DismissGreen

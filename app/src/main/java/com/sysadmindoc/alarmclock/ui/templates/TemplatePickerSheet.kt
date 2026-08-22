@@ -83,7 +83,7 @@ fun TemplatePickerSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AppStatusChip(
-                    label = "${defaultTemplates.size} ready-made setups",
+                    label = stringResource(R.string.templates_ready_made_setups, defaultTemplates.size),
                     color = MaterialTheme.colorScheme.primary
                 )
                 AppStatusChip(
@@ -185,7 +185,7 @@ private fun TemplateCard(
                         )
                     }
                     AppStatusChip(
-                        label = "${template.snoozeDurationMinutes} min snooze",
+                        label = stringResource(R.string.templates_min_snooze, template.snoozeDurationMinutes),
                         icon = Icons.Default.Snooze,
                         color = AccentBlue
                     )

@@ -205,18 +205,18 @@ fun MorningBriefingScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             AppStatusChip(
-                                label = if (hasWeather) "Weather ready" else "No weather",
+                                label = if (hasWeather) stringResource(R.string.alarmfiring_weather_ready) else stringResource(R.string.alarmfiring_no_weather),
                                 icon = Icons.Default.Cloud,
                                 color = if (hasWeather) AccentBlue else TextMuted
                             )
                             AppStatusChip(
-                                label = if (hasEvent) "Next event" else "Open schedule",
+                                label = if (hasEvent) stringResource(R.string.alarmfiring_next_event) else stringResource(R.string.alarmfiring_open_schedule),
                                 icon = Icons.Default.Event,
                                 color = if (hasEvent) DismissGreen else TextMuted
                             )
                             if (routineItems.isNotEmpty()) {
                                 AppStatusChip(
-                                    label = "${routineItems.size} routine items",
+                                    label = stringResource(R.string.alarmfiring_routine_items, routineItems.size),
                                     icon = Icons.Default.CheckCircleOutline,
                                     color = SnoozeYellow
                                 )

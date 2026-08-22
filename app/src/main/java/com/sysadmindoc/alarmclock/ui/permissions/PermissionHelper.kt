@@ -139,7 +139,7 @@ fun PermissionRequestCard(
         highlighted = true
     ) {
         AppSectionTitle(
-            title = if (includeNotifications) "Recommended permissions" else "Context permissions",
+            title = if (includeNotifications) stringResource(R.string.permissions_recommended_permissions) else stringResource(R.string.permissions_context_permissions),
             description = if (includeNotifications) {
                 "A few optional permissions unlock weather, calendar, and clearer alarm alerts."
             } else {
@@ -148,12 +148,12 @@ fun PermissionRequestCard(
             action = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppStatusChip(
-                        label = "$grantedCount of $totalCount ready",
+                        label = stringResource(R.string.permissions_of_ready, grantedCount, totalCount),
                         icon = Icons.Default.CheckCircle,
                         color = DismissGreen
                     )
                     AppStatusChip(
-                        label = if (missingCount == 1) "Final step" else "$missingCount missing",
+                        label = if (missingCount == 1) stringResource(R.string.permissions_final_step) else stringResource(R.string.permissions_missing, missingCount),
                         icon = Icons.Default.Security,
                         color = MaterialTheme.colorScheme.primary
                     )

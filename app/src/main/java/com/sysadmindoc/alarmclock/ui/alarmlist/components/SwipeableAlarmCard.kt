@@ -91,7 +91,7 @@ fun SwipeableAlarmCard(
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
-                                text = if (willDelete) "Release to delete" else "Swipe to delete",
+                                text = if (willDelete) stringResource(R.string.alarmlist_release_to_delete) else stringResource(R.string.alarmlist_swipe_to_delete),
                                 color = Color.White,
                                 style = MaterialTheme.typography.titleSmall
                             )

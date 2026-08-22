@@ -245,7 +245,7 @@ private fun WorldClockCard(
                 maxLines = 1
             )
             Text(
-                entry.offsetLabel,
+                worldClockOffsetLabel(entry),
                 color = worldClockAccent(entry),
                 style = MaterialTheme.typography.bodySmall
             )
@@ -310,7 +310,7 @@ private fun AddTimeZoneDialog(
 
                 if (searchResults.isNotEmpty()) {
                     AppStatusChip(
-                        label = "${searchResults.size} match${if (searchResults.size == 1) "" else "es"}",
+                        label = stringResource(R.string.worldclock_match, searchResults.size, if (searchResults.size == 1) "" else "es"),
                         icon = Icons.Default.Public,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -338,7 +338,7 @@ private fun AddTimeZoneDialog(
                                     tint = if (showNoResults) TextMuted else MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = if (showNoResults) "No city matches that search" else "Search for a city",
+                                    text = if (showNoResults) stringResource(R.string.worldclock_no_city_matches_that_search) else stringResource(R.string.dashboard_search_city),
                                     color = TextPrimary,
                                     style = MaterialTheme.typography.titleSmall
                                 )
@@ -369,7 +369,7 @@ private fun AddTimeZoneDialog(
                             R.string.world_add_city_action,
                             entry.cityName,
                             entry.time,
-                            entry.offsetLabel
+                            worldClockOffsetLabel(entry)
                         )
                         Surface(
                             modifier = Modifier
@@ -396,7 +396,7 @@ private fun AddTimeZoneDialog(
                                     Text(entry.cityName, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
                                     Text(entry.zoneId, color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                                     AppStatusChip(
-                                        label = entry.offsetLabel,
+                                        label = worldClockOffsetLabel(entry),
                                         icon = Icons.Default.Language,
                                         color = worldClockAccent(entry)
                                     )
@@ -432,9 +432,25 @@ private fun AddTimeZoneDialog(
     )
 }
 
+/** The offset in words. Built here so it can be translated. */
+@Composable
+private fun worldClockOffsetLabel(entry: WorldClockEntry): String = when {
+    entry.offsetHours == 0.0 -> stringResource(R.string.world_same_time)
+    entry.offsetHours > 0 -> stringResource(
+        R.string.world_hours_ahead,
+        formatOffsetHours(entry.offsetHours)
+    )
+    else -> stringResource(R.string.world_hours_behind, formatOffsetHours(entry.offsetHours))
+}
+
+private fun formatOffsetHours(hours: Double): String {
+    val magnitude = kotlin.math.abs(hours)
+    return if (magnitude % 1.0 == 0.0) magnitude.toInt().toString() else "%.1f".format(magnitude)
+}
+
 @Composable
 private fun worldClockAccent(entry: WorldClockEntry) = when {
-    entry.offsetLabel == "Same time" -> DismissGreen
+    entry.offsetHours == 0.0 -> DismissGreen
     entry.isAhead -> MaterialTheme.colorScheme.primary
     else -> TextMuted
 }

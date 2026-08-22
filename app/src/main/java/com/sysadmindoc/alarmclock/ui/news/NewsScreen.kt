@@ -71,7 +71,7 @@ fun NewsScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
     val activeFeedLabel = state.feeds.firstOrNull { it.key == state.activeFeedKey }?.label
-        ?: "Custom feed"
+        ?: stringResource(R.string.news_custom_feed)
 
     Box(
         modifier = Modifier
@@ -201,7 +201,7 @@ fun NewsScreen(
                                         title = stringResource(R.string.news_couldn_t_load_feed),
                                         description = state.errorMessage
                                             ?.takeIf { it.isNotBlank() }
-                                            ?: "Pick a different source, or try again.",
+                                            ?: stringResource(R.string.news_pick_a_different_source_or_try),
                                         footer = {
                                             OutlinedButton(onClick = viewModel::refresh) {
                                                 Text(stringResource(R.string.dashboard_retry))
@@ -444,13 +444,16 @@ private fun decodeHtmlEntities(raw: String): String =
 private fun Int.toCodePointString(): String? =
     takeIf { Character.isValidCodePoint(it) }?.let { String(Character.toChars(it)) }
 
+@Composable
 private fun formatRelativeShort(epochMs: Long): String {
     val deltaMs = (System.currentTimeMillis() - epochMs).coerceAtLeast(0)
     val seconds = TimeUnit.MILLISECONDS.toSeconds(deltaMs)
     return when {
-        seconds < 60 -> "just now"
-        seconds < 3600 -> "${TimeUnit.SECONDS.toMinutes(seconds)}m ago"
-        seconds < 86_400 -> "${TimeUnit.SECONDS.toHours(seconds)}h ago"
-        else -> "${TimeUnit.SECONDS.toDays(seconds)}d ago"
+        seconds < 60 -> stringResource(R.string.news_just_now)
+        seconds < 3600 ->
+            stringResource(R.string.news_minutes_ago, TimeUnit.SECONDS.toMinutes(seconds))
+        seconds < 86_400 ->
+            stringResource(R.string.news_hours_ago, TimeUnit.SECONDS.toHours(seconds))
+        else -> stringResource(R.string.news_days_ago, TimeUnit.SECONDS.toDays(seconds))
     }
 }

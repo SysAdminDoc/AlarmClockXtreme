@@ -717,7 +717,7 @@ private fun AirQualityCard(summary: AirQualitySummary) {
         if (!summary.hasPollenData) {
             AppInlineNotice(
                 title = stringResource(R.string.dashboard_pollen_unavailable),
-                message = "Open-Meteo does not report pollen for this location yet.",
+                message = stringResource(R.string.dashboard_open_meteo_does_not_report_pollen),
                 icon = Icons.Default.WaterDrop,
                 color = TextMuted
             )
@@ -1083,7 +1083,7 @@ private fun LocationPickerDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AppStatusChip(
-                        label = if (results.isEmpty()) "Search a city" else "${results.size.coerceAtMost(6)} matches",
+                        label = if (results.isEmpty()) stringResource(R.string.dashboard_search_a_city) else stringResource(R.string.dashboard_matches, results.size.coerceAtMost(6)),
                         icon = Icons.Default.LocationOn,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -1182,7 +1182,7 @@ private fun LocationPickerDialog(
                                             verticalArrangement = Arrangement.spacedBy(3.dp)
                                         ) {
                                             Text(
-                                                text = result.name ?: "Unknown location",
+                                                text = result.name ?: stringResource(R.string.dashboard_unknown_location),
                                                 color = TextPrimary,
                                                 style = MaterialTheme.typography.titleSmall
                                             )

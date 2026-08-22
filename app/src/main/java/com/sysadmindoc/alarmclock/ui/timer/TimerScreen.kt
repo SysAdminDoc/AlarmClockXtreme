@@ -125,13 +125,16 @@ fun TimerScreen(
     val scope = rememberCoroutineScope()
     // Stop sits beside Pause and removes the timer outright. Immediate, per the
     // no-confirmation-dialogs rule, with an undo as the safety net.
+    // Read inside the coroutine would be outside composition.
+    val stoppedMessage = stringResource(R.string.timer_timer_stopped)
+    val undoLabel = stringResource(R.string.timer_undo)
     val onStopTimer: (Int) -> Unit = { timerId ->
         viewModel.stop(timerId)
         if (viewModel.canUndoStop) {
             scope.launch {
                 val action = snackbarHostState.showSnackbar(
-                    message = "Timer stopped",
-                    actionLabel = "Undo",
+                    message = stoppedMessage,
+                    actionLabel = undoLabel,
                     duration = SnackbarDuration.Short
                 )
                 if (action == SnackbarResult.ActionPerformed) {
@@ -251,7 +254,7 @@ private fun ActiveTimerCard(
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        text = if (isFinished) "Time’s up" else String.format(
+                        text = if (isFinished) stringResource(R.string.timer_time_s_up) else String.format(
                             "%02d:%02d:%02d",
                             timer.displayHours,
                             timer.displayMinutes,
@@ -267,7 +270,7 @@ private fun ActiveTimerCard(
                     // signalled only by a colour change and a pulse.
                     if (isFinished) {
                         Text(
-                            text = "${timer.label.ifBlank { "Timer" }} finished",
+                            text = stringResource(R.string.timer_finished, timer.label.ifBlank { "Timer" }),
                             color = AccentRed,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.semantics {
@@ -294,7 +297,7 @@ private fun ActiveTimerCard(
                     IconButton(onClick = { if (timer.state == TimerState.RUNNING) onPause() else onResume() }) {
                         Icon(
                             if (timer.state == TimerState.RUNNING) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (timer.state == TimerState.RUNNING) "Pause timer" else "Resume timer",
+                            contentDescription = if (timer.state == TimerState.RUNNING) stringResource(R.string.timer_pause_timer) else stringResource(R.string.timer_resume_timer),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -454,9 +457,9 @@ private fun NumPad(
                     val interactionSource = remember { MutableInteractionSource() }
                     val pressed by interactionSource.collectIsPressedAsState()
                     val keyLabel = when (key) {
-                        -1 -> "Delete digit"
-                        -2 -> "Add double zero"
-                        else -> "Enter $key"
+                        -1 -> stringResource(R.string.alarm_edit_delete_digit)
+                        -2 -> stringResource(R.string.timer_add_double_zero)
+                        else -> stringResource(R.string.timer_enter, key)
                     }
                     val pressScale by animateFloatAsState(
                         targetValue = if (pressed) 0.97f else 1f,

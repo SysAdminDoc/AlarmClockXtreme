@@ -108,7 +108,7 @@ internal fun BreathingExerciseSection(
                     }
                 )
                 Text(
-                    text = if (phase.completed) "Done" else "${phase.remainingSeconds}",
+                    text = if (phase.completed) stringResource(R.string.bedtime_done) else "${phase.remainingSeconds}",
                     color = if (phase.completed) DismissGreen else SnoozeYellow,
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold
@@ -120,7 +120,7 @@ internal fun BreathingExerciseSection(
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "${formatBreathingDuration(remainingSessionSeconds)} left",
+                    text = stringResource(R.string.bedtime_left, formatBreathingDuration(remainingSessionSeconds)),
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -133,11 +133,11 @@ internal fun BreathingExerciseSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             AppFilterChip(
-                label = if (running) "Pause" else if (phase.completed) "Restart" else "Start",
+                label = if (running) stringResource(R.string.alarm_list_pause) else if (phase.completed) stringResource(R.string.timer_restart) else stringResource(R.string.challenge_start),
                 selected = running,
                 onClick = onToggleRunning,
                 selectionSemantics = false,
-                accessibilityLabel = if (running) "Pause guided breathing" else "Start guided breathing"
+                accessibilityLabel = if (running) stringResource(R.string.bedtime_pause_guided_breathing) else stringResource(R.string.bedtime_start_guided_breathing)
             )
             TextButton(onClick = onReset) {
                 Text(stringResource(R.string.stopwatch_reset), color = TextSecondary)

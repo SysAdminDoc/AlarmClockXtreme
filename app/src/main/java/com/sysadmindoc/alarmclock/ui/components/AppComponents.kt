@@ -674,6 +674,12 @@ fun AppFilterChip(
     val accent = MaterialTheme.colorScheme.primary
     val containerColor = if (isSelected) accent.copy(alpha = 0.16f) else SurfaceLight
     val labelColor = if (isSelected) accent else TextSecondary
+    // semantics {} is not a composable scope, so resolve this first.
+    val selectionStateDescription = if (isSelected) {
+        stringResource(R.string.settings_selected)
+    } else {
+        stringResource(R.string.settings_not_selected)
+    }
 
     Surface(
         modifier = modifier
@@ -685,7 +691,7 @@ fun AppFilterChip(
                 }
                 if (selectionSemantics) {
                     this.selected = isSelected
-                    stateDescription = if (isSelected) "Selected" else "Not selected"
+                    stateDescription = selectionStateDescription
                 }
             },
         shape = shapeTokens.chip,
