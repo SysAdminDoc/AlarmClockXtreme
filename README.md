@@ -14,7 +14,7 @@
 
 ## Download
 
-**Latest signed APK** - [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
+**Latest signed APK**: [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 
 ```
 adb install AlarmClockXtreme-v1.15.33-play-release.apk
@@ -156,12 +156,12 @@ cd AlarmClockXtreme
 ### Dashboard & Utilities
 | Feature | Description |
 |---------|-------------|
-| Weather Tab | Centered weather hero, 3-day vertical forecast, sunrise/sunset, UV index with EPA bands, hourly strip with rain probability, and last-good stale fallback — Open-Meteo, free, no API key |
-| Live Radar | Animated precipitation radar embedded from Windy.com (no key, no SDK) — auto-centers on your weather location |
-| Time-of-Day Sky | The Today tab background follows your real sunrise/sunset through a 15-keyframe gradient — deep night, civil dawn, sunrise, midday peak, golden hour, dusk |
+| Weather Tab | Centered weather hero, 3-day vertical forecast, sunrise/sunset, UV index with EPA bands, hourly strip with rain probability, and last-good stale fallback. Open-Meteo, free, no API key |
+| Live Radar | Animated precipitation radar embedded from Windy.com (no key, no SDK). Auto-centers on your weather location |
+| Time-of-Day Sky | The Today tab background follows your real sunrise/sunset through a 15-keyframe gradient: deep night, civil dawn, sunrise, midday peak, golden hour, dusk |
 | Weather-Aware Theme | Storms swap the sky to overcast blue-gray; night storms drop to near-black with subtle lightning flashes; tornado warnings render a rotating funnel cloud silhouette + warning banner |
-| Tornado Alerts (US) | NWS active-alerts integration via api.weather.gov — no key, free, US-only — drives the on-screen warning |
-| News Tab | Public RSS reader (Google News, BBC, NPR, Hacker News presets) — pull-to-refresh, stale saved-headlines fallback, tap to open in browser, no accounts |
+| Tornado Alerts (US) | NWS active-alerts integration via api.weather.gov. No key, free, US-only, and it drives the on-screen warning |
+| News Tab | Public RSS reader (Google News, BBC, NPR, Hacker News presets) with pull-to-refresh, stale saved-headlines fallback, tap to open in browser, no accounts |
 | Calendar Integration | Today's events from device calendar |
 | World Clock | Live time zones with UTC offset, 24h format support, persistent saved cities |
 | Multiple Timers | Run several countdown timers concurrently (monotonic clock) |
@@ -395,7 +395,7 @@ Create a webhook automation in your `automations.yaml`:
 
 ```yaml
 automation:
-  - alias: "ACX alarm fired — turn on lights"
+  - alias: "ACX alarm fired, turn on lights"
     trigger:
       - platform: webhook
         webhook_id: "your-secret-random-id-here"
@@ -414,7 +414,7 @@ automation:
           color_temp_kelvin: 3000
 ```
 
-In ACX Settings, enter `https://your-ha-host:8123/api/webhook/your-secret-random-id-here`. Generate a unique random `webhook_id` (e.g., `uuidgen` or `python -c "import uuid; print(uuid.uuid4())"`) — do not reuse example values. Home Assistant webhook triggers do not require an API token when `local_only: true`.
+In ACX Settings, enter `https://your-ha-host:8123/api/webhook/your-secret-random-id-here`. Generate a unique random `webhook_id` (e.g., `uuidgen` or `python -c "import uuid; print(uuid.uuid4())"`). Don't reuse example values. Home Assistant webhook triggers do not require an API token when `local_only: true`.
 
 ### Tasker
 
@@ -466,4 +466,4 @@ Issues and PRs welcome. Please open an issue before starting major work to discu
 
 ## License
 
-Apache License 2.0 - see [LICENSE](LICENSE)
+Apache License 2.0. See [LICENSE](LICENSE).

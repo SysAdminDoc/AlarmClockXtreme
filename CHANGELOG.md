@@ -173,6 +173,14 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Alarm editor category cards wrap their content instead of reserving a fixed
   height, which removes the empty band under every one-line summary.
 
+## [1.15.33] - 2026-08-12
+
+### Changed
+
+- Drained the actionable roadmap: completed items are archived above, while
+  behavior requiring product, safety, visual, or device decisions is recorded
+  in `Roadmap_Blocked.md`.
+
 ### Internal
 
 - Continued the god-file refactor by extracting Bedtime sleep tracking,
@@ -264,14 +272,6 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   morning-routine checklists cover dismiss-time pet-feeding chains, and the
   weather-aware scheduler already advances snow/ice alarms by the configured
   early-wake interval.
-
-## [1.15.33] - 2026-08-12
-
-### Changed
-
-- Drained the actionable roadmap: completed items are archived above, while
-  behavior requiring product, safety, visual, or device decisions is recorded
-  in `Roadmap_Blocked.md`.
 
 ## [1.15.32] - 2026-07-29
 

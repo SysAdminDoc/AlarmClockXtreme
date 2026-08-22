@@ -1,17 +1,18 @@
-# Research — AlarmClockXtreme
-Date: 2026-07-22 — replaces all prior research.
+# Research: AlarmClockXtreme
+Research date: 2026-07-22, replacing all prior research. Version facts refreshed 2026-08-22.
 
 ## Executive Summary
 
-AlarmClockXtreme (v1.15.30, versionCode 132) is a local-first Android alarm /
+AlarmClockXtreme (v1.15.33, versionCode 135) is a local-first Android alarm /
 bedtime / timer / wake-readiness suite whose strongest shape is a native
-`setAlarmClock()` engine with Direct Boot fallback, 30+ dismiss challenges,
+`setAlarmClock()` engine with Direct Boot fallback, 30 dismiss challenges plus
+"none",
 mission chaining, encrypted backup, a Play/F-Droid split, and a strict
 no-account/no-telemetry stance. **Every finding from the 2026-07-14 research pass
 is now fixed** (Hue TOFU test path, the four-action `AlarmClock` intent contract
 behind a permission-protected activity, single-owner timer alerts, redacted
 public timer labels, `gradle/verification-metadata.xml` with 857 pinned
-components, a real reduced-motion policy, and a per-alarm timezone policy) —
+components, a real reduced-motion policy, and a per-alarm timezone policy),
 verified against live code on 2026-07-22. The remaining high-value direction is
 **reliability-first differentiation**: the incumbents (including Google's own
 Pixel Clock) are visibly failing to fire alarms, and community signal in 2026 is
@@ -50,7 +51,7 @@ per-manufacturer autostart/battery deep-links with post-OTA re-checks.
   fixes, label-synced alarms, ring-only-when-headset. Learn its narrow recovery
   fixes; avoid backup-format changes that break older exports.
 - **you-apps/ClockYou:** clean, fast clock UX with multi-select, numpad entry,
-  timezone auto-adjust, Fossify import. Learn nothing net-new here — ACX already
+  timezone auto-adjust, Fossify import. Learn nothing net-new here, because ACX already
   ships multi-select (`ui/alarmlist/AlarmListScreen.kt`), numpad, timezone policy,
   and Fossify import.
 - **vicolo-dev/chrono:** date-range/every-N-day recurrence, ringtone shuffle /
@@ -65,34 +66,34 @@ per-manufacturer autostart/battery deep-links with post-OTA re-checks.
   their subscription model and the accessibility complaints their gated missions
   attract.
 - **Google Clock / Pixel:** watch-sync + screen-brightening Sunrise Alarm are now
-  platform table-stakes — but Pixel's unresolved "missed alarm — unknown reason"
+  platform table-stakes, but Pixel's unresolved "missed alarm, unknown reason"
   bug is the single biggest acquisition opportunity for a reliability-first app.
 
 ## Security, Privacy, and Reliability
 
-- **Verified — new coroutine-scope leak:** `service/SkipNextAlarmTileService.kt:34`
+- **Verified, new coroutine-scope leak:** `service/SkipNextAlarmTileService.kt:34`
   creates `CoroutineScope(Dispatchers.IO + SupervisorJob())` and launches DB
-  reads at `:43` and `:69` but never cancels it — no `onStopListening()` /
+  reads at `:43` and `:69` but never cancels it. No `onStopListening()` /
   `onDestroy()` override. TileService instances churn as the QS shade opens; the
   scope leaks. Low severity, real. All other services cancel correctly.
-- **Verified — no proactive fire verification:** the engine survives process
+- **Verified, no proactive fire verification:** the engine survives process
   death (`setAlarmClock()` + Direct Boot), and missed alarms replay reactively on
   `USER_PRESENT`/`POWER_DISCONNECTED`, but nothing confirms shortly *after* a
   scheduled fire time that the alarm actually rang. This is exactly the failure
   class of the Pixel "unknown reason" bug and OEM Doze kills.
-- **Verified — alarm audio can stall silently:** the Media3 ring path has no
+- **Verified, alarm audio can stall silently:** the Media3 ring path has no
   stall/timeout detection. Media3 1.9 exposes `StuckPlayerException` and stalled-
   ready timeouts; a stalled ring currently relies only on the delayed
   backup-sound escalation to recover.
-- **Verified-safe — protobuf CVE-2026-0994 (GHSA-7gcm-g887-7qv7, CVSS 8.2):** the
+- **Verified safe, protobuf CVE-2026-0994 (GHSA-7gcm-g887-7qv7, CVSS 8.2):** the
   transitive protobuf (via Glance/Wear/DataStore) resolves through
   `protobuf-bom-4.35.0` in `gradle/verification-metadata.xml`, past the fix line.
   No action; keep the OSV gate watching it.
-- **Verified — Android 17 background-audio exemption holds:** every ring path
+- **Verified, Android 17 background-audio exemption holds:** every ring path
   uses `AudioAttributes.USAGE_ALARM` and the app holds exact-alarm permission, so
   the API 37 while-in-use FGS requirement is waived (already documented in
   CLAUDE.md). Re-verify on an API 37 device at targetSdk bump (tracked, blocked).
-- **Verified — DND/Zen self-management only:** `service/BedtimeZenRuleManager.kt`
+- **Verified, DND/Zen self-management only:** `service/BedtimeZenRuleManager.kt`
   sets its own `INTERRUPTION_FILTER_ALARMS` rule but does not detect a
   *conflicting* user or OEM bedtime/DND schedule that could mute the alarm.
 
@@ -104,7 +105,7 @@ per-manufacturer autostart/battery deep-links with post-OTA re-checks.
   (1767). `BedtimeScreen.kt` is being drained section-by-section (now ~1652).
   Continue the seam-extraction pattern; the ROADMAP "Audit backlog" item covers it.
 - **Reliability layering:** a proactive fire-confirmation watchdog and Media3
-  stall detection are additive to — not duplicative of — the existing reactive
+  stall detection add to the existing reactive
   replay and backup-sound escalation. Frame them as post-fire verification and
   in-ring stall recovery respectively.
 - **Testing gaps:** no tests cover the TileService lifecycle, a simulated silent
@@ -119,26 +120,26 @@ per-manufacturer autostart/battery deep-links with post-OTA re-checks.
 
 ## Rejected Ideas
 
-- **Multi-select bulk alarm ops** — already shipped (`ui/alarmlist/AlarmListScreen.kt`
+- **Multi-select bulk alarm ops**: already shipped (`ui/alarmlist/AlarmListScreen.kt`
   `isSelectionMode`/`selectMany`/bulk delete). Source: you-apps/ClockYou.
-- **Media-button / Bluetooth dismiss-snooze** — already shipped via per-alarm
+- **Media-button / Bluetooth dismiss-snooze**: already shipped via per-alarm
   `hardwareButtonAction` handling `KEYCODE_HEADSETHOOK`/volume/camera in
   `AlarmFiringActivity.onKeyDown` (`:629-660`). Source: BlackyHawky #642.
-- **Headphone-unplug re-routing (AudioBecomingNoisy)** — already handled proactively:
+- **Headphone-unplug re-routing (AudioBecomingNoisy)**: already handled proactively:
   `service/AlarmAudioRouting.shouldForceBuiltInSpeaker` forces the built-in
   speaker so a headset can't swallow the alarm. Source: Media3 1.9.
-- **Ring-only-when-headphones-connected** — directly contradicts the above
+- **Ring-only-when-headphones-connected**: directly contradicts the above
   reliability guarantee (ACX intentionally forces the speaker so alarms can't be
   silently swallowed); niche silent-partner use case not worth reversing it.
   Source: BlackyHawky #631.
-- **Power-off guard / accessibility anti-uninstall lock** — coercive, Play-policy
+- **Power-off guard / accessibility anti-uninstall lock**: coercive, Play-policy
   sensitive, contrary to user control; already Rejected. Source: qralarm-android.
-- **protobuf CVE-2026-0994 remediation item** — transitive protobuf already
+- **protobuf CVE-2026-0994 remediation item**: transitive protobuf already
   resolves to 4.35.0, past the fix line. Source: GHSA-7gcm-g887-7qv7.
-- **Replace AlarmManager with a WorkManager periodic scheduler** — `setAlarmClock()`
+- **Replace AlarmManager with a WorkManager periodic scheduler**: `setAlarmClock()`
   is the correct wake-critical primitive; a WorkManager *watchdog* (see roadmap)
   is the right shape, not a replacement. Source: WorkManager release notes.
-- **Material3 1.5 Expressive TimePicker adoption now** — UX-only, needs a Compose
+- **Material3 1.5 Expressive TimePicker adoption now**: UX-only, needs a Compose
   BOM bump entangled with the blocked AGP 8→9 chain; low value vs. the existing
   dial + numpad. Revisit post-AGP9. Source: compose-material3 release notes.
 
