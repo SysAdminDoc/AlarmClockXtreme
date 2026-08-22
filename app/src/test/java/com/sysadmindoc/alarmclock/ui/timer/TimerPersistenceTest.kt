@@ -252,6 +252,47 @@ class TimerPersistenceTest {
         assertEquals(listOf(8), store.removeRunningTimersForReboot().map { it.id })
     }
 
+    @Test
+    fun timersStartedThroughTheAlarmClockIntentCarryTheCurrentBoot() {
+        setBootCount(14L)
+        // startOrReuse builds its record with the default stamp, so the write
+        // path is the only thing that can put the boot on it. If it stops
+        // doing that the timer is unkillable by a reboot.
+        val started = store.startOrReuse(totalSeconds = 600, label = "eggs")
+        assertTrue(started.created)
+
+        setBootCount(15L)
+
+        assertEquals(emptyList<Int>(), store.loadTimers().map { it.id })
+    }
+
+    @Test
+    fun aRestartedTimerBelongsToTheBootItWasRestartedIn() {
+        setBootCount(21L)
+        store.upsert(
+            PersistedTimerRecord(6, "tea", 300, 0, TimerState.FINISHED, 0)
+        )
+        val restarted = store.restartFinished(6)
+        assertNotNull(restarted)
+
+        assertEquals(listOf(restarted!!.id), store.loadTimers().map { it.id })
+        setBootCount(22L)
+        assertEquals(emptyList<Int>(), store.loadTimers().map { it.id })
+    }
+
+    @Test
+    fun aPausedTimerKeepsItsOldStampAndSurvivesAReboot() {
+        setBootCount(31L)
+        store.replace(
+            listOf(PersistedTimerRecord(9, "paused", 600, 300_000, TimerState.PAUSED, 0))
+        )
+        setBootCount(32L)
+
+        // Nothing about a paused timer depends on elapsedRealtime, so a reboot
+        // is not a reason to drop it.
+        assertEquals(listOf(9), store.loadTimers().map { it.id })
+    }
+
     private fun setBootCount(value: Long) {
         android.provider.Settings.Global.putLong(
             context.contentResolver,
