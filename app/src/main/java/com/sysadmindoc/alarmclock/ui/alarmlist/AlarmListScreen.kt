@@ -219,6 +219,7 @@ fun AlarmListScreen(
 
     if (showTemplates) {
         TemplatePickerSheet(
+            is24Hour = state.is24HourFormat,
             onSelect = { template ->
                 viewModel.createFromTemplate(template)
                 showTemplates = false

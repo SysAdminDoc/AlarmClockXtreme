@@ -343,6 +343,7 @@ fun AppNavigation(
                     AppNavHost(
                         navController = navController,
                         startDest = startDest,
+                        is24Hour = settings.is24HourFormat,
                         prefs = prefs,
                         openReadinessChecklist = reliabilityChecklistDue,
                         sharedAlarmDraft = sharedAlarmDraft,
@@ -356,6 +357,7 @@ fun AppNavigation(
         AppNavHost(
         navController = navController,
         startDest = startDest,
+                        is24Hour = settings.is24HourFormat,
         prefs = prefs,
         openReadinessChecklist = reliabilityChecklistDue,
         sharedAlarmDraft = sharedAlarmDraft,
@@ -377,6 +379,7 @@ fun AppNavigation(
 private fun AppNavHost(
     navController: NavHostController,
     startDest: String,
+    is24Hour: Boolean,
     prefs: android.content.SharedPreferences,
     openReadinessChecklist: Boolean,
     sharedAlarmDraft: Alarm?,
@@ -459,6 +462,7 @@ private fun AppNavHost(
             } else {
                 SharedAlarmImportScreen(
                     alarm = draft,
+                    is24Hour = is24Hour,
                     onCancel = {
                         onSharedAlarmConsumed()
                         if (!navController.popBackStack()) {

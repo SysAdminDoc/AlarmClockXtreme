@@ -65,10 +65,12 @@ import java.util.Locale
 import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.ui.alarmlist.repeatLabel
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 
 @Composable
 fun SharedAlarmImportScreen(
     alarm: Alarm,
+    is24Hour: Boolean,
     onCancel: () -> Unit,
     onSaved: (Long) -> Unit,
     viewModel: SharedAlarmImportViewModel = hiltViewModel()
@@ -120,7 +122,10 @@ fun SharedAlarmImportScreen(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
-            SharedImportDetailRow(label = stringResource(R.string.share_import_time), value = alarm.formatSharedImportTime())
+            SharedImportDetailRow(
+                label = stringResource(R.string.share_import_time),
+                value = alarm.formatSharedImportTime(is24Hour)
+            )
             SharedImportDetailRow(
                 label = stringResource(R.string.share_import_repeat),
                 value = alarm.repeatLabel(LocalContext.current)
@@ -335,9 +340,8 @@ private fun SharedImportDetailRow(label: String, value: String) {
     }
 }
 
-private fun Alarm.formatSharedImportTime(): String {
-    return String.format(Locale.US, "%02d:%02d", hour.coerceIn(0, 23), minute.coerceIn(0, 59))
-}
+private fun Alarm.formatSharedImportTime(is24Hour: Boolean): String =
+    AlarmTimeFormatter.format(hour, minute, is24Hour)
 
 @Composable
 private fun Alarm.challengeSummary(): String {

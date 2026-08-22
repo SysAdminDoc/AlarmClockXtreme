@@ -55,10 +55,12 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TemplatePickerSheet(
+    is24Hour: Boolean,
     onSelect: (AlarmTemplate) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -105,6 +107,7 @@ fun TemplatePickerSheet(
                 items(defaultTemplates, key = { it.key }) { template ->
                     TemplateCard(
                         template = template,
+                        is24Hour = is24Hour,
                         onClick = { onSelect(template) }
                     )
                 }
@@ -116,6 +119,7 @@ fun TemplatePickerSheet(
 @Composable
 private fun TemplateCard(
     template: AlarmTemplate,
+    is24Hour: Boolean,
     onClick: () -> Unit
 ) {
     val accent = templateAccent(template)
@@ -157,7 +161,7 @@ private fun TemplateCard(
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = templateTimeLabel(template),
+                    text = templateTimeLabel(template, is24Hour),
                     color = TextPrimary,
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Light
@@ -212,19 +216,14 @@ private fun templateAccent(template: AlarmTemplate): Color = when {
 }
 
 @Composable
-private fun templateTimeLabel(template: AlarmTemplate): String {
+private fun templateTimeLabel(template: AlarmTemplate, is24Hour: Boolean): String {
     val isRelative = template.hour == 0 && template.minute > 0 && template.repeatDays.isEmpty()
     if (isRelative) {
         return stringResource(R.string.template_time_now_plus, template.minute)
     }
-
-    val hour12 = when {
-        template.hour == 0 -> 12
-        template.hour > 12 -> template.hour - 12
-        else -> template.hour
-    }
-    val suffix = if (template.hour < 12) "AM" else "PM"
-    return "$hour12:${template.minute.toString().padStart(2, '0')} $suffix"
+    // This used to build the 12-hour split by hand and splice in "AM"/"PM",
+    // so it ignored the setting and the phone's language both.
+    return AlarmTimeFormatter.format(template.hour, template.minute, is24Hour)
 }
 
 @Composable

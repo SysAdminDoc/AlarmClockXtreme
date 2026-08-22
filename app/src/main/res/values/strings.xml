@@ -1962,7 +1962,7 @@
     <string name="template_weekend_sleep_in_name">Weekend Sleep-In</string>
     <string name="template_weekend_sleep_in_description">9:00 AM weekends, gentle</string>
     <string name="template_power_nap_name">Power Nap</string>
-    <string name="template_power_nap_description">20 min timer, shake to dismiss</string>
+    <string name="template_power_nap_description">Rings 20 minutes from now, shake to dismiss</string>
     <string name="template_heavy_sleeper_name">Heavy Sleeper</string>
     <string name="template_heavy_sleeper_description">6:00 AM daily, hard math, max volume</string>
     <string name="template_medication_reminder_name">Medication Reminder</string>

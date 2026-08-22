@@ -53,14 +53,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: S
 
-- [ ] P3 — Shared-alarm import and template picker ignore the 24-hour preference
-  Category: ux
-  Where: ui/share/SharedAlarmImportScreen.kt:328 (`%02d:%02d` in `Locale.US`); ui/templates/TemplatePickerSheet.kt:216-222 (always AM/PM); data/model/AlarmTemplate.kt:51 ("20 min timer" for an alarm template)
-  Fix: use the shared formatter with `settings.is24HourFormat`; fix the template description.
-  Acceptance: with 24-hour on, both screens show "06:30".
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — BedtimeReceiver samples the microphone from a background broadcast and persists a false "quiet room" baseline
   Category: correctness
   Where: receiver/BedtimeReceiver.kt:211-213 → service/BedtimeNoiseBaselineSampler.kt:89-108
