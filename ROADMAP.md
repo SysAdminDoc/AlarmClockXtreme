@@ -70,15 +70,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: S
 
-- [ ] P3 — CHANGELOG prose still carries 384 em dashes
-  Category: docs
-  Where: CHANGELOG.md, mostly in released sections from 1.15.28 and earlier
-  Problem: the house style bans em dashes in anything a human reads outside this machine, and the changelog ships with the repo. The 2026-08-22 docs pass fixed README and RESEARCH but left these: rewriting 384 sentences is a mechanical edit that still changes meaning in 384 places, and doing it unreviewed inside a larger commit would bury any damage.
-  Fix: rewrite them in one commit of its own, released section by released section, reading each sentence rather than substituting a character.
-  Acceptance: `grep -c "—" CHANGELOG.md` = 0 and no bullet changed meaning.
-  Confidence: Verified
-  Effort: M
-
 ### Unaudited — needs a pass
 
 - [ ] Unaudited — Actigraphy / Sonar sleep analysis math (data/actigraphy/*, service/SonarSleepService.kt DSP): not reviewed for numerical correctness. This one is not device-gated: the DSP is pure Kotlin and can be checked against hand-computed cases on the JVM. The other five audits moved to Roadmap_Blocked.md on 2026-08-22 because each needs hardware or a live network.
