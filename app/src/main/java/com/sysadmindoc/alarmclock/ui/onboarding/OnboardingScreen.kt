@@ -97,7 +97,7 @@ private val onboardingPages = listOf(
     OnboardingPage(
         icon = Icons.Default.Alarm,
         title = "Reliable wake-ups",
-        description = "Alarm Clock Xtreme is built to stay dependable even when Android is trying to save power in the background.",
+        description = "AlarmClockXtreme is built to stay dependable even when Android is trying to save power in the background.",
         accentColor = AccentBlue,
         highlights = listOf(
             "Exact alarms designed to survive Doze mode",
@@ -223,7 +223,7 @@ fun OnboardingScreen(
                         color = onboardingPages[pagerState.currentPage].accentColor
                     )
                     Text(
-                        text = "Alarm Clock Xtreme",
+                        text = "AlarmClockXtreme",
                         color = TextPrimary,
                         style = MaterialTheme.typography.titleMedium
                     )

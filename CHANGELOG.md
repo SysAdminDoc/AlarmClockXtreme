@@ -6,6 +6,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- A copy pass over the app's own words: no more dashes standing in for
+  punctuation, one spelling of the app name, sentence case on notification
+  channels, one snooze format, and plain language where permission constants,
+  JSON field names and SDK jargon had leaked into things people read.
 - Accessibility on the secondary screens: the Bedtime switches are named, the
   wind-down checklist reports whether each item is ticked, the breathing phase
   and the moment a timer runs out are announced, the News feed tabs report

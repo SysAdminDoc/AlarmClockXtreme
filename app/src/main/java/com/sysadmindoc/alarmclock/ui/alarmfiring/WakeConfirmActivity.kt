@@ -313,7 +313,7 @@ private fun WakeConfirmScreen(
                     )
                     if (remainingRefires > 0) {
                         AppStatusChip(
-                            label = "$remainingRefires re-fire${if (remainingRefires != 1) "s" else ""} left",
+                            label = "$remainingRefires more ${if (remainingRefires == 1) "check" else "checks"} left",
                             icon = Icons.Default.WarningAmber,
                             color = AccentRed
                         )

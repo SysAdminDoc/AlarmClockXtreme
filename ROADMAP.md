@@ -31,14 +31,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: L
 
-- [ ] P2 — Microcopy drift and developer jargon in user-facing strings
-  Category: ux
-  Where: res/values/strings.xml: L73 `Snooze %1$dm` vs seven `%1$d min` strings; L1268 "Snooze Countdown" vs L76 "Snooze countdown"; Title Case channel names L7-L9, L1263, L1266 vs sentence case elsewhere; 13 straight `\'` vs 12 curly `’`; L876 "Alarms-only only" (lint Typos); L988 "SDK available", L991 "READ_SLEEP granted", L986 full permission constant, L984 "F-Droid flavor", L947/L954 JSON field names, L659 "NONE", L671/L670 "content:// URI"; 27 em dashes in in-app copy (house style forbids them in user-facing text); code-side: ui/stats/StatsScreen.kt:726-738, :1141, :1262-1264 ("Motion index 0.42", "Source: sonar RMS…"), ui/bedtime/BedtimeScreen.kt:403, ui/alarmfiring/WakeConfirmActivity.kt:245/:269 ("re-fire"), ui/alarmfiring/MorningBriefingActivity.kt:286 (design rationale shown to the user), ui/share/SharedAlarmImportScreen.kt:219 ("Save, keep off"), ui/components/WhatsNewDialog.kt:56/:85 (two buttons, one outcome), app name written four ways ("AlarmClockXtreme", "ACX", "Alarm Clock Xtreme" in OnboardingScreen.kt:100, wear tile)
-  Fix: one copy pass: single snooze format (`%1$d min`), sentence case everywhere except proper nouns, curly apostrophes, no em dashes, one app-name spelling, replace permission/JSON/enum names with plain language ("Sleep data access granted"), delete the MorningBriefing rationale line, make WhatsNew buttons distinct or single.
-  Acceptance: `grep -c "—" strings.xml` = 0; lint Typos = 0; no `READ_SLEEP`/`labelIncluded`/`content://` in strings.xml.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P2 — A YouTube download is cancelled by a rotation
   Category: ux
   Where: ui/components/YouTubeDownloadDialog.kt:345-360 and :380-395 (`scope.launch` on a `rememberCoroutineScope`, cancelled when the composition is destroyed); ui/ringtone/RingtonePickerSheet.kt:126 (the parent flag now survives rotation, so the dialog itself reopens)
@@ -48,15 +40,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Acceptance: start a download, rotate: it keeps going and still reports success or failure into the picker.
   Confidence: Verified
   Effort: M
-
-- [ ] P2 — Dependabot PRs #33-#42 are open against the repo (blocked: GitHub write needed)
-  Category: maintainability
-  Where: GitHub PRs 33-42 (Dependabot); repo has no `.github/` directory any more
-  Problem: house rule is no Dependabot/Renovate; ten bot PRs sit open and several (AGP/Gradle 9, KSP 2.3, Hilt 2.60) are exactly the coupled upgrades Roadmap_Blocked tracks as a manual migration.
-  Fix: human action on GitHub: close the ten PRs, run `gh api repos/SysAdminDoc/AlarmClockXtreme/vulnerability-alerts -X DELETE` to disable Dependabot security updates, and delete the stale "P2 — Configure GitHub Actions signing secrets (release.yml fails on every tag)" entry in Roadmap_Blocked.md (no workflow exists; releases are built locally by rule).
-  Acceptance: `gh pr list --state open` is empty; Roadmap_Blocked.md no longer references `.github/workflows/release.yml`.
-  Confidence: Verified
-  Effort: S
 
 ### P3
 

@@ -151,7 +151,7 @@ class OnboardingTestAlarmReceiver : BroadcastReceiver() {
         val notification = NotificationCompat.Builder(context, AlarmService.CHANNEL_ALARM)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle("Test alarm")
-            .setContentText("ACX can wake this device. Dismiss the test to finish setup.")
+            .setContentText("AlarmClockXtreme can wake this device. Dismiss the test to finish setup.")
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setFullScreenIntent(activityPendingIntent, true)

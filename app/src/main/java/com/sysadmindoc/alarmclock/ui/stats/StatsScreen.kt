@@ -724,11 +724,11 @@ private fun HealthConnectStatsCard(
                 summary.availability == HealthConnectAvailability.UNAVAILABLE ->
                     "Health Connect is not available on this device."
                 !summary.permissionGranted ->
-                    "Grant READ_SLEEP in Settings to compare wake behavior with recent sleep."
+                    "Grant sleep data access in Settings to compare your wake behaviour with recent sleep."
                 summary.hasRecentSession ->
                     "Recent Health Connect sessions stay local and are shown beside alarm history."
                 else ->
-                    "READ_SLEEP is granted, but no recent sleep sessions were found."
+                    "Sleep data access is granted, but no recent sleep sessions were found."
             }
         )
         Row(
@@ -736,7 +736,7 @@ private fun HealthConnectStatsCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
-                label = if (summary.permissionGranted) "READ_SLEEP granted" else "Permission needed",
+                label = if (summary.permissionGranted) "Sleep data access granted" else "Permission needed",
                 icon = if (summary.permissionGranted) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
                 color = if (summary.permissionGranted) DismissGreen else SnoozeYellow
             )
@@ -1139,7 +1139,7 @@ private fun ActigraphyBucketsCard(
                 }
             )
             AppStatusChip(
-                label = "${if (latestIsSonar) "Movement" else "Motion"} index ${"%.2f".format(latest.averageSleepIndex)}",
+                label = "${if (latestIsSonar) "Movement" else "Motion"} ${"%.0f".format(latest.averageSleepIndex * 100)}%",
                 icon = Icons.Default.BarChart,
                 color = TextMuted
             )
@@ -1259,9 +1259,9 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
 private fun smartWakeDecisionDetail(session: ActigraphySession): String {
     val observed = session.observedMinutesBeforeDecision.coerceAtLeast(0)
     if (session.isSonarSession()) {
-        return "Source: sonar RMS after ${observed}m observed; no raw audio retained"
+        return "Judged from room sound after ${observed} min of listening. No audio is kept."
     }
-    return "Decision: ${smartWakeDecisionLabel(session.decisionReason)} after ${observed}m observed (${session.smartWakeMode.lowercase()})"
+    return "${smartWakeDecisionLabel(session.decisionReason)} after ${observed} min of watching (${session.smartWakeMode.lowercase()})"
 }
 
 private fun smartWakeDecisionLabel(reason: String): String = when (reason) {

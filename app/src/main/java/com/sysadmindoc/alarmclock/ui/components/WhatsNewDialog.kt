@@ -77,13 +77,8 @@ fun WhatsNewDialog(
             }
         },
         dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                TextButton(onClick = onOpenRoadmap) {
-                    Text("What's next", color = MaterialTheme.colorScheme.primary)
-                }
-                TextButton(onClick = onDismiss) {
-                    Text("Review later", color = TextMuted)
-                }
+            TextButton(onClick = onOpenRoadmap) {
+                Text("What's next", color = MaterialTheme.colorScheme.primary)
             }
         },
         text = {

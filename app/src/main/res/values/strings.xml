@@ -67,13 +67,13 @@
     <string name="shortcut_bedtime">Bedtime</string>
     <string name="shortcut_bedtime_long">Open bedtime tracker</string>
 
-    <!-- Notification text (system surfaces — highest i18n priority) -->
+    <!-- Notification text (system surfaces, highest i18n priority) -->
     <string name="notif_channel_database_downgrade">Restore problems</string>
     <string name="notif_database_downgrade_title">Alarms could not be restored</string>
     <string name="notif_database_downgrade_text">The restored data came from a newer version of the app, which this version cannot read. Your alarms were not kept and nothing is scheduled. Add them again, or install the newer version and restore once more.</string>
     <string name="notif_alarm_title">Alarm</string>
     <string name="notif_alarm_ringing">Alarm ringing</string>
-    <string name="notif_snooze_action">Snooze %1$dm</string>
+    <string name="notif_snooze_action">Snooze %1$d min</string>
     <string name="notif_snooze_countdown_title">Snoozed alarm</string>
     <string name="notif_snooze_countdown_text">Rings again in %1$s</string>
     <string name="notif_snooze_countdown_subtext">Snooze countdown</string>
@@ -111,10 +111,10 @@
     <!-- Wake confirmation -->
     <string name="wake_confirm_title">Wake confirmation</string>
     <string name="wake_confirm_question">Are you actually up?</string>
-    <string name="wake_confirm_yes">Yes, I\'m up</string>
-    <string name="wake_confirm_not_yet">Not yet — keep checking</string>
+    <string name="wake_confirm_yes">Yes, I\’m up</string>
+    <string name="wake_confirm_not_yet">Not yet. Keep checking</string>
     <string name="wake_confirm_confirm_label">Confirm to stop re-checks</string>
-    <string name="wake_confirm_final_label">Final check — no more re-fires</string>
+    <string name="wake_confirm_final_label">Final check. No more re-fires</string>
 
     <!-- Alarm firing screen -->
     <string name="firing_controls_title">Alarm controls</string>
@@ -147,7 +147,7 @@
     <string name="firing_dismiss_locked">Dismiss locked</string>
     <string name="firing_bypass_in_seconds">Bypass in %1$ds</string>
     <string name="firing_weather_fallback">weather</string>
-    <string name="firing_weather_early">Fired early — %1$s</string>
+    <string name="firing_weather_early">Fired early: %1$s</string>
     <string name="firing_weather_summary">%1$s %2$s</string>
     <string name="firing_wakeup_check">Wake-up check</string>
     <string name="firing_left_saved_place">Left saved place</string>
@@ -243,15 +243,15 @@
     <string name="firing_challenge_plank_support">A sustained hold proves you are awake and in control.</string>
     <string name="firing_challenge_maze_support">Stay focused and reach the exit.</string>
     <string name="firing_challenge_wifi_support">This alarm clears once you reconnect where you planned.</string>
-    <string name="firing_challenge_sheep_support">A light-focus wake-up — tap only the sheep.</string>
+    <string name="firing_challenge_sheep_support">A light-focus wake-up. Tap only the sheep.</string>
     <string name="firing_challenge_simon_support">Watch the four-color sequence, then repeat it in order.</string>
-    <string name="firing_challenge_date_support">Reading + typing cognitive gate — hard to do half-asleep.</string>
-    <string name="firing_challenge_stroop_support">Classic interference test — pick the ink, ignore the word.</string>
-    <string name="firing_challenge_rps_support">Best-of-5 against the computer — first to 3 wins.</string>
+    <string name="firing_challenge_date_support">Reading and typing together, which is hard to do half-asleep.</string>
+    <string name="firing_challenge_stroop_support">A classic interference test. Pick the ink, ignore the word.</string>
+    <string name="firing_challenge_rps_support">Best of five against the computer. First to three wins.</string>
     <string name="firing_challenge_emoji_support">Memorize 8 pairs while they’re face-up, then find them all.</string>
-    <string name="firing_challenge_speed_support">Groggy fingers slow you down — prove you can type at speed.</string>
+    <string name="firing_challenge_speed_support">Groggy fingers slow you down, so prove you can type at speed.</string>
     <string name="firing_challenge_wordle_support">Find the hidden 5-letter word in up to 6 guesses.</string>
-    <string name="firing_challenge_pvt_support">Tap fast when the target appears — average under 500 ms.</string>
+    <string name="firing_challenge_pvt_support">Tap fast when the target appears. Average under 500 ms.</string>
     <string name="firing_challenge_difference_support">Compare both grids and tap the one tile that changed.</string>
     <string name="firing_challenge_chess_support">Pick the checkmate move from a small board position.</string>
     <string name="firing_challenge_rsvp_support">Read a rapid word stream, then identify a word you saw.</string>
@@ -273,7 +273,7 @@
     <string name="firing_challenge_wifi_status">Reconnect to the required Wi-Fi network.</string>
     <string name="firing_challenge_sheep_status">Tap every sheep; avoid the goats.</string>
     <string name="firing_challenge_simon_status">Wait for playback, then tap the pads in order.</string>
-    <string name="firing_challenge_date_status">Type today\'s date reversed exactly.</string>
+    <string name="firing_challenge_date_status">Type today\’s date reversed exactly.</string>
     <string name="firing_challenge_stroop_status">Tap the color the word is painted in.</string>
     <string name="firing_challenge_rps_status">Win 3 rounds to clear the alarm.</string>
     <string name="firing_challenge_emoji_status">Flip pairs of matching emoji until all are found.</string>
@@ -283,7 +283,7 @@
     <string name="firing_challenge_difference_status">Tap the changed tile in the right-hand grid.</string>
     <string name="firing_challenge_chess_status">Choose the mate-in-1 move.</string>
     <string name="firing_challenge_rsvp_status">Watch the words, then pick the remembered word.</string>
-    <string name="firing_challenge_none_status">Swipe or tap dismiss when you\'re ready.</string>
+    <string name="firing_challenge_none_status">Swipe or tap dismiss when you\’re ready.</string>
 
     <!-- Alarm editor navigation and sections -->
     <string name="alarm_edit_page_overview">Alarm overview</string>
@@ -687,7 +687,7 @@
     <string name="alarm_edit_add_ringtone_accessibility">Add ringtone to pool</string>
     <string name="alarm_edit_ringtone_pool_hint">When the pool is non-empty, a random entry is picked each fire and overrides the single Ringtone setting above. Tap a chip to remove it.</string>
     <string name="alarm_edit_add_ringtone_title">Add ringtone to pool</string>
-    <string name="alarm_edit_ringtone_uri_hint">Paste a content:// URI or file:// path. A random pool entry plays each time this alarm fires.</string>
+    <string name="alarm_edit_ringtone_uri_hint">Paste a link to a sound file on this device. One entry from the pool plays each time this alarm fires.</string>
     <string name="alarm_edit_ringtone_uri">Ringtone URI</string>
     <string name="alarm_edit_ringtone_uri_placeholder" translatable="false">content://… or file://…</string>
     <string name="alarm_edit_ringtone_duplicate">That ringtone is already in the pool.</string>
@@ -792,13 +792,13 @@
     <string name="settings_bottom_navigation">Bottom navigation</string>
     <string name="settings_bottom_navigation_description">Hide tabs you never use. Alarms and Settings always stay available.</string>
     <string name="settings_show_today_tab">Show Today tab</string>
-    <string name="settings_show_today_description">Daily overview — conditions, hourly, UV, sunrise/sunset, and live radar.</string>
+    <string name="settings_show_today_description">Daily overview: conditions, hourly, UV, sunrise, sunset and live radar.</string>
     <string name="settings_show_timer_tab">Show Timer tab</string>
     <string name="settings_show_timer_description">Countdown timers with multiple lanes.</string>
     <string name="settings_show_world_tab">Show World tab</string>
     <string name="settings_show_world_description">Track time zones for cities you care about.</string>
     <string name="settings_show_news_tab">Show News tab</string>
-    <string name="settings_show_news_description">Public RSS feeds — Google News, BBC, NPR, Hacker News.</string>
+    <string name="settings_show_news_description">Public RSS feeds: Google News, BBC, NPR and Hacker News.</string>
     <string name="settings_radar_tab">Live radar on Weather tab</string>
     <string name="settings_radar_description">Embed Windy.com’s animated precipitation radar below the conditions card.</string>
     <string name="settings_utilities">Utilities</string>
@@ -893,16 +893,16 @@
     <string name="settings_on_call_mode_description">Use this with a rotating shift pattern when an on-call alarm must break total-silence Do Not Disturb.</string>
     <string name="settings_on_call_mode_toggle_description">Temporarily changes total silence to Alarms-only while this device is ringing, then restores your previous DND choice.</string>
     <string name="settings_on_call_access_needed">DND access needed</string>
-    <string name="settings_on_call_access_description">Grant notification policy access so ACX can move total silence to Alarms-only only for the on-call ring.</string>
+    <string name="settings_on_call_access_description">Grant notification policy access so the app can switch total silence to alarms only while you are on call.</string>
     <string name="settings_standby_bucket">App Standby bucket</string>
     <string name="settings_guardian_escalation">Guardian Angel escalation</string>
     <string name="settings_standby_unknown">Standby bucket unknown on this device.</string>
-    <string name="settings_standby_active">Active — alarms scheduled without throttling.</string>
-    <string name="settings_standby_working">Working set — light throttling only; alarms fire on time.</string>
-    <string name="settings_standby_frequent">Frequent — Android is throttling background work; alarms may be delayed.</string>
-    <string name="settings_standby_rare">Rare — strong throttling; alarms may fire late or be skipped.</string>
-    <string name="settings_standby_restricted">Restricted — Android caps you to one alarm per day. Open battery settings and exempt the app.</string>
-    <string name="settings_standby_other">Standby bucket %1$d — open battery settings to promote the app to Working set.</string>
+    <string name="settings_standby_active">Active. Alarms are scheduled without throttling.</string>
+    <string name="settings_standby_working">Working set. Light throttling only, so alarms fire on time.</string>
+    <string name="settings_standby_frequent">Frequent. Android is throttling background work, so alarms may be delayed.</string>
+    <string name="settings_standby_rare">Rare. Strong throttling, so alarms may fire late or be skipped.</string>
+    <string name="settings_standby_restricted">Restricted. Android caps you to one alarm a day. Open battery settings and exempt the app.</string>
+    <string name="settings_standby_other">Standby bucket %1$d. Open battery settings to promote the app to Working set.</string>
     <string name="settings_verified">Verified</string>
     <string name="settings_refresh">Refresh</string>
     <string name="settings_dismiss_test">Dismiss test</string>
@@ -936,7 +936,7 @@
     <string name="settings_allow_calls">Allow calls</string>
     <string name="settings_pause_alarms">Pause alarms</string>
     <string name="settings_pause_until">All alarms suspended until end of %1$s.</string>
-    <string name="settings_pause_description">One-tap suspend for an unplanned interruption — works for one-shot alarms too.</string>
+    <string name="settings_pause_description">One-tap suspend for an unplanned interruption. Works for one-shot alarms too.</string>
     <string name="settings_paused">Paused</string>
     <string name="settings_tonight">Tonight</string>
     <plurals name="settings_days"><item quantity="one">%1$d day</item><item quantity="other">%1$d days</item></plurals>
@@ -964,14 +964,14 @@
     <string name="settings_webhook_url">Webhook URL</string>
     <string name="settings_webhook_url_placeholder" translatable="false">https://example.com/hook</string>
     <string name="settings_webhook_include_labels">Include alarm labels</string>
-    <string name="settings_webhook_labels_description">When off, payloads send labelIncluded=false instead of the alarm name.</string>
+    <string name="settings_webhook_labels_description">When off, the payload says the label was withheld instead of sending it.</string>
     <string name="settings_signing_secret">Signing secret</string>
     <string name="settings_signing_secret_placeholder">Optional HMAC secret</string>
     <string name="settings_webhook_blocked">Webhook blocked</string>
     <string name="settings_webhook_blocked_description">Plain HTTP webhooks are blocked. Use an HTTPS endpoint or a local HTTPS bridge for Home Assistant or Tasker.</string>
     <string name="settings_local_network_needed">Local network access needed</string>
     <string name="settings_webhook_network_description">Android 17+ requires local network access before this LAN webhook can be tested or fired.</string>
-    <string name="settings_webhook_payload_description">Payloads include schemaVersion, eventId, occurredAt, scheduledFor, displayTime, and labelIncluded.</string>
+    <string name="settings_webhook_payload_description">Every payload carries a schema version, an event id, when it happened, when the alarm was due, the display time and whether the label was included.</string>
     <string name="settings_testing">Testing</string>
     <string name="settings_test">Test</string>
     <string name="settings_recent_deliveries">Recent deliveries</string>
@@ -993,33 +993,33 @@
     <string name="settings_hue_light_ids_placeholder" translatable="false">1,2,3</string>
     <string name="settings_hue_cert_pinned">Bridge certificate pinned</string>
     <string name="settings_forget">Forget</string>
-    <string name="settings_hue_network_description">Android 17+ requires local network access before ACX can reach this Hue bridge.</string>
+    <string name="settings_hue_network_description">Android 17+ requires local network access before AlarmClockXtreme can reach this Hue bridge.</string>
     <string name="settings_hue_test_description">Run a quick bridge check once the IP and API key are in place.</string>
     <string name="settings_hue_forget_title">Forget Hue certificate?</string>
     <string name="settings_hue_forget_message">Only continue after verifying the bridge was replaced or its certificate changed. The next successful encrypted connection will trust and save a new certificate.</string>
     <string name="settings_hue_forget_action">Forget certificate</string>
     <string name="settings_health_connect">Health Connect</string>
-    <string name="settings_health_fdroid_description">The F-Droid flavor does not ship the Health Connect SDK. This setting is retained for backup compatibility only.</string>
+    <string name="settings_health_fdroid_description">This build does not include Health Connect. The setting is kept so backups from a build that does still restore.</string>
     <string name="settings_health_read_sleep">Read recent sleep sessions</string>
-    <string name="settings_health_read_sleep_description">Uses only android.permission.health.READ_SLEEP. Summaries stay local and are refreshed when Bedtime, Stats, or Settings is open.</string>
+    <string name="settings_health_read_sleep_description">Reads your sleep sessions and nothing else. Summaries stay on the device and refresh while Bedtime, Stats or Settings is open.</string>
     <string name="settings_health_fdroid_permission">No Health Connect permissions are requested on F-Droid.</string>
-    <string name="settings_health_sdk_available">SDK available</string>
+    <string name="settings_health_sdk_available">Available on this device</string>
     <string name="settings_health_update_needed">Update needed</string>
     <string name="settings_health_unavailable">Unavailable</string>
     <string name="settings_health_not_included">Not included</string>
-    <string name="settings_health_permission_granted">READ_SLEEP granted</string>
+    <string name="settings_health_permission_granted">Sleep data access granted</string>
     <string name="settings_health_permission_needed">Permission needed</string>
     <string name="settings_health_last_session">Last Health Connect session: %1$s · %2$d read in the last 14 days.</string>
-    <string name="settings_health_no_recent_sessions">READ_SLEEP is granted, but no recent sleep sessions were returned in the last 14 days.</string>
+    <string name="settings_health_no_recent_sessions">Sleep data access is granted, but nothing was recorded in the last 14 days.</string>
     <string name="settings_health_attention">Health Connect needs attention</string>
     <string name="settings_health_review_access">Review access</string>
     <string name="settings_health_grant_access">Grant access</string>
     <string name="settings_health_update_description">Health Connect is installed but needs an update before sleep sessions can be read.</string>
     <string name="settings_health_unavailable_description">Health Connect is not available on this device.</string>
     <string name="settings_health_opt_in_description">Opt in to read recent Health Connect sleep sessions on-device for Bedtime and Stats context.</string>
-    <string name="settings_health_grant_description">Grant READ_SLEEP in Health Connect before AlarmClockXtreme can show recent sleep summaries.</string>
+    <string name="settings_health_grant_description">Grant sleep data access in Health Connect before the app can show recent sleep summaries.</string>
     <string name="settings_health_available_description">Recent sleep summaries are available locally from Health Connect.</string>
-    <string name="settings_health_empty_description">READ_SLEEP is granted; no recent Health Connect sleep sessions were found yet.</string>
+    <string name="settings_health_empty_description">Sleep data access is granted. No recent Health Connect sleep sessions yet.</string>
     <string name="settings_health_no_session">No session</string>
     <string name="settings_hours_minutes_short">%1$dh %2$dm</string>
     <string name="settings_hours_short">%1$dh</string>
@@ -1049,7 +1049,7 @@
     <string name="settings_connection_hue_data">Light on/brightness/color commands</string>
     <string name="settings_connection_sunrise_skipped">Sunrise simulation skipped</string>
     <string name="settings_connection_on_device">On-device (no network)</string>
-    <string name="settings_connection_health_data">None — reads local sleep sessions</string>
+    <string name="settings_connection_health_data">None, reads local sleep sessions</string>
     <string name="settings_connection_always_local">Always local</string>
     <string name="settings_connections_data">Connections and data</string>
     <string name="settings_connections_data_description">Optional network services and what they send. Nothing leaves the device unless you enable it.</string>
@@ -1068,7 +1068,7 @@
     <string name="settings_expressive_surfaces">Expressive surfaces</string>
     <string name="settings_expressive_surfaces_description">Adds bolder shape rhythm and clearer accent semantics across shared app surfaces.</string>
     <string name="settings_reduce_motion">Reduce motion and flashing</string>
-    <string name="settings_reduce_motion_description">Stops decorative loops and flashlight strobing. Android\'s Remove animations setting is also honored.</string>
+    <string name="settings_reduce_motion_description">Stops decorative loops and flashlight strobing. Android\’s Remove animations setting is also honored.</string>
     <string name="settings_cover_to_snooze">Cover-to-snooze</string>
     <string name="settings_cover_to_snooze_description">Hold a hand over the proximity sensor for ~1.5 s during an alarm to snooze.</string>
     <string name="settings_repeat_missed">Repeat missed alarms</string>
@@ -1085,18 +1085,18 @@
     <string name="settings_firing_buttons">Buttons</string>
     <string name="settings_firing_swipe">Swipe</string>
     <string name="settings_firing_hybrid">Hybrid</string>
-    <string name="settings_firing_hybrid_description">Hybrid — swipe gestures and buttons</string>
-    <string name="settings_firing_buttons_description">Buttons only — accessible, no gestures</string>
-    <string name="settings_firing_swipe_description">Swipe only — gesture-driven</string>
+    <string name="settings_firing_hybrid_description">Hybrid: swipe gestures and buttons</string>
+    <string name="settings_firing_buttons_description">Buttons only: accessible, no gestures</string>
+    <string name="settings_firing_swipe_description">Swipe only: gesture-driven</string>
     <string name="settings_custom_typing_phrases">Custom typing phrases</string>
-    <string name="settings_custom_typing_phrases_placeholder">One phrase per line — appended to the built-in list</string>
+    <string name="settings_custom_typing_phrases_placeholder">One phrase per line, appended to the built-in list</string>
     <string name="settings_custom_typing_phrases_description">These are added after the built-in phrase library, so you can make typing challenges sound more like you.</string>
     <string name="settings_challenge_bypass">Challenge accessibility bypass</string>
     <string name="settings_challenge_bypass_description">Allow dismissing after a timed delay without completing the challenge. Helps users who cannot perform physical challenges.</string>
     <string name="settings_bypass_delay">Bypass delay</string>
     <string name="settings_seconds_short">%1$ds</string>
     <string name="settings_challenge_audio_ducking">Quieter audio during challenges</string>
-    <string name="settings_challenge_audio_ducking_description">Reduces only this alarm\'s player volume while you solve a dismiss challenge; calls still mute it completely.</string>
+    <string name="settings_challenge_audio_ducking_description">Reduces only this alarm\’s player volume while you solve a dismiss challenge; calls still mute it completely.</string>
     <string name="settings_challenge_volume">Challenge volume: %1$d%%</string>
     <string name="settings_percent">%1$d%%</string>
     <string name="settings_bedtime_checklist">Bedtime wind-down checklist</string>
@@ -1203,7 +1203,7 @@
     <string name="settings_change_date">Change %1$s date</string>
     <string name="settings_date_field_description">%1$s: %2$s</string>
     <string name="settings_minutes_seconds_compact">%1$dm %2$ds</string>
-    <string name="settings_webhook_log_line">%1$s — %2$s</string>
+    <string name="settings_webhook_log_line">%1$s: %2$s</string>
     <string name="alarm_edit_empty_ringtone">(empty)</string>
     <string name="alarm_edit_clock_entry">Clock</string>
     <string name="alarm_edit_numpad_entry">Numpad</string>
@@ -1254,13 +1254,13 @@
 
     <!-- Fossify import feedback -->
     <plurals name="settings_fossify_import_success"><item quantity="one">Imported %1$d Fossify alarm as disabled for review.</item><item quantity="other">Imported %1$d Fossify alarms as disabled for review.</item></plurals>
-    <string name="settings_fossify_preview_not_export">Couldn\'t preview this file. It doesn\'t look like a Fossify Clock export — choose the JSON file exported by Fossify Clock.</string>
-    <string name="settings_fossify_preview_unreadable">Couldn\'t preview this file. Check that it is still accessible on this device and try again.</string>
-    <string name="settings_fossify_import_failed_not_export">Couldn\'t import Fossify alarms. The file doesn\'t look like a Fossify Clock export.</string>
-    <string name="settings_fossify_import_failed_unreadable">Couldn\'t import Fossify alarms. Check that the file is still accessible and try again.</string>
-    <string name="settings_fossify_import_failed_changed">Couldn\'t import Fossify alarms. The file changed after preview — choose it again to re-check.</string>
-    <string name="settings_fossify_import_failed_no_alarms">Couldn\'t import Fossify alarms. The file has no valid alarms.</string>
-    <string name="settings_fossify_import_failed_generic">Couldn\'t import Fossify alarms. Check the file and try again.</string>
+    <string name="settings_fossify_preview_not_export">Couldn\’t preview this file. It doesn\’t look like a Fossify Clock export. Choose the JSON file exported by Fossify Clock.</string>
+    <string name="settings_fossify_preview_unreadable">Couldn\’t preview this file. Check that it is still accessible on this device and try again.</string>
+    <string name="settings_fossify_import_failed_not_export">Couldn\’t import Fossify alarms. The file doesn\’t look like a Fossify Clock export.</string>
+    <string name="settings_fossify_import_failed_unreadable">Couldn\’t import Fossify alarms. Check that the file is still accessible and try again.</string>
+    <string name="settings_fossify_import_failed_changed">Couldn\’t import Fossify alarms. The file changed after preview, so choose it again to re-check.</string>
+    <string name="settings_fossify_import_failed_no_alarms">Couldn\’t import Fossify alarms. The file has no valid alarms.</string>
+    <string name="settings_fossify_import_failed_generic">Couldn\’t import Fossify alarms. Check the file and try again.</string>
 
     <!-- Backup status copy -->
     <plurals name="settings_backup_alarm_count"><item quantity="one">%1$d alarm</item><item quantity="other">%1$d alarms</item></plurals>
@@ -1282,11 +1282,11 @@
     <string name="notif_channel_alarm_desc">Alarm notifications</string>
     <string name="notif_channel_upcoming_desc">Shows upcoming alarm information</string>
     <string name="notif_channel_missed_desc">Notifications for alarms that were auto-silenced</string>
-    <string name="notif_channel_timer_finished">Timer Finished</string>
+    <string name="notif_channel_timer_finished">Timer finished</string>
     <string name="notif_channel_timer_finished_desc">Notifies when one of your countdown timers reaches zero.</string>
-    <string name="notif_channel_bedtime_desc">Reminds you when it\'s time to sleep</string>
-    <string name="notif_channel_bedtime_countdown">Bedtime Countdown</string>
+    <string name="notif_channel_bedtime_desc">Reminds you when it\’s time to sleep</string>
+    <string name="notif_channel_bedtime_countdown">Bedtime countdown</string>
     <string name="notif_channel_bedtime_countdown_desc">Shows the final-hour countdown before the bedtime reminder</string>
-    <string name="notif_channel_snooze_countdown">Snooze Countdown</string>
+    <string name="notif_channel_snooze_countdown">Snooze countdown</string>
     <string name="notif_channel_snooze_countdown_desc">Shows the time until a snoozed alarm rings again</string>
 </resources>

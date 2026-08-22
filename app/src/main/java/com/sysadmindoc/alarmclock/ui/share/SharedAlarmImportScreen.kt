@@ -216,7 +216,7 @@ fun SharedAlarmImportScreen(
                     Spacer(modifier = Modifier.size(8.dp))
                     Text("Saving")
                 } else {
-                    Text("Save, keep off")
+                    Text("Save without enabling")
                 }
             }
         }

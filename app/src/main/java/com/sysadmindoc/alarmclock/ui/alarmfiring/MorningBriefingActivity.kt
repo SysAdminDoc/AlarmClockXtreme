@@ -282,13 +282,6 @@ fun MorningBriefingScreen(
                 )
             }
 
-            Text(
-                text = "This closes intentionally so the handoff from alarm to morning feels clean, not abrupt.",
-                color = TextMuted,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
