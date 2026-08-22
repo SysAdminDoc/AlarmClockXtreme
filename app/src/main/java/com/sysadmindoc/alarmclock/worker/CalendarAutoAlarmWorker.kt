@@ -30,6 +30,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * v1.2.0: Calendar auto-alarm worker.
@@ -78,6 +80,18 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
         const val WORK_NAME = "calendar_auto_alarm"
         private const val REFRESH_WORK_NAME = "calendar_auto_alarm_refresh"
 
+        /**
+         * The periodic pass and a one-shot refresh are separate unique work,
+         * so they can run at the same moment in the same process. Both look
+         * for an existing auto-alarm and insert one if there is none, which
+         * used to leave two enabled `calendar_auto` rows behind. Serialising
+         * the whole read-modify-write closes that window.
+         */
+        private val runLock = Mutex()
+
+        /** Beyond this a calendar read is failing for a reason a retry cannot fix. */
+        private const val MAX_RETRY_ATTEMPTS = 5
+
         fun schedulePeriodic(context: Context) {
             val request = PeriodicWorkRequestBuilder<CalendarAutoAlarmWorker>(
                 PERIODIC_INTERVAL_MINUTES,
@@ -106,7 +120,9 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
         }
     }
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = runLock.withLock { syncAutoAlarm() }
+
+    private suspend fun syncAutoAlarm(): Result {
         val settings = preferencesManager.getCurrentSettings()
         if (!settings.calendarAutoAlarmEnabled) {
             // Feature disabled — also disable any existing auto-alarm so it
@@ -132,7 +148,9 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
         } catch (_: SecurityException) {
             return Result.success()
         } catch (_: Exception) {
-            return Result.retry()
+            // Bounded: an unbounded retry keeps a broken provider read alive in
+            // WorkManager's queue forever.
+            return if (runAttemptCount >= MAX_RETRY_ATTEMPTS) Result.failure() else Result.retry()
         }
 
         val existing = findExistingAutoAlarm()
@@ -182,7 +200,14 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
         // The auto-alarm is uniquely identified by profileName, so a single
         // table scan over (typically a handful of) rows suffices. Avoids
         // adding a dedicated DAO query just for one feature.
-        return repository.getAll().firstOrNull { it.profileName == AUTO_PROFILE }
+        val owned = repository.getAll().filter { it.profileName == AUTO_PROFILE }
+        // Older builds could race two workers into inserting a second row.
+        // Keep the oldest and clear the strays out so the invariant holds.
+        owned.drop(1).forEach { stray ->
+            scheduler.cancel(stray.id)
+            repository.delete(stray)
+        }
+        return owned.firstOrNull()
     }
 
     private suspend fun resolveCommuteAdjustment(

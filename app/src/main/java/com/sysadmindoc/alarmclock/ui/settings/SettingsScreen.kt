@@ -4,10 +4,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -295,6 +297,13 @@ fun SettingsScreen(
     ) {
         viewModel.refreshWakeReadiness()
     }
+    // Turning the first-meeting alarm on is inert without calendar access, and
+    // nothing else in the app ever asks for it.
+    val calendarPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        viewModel.toggleCalendarAutoAlarm(granted)
+    }
     val healthConnectPermissionContract = remember { viewModel.healthConnectPermissionContract() }
     val requestHealthConnectPermissions: (() -> Unit)? = if (healthConnectPermissionContract != null) {
         val launcher = rememberLauncherForActivityResult(healthConnectPermissionContract) { granted ->
@@ -574,7 +583,17 @@ fun SettingsScreen(
                     } else {
                         stringResource(R.string.settings_first_meeting_disabled_description)
                     },
-                    onToggle = viewModel::toggleCalendarAutoAlarm
+                    onToggle = { enabled ->
+                        val hasCalendarAccess = ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.READ_CALENDAR
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (enabled && !hasCalendarAccess) {
+                            calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
+                        } else {
+                            viewModel.toggleCalendarAutoAlarm(enabled)
+                        }
+                    }
                 )
                 SettingsActionRow(
                     label = stringResource(R.string.settings_meeting_lead_time),

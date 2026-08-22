@@ -6,6 +6,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Turning on the first-meeting alarm now asks for calendar access, and the
+  Schedule card's "Calendar access" row can be tapped to grant it. Nothing in
+  the app ever requested the permission, so the feature could be on and inert.
+  Two workers could also insert a second `calendar_auto` alarm at the same
+  moment; that is serialised now, and any stray row is cleaned up.
 - The per-alarm early dismiss window now controls when the upcoming-alarm
   notification offers Skip. The setting had no effect and Skip was always
   there.

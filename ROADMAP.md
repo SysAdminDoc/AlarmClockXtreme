@@ -12,16 +12,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P2 — correctness and reliability
 
-- [ ] P2 — Calendar auto-alarm can create duplicate auto-alarm rows and never asks for READ_CALENDAR
-  Category: reliability
-  Where: worker/CalendarAutoAlarmWorker.kt:81-106 (periodic `WORK_NAME` with UPDATE policy and one-shot `REFRESH_WORK_NAME` run the same `doWork()` concurrently), :122-123 (silent `Result.success()` without permission), :135 (unbounded `Result.retry()`), :176-186 (`findExistingAutoAlarm` scan then `save(id = 0)`); AlarmClockApp.kt:123-131 and ui/settings/SettingsViewModel.kt:644-650 (both enqueue back-to-back); ui/dashboard/DashboardScreen.kt:881-887 (calendar-permission row has no click handler); ui/settings/SettingsScreen.kt:569-577 (toggle never checks permission)
-  Problem: enabling the feature starts two workers at once; both see "no auto alarm yet" and both insert, producing two enabled `calendar_auto` alarms. Separately, no screen ever requests READ_CALENDAR, so the toggle can be ON and silently inert, and the dashboard row telling the user to grant access cannot be tapped.
-  Evidence: code trace above; no `RequestPermission(READ_CALENDAR)` launcher exists in ui/ (grep).
-  Fix: give the refresh the same unique name with `ExistingWorkPolicy.REPLACE`, guard `doWork` with a process-wide `Mutex`, bound retries with `runAttemptCount`; add a `rememberLauncherForActivityResult(RequestPermission())` for READ_CALENDAR on the Settings toggle and make the dashboard row tappable; show the existing inline-notice pattern (SettingsReadinessSections.kt:473-491) when enabled without permission.
-  Acceptance: toggling the feature on a fresh install prompts for calendar access and creates exactly one `calendar_auto` alarm; `alarms` table never contains two rows with `profileName == "calendar_auto"`.
-  Confidence: Likely
-  Effort: S
-
 - [ ] P2 — Timer store has no reboot guard: phantom timers ring or show days remaining after a reboot
   Category: reliability
   Where: ui/timer/TimerPersistence.kt:23-31, :69-90, :92-122 (records compared against `elapsedRealtime()` with no boot identity); receiver/BootReceiver.kt:79-80 (the only cleanup, on BOOT_COMPLETED/MY_PACKAGE_REPLACED); ui/timer/TimerViewModel.kt:318-341 `restorePersistedTimers()`; compare ui/stopwatch/StopwatchViewModel.kt:192-207 (uses `Settings.Global.BOOT_COUNT`)

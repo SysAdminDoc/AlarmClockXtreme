@@ -1,5 +1,8 @@
 package com.sysadmindoc.alarmclock.ui.dashboard
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -67,6 +70,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -103,6 +107,11 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val calendarPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        viewModel.loadData()
+    }
 
     LaunchedEffect(Unit) {
         viewModel.loadData()
@@ -160,7 +169,9 @@ fun DashboardScreen(
                 }
 
                 if (state.showCalendar) {
-                    CalendarSection(state)
+                    CalendarSection(state) {
+                        calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
+                    }
                 }
 
                 if (state.nextAlarmTime.isNotBlank()) {
@@ -866,7 +877,10 @@ private fun HourlyCell(hour: HourlyForecast) {
 }
 
 @Composable
-private fun CalendarSection(state: DashboardUiState) {
+private fun CalendarSection(
+    state: DashboardUiState,
+    onRequestCalendarPermission: () -> Unit
+) {
     // v1.7.5: Title moved INTO the card so the calendar section matches the
     // "Next few hours" / "Next 3 days" weather sub-cards. Previously the
     // section title floated outside the card, looking like a stray label.
@@ -879,11 +893,14 @@ private fun CalendarSection(state: DashboardUiState) {
         )
         when {
             state.calendarPermissionNeeded -> {
+                // The row used to say "allow calendar access" and do nothing
+                // when tapped, with no other place in the app to grant it.
                 CompactDashboardRow(
                     icon = Icons.Default.CalendarMonth,
                     title = "Calendar access",
-                    description = "Allow calendar access to see today’s events.",
-                    accent = SnoozeYellow
+                    description = "Tap to allow calendar access and see today’s events.",
+                    accent = SnoozeYellow,
+                    onClick = onRequestCalendarPermission
                 )
             }
 
@@ -913,11 +930,19 @@ private fun CompactDashboardRow(
     icon: ImageVector,
     title: String,
     description: String,
-    accent: Color
+    accent: Color,
+    onClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(role = Role.Button, onClick = onClick)
+                } else {
+                    Modifier
+                }
+            )
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
