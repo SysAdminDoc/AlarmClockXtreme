@@ -18,6 +18,7 @@ import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import com.sysadmindoc.alarmclock.util.LocationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -183,9 +184,8 @@ class DashboardViewModel @Inject constructor(
                 if (alarm == null) {
                     Triple("", "", "")
                 } else {
-                    val pattern = if (settings.is24HourFormat) "HH:mm" else "h:mm a"
                     Triple(
-                        alarm.time.format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault())),
+                        alarm.time.format(AlarmTimeFormatter.formatter(settings.is24HourFormat)),
                         alarm.label.ifBlank { "Alarm" },
                         alarm.repeatLabel
                     )

@@ -17,6 +17,7 @@ import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.util.AlarmPublicText
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -167,7 +168,7 @@ class NextAlarmNotifier @Inject constructor(
         // Format time
         val triggerInstant = Instant.ofEpochMilli(alarm.nextTriggerTime)
         val localDateTime = triggerInstant.atZone(ZoneId.systemDefault()).toLocalDateTime()
-        val timePattern = if (settings.is24HourFormat) "EEE HH:mm" else "EEE h:mm a"
+        val timePattern = "EEE " + AlarmTimeFormatter.pattern(settings.is24HourFormat)
         val timeStr = localDateTime.format(DateTimeFormatter.ofPattern(timePattern))
         val remaining = calculator.formatRemaining(alarm.nextTriggerTime)
 

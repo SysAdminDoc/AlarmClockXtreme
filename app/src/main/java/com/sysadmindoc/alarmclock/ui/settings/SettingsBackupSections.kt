@@ -154,6 +154,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
@@ -603,7 +604,7 @@ private fun FossifyImportPreviewDialog(
     val dayLabels = fossifyShortDayLabels()
     val locale = LocalConfiguration.current.locales[0]
     val timeFormatter = remember(is24HourFormat, locale) {
-        DateTimeFormatter.ofPattern(if (is24HourFormat) "HH:mm" else "h:mm a", locale)
+        AlarmTimeFormatter.formatter(is24HourFormat, locale)
     }
     AlertDialog(
         onDismissRequest = onDismiss,

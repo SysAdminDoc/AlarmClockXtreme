@@ -14,10 +14,10 @@ import android.service.notification.ZenPolicy
 import com.sysadmindoc.alarmclock.MainActivity
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 data class BedtimeZenRuleStatus(
@@ -51,8 +51,6 @@ object BedtimeZenRuleManager {
     private const val PARAM_START = "start"
     private const val PARAM_END = "end"
     private const val PARAM_END_SOURCE = "end_source"
-    private const val DATE_TIME_PATTERN_24H = "HH:mm"
-    private const val DATE_TIME_PATTERN_12H = "h:mm a"
 
     fun isPolicyAccessGranted(context: Context): Boolean {
         val manager = notificationManager(context)
@@ -384,8 +382,9 @@ object BedtimeZenRuleManager {
         return "%02d:%02d".format(Locale.US, time.hour, time.minute)
     }
 
-    private fun formatTime(time: LocalTime, is24h: Boolean): String {
-        val pattern = if (is24h) DATE_TIME_PATTERN_24H else DATE_TIME_PATTERN_12H
-        return time.format(DateTimeFormatter.ofPattern(pattern, Locale.US))
-    }
+    // The rule name shows up in the system Do Not Disturb screen, so it
+    // follows the phone's locale. formatQueryTime above is the wire format
+    // inside the condition URI and stays Locale.US on purpose.
+    private fun formatTime(time: LocalTime, is24h: Boolean): String =
+        AlarmTimeFormatter.format(time.hour, time.minute, is24h)
 }

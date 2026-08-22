@@ -44,9 +44,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import kotlin.math.abs
 
 @Composable
@@ -306,7 +304,5 @@ private fun formatTimeRange(startMinutes: Int, endMinutes: Int, is24Hour: Boolea
 
 private fun formatClockMinute(minutes: Int, is24Hour: Boolean): String {
     val normalized = ((minutes % (24 * 60)) + (24 * 60)) % (24 * 60)
-    val pattern = if (is24Hour) "HH:mm" else "h:mm a"
-    return LocalTime.of(normalized / 60, normalized % 60)
-        .format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
+    return AlarmTimeFormatter.format(normalized / 60, normalized % 60, is24Hour)
 }

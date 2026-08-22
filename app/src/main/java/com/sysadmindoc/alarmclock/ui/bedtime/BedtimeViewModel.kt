@@ -32,6 +32,7 @@ import com.sysadmindoc.alarmclock.service.BedtimeNoiseBaselineSnapshot
 import com.sysadmindoc.alarmclock.service.SonarSleepSnapshot
 import com.sysadmindoc.alarmclock.service.SonarSleepService
 import com.sysadmindoc.alarmclock.service.SleepSoundPlayer
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -275,8 +276,7 @@ class BedtimeViewModel @Inject constructor(
      * Returns 4 options for N = 5, 4, 3, 2 cycles (7.5h, 6h, 4.5h, 3h).
      */
     private fun computeSleepCycles(wakeTime: LocalTime, is24h: Boolean): List<String> {
-        val pattern = if (is24h) "HH:mm" else "h:mm a"
-        val formatter = DateTimeFormatter.ofPattern(pattern)
+        val formatter = AlarmTimeFormatter.formatter(is24h)
         return (5 downTo 2).map { cycles ->
             val totalMinutes = cycles * 90 + 15
             val sleepTime = wakeTime.minusMinutes(totalMinutes.toLong())
@@ -758,15 +758,8 @@ class BedtimeViewModel @Inject constructor(
         super.onCleared()
     }
 
-    private fun formatTime(hour: Int, minute: Int, is24h: Boolean = false): String {
-        return if (is24h) {
-            "${String.format("%02d", hour)}:${String.format("%02d", minute)}"
-        } else {
-            val h = if (hour % 12 == 0) 12 else hour % 12
-            val amPm = if (hour < 12) "AM" else "PM"
-            "$h:${String.format("%02d", minute)} $amPm"
-        }
-    }
+    private fun formatTime(hour: Int, minute: Int, is24h: Boolean = false): String =
+        AlarmTimeFormatter.format(hour, minute, is24h)
 
     private fun getBatteryPercent(): Int {
         val bm = context.getSystemService(Context.BATTERY_SERVICE) as? android.os.BatteryManager

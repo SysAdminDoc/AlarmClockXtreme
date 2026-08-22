@@ -23,6 +23,7 @@ import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.MainActivity
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.util.AlarmPublicText
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -75,8 +76,7 @@ class NextAlarmWidget : GlanceAppWidget() {
                 val triggerInstant = Instant.ofEpochMilli(alarm.nextTriggerTime)
                 val localTime = triggerInstant.atZone(ZoneId.systemDefault()).toLocalDateTime()
                 val is24Hour = DateFormat.is24HourFormat(context)
-                val timePattern = if (is24Hour) "HH:mm" else "h:mm a"
-                val timeStr = localTime.format(DateTimeFormatter.ofPattern(timePattern))
+                val timeStr = localTime.format(AlarmTimeFormatter.formatter(is24Hour))
                 val dayStr = localTime.format(DateTimeFormatter.ofPattern("EEE"))
 
                 WidgetAlarmData(

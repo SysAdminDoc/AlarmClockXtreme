@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -48,13 +49,13 @@ class WorldClockViewModel @Inject constructor(
     // 12/24-hour preference actually changes.
     private var cachedIs24Hour: Boolean? = null
     private var localTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm:ss a")
-    private var zoneTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+    private var zoneTimeFormatter: DateTimeFormatter = AlarmTimeFormatter.formatter(is24Hour = false)
     private val zoneDateFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d")
 
     private fun refreshFormatters() {
         if (cachedIs24Hour == is24Hour) return
         localTimeFormatter = DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm:ss" else "h:mm:ss a")
-        zoneTimeFormatter = DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm" else "h:mm a")
+        zoneTimeFormatter = AlarmTimeFormatter.formatter(is24Hour)
         cachedIs24Hour = is24Hour
     }
 

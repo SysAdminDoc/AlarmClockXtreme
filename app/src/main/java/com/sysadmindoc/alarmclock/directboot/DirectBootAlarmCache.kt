@@ -6,10 +6,7 @@ import android.content.Context
 import android.text.format.DateFormat
 import android.util.Log
 import com.sysadmindoc.alarmclock.data.model.Alarm
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 
 object DirectBootAlarmCache {
     private const val TAG = "DirectBootAlarmCache"
@@ -250,11 +247,6 @@ object DirectBootAlarmCache {
         return context.applicationContext.createDeviceProtectedStorageContext()
     }
 
-    private fun formatTriggerTime(context: Context, triggerTime: Long): String {
-        val zone = ZoneId.systemDefault()
-        val pattern = if (DateFormat.is24HourFormat(context)) "HH:mm" else "h:mm a"
-        return Instant.ofEpochMilli(triggerTime)
-            .atZone(zone)
-            .format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
-    }
+    private fun formatTriggerTime(context: Context, triggerTime: Long): String =
+        AlarmTimeFormatter.format(triggerTime, DateFormat.is24HourFormat(context))
 }

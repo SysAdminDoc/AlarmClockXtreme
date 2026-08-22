@@ -141,6 +141,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -537,8 +538,7 @@ fun AlarmListScreen(
                                 val timeLabels = conflictTimes.joinToString(", ") { totalMin ->
                                     val h = totalMin / 60
                                     val m = totalMin % 60
-                                    if (state.is24HourFormat) "%02d:%02d".format(h, m)
-                                    else "%d:%02d %s".format(if (h % 12 == 0) 12 else h % 12, m, if (h < 12) "AM" else "PM")
+                                    AlarmTimeFormatter.format(h, m, state.is24HourFormat)
                                 }
                                 AppInlineNotice(
                                     title = stringResource(R.string.alarm_list_duplicate_time_title),
@@ -1666,15 +1666,8 @@ private fun shareAlarm(context: Context, alarm: Alarm, is24Hour: Boolean) {
     }
 }
 
-private fun formatAlarmTime(alarm: Alarm, is24Hour: Boolean): String {
-    return if (is24Hour) {
-        String.format("%02d:%02d", alarm.hour, alarm.minute)
-    } else {
-        val hour12 = if (alarm.hour % 12 == 0) 12 else alarm.hour % 12
-        val amPm = if (alarm.hour < 12) "AM" else "PM"
-        "$hour12:${String.format("%02d", alarm.minute)} $amPm"
-    }
-}
+private fun formatAlarmTime(alarm: Alarm, is24Hour: Boolean): String =
+    AlarmTimeFormatter.format(alarm.hour, alarm.minute, is24Hour)
 
 /**
  * The dismiss challenges this alarm will actually run, in order.
@@ -1731,7 +1724,7 @@ private fun nextOccurrenceLabel(
     if (!alarm.isEnabled || alarm.nextTriggerTime <= 0) {
         return "Paused until you re-enable this alarm"
     }
-    val pattern = if (is24Hour) "EEE, MMM d • HH:mm" else "EEE, MMM d • h:mm a"
+    val pattern = "EEE, MMM d • " + AlarmTimeFormatter.pattern(is24Hour)
     val formatted = Instant.ofEpochMilli(alarm.nextTriggerTime)
         .atZone(ZoneId.systemDefault())
         .format(DateTimeFormatter.ofPattern(pattern))

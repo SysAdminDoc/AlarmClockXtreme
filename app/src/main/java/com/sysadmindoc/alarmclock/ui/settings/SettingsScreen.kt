@@ -157,6 +157,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import com.sysadmindoc.alarmclock.util.AppLanguageManager
@@ -1527,7 +1528,7 @@ internal fun incidentLabel(type: String?): String {
 internal fun formatIncidentTimestamp(eventAt: Long?, use24Hour: Boolean): String {
     if (eventAt == null || eventAt <= 0L) return stringResource(R.string.settings_time_unknown)
     val locale = LocalConfiguration.current.locales[0]
-    val pattern = if (use24Hour) "MMM d, HH:mm" else "MMM d, h:mm a"
+    val pattern = "MMM d, " + AlarmTimeFormatter.pattern(use24Hour)
     return DateTimeFormatter.ofPattern(pattern, locale)
         .withZone(ZoneId.systemDefault())
         .format(Instant.ofEpochMilli(eventAt))

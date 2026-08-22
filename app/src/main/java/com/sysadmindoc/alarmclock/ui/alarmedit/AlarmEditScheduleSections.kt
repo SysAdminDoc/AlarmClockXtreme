@@ -68,6 +68,7 @@ import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.*
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import com.sysadmindoc.alarmclock.util.LocationHelper
 import com.sysadmindoc.alarmclock.util.PhotoMatcher
 import com.sysadmindoc.alarmclock.worker.GuardianEscalationPolicy
@@ -91,9 +92,7 @@ internal fun LazyListScope.alarmEditScheduleSections(
                 val dateStr = dt.format(
                     java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
                 )
-                val timeStr = dt.format(java.time.format.DateTimeFormatter.ofPattern(
-                    if (state.is24HourFormat) "HH:mm" else "h:mm a"
-                ))
+                val timeStr = dt.format(AlarmTimeFormatter.formatter(state.is24HourFormat))
                 val label = if (entry.skippedByVacation) {
                     stringResource(R.string.alarm_edit_vacation_skip_date, dateStr, timeStr)
                 } else {

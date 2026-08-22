@@ -96,6 +96,7 @@ import java.time.format.DateTimeFormatter
 import com.sysadmindoc.alarmclock.R
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 
 @Composable
 fun StatsScreen(
@@ -1397,7 +1398,7 @@ private fun DayOfWeekChart(counts: Map<DayOfWeek, Int>, modifier: Modifier = Mod
 @Composable
 private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
     val timeStr = remember(event.firedAt, is24Hour) {
-        val pattern = if (is24Hour) "MMM d, HH:mm" else "MMM d, h:mm a"
+        val pattern = "MMM d, " + AlarmTimeFormatter.pattern(is24Hour)
         Instant.ofEpochMilli(event.firedAt)
             .atZone(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern(pattern))
