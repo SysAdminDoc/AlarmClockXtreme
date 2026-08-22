@@ -162,6 +162,10 @@ internal fun buildChallenge(
     ChallengeType.SQUAT -> Challenge.SquatChallenge(requiredSquats = alarm.requiredSquats)
     ChallengeType.PUSH_UP -> Challenge.PushUpChallenge(requiredPushUps = 10)
     ChallengeType.PLANK_HOLD -> Challenge.PlankHoldChallenge(requiredSeconds = 30)
+    // The editor forces an SSID and stores it on the alarm, but the generator
+    // has no access to it and built the challenge with a blank requirement, so
+    // any connected network dismissed the alarm.
+    ChallengeType.WIFI_CONNECT -> Challenge.WifiChallenge(requiredSsid = alarm.wifiDismissSsid)
     else -> ChallengeGenerator.generate(type, customPhrases)
 }
 

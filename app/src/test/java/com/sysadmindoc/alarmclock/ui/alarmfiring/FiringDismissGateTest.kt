@@ -145,4 +145,13 @@ class FiringDismissGateTest {
         assertEquals("12345", challenge.registeredValue)
         assertNull(buildChallenge(ChallengeType.NONE, alarm, ""))
     }
+
+    @Test
+    fun `wifi challenge carries the SSID the editor saved`() {
+        val alarm = alarmWith("WIFI_CONNECT").copy(wifiDismissSsid = "HomeNet")
+        val challenge = buildChallenge(ChallengeType.WIFI_CONNECT, alarm, "ignored")
+            as Challenge.WifiChallenge
+
+        assertEquals("HomeNet", challenge.requiredSsid)
+    }
 }
