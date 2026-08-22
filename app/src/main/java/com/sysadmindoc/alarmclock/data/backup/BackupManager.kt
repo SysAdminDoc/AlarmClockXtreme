@@ -224,7 +224,19 @@ enum class BackupImportMode {
 
 data class BackupImportOptions(
     val mode: BackupImportMode = BackupImportMode.Append,
-    val importEnabledAsDisabled: Boolean = false
+    val importEnabledAsDisabled: Boolean = false,
+    /** Apply the backup's global settings, not just its alarms. */
+    val importSettings: Boolean = true,
+    /**
+     * Apply the webhook endpoint and secret, Hue bridge and key, Routes key and
+     * Guardian contact carried in the file.
+     *
+     * Off by default: a backup from an untrusted source would otherwise point
+     * every alarm event at someone else's endpoint and install a phone number
+     * that gets texted and called after a missed alarm, with nothing shown to
+     * the user. The share-link importer already strips exactly these.
+     */
+    val keepIntegrationsAndContacts: Boolean = false
 )
 
 data class BackupImportPreview(
@@ -236,6 +248,11 @@ data class BackupImportPreview(
     val invalidAlarmCount: Int,
     val settingsIncluded: Boolean,
     val privateDataCategories: List<String>,
+    /**
+     * Concrete values the file would install if integrations are kept, so the
+     * preview can name the endpoint and phone number rather than a category.
+     */
+    val riskyImportValues: List<String>,
     val compatibilityStatus: String,
     val canImport: Boolean
 )
@@ -254,6 +271,62 @@ class BackupManager @Inject constructor(
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
         const val MAX_SUPPORTED_BACKUP_VERSION = 17
+
+        /**
+         * Ceiling on an imported file. A full export of the maximum alarm count
+         * plus settings lands well under this; anything larger is a corrupt or
+         * hostile file, and reading it whole would take the app down.
+         */
+        const val MAX_IMPORT_CHARS = 4 * 1_048_576
+        const val MAX_IMPORT_ALARMS = 1_000
+
+        /**
+         * Values a backup would install into the app's integrations. Named
+         * concretely in the import preview so "settings" is not a blank cheque.
+         */
+        fun riskyImportValues(settings: SettingsBackup?): List<String> {
+            if (settings == null) return emptyList()
+            return buildList {
+                if (settings.webhookUrl.isNotBlank()) {
+                    add("Webhook endpoint ${hostOf(settings.webhookUrl)}")
+                }
+                if (settings.webhookSigningSecret.isNotBlank()) {
+                    add("Webhook signing secret")
+                }
+                if (settings.hueBridgeIp.isNotBlank()) {
+                    add("Philips Hue bridge ${settings.hueBridgeIp}")
+                }
+                if (settings.hueApiKey.isNotBlank()) {
+                    add("Philips Hue API key")
+                }
+                if (settings.googleRoutesApiKey.isNotBlank()) {
+                    add("Google Routes API key")
+                }
+                if (settings.guardianContactPhone.isNotBlank()) {
+                    add("Guardian contact ${settings.guardianContactPhone}")
+                }
+            }
+        }
+
+        private fun hostOf(url: String): String =
+            runCatching { Uri.parse(url).host }.getOrNull()?.takeIf { it.isNotBlank() } ?: url
+
+        /**
+         * Blanks everything an untrusted file could use to reach out on the
+         * user's behalf, leaving the rest of the restored settings intact.
+         */
+        fun withoutIntegrationsAndContacts(settings: SettingsBackup): SettingsBackup =
+            settings.copy(
+                webhookEnabled = false,
+                webhookUrl = "",
+                webhookSigningSecret = "",
+                hueBridgeIp = "",
+                hueApiKey = "",
+                hueLightIds = "",
+                googleRoutesApiKey = "",
+                guardianContactName = "",
+                guardianContactPhone = ""
+            )
 
         fun assessExportWarning(
             settings: AppSettings,
@@ -520,10 +593,28 @@ class BackupManager @Inject constructor(
         }
     }
 
-    private fun readJsonFromUri(uri: Uri): String =
-        context.contentResolver.openInputStream(uri)?.use { stream ->
-            stream.bufferedReader().readText()
-        } ?: throw Exception("Unable to read file")
+    private fun readJsonFromUri(uri: Uri): String {
+        val stream = context.contentResolver.openInputStream(uri)
+            ?: throw Exception("Unable to read file")
+        // Bounded so a hostile or corrupt file cannot be read straight into
+        // memory until the process dies.
+        return stream.use { input ->
+            val reader = input.bufferedReader()
+            val buffer = CharArray(8 * 1024)
+            val text = StringBuilder()
+            while (true) {
+                val read = reader.read(buffer)
+                if (read < 0) break
+                text.append(buffer, 0, read)
+                if (text.length > MAX_IMPORT_CHARS) {
+                    throw Exception(
+                        "Backup file is too large (over ${MAX_IMPORT_CHARS / 1_048_576} MB)."
+                    )
+                }
+            }
+            text.toString()
+        }
+    }
 
     private fun decryptJson(encryptedJson: String, passphrase: String): String =
         runCatching {
@@ -565,6 +656,7 @@ class BackupManager @Inject constructor(
             invalidAlarmCount = backup.alarms.size - importedAlarms.size,
             settingsIncluded = backup.settings != null,
             privateDataCategories = privateCategories,
+            riskyImportValues = riskyImportValues(backup.settings),
             compatibilityStatus = compatibility,
             canImport = canImport
         )
@@ -672,6 +764,15 @@ class BackupManager @Inject constructor(
                 )
             }
 
+            if (backup.alarms.size > MAX_IMPORT_ALARMS) {
+                return Result.failure(
+                    Exception(
+                        "Backup contains ${backup.alarms.size} alarms, " +
+                            "more than the $MAX_IMPORT_ALARMS this app will import."
+                    )
+                )
+            }
+
             val importedAlarms = backup.alarms.mapNotNull { it.toAlarmOrNull() }
 
             if (options.mode == BackupImportMode.Replace) {
@@ -679,9 +780,16 @@ class BackupManager @Inject constructor(
             }
 
             // Import settings
-            backup.settings?.let { s ->
-                preferencesManager.update {
-                    it.applyBackup(s)
+            if (options.importSettings) {
+                backup.settings?.let { s ->
+                    val safeSettings = if (options.keepIntegrationsAndContacts) {
+                        s
+                    } else {
+                        withoutIntegrationsAndContacts(s)
+                    }
+                    preferencesManager.update {
+                        it.applyBackup(safeSettings)
+                    }
                 }
             }
 
@@ -741,10 +849,15 @@ class BackupManager @Inject constructor(
     }
 
     private fun Alarm.prepareForImport(options: BackupImportOptions): Alarm {
-        val imported = copy(
+        var imported = copy(
             id = if (options.mode == BackupImportMode.Append) 0L else id,
             nextTriggerTime = 0L
         )
+        if (!options.keepIntegrationsAndContacts) {
+            // Per-alarm Guardian escalation carries its own number, so blanking
+            // the global contact is not enough.
+            imported = imported.copy(guardianEnabled = false, guardianPhone = "")
+        }
         return if (options.importEnabledAsDisabled) {
             imported.copy(isEnabled = false)
         } else {

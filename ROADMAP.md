@@ -10,20 +10,6 @@ Baseline at audit time: `./gradlew :app:testPlayDebugUnitTest :wear:testDebugUni
 
 Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator and logged below; #49 split into four findings; #50 traced to the Spotify delegation path. Open PRs #33-#42 are Dependabot and are covered by a single blocked item at the end.
 
-### P1
-
-- [ ] P1 — Backup import applies secrets, webhook targets and Guardian phone numbers with no per-field consent or size cap
-  Category: security
-  Where: data/backup/BackupManager.kt:523-526 `readJsonFromUri()` (`readText()` with no cap), :600-618 `applyBackup()` (copies webhookEnabled/webhookUrl/webhookSigningSecret/hueBridgeIp/hueApiKey/googleRoutesApiKey/guardianContactPhone), :677-690 import flow; data/backup/AlarmBackupMappers.kt:127-128 (guardianEnabled/guardianPhone imported verbatim); ui/settings/SettingsBackupSections.kt:667-796 (preview lists categories only, no "skip settings" toggle); service/AlarmService.kt:611-627 (no global Guardian master switch before enqueueing GuardianWorker); data/backup/FossifyImportManager.kt:87-97 (`MAX_BYTES`/`MAX_ALARMS` exist only on the Fossify path)
-  Problem: a backup file from an untrusted source (forum, chat, "shared config") silently (1) enables a webhook to an attacker HTTPS endpoint so every alarm event, label included if enabled, leaves the device; (2) clobbers the user's Hue key and webhook secret; (3) installs a Guardian phone number that will be texted and dialled after one missed alarm; (4) can be hundreds of MB and OOM the app. The share-link importer already strips exactly these fields by default (data/share/AlarmShareCodec.kt:96-130), so the two import paths disagree about what is safe.
-  Evidence: traced import path; preview strings only say "Wi-Fi, location, or guardian contact details" (BackupManager.kt:296-297). Refuted-by-fresh-agent: see status note at the end of this section.
-  Fix: (1) reuse `FossifyImportManager.MAX_BYTES`/`MAX_ALARMS` in `readJsonFromUri`/`importFromJson`; (2) extend `BackupPreview` with the concrete risky values (webhook host, Hue host, guardian numbers, radio hosts) and render them in the preview dialog; (3) add two checkboxes to the preview, "Import settings" (default off when the current settings already hold a webhook URL / Hue key) and "Keep integrations and Guardian contacts" (default off), and run `stripRiskyImportedFields` when unchecked; (4) add a settings-level "Guardian Angel enabled" master switch checked by AlarmService before enqueueing. Unit tests: import of a backup with `webhookEnabled=true` leaves webhook disabled unless the checkbox is set.
-  Acceptance: importing a crafted backup with a webhook URL and a guardian number shows both values in the preview and, with defaults, results in no webhook and no guardian number stored; a 200 MB file is rejected with the existing "file too large" status instead of crashing.
-  Confidence: Verified
-  Effort: M
-
-Refutation status: every P0/P1 above was handed to a fresh-context agent instructed to refute it; all nine came back CONFIRMED. Two refinements from those passes: (1) Spotify: a BAL-blocked `startActivity` does not throw, so the existing `catch` never fires; the service issues the firing-activity launch and the Spotify launch back-to-back before any ACX window is visible, so whether Spotify opens is a race. The fix should launch Spotify from `AlarmFiringActivity.onResume` (visible-window exemption) and keep a local tone running until `AudioManager.isMusicActive()` or an audio-focus loss proves Spotify is playing. (2) Dependency verification: the failure reproduces on this warm-cache machine as well; the metadata lists `guava-parent` for 26.0/32.0.1/33.3.1/33.4.0 but not 33.6.0-android (gradle/verification-metadata.xml:3591-3615), and the refresh script must clear `~/.gradle/caches/modules-2/files-2.1/com.google.guava/guava-parent/33.6.0-android` first or Gradle skips re-recording the POM.
-
 ### P2 — correctness and reliability
 
 - [ ] P2 — Dismiss action (webhook / Hue scene / broadcast) is wiped every time an alarm is edited, and has no editor

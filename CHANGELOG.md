@@ -6,6 +6,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Restoring a backup no longer installs its webhook endpoint, signing secret,
+  Hue key, Routes key or Guardian phone number without asking. The import
+  preview names those values and they stay out unless you tick the box, which
+  matters because a backup file can come from anywhere. Import also refuses a
+  file that is absurdly large instead of running out of memory reading it.
 - A Spotify alarm no longer rings silently. Handing playback to Spotify was
   treated as proof that it started, so a logged-out or offline Spotify, or a
   launch the system refused, left nothing playing at all. The alarm now checks

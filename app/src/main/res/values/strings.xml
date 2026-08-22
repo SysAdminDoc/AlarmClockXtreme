@@ -1146,6 +1146,10 @@
     <string name="settings_private_values_detected">Private values detected:</string>
     <string name="settings_list_item">- %1$s</string>
     <string name="settings_keep_restored_disabled">Keep restored alarms disabled until I review them</string>
+    <string name="settings_import_settings">Also restore app settings</string>
+    <string name="settings_keep_integrations">Restore integrations and Guardian contacts</string>
+    <string name="settings_keep_integrations_warning">This file would install:</string>
+    <string name="settings_keep_integrations_hint">Leave this off unless the file is your own backup. These values send alarm events to a server and text or call a phone number for you.</string>
     <string name="settings_append_alarms">Append alarms</string>
     <string name="settings_replace_alarms">Replace alarms</string>
     <string name="settings_export_time_unknown">Export time unknown</string>

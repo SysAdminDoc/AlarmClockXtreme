@@ -181,6 +181,8 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
     var pendingImport by remember { mutableStateOf<PendingBackupImport?>(null) }
     var pendingFossifyImport by remember { mutableStateOf<PendingFossifyImport?>(null) }
     var importEnabledAsDisabled by remember { mutableStateOf(false) }
+    var importSettings by remember { mutableStateOf(true) }
+    var keepIntegrations by remember { mutableStateOf(false) }
     var importPreviewBusy by remember { mutableStateOf(false) }
     val passphraseMismatch = encryptedPassphraseConfirm.isNotEmpty() &&
         encryptedPassphraseConfirm != encryptedPassphrase
@@ -202,6 +204,11 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
                 result
                     .onSuccess { preview ->
                         importEnabledAsDisabled = false
+                        importSettings = preview.settingsIncluded
+                        // Opt in explicitly: a file from anywhere but the user's
+                        // own export would otherwise silently redirect alarm
+                        // events and install a phone number to call.
+                        keepIntegrations = false
                         pendingImport = PendingBackupImport(
                             uri = uri,
                             encrypted = encrypted,
@@ -234,7 +241,9 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
         val pending = pendingImport ?: return
         val options = BackupImportOptions(
             mode = mode,
-            importEnabledAsDisabled = importEnabledAsDisabled
+            importEnabledAsDisabled = importEnabledAsDisabled,
+            importSettings = importSettings,
+            keepIntegrationsAndContacts = importSettings && keepIntegrations
         )
         pendingImport = null
         if (pending.encrypted) {
@@ -470,6 +479,10 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
             pendingImport = import,
             importEnabledAsDisabled = importEnabledAsDisabled,
             onImportEnabledAsDisabledChange = { importEnabledAsDisabled = it },
+            importSettings = importSettings,
+            onImportSettingsChange = { importSettings = it },
+            keepIntegrations = keepIntegrations,
+            onKeepIntegrationsChange = { keepIntegrations = it },
             onDismiss = { pendingImport = null },
             onImport = ::confirmBackupImport
         )
@@ -659,6 +672,10 @@ private fun BackupImportPreviewDialog(
     pendingImport: PendingBackupImport,
     importEnabledAsDisabled: Boolean,
     onImportEnabledAsDisabledChange: (Boolean) -> Unit,
+    importSettings: Boolean,
+    onImportSettingsChange: (Boolean) -> Unit,
+    keepIntegrations: Boolean,
+    onKeepIntegrationsChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
     onImport: (BackupImportMode) -> Unit
 ) {
@@ -745,28 +762,42 @@ private fun BackupImportPreviewDialog(
                     }
                 }
                 if (preview.canImport) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .toggleable(
-                                value = importEnabledAsDisabled,
-                                role = Role.Switch,
-                                onValueChange = onImportEnabledAsDisabledChange
-                            ),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Switch(
-                            checked = importEnabledAsDisabled,
-                            onCheckedChange = null,
-                            colors = appSwitchColors()
+                    BackupImportToggle(
+                        checked = importEnabledAsDisabled,
+                        onCheckedChange = onImportEnabledAsDisabledChange,
+                        label = stringResource(R.string.settings_keep_restored_disabled)
+                    )
+                    if (preview.settingsIncluded) {
+                        BackupImportToggle(
+                            checked = importSettings,
+                            onCheckedChange = onImportSettingsChange,
+                            label = stringResource(R.string.settings_import_settings)
                         )
-                        Text(
-                            text = stringResource(R.string.settings_keep_restored_disabled),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary,
-                            modifier = Modifier.weight(1f)
-                        )
+                        if (importSettings && preview.riskyImportValues.isNotEmpty()) {
+                            BackupImportToggle(
+                                checked = keepIntegrations,
+                                onCheckedChange = onKeepIntegrationsChange,
+                                label = stringResource(R.string.settings_keep_integrations)
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_keep_integrations_warning),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SnoozeYellow,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            preview.riskyImportValues.forEach { value ->
+                                Text(
+                                    text = stringResource(R.string.settings_list_item, value),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary
+                                )
+                            }
+                            Text(
+                                text = stringResource(R.string.settings_keep_integrations_hint),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextMuted
+                            )
+                        }
                     }
                 }
             }
@@ -791,6 +822,38 @@ private fun BackupImportPreviewDialog(
             }
         }
     )
+}
+
+/** One consent row in the import preview: switch on the left, label beside it. */
+@Composable
+private fun BackupImportToggle(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    label: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = onCheckedChange
+            ),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            colors = appSwitchColors()
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = TextSecondary,
+            modifier = Modifier.weight(1f)
+        )
+    }
 }
 
 @Composable

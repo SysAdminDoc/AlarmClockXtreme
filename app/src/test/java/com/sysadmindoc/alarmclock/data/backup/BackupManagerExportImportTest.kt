@@ -149,7 +149,13 @@ class BackupManagerExportImportTest {
             restoredSettings = transform(AppSettings())
         }
 
-        val result = backupManager.importFromUri(Uri.fromFile(backupFile))
+        // This case is about the field mapping, so it opts into the integration
+        // values. Importing them is consent-gated now; the default-off path is
+        // covered by BackupManagerImportConsentTest.
+        val result = backupManager.importFromUri(
+            Uri.fromFile(backupFile),
+            BackupImportOptions(keepIntegrationsAndContacts = true)
+        )
 
         assertTrue(result.isSuccess)
         assertEquals(1, result.getOrThrow())
