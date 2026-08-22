@@ -215,7 +215,7 @@ internal fun LazyListScope.alarmEditIntegrationSections(
                             DropdownMenuItem(
                                 text = {
                                     Text(
-                                        stringResource(R.string.alarm_edit_minutes_before, mins),
+                                        pluralStringResource(R.plurals.alarm_edit_minutes_before, mins, mins),
                                         color = if (mins == state.huePreWakeMinutes) MaterialTheme.colorScheme.primary else TextPrimary
                                     )
                                 },

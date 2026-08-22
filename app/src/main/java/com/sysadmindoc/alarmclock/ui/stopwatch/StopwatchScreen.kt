@@ -49,6 +49,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -72,6 +73,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import com.sysadmindoc.alarmclock.R
 import androidx.compose.ui.res.stringResource
+import java.util.Locale
 
 @Composable
 fun StopwatchScreen(
@@ -287,19 +289,20 @@ private fun StopwatchDial(state: StopwatchUiState) {
                 }
             }
 
+            val locale = LocalConfiguration.current.locales[0]
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = if (state.hours > 0) {
-                        String.format("%d:%02d:%02d", state.hours, state.minutes, state.seconds)
+                        String.format(locale, "%d:%02d:%02d", state.hours, state.minutes, state.seconds)
                     } else {
-                        String.format("%02d:%02d", state.minutes, state.seconds)
+                        String.format(locale, "%02d:%02d", state.minutes, state.seconds)
                     },
                     fontSize = 48.sp,
                     fontWeight = FontWeight.Light,
                     color = TextPrimary
                 )
                 Text(
-                    text = String.format(".%02d", state.centiseconds),
+                    text = String.format(locale, ".%02d", state.centiseconds),
                     fontSize = 24.sp,
                     color = TextSecondary
                 )
@@ -512,8 +515,8 @@ private fun formatMillis(millis: Long): String {
     val centis = (millis % 1000) / 10
 
     return if (hours > 0) {
-        String.format("%d:%02d:%02d.%02d", hours, minutes, seconds, centis)
+        String.format(Locale.getDefault(), "%d:%02d:%02d.%02d", hours, minutes, seconds, centis)
     } else {
-        String.format("%02d:%02d.%02d", minutes, seconds, centis)
+        String.format(Locale.getDefault(), "%02d:%02d.%02d", minutes, seconds, centis)
     }
 }

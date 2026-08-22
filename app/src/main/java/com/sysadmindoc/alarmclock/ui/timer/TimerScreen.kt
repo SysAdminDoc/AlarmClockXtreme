@@ -67,6 +67,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -365,8 +366,10 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        val locale = LocalConfiguration.current.locales[0]
         Text(
             text = String.format(
+                locale,
                 "%02d:%02d:%02d",
                 state.inputHours,
                 state.inputMinutes,

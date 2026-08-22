@@ -386,9 +386,6 @@
     <string name="alarm_edit_seconds_short">%1$ds</string>
     <string name="alarm_edit_minutes_seconds_short">%1$dm %2$ds</string>
     <string name="alarm_edit_minutes_before_short">%1$d min before</string>
-    <string name="alarm_edit_minutes_before">%1$d minutes before</string>
-    <string name="alarm_edit_minutes_before_alarm">%1$d minutes before alarm</string>
-    <string name="alarm_edit_minutes_earlier">%1$d minutes earlier</string>
     <string name="alarm_edit_meters_short">%1$d m</string>
     <plurals name="alarm_edit_minutes"><item quantity="one">%1$d minute</item><item quantity="other">%1$d minutes</item></plurals>
     <plurals name="alarm_edit_seconds"><item quantity="one">%1$d second</item><item quantity="other">%1$d seconds</item></plurals>
@@ -1231,7 +1228,6 @@
     <!-- Alarms screen -->
     <string name="alarm_list_stats_window">Last 30 days</string>
     <string name="alarm_list_stats_empty">This alarm hasn’t fired in the last 30 days yet.</string>
-    <string name="alarm_list_stats_fired">Fired %1$d times</string>
     <string name="alarm_list_stats_avg_snoozes">Avg %1$s snoozes per fire</string>
     <string name="alarm_list_stats_avg_dismiss">Avg dismiss in %1$ds</string>
     <string name="alarm_list_stats_missed">%1$d missed</string>
@@ -1623,7 +1619,6 @@
     <string name="stats_sleep_last">Last %1$s</string>
     <string name="stats_sleep_deep">Deep %1$s</string>
     <string name="stats_sleep_rem">REM %1$s</string>
-    <string name="stats_from_recent_wakeups">from %1$d recent wake-ups</string>
     <string name="stats_sleep_average">Sleep %1$s avg</string>
     <string name="stats_sleep_score">Sleep score %1$s</string>
     <string name="stats_sleep_debt">Sleep debt %1$s</string>
@@ -1651,7 +1646,6 @@
     <string name="youtube_search_hint">Try “rooster crow”, “piano bell”, or “forest birds”. Preview first, then save the result that feels right.</string>
     <string name="ringtone_nothing_matches">Nothing matches “%1$s”. Try a shorter or different term.</string>
     <string name="stats_response_avg">Response %1$s avg</string>
-    <string name="stats_snooze_count">%1$d snoozes</string>
     <string name="world_add_city_action">Add %1$s, %2$s, %3$s</string>
     <string name="firing_challenge_reference_missing">This alarm has no saved tag, code, photo or network to check against, so here is a maths problem instead. Edit the alarm to set one.</string>
     <string name="settings_hue_ip_not_local">Enter the bridge’s local address, like 192.168.1.42 or philips-hue.local. A public hostname is refused because the bridge certificate cannot be verified.</string>
@@ -2246,4 +2240,28 @@
     <string name="notif_hue_channel_description">Shows progress while Hue lights brighten before an alarm</string>
     <string name="notif_wake_confirm_channel_name">Wake Confirmation</string>
     <string name="notif_wake_confirm_channel_description">Asks you to confirm you are awake after dismissing an alarm</string>
+    <plurals name="alarm_edit_minutes_before">
+        <item quantity="one">%1$d minute before</item>
+        <item quantity="other">%1$d minutes before</item>
+    </plurals>
+    <plurals name="alarm_edit_minutes_before_alarm">
+        <item quantity="one">%1$d minute before alarm</item>
+        <item quantity="other">%1$d minutes before alarm</item>
+    </plurals>
+    <plurals name="alarm_edit_minutes_earlier">
+        <item quantity="one">%1$d minute earlier</item>
+        <item quantity="other">%1$d minutes earlier</item>
+    </plurals>
+    <plurals name="alarm_list_stats_fired">
+        <item quantity="one">Fired %1$d time</item>
+        <item quantity="other">Fired %1$d times</item>
+    </plurals>
+    <plurals name="stats_from_recent_wakeups">
+        <item quantity="one">from %1$d recent wake-up</item>
+        <item quantity="other">from %1$d recent wake-ups</item>
+    </plurals>
+    <plurals name="stats_snooze_count">
+        <item quantity="one">%1$d snooze</item>
+        <item quantity="other">%1$d snoozes</item>
+    </plurals>
 </resources>

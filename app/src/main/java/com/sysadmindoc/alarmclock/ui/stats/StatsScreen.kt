@@ -857,7 +857,7 @@ private fun WakeConsistencyCard(
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = stringResource(R.string.stats_from_recent_wakeups, result.sampleCount),
+                        text = pluralStringResource(R.plurals.stats_from_recent_wakeups, result.sampleCount, result.sampleCount),
                         color = TextMuted,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -936,7 +936,7 @@ private fun SleepWakeAnalyticsCard(
                 color = if (analytics.averageResponseSec != null) DismissGreen else TextMuted
             )
             AppStatusChip(
-                label = stringResource(R.string.stats_snooze_count, analytics.totalSnoozes),
+                label = pluralStringResource(R.plurals.stats_snooze_count, analytics.totalSnoozes, analytics.totalSnoozes),
                 icon = Icons.Default.Snooze,
                 color = if (analytics.totalSnoozes > 0) SnoozeYellow else TextMuted
             )

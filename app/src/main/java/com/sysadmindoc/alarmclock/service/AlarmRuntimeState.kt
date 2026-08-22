@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.service
 
+import android.annotation.SuppressLint
 import android.content.Context
 
 /**
@@ -23,6 +24,11 @@ object AlarmRuntimeState {
         return prefs(context).getInt(snoozeCountKey(alarmId), 0).coerceAtLeast(0)
     }
 
+    // commit(), not apply(): this is the snooze count of an alarm that is
+    // ringing right now. apply() queues the write, and a process death between
+    // the queue and the flush hands the user a snooze cap that is already spent
+    // or one that never runs out. The file holds one int.
+    @SuppressLint("ApplySharedPref")
     fun setSnoozeCount(context: Context, alarmId: Long, count: Int) {
         if (alarmId <= 0L) return
         prefs(context).edit()
@@ -30,6 +36,7 @@ object AlarmRuntimeState {
             .commit()
     }
 
+    @SuppressLint("ApplySharedPref")
     fun clear(context: Context, alarmId: Long) {
         if (alarmId <= 0L) return
         prefs(context).edit()

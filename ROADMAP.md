@@ -45,13 +45,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P3
 
-- [ ] P3 — Lint hygiene: 19 `DefaultLocale`, 4 `ApplySharedPref` (`commit()` on the main thread in AlarmService.kt:557, :2048, :2055 and MissedAlarmUnlockReceiver.kt:84), 7 `PluralsCandidate` (strings.xml:386-388, :847, :994, :1133, :1136), `SwitchIntDef` (AlarmService.kt:1189 missing `STATE_BUFFERING`/`STATE_IDLE`), `IconDuplicates` (mipmap-xhdpi ic_launcher == ic_launcher_round), `Overdraw` (layout/widget_loading.xml:6)
-  Category: maintainability
-  Fix: pass `Locale.getDefault()` explicitly (or use the shared formatter above), replace `commit()` with `apply()` where durability is not needed (keep `commit()` only for the missed-alarm marker and document why), convert the seven candidates to `<plurals>`, handle the two Media3 states, dedupe the icon, drop the hardcoded widget background.
-  Acceptance: `./gradlew :app:lintPlayDebug` warning count drops below 150 with no new baseline file.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — Shared-alarm import and template picker ignore the 24-hour preference
   Category: ux
   Where: ui/share/SharedAlarmImportScreen.kt:328 (`%02d:%02d` in `Locale.US`); ui/templates/TemplatePickerSheet.kt:216-222 (always AM/PM); data/model/AlarmTemplate.kt:51 ("20 min timer" for an alarm template)

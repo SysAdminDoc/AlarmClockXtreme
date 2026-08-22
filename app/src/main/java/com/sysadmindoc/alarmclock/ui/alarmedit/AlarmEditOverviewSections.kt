@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -68,6 +69,7 @@ import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.*
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import com.sysadmindoc.alarmclock.util.LocationHelper
 import com.sysadmindoc.alarmclock.util.PhotoMatcher
 import com.sysadmindoc.alarmclock.worker.GuardianEscalationPolicy
@@ -114,17 +116,18 @@ internal fun LazyListScope.alarmEditOverviewSections(
         ) {
             if (state.is24HourFormat) {
                 Text(
-                    text = "${String.format("%02d", state.hour)}:${String.format("%02d", state.minute)}",
+                    text = AlarmTimeFormatter.format(state.hour, state.minute, is24Hour = true),
                     style = ClockTimeLarge,
                     color = TextPrimary
                 )
             } else {
                 Row(verticalAlignment = Alignment.Bottom) {
                     val hour12 = if (state.hour % 12 == 0) 12 else state.hour % 12
+                    val locale = LocalConfiguration.current.locales[0]
                     val amPm = java.time.LocalTime.of(state.hour, state.minute)
                         .format(java.time.format.DateTimeFormatter.ofPattern("a"))
                     Text(
-                        text = "$hour12:${String.format("%02d", state.minute)}",
+                        text = String.format(locale, "%d:%02d", hour12, state.minute),
                         style = ClockTimeLarge,
                         color = TextPrimary
                     )

@@ -104,6 +104,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -195,11 +196,12 @@ fun AlarmListScreen(
                             color = TextSecondary
                         )
                     } else {
-                        Text(stringResource(R.string.alarm_list_stats_fired, stats.fireCount))
+                        Text(pluralStringResource(R.plurals.alarm_list_stats_fired, stats.fireCount, stats.fireCount))
+                        val statsLocale = LocalConfiguration.current.locales[0]
                         Text(
                             stringResource(
                                 R.string.alarm_list_stats_avg_snoozes,
-                                String.format("%.1f", stats.avgSnoozesPerFire)
+                                String.format(statsLocale, "%.1f", stats.avgSnoozesPerFire)
                             )
                         )
                         Text(stringResource(R.string.alarm_list_stats_avg_dismiss, stats.avgDismissTimeSec))

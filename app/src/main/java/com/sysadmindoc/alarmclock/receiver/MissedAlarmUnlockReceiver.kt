@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.receiver
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -82,7 +83,7 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                         nowMs = System.currentTimeMillis()
                     )
                     if (decision.shouldClearState) {
-                        store.edit().clear().commit()
+                        clearMissedAlarmMarker(store)
                     }
                     if (!decision.shouldReplay) return@withTimeout
 
@@ -153,6 +154,16 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                 pending.finish()
             }
         }
+    }
+
+    /**
+     * commit(), not apply(): clearing this marker is what stops a second
+     * replay. A queued write that never flushed would let the same missed
+     * alarm fire again on the next unlock.
+     */
+    @SuppressLint("ApplySharedPref")
+    private fun clearMissedAlarmMarker(store: android.content.SharedPreferences) {
+        store.edit().clear().commit()
     }
 
     @dagger.hilt.EntryPoint

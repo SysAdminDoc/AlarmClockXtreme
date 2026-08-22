@@ -5,6 +5,7 @@ import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.Locale
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import javax.inject.Inject
@@ -125,7 +126,11 @@ class TimerViewModel @Inject constructor(
         val hours = (preset.seconds / 3600).toInt()
         val mins = ((preset.seconds % 3600) / 60).toInt()
         val secs = (preset.seconds % 60).toInt()
-        val digits = String.format("%02d%02d%02d", hours, mins, secs).trimStart('0')
+        // Locale.ROOT on purpose: these digits are parsed straight back by
+        // the numeric-entry state, and a locale with non-ASCII digits would
+        // turn a preset into an unreadable entry rather than a translated one.
+        val digits = String.format(Locale.ROOT, "%02d%02d%02d", hours, mins, secs)
+            .trimStart('0')
         _uiState.value = _uiState.value.copy(inputDigits = digits)
     }
 

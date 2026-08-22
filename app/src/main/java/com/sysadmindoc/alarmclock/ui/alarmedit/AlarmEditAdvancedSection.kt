@@ -240,7 +240,7 @@ internal fun LazyListScope.alarmEditAdvancedSection(
                                     if (mins == 0) {
                                         stringResource(R.string.alarm_edit_disabled)
                                     } else {
-                                        stringResource(R.string.alarm_edit_minutes_earlier, mins)
+                                        pluralStringResource(R.plurals.alarm_edit_minutes_earlier, mins, mins)
                                     }
                                 )
                             },
@@ -274,7 +274,7 @@ internal fun LazyListScope.alarmEditAdvancedSection(
                                     if (mins == 0) {
                                         stringResource(R.string.alarm_edit_disabled)
                                     } else {
-                                        stringResource(R.string.alarm_edit_minutes_before, mins)
+                                        pluralStringResource(R.plurals.alarm_edit_minutes_before, mins, mins)
                                     }
                                 )
                             },

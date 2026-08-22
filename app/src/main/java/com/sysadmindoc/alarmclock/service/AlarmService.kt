@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.service
 
+import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -549,11 +550,7 @@ class AlarmService : Service() {
                         // id / timestamp so MissedAlarmUnlockReceiver can re-fire
                         // when the user unlocks or unplugs soon after.
                         if (settings.repeatMissedAlarms) {
-                            getSharedPreferences("missed_alarm_state", MODE_PRIVATE)
-                                .edit()
-                                .putLong("last_missed_at", System.currentTimeMillis())
-                                .putLong("last_missed_id", missedAlarm.id)
-                                .commit()
+                            recordMissedAlarmForReplay(missedAlarm.id)
                         }
                     }
                 }
@@ -940,6 +937,20 @@ class AlarmService : Service() {
         startMedia3AudioInternal(alarm)
     }
 
+    /**
+     * commit(), not apply(): this marker has to outlive the process. The whole
+     * point of it is that MissedAlarmUnlockReceiver finds it after this service
+     * is gone, and a queued write that never flushed loses the missed alarm.
+     */
+    @SuppressLint("ApplySharedPref")
+    private fun recordMissedAlarmForReplay(missedAlarmId: Long) {
+        getSharedPreferences("missed_alarm_state", MODE_PRIVATE)
+            .edit()
+            .putLong("last_missed_at", System.currentTimeMillis())
+            .putLong("last_missed_id", missedAlarmId)
+            .commit()
+    }
+
     private fun startMedia3AudioInternal(alarm: Alarm) {
         val radioUrl = alarm.internetRadioUrl.trim()
         // https only: cleartext is blocked at this targetSdk, so an http stream
@@ -1281,6 +1292,10 @@ class AlarmService : Service() {
                                     }
                                 }
                                 Player.STATE_ENDED -> onEnded()
+                                // Buffering and idle are transitions, not
+                                // outcomes. The playback watchdog is what
+                                // catches a ring that never leaves either.
+                                Player.STATE_BUFFERING, Player.STATE_IDLE -> Unit
                             }
                         }
 
