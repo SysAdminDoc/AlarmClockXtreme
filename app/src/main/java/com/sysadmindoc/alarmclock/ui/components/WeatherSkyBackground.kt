@@ -52,6 +52,8 @@ import java.time.LocalTime
 import kotlin.math.absoluteValue
 import kotlin.math.sin
 import kotlin.random.Random
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 /**
  * Computes the live sky gradient by ticking once a minute and re-evaluating
@@ -271,7 +273,7 @@ private fun TornadoOverlay(modifier: Modifier = Modifier) {
                         modifier = Modifier.size(18.dp),
                     )
                     Text(
-                        text = "TORNADO WARNING",
+                        text = stringResource(R.string.weather_tornado_warning),
                         color = TextPrimary,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelLarge,

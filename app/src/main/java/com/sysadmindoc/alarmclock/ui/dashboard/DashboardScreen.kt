@@ -100,6 +100,8 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
+import com.sysadmindoc.alarmclock.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun DashboardScreen(
@@ -141,8 +143,8 @@ fun DashboardScreen(
                     AppSurfaceCard {
                         AppEmptyState(
                             icon = Icons.Default.Schedule,
-                            title = "Today is quiet",
-                            description = "Weather and calendar cards are off. Toggle them on in Settings."
+                            title = stringResource(R.string.dashboard_today_quiet),
+                            description = stringResource(R.string.dashboard_weather_calendar_cards_are_off)
                         )
                     }
                 }
@@ -202,7 +204,7 @@ private fun NextAlarmSection(
     onOpenAlarms: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        AppSectionTitle(title = "Next alarm")
+        AppSectionTitle(title = stringResource(R.string.bedtime_jetlag_helper_next_alarm))
         AppSurfaceCard(
             modifier = Modifier
                 .fillMaxWidth()
@@ -240,7 +242,7 @@ private fun NextAlarmSection(
                     )
                 }
                 Text(
-                    text = "View",
+                    text = stringResource(R.string.dashboard_view),
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelLarge
                 )
@@ -265,12 +267,12 @@ private fun DashboardHeader(state: DashboardUiState) {
     val hasTornadoChip = state.tornadoAlertActive
     AlarmClockHeroHeader(
         transparent = true,
-        title = "Today",
+        title = stringResource(R.string.dashboard_today),
         subtitle = state.todayDate,
         badge = if (hasTornadoChip) {
             {
                 AppStatusChip(
-                    label = "Tornado warning",
+                    label = stringResource(R.string.dashboard_tornado_warning),
                     icon = Icons.Default.Warning,
                     color = AccentRed,
                 )
@@ -291,7 +293,7 @@ private fun WeatherSection(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when {
             state.weatherLoading -> {
-                AppLoadingCard(label = "Loading current weather")
+                AppLoadingCard(label = stringResource(R.string.dashboard_loading_current_weather))
             }
 
             state.weatherError != null -> {
@@ -301,7 +303,7 @@ private fun WeatherSection(
                 // error was never shown.
                 val hasLocation = state.hasLocation
                 AppSurfaceCard(contentPadding = PaddingValues(16.dp)) {
-                    AppSectionTitle(title = "Weather")
+                    AppSectionTitle(title = stringResource(R.string.settings_connection_weather))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -338,11 +340,11 @@ private fun WeatherSection(
                         }
                         if (hasLocation) {
                             TextButton(onClick = onRetryWeather) {
-                                Text("Retry")
+                                Text(stringResource(R.string.dashboard_retry))
                             }
                         } else {
                             TextButton(onClick = onChangeLocation) {
-                                Text("Choose")
+                                Text(stringResource(R.string.alarm_edit_choose))
                             }
                         }
                     }
@@ -352,7 +354,7 @@ private fun WeatherSection(
             else -> {
                 if (state.weatherStale && state.weatherLastUpdatedMillis != null) {
                     AppInlineNotice(
-                        title = "Showing saved forecast",
+                        title = stringResource(R.string.dashboard_showing_saved_forecast),
                         message = buildWeatherStaleMessage(state),
                         icon = Icons.Default.CloudOff,
                         color = SnoozeYellow
@@ -366,7 +368,7 @@ private fun WeatherSection(
                     ) {
                         Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.size(8.dp))
-                        Text("Retry weather")
+                        Text(stringResource(R.string.dashboard_retry_weather))
                     }
                 }
 
@@ -381,7 +383,7 @@ private fun WeatherSection(
                         ) {
                             Icon(
                                 Icons.Default.Edit,
-                                contentDescription = "Change weather location",
+                                contentDescription = stringResource(R.string.dashboard_change_weather_location),
                                 tint = TextMuted
                             )
                         }
@@ -458,21 +460,21 @@ private fun WeatherSection(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             WeatherMetric(
-                                label = "High",
+                                label = stringResource(R.string.dashboard_high),
                                 value = "${state.highTemp}\u00B0",
                                 icon = Icons.Default.ArrowUpward,
                                 accent = AccentRed,
                                 modifier = Modifier.weight(1f)
                             )
                             WeatherMetric(
-                                label = "Low",
+                                label = stringResource(R.string.dashboard_low),
                                 value = "${state.lowTemp}\u00B0",
                                 icon = Icons.Default.ArrowDownward,
                                 accent = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.weight(1f)
                             )
                             WeatherMetric(
-                                label = "Rain",
+                                label = stringResource(R.string.dashboard_rain),
                                 value = if (state.precipChance.isBlank()) "0%" else state.precipChance,
                                 icon = Icons.Default.Umbrella,
                                 modifier = Modifier.weight(1f)
@@ -484,19 +486,19 @@ private fun WeatherSection(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             WeatherMetric(
-                                label = "Humidity",
+                                label = stringResource(R.string.dashboard_humidity),
                                 value = state.humidity,
                                 icon = Icons.Default.WaterDrop,
                                 modifier = Modifier.weight(1f)
                             )
                             WeatherMetric(
-                                label = "Wind",
+                                label = stringResource(R.string.dashboard_wind),
                                 value = state.windSpeed,
                                 icon = Icons.Default.Air,
                                 modifier = Modifier.weight(1f)
                             )
                             WeatherMetric(
-                                label = "UV",
+                                label = stringResource(R.string.dashboard_uv),
                                 value = state.uvIndex.ifBlank { "—" },
                                 icon = Icons.Default.WbSunny,
                                 accent = SnoozeYellow,
@@ -515,14 +517,14 @@ private fun WeatherSection(
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             WeatherMetric(
-                                label = "Sunrise",
+                                label = stringResource(R.string.alarm_edit_solar_sunrise),
                                 value = state.sunrise.ifBlank { "—" },
                                 icon = Icons.Default.WbSunny,
                                 accent = SnoozeYellow,
                                 modifier = Modifier.weight(1f)
                             )
                             WeatherMetric(
-                                label = "Sunset",
+                                label = stringResource(R.string.alarm_edit_solar_sunset),
                                 value = state.sunset.ifBlank { "—" },
                                 icon = Icons.Default.NightsStay,
                                 accent = AccentBlue,
@@ -543,8 +545,7 @@ private fun WeatherSection(
                 // change: vertical now.
                 if (state.hourly.isNotEmpty()) {
                     AppSurfaceCard(contentPadding = PaddingValues(14.dp)) {
-                        Text(
-                            "Next few hours",
+                        Text(stringResource(R.string.dashboard_next_few_hours),
                             color = TextPrimary,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
@@ -564,8 +565,7 @@ private fun WeatherSection(
                     // LazyRow. One day per line is easier to scan and stops
                     // truncating long descriptions on narrow phones.
                     AppSurfaceCard(contentPadding = PaddingValues(14.dp)) {
-                        Text(
-                            "Next 3 days",
+                        Text(stringResource(R.string.dashboard_next_3_days),
                             color = TextPrimary,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
@@ -651,8 +651,7 @@ private fun AirQualityCard(summary: AirQualitySummary) {
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    "Air quality",
+                Text(stringResource(R.string.settings_connection_air_quality),
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
@@ -702,8 +701,7 @@ private fun AirQualityCard(summary: AirQualitySummary) {
 
         HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
 
-        Text(
-            "Pollen",
+        Text(stringResource(R.string.dashboard_pollen),
             color = TextPrimary,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold
@@ -718,15 +716,14 @@ private fun AirQualityCard(summary: AirQualitySummary) {
 
         if (!summary.hasPollenData) {
             AppInlineNotice(
-                title = "Pollen unavailable",
+                title = stringResource(R.string.dashboard_pollen_unavailable),
                 message = "Open-Meteo does not report pollen for this location yet.",
                 icon = Icons.Default.WaterDrop,
                 color = TextMuted
             )
         }
 
-        Text(
-            "Source: Open-Meteo + CAMS",
+        Text(stringResource(R.string.dashboard_source_open_meteo_cams),
             color = TextMuted,
             style = MaterialTheme.typography.labelSmall
         )
@@ -904,8 +901,7 @@ private fun CalendarSection(
     // "Next few hours" / "Next 3 days" weather sub-cards. Previously the
     // section title floated outside the card, looking like a stray label.
     AppSurfaceCard {
-        Text(
-            "Schedule",
+        Text(stringResource(R.string.dashboard_schedule),
             color = TextPrimary,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
@@ -916,8 +912,8 @@ private fun CalendarSection(
                 // when tapped, with no other place in the app to grant it.
                 CompactDashboardRow(
                     icon = Icons.Default.CalendarMonth,
-                    title = "Calendar access",
-                    description = "Tap to allow calendar access and see today’s events.",
+                    title = stringResource(R.string.dashboard_calendar_access),
+                    description = stringResource(R.string.dashboard_tap_allow_calendar_access_see),
                     accent = SnoozeYellow,
                     onClick = onRequestCalendarPermission
                 )
@@ -926,8 +922,8 @@ private fun CalendarSection(
             state.calendarEvents.isEmpty() -> {
                 CompactDashboardRow(
                     icon = Icons.Default.EventAvailable,
-                    title = "Nothing scheduled today",
-                    description = "Your day is clear.",
+                    title = stringResource(R.string.dashboard_nothing_scheduled_today),
+                    description = stringResource(R.string.dashboard_day_clear),
                     accent = DismissGreen
                 )
             }
@@ -1068,12 +1064,12 @@ private fun LocationPickerDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close", color = TextSecondary)
+                Text(stringResource(R.string.alarm_list_close), color = TextSecondary)
             }
         },
         title = {
             Text(
-                text = "Choose weather location",
+                text = stringResource(R.string.dashboard_choose_weather_location),
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleLarge
             )
@@ -1092,14 +1088,14 @@ private fun LocationPickerDialog(
                         color = MaterialTheme.colorScheme.primary
                     )
                     AppStatusChip(
-                        label = "Optional",
+                        label = stringResource(R.string.dashboard_optional),
                         icon = Icons.Default.Cloud,
                         color = TextMuted
                     )
                 }
 
                 Text(
-                    text = "Use a city, ZIP code, or device location so the dashboard can stay accurate without extra setup later.",
+                    text = stringResource(R.string.dashboard_use_city_zip_code_device),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -1112,7 +1108,7 @@ private fun LocationPickerDialog(
                             onSearch(newQuery)
                         }
                     },
-                    placeholder = { Text("City, region, or ZIP code") },
+                    placeholder = { Text(stringResource(R.string.dashboard_city_region_zip_code)) },
                     leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
@@ -1130,14 +1126,14 @@ private fun LocationPickerDialog(
                 ) {
                     Icon(Icons.Default.MyLocation, null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text("Use current device location", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.dashboard_use_current_device_location), color = MaterialTheme.colorScheme.primary)
                 }
 
                 when {
                     isSearching -> {
                         AppLoadingCard(
                             height = 180.dp,
-                            label = "Searching locations"
+                            label = stringResource(R.string.dashboard_searching_locations)
                         )
                     }
 
@@ -1203,7 +1199,7 @@ private fun LocationPickerDialog(
                                             )
                                         }
                                         Text(
-                                            text = "Use",
+                                            text = stringResource(R.string.dashboard_use),
                                             color = MaterialTheme.colorScheme.primary,
                                             style = MaterialTheme.typography.labelLarge
                                         )
@@ -1216,16 +1212,16 @@ private fun LocationPickerDialog(
                     query.isBlank() -> {
                         AppEmptyState(
                             icon = Icons.Default.Search,
-                            title = "Search for a city",
-                            description = "Type at least two characters to find a location, or use your current device location."
+                            title = stringResource(R.string.dashboard_search_city),
+                            description = stringResource(R.string.dashboard_type_at_least_two_characters)
                         )
                     }
 
                     query.length >= 2 -> {
                         AppEmptyState(
                             icon = Icons.Default.LocationOn,
-                            title = "No matching places",
-                            description = "Try a broader city name, postal code, or nearby region."
+                            title = stringResource(R.string.dashboard_no_matching_places),
+                            description = stringResource(R.string.dashboard_try_broader_city_name_postal)
                         )
                     }
                 }

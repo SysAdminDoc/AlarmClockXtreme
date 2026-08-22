@@ -185,7 +185,7 @@ fun BedtimeScreen(
     ) {
         item {
             AlarmClockHeroHeader(
-                title = "Bedtime",
+                title = stringResource(R.string.shortcut_bedtime),
                 subtitle = summaryLine,
                 overline = "Sleep planning",
                 badge = {
@@ -207,7 +207,7 @@ fun BedtimeScreen(
                 },
                 actions = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.Close, contentDescription = "Close bedtime", tint = TextMuted)
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.bedtime_close_bedtime), tint = TextMuted)
                     }
                 }
             )
@@ -232,13 +232,13 @@ fun BedtimeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Bedtime,
-                            contentDescription = "Bedtime reminder",
+                            contentDescription = stringResource(R.string.bedtime_bedtime_reminder),
                             tint = if (state.isEnabled) DismissGreen else TextMuted,
                             modifier = Modifier.size(24.dp)
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text = "Bedtime reminder",
+                                text = stringResource(R.string.bedtime_bedtime_reminder),
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.titleMedium
                             )
@@ -274,12 +274,13 @@ fun BedtimeScreen(
                     }
                     // Named so TalkBack reads "Bedtime reminder, switch, on"
                     // instead of an unlabelled control.
+                    val reminderSwitchLabel = stringResource(R.string.bedtime_bedtime_reminder)
                     Switch(
                         checked = state.isEnabled,
                         onCheckedChange = viewModel::toggleEnabled,
                         colors = appSwitchColors(),
                         modifier = Modifier.semantics {
-                            contentDescription = "Bedtime reminder"
+                            contentDescription = reminderSwitchLabel
                         }
                     )
                 }
@@ -305,7 +306,7 @@ fun BedtimeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.NightsStay,
-                            contentDescription = "Bedtime DND",
+                            contentDescription = stringResource(R.string.bedtime_dnd_rule_type),
                             tint = when {
                                 !state.bedtimeDndAccessGranted -> SnoozeYellow
                                 state.bedtimeDndActive -> DismissGreen
@@ -316,7 +317,7 @@ fun BedtimeScreen(
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
-                                text = "Bedtime DND",
+                                text = stringResource(R.string.bedtime_dnd_rule_type),
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.titleMedium
                             )
@@ -346,14 +347,14 @@ fun BedtimeScreen(
                                     }
                                 )
                                 AppStatusChip(
-                                    label = "Alarms only",
+                                    label = stringResource(R.string.bedtime_alarms_only),
                                     icon = Icons.Default.AlarmOff,
                                     color = TextMuted
                                 )
                             }
                             state.bedtimeDndError?.let { error ->
                                 Text(
-                                    text = "DND sync needs attention: $error",
+                                    text = stringResource(R.string.bedtime_dnd_sync_error, error),
                                     color = SnoozeYellow,
                                     style = MaterialTheme.typography.bodySmall
                                 )
@@ -367,14 +368,15 @@ fun BedtimeScreen(
                                         )
                                     }
                                 ) {
-                                    Text("Grant DND access", color = MaterialTheme.colorScheme.primary)
+                                    Text(stringResource(R.string.bedtime_grant_dnd_access), color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
                     }
+                    val dndSwitchLabel = stringResource(R.string.bedtime_do_not_disturb_at_bedtime)
                     Switch(
                         modifier = Modifier.semantics {
-                            contentDescription = "Do Not Disturb at bedtime"
+                            contentDescription = dndSwitchLabel
                         },
                         checked = state.bedtimeDndEnabled,
                         onCheckedChange = { enabled ->
@@ -411,7 +413,7 @@ fun BedtimeScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "Battery at ${state.batteryPercent}% — plug in before sleep to avoid alarm failure",
+                            text = stringResource(R.string.bedtime_battery_warning, state.batteryPercent),
                             color = SnoozeYellow,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -454,7 +456,7 @@ fun BedtimeScreen(
                             }
                             if (!state.stayUpLateActive) {
                                 Text(
-                                    text = "Delay tonight's bedtime reminder",
+                                    text = stringResource(R.string.bedtime_delay_tonight_s_bedtime_reminder),
                                     color = TextSecondary,
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.padding(start = 28.dp)
@@ -463,7 +465,7 @@ fun BedtimeScreen(
                         }
                         if (state.stayUpLateActive) {
                             TextButton(onClick = { viewModel.clearStayUpLate() }) {
-                                Text("Cancel")
+                                Text(stringResource(R.string.alarm_list_cancel))
                             }
                         }
                     }
@@ -494,8 +496,8 @@ fun BedtimeScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 AppSectionTitle(
-                    title = "Tonight's sleep window",
-                    description = "Use your current goal and next alarm to see when sleep should start."
+                    title = stringResource(R.string.bedtime_tonight_s_sleep_window),
+                    description = stringResource(R.string.bedtime_use_current_goal_next_alarm)
                 )
 
                 Box(
@@ -519,7 +521,7 @@ fun BedtimeScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Text(
-                    text = "Current sleep target",
+                    text = stringResource(R.string.bedtime_current_sleep_target),
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
@@ -533,7 +535,7 @@ fun BedtimeScreen(
                 ) {
                     item {
                         BedtimeMetricCard(
-                            title = "Bedtime",
+                            title = stringResource(R.string.shortcut_bedtime),
                             value = state.bedtimeFormatted,
                             icon = Icons.Default.NightsStay,
                             accent = BlueLight,
@@ -544,7 +546,7 @@ fun BedtimeScreen(
                     }
                     item {
                         BedtimeMetricCard(
-                            title = "Wake",
+                            title = stringResource(R.string.bedtime_wake),
                             value = state.wakeTimeFormatted.ifBlank { "--:--" },
                             icon = Icons.Default.WbSunny,
                             accent = SnoozeYellow,
@@ -554,7 +556,7 @@ fun BedtimeScreen(
                     }
                     item {
                         BedtimeMetricCard(
-                            title = "Reminder",
+                            title = stringResource(R.string.bedtime_reminder),
                             value = "${state.reminderMinutesBefore} min",
                             icon = Icons.Default.Schedule,
                             accent = DismissGreen,
@@ -564,7 +566,7 @@ fun BedtimeScreen(
                     }
                     item {
                         BedtimeMetricCard(
-                            title = "Room",
+                            title = stringResource(R.string.bedtime_room),
                             value = state.noiseBaselineLabel,
                             icon = Icons.Default.Air,
                             accent = MaterialTheme.colorScheme.primary,
@@ -577,8 +579,8 @@ fun BedtimeScreen(
                 if (state.wakeTimeFormatted.isBlank()) {
                     AppEmptyState(
                         icon = Icons.Default.AlarmOff,
-                        title = "No upcoming alarm",
-                        description = "Set an alarm to unlock suggested bedtimes and cycle-friendly options."
+                        title = stringResource(R.string.bedtime_no_upcoming_alarm),
+                        description = stringResource(R.string.bedtime_set_alarm_unlock_suggested_bedtimes)
                     )
                 }
             }
@@ -598,18 +600,22 @@ fun BedtimeScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Lightbulb,
-                            contentDescription = "Suggestion",
+                            contentDescription = stringResource(R.string.bedtime_suggestion),
                             tint = DismissGreen,
                             modifier = Modifier.size(22.dp)
                         )
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text = "Suggested bedtime",
+                                text = stringResource(R.string.bedtime_suggested_bedtime),
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text(
-                                text = "Aim for ${state.suggestedBedtime} to protect ${state.sleepDurationFormatted} before your next alarm.",
+                                text = stringResource(
+                                    R.string.bedtime_aim_for_bedtime,
+                                    state.suggestedBedtime,
+                                    state.sleepDurationFormatted
+                                ),
                                 color = TextSecondary,
                                 style = MaterialTheme.typography.bodyMedium
                             )
@@ -695,8 +701,8 @@ fun BedtimeScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 AppSectionTitle(
-                    title = "Sleep goal and reminder timing",
-                    description = "Adjust in 30-minute steps and pick how early you want the reminder."
+                    title = stringResource(R.string.bedtime_sleep_goal_reminder_timing),
+                    description = stringResource(R.string.bedtime_adjust_30_minute_steps_pick)
                 )
 
                 Row(
@@ -708,7 +714,7 @@ fun BedtimeScreen(
                     val upperGoal = state.sleepGoalHours * 60 + state.sleepGoalMinutes + 30
 
                     BedtimeAdjusterButton(
-                        label = "Less",
+                        label = stringResource(R.string.bedtime_less),
                         icon = Icons.Default.Remove,
                         enabled = lowerGoal >= 300,
                         modifier = Modifier.weight(1f),
@@ -728,7 +734,7 @@ fun BedtimeScreen(
                             style = MaterialTheme.typography.headlineSmall
                         )
                         Text(
-                            text = "Sleep target",
+                            text = stringResource(R.string.bedtime_jetlag_helper_sleep_target),
                             color = TextMuted,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -739,7 +745,7 @@ fun BedtimeScreen(
                         )
                     }
                     BedtimeAdjusterButton(
-                        label = "More",
+                        label = stringResource(R.string.bedtime_more),
                         icon = Icons.Default.Add,
                         enabled = upperGoal <= 720,
                         modifier = Modifier.weight(1f),
@@ -754,7 +760,7 @@ fun BedtimeScreen(
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
 
                 Text(
-                    text = "Reminder lead time",
+                    text = stringResource(R.string.bedtime_reminder_lead_time),
                     color = TextSecondary,
                     style = MaterialTheme.typography.labelLarge
                 )
@@ -781,15 +787,15 @@ fun BedtimeScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 AppSectionTitle(
-                    title = "Cycle-friendly options",
-                    description = "Based on 90-minute sleep cycles and a short fall-asleep buffer."
+                    title = stringResource(R.string.bedtime_cycle_friendly_options),
+                    description = stringResource(R.string.bedtime_based_90_minute_sleep_cycles)
                 )
 
                 if (state.sleepCycleOptions.isEmpty()) {
                     AppEmptyState(
                         icon = Icons.Default.NightsStay,
-                        title = "Waiting for your next alarm",
-                        description = "Once an alarm is set, bedtime will suggest easier cycle-aligned sleep times."
+                        title = stringResource(R.string.bedtime_waiting_next_alarm),
+                        description = stringResource(R.string.bedtime_once_alarm_set_bedtime_will)
                     )
                 } else {
                     state.sleepCycleOptions.forEachIndexed { index, option ->
@@ -848,7 +854,7 @@ fun BedtimeScreen(
                         showTimePicker = false
                     }
                 ) {
-                    Text("Save bedtime", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.bedtime_save_bedtime), color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
@@ -859,11 +865,11 @@ fun BedtimeScreen(
             title = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     AppStatusChip(
-                        label = "Wind-down target",
+                        label = stringResource(R.string.bedtime_wind_down_target),
                         icon = Icons.Default.Bedtime,
                         color = MaterialTheme.colorScheme.primary
                     )
-                    Text("Choose bedtime", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+                    Text(stringResource(R.string.bedtime_choose_bedtime), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
                 }
             },
             text = {

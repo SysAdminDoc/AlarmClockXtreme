@@ -85,6 +85,8 @@ import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLException
+import com.sysadmindoc.alarmclock.R
+import androidx.compose.ui.res.stringResource
 
 private enum class DownloadMode { Search, PasteUrl }
 
@@ -264,8 +266,7 @@ fun YouTubeDownloadDialog(
             )
         },
         title = {
-            Text(
-                "Download alarm sound",
+            Text(stringResource(R.string.youtube_download_alarm_sound),
                 color = TextPrimary,
                 fontWeight = FontWeight.SemiBold
             )
@@ -317,7 +318,7 @@ fun YouTubeDownloadDialog(
                         },
                         shape = SegmentedButtonDefaults.itemShape(0, 2),
                         enabled = !inFlight && !searching && !updatingEngine,
-                        label = { Text("Search YouTube") }
+                        label = { Text(stringResource(R.string.youtube_search_youtube)) }
                     )
                     SegmentedButton(
                         selected = mode == DownloadMode.PasteUrl,
@@ -327,7 +328,7 @@ fun YouTubeDownloadDialog(
                         },
                         shape = SegmentedButtonDefaults.itemShape(1, 2),
                         enabled = !inFlight && !searching && !updatingEngine,
-                        label = { Text("Paste URL") }
+                        label = { Text(stringResource(R.string.youtube_paste_url)) }
                     )
                 }
 
@@ -430,7 +431,7 @@ fun YouTubeDownloadDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Download")
+                    Text(stringResource(R.string.youtube_download))
                 }
             }
         },
@@ -442,7 +443,7 @@ fun YouTubeDownloadDialog(
                 },
                 enabled = !inFlight && !searching && !updatingEngine
             ) {
-                Text("Cancel", color = TextSecondary)
+                Text(stringResource(R.string.alarm_list_cancel), color = TextSecondary)
             }
         },
         containerColor = SurfaceMedium,
@@ -471,7 +472,7 @@ private fun EngineUpdatePanel(
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Text(
-                text = "Downloader engine",
+                text = stringResource(R.string.youtube_downloader_engine),
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold
@@ -495,7 +496,7 @@ private fun EngineUpdatePanel(
                     modifier = Modifier.size(16.dp)
                 )
             } else {
-                Text("Update", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.youtube_update), fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -511,15 +512,14 @@ private fun PasteBody(
     controlsEnabled: Boolean,
 ) {
     val focusManager = LocalFocusManager.current
-    Text(
-        "Paste a YouTube URL. The audio is saved into your device's Alarms folder, so it appears wherever you pick alarm sounds.",
+    Text(stringResource(R.string.youtube_paste_youtube_url_audio_saved),
         color = TextSecondary,
         style = MaterialTheme.typography.bodySmall
     )
     OutlinedTextField(
         value = url,
         onValueChange = onUrlChange,
-        placeholder = { Text("https://youtube.com/watch?v=...") },
+        placeholder = { Text(stringResource(R.string.youtube_https_youtube_com_watch_v)) },
         singleLine = true,
         enabled = controlsEnabled,
         keyboardOptions = KeyboardOptions(
@@ -533,7 +533,7 @@ private fun PasteBody(
     OutlinedTextField(
         value = name,
         onValueChange = onNameChange,
-        placeholder = { Text("Name this sound (optional)") },
+        placeholder = { Text(stringResource(R.string.youtube_name_sound_optional)) },
         singleLine = true,
         enabled = controlsEnabled,
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
@@ -563,20 +563,20 @@ private fun SearchBody(
 ) {
     val canSearch = canSubmit && !searching && query.isNotBlank()
     Text(
-        "Try \"rooster crow\", \"piano bell\", or \"forest birds\". Preview first, then save the result that feels right.",
+        stringResource(R.string.youtube_search_hint),
         color = TextSecondary,
         style = MaterialTheme.typography.bodySmall
     )
     OutlinedTextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = { Text("rooster crow alarm") },
+        placeholder = { Text(stringResource(R.string.youtube_rooster_crow_alarm)) },
         singleLine = true,
         enabled = controlsEnabled && !searching,
         leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
         trailingIcon = {
             TextButton(onClick = onSearch, enabled = canSearch) {
-                Text("Search", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.youtube_search), fontWeight = FontWeight.SemiBold)
             }
         },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -600,8 +600,7 @@ private fun SearchBody(
                     modifier = Modifier.size(16.dp),
                     color = MaterialTheme.colorScheme.primary
                 )
-                Text(
-                    "Searching YouTube...",
+                Text(stringResource(R.string.youtube_searching_youtube),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(1f)
@@ -632,8 +631,8 @@ private fun SearchBody(
         AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
             AppEmptyState(
                 icon = Icons.Default.Search,
-                title = "No matching clips",
-                description = "Try a shorter phrase, a different sound name, or paste a direct URL instead.",
+                title = stringResource(R.string.youtube_no_matching_clips),
+                description = stringResource(R.string.youtube_try_shorter_phrase_different_sound),
                 footer = {
                     OutlinedButton(
                         onClick = onSearch,
@@ -645,7 +644,7 @@ private fun SearchBody(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.size(6.dp))
-                        Text("Search again")
+                        Text(stringResource(R.string.youtube_search_again))
                     }
                 }
             )
@@ -686,14 +685,16 @@ private fun SearchResultRow(
                 contentAlignment = Alignment.Center
             ) {
                 if (isLoadingPreview) {
+                    // The spinner replaces the play button, and an IconButton
+                    // wrapping only a progress indicator has nothing for a
+                    // screen reader to read. Resolved here because the
+                    // semantics lambda is not a composable scope.
+                    val loadingLabel = stringResource(R.string.youtube_loading_preview_tap_cancel)
                     IconButton(
                         onClick = onTogglePreview,
                         modifier = Modifier
                             .size(40.dp)
-                            // The spinner replaces the play button, and an
-                            // IconButton wrapping only a progress indicator has
-                            // nothing for a screen reader to read.
-                            .semantics { contentDescription = "Loading preview, tap to cancel" }
+                            .semantics { contentDescription = loadingLabel }
                     ) {
                         CircularProgressIndicator(
                             strokeWidth = 3.dp,
@@ -756,16 +757,14 @@ private fun SearchResultRow(
                     )
                     if (isLoadingPreview) {
                         Text("-", color = TextMuted, style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            "Loading preview…",
+                        Text(stringResource(R.string.youtube_loading_preview),
                             color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold
                         )
                     } else if (isPlayingPreview) {
                         Text("-", color = TextMuted, style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            "Previewing",
+                        Text(stringResource(R.string.youtube_previewing),
                             color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold
@@ -870,7 +869,7 @@ private fun DownloadingHint() {
     val animatedProgress by androidx.compose.animation.core.animateFloatAsState(
         targetValue = progress,
         animationSpec = androidx.compose.animation.core.tween(durationMillis = 450),
-        label = "download-progress"
+        label = stringResource(R.string.youtube_download_progress)
     )
 
     Column(
@@ -906,7 +905,7 @@ private fun DownloadingHint() {
             trackColor = SurfaceLight
         )
         Text(
-            text = "This can take 10-60 seconds depending on the clip and your connection.",
+            text = stringResource(R.string.youtube_take_10_60_seconds_depending),
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )

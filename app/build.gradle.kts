@@ -192,15 +192,29 @@ val verifyRoomSchemaExports by tasks.registering {
     }
 }
 
-val primaryComposeScreenFiles = listOf(
-    file("src/main/java/com/sysadmindoc/alarmclock/ui/alarmfiring/AlarmFiringScreen.kt"),
-    file("src/main/java/com/sysadmindoc/alarmclock/ui/alarmedit/AlarmEditScreen.kt"),
-    file("src/main/java/com/sysadmindoc/alarmclock/ui/settings/SettingsScreen.kt")
+/**
+ * Files whose user-facing text is still hardcoded on purpose. Both hold data
+ * models rather than screens: converting their identity strings to resource ids
+ * ripples into every consumer, so it is tracked as its own roadmap item.
+ */
+val unlocalizedComposeFiles = setOf(
+    "ui/news/NewsViewModel.kt",
+    "ui/alarmfiring/challenges/ChallengeGenerator.kt"
 )
+
+val primaryComposeScreenFiles: List<File> = fileTree("src/main/java/com/sysadmindoc/alarmclock/ui") {
+    include("**/*.kt")
+}.files
+    .sortedBy { it.path }
+    .filterNot { candidate ->
+        unlocalizedComposeFiles.any { suffix ->
+            candidate.invariantSeparatorsPath.endsWith(suffix)
+        }
+    }
 
 val verifyLocalizedPrimaryScreens by tasks.registering {
     group = "verification"
-    description = "Rejects new hardcoded user-facing text in the primary Compose screens."
+    description = "Rejects new hardcoded user-facing text anywhere under ui/."
     inputs.files(primaryComposeScreenFiles)
 
     doLast {
@@ -210,7 +224,16 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
                 """\b(?:text|contentDescription|title|description|supportingText|onClickLabel|stateDescription|label)\s*=\s*"([A-Za-z][^"\r\n]*)"""
             )
         )
-        val nonUiComposeLabels = setOf("alarmPulse", "pulseScale", "pulseAlpha")
+        // Animation debug names passed as `label = ...` to animateFloat and
+        // rememberInfiniteTransition. They never reach a user, and translating
+        // them would be meaningless.
+        val nonUiComposeLabels = setOf(
+            "alarmPulse", "pulseScale", "pulseAlpha", "shakeAnim", "nfcPulse", "nfcAlpha",
+            "sheep-drift", "sheep-drift-value", "icon_scale", "loading-card", "loading-alpha",
+            "skeleton-block", "skeleton-alpha", "funnel", "funnel-rotation", "funnel-drift",
+            "glowAlpha", "burnInDrift", "driftX", "driftY", "timer-pulse", "key-press-scale",
+            "dotWidth\$index"
+        )
         val violations = mutableSetOf<String>()
 
         primaryComposeScreenFiles.forEach { sourceFile ->

@@ -26,6 +26,8 @@ import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 @Composable
 internal fun ChronotypeSection(
@@ -38,7 +40,7 @@ internal fun ChronotypeSection(
         highlighted = state.chronotypeComplete
     ) {
         AppSectionTitle(
-            title = "Chronotype estimate",
+            title = stringResource(R.string.chronotype_chronotype_estimate),
             description = if (state.chronotypeComplete) {
                 "Your natural timing preference is folded into the sleep target."
             } else {

@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 /**
  * Wraps content with a SwipeToDismiss gesture.
@@ -59,7 +61,7 @@ fun SwipeableAlarmCard(
                 dismissState.targetValue != SwipeToDismissBoxValue.Settled
             val color by animateColorAsState(
                 if (willDelete) AccentRed.copy(alpha = 0.86f) else Color.Transparent,
-                label = "swipe_bg"
+                label = stringResource(R.string.swipe_swipe_bg)
             )
             val scale by animateFloatAsState(
                 if (willDelete) 1.05f else 0.86f,
@@ -94,7 +96,7 @@ fun SwipeableAlarmCard(
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Text(
-                                text = "Undo is available right after removal",
+                                text = stringResource(R.string.swipe_undo_available_right_after_removal),
                                 color = Color.White.copy(alpha = 0.82f),
                                 style = MaterialTheme.typography.bodySmall
                             )
@@ -105,7 +107,7 @@ fun SwipeableAlarmCard(
                         ) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Delete",
+                                contentDescription = stringResource(R.string.alarm_list_delete),
                                 tint = Color.White,
                                 modifier = Modifier
                                     .padding(12.dp)

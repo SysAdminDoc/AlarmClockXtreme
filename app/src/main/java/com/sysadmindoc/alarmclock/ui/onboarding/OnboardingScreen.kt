@@ -84,11 +84,16 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import com.sysadmindoc.alarmclock.util.ManufacturerCompat
 import kotlinx.coroutines.launch
+import com.sysadmindoc.alarmclock.R
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
 
 data class OnboardingPage(
     val icon: ImageVector,
-    val title: String,
-    val description: String,
+    // Resource ids, not strings: the page list is a top-level val, so it is
+    // built long before there is a composition to read resources from.
+    @StringRes val titleRes: Int,
+    @StringRes val descriptionRes: Int,
     val accentColor: Color,
     val highlights: List<String>
 )
@@ -96,8 +101,8 @@ data class OnboardingPage(
 private val onboardingPages = listOf(
     OnboardingPage(
         icon = Icons.Default.Alarm,
-        title = "Reliable wake-ups",
-        description = "AlarmClockXtreme is built to stay dependable even when Android is trying to save power in the background.",
+        titleRes = R.string.onboarding_reliable_wake_ups,
+        descriptionRes = R.string.onboarding_alarmclockxtreme_built_stay_dependable_even,
         accentColor = AccentBlue,
         highlights = listOf(
             "Exact alarms designed to survive Doze mode",
@@ -106,8 +111,8 @@ private val onboardingPages = listOf(
     ),
     OnboardingPage(
         icon = Icons.Default.Psychology,
-        title = "Wake up for real",
-        description = "Challenge-based dismiss flows help make sure you are actually awake before the alarm stops.",
+        titleRes = R.string.onboarding_wake_up_real,
+        descriptionRes = R.string.onboarding_challenge_based_dismiss_flows_help,
         accentColor = SnoozeYellow,
         highlights = listOf(
             "Math, shake, memory, steps, barcode, and more",
@@ -116,8 +121,8 @@ private val onboardingPages = listOf(
     ),
     OnboardingPage(
         icon = Icons.Default.WbSunny,
-        title = "Start the day informed",
-        description = "See weather, calendar, and your next alarm in one place so the morning feels calmer from the first glance.",
+        titleRes = R.string.onboarding_start_day_informed,
+        descriptionRes = R.string.onboarding_see_weather_calendar_next_alarm,
         accentColor = DismissGreen,
         highlights = listOf(
             "A quick daily dashboard with forecast and events",
@@ -126,8 +131,8 @@ private val onboardingPages = listOf(
     ),
     OnboardingPage(
         icon = Icons.Default.Shield,
-        title = "Private by default",
-        description = "No ads. No tracking. No account.",
+        titleRes = R.string.onboarding_private_by_default,
+        descriptionRes = R.string.onboarding_no_ads_no_tracking_no,
         accentColor = AccentRed,
         highlights = listOf(
             "Permissions are optional and can be changed later",
@@ -218,24 +223,24 @@ fun OnboardingScreen(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     AppStatusChip(
-                        label = "Welcome",
+                        label = stringResource(R.string.onboarding_welcome),
                         icon = Icons.Default.Alarm,
                         color = onboardingPages[pagerState.currentPage].accentColor
                     )
                     Text(
-                        text = "AlarmClockXtreme",
+                        text = stringResource(R.string.app_name),
                         color = TextPrimary,
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "Dependable mornings with less friction",
+                        text = stringResource(R.string.onboarding_dependable_mornings_less_friction),
                         color = TextMuted,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 if (!isLastPage) {
                     TextButton(onClick = onComplete) {
-                        Text("Set up later", color = TextMuted)
+                        Text(stringResource(R.string.onboarding_set_up_later), color = TextMuted)
                     }
                 }
             }
@@ -280,7 +285,7 @@ fun OnboardingScreen(
                 }
 
                 AppStatusChip(
-                    label = onboardingPages[pagerState.currentPage].title,
+                    label = stringResource(onboardingPages[pagerState.currentPage].titleRes),
                     icon = onboardingPages[pagerState.currentPage].icon,
                     color = onboardingPages[pagerState.currentPage].accentColor
                 )
@@ -296,26 +301,26 @@ fun OnboardingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             AppStatusChip(
-                                label = "Recommended setup",
+                                label = stringResource(R.string.onboarding_recommended_setup),
                                 icon = Icons.Default.Shield,
                                 color = onboardingPages[pagerState.currentPage].accentColor
                             )
                             AppStatusChip(
-                                label = "Optional",
+                                label = stringResource(R.string.dashboard_optional),
                                 color = TextMuted
                             )
                         }
 
                         ReadinessMiniRow(
                             icon = Icons.Default.Alarm,
-                            title = "Exact alarm access",
+                            title = stringResource(R.string.settings_exact_alarm_access),
                             ready = readiness.exactAlarmReady,
                             actionLabel = "Open",
                             onAction = { context.openExactAlarmSettings() }
                         )
                         ReadinessMiniRow(
                             icon = Icons.Default.NotificationsActive,
-                            title = "Alarm notifications",
+                            title = stringResource(R.string.notif_channel_alarm_desc),
                             ready = readiness.notificationsReady,
                             actionLabel = "Enable",
                             onAction = {
@@ -330,7 +335,7 @@ fun OnboardingScreen(
                         if (readiness.fullScreenRelevant) {
                             ReadinessMiniRow(
                                 icon = Icons.Default.NotificationsActive,
-                                title = "Full-screen alarm access",
+                                title = stringResource(R.string.settings_fullscreen_access),
                                 ready = readiness.fullScreenReady == true,
                                 actionLabel = "Open",
                                 onAction = { context.openFullScreenAlarmSettings() }
@@ -338,14 +343,14 @@ fun OnboardingScreen(
                         }
                         ReadinessMiniRow(
                             icon = Icons.Default.BatteryAlert,
-                            title = "Battery protection",
+                            title = stringResource(R.string.settings_battery_protection),
                             ready = readiness.batteryReady,
                             actionLabel = "Open",
                             onAction = { ManufacturerCompat.openBatterySettings(context) }
                         )
                         ReadinessMiniRow(
                             icon = Icons.Default.Alarm,
-                            title = "Test alarm",
+                            title = stringResource(R.string.onboarding_test_alarm),
                             ready = readiness.testAlarmReady,
                             actionLabel = "Run",
                             onAction = {
@@ -444,7 +449,11 @@ fun OnboardingScreen(
 
                 if (!isLastPage) {
                     Text(
-                        text = "Step ${pagerState.currentPage + 1} of ${onboardingPages.size}",
+                        text = stringResource(
+                            R.string.onboarding_step_of,
+                            pagerState.currentPage + 1,
+                            onboardingPages.size
+                        ),
                         color = TextMuted,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center
@@ -494,13 +503,13 @@ private fun OnboardingPageContent(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = page.title,
+                    text = stringResource(page.titleRes),
                     style = MaterialTheme.typography.headlineSmall,
                     color = TextPrimary,
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = page.description,
+                    text = stringResource(page.descriptionRes),
                     style = MaterialTheme.typography.bodyLarge,
                     color = TextSecondary,
                     textAlign = TextAlign.Center
@@ -544,7 +553,7 @@ private fun OnboardingIconTile(
     ) {
         Icon(
             imageVector = page.icon,
-            contentDescription = page.title,
+            contentDescription = stringResource(page.titleRes),
             tint = page.accentColor,
             modifier = Modifier.size(iconSize)
         )

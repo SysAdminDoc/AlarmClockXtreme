@@ -32,6 +32,8 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 /**
  * v1.5.0: Shown once per app version via [WhatsNewTracker]. A concise, not
@@ -53,24 +55,24 @@ fun WhatsNewDialog(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Continue")
+                Text(stringResource(R.string.whats_new_continue))
             }
         },
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 AppStatusChip(
-                    label = "Updated to v$version",
+                    label = stringResource(R.string.whats_new_updated_to, version),
                     icon = Icons.Default.AutoAwesome,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "What’s new",
+                    text = stringResource(R.string.whats_new_what_s_new),
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
-                    text = "A quick tour of the biggest additions in this release.",
+                    text = stringResource(R.string.whats_new_quick_tour_biggest_additions_release),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -78,7 +80,7 @@ fun WhatsNewDialog(
         },
         dismissButton = {
             TextButton(onClick = onOpenRoadmap) {
-                Text("What's next", color = MaterialTheme.colorScheme.primary)
+                Text(stringResource(R.string.whats_new_what_s_next), color = MaterialTheme.colorScheme.primary)
             }
         },
         text = {

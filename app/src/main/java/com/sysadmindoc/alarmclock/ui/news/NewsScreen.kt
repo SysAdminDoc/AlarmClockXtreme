@@ -60,6 +60,8 @@ import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import java.util.concurrent.TimeUnit
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,7 +93,7 @@ fun NewsScreen(
             ) {
                 item {
                     AlarmClockHeroHeader(
-                        title = "News",
+                        title = stringResource(R.string.news_news),
                         subtitle = buildList {
                             add(activeFeedLabel)
                             state.lastUpdatedMillis?.let { add(formatRelativeShort(it)) }
@@ -100,7 +102,7 @@ fun NewsScreen(
                             IconButton(onClick = viewModel::refresh) {
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Refresh feed",
+                                    contentDescription = stringResource(R.string.news_refresh_feed),
                                     tint = TextPrimary
                                 )
                             }
@@ -133,7 +135,7 @@ fun NewsScreen(
                                 verticalArrangement = Arrangement.spacedBy(7.dp)
                             ) {
                                 Text(
-                                    text = feed.label.substringAfter("— ", feed.label),
+                                    text = feed.label.substringAfter(": ", feed.label),
                                     color = if (selected) MaterialTheme.colorScheme.primary else TextSecondary,
                                     style = MaterialTheme.typography.labelLarge
                                 )
@@ -160,7 +162,7 @@ fun NewsScreen(
                             )
                         ) {
                             AppInlineNotice(
-                                title = "Showing saved headlines",
+                                title = stringResource(R.string.news_showing_saved_headlines),
                                 message = state.staleMessage.orEmpty(),
                                 icon = Icons.Default.Refresh,
                                 color = SnoozeYellow
@@ -196,13 +198,13 @@ fun NewsScreen(
                                 AppSurfaceCard {
                                     AppEmptyState(
                                         icon = Icons.Default.RssFeed,
-                                        title = "Couldn't load this feed",
+                                        title = stringResource(R.string.news_couldn_t_load_feed),
                                         description = state.errorMessage
                                             ?.takeIf { it.isNotBlank() }
                                             ?: "Pick a different source, or try again.",
                                         footer = {
                                             OutlinedButton(onClick = viewModel::refresh) {
-                                                Text("Retry")
+                                                Text(stringResource(R.string.dashboard_retry))
                                             }
                                         },
                                     )
@@ -222,8 +224,8 @@ fun NewsScreen(
                                 AppSurfaceCard {
                                     AppEmptyState(
                                         icon = Icons.Default.RssFeed,
-                                        title = "No headlines yet",
-                                        description = "Pick a feed from the chips above.",
+                                        title = stringResource(R.string.news_no_headlines_yet),
+                                        description = stringResource(R.string.news_pick_feed_chips_above),
                                     )
                                 }
                             }
@@ -240,7 +242,7 @@ fun NewsScreen(
                                     )
                                 ) {
                                     AppInlineNotice(
-                                        title = "Couldn't refresh",
+                                        title = stringResource(R.string.news_couldn_t_refresh),
                                         message = message,
                                         icon = Icons.Default.RssFeed,
                                         color = SnoozeYellow,
@@ -350,7 +352,7 @@ private fun NewsCard(
             Spacer(modifier = Modifier.weight(1f))
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                contentDescription = "Open article",
+                contentDescription = stringResource(R.string.news_open_article),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(AppIconSize.sm)
             )

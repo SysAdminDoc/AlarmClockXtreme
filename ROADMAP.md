@@ -32,14 +32,15 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — Half of the user-facing strings bypass localisation, so the new language picker has nothing to switch
+- [ ] P2 — Two data-model files still hold their user-facing text as literals
   Category: ux
-  Where: app/build.gradle.kts:195-203 (`verifyLocalizedPrimaryScreens` guards only three files); ~81 literals in ui/alarmfiring/challenges/ChallengeViews.kt (e.g. :122, :165, :486, :694, :1361), ~52 in ui/stats/StatsScreen.kt (:129, :152, :372, :467), ~52 in ui/alarmlist/AlarmListScreen.kt (:1051, :1022, :1033, :1248, :1561), ~40 in ui/dashboard/DashboardScreen.kt, ~37 in ui/bedtime/BedtimeScreen.kt, plus service/AlarmService.kt:2072, service/NextAlarmNotifier.kt:210/249, receiver/BedtimeReceiver.kt:216/296, worker/WakeConfirmWorker.kt:214-254, widget/NextAlarmWidget.kt:243, directboot/DirectBootAlarmService.kt:122/131 (resources `direct_boot_alarm_title`/`_stop` exist but are unused), ui/navigation/AppNavigation.kt:88-93 (tab labels), and the whole wear module (wear strings.xml has 5 entries; NextAlarmTileService.kt:106-242, WearAlarmData.kt:76-130)
-  Problem: res/xml/locales_config.xml declares only `en` and util/AppLanguageManager.kt offers only English, so the Android 13 language picker is a two-option no-op; any future translation would leave the firing challenges, stats, list, notifications and watch tile in English.
-  Fix: move the literals above to strings.xml (use the existing keys where they already exist), add plurals for `"${n} result${if (n == 1) "" else "s"}"` (RingtonePickerSheet.kt:321) and the degenerate plurals at strings.xml:396/397/1129/1166/1167; extend `primaryComposeScreenFiles` in build.gradle.kts to every `ui/**/*.kt` plus service/receiver/worker/widget notification builders; add the wear module to the guard.
-  Acceptance: `./gradlew verifyLocalizedPrimaryScreens` fails on a new `Text("…")` literal anywhere under ui/; a pseudo-locale build (`en-XA`) shows accented text on every screen and notification.
+  Where: ui/news/NewsViewModel.kt:33-64 (`DEFAULT_NEWS_FEEDS` labels); ui/alarmfiring/challenges/ChallengeGenerator.kt:284, :301, :318 (`CHESS_MATE_PUZZLES` titles). Both are named in `unlocalizedComposeFiles` in app/build.gradle.kts so the guard skips them.
+  Problem: everything else under ui/ now goes through stringResource and the build fails on a new literal, but these two files hold display text inside data models. Their consumers read `.label` and `.title` as plain strings, and the news tab additionally splits the label on ": " to shorten the tab caption, so converting them is a small refactor rather than a swap.
+  Evidence: `verifyLocalizedPrimaryScreens` covers every other file under ui/ and passes.
+  Fix: give both models `@StringRes` ids alongside (or instead of) the strings, resolve at the call sites, and split the news tab caption from a separate short-label field rather than by parsing the long one. Then drop both entries from `unlocalizedComposeFiles`.
+  Acceptance: `unlocalizedComposeFiles` is empty and the guard still passes.
   Confidence: Verified
-  Effort: L
+  Effort: S
 
 - [ ] P2 — A YouTube download is cancelled by a rotation
   Category: ux

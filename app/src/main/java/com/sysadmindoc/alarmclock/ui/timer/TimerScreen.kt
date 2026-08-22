@@ -92,6 +92,8 @@ import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.LocalMotionEnabled
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun TimerScreen(
@@ -149,7 +151,7 @@ fun TimerScreen(
             .verticalScroll(androidx.compose.foundation.rememberScrollState())
     ) {
         AlarmClockHeroHeader(
-            title = "Timer",
+            title = stringResource(R.string.notif_timer_generic),
             subtitle = if (state.activeTimers.isEmpty()) {
                 ""
             } else {
@@ -157,7 +159,7 @@ fun TimerScreen(
             },
             actions = {
                 TextButton(onClick = onOpenStopwatch) {
-                    Text("Stopwatch")
+                    Text(stringResource(R.string.nav_stopwatch))
                 }
             }
         )
@@ -174,7 +176,7 @@ fun TimerScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 AppSectionTitle(
-                    title = "Active timers"
+                    title = stringResource(R.string.timer_screen_active_timers)
                 )
                 state.activeTimers.forEach { timer ->
                     ActiveTimerCard(
@@ -217,7 +219,7 @@ private fun ActiveTimerCard(
 ) {
     val isFinished = timer.state == TimerState.FINISHED
     val pulseAlpha = if (LocalMotionEnabled.current) {
-        rememberInfiniteTransition(label = "timer-finished").animateFloat(
+        rememberInfiniteTransition(label = stringResource(R.string.timer_screen_timer_finished)).animateFloat(
             initialValue = 0.52f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(
@@ -259,7 +261,7 @@ private fun ActiveTimerCard(
                         style = MaterialTheme.typography.headlineSmall
                     )
                     if (timer.state == TimerState.PAUSED) {
-                        AppStatusChip(label = "Paused", icon = Icons.Default.Pause, color = SnoozeYellow)
+                        AppStatusChip(label = stringResource(R.string.settings_paused), icon = Icons.Default.Pause, color = SnoozeYellow)
                     }
                     // Running out is the event that matters, and it was
                     // signalled only by a colour change and a pulse.
@@ -282,7 +284,7 @@ private fun ActiveTimerCard(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
-                    Text("Dismiss")
+                    Text(stringResource(R.string.notif_dismiss_action))
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -307,7 +309,7 @@ private fun TimerProgressRing(timer: TimerInstance, pulseAlpha: Float) {
     val animatedProgress by animateFloatAsState(
         targetValue = timer.progress,
         animationSpec = tween(100),
-        label = "timer-progress"
+        label = stringResource(R.string.timer_screen_timer_progress)
     )
     val accent = MaterialTheme.colorScheme.primary
 
@@ -372,7 +374,7 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
 
         if (state.inputDigits.isNotBlank()) {
             TextButton(onClick = viewModel::clearInput) {
-                Text("Clear entry", color = TextMuted)
+                Text(stringResource(R.string.timer_screen_clear_entry), color = TextMuted)
             }
         }
 
@@ -412,7 +414,7 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
         ) {
             Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(22.dp))
             Spacer(modifier = Modifier.size(8.dp))
-            Text("Start", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.challenge_start), style = MaterialTheme.typography.labelLarge)
         }
     }
 }

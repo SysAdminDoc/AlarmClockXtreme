@@ -50,6 +50,8 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 /**
  * F12: Morning briefing screen shown after alarm dismiss.
@@ -168,13 +170,13 @@ fun MorningBriefingScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         Text(
-                            text = "Good morning",
+                            text = stringResource(R.string.briefing_good_morning),
                             color = TextPrimary,
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "You’re clear of the alarm. Here’s the shortest path into the day.",
+                            text = stringResource(R.string.briefing_re_clear_alarm_here_s),
                             color = TextSecondary,
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center
@@ -229,8 +231,8 @@ fun MorningBriefingScreen(
                 highlighted = true
             ) {
                 AppSectionTitle(
-                    title = "Morning briefing",
-                    description = "A quick snapshot so you can start moving with context."
+                    title = stringResource(R.string.briefing_morning_briefing),
+                    description = stringResource(R.string.briefing_quick_snapshot_start_moving_context)
                 )
                 if (weather.isNotBlank()) {
                     BriefingRow(
@@ -248,7 +250,7 @@ fun MorningBriefingScreen(
                 }
                 if (weather.isBlank() && nextEvent.isBlank()) {
                     Text(
-                        text = "Nothing urgent is queued right now. Enjoy a calmer start to the day.",
+                        text = stringResource(R.string.briefing_nothing_urgent_queued_right_now),
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -258,8 +260,8 @@ fun MorningBriefingScreen(
             if (routineItems.isNotEmpty()) {
                 AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                     AppSectionTitle(
-                        title = "Morning routine",
-                        description = "A short checklist to get momentum without decision fatigue."
+                        title = stringResource(R.string.alarm_edit_morning_routine),
+                        description = stringResource(R.string.briefing_short_checklist_get_momentum_without)
                     )
                     routineItems.forEachIndexed { index, item ->
                         RoutineRow(
@@ -277,7 +279,7 @@ fun MorningBriefingScreen(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = "Close briefing",
+                    text = stringResource(R.string.briefing_close_briefing),
                     fontWeight = FontWeight.SemiBold
                 )
             }

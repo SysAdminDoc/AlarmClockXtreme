@@ -30,6 +30,8 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 @Composable
 internal fun SleepCycleOptionRow(index: Int, option: String) {
@@ -67,8 +69,8 @@ internal fun WindDownChecklistSection(
 ) {
     AppSurfaceCard(modifier = modifier) {
         AppSectionTitle(
-            title = "Wind-down checklist",
-            description = "Tick each step as you settle in for the night.",
+            title = stringResource(R.string.wind_down_wind_down_checklist),
+            description = stringResource(R.string.wind_down_tick_each_step_as_settle),
             action = {
                 AppStatusChip(
                     label = "${state.bedtimeChecklistDone.size}/${state.bedtimeChecklist.size} done",
@@ -123,7 +125,7 @@ internal fun WindDownChecklistSection(
                 onClick = onReset,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
-                Text("Reset checklist", color = TextSecondary)
+                Text(stringResource(R.string.wind_down_reset_checklist), color = TextSecondary)
             }
         }
     }

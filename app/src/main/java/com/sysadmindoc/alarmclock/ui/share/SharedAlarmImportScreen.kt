@@ -60,6 +60,8 @@ import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 @Composable
 fun SharedAlarmImportScreen(
@@ -90,18 +92,18 @@ fun SharedAlarmImportScreen(
             IconButton(onClick = onCancel) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Discard shared alarm",
+                    contentDescription = stringResource(R.string.share_import_discard_shared_alarm),
                     tint = TextPrimary
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    text = "Review shared alarm",
+                    text = stringResource(R.string.share_import_review_shared_alarm),
                     color = TextPrimary,
                     style = MaterialTheme.typography.headlineSmall
                 )
                 Text(
-                    text = "Saved imports stay off until you review and enable them.",
+                    text = stringResource(R.string.share_import_saved_imports_stay_off_until),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -115,11 +117,11 @@ fun SharedAlarmImportScreen(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold
             )
-            SharedImportDetailRow(label = "Time", value = alarm.formatSharedImportTime())
-            SharedImportDetailRow(label = "Repeat", value = alarm.repeatLabel)
-            SharedImportDetailRow(label = "Challenge", value = alarm.challengeSummary())
-            SharedImportDetailRow(label = "Sound", value = alarm.soundSummary())
-            SharedImportDetailRow(label = "Status", value = "Saved off until reviewed")
+            SharedImportDetailRow(label = stringResource(R.string.share_import_time), value = alarm.formatSharedImportTime())
+            SharedImportDetailRow(label = stringResource(R.string.share_import_repeat), value = alarm.repeatLabel)
+            SharedImportDetailRow(label = stringResource(R.string.share_import_challenge), value = alarm.challengeSummary())
+            SharedImportDetailRow(label = stringResource(R.string.alarm_edit_sound), value = alarm.soundSummary())
+            SharedImportDetailRow(label = stringResource(R.string.share_import_status), value = "Saved off until reviewed")
         }
 
         AppSurfaceCard(highlighted = riskyFields.isNotEmpty()) {
@@ -129,7 +131,7 @@ fun SharedAlarmImportScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Private references",
+                    text = stringResource(R.string.share_import_private_references),
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
@@ -143,7 +145,7 @@ fun SharedAlarmImportScreen(
             }
             if (riskyFields.isEmpty()) {
                 Text(
-                    text = "No contact, location, Wi-Fi, media, or challenge reference was found.",
+                    text = stringResource(R.string.share_import_no_contact_location_wi_fi),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -166,7 +168,7 @@ fun SharedAlarmImportScreen(
                     onCheckedChange = { stripRiskyFields = it }
                 )
                 Text(
-                    text = "Sanitizing keeps the wake time and repeat pattern, but removes values that can identify devices, places, people, media, or challenge secrets.",
+                    text = stringResource(R.string.share_import_sanitizing_keeps_wake_time_repeat),
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -175,7 +177,7 @@ fun SharedAlarmImportScreen(
 
         uiState.error?.let { error ->
             AppFeedbackCard(
-                title = "Import could not be saved",
+                title = stringResource(R.string.share_import_import_could_not_saved),
                 message = error,
                 icon = Icons.Default.Warning,
                 color = AccentRed
@@ -193,7 +195,7 @@ fun SharedAlarmImportScreen(
                 enabled = !uiState.isSaving,
                 shape = AppChipShape
             ) {
-                Text("Discard")
+                Text(stringResource(R.string.share_import_discard))
             }
             Button(
                 onClick = {
@@ -214,9 +216,9 @@ fun SharedAlarmImportScreen(
                         color = MaterialTheme.colorScheme.onPrimary
                     )
                     Spacer(modifier = Modifier.size(8.dp))
-                    Text("Saving")
+                    Text(stringResource(R.string.share_import_saving))
                 } else {
-                    Text("Save without enabling")
+                    Text(stringResource(R.string.share_import_save_without_enabling))
                 }
             }
         }
@@ -284,7 +286,7 @@ private fun PrivateReferenceToggle(
                 verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
                 Text(
-                    text = "Strip private references",
+                    text = stringResource(R.string.share_import_strip_private_references),
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleSmall
                 )

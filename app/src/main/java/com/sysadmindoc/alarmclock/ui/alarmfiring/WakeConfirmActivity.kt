@@ -286,7 +286,7 @@ private fun WakeConfirmScreen(
                     // The one transition worth interrupting for.
                     if (secondsLeft <= 0) {
                         Text(
-                            text = "Time's up. The alarm is ringing again.",
+                            text = stringResource(R.string.wake_confirm_ui_time_s_up_alarm_ringing),
                             color = SnoozeYellow,
                             style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
@@ -299,7 +299,7 @@ private fun WakeConfirmScreen(
 
                 AppSectionTitle(
                     title = stringResource(R.string.wake_confirm_title),
-                    description = "A quick second check for alarms that need extra accountability."
+                    description = stringResource(R.string.wake_confirm_ui_quick_second_check_alarms_need)
                 )
 
                 Row(
@@ -356,7 +356,10 @@ private fun WakeConfirmScreen(
                 }
 
                 Text(
-                    text = "Closing this screen keeps wake-check protection active. The alarm can ring up to ${WakeConfirmWorker.MAX_REFIRES} more time${if (WakeConfirmWorker.MAX_REFIRES != 1) "s" else ""} if you don't confirm.",
+                    text = stringResource(
+                        R.string.wake_confirm_keep_protection,
+                        WakeConfirmWorker.MAX_REFIRES
+                    ),
                     color = TextMuted,
                     style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,

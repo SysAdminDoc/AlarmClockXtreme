@@ -39,6 +39,8 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 private data class SleepSound(
     val label: String,
@@ -64,8 +66,8 @@ internal fun SleepSoundsSection(
 ) {
     AppSurfaceCard(modifier = modifier) {
         AppSectionTitle(
-            title = "Sleep sounds",
-            description = "Continuous procedural soundscapes with no looping artifacts."
+            title = stringResource(R.string.bedtime_sounds_sleep_sounds),
+            description = stringResource(R.string.bedtime_sounds_continuous_procedural_soundscapes_no_looping)
         )
 
         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -120,7 +122,7 @@ internal fun SleepSoundsSection(
         HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
 
         Text(
-            text = "Fade out after",
+            text = stringResource(R.string.bedtime_sounds_fade_out_after),
             color = TextSecondary,
             style = MaterialTheme.typography.labelLarge
         )
@@ -141,7 +143,7 @@ internal fun SleepSoundsSection(
         // v1.5.0: Final-taper duration. Until this pass the fade was hard-coded
         // to 60s; users with deeper-sleep routines asked for a longer slide.
         Text(
-            text = "Final taper length",
+            text = stringResource(R.string.bedtime_sounds_final_taper_length),
             color = TextSecondary,
             style = MaterialTheme.typography.labelLarge
         )
@@ -169,7 +171,7 @@ internal fun SleepSoundsSection(
                 onClick = viewModel::stopSound,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
-                Text("Stop sound", color = TextSecondary)
+                Text(stringResource(R.string.bedtime_sounds_stop_sound), color = TextSecondary)
             }
         }
     }

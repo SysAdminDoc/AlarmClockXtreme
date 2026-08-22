@@ -45,6 +45,8 @@ import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import kotlin.math.abs
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 @Composable
 internal fun PreSleepTagSection(
@@ -58,7 +60,7 @@ internal fun PreSleepTagSection(
         highlighted = hasSelection
     ) {
         AppSectionTitle(
-            title = "Pre-sleep factors",
+            title = stringResource(R.string.bedtime_tracking_pre_sleep_factors),
             description = "${state.preSleepTagDateLabel}: tag the signals that may shape tomorrow's wake-up friction."
         )
 
@@ -82,7 +84,7 @@ internal fun PreSleepTagSection(
             PreSleepCorrelationChart(items = state.preSleepCorrelations)
         } else {
             Text(
-                text = "Local chart appears after tagged nights overlap Sonar or smart-wake summaries.",
+                text = stringResource(R.string.bedtime_tracking_local_chart_appears_after_tagged),
                 color = TextMuted,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -184,7 +186,7 @@ internal fun SonarSleepTrackingSection(
         highlighted = state.sonarTrackingActive
     ) {
         AppSectionTitle(
-            title = "Sonar sleep tracking",
+            title = stringResource(R.string.bedtime_tracking_sonar_sleep_tracking),
             description = if (state.sonarTrackingActive) {
                 "Experimental overnight movement monitoring is running locally."
             } else {
@@ -211,7 +213,7 @@ internal fun SonarSleepTrackingSection(
                         color = if (state.sonarTrackingActive) DismissGreen else TextMuted
                     )
                     AppStatusChip(
-                        label = "No audio saved",
+                        label = stringResource(R.string.bedtime_tracking_no_audio_saved),
                         icon = Icons.Default.NightsStay,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -302,7 +304,7 @@ internal fun HealthConnectSleepSection(
         highlighted = summary.permissionGranted && summary.hasRecentSession
     ) {
         AppSectionTitle(
-            title = "Health Connect sleep",
+            title = stringResource(R.string.bedtime_tracking_health_connect_sleep),
             description = when {
                 summary.availability == HealthConnectAvailability.PROVIDER_UPDATE_REQUIRED ->
                     "Update Health Connect before recent sleep sessions can appear here."
@@ -330,7 +332,10 @@ internal fun HealthConnectSleepSection(
         }
         if (summary.hasRecentSession) {
             Text(
-                text = "Last session: ${formatSleepMinutes(summary.lastSessionDurationMinutes)}",
+                text = stringResource(
+                    R.string.bedtime_last_session,
+                    formatSleepMinutes(summary.lastSessionDurationMinutes)
+                ),
                 color = TextPrimary,
                 style = MaterialTheme.typography.headlineSmall
             )
@@ -346,7 +351,7 @@ internal fun HealthConnectSleepSection(
         }
         summary.errorMessage?.let { error ->
             AppInlineNotice(
-                title = "Health Connect needs attention",
+                title = stringResource(R.string.settings_health_attention),
                 message = error,
                 icon = Icons.Default.Warning,
                 color = SnoozeYellow

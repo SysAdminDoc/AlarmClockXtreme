@@ -64,6 +64,8 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun WorldClockScreen(
@@ -88,13 +90,13 @@ fun WorldClockScreen(
         ) {
             item {
                 AlarmClockHeroHeader(
-                    title = "World clock",
+                    title = stringResource(R.string.world_world_clock),
                     subtitle = "${state.localZone} · ${state.localTime}",
                     actions = {
                         IconButton(onClick = viewModel::showAddDialog) {
                             Icon(
                                 imageVector = Icons.Default.Add,
-                                contentDescription = "Add city",
+                                contentDescription = stringResource(R.string.world_add_city),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -112,8 +114,8 @@ fun WorldClockScreen(
                         AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                             AppEmptyState(
                                 icon = Icons.Default.Public,
-                                title = "No world clocks yet",
-                                description = "Add the cities you check most often and keep them one tap away.",
+                                title = stringResource(R.string.world_no_world_clocks_yet),
+                                description = stringResource(R.string.world_add_cities_check_most_often),
                                 footer = {
                                     Button(
                                         onClick = viewModel::showAddDialog,
@@ -124,7 +126,7 @@ fun WorldClockScreen(
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.size(8.dp))
-                                        Text("Add city")
+                                        Text(stringResource(R.string.world_add_city))
                                     }
                                 }
                             )
@@ -188,24 +190,24 @@ fun WorldClockScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Remove city")
+                    Text(stringResource(R.string.world_remove_city))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingRemoval = null }) {
-                    Text("Keep city", color = TextSecondary)
+                    Text(stringResource(R.string.world_keep_city), color = TextSecondary)
                 }
             },
             title = {
                 Text(
-                    text = "Remove ${entry.cityName}?",
+                    text = stringResource(R.string.world_remove_city_title, entry.cityName),
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleLarge
                 )
             },
             text = {
                 Text(
-                    text = "This removes the saved world clock for ${entry.zoneId}. You can add it again later.",
+                    text = stringResource(R.string.world_remove_city_message, entry.zoneId),
                     color = TextSecondary
                 )
             },
@@ -257,7 +259,7 @@ private fun WorldClockCard(
         IconButton(onClick = onRemove) {
             Icon(
                 Icons.Default.MoreVert,
-                contentDescription = "Remove ${entry.cityName}",
+                contentDescription = stringResource(R.string.world_remove_city, entry.cityName),
                 tint = TextMuted
             )
         }
@@ -280,14 +282,13 @@ private fun AddTimeZoneDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close", color = TextSecondary)
+                Text(stringResource(R.string.alarm_list_close), color = TextSecondary)
             }
         },
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Add a city", color = TextPrimary, style = MaterialTheme.typography.titleLarge)
-                Text(
-                    "Search by city, country, or time-zone region, then tap a result to add it.",
+                Text(stringResource(R.string.world_add_city_2), color = TextPrimary, style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.world_search_by_city_country_time),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -298,7 +299,7 @@ private fun AddTimeZoneDialog(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = onQueryChange,
-                    placeholder = { Text("Search city, country, or region") },
+                    placeholder = { Text(stringResource(R.string.world_search_city_country_region)) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
@@ -361,12 +362,19 @@ private fun AddTimeZoneDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(searchResults) { entry ->
+                        // Resolved before the semantics lambda, which is
+                        // not a composable scope.
+                        val addCityLabel = stringResource(
+                            R.string.world_add_city_action,
+                            entry.cityName,
+                            entry.time,
+                            entry.offsetLabel
+                        )
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .semantics(mergeDescendants = true) {
-                                    contentDescription =
-                                        "Add ${entry.cityName}, ${entry.time}, ${entry.offsetLabel}"
+                                    contentDescription = addCityLabel
                                 }
                                 .clickable(role = Role.Button) { onSelect(entry.zoneId) },
                             shape = RoundedCornerShape(12.dp),
@@ -407,7 +415,7 @@ private fun AddTimeZoneDialog(
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     AppStatusChip(
-                                        label = "Add",
+                                        label = stringResource(R.string.alarm_edit_add),
                                         icon = Icons.Default.Add,
                                         color = MaterialTheme.colorScheme.primary
                                     )

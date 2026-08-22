@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Almost every screen's text now comes from the string resources, so the app is
+  ready to be translated rather than hardcoded in English. The build refuses a
+  new hardcoded line anywhere under the UI.
 - A copy pass over the app's own words: no more dashes standing in for
   punctuation, one spelling of the app name, sentence case on notification
   channels, one snooze format, and plain language where permission constants,

@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProofStore
+import androidx.compose.ui.res.stringResource
 
 object OnboardingTestAlarm {
     const val ACTION_RING = "com.sysadmindoc.alarmclock.ONBOARDING_TEST_ALARM"
@@ -150,8 +151,10 @@ class OnboardingTestAlarmReceiver : BroadcastReceiver() {
         )
         val notification = NotificationCompat.Builder(context, AlarmService.CHANNEL_ALARM)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Test alarm")
-            .setContentText("AlarmClockXtreme can wake this device. Dismiss the test to finish setup.")
+            .setContentTitle(context.getString(R.string.onboarding_test_alarm))
+            .setContentText(
+                context.getString(R.string.test_alarm_alarmclockxtreme_wake_device_dismiss_test)
+            )
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setFullScreenIntent(activityPendingIntent, true)
@@ -276,14 +279,14 @@ private fun TestAlarmContent(onDismiss: () -> Unit) {
             modifier = Modifier.padding(bottom = 20.dp)
         )
         Text(
-            text = "Test alarm",
+            text = stringResource(R.string.onboarding_test_alarm),
             color = TextPrimary,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Your device can launch the alarm screen, play audio, and vibrate. This did not create or change any saved alarms.",
+            text = stringResource(R.string.test_alarm_device_launch_alarm_screen_play),
             color = TextSecondary,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
@@ -298,13 +301,13 @@ private fun TestAlarmContent(onDismiss: () -> Unit) {
         ) {
             Icon(Icons.Default.CheckCircle, contentDescription = null)
             Text(
-                text = "Dismiss test alarm",
+                text = stringResource(R.string.test_alarm_dismiss_test_alarm),
                 modifier = Modifier.padding(start = 10.dp),
                 fontWeight = FontWeight.SemiBold
             )
         }
         Text(
-            text = "If you did not hear or feel this test, review volume, Do Not Disturb, and battery settings before relying on an overnight alarm.",
+            text = stringResource(R.string.test_alarm_if_did_not_hear_feel),
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,

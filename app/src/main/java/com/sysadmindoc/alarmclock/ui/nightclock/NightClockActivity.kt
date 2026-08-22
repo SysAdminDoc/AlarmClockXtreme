@@ -57,6 +57,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 /**
  * v1.2.0: Night clock / bedside mode.
@@ -103,7 +105,7 @@ fun NightClockScreen(onExit: () -> Unit) {
     }
     val motionEnabled = LocalMotionEnabled.current
     val glowAlpha = if (motionEnabled) {
-        rememberInfiniteTransition(label = "nightAmbient").animateFloat(
+        rememberInfiniteTransition(label = stringResource(R.string.night_clock_nightambient)).animateFloat(
             initialValue = 0.18f,
             targetValue = 0.3f,
             animationSpec = infiniteRepeatable(
@@ -140,6 +142,10 @@ fun NightClockScreen(onExit: () -> Unit) {
         label = "driftY"
     ).value
 
+    // Resolved outside the semantics lambda, which is not a composable scope.
+    val screenLabel = stringResource(R.string.settings_night_clock)
+    val exitLabel = stringResource(R.string.night_clock_exit_night_clock)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -157,8 +163,8 @@ fun NightClockScreen(onExit: () -> Unit) {
             // A raw long-press gesture is invisible to a screen reader, so the
             // only way out of night clock had no accessible equivalent.
             .semantics {
-                contentDescription = "Night clock"
-                onLongClick(label = "Exit night clock") {
+                contentDescription = screenLabel
+                onLongClick(label = exitLabel) {
                     onExit()
                     true
                 }
@@ -192,7 +198,7 @@ fun NightClockScreen(onExit: () -> Unit) {
                 color = SnoozeYellow.copy(alpha = 0.09f)
             ) {
                 Text(
-                    text = "Bedside mode",
+                    text = stringResource(R.string.night_clock_bedside_mode),
                     color = SnoozeYellow.copy(alpha = 0.74f),
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
@@ -259,7 +265,7 @@ fun NightClockScreen(onExit: () -> Unit) {
                     color = Color.White.copy(alpha = 0.04f)
                 ) {
                     Text(
-                        text = "Long press anywhere to exit",
+                        text = stringResource(R.string.night_clock_long_press_anywhere_exit),
                         color = TextMuted.copy(alpha = 0.58f),
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,

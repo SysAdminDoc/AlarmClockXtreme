@@ -35,6 +35,8 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 @Composable
 internal fun BreathingExerciseSection(
@@ -54,7 +56,7 @@ internal fun BreathingExerciseSection(
         highlighted = running
     ) {
         AppSectionTitle(
-            title = "Guided breathing",
+            title = stringResource(R.string.breathing_guided_breathing),
             description = if (running) {
                 "Follow the count and keep the phone nearby while you settle down."
             } else {
@@ -87,7 +89,11 @@ internal fun BreathingExerciseSection(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AppStatusChip(
-                    label = "Cycle ${phase.cycleNumber}/${phase.cycleCount}",
+                    label = stringResource(
+                        R.string.breathing_cycle_progress,
+                        phase.cycleNumber,
+                        phase.cycleCount
+                    ),
                     icon = Icons.Default.Schedule,
                     color = if (phase.completed) DismissGreen else MaterialTheme.colorScheme.primary
                 )
@@ -134,7 +140,7 @@ internal fun BreathingExerciseSection(
                 accessibilityLabel = if (running) "Pause guided breathing" else "Start guided breathing"
             )
             TextButton(onClick = onReset) {
-                Text("Reset", color = TextSecondary)
+                Text(stringResource(R.string.stopwatch_reset), color = TextSecondary)
             }
         }
     }

@@ -75,6 +75,8 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import com.sysadmindoc.alarmclock.ui.theme.ToggleOff
 import com.sysadmindoc.alarmclock.ui.theme.ToggleTrackOff
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 // ─── Shared shape tokens ───────────────────────────────────────────────────
 val AppCardShape = RoundedCornerShape(12.dp)
@@ -509,7 +511,7 @@ fun AppFeedbackCard(
                     onClick = onDismiss
                 ) {
                     Text(
-                        text = "Dismiss",
+                        text = stringResource(R.string.app_dismiss),
                         color = TextSecondary,
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)

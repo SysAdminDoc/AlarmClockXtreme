@@ -33,32 +33,32 @@ data class NewsFeedSource(
 val DEFAULT_NEWS_FEEDS = listOf(
     NewsFeedSource(
         key = "google_top",
-        label = "Google News — Top",
+        label = "Google News: Top",
         url = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
     ),
     NewsFeedSource(
         key = "google_world",
-        label = "Google News — World",
+        label = "Google News: World",
         url = "https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en"
     ),
     NewsFeedSource(
         key = "google_tech",
-        label = "Google News — Tech",
+        label = "Google News: Tech",
         url = "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en"
     ),
     NewsFeedSource(
         key = "bbc",
-        label = "BBC — Top Stories",
+        label = "BBC: Top stories",
         url = "https://feeds.bbci.co.uk/news/rss.xml"
     ),
     NewsFeedSource(
         key = "npr",
-        label = "NPR — News",
+        label = "NPR: News",
         url = "https://feeds.npr.org/1001/rss.xml"
     ),
     NewsFeedSource(
         key = "hn",
-        label = "Hacker News — Front",
+        label = "Hacker News: Front page",
         url = "https://hnrss.org/frontpage"
     ),
 )

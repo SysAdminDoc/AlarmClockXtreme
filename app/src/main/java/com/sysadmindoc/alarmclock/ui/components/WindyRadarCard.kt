@@ -48,6 +48,8 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 /**
  * Embedded Windy radar map. Wraps a WebView pointed at Windy's public embed
@@ -95,12 +97,12 @@ fun WindyRadarCard(
     val webViewAlpha by animateFloatAsState(
         targetValue = if (loaded) 1f else 0f,
         animationSpec = tween(durationMillis = 280),
-        label = "radar-fade-in",
+        label = stringResource(R.string.radar_radar_fade),
     )
     val skeletonAlpha by animateFloatAsState(
         targetValue = if (loaded) 0f else 1f,
         animationSpec = tween(durationMillis = 240),
-        label = "radar-skeleton-fade",
+        label = stringResource(R.string.radar_radar_skeleton_fade),
     )
 
     AppSurfaceCard(modifier = modifier) {
@@ -116,19 +118,18 @@ fun WindyRadarCard(
                     modifier = Modifier.size(AppIconSize.md)
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        "Live radar",
+                    Text(stringResource(R.string.settings_connection_radar),
                         color = TextPrimary,
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
-                        text = "Animated precipitation near $locationLabel · Windy",
+                        text = stringResource(R.string.radar_animated_precipitation, locationLabel),
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 AppStatusChip(
-                    label = "Open in Windy",
+                    label = stringResource(R.string.radar_open_windy),
                     icon = Icons.AutoMirrored.Filled.OpenInNew,
                     modifier = Modifier.clickable(
                         role = Role.Button,

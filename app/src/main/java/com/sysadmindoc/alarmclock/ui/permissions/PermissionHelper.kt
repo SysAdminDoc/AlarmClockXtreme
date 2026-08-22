@@ -26,6 +26,8 @@ import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.*
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 /**
  * Tracks which optional permissions have been granted.
@@ -162,22 +164,22 @@ fun PermissionRequestCard(
         if (includeNotifications && !permState.hasNotifications) {
             PermissionItem(
                 icon = Icons.Default.NotificationsActive,
-                title = "Notifications",
-                description = "Show active alarms, timer finish alerts, and wake-up reminders."
+                title = stringResource(R.string.permission_notifications),
+                description = stringResource(R.string.permission_show_active_alarms_timer_finish)
             )
         }
         if (!permState.hasCalendar) {
             PermissionItem(
                 icon = Icons.Default.CalendarMonth,
-                title = "Calendar",
-                description = "Bring today’s events into the dashboard and morning briefing."
+                title = stringResource(R.string.permission_calendar),
+                description = stringResource(R.string.permission_bring_today_s_events_into)
             )
         }
         if (!permState.hasLocation) {
             PermissionItem(
                 icon = Icons.Default.LocationOn,
-                title = "Location",
-                description = "Show local weather without asking you to set a city every time."
+                title = stringResource(R.string.permission_location),
+                description = stringResource(R.string.permission_show_local_weather_without_asking)
             )
         }
 
@@ -201,7 +203,7 @@ fun PermissionRequestCard(
         }
 
         Text(
-            text = "Android will still ask you to confirm each request, and you can change them later in system settings.",
+            text = stringResource(R.string.permission_android_will_still_ask_confirm),
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
@@ -250,7 +252,7 @@ private fun PermissionItem(icon: ImageVector, title: String, description: String
                     Text(description, color = TextSecondary, fontSize = 12.sp, lineHeight = 18.sp)
                 }
                 AppStatusChip(
-                    label = "Missing",
+                    label = stringResource(R.string.permission_missing),
                     color = SnoozeYellow
                 )
             }

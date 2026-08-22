@@ -51,6 +51,8 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,8 +74,8 @@ fun TemplatePickerSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             AppSectionTitle(
-                title = "Quick-start templates",
-                description = "Start with a thoughtful preset for common routines, then fine-tune the details afterward."
+                title = stringResource(R.string.template_quick_start_templates),
+                description = stringResource(R.string.template_start_thoughtful_preset_common_routines)
             )
 
             Row(
@@ -85,11 +87,11 @@ fun TemplatePickerSheet(
                     color = MaterialTheme.colorScheme.primary
                 )
                 AppStatusChip(
-                    label = "Creates a draft alarm",
+                    label = stringResource(R.string.template_creates_draft_alarm),
                     color = DismissGreen
                 )
                 AppStatusChip(
-                    label = "Fully editable",
+                    label = stringResource(R.string.template_fully_editable),
                     color = TextMuted
                 )
             }
