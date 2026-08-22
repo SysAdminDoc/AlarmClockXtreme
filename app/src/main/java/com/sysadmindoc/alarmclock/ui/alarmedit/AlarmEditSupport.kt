@@ -62,6 +62,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.ChallengeType
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.*
 import com.sysadmindoc.alarmclock.util.LocationHelper
@@ -917,40 +918,20 @@ internal fun guardianEditHint(readiness: GuardianReadiness): String {
     }
 }
 
+/**
+ * The picker rows, in enum order.
+ *
+ * This used to be a hand-written list of all 31 keys paired with their own
+ * `stringResource` call, which is the shape that let ROCK_PAPER_SCISSORS,
+ * EMOJI_MEMORY, TYPING_SPEED and WORDLE ship in v1.6.0 while being unreachable
+ * from a list that had not been updated. Reading [ChallengeType] directly means
+ * a new challenge appears here the moment it is added, and taking the labels
+ * from [toAlarmChallengeSummary] means the picker and the alarm card cannot
+ * name the same challenge differently.
+ */
 @Composable
-internal fun alarmChallengeOptions(): List<Pair<String, String>> = listOf(
-    "NONE" to stringResource(R.string.alarm_edit_challenge_none),
-    "MATH_EASY" to stringResource(R.string.alarm_edit_challenge_math_easy),
-    "MATH_MEDIUM" to stringResource(R.string.alarm_edit_challenge_math_medium),
-    "MATH_HARD" to stringResource(R.string.alarm_edit_challenge_math_hard),
-    "SHAKE" to stringResource(R.string.alarm_edit_challenge_shake),
-    "SEQUENCE" to stringResource(R.string.alarm_edit_challenge_sequence),
-    "MEMORY_PATTERN" to stringResource(R.string.alarm_edit_challenge_memory),
-    "TYPING" to stringResource(R.string.alarm_edit_challenge_typing),
-    "VOICE_PHRASE" to stringResource(R.string.alarm_edit_challenge_voice),
-    "HANDWRITING" to stringResource(R.string.alarm_edit_challenge_handwriting),
-    "WALK_STEPS" to stringResource(R.string.alarm_edit_challenge_walk),
-    "NFC_SCAN" to stringResource(R.string.alarm_edit_challenge_nfc),
-    "BARCODE_SCAN" to stringResource(R.string.alarm_edit_challenge_barcode),
-    "PHOTO_MATCH" to stringResource(R.string.alarm_edit_challenge_photo),
-    "SQUAT" to stringResource(R.string.alarm_edit_challenge_squat),
-    "WIFI_CONNECT" to stringResource(R.string.alarm_edit_challenge_wifi),
-    "MAZE" to stringResource(R.string.alarm_edit_challenge_maze),
-    "COUNT_SHEEP" to stringResource(R.string.alarm_edit_challenge_sheep),
-    "SIMON_SAYS" to stringResource(R.string.alarm_edit_challenge_simon),
-    "DATE_BACKWARDS" to stringResource(R.string.alarm_edit_challenge_date),
-    "STROOP" to stringResource(R.string.alarm_edit_challenge_stroop),
-    "ROCK_PAPER_SCISSORS" to stringResource(R.string.alarm_edit_challenge_rps),
-    "EMOJI_MEMORY" to stringResource(R.string.alarm_edit_challenge_emoji),
-    "TYPING_SPEED" to stringResource(R.string.alarm_edit_challenge_speed),
-    "WORDLE" to stringResource(R.string.alarm_edit_challenge_wordle),
-    "PVT" to stringResource(R.string.alarm_edit_challenge_pvt),
-    "SPOT_DIFFERENCE" to stringResource(R.string.alarm_edit_challenge_difference),
-    "CHESS_MATE" to stringResource(R.string.alarm_edit_challenge_chess),
-    "RSVP_READING" to stringResource(R.string.alarm_edit_challenge_rsvp),
-    "PUSH_UP" to stringResource(R.string.alarm_edit_challenge_pushup),
-    "PLANK_HOLD" to stringResource(R.string.alarm_edit_challenge_plank)
-)
+internal fun alarmChallengeOptions(): List<Pair<String, String>> =
+    ChallengeType.entries.map { it.name to it.name.toAlarmChallengeSummary() }
 
 internal fun String.toChallengeChainList(): List<String> = split(",")
     .map { it.trim() }

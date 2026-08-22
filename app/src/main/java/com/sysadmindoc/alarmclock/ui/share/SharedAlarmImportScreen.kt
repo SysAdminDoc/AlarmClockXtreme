@@ -45,6 +45,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.ui.alarmedit.toAlarmChallengeSummary
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.ui.components.AppChipShape
 import com.sysadmindoc.alarmclock.ui.components.AppFeedbackCard
@@ -335,9 +336,9 @@ private fun Alarm.challengeSummary(): String {
     return when {
         challengeChain.isNotBlank() -> challengeChain
             .split(",")
-            .mapNotNull { it.trim().takeIf(String::isNotBlank)?.toSharedImportLabel() }
+            .mapNotNull { it.trim().takeIf(String::isNotBlank)?.toAlarmChallengeSummary() }
             .joinToString(" + ")
-        challengeType.isNotBlank() && challengeType != "NONE" -> challengeType.toSharedImportLabel()
+        challengeType.isNotBlank() && challengeType != "NONE" -> challengeType.toAlarmChallengeSummary()
         else -> stringResource(R.string.share_challenge_none)
     }
 }
@@ -351,15 +352,6 @@ private fun Alarm.soundSummary(): String {
         ringtoneUri == "silent" -> stringResource(R.string.share_sound_silent)
         ringtoneUri.isNotBlank() -> stringResource(R.string.share_sound_custom)
         else -> stringResource(R.string.share_sound_default)
-    }
-}
-
-private fun String.toSharedImportLabel(): String {
-    val normalized = trim()
-        .replace('_', ' ')
-        .lowercase(Locale.US)
-    return normalized.replaceFirstChar { char ->
-        if (char.isLowerCase()) char.titlecase(Locale.US) else char.toString()
     }
 }
 

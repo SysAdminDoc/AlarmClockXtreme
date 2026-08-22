@@ -42,6 +42,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.DayOfWeek
+import com.sysadmindoc.alarmclock.ui.alarmedit.toAlarmChallengeSummary
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -181,7 +182,7 @@ private fun TemplateCard(
                     )
                     if (template.challengeType != "NONE") {
                         AppStatusChip(
-                            label = templateChallengeLabel(template.challengeType),
+                            label = template.challengeType.toAlarmChallengeSummary(),
                             color = SnoozeYellow
                         )
                     }
@@ -247,17 +248,6 @@ private fun templateWakeStyleLabel(template: AlarmTemplate): String = when {
     template.gradualVolumeSeconds == 0 -> stringResource(R.string.template_wake_instant)
     template.gradualVolumeSeconds >= 120 -> stringResource(R.string.template_wake_gentle)
     else -> stringResource(R.string.template_wake_balanced)
-}
-
-@Composable
-private fun templateChallengeLabel(challengeType: String): String = when (challengeType) {
-    "MATH_EASY" -> stringResource(R.string.alarm_edit_challenge_math_easy)
-    "MATH_HARD" -> stringResource(R.string.alarm_edit_challenge_math_hard)
-    "SHAKE" -> stringResource(R.string.alarm_edit_challenge_shake)
-    else -> challengeType
-        .lowercase()
-        .replace('_', ' ')
-        .replaceFirstChar { it.uppercase() }
 }
 
 private fun templateIcon(template: AlarmTemplate): ImageVector = when (template.key) {
