@@ -918,11 +918,8 @@ private fun AlarmDetailPane(
                 if (alarm.group.isNotBlank()) {
                     AppStatusChip(label = alarm.group)
                 }
-                if (alarm.challengeType != "NONE") {
-                    AppStatusChip(
-                        label = challengeTypeLabel(alarm.challengeType),
-                        color = SnoozeYellow
-                    )
+                alarm.challengeChainLabel()?.let { challengeLabel ->
+                    AppStatusChip(label = challengeLabel, color = SnoozeYellow)
                 }
                 if (alarm.ringtoneUri == "silent") {
                     AppStatusChip(label = "Silent", color = TextMuted)
@@ -1368,7 +1365,7 @@ private fun AlarmCard(
                 alarm.shiftPatternChipLabel()?.let(::add)
                 if (alarm.usesFixedTimezone) add(alarm.fixedTimezoneId)
                 if (alarm.group.isNotBlank()) add(alarm.group)
-                if (alarm.challengeType != "NONE") add(challengeTypeLabel(alarm.challengeType))
+                alarm.challengeChainLabel()?.let(::add)
                 if (alarm.ringtoneUri == "silent") add("Silent")
             }
             if (metadata.isNotEmpty()) {
@@ -1603,6 +1600,30 @@ private fun challengeTypeLabel(type: String): String = when (type) {
     "PUSH_UP"        -> "Push-ups"
     "PLANK_HOLD"     -> "Plank Hold"
     else             -> type.lowercase().replace("_", " ").replaceFirstChar { it.uppercase() }
+}
+
+/**
+ * The dismiss challenges this alarm will actually run, in order.
+ *
+ * A mission chain lives in `challengeChain` and is independent of the single
+ * `challengeType`, so a chain on an alarm whose type is NONE used to show no
+ * challenge at all on the card, and a chain on a typed alarm showed only the
+ * first step.
+ */
+internal fun Alarm.challengeChainSteps(): List<String> {
+    val chain = challengeChain.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    if (chain.isNotEmpty()) return chain
+    return if (challengeType != "NONE") listOf(challengeType) else emptyList()
+}
+
+/** Card-sized summary of [challengeChainSteps], or null when there is none. */
+internal fun Alarm.challengeChainLabel(): String? {
+    val steps = challengeChainSteps()
+    return when {
+        steps.isEmpty() -> null
+        steps.size > 3 -> "${steps.size} challenges"
+        else -> steps.joinToString(" · ") { challengeTypeLabel(it) }
+    }
 }
 
 private fun Alarm.shiftPatternChipLabel(): String? {

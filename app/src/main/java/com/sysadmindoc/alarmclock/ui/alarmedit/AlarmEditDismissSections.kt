@@ -155,6 +155,21 @@ internal fun LazyListScope.alarmEditDismissSections(
             stringResource(R.string.alarm_edit_snooze_limit_hint),
             tone = HintTone.Neutral
         )
+
+        SettingsRow(
+            label = stringResource(R.string.alarm_edit_progressive_snooze),
+            trailing = {
+                Switch(
+                    checked = state.progressiveSnooze,
+                    onCheckedChange = viewModel::updateProgressiveSnooze,
+                    colors = appSwitchColors()
+                )
+            }
+        )
+        SettingsHint(
+            stringResource(R.string.alarm_edit_progressive_snooze_hint),
+            tone = HintTone.Neutral
+        )
     }
 
     // Dismiss Challenge
@@ -550,21 +565,6 @@ internal fun LazyListScope.alarmEditDismissSections(
 
     // v1.2.0: Anti-Snooze Features
     SettingsSection(editorPage, AlarmEditorSection.ANTI_SNOOZE) {
-        SettingsRow(
-            label = stringResource(R.string.alarm_edit_progressive_snooze),
-            trailing = {
-                Switch(
-                    checked = state.progressiveSnooze,
-                    onCheckedChange = viewModel::updateProgressiveSnooze,
-                    colors = appSwitchColors()
-                )
-            }
-        )
-        SettingsHint(
-            stringResource(R.string.alarm_edit_progressive_snooze_hint),
-            tone = HintTone.Neutral
-        )
-
         SettingsRow(
             label = stringResource(R.string.alarm_edit_backup_sound),
             trailing = {

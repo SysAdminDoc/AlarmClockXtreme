@@ -6,6 +6,12 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- An alarm card shows the whole mission chain, not just the first challenge,
+  and shows one even when the single challenge is set to none.
+- The alarm editor keeps your place on the overview when you open a category
+  and come back.
+- The Dismiss page groups snooze duration, limit and progressive snooze
+  together, and the mission chain sits directly under the challenge picker.
 - Timers left running when the phone restarted are dropped instead of ringing
   by themselves or showing a countdown of days.
 - An alarm that hides Dismiss behind a challenge or a location no longer offers

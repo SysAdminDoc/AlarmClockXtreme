@@ -52,38 +52,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified (by absence; device repro still needed)
   Effort: S
 
-- [ ] P2 — Mission chain is not shown on the alarm card or in the editor summary when the single challenge is NONE
-  Category: ux
-  Where: ui/alarmlist/AlarmListScreen.kt:920-925 (chip only when `challengeType != "NONE"`), :1369 (accessibility label, same condition); ui/alarmedit/AlarmEditViewModel.kt:325 and :398 (`challengeType` and `challengeChain` are independent fields)
-  Problem: a chain such as MATH_EASY → SHAKE → TYPING with `challengeType == NONE` renders no challenge chip at all, and a chain with a type shows only the first type. The reporter expected the chain to be visible from the list.
-  Evidence: code trace; `alarm.challengeChain` is never read in AlarmListScreen.kt.
-  Fix: compute a display list = `challengeChain.split(",")` when non-blank else `listOf(challengeType)`; render "Math · Shake · Typing" (or "3 challenges" when more than 3) in the chip and accessibility label, using the localised labels from AlarmEditSupport.kt instead of the hardcoded `challengeTypeLabel` map at :1575.
-  Acceptance: an alarm with a three-step chain shows all three names on its card.
-  Confidence: Verified
-  Effort: S
-  Reported: #49 — "If I have a reasonably-sized mission chain, I think it should be displayed in the main Alarms screen. Right now I'm only seeing the first challenge."
-
-- [ ] P2 — Editor scroll position resets to the top when returning from a sub-page
-  Category: ux
-  Where: ui/alarmedit/AlarmEditScreen.kt:225-227 (`LaunchedEffect(editorPage) { editorScrollState.scrollToItem(0) }`), :195 (single `rememberLazyListState` shared by all pages)
-  Problem: opening a category from the overview and pressing Back scrolls the overview to the top, so a user working down the list loses their place every time.
-  Evidence: code trace; the overview is a LazyColumn keyed by section, so a saved index can be restored.
-  Fix: keep one `LazyListState` per page (`rememberSaveable(saver = LazyListState.Saver)` in a map keyed by `AlarmEditorPage`) and only scroll sub-pages to 0 on entry; restore the overview state on return.
-  Acceptance: scroll the overview to "Advanced behavior", open it, go back: the overview is still scrolled to that card.
-  Confidence: Verified
-  Effort: S
-  Reported: #49 — "when I scroll down, click on a sub-menu (like Advanced behavior), then go back, my scroll position should be saved"
-
-- [ ] P2 — Snooze settings are split across two sections and mission chaining sits apart from the challenge picker
-  Category: ux
-  Where: ui/alarmedit/AlarmEditScreen.kt:92-119 section order (SNOOZE, DISMISS_CHALLENGE, LOCATION, …, CHAIN, ANTI_SNOOZE); ui/alarmedit/AlarmEditDismissSections.kt:91-118 (duration only), :514-530 (progressive snooze in ANTI_SNOOZE)
-  Problem: progressive snooze, backup sound and the (future) snooze limit live several cards below the snooze duration, and the chain builder is a separate card from "Dismiss challenge", so users do not discover that a chain replaces the single challenge.
-  Fix: move `progressiveSnooze` (and the new snooze-limit row) into the SNOOZE section; render the chain builder inside DISMISS_CHALLENGE as a "Add more challenges" affordance under the type picker and collapse ANTI_SNOOZE to backup-sound only. Update `alarm_edit_section_*_description` strings.
-  Acceptance: the Dismiss page shows Snooze (duration, limit, progressive) first, then Challenge (type + chain) as one card.
-  Confidence: Verified
-  Effort: S
-  Reported: #49 — items 2 and 4 ("advanced snooze settings should be up top, by the main snooze setting"; "Mission chaining can be integrated into the Dismiss challenge")
-
 - [ ] P2 — Dashboard weather failure is labelled "Set your location" and offers no retry
   Category: ux
   Where: ui/dashboard/DashboardViewModel.kt:381-407 (any fetch failure → `weatherError = "Weather unavailable"`); ui/dashboard/DashboardScreen.kt:286-321 (every non-null `weatherError` renders the "Set your location / Choose" card; "Retry weather" exists only in the stale-cache branch :331-339)

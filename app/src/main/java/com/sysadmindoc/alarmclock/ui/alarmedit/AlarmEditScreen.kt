@@ -18,7 +18,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -99,8 +99,14 @@ internal enum class AlarmEditorSection(
     SOUND(AlarmEditorPage.SOUND, R.string.alarm_edit_sound, R.string.alarm_edit_section_sound_description),
     VIBRATION(AlarmEditorPage.SOUND, R.string.vibration, R.string.alarm_edit_section_vibration_description),
     SNOOZE(AlarmEditorPage.DISMISS, R.string.alarm_edit_snooze, R.string.alarm_edit_section_snooze_description),
+    // Backup sound sits with the rest of the anti-snooze behaviour, directly
+    // under the snooze settings it modifies.
+    ANTI_SNOOZE(AlarmEditorPage.DISMISS, R.string.alarm_edit_anti_snooze, R.string.alarm_edit_section_anti_snooze_description),
     UPCOMING(AlarmEditorPage.SCHEDULE, R.string.alarm_edit_upcoming_dates, R.string.alarm_edit_section_upcoming_description),
     DISMISS_CHALLENGE(AlarmEditorPage.DISMISS, R.string.dismiss_challenge, R.string.alarm_edit_section_challenge_description),
+    // Directly after the challenge picker: a chain replaces the single
+    // challenge, which was not discoverable with a card in between.
+    CHAIN(AlarmEditorPage.DISMISS, R.string.alarm_edit_mission_chain, R.string.alarm_edit_section_chain_description),
     LOCATION(AlarmEditorPage.DISMISS, R.string.alarm_edit_location_lock, R.string.alarm_edit_section_location_description),
     WAKE_EFFECTS(AlarmEditorPage.WAKE, R.string.alarm_edit_wake_effects, R.string.alarm_edit_section_wake_effects_description),
     ANNOUNCEMENT(AlarmEditorPage.WAKE, R.string.alarm_edit_announcement, R.string.alarm_edit_section_announcement_description),
@@ -109,8 +115,6 @@ internal enum class AlarmEditorSection(
     HOLIDAYS(AlarmEditorPage.SCHEDULE, R.string.alarm_edit_holidays, R.string.alarm_edit_section_holidays_description),
     SPOTIFY(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_spotify, R.string.alarm_edit_section_spotify_description),
     HUE(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_hue, R.string.alarm_edit_section_hue_description),
-    CHAIN(AlarmEditorPage.DISMISS, R.string.alarm_edit_mission_chain, R.string.alarm_edit_section_chain_description),
-    ANTI_SNOOZE(AlarmEditorPage.DISMISS, R.string.alarm_edit_anti_snooze, R.string.alarm_edit_section_anti_snooze_description),
     SUNRISE(AlarmEditorPage.WAKE, R.string.alarm_edit_sunrise, R.string.alarm_edit_section_sunrise_description),
     RADIO(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_internet_radio, R.string.alarm_edit_section_radio_description),
     GUARDIAN(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_guardian, R.string.alarm_edit_section_guardian_description),
@@ -192,7 +196,29 @@ fun AlarmEditScreen(
     var editorPageName by rememberSaveable { mutableStateOf(AlarmEditorPage.OVERVIEW.name) }
     val editorPage = AlarmEditorPage.entries.firstOrNull { it.name == editorPageName }
         ?: AlarmEditorPage.OVERVIEW
-    val editorScrollState = rememberLazyListState()
+    // One saved position per page. A single shared state meant returning from
+    // a category scrolled the overview back to the top, so working down the
+    // list lost your place every time.
+    var overviewScrollIndex by rememberSaveable { mutableIntStateOf(0) }
+    var overviewScrollOffset by rememberSaveable { mutableIntStateOf(0) }
+    val editorScrollState = remember(editorPage) {
+        if (editorPage == AlarmEditorPage.OVERVIEW) {
+            LazyListState(overviewScrollIndex, overviewScrollOffset)
+        } else {
+            LazyListState()
+        }
+    }
+    if (editorPage == AlarmEditorPage.OVERVIEW) {
+        LaunchedEffect(editorScrollState) {
+            snapshotFlow {
+                editorScrollState.firstVisibleItemIndex to
+                    editorScrollState.firstVisibleItemScrollOffset
+            }.collect { (index, offset) ->
+                overviewScrollIndex = index
+                overviewScrollOffset = offset
+            }
+        }
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val noReferencePhotoMessage = stringResource(R.string.alarm_edit_photo_none_captured)
     val referencePhotoSavedMessage = stringResource(R.string.alarm_edit_photo_saved)
@@ -220,10 +246,6 @@ fun AlarmEditScreen(
         } catch (_: CancellationException) {
             // The user cancelled the gesture; keep the editor open.
         }
-    }
-
-    LaunchedEffect(editorPage) {
-        editorScrollState.scrollToItem(0)
     }
 
     LaunchedEffect(state.hasUnsavedChanges) {
