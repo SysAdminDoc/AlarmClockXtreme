@@ -46,6 +46,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -99,10 +100,10 @@ fun StatsScreen(
     // timestamps match the rest of the app. The previous parameterised
     // signature defaulted to false because the nav graph never passed it.
     val is24Hour = state.is24Hour
-    var showClearDialog by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedAction by remember { mutableStateOf<String?>(null) }
-    var selectedDay by remember { mutableStateOf<DayOfWeek?>(null) }
+    var showClearDialog by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var selectedAction by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedDay by rememberSaveable { mutableStateOf<DayOfWeek?>(null) }
     val historyFilter = StatsHistoryFilter(
         query = searchQuery,
         action = selectedAction,

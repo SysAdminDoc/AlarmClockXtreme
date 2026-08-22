@@ -55,6 +55,7 @@ import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -114,11 +115,11 @@ fun BedtimeScreen(
     viewModel: BedtimeViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    var showTimePicker by remember { mutableStateOf(false) }
-    var showJetLagWakePicker by remember { mutableStateOf(false) }
-    var breathingPattern by remember { mutableStateOf(BreathingPattern.FOUR_SEVEN_EIGHT) }
-    var breathingElapsedSeconds by remember { mutableStateOf(0) }
-    var breathingRunning by remember { mutableStateOf(false) }
+    var showTimePicker by rememberSaveable { mutableStateOf(false) }
+    var showJetLagWakePicker by rememberSaveable { mutableStateOf(false) }
+    var breathingPattern by rememberSaveable { mutableStateOf(BreathingPattern.FOUR_SEVEN_EIGHT) }
+    var breathingElapsedSeconds by rememberSaveable { mutableStateOf(0) }
+    var breathingRunning by rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val sonarPermissionLauncher = rememberLauncherForActivityResult(

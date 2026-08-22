@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Rotating the phone keeps what you had typed and chosen: the Stats filters
+  and search, the Bedtime pickers and breathing session, the ringtone search,
+  and the YouTube dialog's mode, URL, query and results.
 - Resetting the stopwatch or stopping a timer offers Undo. Both actions are
   one tap next to a control you use often and there was no way back.
 - Settings descriptions wrap instead of being cut off mid-word, so the

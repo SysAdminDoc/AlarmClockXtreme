@@ -42,6 +42,9 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -101,6 +104,33 @@ internal enum class YouTubeDialogAction {
  *
  * Mirrors the dual-input pattern in the Aura/FreeVibe app's YouTube tab.
  */
+/**
+ * Flattens the search results into the four strings each hit is made of, so
+ * they can ride through a configuration change in the saved-state bundle.
+ */
+private val youTubeHitsSaver: Saver<List<YouTubeSearchHit>, Any> =
+    listSaver<List<YouTubeSearchHit>, String>(
+        save = { hits ->
+            hits.flatMap {
+                listOf(it.videoUrl, it.title, it.uploader, it.durationSeconds.toString())
+            }
+        },
+        restore = { flat ->
+            flat.chunked(4).mapNotNull { row ->
+                if (row.size < 4) {
+                    null
+                } else {
+                    YouTubeSearchHit(
+                        videoUrl = row[0],
+                        title = row[1],
+                        uploader = row[2],
+                        durationSeconds = row[3].toLongOrNull() ?: 0L
+                    )
+                }
+            }
+        }
+    )
+
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun YouTubeDownloadDialog(
@@ -116,12 +146,16 @@ fun YouTubeDownloadDialog(
         ).youTubeAudioDownloader()
     }
 
-    var mode by remember { mutableStateOf(DownloadMode.Search) }
-    var url by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
-    var query by remember { mutableStateOf("") }
-    var hits by remember { mutableStateOf<List<YouTubeSearchHit>>(emptyList()) }
-    var hasSearched by remember { mutableStateOf(false) }
+    var mode by rememberSaveable { mutableStateOf(DownloadMode.Search) }
+    var url by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var query by rememberSaveable { mutableStateOf("") }
+    // Searching costs a network round trip, so the results are worth keeping
+    // across a rotation rather than making the user run the search again.
+    var hits by rememberSaveable(stateSaver = youTubeHitsSaver) {
+        mutableStateOf<List<YouTubeSearchHit>>(emptyList())
+    }
+    var hasSearched by rememberSaveable { mutableStateOf(false) }
     var searching by remember { mutableStateOf(false) }
     var inFlight by remember { mutableStateOf(false) }
     var updatingEngine by remember { mutableStateOf(false) }

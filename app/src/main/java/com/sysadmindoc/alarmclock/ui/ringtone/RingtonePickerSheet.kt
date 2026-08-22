@@ -47,6 +47,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -119,14 +120,14 @@ fun RingtonePickerSheet(
         }
     }
 
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     var playingUri by remember { mutableStateOf<String?>(null) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var previewError by remember { mutableStateOf("") }
-    var showYouTubeDialog by remember { mutableStateOf(false) }
+    var showYouTubeDialog by rememberSaveable { mutableStateOf(false) }
     var youTubeStatus by remember { mutableStateOf("") }
     var youTubeStatusIsError by remember { mutableStateOf(false) }
-    var lastDownloadedTitle by remember { mutableStateOf<String?>(null) }
+    var lastDownloadedTitle by rememberSaveable { mutableStateOf<String?>(null) }
     var folderStatus by remember { mutableStateOf("") }
 
     val folderLauncher = rememberLauncherForActivityResult(
