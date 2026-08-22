@@ -57,7 +57,7 @@ class WearAlarmDataTest {
         assertEquals("Waiting for phone sync", WearAlarmText.secondaryLabel(snapshot(hasAlarm = false)))
         assertEquals("Alarm is ringing", WearAlarmText.secondaryLabel(snapshot(isFiring = true)))
         assertEquals(
-            "Gym - 5m",
+            "Gym · 5m",
             WearAlarmText.secondaryLabel(snapshot(label = "Gym", triggerTime = base + 5 * 60_000L), now = base)
         )
         assertEquals(
@@ -102,7 +102,7 @@ class WearAlarmDataTest {
     fun complicationLongTextJoinsParts() {
         assertEquals("Alarm is ringing", WearAlarmText.complicationLongText(snapshot(isFiring = true)))
         assertEquals(
-            "7:30 AM - Gym - 5m",
+            "7:30 AM · Gym · 5m",
             WearAlarmText.complicationLongText(
                 snapshot(label = "Gym", timeLabel = "7:30 AM", triggerTime = base + 5 * 60_000L),
                 now = base
@@ -122,11 +122,11 @@ class WearAlarmDataTest {
         )
 
         assertEquals(
-            "Medication - 5m - America/New York",
+            "Medication · 5m · America/New York",
             WearAlarmText.secondaryLabel(fixed, now = base)
         )
         assertEquals(
-            "4:00 AM - Medication - America/New York - 5m",
+            "4:00 AM · Medication · America/New York · 5m",
             WearAlarmText.complicationLongText(fixed, now = base)
         )
     }

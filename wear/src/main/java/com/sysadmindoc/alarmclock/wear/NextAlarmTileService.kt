@@ -88,7 +88,11 @@ class NextAlarmTileService : TileService() {
                     materialScope(
                         context = this,
                         deviceConfiguration = requestParams.deviceConfiguration,
+                        // The app's own palette, not the watch's dynamic theme
+                        // and not the stock ProtoLayout one: the tile sits in
+                        // the carousel next to the app that feeds it.
                         allowDynamicTheme = false,
+                        defaultColorScheme = WearTileTheme.colorScheme(),
                     ) {
                         tileLayout(snapshot, actionStatus)
                     }

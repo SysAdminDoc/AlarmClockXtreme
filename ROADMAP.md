@@ -84,14 +84,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Likely
   Effort: S
 
-- [ ] P3 — Wear tile renders the stock ProtoLayout palette and joins text with spaced hyphens
-  Category: visual
-  Where: wear/src/main/java/.../NextAlarmTileService.kt:91 (`allowDynamicTheme = false`, no custom `ColorScheme`); wear/.../WearAlarmData.kt:93, :129 (`" - "`)
-  Fix: supply a `ColorScheme` built from the app tokens; use "·" as the separator.
-  Acceptance: tile background/accent match the phone app on a Wear emulator.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — Night Clock exit hint is below 3:1 contrast and hardcoded colours live outside ui/theme
   Category: a11y
   Where: ui/nightclock/NightClockActivity.kt:146-147, :216, :247, :251 (`Color(0xFF02060D)`, `Color.Black`, `Color.White.copy(alpha = 0.04f)`, `TextMuted.copy(alpha = 0.58f)` ≈ 2.7:1)

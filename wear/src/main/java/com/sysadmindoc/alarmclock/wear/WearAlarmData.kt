@@ -5,6 +5,7 @@ import androidx.core.content.edit
 import com.google.android.gms.wearable.DataMap
 
 object WearAlarmData {
+
     const val PATH_NEXT_ALARM = "/alarmclockxtreme/next_alarm"
     const val PATH_ACTION_SKIP = "/alarmclockxtreme/action/skip"
     const val PATH_ACTION_SNOOZE = "/alarmclockxtreme/action/snooze"
@@ -52,6 +53,12 @@ data class WearAlarmSnapshot(
  * injectable for deterministic countdown tests.
  */
 object WearAlarmText {
+    /**
+     * A spaced hyphen reads as a subtraction on a watch face, and it is what
+     * the house style bans in prose. The middle dot separates without
+     * pretending to be punctuation.
+     */
+    private const val SEPARATOR = " · "
     const val SHORT_TITLE_LIMIT = 12
     const val STALE_AFTER_MS = 5 * 60_000L
 
@@ -90,7 +97,7 @@ object WearAlarmText {
         val remaining = formatRemaining(snapshot.triggerTime, now)
         return listOf(snapshot.label, remaining, fixedZoneLabel(snapshot))
             .filter { it.isNotBlank() }
-            .joinToString(" - ")
+            .joinToString(SEPARATOR)
             .ifBlank { "Ready on phone" }
     }
 
@@ -126,7 +133,7 @@ object WearAlarmText {
             snapshot.label,
             fixedZoneLabel(snapshot),
             formatRemaining(snapshot.triggerTime, now)
-        ).filter { it.isNotBlank() }.joinToString(" - ")
+        ).filter { it.isNotBlank() }.joinToString(SEPARATOR)
         else -> "No phone alarm synced"
     }
 
