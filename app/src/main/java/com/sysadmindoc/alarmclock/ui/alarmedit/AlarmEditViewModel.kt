@@ -70,6 +70,9 @@ data class AlarmEditUiState(
     val barcodeValue: String = "",
     // F14: Spotify ringtone
     val spotifyUri: String = "",
+    // Fires once the alarm is dismissed: NONE, WEBHOOK, HUE_SCENE or BROADCAST.
+    val dismissActionType: String = "NONE",
+    val dismissActionPayload: String = "",
     // F15: Philips Hue sunrise
     val hueEnabled: Boolean = false,
     val huePreWakeMinutes: Int = 30,
@@ -202,6 +205,8 @@ class AlarmEditViewModel @Inject constructor(
                         nfcTagId = alarm.nfcTagId,
                         barcodeValue = alarm.barcodeValue,
                         spotifyUri = alarm.spotifyUri,
+                        dismissActionType = alarm.dismissActionType,
+                        dismissActionPayload = alarm.dismissActionPayload,
                         hueEnabled = alarm.hueEnabled,
                         huePreWakeMinutes = alarm.huePreWakeMinutes,
                         photoMatchUri = alarm.photoMatchUri,
@@ -387,6 +392,17 @@ class AlarmEditViewModel @Inject constructor(
 
     fun updateSpotifyUri(uri: String) {
         _uiState.value = _uiState.value.copy(spotifyUri = uri)
+    }
+
+    fun updateDismissAction(type: String, payload: String? = null) {
+        _uiState.value = _uiState.value.copy(
+            dismissActionType = type,
+            dismissActionPayload = if (type == "NONE") {
+                ""
+            } else {
+                payload ?: _uiState.value.dismissActionPayload
+            }
+        )
     }
 
     fun updateHue(enabled: Boolean, preWakeMinutes: Int? = null) {
@@ -658,6 +674,8 @@ class AlarmEditViewModel @Inject constructor(
                 nfcTagId = s.nfcTagId,
                 barcodeValue = s.barcodeValue,
                 spotifyUri = s.spotifyUri,
+                dismissActionType = s.dismissActionType,
+                dismissActionPayload = s.dismissActionPayload,
                 hueEnabled = s.hueEnabled,
                 huePreWakeMinutes = s.huePreWakeMinutes,
                 photoMatchUri = s.photoMatchUri,

@@ -59,6 +59,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.service.DismissActionExecutor
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -98,6 +99,91 @@ internal fun LazyListScope.alarmEditIntegrationSections(
         SettingsHint(
             stringResource(R.string.alarm_edit_spotify_hint),
             tone = HintTone.Warning
+        )
+    }
+
+    // Dismiss action. The field has existed since backup v13 but had no editor,
+    // so the only way to set one was to hand-edit a backup file — and the next
+    // Save wiped it again.
+    SettingsSection(editorPage, AlarmEditorSection.SPOTIFY) {
+        val actionOptions = listOf(
+            "NONE" to stringResource(R.string.alarm_edit_dismiss_action_none),
+            "WEBHOOK" to stringResource(R.string.alarm_edit_dismiss_action_webhook),
+            "HUE_SCENE" to stringResource(R.string.alarm_edit_dismiss_action_hue_scene),
+            "BROADCAST" to stringResource(R.string.alarm_edit_dismiss_action_broadcast)
+        )
+        var showActionMenu by remember { mutableStateOf(false) }
+        SettingsRow(label = stringResource(R.string.alarm_edit_dismiss_action)) {
+            Box {
+                SettingsValueButton(
+                    label = actionOptions.find { it.first == state.dismissActionType }?.second
+                        ?: stringResource(R.string.alarm_edit_dismiss_action_none),
+                    onClick = { showActionMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showActionMenu,
+                    onDismissRequest = { showActionMenu = false }
+                ) {
+                    actionOptions.forEach { (type, label) ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    label,
+                                    color = if (type == state.dismissActionType) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        TextPrimary
+                                    }
+                                )
+                            },
+                            onClick = {
+                                viewModel.updateDismissAction(type)
+                                showActionMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        if (state.dismissActionType != "NONE") {
+            OutlinedTextField(
+                value = state.dismissActionPayload,
+                onValueChange = { viewModel.updateDismissAction(state.dismissActionType, it) },
+                label = {
+                    Text(
+                        when (state.dismissActionType) {
+                            "WEBHOOK" -> stringResource(R.string.alarm_edit_dismiss_action_payload_webhook)
+                            "HUE_SCENE" -> stringResource(R.string.alarm_edit_dismiss_action_payload_hue_scene)
+                            else -> stringResource(R.string.alarm_edit_dismiss_action_payload_broadcast)
+                        },
+                        color = TextMuted
+                    )
+                },
+                isError = state.dismissActionPayload.isNotBlank() &&
+                    !DismissActionExecutor.isAcceptablePayload(
+                        state.dismissActionType,
+                        state.dismissActionPayload
+                    ),
+                colors = appOutlinedTextFieldColors(),
+                shape = AppInputShape,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                singleLine = true
+            )
+            if (state.dismissActionPayload.isNotBlank() &&
+                !DismissActionExecutor.isAcceptablePayload(
+                    state.dismissActionType,
+                    state.dismissActionPayload
+                )
+            ) {
+                SettingsHint(
+                    stringResource(R.string.alarm_edit_dismiss_action_invalid),
+                    tone = HintTone.Warning
+                )
+            }
+        }
+        SettingsHint(
+            stringResource(R.string.alarm_edit_dismiss_action_hint),
+            tone = HintTone.Neutral
         )
     }
 

@@ -12,16 +12,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P2 — correctness and reliability
 
-- [ ] P2 — Dismiss action (webhook / Hue scene / broadcast) is wiped every time an alarm is edited, and has no editor
-  Category: correctness
-  Where: ui/alarmedit/AlarmEditViewModel.kt:624-695 (`save()` builds a fresh `Alarm(...)` that omits `dismissActionType`/`dismissActionPayload`); service/DismissActionExecutor.kt:54-55 (consumer); data/backup/AlarmBackupMappers.kt (only other writer)
-  Problem: an alarm that gained a dismiss action through backup import loses it on the next Save, and there is no UI to set one, so the feature advertised in README ("per-alarm dismiss action") is unreachable for normal users.
-  Evidence: `grep -rn dismissAction app/src/main/java/com/sysadmindoc/alarmclock/ui` returns nothing.
-  Fix: carry both fields through `AlarmEditUiState` and the `Alarm(...)` constructor in `save()`; add a "Dismiss action" row in `alarmEditIntegrationSections` (type picker NONE/WEBHOOK/HUE_SCENE/BROADCAST + payload field, validated with the existing regexes in DismissActionExecutor). Add a round-trip test in `AlarmEditViewModelTest`.
-  Acceptance: set a dismiss action, save, reopen, save again: the action survives and fires on dismiss.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P2 — "Early dismiss window" dropdown does nothing
   Category: correctness
   Where: ui/alarmedit/AlarmEditAdvancedSection.kt:259-275 (0/15/30/60 picker), res/values/strings.xml:653 hint; service/NextAlarmNotifier.kt:151-157, :220 (Skip action added unconditionally)

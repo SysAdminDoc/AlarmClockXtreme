@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- The per-alarm dismiss action (webhook, Hue scene or broadcast) has an editor
+  and survives a save. The field existed but nothing wrote to it, and every
+  save silently cleared whatever a backup had put there.
 - Restoring a backup no longer installs its webhook endpoint, signing secret,
   Hue key, Routes key or Guardian phone number without asking. The import
   preview names those values and they stay out unless you tick the box, which

@@ -600,6 +600,16 @@
     <string name="alarm_edit_spotify_uri">Spotify URI (for example, spotify:track:…)</string>
     <string name="alarm_edit_default_ringtone_placeholder">Leave blank to use default ringtone</string>
     <string name="alarm_edit_spotify_hint">Needs the Spotify app installed and signed in. Paste a track, album or playlist link. If Spotify has not started playing within a few seconds, your default alarm tone takes over.</string>
+    <string name="alarm_edit_dismiss_action">Run when dismissed</string>
+    <string name="alarm_edit_dismiss_action_none">Nothing</string>
+    <string name="alarm_edit_dismiss_action_webhook">Call a webhook</string>
+    <string name="alarm_edit_dismiss_action_hue_scene">Set a Hue scene</string>
+    <string name="alarm_edit_dismiss_action_broadcast">Send a broadcast</string>
+    <string name="alarm_edit_dismiss_action_payload_webhook">https://…</string>
+    <string name="alarm_edit_dismiss_action_payload_hue_scene">Scene ID</string>
+    <string name="alarm_edit_dismiss_action_payload_broadcast">Intent action</string>
+    <string name="alarm_edit_dismiss_action_hint">Fires once, right after you dismiss this alarm. Webhooks must be HTTPS. A Hue scene needs the bridge set up in Settings. A broadcast action is for automation apps such as Tasker.</string>
+    <string name="alarm_edit_dismiss_action_invalid">That value will not be accepted. Check the format for the action you picked.</string>
     <string name="alarm_edit_hue_sunrise">Sunrise light simulation</string>
     <string name="alarm_edit_hue_start">Start lights before alarm</string>
     <string name="alarm_edit_hue_hint">Requires Hue bridge IP and API key configured in Settings → Philips Hue.</string>

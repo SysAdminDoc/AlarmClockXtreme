@@ -202,6 +202,24 @@ class DismissActionExecutor @Inject constructor(
                 .build()
         }
 
+        /**
+         * Whether [payload] would be accepted for [type] at dismiss time.
+         *
+         * The editor uses this so a value that will be silently rejected later
+         * is flagged while the user is still looking at the field.
+         */
+        fun isAcceptablePayload(type: String, payload: String): Boolean {
+            val trimmed = payload.trim()
+            if (trimmed.isBlank()) return false
+            return when (type.trim().uppercase(Locale.US)) {
+                "NONE" -> true
+                "WEBHOOK" -> WebhookService.isAllowedWebhookUrl(trimmed)
+                "BROADCAST" -> isAllowedBroadcastAction(trimmed)
+                "HUE_SCENE" -> HueSceneTarget.parse(trimmed) != null
+                else -> false
+            }
+        }
+
         internal fun isAllowedBroadcastAction(action: String): Boolean {
             val trimmed = action.trim()
             if (trimmed.length !in 1..200) return false
