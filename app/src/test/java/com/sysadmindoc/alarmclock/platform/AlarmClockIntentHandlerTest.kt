@@ -24,6 +24,7 @@ import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -67,6 +68,75 @@ class AlarmClockIntentHandlerTest {
     @After
     fun tearDown() {
         AlarmService.activeAlarm.set(null)
+    }
+
+    @Test
+    fun `dismissing a named alarm that is not ringing asks the user first`() = runTest {
+        // SET_ALARM is a normal permission, so any installed app can send this.
+        // Turning off an alarm that is not currently ringing is not something a
+        // caller gets to do unseen.
+        val sleeping = Alarm(id = 7L, hour = 6, minute = 0, isEnabled = true)
+        coEvery { repository.getEnabled() } returns listOf(sleeping)
+        coEvery { repository.getById(7L) } returns sleeping
+
+        val result = handler.handle(
+            Intent(AlarmClock.ACTION_DISMISS_ALARM)
+                .putExtra(AlarmClock.EXTRA_ALARM_SEARCH_MODE, AlarmClock.ALARM_SEARCH_MODE_LABEL)
+                .putExtra(AlarmClock.EXTRA_MESSAGE, "")
+                .setData(android.net.Uri.parse("acx://alarm/7"))
+        )
+
+        assertEquals("acx://navigate/alarm_list", (result as AlarmClockHandleResult.Handled).route)
+        coVerify(exactly = 0) { repository.setEnabled(any(), any(), any()) }
+    }
+
+    @Test
+    fun `dismissing the alarm that is ringing right now still happens immediately`() = runTest {
+        // This is the case the platform contract exists for.
+        val ringing = Alarm(id = 7L, hour = 6, minute = 0, isEnabled = true)
+        AlarmService.activeAlarm.set(
+            AlarmService.Companion.ActiveAlarmSnapshot(7L, 1_000L, "fire-1")
+        )
+        coEvery { repository.getEnabled() } returns listOf(ringing)
+        coEvery { repository.getById(7L) } returns ringing
+
+        val result = handler.handle(
+            Intent(AlarmClock.ACTION_DISMISS_ALARM)
+                .setData(android.net.Uri.parse("acx://alarm/7"))
+        )
+
+        assertNull((result as AlarmClockHandleResult.Handled).route)
+    }
+
+    @Test
+    fun `a skip-UI alarm reports that it was created without showing anything`() = runTest {
+        coEvery { repository.getEnabled() } returns emptyList()
+        coEvery { repository.save(any()) } returns 11L
+        every { calculator.calculate(any(), any()) } returns 123_456L
+
+        val result = handler.handle(
+            Intent(AlarmClock.ACTION_SET_ALARM)
+                .putExtra(AlarmClock.EXTRA_HOUR, 7)
+                .putExtra(AlarmClock.EXTRA_MINUTES, 30)
+                .putExtra(AlarmClock.EXTRA_SKIP_UI, true)
+        )
+
+        assertTrue((result as AlarmClockHandleResult.Handled).createdSilently)
+    }
+
+    @Test
+    fun `matching an existing alarm is not announced, because nothing was added`() = runTest {
+        val existing = Alarm(id = 3L, hour = 7, minute = 30, isEnabled = true)
+        coEvery { repository.getEnabled() } returns listOf(existing)
+
+        val result = handler.handle(
+            Intent(AlarmClock.ACTION_SET_ALARM)
+                .putExtra(AlarmClock.EXTRA_HOUR, 7)
+                .putExtra(AlarmClock.EXTRA_MINUTES, 30)
+                .putExtra(AlarmClock.EXTRA_SKIP_UI, true)
+        )
+
+        assertFalse((result as AlarmClockHandleResult.Handled).createdSilently)
     }
 
     @Test

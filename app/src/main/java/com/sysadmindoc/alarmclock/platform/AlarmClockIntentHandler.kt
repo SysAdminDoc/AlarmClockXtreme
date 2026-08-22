@@ -18,7 +18,16 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 sealed interface AlarmClockHandleResult {
-    data class Handled(val route: String? = null) : AlarmClockHandleResult
+    data class Handled(
+        val route: String? = null,
+        /**
+         * An alarm was created with no screen shown, because the caller
+         * asked for EXTRA_SKIP_UI. The caller only needs SET_ALARM, a
+         * normal permission, so the proxy activity says so instead of
+         * leaving a new enabled alarm to be discovered later.
+         */
+        val createdSilently: Boolean = false
+    ) : AlarmClockHandleResult
     data object Invalid : AlarmClockHandleResult
     data object Duplicate : AlarmClockHandleResult
     data object Unsupported : AlarmClockHandleResult
@@ -82,7 +91,10 @@ class AlarmClockIntentHandler @Inject constructor(
             scheduled
         }
         return AlarmClockHandleResult.Handled(
-            route = if (command.skipUi) null else "acx://navigate/alarm_edit/${saved.id}"
+            route = if (command.skipUi) null else "acx://navigate/alarm_edit/${saved.id}",
+            // Only a new alarm is worth announcing; matching an existing
+            // one changes nothing the user can see.
+            createdSilently = command.skipUi && existing == null
         )
     }
 
@@ -155,7 +167,18 @@ class AlarmClockIntentHandler @Inject constructor(
                     (search.minute == null || alarm.minute == search.minute)
             }
         }
-        val needsSelection = search !is AlarmSearch.All && matches.size > 1
+        // A dismiss that names an id, or asks for everything, arrives from any
+        // app holding SET_ALARM, which is a normal permission. Silencing an
+        // alarm that is not currently ringing is not something a caller should
+        // be able to do unseen, so those two go through the alarm list and let
+        // the person decide. Dismissing what is ringing right now is the case
+        // the platform contract exists for and stays immediate; so does a
+        // single unambiguous match by time or label.
+        val targetsRingingAlarm = matches.size == 1 && matches.first().id == activeAlarmId
+        val needsConfirmation = !targetsRingingAlarm &&
+            (search is AlarmSearch.ById || search is AlarmSearch.All)
+        val needsSelection = needsConfirmation ||
+            (search !is AlarmSearch.All && matches.size > 1)
         return DismissResolution(
             alarms = if (needsSelection) emptyList() else matches,
             needsSelectionUi = needsSelection

@@ -16,9 +16,10 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Category: testing
   Where: app/src/test/java/com/sysadmindoc/alarmclock/ui/timer/TimerAlarmServiceTest.kt:164-187 (`restart action creates and schedules exactly one fresh timer without ui`)
   Problem: the case failed once during this session with `expected:<1> but was:<2>` on the scheduled-alarm count at line 181, then passed on an immediate rerun and in isolation. `records.single()` on the line above succeeded, so the store held one timer while the shadow AlarmManager held two. A test that fails one run in ten hides real regressions behind a shrug.
-  Evidence: one failure in a full-suite run, green on the next full run and on `--tests '*TimerAlarmServiceTest*'`.
-  Fix: find the timing dependence. `TimerStore.startOrReuse` coalesces duplicates inside `DUPLICATE_WINDOW_MS`, so the two back-to-back restarts in the test are only deduplicated while the machine is fast enough; inject the clock instead of relying on wall time, and assert on the scheduler through a fake rather than the shadow.
-  Acceptance: the case passes 20 consecutive runs of the class.
+  Evidence: reproduced twice, both times only in a full-suite run. Since then: 5 consecutive green runs of the class in isolation and 2 consecutive green full-suite runs, so it is rarer than one in ten and ordering-dependent.
+  Ruled out, do not redo: (a) the `DUPLICATE_WINDOW_MS` theory this item used to carry is wrong, `restartFinished` does not go through `startOrReuse` and has no time window; (b) `TimerPersistence.replace` writing with `apply()` rather than `commit()` is not it either, `apply()` updates the SharedPreferences in-memory map synchronously before it queues the disk write, so read-after-write inside one process is ordered on real Android; (c) `TimerAlarmScheduler.schedule` keys its PendingIntent by `REQUEST_BASE + timerId`, so a repeated schedule for one id replaces rather than adds.
+  Fix: the remaining suspect is shadow state surviving between test classes, so instrument it rather than theorise: dump `scheduledAlarms` contents (not just the size) on failure to learn which timer id the second alarm belongs to, and run the suite with a fixed class order to find the neighbour that leaks. Then assert through a fake scheduler instead of the shadow.
+  Acceptance: the case passes 20 consecutive full-suite runs.
   Confidence: Needs-repro
   Effort: S
 
@@ -74,15 +75,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Fix: sample only from the Bedtime screen (foreground) or from the Sonar foreground service; skip when `RECORD_AUDIO` is not held.
   Acceptance: the stored baseline changes only after an in-app measurement.
   Confidence: Likely
-  Effort: S
-
-- [ ] P3 — `AlarmClockIntentActivity` can dismiss or disable alarms by id, and create alarms silently, for any app holding SET_ALARM
-  Category: security
-  Where: platform/AlarmClockIntentParser.kt:132-142, :250-262; platform/AlarmClockIntentHandler.kt:56-86, :119-177
-  Problem: `DISMISS_ALARM` with `ById`/`All` or `acx://alarm/<id>` needs no confirmation, and `SET_ALARM` with `EXTRA_SKIP_UI` creates an enabled alarm with no visible trace; unparcelling attacker extras is not wrapped in try/catch. This is the platform contract, but it is gated only by a normal permission.
-  Fix: route `ById`/`All` through the selection UI unless the alarm is currently firing; post a notification "Alarm added by <caller>" on the skip-UI path; wrap `handler.handle(request)` in `runCatching` and treat failure as `Invalid`.
-  Acceptance: an external DISMISS_ALARM by id opens the Alarms list for confirmation; a malformed extras bundle does not crash the proxy activity.
-  Confidence: Verified (platform contract; severity low)
   Effort: S
 
 - [ ] P3 — Wear tile renders the stock ProtoLayout palette and joins text with spaced hyphens

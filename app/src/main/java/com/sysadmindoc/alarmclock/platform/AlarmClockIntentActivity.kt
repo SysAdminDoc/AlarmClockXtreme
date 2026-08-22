@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.platform
 
+import android.util.Log
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -19,6 +20,9 @@ class AlarmClockIntentActivity : ComponentActivity() {
 
     private var inFlightRequests = 0
 
+    /** The app that sent the intent, as well as the platform will tell us. */
+    private fun callerLabel(): String? = callingPackage ?: referrer?.host
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleRequest(intent)
@@ -34,8 +38,21 @@ class AlarmClockIntentActivity : ComponentActivity() {
         inFlightRequests += 1
         lifecycleScope.launch {
             try {
-                val result = withContext(Dispatchers.IO) { handler.handle(request) }
-                val route = (result as? AlarmClockHandleResult.Handled)?.route
+                // Reading extras unparcels whatever the caller sent. A
+                // malformed bundle throws in getStringExtra and used to
+                // take the proxy activity down with it.
+                val result = withContext(Dispatchers.IO) {
+                    runCatching { handler.handle(request) }
+                        .getOrElse { error ->
+                            Log.w(TAG, "Rejected a malformed AlarmClock intent", error)
+                            AlarmClockHandleResult.Invalid
+                        }
+                }
+                val handled = result as? AlarmClockHandleResult.Handled
+                if (handled?.createdSilently == true) {
+                    ExternalAlarmNotice.post(this@AlarmClockIntentActivity, callerLabel())
+                }
+                val route = handled?.route
                 if (route != null) {
                     startActivity(
                         Intent(this@AlarmClockIntentActivity, MainActivity::class.java)
@@ -49,3 +66,5 @@ class AlarmClockIntentActivity : ComponentActivity() {
         }
     }
 }
+
+private const val TAG = "AlarmClockIntent"
