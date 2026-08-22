@@ -21,16 +21,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: S
 
-- [ ] P2 — `alarm_events` grows without bound and has no indices on the columns the Stats screen filters on
-  Category: perf
-  Where: data/local/entity/AlarmEvent.kt:10 (no `indices`); data/local/AlarmEventDao.kt:23, :43, :50-60 (filters on `action`, `firedAt`, `alarmId`), :62 (only `deleteAll`); compare data/repository/AlarmIncidentRepository.kt:121-129 (prune on insert)
-  Fix: add `deleteOlderThan(firedAt)` and prune to 365 days / 5,000 rows in `AlarmEventRepository.record()`; add indices on `action`, `firedAt`, `(alarmId, firedAt)` via a Room migration 23→24 with exported schema.
-  Acceptance: migration test passes; `alarm_events` row count stays bounded after 6,000 synthetic inserts.
-  Confidence: Verified
-  Effort: S
-
-### P2 — UX, i18n and visual
-
 - [ ] P2 — Half of the user-facing strings bypass localisation, so the new language picker has nothing to switch
   Category: ux
   Where: app/build.gradle.kts:195-203 (`verifyLocalizedPrimaryScreens` guards only three files); ~81 literals in ui/alarmfiring/challenges/ChallengeViews.kt (e.g. :122, :165, :486, :694, :1361), ~52 in ui/stats/StatsScreen.kt (:129, :152, :372, :467), ~52 in ui/alarmlist/AlarmListScreen.kt (:1051, :1022, :1033, :1248, :1561), ~40 in ui/dashboard/DashboardScreen.kt, ~37 in ui/bedtime/BedtimeScreen.kt, plus service/AlarmService.kt:2072, service/NextAlarmNotifier.kt:210/249, receiver/BedtimeReceiver.kt:216/296, worker/WakeConfirmWorker.kt:214-254, widget/NextAlarmWidget.kt:243, directboot/DirectBootAlarmService.kt:122/131 (resources `direct_boot_alarm_title`/`_stop` exist but are unused), ui/navigation/AppNavigation.kt:88-93 (tab labels), and the whole wear module (wear strings.xml has 5 entries; NextAlarmTileService.kt:106-242, WearAlarmData.kt:76-130)

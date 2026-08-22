@@ -1,13 +1,24 @@
 package com.sysadmindoc.alarmclock.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
  * Records each alarm event for statistics tracking.
  * Stores when alarms fired, how they were dismissed, and response times.
  */
-@Entity(tableName = "alarm_events")
+@Entity(
+    tableName = "alarm_events",
+    // Every Stats query filters or groups on these. Without indices the table
+    // was scanned end to end, and it was also never pruned, so the cost grew
+    // with every alarm the user ever dismissed.
+    indices = [
+        Index(value = ["action"]),
+        Index(value = ["firedAt"]),
+        Index(value = ["alarmId", "firedAt"])
+    ]
+)
 data class AlarmEvent(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

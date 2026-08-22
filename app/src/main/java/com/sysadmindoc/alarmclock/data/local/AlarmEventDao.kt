@@ -59,6 +59,21 @@ interface AlarmEventDao {
     @Query("SELECT COUNT(*) FROM alarm_events WHERE alarmId = :alarmId AND action = 'MISSED' AND firedAt > :sinceMs")
     suspend fun missedCountForAlarm(alarmId: Long, sinceMs: Long): Int
 
+    @Query("DELETE FROM alarm_events WHERE firedAt < :beforeMs")
+    suspend fun deleteOlderThan(beforeMs: Long)
+
+    @Query(
+        """
+        DELETE FROM alarm_events
+        WHERE id NOT IN (
+            SELECT id FROM alarm_events
+            ORDER BY firedAt DESC, id DESC
+            LIMIT :maxRows
+        )
+        """
+    )
+    suspend fun trimToLatest(maxRows: Int)
+
     @Query("DELETE FROM alarm_events")
     suspend fun deleteAll()
 }

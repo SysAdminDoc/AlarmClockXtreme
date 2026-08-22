@@ -21,7 +21,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
         SnoreEvent::class,
         PreSleepTagEntry::class
     ],
-    version = 23,
+    version = 24,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -344,6 +344,25 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Indices for the Stats queries. `alarm_events` had none and was never
+         * pruned, so every stat scanned the whole table.
+         */
+        val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_alarm_events_action ON alarm_events (action)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_alarm_events_firedAt ON alarm_events (firedAt)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_alarm_events_alarmId_firedAt " +
+                        "ON alarm_events (alarmId, firedAt)"
+                )
+            }
+        }
+
         val ALL_MIGRATIONS = arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -367,6 +386,7 @@ abstract class AlarmDatabase : RoomDatabase() {
             MIGRATION_20_21,
             MIGRATION_21_22,
             MIGRATION_22_23,
+            MIGRATION_23_24,
         )
     }
 }

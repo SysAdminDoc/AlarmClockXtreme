@@ -82,7 +82,20 @@ class AlarmEventRepository @Inject constructor(
 ) {
     fun observeRecent(limit: Int = 50): Flow<List<AlarmEvent>> = dao.observeRecent(limit)
 
-    suspend fun record(event: AlarmEvent): Long = dao.insert(event)
+    suspend fun record(event: AlarmEvent): Long {
+        val id = dao.insert(event)
+        prune()
+        return id
+    }
+
+    /**
+     * Keeps the history bounded. Stats never look further back than a year, and
+     * the table previously only ever grew.
+     */
+    private suspend fun prune() {
+        dao.deleteOlderThan(System.currentTimeMillis() - RETENTION_MS)
+        dao.trimToLatest(MAX_ROWS)
+    }
 
     suspend fun getSince(sinceMs: Long): List<AlarmEvent> = dao.getSince(sinceMs)
 
@@ -152,4 +165,12 @@ class AlarmEventRepository @Inject constructor(
     }
 
     suspend fun clearHistory() = dao.deleteAll()
+
+    companion object {
+        /** Stats never reach further back than this. */
+        const val RETENTION_MS = 365L * 24L * 60L * 60L * 1000L
+
+        /** Hard ceiling for a user who fires far more alarms than a year's worth. */
+        const val MAX_ROWS = 5_000
+    }
 }

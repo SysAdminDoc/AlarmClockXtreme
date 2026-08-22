@@ -6,6 +6,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- The alarm event history is pruned to a year and indexed, so the Stats screen
+  stays quick instead of scanning a table that only ever grew.
 - Replace-mode restore saves the new alarms before removing the old ones and
   keeps what you had if the file turns out to contain nothing usable. It used
   to delete everything first, so a crash mid-restore left no alarms at all.

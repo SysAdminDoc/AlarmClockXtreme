@@ -305,6 +305,31 @@ class AlarmDatabaseMigrationTest {
     }
 
     @Test
+    fun migrationTwentyThreeToTwentyFourIndexesTheEventHistory() {
+        var db = helper.createDatabase("migration-23-to-24.db", 23)
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-23-to-24.db",
+            24,
+            true,
+            AlarmDatabase.MIGRATION_23_24,
+        )
+
+        val indices = mutableSetOf<String>()
+        db.query("PRAGMA index_list(alarm_events)").use { cursor ->
+            val nameColumn = cursor.getColumnIndexOrThrow("name")
+            while (cursor.moveToNext()) {
+                indices += cursor.getString(nameColumn)
+            }
+        }
+        assertTrue(indices.contains("index_alarm_events_action"))
+        assertTrue(indices.contains("index_alarm_events_firedAt"))
+        assertTrue(indices.contains("index_alarm_events_alarmId_firedAt"))
+        db.close()
+    }
+
+    @Test
     fun freshInstallVersionMatchesLatestExportedSchema() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val exportedLatest = latestExportedSchemaVersion()
@@ -507,6 +532,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 23
+        const val LATEST_SCHEMA_VERSION = 24
     }
 }
