@@ -46,6 +46,7 @@ import com.sysadmindoc.alarmclock.receiver.DismissReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeCountdownReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeReceiver
 import com.sysadmindoc.alarmclock.ui.alarmfiring.MorningBriefingActivity
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
@@ -500,14 +501,14 @@ class AlarmService : Service() {
             event = WebhookEvent.AlarmFired,
             alarmId = alarm.id,
             label = alarm.label,
-            timeFormatted = formatAlarmTime(alarm),
+            timeFormatted = wireAlarmTime(alarm),
             scheduledForMillis = currentScheduledAt.takeIf { it > 0L },
             fireId = currentFireId
         )
         AlarmBroadcastContract.send(
             this, AlarmBroadcastContract.ACTION_ALARM_FIRED,
             alarmId = alarm.id, label = alarm.label,
-            displayTime = formatAlarmTime(alarm), fireId = currentFireId
+            displayTime = wireAlarmTime(alarm), fireId = currentFireId
         )
 
         // Auto-silence after timeout - records as missed
@@ -535,14 +536,14 @@ class AlarmService : Service() {
                             event = WebhookEvent.AlarmMissed,
                             alarmId = missedAlarm.id,
                             label = missedAlarm.label,
-                            timeFormatted = formatAlarmTime(missedAlarm),
+                            timeFormatted = wireAlarmTime(missedAlarm),
                             scheduledForMillis = currentScheduledAt.takeIf { it > 0L },
                             fireId = currentFireId
                         )
                         AlarmBroadcastContract.send(
                             this@AlarmService, AlarmBroadcastContract.ACTION_ALARM_MISSED,
                             alarmId = missedAlarm.id, label = missedAlarm.label,
-                            displayTime = formatAlarmTime(missedAlarm), fireId = currentFireId
+                            displayTime = wireAlarmTime(missedAlarm), fireId = currentFireId
                         )
                         showMissedNotification(missedAlarm, autoSilenceMinutes)
                         // v1.4.0/v1.15.20: Repeat missed alarms — record the alarm
@@ -704,8 +705,7 @@ class AlarmService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // v1.5.1: 24h preference honoured via shared formatter.
-        val timeText = formatAlarmTime(alarm)
+        val timeText = displayAlarmTime(alarm)
         val hideLabel = preferencesManager.getCachedSettings().hideAlarmLabelsOnPublicSurfaces
 
         return NotificationCompat.Builder(this, CHANNEL_ALARM)
@@ -1763,14 +1763,14 @@ class AlarmService : Service() {
                 event = webhookEvent,
                 alarmId = alarm.id,
                 label = alarm.label,
-                timeFormatted = formatAlarmTime(alarm),
+                timeFormatted = wireAlarmTime(alarm),
                 scheduledForMillis = webhookScheduledAt.takeIf { it > 0L },
                 fireId = webhookFireId
             )
             AlarmBroadcastContract.send(
                 this, AlarmBroadcastContract.ACTION_ALARM_SNOOZED,
                 alarmId = alarm.id, label = alarm.label,
-                displayTime = formatAlarmTime(alarm), fireId = webhookFireId
+                displayTime = wireAlarmTime(alarm), fireId = webhookFireId
             )
             wearNextAlarmBridge.publishAlarmIdle(alarm.id)
         } else {
@@ -1832,14 +1832,14 @@ class AlarmService : Service() {
                 event = WebhookEvent.AlarmDismissed,
                 alarmId = alarm.id,
                 label = alarm.label,
-                timeFormatted = formatAlarmTime(alarm),
+                timeFormatted = wireAlarmTime(alarm),
                 scheduledForMillis = wakeConfirmScheduledAt.takeIf { it > 0L },
                 fireId = wakeConfirmFireId
             )
             AlarmBroadcastContract.send(
                 this, AlarmBroadcastContract.ACTION_ALARM_DISMISSED,
                 alarmId = alarm.id, label = alarm.label,
-                displayTime = formatAlarmTime(alarm), fireId = wakeConfirmFireId
+                displayTime = wireAlarmTime(alarm), fireId = wakeConfirmFireId
             )
 
             // v1.15.1: Per-alarm dismiss action (AlarmKit pattern)
@@ -2022,10 +2022,28 @@ class AlarmService : Service() {
         )
     }
 
-    private fun formatAlarmTime(alarm: Alarm): String {
+    /**
+     * The time as this phone shows it, for a notification a person reads.
+     *
+     * Follows the device locale, so a Japanese phone gets the Japanese
+     * meridiem and the ringing notification matches the alarm card that
+     * launched it. Deliberately not the same function as [wireAlarmTime].
+     */
+    private fun displayAlarmTime(alarm: Alarm): String = AlarmTimeFormatter.format(
+        alarm.time.hour,
+        alarm.time.minute,
+        preferencesManager.getCachedSettings().is24HourFormat
+    )
+
+    /**
+     * The time as it goes out over a webhook payload or a broadcast extra.
+     *
+     * Pinned to Locale.US on purpose: this is a value another system parses or
+     * matches on, and it must not change shape when the phone's language does.
+     * Anything a person reads should call [displayAlarmTime] instead.
+     */
+    private fun wireAlarmTime(alarm: Alarm): String {
         val time = alarm.time
-        // v1.5.1: Respect the user's 24-hour preference (uses the app's cached
-        // snapshot so this is safe from any thread).
         return if (preferencesManager.getCachedSettings().is24HourFormat) {
             String.format(Locale.US, "%02d:%02d", time.hour, time.minute)
         } else {
@@ -2155,8 +2173,7 @@ class AlarmService : Service() {
 
     private fun showMissedNotification(alarm: Alarm, autoSilenceMinutes: Long = DEFAULT_AUTO_SILENCE_MINUTES) {
         val nm = getSystemService(NotificationManager::class.java)
-        // v1.5.1: 24-hour preference honoured.
-        val timeStr = formatAlarmTime(alarm)
+        val timeStr = displayAlarmTime(alarm)
         val label = AlarmPublicText.requiredAlarmLabel(
             label = alarm.label,
             hideLabel = preferencesManager.getCachedSettings().hideAlarmLabelsOnPublicSurfaces

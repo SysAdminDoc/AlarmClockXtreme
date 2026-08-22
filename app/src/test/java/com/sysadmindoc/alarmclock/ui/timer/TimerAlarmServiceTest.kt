@@ -52,15 +52,6 @@ class TimerAlarmServiceTest {
         TimerStore(context).replace(emptyList())
     }
 
-    /** Timer ids the shadow AlarmManager is holding an expiry alarm for. */
-    private fun scheduledTimerAlarmIds(): List<Int> =
-        shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms
-            .mapNotNull { it.operation }
-            .map { shadowOf(it).savedIntent }
-            .filter { it.action == TimerAlarmScheduler.ACTION_TIMER_EXPIRED }
-            .map { it.getIntExtra(TimerAlarmScheduler.EXTRA_TIMER_ID, -1) }
-            .sorted()
-
     /**
      * Everything the shadow is holding, timer alarm or not. A bare count told
      * us nothing the one time this assertion failed: the point of naming each
@@ -204,11 +195,11 @@ class TimerAlarmServiceTest {
         assertEquals("Pasta", running.label)
         assertEquals(60L, running.totalSeconds)
         assertEquals(TimerState.RUNNING, running.state)
-        assertEquals(
-            "expected an expiry alarm for timer 4 only; scheduled: ${scheduledAlarmSummary()}",
-            listOf(4),
-            scheduledTimerAlarmIds()
-        )
+        // Asserting the whole summary rather than the timer ids alone: the
+        // suspect for this case's one recorded flake is an alarm leaking in
+        // from a neighbouring class, and filtering to timer alarms would let
+        // exactly that pass unnoticed while still calling itself a diagnosis.
+        assertEquals("[timer#4]", scheduledAlarmSummary())
         val notifications = shadowOf(context.getSystemService(NotificationManager::class.java))
         assertNull(notifications.getNotification(TimerNotifications.notificationId(3)))
         assertNotNull(notifications.getNotification(TimerNotifications.notificationId(4)))
