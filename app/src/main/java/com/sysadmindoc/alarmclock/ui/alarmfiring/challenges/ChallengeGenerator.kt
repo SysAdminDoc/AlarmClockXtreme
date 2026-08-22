@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring.challenges
 
+import com.sysadmindoc.alarmclock.R
+import androidx.annotation.StringRes
 import kotlin.random.Random
 
 enum class ChallengeType {
@@ -232,12 +234,12 @@ sealed class Challenge {
 }
 
 data class ChessMatePuzzle(
-    val title: String,
+    @StringRes val titleRes: Int,
     val board: List<String>,
-    val sideToMove: String,
+    @StringRes val sideToMoveRes: Int,
     val choices: List<String>,
     val answer: String,
-    val explanation: String
+    @StringRes val explanationRes: Int
 )
 
 private val TYPING_PHRASES = listOf(
@@ -281,7 +283,7 @@ internal val WORDLE_WORDS = listOf(
 
 private val CHESS_MATE_PUZZLES = listOf(
     ChessMatePuzzle(
-        title = "Back-rank net",
+        titleRes = R.string.chess_puzzle_back_rank_net_title,
         board = listOf(
             ".", ".", ".", ".", ".", "r", "k", ".",
             ".", ".", ".", ".", ".", "p", "p", "p",
@@ -292,13 +294,13 @@ private val CHESS_MATE_PUZZLES = listOf(
             ".", ".", ".", ".", ".", "Q", "P", "P",
             ".", ".", ".", ".", ".", "R", "K", "."
         ),
-        sideToMove = "White",
+        sideToMoveRes = R.string.chess_side_white,
         choices = listOf("Qxf8#", "Qg8#", "Qe8+", "Rf8+"),
         answer = "Qxf8#",
-        explanation = "The queen removes the guard and the rook seals the back rank."
+        explanationRes = R.string.chess_puzzle_back_rank_net_explanation
     ),
     ChessMatePuzzle(
-        title = "Corner squeeze",
+        titleRes = R.string.chess_puzzle_corner_squeeze_title,
         board = listOf(
             "k", ".", ".", ".", ".", ".", ".", ".",
             "p", "p", "Q", ".", ".", ".", ".", ".",
@@ -309,13 +311,13 @@ private val CHESS_MATE_PUZZLES = listOf(
             ".", ".", ".", ".", ".", ".", ".", ".",
             ".", ".", ".", ".", ".", ".", ".", "."
         ),
-        sideToMove = "White",
+        sideToMoveRes = R.string.chess_side_white,
         choices = listOf("Qb7#", "Qc8#", "Qxa7+", "Kb5"),
         answer = "Qb7#",
-        explanation = "Qb7 covers the escape squares while the king traps the corner."
+        explanationRes = R.string.chess_puzzle_corner_squeeze_explanation
     ),
     ChessMatePuzzle(
-        title = "Battery finish",
+        titleRes = R.string.chess_puzzle_battery_finish_title,
         board = listOf(
             ".", ".", ".", ".", "r", ".", "k", ".",
             ".", ".", ".", ".", ".", "p", "p", "p",
@@ -326,10 +328,10 @@ private val CHESS_MATE_PUZZLES = listOf(
             ".", ".", ".", ".", ".", "Q", "P", "P",
             ".", ".", ".", ".", ".", ".", "K", "."
         ),
-        sideToMove = "White",
+        sideToMoveRes = R.string.chess_side_white,
         choices = listOf("Qxf7#", "Bxf7+", "Qe8+", "Qg8+"),
         answer = "Qxf7#",
-        explanation = "The queen lands on f7 with bishop support and no king escape."
+        explanationRes = R.string.chess_puzzle_battery_finish_explanation
     )
 )
 

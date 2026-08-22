@@ -32,16 +32,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — Two data-model files still hold their user-facing text as literals
-  Category: ux
-  Where: ui/news/NewsViewModel.kt:33-64 (`DEFAULT_NEWS_FEEDS` labels); ui/alarmfiring/challenges/ChallengeGenerator.kt:284, :301, :318 (`CHESS_MATE_PUZZLES` titles). Both are named in `unlocalizedComposeFiles` in app/build.gradle.kts so the guard skips them.
-  Problem: everything else under ui/ now goes through stringResource and the build fails on a new literal, but these two files hold display text inside data models. Their consumers read `.label` and `.title` as plain strings, and the news tab additionally splits the label on ": " to shorten the tab caption, so converting them is a small refactor rather than a swap.
-  Evidence: `verifyLocalizedPrimaryScreens` covers every other file under ui/ and passes.
-  Fix: give both models `@StringRes` ids alongside (or instead of) the strings, resolve at the call sites, and split the news tab caption from a separate short-label field rather than by parsing the long one. Then drop both entries from `unlocalizedComposeFiles`.
-  Acceptance: `unlocalizedComposeFiles` is empty and the guard still passes.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — A YouTube download is cancelled by a rotation
   Category: ux
   Where: ui/components/YouTubeDownloadDialog.kt:345-360 and :380-395 (`scope.launch` on a `rememberCoroutineScope`, cancelled when the composition is destroyed); ui/ringtone/RingtonePickerSheet.kt:126 (the parent flag now survives rotation, so the dialog itself reopens)

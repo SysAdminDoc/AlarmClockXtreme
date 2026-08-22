@@ -70,7 +70,8 @@ fun NewsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
-    val activeFeedLabel = state.feeds.firstOrNull { it.key == state.activeFeedKey }?.label
+    val activeFeedLabel = state.feeds.firstOrNull { it.key == state.activeFeedKey }
+        ?.let { stringResource(it.labelRes) }
         ?: stringResource(R.string.news_custom_feed)
 
     Box(
@@ -135,7 +136,7 @@ fun NewsScreen(
                                 verticalArrangement = Arrangement.spacedBy(7.dp)
                             ) {
                                 Text(
-                                    text = feed.label.substringAfter(": ", feed.label),
+                                    text = stringResource(feed.shortLabelRes),
                                     color = if (selected) MaterialTheme.colorScheme.primary else TextSecondary,
                                     style = MaterialTheme.typography.labelLarge
                                 )

@@ -1,16 +1,21 @@
 package com.sysadmindoc.alarmclock.ui.news
 
+import com.sysadmindoc.alarmclock.R
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Test
 import java.net.UnknownHostException
 
+/**
+ * The mapping only. The function returns a resource id now, so the wording
+ * lives in strings.xml and what matters here is which message each failure
+ * picks, and that none of them is the raw exception.
+ */
 class NewsLoadErrorMessageTest {
 
     @Test
     fun networkErrorsUsePlainLanguage() {
         assertEquals(
-            "Check your connection and try again.",
+            R.string.news_error_no_connection,
             newsLoadErrorMessage(
                 UnknownHostException("Unable to resolve host \"feeds.example.com\"")
             )
@@ -19,25 +24,27 @@ class NewsLoadErrorMessageTest {
 
     @Test
     fun httpErrorsDoNotExposeRawStatusText() {
-        val message = newsLoadErrorMessage(IllegalStateException("Feed returned HTTP 500"))
-
         assertEquals(
-            "This feed source is not responding. Try another source or refresh later.",
-            message
+            R.string.news_error_unresponsive,
+            newsLoadErrorMessage(IllegalStateException("Feed returned HTTP 500"))
         )
-        assertFalse(message.contains("HTTP"))
     }
 
     @Test
     fun parserErrorsDoNotExposeExceptionDetails() {
-        val message = newsLoadErrorMessage(
-            RuntimeException("org.xmlpull.v1.XmlPullParserException: expected START_TAG")
-        )
-
         assertEquals(
-            "This feed could not be read. Try another source or refresh later.",
-            message
+            R.string.news_error_unreadable,
+            newsLoadErrorMessage(
+                RuntimeException("org.xmlpull.v1.XmlPullParserException: expected START_TAG")
+            )
         )
-        assertFalse(message.contains("XmlPullParserException"))
+    }
+
+    @Test
+    fun anAuthWalledFeedIsCalledOutSeparatelyFromAnUnreachableOne() {
+        assertEquals(
+            R.string.news_error_forbidden,
+            newsLoadErrorMessage(IllegalStateException("Feed returned HTTP 403"))
+        )
     }
 }

@@ -1,5 +1,8 @@
 package com.sysadmindoc.alarmclock.ui.news
 
+import android.content.res.Resources
+import com.sysadmindoc.alarmclock.R
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.news.NewsItem
@@ -26,39 +29,47 @@ import javax.inject.Inject
  */
 data class NewsFeedSource(
     val key: String,
-    val label: String,
+    @StringRes val labelRes: Int,
+    /** Tab caption. Its own field so no separator has to survive translation. */
+    @StringRes val shortLabelRes: Int,
     val url: String,
 )
 
 val DEFAULT_NEWS_FEEDS = listOf(
     NewsFeedSource(
         key = "google_top",
-        label = "Google News: Top",
+        labelRes = R.string.news_feed_google_top,
+        shortLabelRes = R.string.news_feed_google_top_short,
         url = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
     ),
     NewsFeedSource(
         key = "google_world",
-        label = "Google News: World",
+        labelRes = R.string.news_feed_google_world,
+        shortLabelRes = R.string.news_feed_google_world_short,
         url = "https://news.google.com/rss/headlines/section/topic/WORLD?hl=en-US&gl=US&ceid=US:en"
     ),
     NewsFeedSource(
         key = "google_tech",
-        label = "Google News: Tech",
+        labelRes = R.string.news_feed_google_tech,
+        shortLabelRes = R.string.news_feed_google_tech_short,
         url = "https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=en-US&gl=US&ceid=US:en"
     ),
     NewsFeedSource(
         key = "bbc",
-        label = "BBC: Top stories",
+        labelRes = R.string.news_feed_bbc,
+        shortLabelRes = R.string.news_feed_bbc_short,
         url = "https://feeds.bbci.co.uk/news/rss.xml"
     ),
     NewsFeedSource(
         key = "npr",
-        label = "NPR: News",
+        labelRes = R.string.news_feed_npr,
+        shortLabelRes = R.string.news_feed_npr_short,
         url = "https://feeds.npr.org/1001/rss.xml"
     ),
     NewsFeedSource(
         key = "hn",
-        label = "Hacker News: Front page",
+        labelRes = R.string.news_feed_hn,
+        shortLabelRes = R.string.news_feed_hn_short,
         url = "https://hnrss.org/frontpage"
     ),
 )
@@ -78,6 +89,8 @@ data class NewsUiState(
 
 @HiltViewModel
 class NewsViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext
+    private val appContext: android.content.Context,
     private val repository: NewsRepository,
     private val preferencesManager: PreferencesManager,
 ) : ViewModel() {
@@ -148,7 +161,7 @@ class NewsViewModel @Inject constructor(
                         lastUpdatedMillis = snapshot.fetchedAtMillis,
                         isStale = snapshot.isStale,
                         staleMessage = if (snapshot.isStale) {
-                            buildNewsStaleMessage(snapshot.refreshError)
+                            buildNewsStaleMessage(appContext.resources, snapshot.refreshError)
                         } else {
                             null
                         },
@@ -158,7 +171,7 @@ class NewsViewModel @Inject constructor(
                     _uiState.value = _uiState.value.copy(
                         loading = false,
                         refreshing = false,
-                        errorMessage = newsLoadErrorMessage(error),
+                        errorMessage = appContext.getString(newsLoadErrorMessage(error)),
                         isStale = false,
                         staleMessage = null,
                     )
@@ -167,32 +180,38 @@ class NewsViewModel @Inject constructor(
     }
 }
 
-private fun buildNewsStaleMessage(error: Throwable?): String {
-    val reason = error?.let(::newsLoadErrorMessage)
-        ?: "The feed could not be refreshed."
-    return "Showing saved headlines. Use Refresh to try again. $reason"
+private fun buildNewsStaleMessage(resources: Resources, error: Throwable?): String {
+    val reason = resources.getString(
+        error?.let(::newsLoadErrorMessage) ?: R.string.news_error_generic
+    )
+    return resources.getString(R.string.news_stale_headlines, reason)
 }
 
-internal fun newsLoadErrorMessage(error: Throwable): String {
+/**
+ * The message id for [error]. An id rather than the text: this runs in the
+ * ViewModel, where the Resources to read it from belongs to the caller.
+ */
+@StringRes
+internal fun newsLoadErrorMessage(error: Throwable): Int {
     val message = error.message.orEmpty()
     return when {
         error is UnknownHostException ->
-            "Check your connection and try again."
+            R.string.news_error_no_connection
         error is SocketTimeoutException ->
-            "This feed took too long to respond. Try again later."
+            R.string.news_error_timeout
         error is SSLException ->
-            "This feed could not be loaded securely. Choose another source."
+            R.string.news_error_tls
         error is IllegalArgumentException ->
-            "This feed URL is not valid. Choose another source in Settings."
+            R.string.news_error_invalid_url
         message.contains("HTTP 401") || message.contains("HTTP 403") ->
-            "This feed requires access the app does not have. Choose another source."
+            R.string.news_error_forbidden
         message.contains("HTTP", ignoreCase = true) ->
-            "This feed source is not responding. Try another source or refresh later."
+            R.string.news_error_unresponsive
         message.contains("Empty response body", ignoreCase = true) ->
-            "This source returned no feed content."
+            R.string.news_error_empty
         error is IOException ->
-            "The feed could not be reached. Check your connection and try again."
+            R.string.news_error_io
         else ->
-            "This feed could not be read. Try another source or refresh later."
+            R.string.news_error_unreadable
     }
 }

@@ -2120,4 +2120,35 @@
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
     </plurals>
+    <string name="news_feed_google_top">Google News: Top</string>
+    <string name="news_feed_google_top_short">Top</string>
+    <string name="news_feed_google_world">Google News: World</string>
+    <string name="news_feed_google_world_short">World</string>
+    <string name="news_feed_google_tech">Google News: Tech</string>
+    <string name="news_feed_google_tech_short">Tech</string>
+    <string name="news_feed_bbc">BBC: Top stories</string>
+    <string name="news_feed_bbc_short">Top stories</string>
+    <string name="news_feed_npr">NPR: News</string>
+    <string name="news_feed_npr_short">News</string>
+    <string name="news_feed_hn">Hacker News: Front page</string>
+    <string name="news_feed_hn_short">Front page</string>
+    <string name="chess_puzzle_back_rank_net_title">Back-rank net</string>
+    <string name="chess_puzzle_back_rank_net_explanation">The queen removes the guard and the rook seals the back rank.</string>
+    <string name="chess_puzzle_corner_squeeze_title">Corner squeeze</string>
+    <string name="chess_puzzle_corner_squeeze_explanation">Qb7 covers the escape squares while the king traps the corner.</string>
+    <string name="chess_puzzle_battery_finish_title">Battery finish</string>
+    <string name="chess_puzzle_battery_finish_explanation">The queen lands on f7 with bishop support and no king escape.</string>
+    <string name="chess_side_white">White</string>
+    <string name="chess_side_black">Black</string>
+    <string name="news_error_no_connection">Check your connection and try again.</string>
+    <string name="news_error_timeout">This feed took too long to respond. Try again later.</string>
+    <string name="news_error_tls">This feed could not be loaded securely. Choose another source.</string>
+    <string name="news_error_invalid_url">This feed URL is not valid. Choose another source in Settings.</string>
+    <string name="news_error_forbidden">This feed requires access the app does not have. Choose another source.</string>
+    <string name="news_error_unresponsive">This feed source is not responding. Try another source or refresh later.</string>
+    <string name="news_error_empty">This source returned no feed content.</string>
+    <string name="news_error_io">The feed could not be reached. Check your connection and try again.</string>
+    <string name="news_error_unreadable">This feed could not be read. Try another source or refresh later.</string>
+    <string name="news_error_generic">The feed could not be refreshed.</string>
+    <string name="news_stale_headlines">Showing saved headlines. Use Refresh to try again. %1$s</string>
 </resources>

@@ -2563,9 +2563,12 @@ fun ChessMateChallengeView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        AppStatusChip(label = stringResource(R.string.alarmfiring_to_move, puzzle.sideToMove), color = AccentBlue)
+        AppStatusChip(
+            label = stringResource(R.string.alarmfiring_to_move, stringResource(puzzle.sideToMoveRes)),
+            color = AccentBlue
+        )
         Text(
-            puzzle.title,
+            stringResource(puzzle.titleRes),
             style = MaterialTheme.typography.titleMedium,
             color = TextPrimary,
             fontWeight = FontWeight.Bold
@@ -2606,7 +2609,7 @@ fun ChessMateChallengeView(
             )
         } else {
             Text(
-                puzzle.explanation,
+                stringResource(puzzle.explanationRes),
                 color = TextMuted,
                 style = MaterialTheme.typography.bodySmall,
                 textAlign = TextAlign.Center

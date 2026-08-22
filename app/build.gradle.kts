@@ -192,15 +192,8 @@ val verifyRoomSchemaExports by tasks.registering {
     }
 }
 
-/**
- * Files whose user-facing text is still hardcoded on purpose. Both hold data
- * models rather than screens: converting their identity strings to resource ids
- * ripples into every consumer, so it is tracked as its own roadmap item.
- */
-val unlocalizedComposeFiles = setOf(
-    "ui/news/NewsViewModel.kt",
-    "ui/alarmfiring/challenges/ChallengeGenerator.kt"
-)
+/** Nothing under ui/ is exempt any more. Kept so an exemption stays visible. */
+val unlocalizedComposeFiles = emptySet<String>()
 
 val primaryComposeScreenFiles: List<File> = fileTree("src/main/java/com/sysadmindoc/alarmclock/ui") {
     include("**/*.kt")
