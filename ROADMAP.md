@@ -26,6 +26,7 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 - [ ] P2 — The localisation guard does not match `return "literal"`, so user-facing English survives behind it
   Category: i18n
   Where: ui/alarmlist/AlarmListScreen.kt:1727-1739 (`nextOccurrenceLabel` returns "All alarms paused until X", "Paused until you re-enable this alarm", "Next occurrence: X"); ui/bedtime/BedtimeViewModel.kt:883, :892-894, :900 ("No baseline", "Checks at reminder", "Mic permission needed", "Last X; no audio saved"); service/YouTubeAudioDownloader.kt:38-45 (`YouTubeEngineUpdateResult.userMessage()`, shown by YouTubeDownloadViewModel as the engine-update status); receiver/BedtimeReceiver.kt:215 ("Time to wind down") and service/AlarmService.kt:2176 ("$label at $timeStr was auto-silenced after $autoSilenceMinutes minutes"), both outside the guard's `ui/` tree entirely; wear/ (every runtime string is English in the source; the module's res/values/strings.xml exists but holds only the five manifest labels)
+  Also: ui/alarmfiring/AlarmFiringViewModel.kt:597, :603, :623, :642, :659 assign English voice and handwriting status sentences, and ui/alarmfiring/challenges/ChallengeViews.kt:712, :934-935 pick the notice colour by `startsWith("Heard")` / `startsWith("No phrase")` / `endsWith("matched.")` / `startsWith("Checking")`. Those two have to move together: localising the sentences without replacing the colour rule turns every challenge notice the wrong colour.
   Problem: the guard's branch-literal patterns match `->`, `else`, `?` and `if (...)` heads but not a bare `return "literal"`, so these survived the extraction. `userMessage()` also builds the string inside a data class with no Context, so it needs to return a `@StringRes` id plus arguments the way ChallengeReadiness does.
   Fix: add `return` to the guard's branch-literal patterns first so the gap cannot reopen, then extract what it catches, and widen the guard's tree past `ui/` so receiver/ and service/ are covered.
   Acceptance: `:app:verifyLocalizedPrimaryScreens` passes with the `return` pattern added, and no `stringResource`-free English reaches the download dialog or an alarm card.
@@ -38,15 +39,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Problem: each hardcodes `DateTimeFormatter.ofPattern("h:mm a")` with no `is24HourFormat` branch, so a 24-hour phone still sees "6:30 AM" on the calendar rows, the alarm-list snackbars, the stats detail and the quick-settings skip tile. Separate from the shared-alarm/template item below, which has the flag in scope already; these sites do not and need it plumbed from settings (the tile can read `DateFormat.is24HourFormat`).
   Fix: route through `util/AlarmTimeFormatter` and pass the preference in from the caller that already reads settings.
   Acceptance: with 24-hour on, none of the eight sites renders an AM/PM suffix.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — Sonar tracking status is classified by searching the English label
-  Category: correctness
-  Where: ui/bedtime/BedtimeViewModel.kt:597 (`sonarTrackingStatus.startsWith("Stopping sonar")`)
-  Problem: same class of defect an earlier review already found five times over (backup status, template icons, world-clock accent, stats history, Hue and webhook chips): a decision made by string-matching display copy stops working the moment that copy is translated or reworded, and the retry loop here would then spin its three attempts against a status that never matches.
-  Fix: carry the stopping state as a flag on the ui state next to the label, the way the other five were fixed.
-  Acceptance: renaming the status string does not change the loop's behaviour.
   Confidence: Verified
   Effort: S
 

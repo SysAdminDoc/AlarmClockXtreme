@@ -590,12 +590,23 @@ class BedtimeViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The service tears its recorder down and writes its summary after the
+     * stop intent returns, so poll a few times until it reports itself down.
+     *
+     * This used to loop while the status still began "Stopping sonar", which
+     * never held: refreshSonarTrackingStatus overwrites that status with one
+     * of three other sentences every time it runs, so the check was false on
+     * the first pass and the remaining two attempts never happened. Reading
+     * the flag the service owns is both correct and immune to the copy being
+     * reworded or translated.
+     */
     private fun refreshSonarTrackingStatusAfterStop() {
         viewModelScope.launch {
             repeat(3) {
                 delay(1_000L)
                 refreshSonarTrackingStatus()
-                if (!_uiState.value.sonarTrackingStatus.startsWith("Stopping sonar")) return@launch
+                if (!_uiState.value.sonarTrackingActive) return@launch
             }
         }
     }
