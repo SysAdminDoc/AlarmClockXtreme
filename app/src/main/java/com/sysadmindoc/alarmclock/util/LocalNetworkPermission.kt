@@ -32,7 +32,14 @@ object LocalNetworkPermission {
         return isLikelyLocalHost(host)
     }
 
-    private fun isLikelyLocalHost(rawHost: String): Boolean {
+    /**
+     * True when [rawHost] can only resolve on the local network: a private or
+     * link-local IPv4 literal, a ULA/link-local IPv6 literal, localhost, a
+     * single-label name, or an mDNS `.local` name. Integrations that are
+     * supposed to talk to hardware in the house use this to refuse a public
+     * hostname outright.
+     */
+    fun isLikelyLocalHost(rawHost: String): Boolean {
         val host = rawHost.trim().trim('[', ']').lowercase()
         if (host.isBlank()) return false
         if (host == "localhost" || host == "::1") return true

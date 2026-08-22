@@ -59,6 +59,17 @@ object CrashLogScrubber {
     private val HEX_TOKEN_PATTERN = Regex("""(?<![a-zA-Z0-9])[0-9a-fA-F]{32,}(?![a-zA-Z0-9])""")
     private val API_KEY_PATTERN = Regex("""(?:api[_\-]?key|token|secret|password|credential|authorization)[=:\s"']+[^\s"']+""", RegexOption.IGNORE_CASE)
 
+    // A stack trace names the host without a scheme, so URL_PATTERN misses it.
+    // "Unable to resolve host \"radio.example.com\"" is the common shape, and it
+    // leaks whichever stream or webhook endpoint the user configured.
+    private val UNRESOLVED_HOST_PATTERN = Regex(
+        """(?:Unable to resolve host|Failed to connect to|No address associated with hostname)[:\s]*["']?[A-Za-z0-9.\-]+["']?""",
+        RegexOption.IGNORE_CASE
+    )
+    private val IPV4_PATTERN = Regex(
+        """(?<![0-9.])(?:(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})\.){3}(?:25[0-5]|2[0-4][0-9]|1?[0-9]{1,2})(?::[0-9]{1,5})?(?![0-9.])"""
+    )
+
     fun scrub(text: String): String {
         var result = text
         result = URL_PATTERN.replace(result, "[URL_REDACTED]")
@@ -66,6 +77,8 @@ object CrashLogScrubber {
         result = FILE_URI_PATTERN.replace(result, "[URI_REDACTED]")
         result = EMAIL_PATTERN.replace(result, "[EMAIL_REDACTED]")
         result = API_KEY_PATTERN.replace(result, "[SECRET_REDACTED]")
+        result = UNRESOLVED_HOST_PATTERN.replace(result, "[HOST_REDACTED]")
+        result = IPV4_PATTERN.replace(result, "[IP_REDACTED]")
         result = HEX_TOKEN_PATTERN.replace(result, "[TOKEN_REDACTED]")
         result = scrubPhoneNumbers(result)
         return result
@@ -412,7 +425,8 @@ object SupportDiagnosticsFormatter {
                 appendLine("- Last update source: $ytEngineLastUpdateSource")
             }
             if (ytEngineLastFailureReason.isNotBlank()) {
-                appendLine("- Last failure: $ytEngineLastFailureReason")
+                // Straight from the engine, so it can carry a URL or a host.
+                appendLine("- Last failure: ${CrashLogScrubber.scrub(ytEngineLastFailureReason)}")
             }
             appendLine()
             appendLine("Connections")

@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.integration.hue
 
 import android.annotation.SuppressLint
+import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.security.cert.CertificateException
@@ -134,10 +135,19 @@ class HueBridgeClient @Inject constructor(
             return digest.digest(cert.encoded).joinToString("") { "%02x".format(it) }
         }
 
+        /**
+         * A Hue bridge lives on the local network, and the TLS trust here is
+         * trust-on-first-use with nothing pinned until the first successful
+         * call. A public hostname would therefore be reachable over the
+         * internet with an unverified certificate, so refuse anything that is
+         * not a private address or an mDNS name.
+         */
         fun sanitiseHost(raw: String): String? {
             val trimmed = raw.trim()
             if (trimmed.isBlank()) return null
-            return trimmed.takeIf { Regex("^[A-Za-z0-9.\\-]{1,253}(:\\d{1,5})?$").matches(it) }
+            if (!Regex("^[A-Za-z0-9.\\-]{1,253}(:\\d{1,5})?$").matches(trimmed)) return null
+            val hostOnly = trimmed.substringBeforeLast(':', trimmed)
+            return trimmed.takeIf { LocalNetworkPermission.isLikelyLocalHost(hostOnly) }
         }
 
         fun sanitiseToken(raw: String): String? {

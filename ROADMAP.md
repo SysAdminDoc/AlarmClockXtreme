@@ -86,22 +86,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Likely
   Effort: S
 
-- [ ] P3 — Crash-log scrubber misses bare hostnames / IPs; yt engine failure reason is exported unscrubbed
-  Category: security
-  Where: data/support/SupportDiagnosticsFormatter.kt:62-72 (`CrashLogScrubber` patterns), :415-416 (`ytEngineLastFailureReason` printed verbatim); util/CrashLogger.kt:67 (raw stack trace stored)
-  Fix: add IPv4 and `Unable to resolve host "…"` patterns, scrub at write time in `CrashLogger.writeLog`, wrap the yt reason in `scrub()`.
-  Acceptance: a synthetic `UnknownHostException: Unable to resolve host "radio.example.com"` appears redacted in the support bundle.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P3 — Hue host field accepts public hostnames while TOFU trust-on-first-use is active; Hue key shown in clear text
-  Category: security
-  Where: integration/hue/HueBridgeClient.kt:158-162 (host regex), :112 and :186-190 (hostname verifier and trust manager with a blank pin); ui/settings/SettingsIntegrationSections.kt:417-423 (no `PasswordVisualTransformation`, unlike the webhook secret at :201-209); worker/WebhookRetryWorker.kt:96 (label persisted in WorkManager input even when `includeLabel=false`)
-  Fix: require a literal IP or `.local` host via `LocalNetworkPermission.isLikelyLocalHost`; password-mask the Hue key; store an empty label when `includeLabel` is false.
-  Acceptance: "bridge.example.com" is rejected with an inline error; the Hue key field shows dots.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — Backup-imported `content://`/`file://` URIs have no scheme allowlist
   Category: security
   Where: data/model/Alarm.kt:289, :305, :342 (`trim().take(2048)` only); consumers service/AlarmService.kt:914-915, ui/alarmfiring/AlarmFiringScreen.kt:257-264, ui/alarmfiring/AlarmFiringActivity.kt:85; data/share/AlarmShareCodec.kt:96-130 (share path already strips)

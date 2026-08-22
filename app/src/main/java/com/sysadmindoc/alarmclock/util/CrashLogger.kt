@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.util
 import android.content.Context
 import android.util.Log
 import androidx.core.content.pm.PackageInfoCompat
+import com.sysadmindoc.alarmclock.data.support.CrashLogScrubber
 import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
@@ -17,7 +18,8 @@ import java.util.Locale
  * Install in Application.onCreate():
  *   CrashLogger.install(this)
  *
- * Crash logs are written to: files/crash_logs/crash_TIMESTAMP.txt
+ * Crash logs are written to: files/crash_logs/crash_TIMESTAMP.txt, already
+ * scrubbed of URLs, hosts, addresses and secrets.
  * Each file is trimmed after 50 entries to prevent unbounded growth.
  * Logs stay in app-private storage unless the user explicitly exports a
  * support bundle; the app never uploads crash logs automatically.
@@ -67,7 +69,11 @@ object CrashLogger {
         throwable.printStackTrace(pw)
         pw.flush()
 
-        file.writeText(sw.toString())
+        // Scrub before the bytes ever reach disk. The support bundle scrubs on
+        // export, but a log sitting in app-private storage can still be pulled
+        // by a device backup or a debug pull, and a stack trace routinely names
+        // the host or URL the user configured.
+        file.writeText(CrashLogScrubber.scrub(sw.toString()))
         Log.e(TAG, "Crash log written to: ${file.absolutePath}")
     }
 

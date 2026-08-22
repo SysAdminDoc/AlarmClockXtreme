@@ -93,7 +93,9 @@ class WebhookRetryWorker @AssistedInject constructor(
                 .putString(KEY_EVENT, event.wireName)
                 .putString(KEY_EVENT_ID, eventId)
                 .putLong(KEY_ALARM_ID, alarmId)
-                .putString(KEY_LABEL, label)
+                // Never park the label in WorkManager storage when the
+                // user asked for labels to stay out of the payload.
+                .putString(KEY_LABEL, if (includeLabel) label else "")
                 .putString(KEY_DISPLAY_TIME, displayTime)
                 .putBoolean(KEY_INCLUDE_LABEL, includeLabel)
                 .putLong(KEY_SCHEDULED_FOR, scheduledForMillis ?: -1L)

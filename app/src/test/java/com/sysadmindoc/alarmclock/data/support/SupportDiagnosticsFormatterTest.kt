@@ -383,6 +383,32 @@ java.lang.NullPointerException: Attempt to invoke virtual method
         assertEquals(input, scrubbed)
     }
 
+    @Test
+    fun `crash log scrubber redacts the host an unresolved-host trace names`() {
+        val input = """java.net.UnknownHostException: Unable to resolve host "radio.example.com": No address associated with hostname
+	at java.net.Inet6AddressImpl.lookupHostByName(Inet6AddressImpl.java:156)"""
+        val scrubbed = CrashLogScrubber.scrub(input)
+        assertFalse(scrubbed.contains("radio.example.com"))
+        assertTrue(scrubbed.contains("[HOST_REDACTED]"))
+        // The frames still have to be readable or the log is worthless.
+        assertTrue(scrubbed.contains("UnknownHostException"))
+        assertTrue(scrubbed.contains("Inet6AddressImpl.java:156"))
+    }
+
+    @Test
+    fun `crash log scrubber redacts bare IPv4 addresses and ports`() {
+        val scrubbed = CrashLogScrubber.scrub("Failed to reach bridge at 192.168.1.42:443 after 3 tries")
+        assertFalse(scrubbed.contains("192.168.1.42"))
+        assertTrue(scrubbed.contains("[IP_REDACTED]"))
+        assertTrue(scrubbed.contains("after 3 tries"))
+    }
+
+    @Test
+    fun `crash log scrubber leaves version numbers alone`() {
+        val input = "Version: 1.14.0 (82), Android 15"
+        assertEquals(input, CrashLogScrubber.scrub(input))
+    }
+
     // --- Helpers ---
 
     private fun testSession(

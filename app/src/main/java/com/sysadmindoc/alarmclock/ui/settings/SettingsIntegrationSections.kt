@@ -36,6 +36,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import com.sysadmindoc.alarmclock.integration.hue.HueBridgeClient
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
@@ -406,13 +407,23 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
         title = stringResource(R.string.settings_hue_sunrise),
         description = stringResource(R.string.settings_hue_sunrise_description)
     ) {
+        // Anything the client will refuse gets called out here rather than
+        // failing silently at connect time.
+        val hueHostRejected = state.settings.hueBridgeIp.isNotBlank() &&
+            HueBridgeClient.sanitiseHost(state.settings.hueBridgeIp) == null
         BufferedSettingsTextField(
             value = state.settings.hueBridgeIp,
             onCommit = viewModel::updateHueBridgeIp,
             label = { Text(stringResource(R.string.settings_hue_ip)) },
             placeholder = { Text(stringResource(R.string.settings_hue_ip_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            isError = hueHostRejected,
+            supportingText = if (hueHostRejected) {
+                { Text(stringResource(R.string.settings_hue_ip_not_local)) }
+            } else {
+                null
+            }
         )
         BufferedSettingsTextField(
             value = state.settings.hueApiKey,
@@ -420,7 +431,9 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
             label = { Text(stringResource(R.string.settings_hue_api_key)) },
             placeholder = { Text(stringResource(R.string.settings_hue_api_placeholder)) },
             modifier = Modifier.fillMaxWidth(),
-            singleLine = true
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
         )
         BufferedSettingsTextField(
             value = state.settings.hueLightIds,

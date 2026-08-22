@@ -1636,6 +1636,8 @@ internal fun BufferedSettingsTextField(
     maxLines: Int = Int.MAX_VALUE,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    isError: Boolean = false,
+    supportingText: @Composable (() -> Unit)? = null,
     commitDelayMillis: Long = if (singleLine) 220 else 350
 ) {
     val focusManager = LocalFocusManager.current
@@ -1680,6 +1682,8 @@ internal fun BufferedSettingsTextField(
         singleLine = singleLine,
         minLines = minLines,
         maxLines = maxLines,
+        isError = isError,
+        supportingText = supportingText,
         visualTransformation = visualTransformation,
         keyboardOptions = effectiveKeyboardOptions,
         keyboardActions = KeyboardActions(
