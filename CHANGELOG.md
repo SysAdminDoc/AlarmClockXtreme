@@ -172,6 +172,24 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   other five rows.
 - Alarm editor category cards wrap their content instead of reserving a fixed
   height, which removes the empty band under every one-line summary.
+- Every screen now shows the time the same way. Fifteen places wrote the
+  12-hour and 24-hour split out by hand, three of them spelling "AM" and "PM"
+  in English no matter what language the phone is set to, so the alarm card,
+  the ringing notification and the bedtime cycle list could each render the
+  same alarm differently.
+- Notifications, notification channel names, the Wear tile and the widget's
+  empty states can be translated. That includes the channel descriptions in
+  Android's own settings, which is where you look when an alarm did not make a
+  sound.
+- The bedtime card stops saying "stopping" when sonar tracking is really off.
+  It checked its own status text, which is overwritten a moment later, so it
+  gave up after one try.
+- The Wear tile is painted in the app's colours instead of the stock Wear
+  palette, and its text is joined with a middle dot rather than a hyphen that
+  read as a minus sign.
+- The challenge picker lists every challenge the app has. It was a
+  hand-written list, which is how four challenges shipped in v1.6.0 that you
+  could not choose.
 
 ## [1.15.33] - 2026-08-12
 

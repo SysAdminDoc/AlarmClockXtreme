@@ -30,6 +30,7 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Problem: the guard's branch-literal patterns match `->`, `else`, `?` and `if (...)` heads but not a bare `return "literal"`, so these survived the extraction. `userMessage()` also builds the string inside a data class with no Context, so it needs to return a `@StringRes` id plus arguments the way ChallengeReadiness does.
   Fix: add `return` to the guard's branch-literal patterns first so the gap cannot reopen, then extract what it catches, and widen the guard's tree past `ui/` so receiver/ and service/ are covered.
   Acceptance: `:app:verifyLocalizedPrimaryScreens` passes with the `return` pattern added, and no `stringResource`-free English reaches the download dialog or an alarm card.
+  Progress 2026-08-22: the `return` pattern, a notification-builder setter pattern and a URL exclusion are in, the scanned tree covers the whole app package rather than `ui/`, and roughly 90 strings are extracted (bedtime, stats, alarm list, challenge statuses, every notification channel and body, the workers and the widget). The alarm-list, bedtime and challenge sites named above are done. Two named in the acceptance are not: `Alarm.repeatLabel` still hands "Once"/"Every day"/"Weekdays" to the alarm card, and `YouTubeEngineUpdateResult.userMessage()` still hands English to the download dialog. Sixteen files remain on `unlocalizedComposeFiles` in app/build.gradle.kts, and that list is the live task list for this item.
   Confidence: Verified
   Effort: M
 
