@@ -53,14 +53,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: S
 
-- [ ] P3 — Room schema exports for versions 1, 2, 3 and 7 are missing, so migrations from those versions cannot be tested
-  Category: testing
-  Where: app/schemas/com.sysadmindoc.alarmclock.data.local.AlarmDatabase/ (4-6, 8-23 present); app/src/androidTest/.../AlarmDatabaseMigrationTest.kt:31 (starts at version 4)
-  Fix: reconstruct 1.json/2.json/3.json/7.json from the migration SQL (or from git history of the entity) and extend the migration test to start at 1.
-  Acceptance: `runMigrationsAndValidate` from 1 and from 7 to 23 passes.
-  Confidence: Needs-repro
-  Effort: S
-
 - [ ] P3 — Test gaps for the defects above
   Category: testing
   Where: app/src/test/java/com/sysadmindoc/alarmclock/
