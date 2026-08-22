@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.alarmlist
 
+import com.sysadmindoc.alarmclock.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
@@ -422,7 +423,7 @@ class AlarmListViewModel @Inject constructor(
         viewModelScope.launch {
             val duplicate = alarm.copy(
                 id = 0,
-                label = if (alarm.label.isBlank()) "Copy" else "${alarm.label} (copy)",
+                label = if (alarm.label.isBlank()) context.getString(R.string.alarmlist_copy) else "${alarm.label} (copy)",
                 isEnabled = true,
                 createdAt = System.currentTimeMillis(),
                 nextTriggerTime = 0,

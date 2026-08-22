@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmlist
 
+import com.sysadmindoc.alarmclock.ui.alarmedit.toAlarmChallengeSummary
+import androidx.compose.ui.res.pluralStringResource
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
@@ -1425,7 +1427,7 @@ private fun AlarmCard(
             Text(
                 // v1.5.2: Be honest when vacation mode is swallowing the fire.
                 text = if (suppressedByVacation) {
-                    "Paused until vacation ends"
+                    stringResource(R.string.alarmlist_paused_until_vacation_ends)
                 } else {
                     nextOccurrenceLabel(alarm, is24Hour, pausedUntilMillis)
                 },
@@ -1433,13 +1435,15 @@ private fun AlarmCard(
                 style = MaterialTheme.typography.bodySmall
             )
 
+            val silentLabel = stringResource(R.string.alarm_edit_silent)
+            val chainLabel = alarm.challengeChainLabel()
             val metadata = buildList {
                 if (alarm.label.isNotBlank() && alarm.repeatLabel.isNotBlank()) add(alarm.repeatLabel)
                 alarm.shiftPatternChipLabel()?.let(::add)
                 if (alarm.usesFixedTimezone) add(alarm.fixedTimezoneId)
                 if (alarm.group.isNotBlank()) add(alarm.group)
-                alarm.challengeChainLabel()?.let(::add)
-                if (alarm.ringtoneUri == "silent") add("Silent")
+                chainLabel?.let(::add)
+                if (alarm.ringtoneUri == "silent") add(silentLabel)
             }
             if (metadata.isNotEmpty()) {
                 Text(
@@ -1652,37 +1656,6 @@ private fun formatAlarmTime(alarm: Alarm, is24Hour: Boolean): String {
     }
 }
 
-private fun challengeTypeLabel(type: String): String = when (type) {
-    "MATH_EASY"      -> "Math (Easy)"
-    "MATH_MEDIUM"    -> "Math (Medium)"
-    "MATH_HARD"      -> "Math (Hard)"
-    "SHAKE"          -> "Shake Phone"
-    "SEQUENCE"       -> "Number Sequence"
-    "MEMORY_PATTERN" -> "Memory Pattern"
-    "TYPING"         -> "Type a Phrase"
-    "VOICE_PHRASE"   -> "Voice Phrase"
-    "HANDWRITING"    -> "Handwriting"
-    "WALK_STEPS"     -> "Walk Steps"
-    "NFC_SCAN"       -> "NFC Tag Scan"
-    "BARCODE_SCAN"   -> "Barcode Scan"
-    "PHOTO_MATCH"    -> "Photo Match"
-    "SQUAT"          -> "Squats"
-    "WIFI_CONNECT"   -> "Wi-Fi Connect"
-    "MAZE"           -> "Maze Puzzle"
-    "COUNT_SHEEP"    -> "Count the Sheep"
-    "SIMON_SAYS"     -> "Simon Says"
-    "DATE_BACKWARDS" -> "Type Date Backwards"
-    "STROOP"         -> "Stroop Color Test"
-    "ROCK_PAPER_SCISSORS" -> "Rock Paper Scissors"
-    "EMOJI_MEMORY"   -> "Emoji Memory"
-    "TYPING_SPEED"   -> "Typing Speed"
-    "WORDLE"         -> "Wordle"
-    "PVT"            -> "Reaction Test"
-    "PUSH_UP"        -> "Push-ups"
-    "PLANK_HOLD"     -> "Plank Hold"
-    else             -> type.lowercase().replace("_", " ").replaceFirstChar { it.uppercase() }
-}
-
 /**
  * The dismiss challenges this alarm will actually run, in order.
  *
@@ -1697,13 +1670,22 @@ internal fun Alarm.challengeChainSteps(): List<String> {
     return if (challengeType != "NONE") listOf(challengeType) else emptyList()
 }
 
-/** Card-sized summary of [challengeChainSteps], or null when there is none. */
+/**
+ * Card-sized summary of [challengeChainSteps], or null when there is none.
+ *
+ * Composable because the step names come from the same resources the alarm
+ * editor uses; the private copy this used to keep named the same challenges
+ * differently ("Math (Easy)" against "Easy math").
+ */
+@Composable
 internal fun Alarm.challengeChainLabel(): String? {
     val steps = challengeChainSteps()
     return when {
         steps.isEmpty() -> null
-        steps.size > 3 -> "${steps.size} challenges"
-        else -> steps.joinToString(" · ") { challengeTypeLabel(it) }
+        steps.size > 3 ->
+            pluralStringResource(R.plurals.alarmlist_challenge_count, steps.size, steps.size)
+        // joinToString takes a non-inline lambda, so resolve the names first.
+        else -> steps.map { it.toAlarmChallengeSummary() }.joinToString(" · ")
     }
 }
 

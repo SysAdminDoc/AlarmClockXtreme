@@ -391,8 +391,8 @@ class AlarmFiringViewModel @Inject constructor(
             locationDismissReady = !locationDismissActive,
             locationDismissStatus = when {
                 !alarm.locationDismissEnabled -> ""
-                !hasLocationDismissTarget -> "No saved place is set, so location dismissal is not locked."
-                else -> "Waiting for a location fix. Leave the saved ${LocationDismissPolicy.coerceRadius(alarm.locationDismissRadius)} m area to unlock dismiss."
+                !hasLocationDismissTarget -> appContext.getString(R.string.alarmfiring_no_saved_place_is_set_so)
+                else -> appContext.getString(R.string.alarmfiring_waiting_for_a_location_fix_leave, LocationDismissPolicy.coerceRadius(alarm.locationDismissRadius))
             },
             weatherTemp = weatherTemp,
             weatherDescription = weatherDesc,
@@ -632,7 +632,7 @@ class AlarmFiringViewModel @Inject constructor(
                 !result.isAvailable -> _uiState.value = _uiState.value.copy(
                     handwritingBusy = false,
                     handwritingStatus = result.unavailableReason
-                        ?: "Handwriting recognition is unavailable. Type the word instead."
+                        ?: appContext.getString(R.string.alarmfiring_handwriting_recognition_is_unavailable_type_the)
                 )
                 HandwritingChallengeMatcher.matches(challenge.targetText, result.candidates) -> {
                     _uiState.value = _uiState.value.copy(
@@ -643,8 +643,8 @@ class AlarmFiringViewModel @Inject constructor(
                 }
                 else -> markHandwritingWrong(
                     message = result.candidates.firstOrNull()?.let { candidate ->
-                        "Recognized \"$candidate\". Draw ${challenge.targetText} again."
-                    } ?: "No handwriting match. Draw ${challenge.targetText} again."
+                        appContext.getString(R.string.alarmfiring_recognized_draw_again, candidate, challenge.targetText)
+                    } ?: appContext.getString(R.string.alarmfiring_no_handwriting_match_draw_again, challenge.targetText)
                 )
             }
         }

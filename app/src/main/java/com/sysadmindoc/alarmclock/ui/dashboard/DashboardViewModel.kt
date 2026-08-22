@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.dashboard
 
+import com.sysadmindoc.alarmclock.R
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -158,6 +159,9 @@ class DashboardViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler,
     private val geocodingApi: GeocodingApi
 ) : AndroidViewModel(application) {
+    /** For strings that end up in UI state built here rather than on screen. */
+    private val appContext: android.content.Context get() = getApplication()
+
 
     companion object {
         private const val SOLAR_RESCHEDULE_LOCATION_DELTA = 0.1
@@ -525,7 +529,7 @@ class DashboardViewModel @Inject constructor(
             val code = daily.weatherCode?.getOrNull(i)
             ForecastDay(
                 date = dateStr,
-                dayName = if (i == 0) "Today" else date.format(DateTimeFormatter.ofPattern("EEEE")),
+                dayName = if (i == 0) appContext.getString(R.string.dashboard_today) else date.format(DateTimeFormatter.ofPattern("EEEE")),
                 high = daily.maxTemp?.getOrNull(i)?.let { "${it.toInt()}" } ?: "--",
                 low = daily.minTemp?.getOrNull(i)?.let { "${it.toInt()}" } ?: "--",
                 description = code?.let { WeatherCodes.describe(it) } ?: "",
@@ -560,7 +564,7 @@ class DashboardViewModel @Inject constructor(
             val labelIsNow = !firstNowAssigned
             firstNowAssigned = true
             HourlyForecast(
-                timeLabel = if (labelIsNow) "Now"
+                timeLabel = if (labelIsNow) appContext.getString(R.string.dashboard_now)
                     else parsed.format(DateTimeFormatter.ofPattern("h a")),
                 temperature = temp,
                 icon = WeatherCodes.icon(code),
@@ -602,7 +606,7 @@ class DashboardViewModel @Inject constructor(
             rounded < 3 -> "low"
             rounded < 6 -> "moderate"
             rounded < 8 -> "high"
-            rounded < 11 -> "very high"
+            rounded < 11 -> appContext.getString(R.string.dashboard_very_high)
             else -> "extreme"
         }
         return "$rounded · $band"
@@ -678,13 +682,13 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun describeUsAqi(aqi: Int?): Pair<String, String> = when {
-        aqi == null -> "AQI unavailable" to "Pollutant details are shown when the provider reports them."
-        aqi <= 50 -> "Good" to "Air quality is comfortable for most people."
-        aqi <= 100 -> "Moderate" to "Acceptable air quality; sensitive people may notice it."
-        aqi <= 150 -> "Sensitive groups" to "People sensitive to air pollution should consider lighter outdoor activity."
-        aqi <= 200 -> "Unhealthy" to "Limit strenuous outdoor activity until conditions improve."
-        aqi <= 300 -> "Very unhealthy" to "Avoid outdoor exertion and keep alerts in mind."
-        else -> "Hazardous" to "Stay indoors where possible and follow local health guidance."
+        aqi == null -> appContext.getString(R.string.dashboard_aqi_unavailable) to "Pollutant details are shown when the provider reports them."
+        aqi <= 50 -> appContext.getString(R.string.dashboard_good) to "Air quality is comfortable for most people."
+        aqi <= 100 -> appContext.getString(R.string.dashboard_moderate) to "Acceptable air quality; sensitive people may notice it."
+        aqi <= 150 -> appContext.getString(R.string.dashboard_sensitive_groups) to "People sensitive to air pollution should consider lighter outdoor activity."
+        aqi <= 200 -> appContext.getString(R.string.dashboard_unhealthy) to "Limit strenuous outdoor activity until conditions improve."
+        aqi <= 300 -> appContext.getString(R.string.dashboard_very_unhealthy) to "Avoid outdoor exertion and keep alerts in mind."
+        else -> appContext.getString(R.string.dashboard_hazardous) to "Stay indoors where possible and follow local health guidance."
     }
 
     private fun aqiLevel(aqi: Int?): AirQualityLevel = when {
@@ -706,12 +710,12 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun pollenBand(level: PollenLevel): String = when (level) {
-        PollenLevel.NONE -> "None"
-        PollenLevel.LOW -> "Low"
-        PollenLevel.MODERATE -> "Moderate"
-        PollenLevel.HIGH -> "High"
-        PollenLevel.VERY_HIGH -> "Very high"
-        PollenLevel.UNAVAILABLE -> "Unavailable"
+        PollenLevel.NONE -> appContext.getString(R.string.alarm_edit_none)
+        PollenLevel.LOW -> appContext.getString(R.string.dashboard_low)
+        PollenLevel.MODERATE -> appContext.getString(R.string.dashboard_moderate)
+        PollenLevel.HIGH -> appContext.getString(R.string.dashboard_high)
+        PollenLevel.VERY_HIGH -> appContext.getString(R.string.dashboard_very_high_2)
+        PollenLevel.UNAVAILABLE -> appContext.getString(R.string.settings_health_unavailable)
     }
 
     private fun maxNullable(vararg values: Double?): Double? {

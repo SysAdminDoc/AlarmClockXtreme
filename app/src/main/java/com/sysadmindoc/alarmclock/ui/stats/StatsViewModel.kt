@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.stats
 
+import com.sysadmindoc.alarmclock.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepRepository
@@ -35,6 +36,8 @@ data class StatsUiState(
 
 @HiltViewModel
 class StatsViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext
+    private val appContext: android.content.Context,
     private val eventRepository: AlarmEventRepository,
     private val actigraphyRepository: ActigraphyRepository,
     private val preferencesManager: PreferencesManager,
@@ -101,7 +104,7 @@ class StatsViewModel @Inject constructor(
             // button the user pressed on purpose.
             val cleared = runCatching { eventRepository.clearHistory() }.isSuccess
             _uiState.value = _uiState.value.copy(
-                statusMessage = if (cleared) "History cleared" else "Could not clear history"
+                statusMessage = if (cleared) appContext.getString(R.string.stats_history_cleared) else appContext.getString(R.string.stats_could_not_clear_history)
             )
             // observeRecent() will fire with an empty list and trigger getStats()
             // in the collect block above, so no manual reload needed.

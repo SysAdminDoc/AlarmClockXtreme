@@ -166,6 +166,9 @@ class SettingsViewModel @Inject constructor(
     private val commuteHistoryStore: CommuteHistoryStore,
     private val fossifyImportManager: FossifyImportManager
 ) : AndroidViewModel(application) {
+    /** For strings that end up in UI state built here rather than on screen. */
+    private val appContext: android.content.Context get() = getApplication()
+
 
     private val _batteryState = MutableStateFlow(
         BatteryState(
@@ -430,25 +433,25 @@ class SettingsViewModel @Inject constructor(
     fun testWebhook() {
         viewModelScope.launch(Dispatchers.IO) {
             _webhookTestState.value = IntegrationTestState(
-                message = "Checking webhook endpoint...",
+                message = appContext.getString(R.string.settings_checking_webhook_endpoint),
                 isRunning = true
             )
             val settings = preferencesManager.getCurrentSettings()
             val url = settings.webhookUrl
             val result = when {
-                url.isBlank() -> "Webhook failed — add an HTTPS URL first"
+                url.isBlank() -> appContext.getString(R.string.settings_webhook_failed_add_an_https_url)
                 !webhookService.isAllowedUrl(url) && url.trim().startsWith("http://", ignoreCase = true) ->
-                    "Webhook failed — use HTTPS; cleartext HTTP is blocked"
-                !webhookService.isAllowedUrl(url) -> "Webhook failed — enter a valid HTTPS URL"
+                    appContext.getString(R.string.settings_webhook_failed_use_https_cleartext_http)
+                !webhookService.isAllowedUrl(url) -> appContext.getString(R.string.settings_webhook_failed_enter_a_valid_https)
                 LocalNetworkPermission.requiresPermissionForUrl(url) &&
                     !LocalNetworkPermission.isGranted(getApplication()) ->
-                    "Webhook failed — allow local network access first"
+                    appContext.getString(R.string.settings_webhook_failed_allow_local_network_access)
                 webhookService.test(
                     url = url,
                     includeLabel = settings.webhookIncludeLabel,
                     signingSecret = settings.webhookSigningSecret
-                ) -> "Webhook OK"
-                else -> "Webhook failed — endpoint did not return 2xx"
+                ) -> appContext.getString(R.string.settings_webhook_ok)
+                else -> appContext.getString(R.string.settings_webhook_failed_endpoint_did_not_return)
             }
             _webhookTestState.value = IntegrationTestState(message = result, isRunning = false)
             kotlinx.coroutines.delay(4000)
@@ -473,7 +476,7 @@ class SettingsViewModel @Inject constructor(
     fun testHue() {
         viewModelScope.launch(Dispatchers.IO) {
             _hueTestState.value = IntegrationTestState(
-                message = "Checking Hue bridge...",
+                message = appContext.getString(R.string.settings_checking_hue_bridge),
                 isRunning = true
             )
             val settings = preferencesManager.getCurrentSettings()
@@ -503,15 +506,15 @@ class SettingsViewModel @Inject constructor(
                         "Hue bridge reachable (API v2)"
                     }
                     is HuePinResult.Changed ->
-                        "Hue certificate changed — verify the bridge, then forget the saved certificate"
-                    HuePinResult.Invalid -> "Hue bridge returned an invalid certificate fingerprint"
+                        appContext.getString(R.string.settings_hue_certificate_changed_verify_the_bridge)
+                    HuePinResult.Invalid -> appContext.getString(R.string.settings_hue_bridge_returned_an_invalid_certificate)
                 }
                 is HueConnectionResult.CertificateChanged ->
-                    "Hue certificate changed — verify the bridge, then forget the saved certificate"
+                    appContext.getString(R.string.settings_hue_certificate_changed_verify_the_bridge)
                 HueConnectionResult.InvalidConfiguration ->
-                    "Hue bridge not checked — enter a valid IP and API key"
+                    appContext.getString(R.string.settings_hue_bridge_not_checked_enter_a)
                 is HueConnectionResult.Unreachable ->
-                    "Hue bridge not found — check the IP and the API key"
+                    appContext.getString(R.string.settings_hue_bridge_not_found_check_the)
             }
             _hueTestState.value = IntegrationTestState(message = result, isRunning = false)
             kotlinx.coroutines.delay(4000)
@@ -539,7 +542,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * v1.11.6 (roadmap N6): "Pause alarms for N days" — distinct from
+     * v1.11.6 (roadmap N6): appContext.getString(R.string.settings_pause_alarms_for_n_days) — distinct from
      * vacation. `days` of 0 (or negative) clears the pause and resumes
      * normal scheduling. Otherwise the pause expires at midnight `days`
      * days from now (so "Pause for 1 day" means "skip tonight's and
