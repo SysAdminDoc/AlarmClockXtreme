@@ -12,6 +12,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.core.content.ContextCompat
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.backup.BackupImportOptions
@@ -645,12 +646,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     // Backup/restore
-    private val _backupResult = MutableStateFlow<String?>(null)
-    val backupResult: StateFlow<String?> = _backupResult.asStateFlow()
+    private val _backupResult = MutableStateFlow<BackupStatusMessage?>(null)
+    val backupResult: StateFlow<BackupStatusMessage?> = _backupResult.asStateFlow()
     private val _backupBusy = MutableStateFlow(false)
     val backupBusy: StateFlow<Boolean> = _backupBusy.asStateFlow()
-    private val _supportExportResult = MutableStateFlow<String?>(null)
-    val supportExportResult: StateFlow<String?> = _supportExportResult.asStateFlow()
+    private val _supportExportResult = MutableStateFlow<BackupStatusMessage?>(null)
+    val supportExportResult: StateFlow<BackupStatusMessage?> = _supportExportResult.asStateFlow()
     private val _supportExportBusy = MutableStateFlow(false)
     val supportExportBusy: StateFlow<Boolean> = _supportExportBusy.asStateFlow()
 
@@ -682,9 +683,9 @@ class SettingsViewModel @Inject constructor(
                             )
                         )
                     }
-                    .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.PlainExport, it)) }
+                    .onFailure { setBackupResult(backupFailureMessage(appContext.resources, BackupStatusKind.PlainExport, it)) }
             } catch (e: Exception) {
-                setBackupResult(backupFailureMessage(BackupStatusKind.PlainExport, e))
+                setBackupResult(backupFailureMessage(appContext.resources, BackupStatusKind.PlainExport, e))
             } finally {
                 _backupBusy.value = false
             }
@@ -705,9 +706,9 @@ class SettingsViewModel @Inject constructor(
                             )
                         )
                     }
-                    .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedExport, it)) }
+                    .onFailure { setBackupResult(backupFailureMessage(appContext.resources, BackupStatusKind.EncryptedExport, it)) }
             } catch (e: Exception) {
-                setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedExport, e))
+                setBackupResult(backupFailureMessage(appContext.resources, BackupStatusKind.EncryptedExport, e))
             } finally {
                 _backupBusy.value = false
             }
@@ -731,9 +732,9 @@ class SettingsViewModel @Inject constructor(
                             )
                         )
                     }
-                    .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.PlainImport, it)) }
+                    .onFailure { setBackupResult(backupFailureMessage(appContext.resources, BackupStatusKind.PlainImport, it)) }
             } catch (e: Exception) {
-                setBackupResult(backupFailureMessage(BackupStatusKind.PlainImport, e))
+                setBackupResult(backupFailureMessage(appContext.resources, BackupStatusKind.PlainImport, e))
             } finally {
                 _backupBusy.value = false
             }
@@ -758,9 +759,9 @@ class SettingsViewModel @Inject constructor(
                             )
                         )
                     }
-                    .onFailure { setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedImport, it)) }
+                    .onFailure { setBackupResult(backupFailureMessage(appContext.resources, BackupStatusKind.EncryptedImport, it)) }
             } catch (e: Exception) {
-                setBackupResult(backupFailureMessage(BackupStatusKind.EncryptedImport, e))
+                setBackupResult(backupFailureMessage(appContext.resources, BackupStatusKind.EncryptedImport, e))
             } finally {
                 _backupBusy.value = false
             }
@@ -774,10 +775,13 @@ class SettingsViewModel @Inject constructor(
                 fossifyImportManager.import(uri, expectedFingerprint)
                     .onSuccess { count ->
                         setBackupResult(
-                            getApplication<Application>().resources.getQuantityString(
-                                R.plurals.settings_fossify_import_success,
-                                count,
-                                count
+                            BackupStatusMessage(
+                                appContext.resources.getQuantityString(
+                                    R.plurals.settings_fossify_import_success,
+                                    count,
+                                    count
+                                ),
+                                isFailure = false
                             )
                         )
                     }
@@ -794,7 +798,7 @@ class SettingsViewModel @Inject constructor(
      * Fixed calm copy per sanitized failure kind — raw exception text (JSON
      * parser internals, storage paths) never reaches a user-facing notice.
      */
-    private fun fossifyImportFailureMessage(error: Throwable?): String {
+    private fun fossifyImportFailureMessage(error: Throwable?): BackupStatusMessage {
         val res = when ((error as? FossifyImportException)?.kind) {
             FossifyImportErrorKind.NOT_FOSSIFY_EXPORT -> R.string.settings_fossify_import_failed_not_export
             FossifyImportErrorKind.UNREADABLE -> R.string.settings_fossify_import_failed_unreadable
@@ -802,14 +806,14 @@ class SettingsViewModel @Inject constructor(
             FossifyImportErrorKind.NO_ALARMS -> R.string.settings_fossify_import_failed_no_alarms
             null -> R.string.settings_fossify_import_failed_generic
         }
-        return getApplication<Application>().getString(res)
+        return BackupStatusMessage(appContext.getString(res), isFailure = true)
     }
 
-    fun showBackupResult(message: String) {
+    fun showBackupResult(message: BackupStatusMessage) {
         setBackupResult(message)
     }
 
-    private fun setBackupResult(message: String) {
+    private fun setBackupResult(message: BackupStatusMessage) {
         _backupResult.value = message
         viewModelScope.launch {
             kotlinx.coroutines.delay(5000)
@@ -822,17 +826,17 @@ class SettingsViewModel @Inject constructor(
     fun clearBackupResult() { _backupResult.value = null }
 
     suspend fun createSupportExport(): Result<SupportExportFile> = createDiagnosticExport(
-        successMessage = "Support bundle ready to share",
+        successMessage = R.string.settings_support_bundle_ready,
         exporter = supportExportManager::createSupportExport
     )
 
     suspend fun createCrashLogExport(): Result<SupportExportFile> = createDiagnosticExport(
-        successMessage = "Crash log ready to share",
+        successMessage = R.string.settings_crash_log_ready,
         exporter = supportExportManager::createCrashLogExport
     )
 
     private suspend fun createDiagnosticExport(
-        successMessage: String,
+        @StringRes successMessage: Int,
         exporter: suspend () -> SupportExportFile
     ): Result<SupportExportFile> {
         _supportExportBusy.value = true
@@ -840,10 +844,12 @@ class SettingsViewModel @Inject constructor(
             val export = withContext(Dispatchers.IO) {
                 exporter()
             }
-            setSupportExportResult(successMessage)
+            setSupportExportResult(
+                BackupStatusMessage(appContext.getString(successMessage), isFailure = false)
+            )
             Result.success(export)
         } catch (e: Exception) {
-            val message = backupFailureMessage(BackupStatusKind.SupportExport, e)
+            val message = backupFailureMessage(appContext.resources, BackupStatusKind.SupportExport, e)
             setSupportExportResult(message)
             Result.failure(e)
         } finally {
@@ -852,7 +858,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun setSupportExportShareFailed() {
-        setSupportExportResult("No app is available to share the support bundle")
+        setSupportExportResult(
+            BackupStatusMessage(
+                appContext.getString(R.string.settings_support_no_share_target),
+                isFailure = true
+            )
+        )
     }
 
     fun clearSupportExportResult() { _supportExportResult.value = null }
@@ -863,7 +874,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private fun setSupportExportResult(message: String) {
+    private fun setSupportExportResult(message: BackupStatusMessage) {
         _supportExportResult.value = message
         viewModelScope.launch {
             kotlinx.coroutines.delay(5000)

@@ -561,11 +561,12 @@ private fun RingtoneRow(
     }
 }
 
+@Composable
 private fun ringtoneSubtitle(ringtone: RingtoneItem, supportsPreview: Boolean): String = when {
-    ringtone.isDefault -> "Uses your device's current default alarm sound."
-    ringtone.isSilent -> "No audio. Best paired with vibration or other wake effects."
-    supportsPreview -> "Tap to preview, then choose Use when it feels right."
-    else -> "Ready to apply."
+    ringtone.isDefault -> stringResource(R.string.ringtone_uses_your_device_s_current_default)
+    ringtone.isSilent -> stringResource(R.string.ringtone_no_audio_best_paired_with_vibration)
+    supportsPreview -> stringResource(R.string.ringtone_tap_to_preview_then_choose_use)
+    else -> stringResource(R.string.ringtone_ready_to_apply)
 }
 
 private fun ringtoneSearchText(ringtone: RingtoneItem): String = buildString {
@@ -615,7 +616,10 @@ private fun loadRingtones(context: Context): RingtoneLoadResult {
             val title = cursor.getString(RingtoneManager.TITLE_COLUMN_INDEX)
             val uri = notificationManager.getRingtoneUri(cursor.position).toString()
             if (ringtones.none { it.uri == uri }) {
-                ringtones += RingtoneItem(title = "$title (notification)", uri = uri)
+                ringtones += RingtoneItem(
+                    title = context.getString(R.string.ringtone_notification_item, title),
+                    uri = uri
+                )
             }
         }
     } catch (_: Exception) {

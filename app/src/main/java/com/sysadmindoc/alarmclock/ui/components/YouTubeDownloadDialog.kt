@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.components
 
+import androidx.compose.ui.platform.LocalResources
+import androidx.annotation.StringRes
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import androidx.compose.foundation.background
@@ -142,6 +144,8 @@ fun YouTubeDownloadDialog(
     onError: (message: String) -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    // The error copy is resolved inside coroutines, outside composition.
+    val resources = LocalResources.current
     val downloader = remember(context) {
         EntryPointAccessors.fromApplication(
             context.applicationContext,
@@ -239,7 +243,7 @@ fun YouTubeDownloadDialog(
                 },
                 onFailure = { e ->
                     if (loadingPreviewUrl == hit.videoUrl) {
-                        setStatus(youTubeDialogErrorMessage(e, YouTubeDialogAction.Preview), isError = true)
+                        setStatus(resources.getString(youTubeDialogErrorMessage(e, YouTubeDialogAction.Preview)), isError = true)
                     }
                     loadingPreviewUrl = null
                 }
@@ -291,7 +295,7 @@ fun YouTubeDownloadDialog(
                                 },
                                 onFailure = { error ->
                                     setStatus(
-                                        youTubeDialogErrorMessage(error, YouTubeDialogAction.EngineUpdate),
+                                        resources.getString(youTubeDialogErrorMessage(error, YouTubeDialogAction.EngineUpdate)),
                                         isError = true
                                     )
                                 }
@@ -370,7 +374,7 @@ fun YouTubeDownloadDialog(
                                         }
                                     },
                                     onFailure = { e ->
-                                        setStatus(youTubeDialogErrorMessage(e, YouTubeDialogAction.Search), isError = true)
+                                        setStatus(resources.getString(youTubeDialogErrorMessage(e, YouTubeDialogAction.Search)), isError = true)
                                     }
                                 )
                             }
@@ -385,7 +389,7 @@ fun YouTubeDownloadDialog(
                                 r.fold(
                                     onSuccess = onDownloaded,
                                     onFailure = { e ->
-                                        val message = youTubeDialogErrorMessage(e, YouTubeDialogAction.Download)
+                                        val message = resources.getString(youTubeDialogErrorMessage(e, YouTubeDialogAction.Download))
                                         setStatus(message, isError = true)
                                         onError(message)
                                     }
@@ -421,7 +425,7 @@ fun YouTubeDownloadDialog(
                             result.fold(
                                 onSuccess = onDownloaded,
                                 onFailure = { e ->
-                                    val message = youTubeDialogErrorMessage(e, YouTubeDialogAction.Download)
+                                    val message = resources.getString(youTubeDialogErrorMessage(e, YouTubeDialogAction.Download))
                                     setStatus(message, isError = true)
                                     onError(message)
                                 }
@@ -787,42 +791,47 @@ private fun formatDuration(seconds: Long): String {
     return "%d:%02d".format(m, s)
 }
 
+/**
+ * The message id for [error]. An id rather than the text because every
+ * caller is inside a coroutine, where there is no composition to read from.
+ */
+@StringRes
 internal fun youTubeDialogErrorMessage(
     error: Throwable,
     action: YouTubeDialogAction
-): String {
+): Int {
     val message = error.message.orEmpty()
     return when {
         message.contains("not available in this build", ignoreCase = true) ->
-            "YouTube downloads are not available in this build."
+            R.string.youtube_error_unavailable_build
         error is UnknownHostException ->
-            "Check your connection and try again."
+            R.string.youtube_error_no_connection
         error is SocketTimeoutException ->
-            "YouTube took too long to respond. Try again later."
+            R.string.youtube_error_timeout
         error is SSLException ->
-            "Could not connect securely to YouTube. Try again later."
+            R.string.youtube_error_tls
         message.contains("HTTP 403") || message.contains("HTTP 429") ->
-            "YouTube is blocking this request right now. Try updating the downloader engine or try again later."
+            R.string.youtube_error_blocked
         message.contains("HTTP", ignoreCase = true) ->
-            "YouTube did not return a usable audio stream. Try another result or try again later."
+            R.string.youtube_error_no_audio_stream
         message.contains("extractor", ignoreCase = true) ||
             message.contains("signature", ignoreCase = true) ||
             message.contains("player response", ignoreCase = true) ->
-            "YouTube changed how this video is served. Update the downloader engine and try again."
+            R.string.youtube_error_extractor
         message.contains("invalid", ignoreCase = true) ||
             message.contains("unsupported", ignoreCase = true) ->
-            "Enter a valid YouTube link."
+            R.string.youtube_error_invalid_link
         error is IOException ->
-            "The YouTube request could not be completed. Check your connection and try again."
+            R.string.youtube_error_io
         else -> when (action) {
             YouTubeDialogAction.Preview ->
-                "Could not get a preview stream. Try another result."
+                R.string.youtube_error_preview
             YouTubeDialogAction.Search ->
-                "Search failed. Try a shorter phrase or try again later."
+                R.string.youtube_error_search
             YouTubeDialogAction.Download ->
-                "Download failed. Try another link or update the downloader engine."
+                R.string.youtube_error_download
             YouTubeDialogAction.EngineUpdate ->
-                "Update failed. Your current engine was kept. Check your connection and try again."
+                R.string.youtube_error_engine_update
         }
     }
 }

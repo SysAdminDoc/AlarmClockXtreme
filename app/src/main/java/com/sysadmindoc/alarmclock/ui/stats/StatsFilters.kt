@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.stats
 
+import android.content.res.Resources
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import java.time.DayOfWeek
 import java.util.Locale
@@ -15,7 +17,8 @@ data class StatsHistoryFilter(
 
 fun filterAlarmEvents(
     events: List<AlarmEvent>,
-    filter: StatsHistoryFilter
+    filter: StatsHistoryFilter,
+    resources: Resources
 ): List<AlarmEvent> {
     val normalizedQuery = filter.query.trim().lowercase(Locale.US)
 
@@ -24,7 +27,7 @@ fun filterAlarmEvents(
             event.alarmLabel.lowercase(Locale.US).contains(normalizedQuery) ||
             event.challengeType.lowercase(Locale.US).replace("_", " ").contains(normalizedQuery) ||
             dayLabel(event.dayOfWeek).lowercase(Locale.US).startsWith(normalizedQuery) ||
-            actionLabel(event.action).lowercase(Locale.US).startsWith(normalizedQuery)
+            actionLabel(resources, event.action).lowercase(Locale.US).startsWith(normalizedQuery)
 
         val matchesAction = filter.action == null || event.action == filter.action
         val matchesDay = filter.day == null || event.dayOfWeek == filter.day.value
@@ -39,12 +42,13 @@ fun dayLabel(dayOfWeek: Int): String {
     }.getOrDefault("Unknown")
 }
 
-private fun actionLabel(action: String): String {
-    return when (action) {
-        AlarmEvent.ACTION_DISMISSED -> "Dismissed"
-        AlarmEvent.ACTION_SNOOZED -> "Snoozed"
-        AlarmEvent.ACTION_SKIPPED -> "Skipped"
-        AlarmEvent.ACTION_MISSED -> "Missed"
-        else -> action.lowercase(Locale.US).replace("_", " ")
+private fun actionLabel(resources: Resources, action: String): String {
+    val resource = when (action) {
+        AlarmEvent.ACTION_DISMISSED -> R.string.stats_action_dismissed
+        AlarmEvent.ACTION_SNOOZED -> R.string.stats_action_snoozed
+        AlarmEvent.ACTION_SKIPPED -> R.string.stats_action_skipped
+        AlarmEvent.ACTION_MISSED -> R.string.stats_action_missed
+        else -> return action.lowercase(Locale.US).replace("_", " ")
     }
+    return resources.getString(resource)
 }

@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring.challenges
 
+import androidx.compose.ui.platform.LocalResources
+import androidx.annotation.StringRes
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -528,6 +530,8 @@ fun VoicePhraseChallengeView(
     onRecognized: (String) -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    // The recogniser listener below is a plain callback, so it needs its own handle.
+    val resources = LocalResources.current
     val speechAvailable = remember(context) { SpeechRecognizer.isRecognitionAvailable(context) }
     var hasRecordPermission by remember {
         mutableStateOf(
@@ -587,7 +591,7 @@ fun VoicePhraseChallengeView(
 
             override fun onError(error: Int) {
                 isListening = false
-                localStatus = speechErrorMessage(error)
+                localStatus = resources.getString(speechErrorMessage(error))
             }
 
             override fun onResults(results: Bundle?) {
@@ -743,18 +747,19 @@ fun VoicePhraseChallengeView(
     }
 }
 
-private fun speechErrorMessage(error: Int): String = when (error) {
-    SpeechRecognizer.ERROR_AUDIO -> "The microphone had an audio error. Try again or type the phrase."
-    SpeechRecognizer.ERROR_CLIENT -> "Speech recognition stopped. Try again or type the phrase."
+@StringRes
+private fun speechErrorMessage(error: Int): Int = when (error) {
+    SpeechRecognizer.ERROR_AUDIO -> R.string.alarmfiring_the_microphone_had_an_audio_error
+    SpeechRecognizer.ERROR_CLIENT -> R.string.alarmfiring_speech_recognition_stopped_try_again_or
     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
-        "Microphone permission is missing. Grant it or type the phrase."
-    SpeechRecognizer.ERROR_NETWORK -> "Speech recognition network error. Offline fallback may be unavailable."
-    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> "Speech recognition timed out. Try again or type the phrase."
-    SpeechRecognizer.ERROR_NO_MATCH -> "No matching speech was detected. Say the phrase again."
-    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Speech recognition is busy. Wait a moment and retry."
-    SpeechRecognizer.ERROR_SERVER -> "Speech service error. Type the phrase if it keeps happening."
-    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "No speech was heard. Try again or type the phrase."
-    else -> "Speech recognition failed. Try again or type the phrase."
+        R.string.alarmfiring_microphone_permission_is_missing_grant_it
+    SpeechRecognizer.ERROR_NETWORK -> R.string.alarmfiring_speech_recognition_network_error_offline_fallback
+    SpeechRecognizer.ERROR_NETWORK_TIMEOUT -> R.string.alarmfiring_speech_recognition_timed_out_try_again
+    SpeechRecognizer.ERROR_NO_MATCH -> R.string.alarmfiring_no_matching_speech_was_detected_say
+    SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> R.string.alarmfiring_speech_recognition_is_busy_wait_a
+    SpeechRecognizer.ERROR_SERVER -> R.string.alarmfiring_speech_service_error_type_the_phrase
+    SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> R.string.alarmfiring_no_speech_was_heard_try_again
+    else -> R.string.alarmfiring_speech_recognition_failed_try_again_or
 }
 
 @Composable

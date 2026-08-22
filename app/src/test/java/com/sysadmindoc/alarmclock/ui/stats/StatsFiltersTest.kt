@@ -1,12 +1,21 @@
 package com.sysadmindoc.alarmclock.ui.stats
 
+import android.content.Context
+import androidx.test.core.app.ApplicationProvider
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.time.DayOfWeek
 
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [30])
 class StatsFiltersTest {
+
+    private val resources = ApplicationProvider.getApplicationContext<Context>().resources
 
     @Test
     fun filtersByAlarmLabelChallengeActionAndDayText() {
@@ -16,10 +25,10 @@ class StatsFiltersTest {
             event(label = "School", action = AlarmEvent.ACTION_MISSED, challengeType = "NONE", day = DayOfWeek.FRIDAY)
         )
 
-        assertEquals(listOf(events[0]), filterAlarmEvents(events, StatsHistoryFilter(query = "gym")))
-        assertEquals(listOf(events[1]), filterAlarmEvents(events, StatsHistoryFilter(query = "stroop")))
-        assertEquals(listOf(events[2]), filterAlarmEvents(events, StatsHistoryFilter(query = "missed")))
-        assertEquals(listOf(events[0]), filterAlarmEvents(events, StatsHistoryFilter(query = "mon")))
+        assertEquals(listOf(events[0]), filterAlarmEvents(events, StatsHistoryFilter(query = "gym"), resources))
+        assertEquals(listOf(events[1]), filterAlarmEvents(events, StatsHistoryFilter(query = "stroop"), resources))
+        assertEquals(listOf(events[2]), filterAlarmEvents(events, StatsHistoryFilter(query = "missed"), resources))
+        assertEquals(listOf(events[0]), filterAlarmEvents(events, StatsHistoryFilter(query = "mon"), resources))
     }
 
     @Test
@@ -36,7 +45,7 @@ class StatsFiltersTest {
                 action = AlarmEvent.ACTION_SNOOZED,
                 day = DayOfWeek.MONDAY
             )
-        )
+        , resources)
 
         assertEquals(listOf(events[0]), filtered)
     }
@@ -48,7 +57,7 @@ class StatsFiltersTest {
             event(label = "B", day = DayOfWeek.SUNDAY)
         )
 
-        assertEquals(events, filterAlarmEvents(events, StatsHistoryFilter()))
+        assertEquals(events, filterAlarmEvents(events, StatsHistoryFilter(), resources))
     }
 
     @Test
@@ -65,7 +74,7 @@ class StatsFiltersTest {
         )
 
         assertEquals("Unknown", dayLabel(99))
-        assertTrue(filterAlarmEvents(events, StatsHistoryFilter(query = "unknown")).isNotEmpty())
+        assertTrue(filterAlarmEvents(events, StatsHistoryFilter(query = "unknown"), resources).isNotEmpty())
     }
 
     private fun event(

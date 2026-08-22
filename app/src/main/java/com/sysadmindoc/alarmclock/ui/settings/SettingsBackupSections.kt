@@ -219,6 +219,7 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
                     .onFailure { error ->
                         viewModel.showBackupResult(
                             backupFailureMessage(
+                                resources,
                                 if (encrypted) BackupStatusKind.EncryptedImportPreview else BackupStatusKind.ImportPreview,
                                 error
                             )
@@ -227,6 +228,7 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
             } catch (error: Exception) {
                 viewModel.showBackupResult(
                     backupFailureMessage(
+                        resources,
                         if (encrypted) BackupStatusKind.EncryptedImportPreview else BackupStatusKind.ImportPreview,
                         error
                     )
@@ -265,7 +267,10 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
                         // Fixed calm copy only — the raw exception detail stays in the log
                         // (see FossifyImportManager), never in a user-facing notice.
                         viewModel.showBackupResult(
-                            resources.getString(fossifyPreviewFailureRes(error))
+                            BackupStatusMessage(
+                                resources.getString(fossifyPreviewFailureRes(error)),
+                                isFailure = true
+                            )
                         )
                     }
             } finally {
@@ -537,13 +542,13 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
         }
     }
 
-    backupResult?.let { message ->
-        val failed = isFailureStatusMessage(message)
+    backupResult?.let { status ->
+        val failed = status.isFailure
         AppFeedbackCard(
             title = stringResource(
                 if (failed) R.string.settings_backup_attention else R.string.settings_backup_complete
             ),
-            message = message,
+            message = status.text,
             icon = if (failed) Icons.Default.Warning else Icons.Default.Backup,
             color = if (failed) AccentRed else DismissGreen,
             onDismiss = viewModel::clearBackupResult

@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.ringtone
 
+import com.sysadmindoc.alarmclock.R
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -69,7 +70,10 @@ internal object RingtoneFolderStore {
                     treeUri,
                     cursor.getString(idColumn)
                 )
-                items += RingtoneItem(title = "$name (folder)", uri = documentUri.toString())
+                items += RingtoneItem(
+                    title = context.getString(R.string.ringtone_folder_item, name),
+                    uri = documentUri.toString()
+                )
             }
         }
         items

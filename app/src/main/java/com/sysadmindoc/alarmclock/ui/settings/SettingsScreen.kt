@@ -920,14 +920,14 @@ fun SettingsScreen(
                 }
             }
 
-            supportExportResult?.let { message ->
+            supportExportResult?.let { status ->
                 settingsItem("utilities-support-result") {
-                val failed = isFailureStatusMessage(message)
+                val failed = status.isFailure
                 AppFeedbackCard(
                     title = stringResource(
                         if (failed) R.string.settings_support_export_failed else R.string.settings_export_ready
                     ),
-                    message = message,
+                    message = status.text,
                     icon = if (failed) Icons.Default.Warning else Icons.Default.BugReport,
                     color = if (failed) AccentRed else DismissGreen,
                     onDismiss = viewModel::clearSupportExportResult

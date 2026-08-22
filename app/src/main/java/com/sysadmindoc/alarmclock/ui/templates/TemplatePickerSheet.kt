@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.templates
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -100,7 +101,7 @@ fun TemplatePickerSheet(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 32.dp)
             ) {
-                items(defaultTemplates, key = { it.name }) { template ->
+                items(defaultTemplates, key = { it.key }) { template ->
                     TemplateCard(
                         template = template,
                         onClick = { onSelect(template) }
@@ -149,7 +150,7 @@ private fun TemplateCard(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = template.name,
+                    text = stringResource(template.nameRes),
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
@@ -161,7 +162,7 @@ private fun TemplateCard(
                     fontWeight = FontWeight.Light
                 )
                 Text(
-                    text = template.description,
+                    text = stringResource(template.descriptionRes),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -205,14 +206,15 @@ private fun TemplateCard(
 private fun templateAccent(template: AlarmTemplate): Color = when {
     template.challengeType != "NONE" -> SnoozeYellow
     template.gradualVolumeSeconds >= 120 -> DismissGreen
-    template.name.contains("Work", ignoreCase = true) -> AccentBlue
+    template.key == "work_alarm" -> AccentBlue
     else -> MaterialTheme.colorScheme.primary
 }
 
+@Composable
 private fun templateTimeLabel(template: AlarmTemplate): String {
     val isRelative = template.hour == 0 && template.minute > 0 && template.repeatDays.isEmpty()
     if (isRelative) {
-        return "Now + ${template.minute} min"
+        return stringResource(R.string.template_time_now_plus, template.minute)
     }
 
     val hour12 = when {
@@ -224,42 +226,46 @@ private fun templateTimeLabel(template: AlarmTemplate): String {
     return "$hour12:${template.minute.toString().padStart(2, '0')} $suffix"
 }
 
+@Composable
 private fun templateRepeatLabel(repeatDays: Set<DayOfWeek>): String = when {
-    repeatDays.isEmpty() -> "One-time"
-    repeatDays.size == DayOfWeek.entries.size -> "Daily"
+    repeatDays.isEmpty() -> stringResource(R.string.template_repeat_one_time)
+    repeatDays.size == DayOfWeek.entries.size -> stringResource(R.string.template_repeat_daily)
     repeatDays == setOf(
         DayOfWeek.MONDAY,
         DayOfWeek.TUESDAY,
         DayOfWeek.WEDNESDAY,
         DayOfWeek.THURSDAY,
         DayOfWeek.FRIDAY
-    ) -> "Weekdays"
-    repeatDays == setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) -> "Weekends"
-    else -> "${repeatDays.size} days"
+    ) -> stringResource(R.string.template_repeat_weekdays)
+    repeatDays == setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) ->
+        stringResource(R.string.template_repeat_weekends)
+    else -> pluralStringResource(R.plurals.template_repeat_days, repeatDays.size, repeatDays.size)
 }
 
+@Composable
 private fun templateWakeStyleLabel(template: AlarmTemplate): String = when {
-    template.gradualVolumeSeconds == 0 -> "Instant ring"
-    template.gradualVolumeSeconds >= 120 -> "Gentle wake"
-    else -> "Balanced wake"
+    template.gradualVolumeSeconds == 0 -> stringResource(R.string.template_wake_instant)
+    template.gradualVolumeSeconds >= 120 -> stringResource(R.string.template_wake_gentle)
+    else -> stringResource(R.string.template_wake_balanced)
 }
 
+@Composable
 private fun templateChallengeLabel(challengeType: String): String = when (challengeType) {
-    "MATH_EASY" -> "Easy math"
-    "MATH_HARD" -> "Hard math"
-    "SHAKE" -> "Shake phone"
+    "MATH_EASY" -> stringResource(R.string.alarm_edit_challenge_math_easy)
+    "MATH_HARD" -> stringResource(R.string.alarm_edit_challenge_math_hard)
+    "SHAKE" -> stringResource(R.string.alarm_edit_challenge_shake)
     else -> challengeType
         .lowercase()
         .replace('_', ' ')
         .replaceFirstChar { it.uppercase() }
 }
 
-private fun templateIcon(template: AlarmTemplate): ImageVector = when {
-    template.name.contains("Early", ignoreCase = true) -> Icons.Default.WbTwilight
-    template.name.contains("Work", ignoreCase = true) -> Icons.Default.Work
-    template.name.contains("Weekend", ignoreCase = true) -> Icons.Default.Weekend
-    template.name.contains("Nap", ignoreCase = true) -> Icons.Default.Bedtime
-    template.name.contains("Heavy", ignoreCase = true) -> Icons.Default.AlarmOn
-    template.name.contains("Medication", ignoreCase = true) -> Icons.Default.MedicalServices
+private fun templateIcon(template: AlarmTemplate): ImageVector = when (template.key) {
+    "early_bird" -> Icons.Default.WbTwilight
+    "work_alarm" -> Icons.Default.Work
+    "weekend_sleep_in" -> Icons.Default.Weekend
+    "power_nap" -> Icons.Default.Bedtime
+    "heavy_sleeper" -> Icons.Default.AlarmOn
+    "medication_reminder" -> Icons.Default.MedicalServices
     else -> Icons.Default.Alarm
 }

@@ -16,58 +16,78 @@ internal enum class BackupStatusKind {
     SupportExport
 }
 
-internal fun backupSuccessMessage(resources: Resources, kind: BackupStatusKind, count: Int): String {
+/**
+ * A finished backup operation, ready to show.
+ *
+ * [isFailure] is carried rather than derived: the classifier this replaced read
+ * the message back looking for "Couldn't" and "failed", which only ever worked
+ * while the copy was English.
+ */
+data class BackupStatusMessage(
+    val text: String,
+    val isFailure: Boolean
+)
+
+internal fun backupSuccessMessage(
+    resources: Resources,
+    kind: BackupStatusKind,
+    count: Int
+): BackupStatusMessage {
     val alarmCount = resources.getQuantityString(R.plurals.settings_backup_alarm_count, count, count)
-    return when (kind) {
-        BackupStatusKind.PlainExport -> "Backup exported: $alarmCount."
-        BackupStatusKind.EncryptedExport -> "Encrypted backup exported: $alarmCount."
-        BackupStatusKind.PlainImport -> "Backup imported: $alarmCount."
-        BackupStatusKind.EncryptedImport -> "Encrypted backup imported: $alarmCount."
+    val text = when (kind) {
+        BackupStatusKind.PlainExport ->
+            resources.getString(R.string.settings_backup_exported, alarmCount)
+        BackupStatusKind.EncryptedExport ->
+            resources.getString(R.string.settings_backup_encrypted_exported, alarmCount)
+        BackupStatusKind.PlainImport ->
+            resources.getString(R.string.settings_backup_imported, alarmCount)
+        BackupStatusKind.EncryptedImport ->
+            resources.getString(R.string.settings_backup_encrypted_imported, alarmCount)
         BackupStatusKind.ImportPreview,
         BackupStatusKind.EncryptedImportPreview,
-        BackupStatusKind.SupportExport -> "Backup complete."
+        BackupStatusKind.SupportExport ->
+            resources.getString(R.string.settings_backup_all_done)
     }
+    return BackupStatusMessage(text, isFailure = false)
 }
 
-internal fun backupFailureMessage(kind: BackupStatusKind, cause: Throwable? = null): String {
+internal fun backupFailureMessage(
+    resources: Resources,
+    kind: BackupStatusKind,
+    cause: Throwable? = null
+): BackupStatusMessage {
     val prefix = when (kind) {
-        BackupStatusKind.PlainExport -> "Couldn't export backup."
-        BackupStatusKind.EncryptedExport -> "Couldn't export encrypted backup."
-        BackupStatusKind.PlainImport -> "Couldn't import backup."
-        BackupStatusKind.EncryptedImport -> "Couldn't import encrypted backup."
-        BackupStatusKind.ImportPreview -> "Couldn't preview backup."
-        BackupStatusKind.EncryptedImportPreview -> "Couldn't preview encrypted backup."
-        BackupStatusKind.SupportExport -> "Couldn't create support bundle."
+        BackupStatusKind.PlainExport -> R.string.settings_backup_export_failed
+        BackupStatusKind.EncryptedExport -> R.string.settings_backup_encrypted_export_failed
+        BackupStatusKind.PlainImport -> R.string.settings_backup_import_failed
+        BackupStatusKind.EncryptedImport -> R.string.settings_backup_encrypted_import_failed
+        BackupStatusKind.ImportPreview -> R.string.settings_backup_preview_failed
+        BackupStatusKind.EncryptedImportPreview -> R.string.settings_backup_encrypted_preview_failed
+        BackupStatusKind.SupportExport -> R.string.settings_backup_support_bundle_failed
     }
-    return "$prefix ${backupRecoveryHint(cause)}"
+    val text = resources.getString(
+        R.string.settings_backup_failure_with_hint,
+        resources.getString(prefix),
+        resources.getString(backupRecoveryHint(cause))
+    )
+    return BackupStatusMessage(text, isFailure = true)
 }
 
-internal fun isFailureStatusMessage(message: String): Boolean {
-    return message.startsWith("Couldn't", ignoreCase = true) ||
-        message.contains("needs attention", ignoreCase = true) ||
-        message.contains("failed", ignoreCase = true)
-}
-
-private fun backupRecoveryHint(cause: Throwable?): String {
+private fun backupRecoveryHint(cause: Throwable?): Int {
     val message = cause?.message.orEmpty()
     return when {
         cause is AEADBadTagException ||
             message.contains("passphrase", ignoreCase = true) ||
             message.contains("decrypt", ignoreCase = true) ->
-            "Check the passphrase and choose the encrypted backup again."
-        cause is SecurityException ->
-            "Grant file access and try again."
-        cause is FileNotFoundException ->
-            "Choose a file location this device can still access."
-        cause is IOException ->
-            "Check storage access and try again."
-        message.contains("version", ignoreCase = true) ->
-            "Choose a backup from a supported app version."
+            R.string.settings_backup_hint_passphrase
+        cause is SecurityException -> R.string.settings_backup_hint_permission
+        cause is FileNotFoundException -> R.string.settings_backup_hint_missing_file
+        cause is IOException -> R.string.settings_backup_hint_storage
+        message.contains("version", ignoreCase = true) -> R.string.settings_backup_hint_version
         message.contains("json", ignoreCase = true) ||
             message.contains("malformed", ignoreCase = true) ||
             message.contains("parse", ignoreCase = true) ->
-            "Choose a valid AlarmClockXtreme backup file."
-        else ->
-            "Check the file or destination and try again."
+            R.string.settings_backup_hint_malformed
+        else -> R.string.settings_backup_hint_generic
     }
 }

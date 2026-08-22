@@ -604,20 +604,23 @@ private fun WeatherMetric(
     )
 }
 
+@Composable
 private fun buildWeatherStaleMessage(state: DashboardUiState): String {
-    val updated = state.weatherLastUpdatedMillis?.let(::formatRelativeAge) ?: "earlier"
-    val reason = state.weatherStaleMessage ?: "Showing the last saved forecast."
-    return "$reason Last updated $updated."
+    val updated = state.weatherLastUpdatedMillis?.let { formatRelativeAge(it) }
+        ?: stringResource(R.string.dashboard_earlier)
+    val reason = state.weatherStaleMessage ?: stringResource(R.string.dashboard_showing_the_last_saved_forecast)
+    return stringResource(R.string.dashboard_stale_forecast_line, reason, updated)
 }
 
+@Composable
 private fun formatRelativeAge(epochMs: Long): String {
     val deltaMs = (System.currentTimeMillis() - epochMs).coerceAtLeast(0)
     val seconds = TimeUnit.MILLISECONDS.toSeconds(deltaMs)
     return when {
-        seconds < 60 -> "just now"
-        seconds < 3600 -> "${TimeUnit.SECONDS.toMinutes(seconds)}m ago"
-        seconds < 86_400 -> "${TimeUnit.SECONDS.toHours(seconds)}h ago"
-        else -> "${TimeUnit.SECONDS.toDays(seconds)}d ago"
+        seconds < 60 -> stringResource(R.string.news_just_now)
+        seconds < 3600 -> stringResource(R.string.dashboard_m_ago, TimeUnit.SECONDS.toMinutes(seconds))
+        seconds < 86_400 -> stringResource(R.string.dashboard_h_ago, TimeUnit.SECONDS.toHours(seconds))
+        else -> stringResource(R.string.dashboard_d_ago, TimeUnit.SECONDS.toDays(seconds))
     }
 }
 

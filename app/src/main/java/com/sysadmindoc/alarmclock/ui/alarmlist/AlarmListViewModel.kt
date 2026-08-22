@@ -460,7 +460,7 @@ class AlarmListViewModel @Inject constructor(
             val alarm = Alarm(
                 hour = localTime.hour,
                 minute = localTime.minute,
-                label = "${minutesFromNow}m quick alarm",
+                label = context.getString(R.string.alarmlist_quick_alarm_label, minutesFromNow),
                 isEnabled = true,
                 repeatDays = emptySet(),
                 snoozeDurationMinutes = defaults.defaultSnoozeDuration,
@@ -481,6 +481,7 @@ class AlarmListViewModel @Inject constructor(
     fun createFromTemplate(template: AlarmTemplate) {
         viewModelScope.launch {
             val isRelative = template.hour == 0 && template.minute > 0 && template.repeatDays.isEmpty()
+            val templateName = context.getString(template.nameRes)
 
             // No defaults seeding here: a template states its own snooze,
             // gradual volume and vibration, which is the point of picking one.
@@ -491,7 +492,7 @@ class AlarmListViewModel @Inject constructor(
                 Alarm(
                     hour = localTime.hour,
                     minute = localTime.minute,
-                    label = template.name,
+                    label = templateName,
                     isEnabled = true,
                     repeatDays = emptySet(),
                     gradualVolumeSeconds = template.gradualVolumeSeconds,
@@ -505,7 +506,7 @@ class AlarmListViewModel @Inject constructor(
                 Alarm(
                     hour = template.hour,
                     minute = template.minute,
-                    label = template.name,
+                    label = templateName,
                     isEnabled = true,
                     repeatDays = template.repeatDays,
                     gradualVolumeSeconds = template.gradualVolumeSeconds,
@@ -525,9 +526,18 @@ class AlarmListViewModel @Inject constructor(
             }
             emitFeedback(
                 if (isRelative) {
-                    "${template.name} starts in ${template.minute} minutes"
+                    context.resources.getQuantityString(
+                        R.plurals.alarmlist_template_starts_in,
+                        template.minute,
+                        templateName,
+                        template.minute
+                    )
                 } else {
-                    "${template.name} scheduled for ${formatTemplateTime(template)}"
+                    context.getString(
+                        R.string.alarmlist_template_scheduled_for,
+                        templateName,
+                        formatTemplateTime(template)
+                    )
                 }
             )
         }

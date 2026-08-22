@@ -218,35 +218,85 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
     inputs.files(primaryComposeScreenFiles)
 
     doLast {
+        // Attributes that carry text a person reads. An earlier version of this
+        // task anchored the literal to `[A-Za-z]`, which let every interpolated
+        // string ("$wins CPU") through, and only looked at a handful of
+        // attribute names.
+        val uiTextAttributes = listOf(
+            "text", "contentDescription", "title", "description", "supportingText",
+            "onClickLabel", "stateDescription", "overline", "actionLabel", "summary",
+            "statusLabel", "subtitle", "headline", "message", "placeholder", "hint",
+            "caption", "helperText", "errorText", "emptyText"
+        ).joinToString("|")
+        // Assigning a literal to one of those attributes is unambiguously UI.
         val directUiLiteralPatterns = listOf(
-            Regex("""\bText\s*\(\s*"([A-Za-z][^"\r\n]*)"""),
-            Regex(
-                """\b(?:text|contentDescription|title|description|supportingText|onClickLabel|stateDescription|label)\s*=\s*"([A-Za-z][^"\r\n]*)"""
-            )
+            Regex("""\bText\s*\(\s*"([^"\r\n]*)""""),
+            Regex("""\b(?:$uiTextAttributes)\s*=\s*"([^"\r\n]*)"""")
         )
+        // `text = if (x) "A" else "B"` and `Outcome.WIN -> "You won"`: the
+        // literal never sits directly after the `=`, so the patterns above
+        // cannot see it. Nothing here says whether the branch feeds a Text or
+        // an API query parameter, so these only fire on something that reads
+        // like copy: a capitalised word, or more than one word. That lets a
+        // lowercase single-word label through ("low", "moderate"), which is the
+        // price of not flagging every "celsius"/"kmh"/"unknown" wire value.
+        val branchLiteralPatterns = listOf(
+            Regex("""(?:->|\belse\b|\?|:)\s*"([^"\r\n]*)"\s*(?:\r?\n|,|\)|\})"""),
+            Regex("""\bif\s*\([^()]*(?:\([^()]*\)[^()]*)*\)\s*"([^"\r\n]*)"""")
+        )
+        val looksLikeCopy = Regex("""^[A-Z].*|.*\s.*""")
         // Animation debug names passed as `label = ...` to animateFloat and
         // rememberInfiniteTransition. They never reach a user, and translating
-        // them would be meaningless.
+        // them would be meaningless. Checked only against `label =`, so a real
+        // `Text("funnel")` is still a violation.
         val nonUiComposeLabels = setOf(
-            "alarmPulse", "pulseScale", "pulseAlpha", "shake", "shakeAnim", "nfcPulse", "nfcAlpha",
-            "barcodeScan", "scanLine",
-            "sheep-drift", "sheep-drift-value", "icon_scale", "loading-card", "loading-alpha",
-            "skeleton-block", "skeleton-alpha", "funnel", "funnel-rotation", "funnel-drift",
-            "glowAlpha", "burnInDrift", "driftX", "driftY", "timer-pulse", "key-press-scale",
-            "dotWidth\$index"
+            "alarmPulse", "pulseScale", "pulseAlpha", "shake", "shakeAnim", "nfcPulse",
+            "nfcAlpha", "sheep-drift", "sheep-drift-value", "icon_scale", "loading-card",
+            "loading-alpha", "skeleton-block", "skeleton-alpha", "funnel", "funnel-rotation",
+            "funnel-drift", "glowAlpha", "burnInDrift", "driftX", "driftY", "timer-pulse",
+            "key-press-scale", "barcodeScan", "scanLine", "dotWidth\$index"
         )
+        val animationLabelPattern = Regex("""\blabel\s*=\s*"([^"\r\n]*)"""")
+        // What is left once every `$x` and `${...}` is removed: only that part
+        // is English a translator would have to touch.
+        val interpolation = Regex("""\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*""")
+        val wireConstant = Regex("""^[A-Z0-9_]+$""")
+        // SimpleDateFormat / DateTimeFormatter patterns are not prose.
+        val dateFormatPattern = Regex("""^[hHmMsSaEdDMyLZzGwWkKubB:./,•\s'\-]+$""")
+        // A literal holding a nested one ("${String.format("%02d", n)}") cannot be
+        // captured by a regex that stops at the first quote, so what these
+        // patterns see is a fragment, not the string. Skip the truncation.
+        val truncatedByNesting = Regex("""\$\{[^}]*$""")
+        // A run of three letters is the shortest thing worth translating. It
+        // also skips the "es"/"ies" suffix fragments some strings concatenate
+        // for English plurals; those need a <plurals>, not a resource, and are
+        // tracked separately.
+        val translatableRun = Regex("""[A-Za-z]{3}""")
         val violations = mutableSetOf<String>()
 
         primaryComposeScreenFiles.forEach { sourceFile ->
             val source = sourceFile.readText()
-            directUiLiteralPatterns.forEach { pattern ->
-                pattern.findAll(source).forEach { match ->
-                    val literal = match.groupValues[1]
-                    if (literal !in nonUiComposeLabels) {
-                        val line = source.take(match.range.first).count { it == '\n' } + 1
-                        violations += "${sourceFile.relativeTo(projectDir)}:$line: \"$literal\""
-                    }
+            val report = { match: MatchResult, requireCopyShape: Boolean ->
+                val literal = match.groupValues[1]
+                val bare = interpolation.replace(literal, " ").trim()
+                val isProse = translatableRun.containsMatchIn(bare) &&
+                    !wireConstant.matches(bare) &&
+                    !dateFormatPattern.matches(bare) &&
+                    !truncatedByNesting.containsMatchIn(literal) &&
+                    (!requireCopyShape || looksLikeCopy.matches(bare))
+                if (isProse) {
+                    val line = source.take(match.range.first).count { it == '\n' } + 1
+                    violations += "${sourceFile.relativeTo(projectDir)}:$line: \"$literal\""
                 }
+            }
+            directUiLiteralPatterns.forEach { pattern ->
+                pattern.findAll(source).forEach { report(it, false) }
+            }
+            branchLiteralPatterns.forEach { pattern ->
+                pattern.findAll(source).forEach { report(it, true) }
+            }
+            animationLabelPattern.findAll(source).forEach { match ->
+                if (match.groupValues[1] !in nonUiComposeLabels) report(match, false)
             }
         }
 

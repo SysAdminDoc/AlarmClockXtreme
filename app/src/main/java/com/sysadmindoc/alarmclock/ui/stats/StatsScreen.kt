@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.stats
 
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -116,8 +117,9 @@ fun StatsScreen(
         action = selectedAction,
         day = selectedDay
     )
-    val filteredEvents = remember(state.recentEvents, historyFilter) {
-        filterAlarmEvents(state.recentEvents, historyFilter)
+    val statsResources = LocalResources.current
+    val filteredEvents = remember(state.recentEvents, historyFilter, statsResources) {
+        filterAlarmEvents(state.recentEvents, historyFilter, statsResources)
     }
 
     val summaryLine = when {
@@ -1302,6 +1304,7 @@ private fun ActigraphySessionRow(session: ActigraphySession) {
     }
 }
 
+@Composable
 private fun smartWakeDecisionDetail(session: ActigraphySession): String {
     val observed = session.observedMinutesBeforeDecision.coerceAtLeast(0)
     if (session.isSonarSession()) {
@@ -1310,18 +1313,19 @@ private fun smartWakeDecisionDetail(session: ActigraphySession): String {
     return "${smartWakeDecisionLabel(session.decisionReason)} after ${observed} min of watching (${session.smartWakeMode.lowercase()})"
 }
 
+@Composable
 private fun smartWakeDecisionLabel(reason: String): String = when (reason) {
-    "FIRE_LIGHT_MOTION" -> "light motion"
-    "WAIT_INSUFFICIENT_DATA" -> "not enough data"
-    "WAIT_TOO_ACTIVE" -> "too active"
-    "WAIT_DEEP_OR_STILL" -> "still motion"
-    "WAIT_LIGHT_NOT_STABLE" -> "unstable light motion"
-    "WAIT_FINAL_MINUTE" -> "final minute"
-    "WAIT_SERVICE_TIMEOUT" -> "service timeout"
-    "SONAR_STOPPED" -> "session stopped"
-    "SONAR_START_FAILED" -> "start failed"
-    "REACHED_TARGET" -> "target time"
-    "UNKNOWN" -> "unknown"
+    "FIRE_LIGHT_MOTION" -> stringResource(R.string.stats_reason_light_motion)
+    "WAIT_INSUFFICIENT_DATA" -> stringResource(R.string.stats_reason_not_enough_data)
+    "WAIT_TOO_ACTIVE" -> stringResource(R.string.stats_reason_too_active)
+    "WAIT_DEEP_OR_STILL" -> stringResource(R.string.stats_reason_still_motion)
+    "WAIT_LIGHT_NOT_STABLE" -> stringResource(R.string.stats_reason_unstable_light_motion)
+    "WAIT_FINAL_MINUTE" -> stringResource(R.string.stats_reason_final_minute)
+    "WAIT_SERVICE_TIMEOUT" -> stringResource(R.string.stats_reason_service_timeout)
+    "SONAR_STOPPED" -> stringResource(R.string.stats_reason_session_stopped)
+    "SONAR_START_FAILED" -> stringResource(R.string.stats_reason_start_failed)
+    "REACHED_TARGET" -> stringResource(R.string.stats_reason_target_time)
+    "UNKNOWN" -> stringResource(R.string.stats_reason_unknown)
     else -> reason.lowercase().replace('_', ' ')
 }
 
@@ -1462,6 +1466,7 @@ private fun EventRow(event: AlarmEvent, is24Hour: Boolean) {
     }
 }
 
+@Composable
 private fun wakeStreakBadgeLabel(stats: AlarmStats): String {
     return if (stats.currentStreak > 0) {
         "${dayCountLabel(stats.currentStreak)} streak"
@@ -1470,20 +1475,22 @@ private fun wakeStreakBadgeLabel(stats: AlarmStats): String {
     }
 }
 
+@Composable
 private fun wakeStreakStatus(stats: AlarmStats): String {
     return when {
-        stats.currentStreak == 0 -> "Dismiss one alarm to start building a visible morning streak."
-        stats.streakIncludesToday -> "Today's wake is already counted. Keep the chain going tomorrow."
-        else -> "Still alive from yesterday. Dismiss today's alarm to protect it."
+        stats.currentStreak == 0 -> stringResource(R.string.stats_dismiss_one_alarm_to_start_building)
+        stats.streakIncludesToday -> stringResource(R.string.stats_today_s_wake_is_already_counted)
+        else -> stringResource(R.string.stats_still_alive_from_yesterday_dismiss_today)
     }
 }
 
-private fun dayCountLabel(days: Int): String {
-    return if (days == 1) "1 day" else "$days days"
-}
+@Composable
+private fun dayCountLabel(days: Int): String =
+    pluralStringResource(R.plurals.stats_day_count, days, days)
 
 private fun compactDays(days: Int): String = "${days}d"
 
+@Composable
 private fun sleepWakeAnalyticsDescription(
     analytics: SleepWakeAnalytics,
     healthConnectEnabled: Boolean,
@@ -1493,17 +1500,17 @@ private fun sleepWakeAnalyticsDescription(
 ): String {
     return when {
         analytics.hasSleepWakeCorrelation ->
-            "Compares recent sleep duration with dismiss speed, snoozes, and challenge retries on this device."
+            stringResource(R.string.stats_compares_recent_sleep_duration_with_dismiss)
         !healthConnectEnabled ->
-            "Enable Health Connect to layer sleep duration over local wake behavior."
+            stringResource(R.string.stats_enable_health_connect_to_layer_sleep)
         !sleepPermissionGranted ->
-            "Grant READ_SLEEP to add sleep duration; alarm response, snooze, and retry trends stay local."
+            stringResource(R.string.stats_grant_read_sleep_to_add_sleep)
         hasSleepData && !hasWakeData ->
-            "Sleep sessions are ready. Alarm outcomes will add wake-behavior bars once they occur."
+            stringResource(R.string.stats_sleep_sessions_are_ready_alarm_outcomes)
         !hasSleepData && hasWakeData ->
-            "Wake-behavior bars are ready. Sleep bars appear after Health Connect returns recent sessions."
+            stringResource(R.string.stats_wake_behavior_bars_are_ready_sleep)
         else ->
-            "Recent sleep sessions and alarm outcomes will build this chart locally."
+            stringResource(R.string.stats_recent_sleep_sessions_and_alarm_outcomes)
     }
 }
 

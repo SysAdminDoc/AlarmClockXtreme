@@ -1,16 +1,21 @@
 package com.sysadmindoc.alarmclock.ui.components
 
+import com.sysadmindoc.alarmclock.R
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Test
 import java.net.UnknownHostException
 
+/**
+ * The mapping only, not the copy. The function hands back a resource id now,
+ * so the wording lives in strings.xml and the interesting question is which
+ * message each failure picks.
+ */
 class YouTubeDialogErrorMessageTest {
 
     @Test
     fun networkErrorsUsePlainRecoveryCopy() {
         assertEquals(
-            "Check your connection and try again.",
+            R.string.youtube_error_no_connection,
             youTubeDialogErrorMessage(
                 UnknownHostException("Unable to resolve host \"youtube.com\""),
                 YouTubeDialogAction.Search
@@ -20,42 +25,51 @@ class YouTubeDialogErrorMessageTest {
 
     @Test
     fun httpErrorsDoNotExposeRawStatusText() {
-        val message = youTubeDialogErrorMessage(
-            IllegalStateException("HTTP 403 Forbidden"),
-            YouTubeDialogAction.Preview
-        )
-
         assertEquals(
-            "YouTube is blocking this request right now. Try updating the downloader engine or try again later.",
-            message
+            R.string.youtube_error_blocked,
+            youTubeDialogErrorMessage(
+                IllegalStateException("HTTP 403 Forbidden"),
+                YouTubeDialogAction.Preview
+            )
         )
-        assertFalse(message.contains("403"))
-        assertFalse(message.contains("Forbidden"))
     }
 
     @Test
     fun extractorErrorsSuggestEngineUpdateWithoutRawException() {
-        val message = youTubeDialogErrorMessage(
-            RuntimeException("ExtractorError: player response is invalid"),
-            YouTubeDialogAction.Download
-        )
-
         assertEquals(
-            "YouTube changed how this video is served. Update the downloader engine and try again.",
-            message
+            R.string.youtube_error_extractor,
+            youTubeDialogErrorMessage(
+                RuntimeException("ExtractorError: player response is invalid"),
+                YouTubeDialogAction.Download
+            )
         )
-        assertFalse(message.contains("ExtractorError"))
-        assertFalse(message.contains("player response"))
     }
 
     @Test
     fun unavailableBuildMessageIsClear() {
         assertEquals(
-            "YouTube downloads are not available in this build.",
+            R.string.youtube_error_unavailable_build,
             youTubeDialogErrorMessage(
                 IllegalStateException("YouTube download is not available in this build"),
                 YouTubeDialogAction.Download
             )
+        )
+    }
+
+    @Test
+    fun anUnrecognisedFailureFallsBackToTheActionItCameFrom() {
+        val plain = RuntimeException("something went sideways")
+        assertEquals(
+            R.string.youtube_error_preview,
+            youTubeDialogErrorMessage(plain, YouTubeDialogAction.Preview)
+        )
+        assertEquals(
+            R.string.youtube_error_search,
+            youTubeDialogErrorMessage(plain, YouTubeDialogAction.Search)
+        )
+        assertEquals(
+            R.string.youtube_error_engine_update,
+            youTubeDialogErrorMessage(plain, YouTubeDialogAction.EngineUpdate)
         )
     }
 }
