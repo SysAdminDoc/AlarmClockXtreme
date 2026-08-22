@@ -2,8 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Alarm Scheduling -->
+    <!-- Alarm Scheduling.
+         USE_EXACT_ALARM exists only from API 33. On API 31/32 the exact-alarm
+         capability is gated on SCHEDULE_EXACT_ALARM, and an app that does not
+         declare it is not listed under Settings > Alarms & reminders, so the
+         user cannot grant it and canScheduleExactAlarms() stays false forever.
+         Declare both, capped so Play's USE_EXACT_ALARM policy still applies on
+         33+. -->
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Network for weather API -->
