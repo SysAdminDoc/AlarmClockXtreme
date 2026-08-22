@@ -11,6 +11,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.sysadmindoc.alarmclock.BuildConfig
+import com.sysadmindoc.alarmclock.R
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 
@@ -40,7 +41,8 @@ class GuardianWorker @AssistedInject constructor(
         val rawPhone = inputData.getString("guardian_phone")?.trim().orEmpty()
         if (rawPhone.isBlank()) return Result.success()
         val phone = GuardianEscalationPolicy.sanitisePhone(rawPhone) ?: return Result.success()
-        val label = inputData.getString("alarm_label") ?: "Alarm"
+        val label = inputData.getString("alarm_label")
+            ?: applicationContext.getString(R.string.guardian_default_alarm_label)
         val message = GuardianEscalationPolicy.buildMessage(label)
         val canSendDirectSms = GuardianEscalationPolicy.canSendDirectSms(
             flavor = BuildConfig.FLAVOR,

@@ -14,6 +14,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkerParameters
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.local.CommuteHistoryStore
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
@@ -311,7 +312,8 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
                 if (cursor.getInt(allDayIndex) == 1) continue
                 return CalEvent(
                     startMs = cursor.getLong(beginIndex),
-                    title = cursor.getString(titleIndex)?.takeIf { it.isNotBlank() } ?: "Calendar Event",
+                    title = cursor.getString(titleIndex)?.takeIf { it.isNotBlank() }
+                        ?: applicationContext.getString(R.string.calendar_event_fallback_title),
                     location = cursor.getString(locationIndex)?.trim().orEmpty()
                 )
             }

@@ -240,10 +240,10 @@ class WakeConfirmWorker @AssistedInject constructor(
             nm.createNotificationChannel(
                 NotificationChannel(
                     CHANNEL_WAKE_CONFIRM,
-                    "Wake Confirmation",
+                    context.getString(R.string.notif_wake_confirm_channel_name),
                     NotificationManager.IMPORTANCE_HIGH
                 ).apply {
-                    description = "Asks you to confirm you are awake after dismissing an alarm"
+                    description = context.getString(R.string.notif_wake_confirm_channel_description)
                     enableVibration(true)
                     setBypassDnd(true)
                 }

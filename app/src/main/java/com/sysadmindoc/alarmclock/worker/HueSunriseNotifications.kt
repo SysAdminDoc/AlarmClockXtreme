@@ -22,8 +22,6 @@ internal object HueSunriseNotifications {
     private const val NOTIFICATION_BASE_ID = 800_000
     private const val NOTIFICATION_ID_RANGE = 100_000L
     private const val ANDROID_16_API = 36
-    private const val TITLE = "Sunrise in progress"
-    private const val TEXT = "Hue lights are brightening before your alarm"
 
     fun post(
         context: Context,
@@ -59,8 +57,8 @@ internal object HueSunriseNotifications {
         endWallClockMillis: Long
     ): Notification = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_alarm)
-        .setContentTitle(TITLE)
-        .setContentText(TEXT)
+        .setContentTitle(context.getString(R.string.notif_hue_sunrise_title))
+        .setContentText(context.getString(R.string.notif_hue_sunrise_text))
         .setPriority(NotificationCompat.PRIORITY_LOW)
         .setCategory(NotificationCompat.CATEGORY_PROGRESS)
         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
@@ -90,9 +88,9 @@ internal object HueSunriseNotifications {
         )
         val builder = Notification.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle(TITLE)
-            .setContentText(TEXT)
-            .setSubText("Hue sunrise")
+            .setContentTitle(context.getString(R.string.notif_hue_sunrise_title))
+            .setContentText(context.getString(R.string.notif_hue_sunrise_text))
+            .setSubText(context.getString(R.string.notif_hue_sunrise_subtext))
             .setCategory(Notification.CATEGORY_PROGRESS)
             .setVisibility(Notification.VISIBILITY_PUBLIC)
             .setOngoing(true)
@@ -119,10 +117,10 @@ internal object HueSunriseNotifications {
         manager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "Hue sunrise",
+                context.getString(R.string.notif_hue_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows progress while Hue lights brighten before an alarm"
+                description = context.getString(R.string.notif_hue_channel_description)
                 setShowBadge(false)
                 enableLights(false)
                 enableVibration(false)

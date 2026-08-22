@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.PowerManager
+import androidx.annotation.StringRes
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.work.HiltWorker
@@ -18,6 +19,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.sysadmindoc.alarmclock.MainActivity
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.util.ManufacturerCompat
@@ -73,7 +75,7 @@ class AlarmHealthWorker @AssistedInject constructor(
         return Result.success()
     }
 
-    private fun postWarningNotification(issues: List<String>) {
+    private fun postWarningNotification(issues: List<AlarmHealthIssue>) {
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(
                 applicationContext, Manifest.permission.POST_NOTIFICATIONS
@@ -85,12 +87,16 @@ class AlarmHealthWorker @AssistedInject constructor(
         val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
             ?: return
 
-        val text = if (issues.size == 1) issues.first()
-        else issues.joinToString(". ")
+        val sentences = issues.map { issue ->
+            issue.manufacturer
+                ?.let { applicationContext.getString(issue.messageRes, it) }
+                ?: applicationContext.getString(issue.messageRes)
+        }
+        val text = sentences.joinToString(" ")
 
         val notification = NotificationCompat.Builder(applicationContext, AlarmService.CHANNEL_UPCOMING)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle("Alarm reliability warning")
+            .setContentTitle(applicationContext.getString(R.string.notif_alarm_health_title))
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -145,22 +151,37 @@ internal data class AlarmHealthSignals(
     val manufacturer: String
 )
 
-internal fun alarmHealthIssues(signals: AlarmHealthSignals): List<String> = buildList {
+/**
+ * One reliability problem worth telling the user about.
+ *
+ * A resource id rather than a sentence: this list used to be built as English
+ * and the worker's own test asserted on substrings of it, which is the pattern
+ * that quietly breaks on the first translation.
+ */
+internal data class AlarmHealthIssue(
+    @StringRes val messageRes: Int,
+    val manufacturer: String? = null
+)
+
+internal fun alarmHealthIssues(signals: AlarmHealthSignals): List<AlarmHealthIssue> = buildList {
     if (signals.backgroundRestricted) {
-        add("Android has restricted background activity — review Alarm reliability in Settings")
+        add(AlarmHealthIssue(R.string.health_background_restricted))
     }
     if (signals.batteryOptimizationActive) {
         val guidance = ManufacturerCompat.getGuidance(signals.manufacturer)
         add(
             guidance?.let {
-                "Battery optimization is active on ${it.manufacturer} — review its alarm reliability steps"
-            } ?: "Battery optimization is active — alarms may not fire reliably"
+                AlarmHealthIssue(
+                    R.string.health_battery_optimization_manufacturer,
+                    it.manufacturer
+                )
+            } ?: AlarmHealthIssue(R.string.health_battery_optimization)
         )
     }
     if (!signals.notificationsAllowed) {
-        add("Notification permission is denied — you may not hear alarms")
+        add(AlarmHealthIssue(R.string.health_notifications_denied))
     }
     if (!signals.exactAlarmsAllowed) {
-        add("Exact alarm permission revoked — alarms cannot fire on time")
+        add(AlarmHealthIssue(R.string.health_exact_alarms_revoked))
     }
 }

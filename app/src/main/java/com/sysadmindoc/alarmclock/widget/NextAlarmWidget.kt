@@ -21,6 +21,7 @@ import androidx.glance.unit.ColorProvider
 import android.text.format.DateFormat
 import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.MainActivity
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
@@ -249,7 +250,13 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?, failedToLoad: Boolean
                 modifier = GlanceModifier.fillMaxWidth()
             ) {
                 Text(
-                    text = if (failedToLoad) "Couldn't load alarms" else "No alarms set",
+                    text = LocalContext.current.getString(
+                        if (failedToLoad) {
+                            R.string.widget_could_not_load
+                        } else {
+                            R.string.widget_no_alarms_set
+                        }
+                    ),
                     style = TextStyle(
                         color = ColorProvider(
                             if (failedToLoad) WidgetWarning else WidgetTextMuted

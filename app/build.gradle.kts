@@ -219,13 +219,7 @@ val unlocalizedComposeFiles = setOf(
     "service/AlarmPostDismissController.kt",
     "service/WebhookService.kt",
     "service/YouTubeAudioDownloader.kt",
-    "util/ManufacturerCompat.kt",
-    "widget/NextAlarmWidget.kt",
-    "worker/AlarmHealthWorker.kt",
-    "worker/CalendarAutoAlarmWorker.kt",
-    "worker/GuardianWorker.kt",
-    "worker/HueSunriseNotifications.kt",
-    "worker/WakeConfirmWorker.kt"
+    "util/ManufacturerCompat.kt"
 )
 
 val primaryComposeScreenFiles: List<File> = fileTree("src/main/java/com/sysadmindoc/alarmclock") {

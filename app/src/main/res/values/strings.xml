@@ -2229,4 +2229,21 @@
     <string name="notif_sonar_channel_description">Overnight sleep quality monitoring (experimental)</string>
     <string name="notif_sonar_title">Sleep tracking active</string>
     <string name="notif_sonar_text">Sonar monitoring in progress</string>
+    <string name="widget_could_not_load">Couldn’t load alarms</string>
+    <string name="widget_no_alarms_set">No alarms set</string>
+    <string name="notif_alarm_health_title">Alarm reliability warning</string>
+    <string name="health_background_restricted">Android has restricted background activity. Review Alarm reliability in Settings.</string>
+    <string name="health_battery_optimization_manufacturer">Battery optimization is active on %1$s. Review its alarm reliability steps.</string>
+    <string name="health_battery_optimization">Battery optimization is active, so alarms may not fire reliably.</string>
+    <string name="health_notifications_denied">Notification permission is denied, so you may not hear alarms.</string>
+    <string name="health_exact_alarms_revoked">Exact alarm permission was revoked, so alarms cannot fire on time.</string>
+    <string name="calendar_event_fallback_title">Calendar Event</string>
+    <string name="guardian_default_alarm_label">Alarm</string>
+    <string name="notif_hue_sunrise_title">Sunrise in progress</string>
+    <string name="notif_hue_sunrise_text">Hue lights are brightening before your alarm</string>
+    <string name="notif_hue_sunrise_subtext">Hue sunrise</string>
+    <string name="notif_hue_channel_name">Hue sunrise</string>
+    <string name="notif_hue_channel_description">Shows progress while Hue lights brighten before an alarm</string>
+    <string name="notif_wake_confirm_channel_name">Wake Confirmation</string>
+    <string name="notif_wake_confirm_channel_description">Asks you to confirm you are awake after dismissing an alarm</string>
 </resources>
