@@ -54,15 +54,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P3
 
-- [ ] P3 — NFC / barcode / photo / Wi-Fi challenges silently accept anything when no reference is saved
-  Category: ux
-  Where: ui/alarmfiring/AlarmFiringViewModel.kt:650-656, :669-672 (blank reference → `proceedToNextChallenge()`); ui/alarmfiring/challenges/ChallengeViews.kt:1050, :1204, :1514 ("Any … will work for now")
-  Problem: the editor warns (domain/ChallengeReadiness.kt) but backup/share imports can still land an NFC/barcode/photo challenge with no reference; at fire time the challenge is a no-op with a small grey hint.
-  Fix: when the reference is blank at fire time, substitute MATH_MEDIUM (or the next chain step) and show "No tag registered, solving a math problem instead" so the user learns to fix the alarm.
-  Acceptance: an imported NFC alarm with no tag id rings with a math challenge.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — Wake-confirm notification id band (500000 + alarmId) is unbounded and can enter the Hue band (800000-899999)
   Category: maintainability
   Where: worker/WakeConfirmWorker.kt:52 (`NOTIF_ID_BASE + alarmId`, no modulo); worker/HueSunriseNotifications.kt:22-23 (clamped); CLAUDE.md notification-ID table (missing SnoozeCountdown=3003, DirectBoot=1011, OnboardingTestAlarm=1907, Hue=800000+); `alarm.id + 30000` reused by NextAlarmNotifier.kt:157 (broadcast) and MissedAlarmUnlockReceiver.kt:182 (activity)

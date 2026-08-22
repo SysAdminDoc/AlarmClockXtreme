@@ -617,9 +617,15 @@ fun AlarmFiringScreen(
                 // When the Wi-Fi check cannot run, the challenge is swapped for
                 // a solvable one; say why rather than leaving an unexplained
                 // maths problem on a Wi-Fi alarm.
-                if (state.wifiStatus.isNotBlank() && challenge !is Challenge.WifiChallenge) {
+                val challengeNotice = when {
+                    state.challengeNotice.isNotBlank() -> state.challengeNotice
+                    state.wifiStatus.isNotBlank() && challenge !is Challenge.WifiChallenge ->
+                        state.wifiStatus
+                    else -> ""
+                }
+                if (challengeNotice.isNotBlank()) {
                     Text(
-                        text = state.wifiStatus,
+                        text = challengeNotice,
                         color = SnoozeYellow,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,

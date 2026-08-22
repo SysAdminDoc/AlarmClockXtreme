@@ -15,6 +15,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.sysadmindoc.alarmclock.R
 
 data class FiringUiState(
     val alarm: Alarm? = null,
@@ -121,7 +122,9 @@ data class FiringUiState(
     // Snooze cap. snoozesRemaining is null when the alarm is uncapped.
     val snoozesUsed: Int = 0,
     val snoozesRemaining: Int? = null,
-    val snoozeAllowed: Boolean = true
+    val snoozeAllowed: Boolean = true,
+    /** Set when a challenge was swapped out, so the screen can say why. */
+    val challengeNotice: String = ""
 ) {
     val requiresLocationDismiss: Boolean get() = alarm?.locationDismissEnabled == true
     val requiresChallenge: Boolean get() {
@@ -161,17 +164,45 @@ internal fun buildChallenge(
 ): Challenge? = when (type) {
     ChallengeType.NONE -> null
     ChallengeType.WALK_STEPS -> Challenge.WalkChallenge(requiredSteps = alarm.walkStepsRequired)
-    ChallengeType.NFC_SCAN -> Challenge.NfcChallenge(registeredTagId = alarm.nfcTagId)
-    ChallengeType.BARCODE_SCAN -> Challenge.BarcodeChallenge(registeredValue = alarm.barcodeValue)
-    ChallengeType.PHOTO_MATCH -> Challenge.PhotoMatchChallenge(referencePhotoUri = alarm.photoMatchUri)
+    // A reference-backed challenge with no reference matched anything, so it
+    // was a no-op with a small grey hint. The editor blocks saving one, but a
+    // backup or share import can still land it. Fall back to something the
+    // user can actually solve instead of unlocking the alarm for free.
+    ChallengeType.NFC_SCAN ->
+        if (alarm.nfcTagId.isBlank()) substituteChallenge(customPhrases)
+        else Challenge.NfcChallenge(registeredTagId = alarm.nfcTagId)
+    ChallengeType.BARCODE_SCAN ->
+        if (alarm.barcodeValue.isBlank()) substituteChallenge(customPhrases)
+        else Challenge.BarcodeChallenge(registeredValue = alarm.barcodeValue)
+    ChallengeType.PHOTO_MATCH ->
+        if (alarm.photoMatchUri.isBlank()) substituteChallenge(customPhrases)
+        else Challenge.PhotoMatchChallenge(referencePhotoUri = alarm.photoMatchUri)
     ChallengeType.SQUAT -> Challenge.SquatChallenge(requiredSquats = alarm.requiredSquats)
     ChallengeType.PUSH_UP -> Challenge.PushUpChallenge(requiredPushUps = 10)
     ChallengeType.PLANK_HOLD -> Challenge.PlankHoldChallenge(requiredSeconds = 30)
     // The editor forces an SSID and stores it on the alarm, but the generator
     // has no access to it and built the challenge with a blank requirement, so
     // any connected network dismissed the alarm.
-    ChallengeType.WIFI_CONNECT -> Challenge.WifiChallenge(requiredSsid = alarm.wifiDismissSsid)
+    ChallengeType.WIFI_CONNECT ->
+        if (alarm.wifiDismissSsid.isBlank()) substituteChallenge(customPhrases)
+        else Challenge.WifiChallenge(requiredSsid = alarm.wifiDismissSsid)
     else -> ChallengeGenerator.generate(type, customPhrases)
+}
+
+/** Stand-in for a challenge whose saved reference is missing. */
+internal fun substituteChallenge(customPhrases: String): Challenge? =
+    ChallengeGenerator.generate(ChallengeType.MATH_MEDIUM, customPhrases)
+
+/**
+ * True when [type] needs a saved reference that [alarm] does not have, so
+ * [buildChallenge] will substitute something solvable.
+ */
+internal fun challengeReferenceMissing(type: ChallengeType, alarm: Alarm): Boolean = when (type) {
+    ChallengeType.NFC_SCAN -> alarm.nfcTagId.isBlank()
+    ChallengeType.BARCODE_SCAN -> alarm.barcodeValue.isBlank()
+    ChallengeType.PHOTO_MATCH -> alarm.photoMatchUri.isBlank()
+    ChallengeType.WIFI_CONNECT -> alarm.wifiDismissSsid.isBlank()
+    else -> false
 }
 
 @HiltViewModel
@@ -316,6 +347,10 @@ class AlarmFiringViewModel @Inject constructor(
         } else {
             null
         }
+        val firstChallengeNotice = adaptedChain.firstOrNull()
+            ?.takeIf { challengeReferenceMissing(it, alarm) }
+            ?.let { appContext.getString(R.string.firing_challenge_reference_missing) }
+            .orEmpty()
         val hasLocationDismissTarget = LocationDismissPolicy.hasTarget(
             alarm.locationDismissLat,
             alarm.locationDismissLng
@@ -345,6 +380,7 @@ class AlarmFiringViewModel @Inject constructor(
             snoozesUsed = snoozesUsed,
             snoozesRemaining = SnoozeCapPolicy.snoozesRemaining(alarm, snoozesUsed),
             snoozeAllowed = SnoozeCapPolicy.canSnooze(alarm, snoozesUsed),
+            challengeNotice = firstChallengeNotice,
             challenge = firstChallenge,
             challengeSolved = adaptedChain.isEmpty(),
             challengeStartedAtMillis = if (firstChallenge != null) System.currentTimeMillis() else 0L,
@@ -417,10 +453,16 @@ class AlarmFiringViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(challengeSolved = true)
             return
         }
-        val nextChallenge = buildChallengeForType(challengeChainTypes[nextIndex], alarm)
+        val nextType = challengeChainTypes[nextIndex]
+        val nextChallenge = buildChallengeForType(nextType, alarm)
         _uiState.value = _uiState.value.copy(
             currentChallengeIndex = nextIndex,
             challenge = nextChallenge,
+            challengeNotice = if (challengeReferenceMissing(nextType, alarm)) {
+                appContext.getString(R.string.firing_challenge_reference_missing)
+            } else {
+                ""
+            },
             challengeSolved = false,
             shakeCount = 0,
             squatCount = 0,
@@ -661,11 +703,6 @@ class AlarmFiringViewModel @Inject constructor(
     // F2: NFC scan challenge
     fun onNfcTagDetected(tagId: String) {
         val challenge = _uiState.value.challenge as? Challenge.NfcChallenge ?: return
-        if (challenge.registeredTagId.isBlank()) {
-            // No tag registered — skip challenge
-            proceedToNextChallenge()
-            return
-        }
         if (tagId.equals(challenge.registeredTagId, ignoreCase = true)) {
             proceedToNextChallenge()
         } else {
@@ -680,10 +717,6 @@ class AlarmFiringViewModel @Inject constructor(
     // F1: Barcode/QR scan challenge
     fun onBarcodeDetected(value: String) {
         val challenge = _uiState.value.challenge as? Challenge.BarcodeChallenge ?: return
-        if (challenge.registeredValue.isBlank()) {
-            proceedToNextChallenge()
-            return
-        }
         if (value == challenge.registeredValue) {
             proceedToNextChallenge()
         } else {

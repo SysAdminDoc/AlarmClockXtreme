@@ -6,6 +6,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- An NFC, barcode, photo or Wi-Fi dismiss challenge with nothing saved to check
+  against now falls back to a maths problem and explains why. It used to accept
+  anything, so an imported alarm could be dismissed without solving it.
 - Almost every screen's text now comes from the string resources, so the app is
   ready to be translated rather than hardcoded in English. The build refuses a
   new hardcoded line anywhere under the UI.

@@ -154,4 +154,34 @@ class FiringDismissGateTest {
 
         assertEquals("HomeNet", challenge.requiredSsid)
     }
+
+    @Test
+    fun `a reference-backed challenge with no reference is swapped for a solvable one`() {
+        // The editor blocks saving these, but a backup or share import can land
+        // one, and a blank reference used to match anything.
+        val cases = listOf(
+            ChallengeType.NFC_SCAN to alarmWith("NFC_SCAN"),
+            ChallengeType.BARCODE_SCAN to alarmWith("BARCODE_SCAN"),
+            ChallengeType.PHOTO_MATCH to alarmWith("PHOTO_MATCH"),
+            ChallengeType.WIFI_CONNECT to alarmWith("WIFI_CONNECT")
+        )
+        cases.forEach { (type, alarm) ->
+            assertTrue(
+                "$type with no reference must not build a match-anything challenge",
+                challengeReferenceMissing(type, alarm)
+            )
+            val built = buildChallenge(type, alarm, "")
+            assertTrue(
+                "$type should fall back to something solvable, got $built",
+                built is Challenge.MathChallenge
+            )
+        }
+    }
+
+    @Test
+    fun `a reference-backed challenge keeps its own type once a reference exists`() {
+        val tagged = alarmWith("NFC_SCAN").copy(nfcTagId = "04:AA:BB")
+        assertFalse(challengeReferenceMissing(ChallengeType.NFC_SCAN, tagged))
+        assertTrue(buildChallenge(ChallengeType.NFC_SCAN, tagged, "") is Challenge.NfcChallenge)
+    }
 }
