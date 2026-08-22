@@ -781,6 +781,21 @@ private fun BackupImportPreviewDialog(
                             label = stringResource(R.string.settings_import_settings)
                         )
                     }
+                    if (preview.unusableMedia.isNotEmpty()) {
+                        Text(
+                            text = stringResource(R.string.settings_unusable_media_warning),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SnoozeYellow,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        preview.unusableMedia.forEach { value ->
+                            Text(
+                                text = stringResource(R.string.settings_list_item, value),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                    }
                     if (preview.riskyImportValues.isNotEmpty()) {
                         BackupImportToggle(
                             checked = keepIntegrations,

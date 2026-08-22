@@ -162,7 +162,9 @@ fun AlarmListScreen(
 
     // v1.7.1: Prominent (non-tucked) YouTube download entry. The user can
     // build up an alarm-sound library without first creating an alarm.
-    var showYouTubeDialog by remember { mutableStateOf(false) }
+    // Saveable: a rotation used to close the dialog while the download it
+    // started carried on in the ViewModel.
+    var showYouTubeDialog by rememberSaveable { mutableStateOf(false) }
     val youTubeAvailable = com.sysadmindoc.alarmclock.ui.components.isYouTubeDownloaderAvailable()
 
     var statsAlarmLabel by remember { mutableStateOf<String?>(null) }
@@ -232,24 +234,29 @@ fun AlarmListScreen(
     val savedToneTemplate = stringResource(R.string.alarmlist_saved_tone)
     val savedToneMessage = { title: String -> savedToneTemplate.format(title) }
 
+    // Outside the visibility check on purpose: a download started here keeps
+    // running after the dialog closes, and its result still has to arrive.
+    com.sysadmindoc.alarmclock.ui.components.YouTubeDownloadResults(
+        onDownloaded = { savedTitle ->
+            showYouTubeDialog = false
+            snackbarScope.launch {
+                snackbarHostState.showSnackbar(
+                    savedToneMessage(savedTitle),
+                    duration = SnackbarDuration.Long
+                )
+            }
+        },
+        onError = { msg ->
+            showYouTubeDialog = false
+            snackbarScope.launch {
+                snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long)
+            }
+        }
+    )
+
     if (showYouTubeDialog) {
         com.sysadmindoc.alarmclock.ui.components.YouTubeDownloadDialog(
-            onDismiss = { showYouTubeDialog = false },
-            onDownloaded = { savedTitle ->
-                showYouTubeDialog = false
-                snackbarScope.launch {
-                    snackbarHostState.showSnackbar(
-                        savedToneMessage(savedTitle),
-                        duration = SnackbarDuration.Long
-                    )
-                }
-            },
-            onError = { msg ->
-                showYouTubeDialog = false
-                snackbarScope.launch {
-                    snackbarHostState.showSnackbar(msg, duration = SnackbarDuration.Long)
-                }
-            }
+            onDismiss = { showYouTubeDialog = false }
         )
     }
 

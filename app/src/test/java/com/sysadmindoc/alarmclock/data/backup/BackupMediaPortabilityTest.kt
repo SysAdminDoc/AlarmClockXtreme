@@ -93,4 +93,47 @@ class BackupMediaPortabilityTest {
         assertEquals(1, warnings.size)
         assertTrue(warnings.single().contains("com.other.app"))
     }
+
+    @Test
+    fun `an authority that merely starts with ours is not ours`() {
+        // The check used startsWith on the application id with no separator, so
+        // any authority beginning with those characters was accepted. The
+        // everyday case is the debug build: its own provider is
+        // "<id>.debug.fileprovider", and a debug backup restored into release
+        // kept a URI release cannot open, which is the silent alarm this is
+        // supposed to prevent.
+        listOf(
+            "content://${BuildConfig.APPLICATION_ID}.evil.com/audio/1",
+            "content://${BuildConfig.APPLICATION_ID}malware/audio/1",
+            "android.resource://${BuildConfig.APPLICATION_ID}.other/raw/chime"
+        ).forEach {
+            assertFalse("$it is not this app", BackupManager.isPortableMediaUri(it))
+        }
+    }
+
+    @Test
+    fun `our own sub-authorities still count as ours`() {
+        assertTrue(
+            BackupManager.isPortableMediaUri(
+                "content://${BuildConfig.APPLICATION_ID}.fileprovider/tones/x.mp3"
+            )
+        )
+    }
+
+    @Test
+    fun `an authority that looks like the media store but is not gets dropped`() {
+        listOf(
+            "content://media_gallery/audio/1",
+            "content://settings_backup/system/alarm_alert",
+            "not-a-uri",
+            "content:///audio/1"
+        ).forEach {
+            assertFalse("$it should not be treated as portable", BackupManager.isPortableMediaUri(it))
+        }
+    }
+
+    @Test
+    fun `an uppercase scheme is still recognised`() {
+        assertTrue(BackupManager.isPortableMediaUri("CONTENT://MEDIA/internal/audio/media/42"))
+    }
 }

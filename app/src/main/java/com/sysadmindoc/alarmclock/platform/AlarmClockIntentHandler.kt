@@ -26,7 +26,9 @@ sealed interface AlarmClockHandleResult {
          * normal permission, so the proxy activity says so instead of
          * leaving a new enabled alarm to be discovered later.
          */
-        val createdSilently: Boolean = false
+        val createdSilently: Boolean = false,
+        /** The row the caller created, so the notice can point at it. */
+        val createdAlarmId: Long? = null
     ) : AlarmClockHandleResult
     data object Invalid : AlarmClockHandleResult
     data object Duplicate : AlarmClockHandleResult
@@ -94,7 +96,8 @@ class AlarmClockIntentHandler @Inject constructor(
             route = if (command.skipUi) null else "acx://navigate/alarm_edit/${saved.id}",
             // Only a new alarm is worth announcing; matching an existing
             // one changes nothing the user can see.
-            createdSilently = command.skipUi && existing == null
+            createdSilently = command.skipUi && existing == null,
+            createdAlarmId = saved.id
         )
     }
 
@@ -125,24 +128,27 @@ class AlarmClockIntentHandler @Inject constructor(
     private suspend fun dismissAlarm(search: AlarmSearch): AlarmClockHandleResult {
         val active = AlarmService.activeAlarm.get()
         val resolution = resolveDismissTargets(search, active?.alarmId)
+
+        // Whatever is ringing gets silenced whether or not the rest of the
+        // request needs confirming. The person is standing over a ringing
+        // phone: there is nothing hidden about stopping it, and making them
+        // confirm through the alarm list first would be worse than useless.
+        if (resolution.ringingTarget != null && active != null) {
+            context.startService(
+                AlarmFireDismissContract.dismissServiceIntent(
+                    context = context,
+                    alarmId = active.alarmId,
+                    scheduledAt = active.scheduledAt,
+                    fireId = active.fireId
+                )
+            )
+        }
         if (resolution.needsSelectionUi) {
             return AlarmClockHandleResult.Handled(ROUTE_ALARMS)
         }
-        resolution.alarms.forEach { alarm ->
-            val activeSnapshot = active?.takeIf { it.alarmId == alarm.id }
-            if (activeSnapshot != null) {
-                context.startService(
-                    AlarmFireDismissContract.dismissServiceIntent(
-                        context = context,
-                        alarmId = activeSnapshot.alarmId,
-                        scheduledAt = activeSnapshot.scheduledAt,
-                        fireId = activeSnapshot.fireId
-                    )
-                )
-            } else {
-                dismissScheduledAlarm(alarm)
-            }
-        }
+        resolution.alarms
+            .filterNot { it.id == resolution.ringingTarget }
+            .forEach { alarm -> dismissScheduledAlarm(alarm) }
         return AlarmClockHandleResult.Handled()
     }
 
@@ -168,20 +174,25 @@ class AlarmClockIntentHandler @Inject constructor(
             }
         }
         // A dismiss that names an id, or asks for everything, arrives from any
-        // app holding SET_ALARM, which is a normal permission. Silencing an
+        // app holding SET_ALARM, which is a normal permission. Turning off an
         // alarm that is not currently ringing is not something a caller should
         // be able to do unseen, so those two go through the alarm list and let
-        // the person decide. Dismissing what is ringing right now is the case
-        // the platform contract exists for and stays immediate; so does a
-        // single unambiguous match by time or label.
-        val targetsRingingAlarm = matches.size == 1 && matches.first().id == activeAlarmId
-        val needsConfirmation = !targetsRingingAlarm &&
+        // the person decide. A single unambiguous match by time or label stays
+        // immediate, as it always was.
+        //
+        // The ringing alarm is reported separately and is always dismissed:
+        // gating that behind a confirmation would leave the phone ringing
+        // while a screen asks permission to stop it.
+        val ringingTarget = activeAlarmId?.takeIf { id -> matches.any { it.id == id } }
+        val onlyTargetsRingingAlarm = ringingTarget != null && matches.size == 1
+        val needsConfirmation = !onlyTargetsRingingAlarm &&
             (search is AlarmSearch.ById || search is AlarmSearch.All)
         val needsSelection = needsConfirmation ||
             (search !is AlarmSearch.All && matches.size > 1)
         return DismissResolution(
             alarms = if (needsSelection) emptyList() else matches,
-            needsSelectionUi = needsSelection
+            needsSelectionUi = needsSelection,
+            ringingTarget = ringingTarget
         )
     }
 
@@ -210,7 +221,9 @@ class AlarmClockIntentHandler @Inject constructor(
 
     private data class DismissResolution(
         val alarms: List<Alarm>,
-        val needsSelectionUi: Boolean
+        val needsSelectionUi: Boolean,
+        /** The id of the alarm ringing right now, when the request names it. */
+        val ringingTarget: Long? = null
     )
 
     companion object {

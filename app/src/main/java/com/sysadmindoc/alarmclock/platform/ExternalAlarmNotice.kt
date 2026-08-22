@@ -24,9 +24,13 @@ import com.sysadmindoc.alarmclock.R
  */
 object ExternalAlarmNotice {
     private const val CHANNEL_ID = "external_alarm_added"
-    private const val NOTIFICATION_ID = 90_210
+    // Base plus the alarm id: a shared id meant a second silent addition
+    // replaced the first notice, so one of the two alarms appeared from
+    // nowhere.
+    private const val NOTIFICATION_ID_BASE = 90_210
 
-    fun post(context: Context, callerPackage: String?) {
+    fun post(context: Context, callerPackage: String?, alarmId: Long) {
+        val notificationId = NOTIFICATION_ID_BASE + (alarmId % 1_000L).toInt()
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
@@ -47,14 +51,14 @@ object ExternalAlarmNotice {
                 ?: context.getString(R.string.notif_external_alarm_text)
             val openAlarms = PendingIntent.getActivity(
                 context,
-                NOTIFICATION_ID,
+                notificationId,
                 Intent(context, MainActivity::class.java).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
             NotificationManagerCompat.from(context).notify(
-                NOTIFICATION_ID,
+                notificationId,
                 NotificationCompat.Builder(context, CHANNEL_ID)
                     .setSmallIcon(R.drawable.ic_alarm)
                     .setContentTitle(context.getString(R.string.notif_external_alarm_title))

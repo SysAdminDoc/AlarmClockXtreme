@@ -266,6 +266,12 @@ data class BackupImportPreview(
      * preview can name the endpoint and phone number rather than a category.
      */
     val riskyImportValues: List<String>,
+    /**
+     * Sounds and images the file names that this device cannot open.
+     * These are dropped whatever the user decides about integrations, so
+     * they are listed apart from [riskyImportValues].
+     */
+    val unusableMedia: List<String>,
     val compatibilityStatus: String,
     val canImport: Boolean
 )
@@ -309,15 +315,30 @@ class BackupManager @Inject constructor(
             // Blank means "device default"; "silent" is the app's own sentinel.
             if (value.isBlank() || value == "silent") return true
             val lower = value.lowercase(Locale.US)
-            return PORTABLE_MEDIA_PREFIXES.any { lower.startsWith(it) }
+            val scheme = lower.substringBefore("://", missingDelimiterValue = "")
+            if (scheme != "content" && scheme != "android.resource") return false
+            val authority = lower.substringAfter("://").substringBefore('/')
+            if (authority.isBlank()) return false
+            if (scheme == "content" && authority in PORTABLE_SYSTEM_AUTHORITIES) return true
+            return isOwnAuthority(authority)
         }
 
-        private val PORTABLE_MEDIA_PREFIXES = listOf(
-            "content://media/",
-            "content://settings/",
-            "android.resource://${BuildConfig.APPLICATION_ID}/",
-            "content://${BuildConfig.APPLICATION_ID}"
-        )
+        /**
+         * Whether [authority] is one this app actually publishes.
+         *
+         * Matched exactly against the two authorities in the manifest, not by
+         * prefix. Android reserves nothing about authority namespaces, so any
+         * app may register `com.sysadmindoc.alarmclock.anything`; a prefix test
+         * would let it in. It also, without anyone hostile, matched the debug
+         * build's `<id>.debug` against release, so a debug backup restored into
+         * release kept a URI release cannot open.
+         */
+        private fun isOwnAuthority(authority: String): Boolean {
+            val own = BuildConfig.APPLICATION_ID.lowercase(Locale.US)
+            return authority == own || authority == "$own.fileprovider"
+        }
+
+        private val PORTABLE_SYSTEM_AUTHORITIES = setOf("media", "settings")
 
         /** The media fields an imported alarm carries, in one place. */
         private fun Alarm.mediaUris(): List<String> = buildList {
@@ -393,7 +414,7 @@ class BackupManager @Inject constructor(
             alarms.flatMap { it.mediaUris() }
                 .filterNot { isPortableMediaUri(it) }
                 .distinct()
-                .map { "Sound or image from another app: ${authorityOf(it)}" }
+                .map(::authorityOf)
 
         private fun authorityOf(uri: String): String =
             runCatching { Uri.parse(uri).authority }.getOrNull()
@@ -742,8 +763,8 @@ class BackupManager @Inject constructor(
             invalidAlarmCount = backup.alarms.size - importedAlarms.size,
             settingsIncluded = backup.settings != null,
             privateDataCategories = privateCategories,
-            riskyImportValues = riskyImportValues(backup.settings, importedAlarms) +
-                unportableMediaWarnings(importedAlarms),
+            riskyImportValues = riskyImportValues(backup.settings, importedAlarms),
+            unusableMedia = unportableMediaWarnings(importedAlarms),
             compatibilityStatus = compatibility,
             canImport = canImport
         )
@@ -918,6 +939,26 @@ class BackupManager @Inject constructor(
             // that is a broken import, not an instruction to delete everything.
             val importIsUsable = count > 0 || backup.alarms.isEmpty()
             if (importIsUsable) {
+                // Every row this restore wrote over keeps its id now, so it no
+                // longer falls into the removal set below and nothing would
+                // have torn down what the old alarm had armed. A restored
+                // alarm that arrives disabled is never rescheduled either, so
+                // the phone would go on ringing at the old time for an alarm
+                // the list shows as off. Cancel first, unconditionally: the
+                // enabled ones are rearmed a few lines down, and cancel also
+                // clears the snooze tally and the guardian and wake-confirm
+                // work that were keyed to that id.
+                replacedIds.filter { it in savedIds }.forEach { id ->
+                    try {
+                        scheduler.cancel(id)
+                    } catch (e: Exception) {
+                        android.util.Log.w(
+                            "BackupManager",
+                            "Failed to disarm replaced alarm $id",
+                            e
+                        )
+                    }
+                }
                 replacedIds.filterNot { it in savedIds }.forEach { id ->
                     try {
                         scheduler.cancel(id)
@@ -976,10 +1017,12 @@ class BackupManager @Inject constructor(
             // Per-alarm Guardian escalation carries its own number, so blanking
             // the global contact is not enough.
             imported = imported.copy(guardianEnabled = false, guardianPhone = "")
-            // Same switch covers media: without it the alarm keeps a URI this
-            // device has no grant for and rings silently.
-            imported = withoutUnportableMedia(imported)
         }
+        // Not tied to that switch. Whether this install can open a provider is
+        // a fact about the device, not a question of trusting the file, and
+        // the switch’s own hint tells someone restoring their own backup to
+        // turn it on, which would have kept exactly the URIs that ring silent.
+        imported = withoutUnportableMedia(imported)
         return if (options.importEnabledAsDisabled) {
             imported.copy(isEnabled = false)
         } else {

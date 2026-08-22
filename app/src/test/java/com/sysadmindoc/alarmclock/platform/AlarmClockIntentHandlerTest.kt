@@ -25,6 +25,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -68,6 +69,32 @@ class AlarmClockIntentHandlerTest {
     @After
     fun tearDown() {
         AlarmService.activeAlarm.set(null)
+    }
+
+    @Test
+    fun `dismiss-all still silences the alarm that is ringing, then asks about the rest`() = runTest {
+        // The confirmation gate only exempted a request resolving to exactly
+        // one alarm, so "dismiss all my alarms" with a second alarm in the list
+        // opened the alarm list and left the phone ringing.
+        val ringing = Alarm(id = 7L, hour = 6, minute = 0, isEnabled = true)
+        val later = Alarm(id = 8L, hour = 7, minute = 0, isEnabled = true)
+        AlarmService.activeAlarm.set(
+            AlarmService.Companion.ActiveAlarmSnapshot(7L, 1_000L, "fire-1")
+        )
+        coEvery { repository.getEnabled() } returns listOf(ringing, later)
+        coEvery { repository.getById(7L) } returns ringing
+
+        val result = handler.handle(
+            Intent(AlarmClock.ACTION_DISMISS_ALARM)
+                .putExtra(AlarmClock.EXTRA_ALARM_SEARCH_MODE, AlarmClock.ALARM_SEARCH_MODE_ALL)
+        )
+
+        // The ringing one is stopped without asking...
+        val started = shadowOf(context as Application).nextStartedService
+        assertNotNull("the ringing alarm must be dismissed immediately", started)
+        // ...and the rest of the batch goes through the list.
+        assertEquals("acx://navigate/alarm_list", (result as AlarmClockHandleResult.Handled).route)
+        coVerify(exactly = 0) { repository.setEnabled(8L, any(), any()) }
     }
 
     @Test

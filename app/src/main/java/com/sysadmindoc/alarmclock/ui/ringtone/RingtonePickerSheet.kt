@@ -128,6 +128,8 @@ fun RingtonePickerSheet(
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var previewError by remember { mutableStateOf("") }
     var showYouTubeDialog by rememberSaveable { mutableStateOf(false) }
+    val savedToAlarmsTemplate = stringResource(R.string.ringtone_saved_to_alarms)
+    val savedToAlarmsMessage = { title: String -> savedToAlarmsTemplate.format(title) }
     var youTubeStatus by remember { mutableStateOf("") }
     var youTubeStatusIsError by remember { mutableStateOf(false) }
     var lastDownloadedTitle by rememberSaveable { mutableStateOf<String?>(null) }
@@ -177,22 +179,27 @@ fun RingtonePickerSheet(
         }
     }
 
+    // Outside the visibility check on purpose: a download started here keeps
+    // running after the dialog closes, and its result still has to arrive.
+    com.sysadmindoc.alarmclock.ui.components.YouTubeDownloadResults(
+        onDownloaded = { savedTitle ->
+            showYouTubeDialog = false
+            lastDownloadedTitle = savedTitle
+            youTubeStatusIsError = false
+            youTubeStatus = savedToAlarmsMessage(savedTitle)
+            // Refresh the picker list so the new file shows up immediately.
+            ringtoneLoad = loadRingtones(context)
+        },
+        onError = { msg ->
+            lastDownloadedTitle = null
+            youTubeStatusIsError = true
+            youTubeStatus = msg
+        }
+    )
+
     if (showYouTubeDialog) {
         com.sysadmindoc.alarmclock.ui.components.YouTubeDownloadDialog(
-            onDismiss = { showYouTubeDialog = false },
-            onDownloaded = { savedTitle ->
-                showYouTubeDialog = false
-                lastDownloadedTitle = savedTitle
-                youTubeStatusIsError = false
-                youTubeStatus = "Saved \"$savedTitle\" to your alarms."
-                // Refresh the picker list so the new file shows up immediately.
-                ringtoneLoad = loadRingtones(context)
-            },
-            onError = { msg ->
-                lastDownloadedTitle = null
-                youTubeStatusIsError = true
-                youTubeStatus = msg
-            }
+            onDismiss = { showYouTubeDialog = false }
         )
     }
 

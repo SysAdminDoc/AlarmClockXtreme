@@ -306,11 +306,18 @@ class BackupManagerExportImportTest {
 
     @Test
     fun aBackupWrittenBeforeIdsWereStoredStillImports() = runTest {
-        // Files at version 18 and below carry no id at all, so every alarm
-        // reads back as 0 and behaves the way it always did.
-        val legacy = backupAdapter.toJson(
-            BackupData(version = 18, alarms = listOf(morningAlarm().toAlarmBackup()), settings = null)
-        )
+        // Hand-written, because serialising through the current adapter emits
+        // "id":0 and would exercise the present-but-zero case rather than the
+        // absent one. A real pre-v19 file has no id key at all, which is the
+        // only reason AlarmBackup.id carries a default.
+        val legacy = """
+            {"version":18,"appVersion":"1.15.0","exportedAt":1700000000000,
+             "alarms":[{"hour":6,"minute":35,"label":"Weekday lift","isEnabled":true,
+             "repeatDays":["MONDAY"],"ringtoneUri":"","vibrationEnabled":true,
+             "vibrationIntensity":1,"volume":85,"overrideSystemVolume":false,
+             "gradualVolumeSeconds":90,"snoozeDurationMinutes":25,"maxSnoozeCount":4,
+             "showOnLockScreen":false,"challengeType":"NONE"}],"settings":null}
+        """.trimIndent()
         val backupFile = File(context.cacheDir, "backup-manager-legacy-id-test.json")
             .apply { writeText(legacy) }
         coEvery { repository.getAll() } returns emptyList()
@@ -324,6 +331,37 @@ class BackupManagerExportImportTest {
         assertTrue(result.isSuccess)
         assertEquals(1, result.getOrThrow())
         coVerify { repository.save(match { it.id == 0L }) }
+    }
+
+    @Test
+    fun replaceDisarmsAnAlarmItOverwritesEvenWhenTheRowSurvives() = runTest {
+        // Keeping the id means the row is no longer in the deletion set, which
+        // is what used to disarm it. A restore that brings an alarm back as
+        // disabled must still cancel what the old one had armed, or the phone
+        // rings at the old time for an alarm the list shows as off.
+        val existing = morningAlarm().copy(id = 7L, isEnabled = true)
+        val backupJson = backupAdapter.toJson(
+            BackupData(
+                alarms = listOf(morningAlarm().copy(id = 7L).toAlarmBackup()),
+                settings = null
+            )
+        )
+        val backupFile = File(context.cacheDir, "backup-manager-disarm-test.json")
+            .apply { writeText(backupJson) }
+        coEvery { repository.getAll() } returns listOf(existing)
+        coEvery { repository.save(any()) } returns 7L
+
+        val result = backupManager.importFromUri(
+            Uri.fromFile(backupFile),
+            BackupImportOptions(mode = BackupImportMode.Replace, importEnabledAsDisabled = true)
+        )
+
+        assertTrue(result.isSuccess)
+        verify { scheduler.cancel(7L) }
+        // Disabled, so it must not be rearmed either.
+        coVerify(exactly = 0) { scheduler.schedule(any()) }
+        // The row itself stays: this is an overwrite, not a removal.
+        coVerify(exactly = 0) { repository.deleteById(7L) }
     }
 
     private fun morningAlarm(): Alarm = Alarm(

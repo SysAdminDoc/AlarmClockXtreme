@@ -20,8 +20,15 @@ class AlarmClockIntentActivity : ComponentActivity() {
 
     private var inFlightRequests = 0
 
-    /** The app that sent the intent, as well as the platform will tell us. */
-    private fun callerLabel(): String? = callingPackage ?: referrer?.host
+    /**
+     * The app that sent the intent, only when the system vouches for it.
+     *
+     * Deliberately not `referrer`: that returns whatever the caller put in
+     * EXTRA_REFERRER, so a notice meant to say who added an alarm could be
+     * made to name anyone. `callingPackage` is null for a plain
+     * startActivity, and an unnamed notice is better than a wrong one.
+     */
+    private fun callerLabel(): String? = callingPackage
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,8 +56,13 @@ class AlarmClockIntentActivity : ComponentActivity() {
                         }
                 }
                 val handled = result as? AlarmClockHandleResult.Handled
-                if (handled?.createdSilently == true) {
-                    ExternalAlarmNotice.post(this@AlarmClockIntentActivity, callerLabel())
+                val createdId = handled?.createdAlarmId
+                if (handled?.createdSilently == true && createdId != null) {
+                    ExternalAlarmNotice.post(
+                        this@AlarmClockIntentActivity,
+                        callerLabel(),
+                        createdId
+                    )
                 }
                 val route = handled?.route
                 if (route != null) {

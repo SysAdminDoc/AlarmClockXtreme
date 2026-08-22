@@ -140,10 +140,35 @@ private val youTubeHitsSaver: Saver<List<YouTubeSearchHit>, Any> =
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
+internal fun YouTubeDownloadResults(
+    onDownloaded: (savedTitle: String) -> Unit,
+    onError: (message: String) -> Unit
+) {
+    val viewModel: YouTubeDownloadViewModel = hiltViewModel()
+    val outcome by viewModel.outcome.collectAsStateWithLifecycle()
+    val resources = LocalResources.current
+    LaunchedEffect(outcome) {
+        when (val finished = outcome) {
+            null -> Unit
+            is YouTubeDownloadViewModel.Outcome.Downloaded -> {
+                viewModel.consumeOutcome()
+                onDownloaded(finished.savedTitle)
+            }
+            is YouTubeDownloadViewModel.Outcome.Failed -> {
+                viewModel.consumeOutcome()
+                onError(
+                    resources.getString(
+                        youTubeDialogErrorMessage(finished.error, finished.action)
+                    )
+                )
+            }
+        }
+    }
+}
+
+@Composable
 fun YouTubeDownloadDialog(
     onDismiss: () -> Unit,
-    onDownloaded: (savedTitle: String) -> Unit,
-    onError: (message: String) -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     // The error copy is resolved inside coroutines, outside composition.
@@ -172,7 +197,6 @@ fun YouTubeDownloadDialog(
     val inFlight by downloadViewModel.downloading.collectAsStateWithLifecycle()
     val updatingEngine by downloadViewModel.updatingEngine.collectAsStateWithLifecycle()
     val engineVersion by downloadViewModel.engineVersion.collectAsStateWithLifecycle()
-    val downloadOutcome by downloadViewModel.outcome.collectAsStateWithLifecycle()
     val engineUpdateMessage by downloadViewModel.engineUpdateMessage.collectAsStateWithLifecycle()
     val downloadingTemplate = stringResource(R.string.youtube_downloading)
     val downloadingMessage = { title: String -> downloadingTemplate.format(title) }
@@ -180,25 +204,6 @@ fun YouTubeDownloadDialog(
     val stringResourceUpdatingEngine = stringResource(R.string.youtube_updating_engine)
     var statusMessage by rememberSaveable { mutableStateOf("") }
     var statusIsError by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(downloadOutcome) {
-        when (val finished = downloadOutcome) {
-            null -> Unit
-            is YouTubeDownloadViewModel.Outcome.Downloaded -> {
-                downloadViewModel.consumeOutcome()
-                onDownloaded(finished.savedTitle)
-            }
-            is YouTubeDownloadViewModel.Outcome.Failed -> {
-                downloadViewModel.consumeOutcome()
-                val message = resources.getString(
-                    youTubeDialogErrorMessage(finished.error, finished.action)
-                )
-                statusMessage = message
-                statusIsError = true
-                if (finished.action == YouTubeDialogAction.Download) onError(message)
-            }
-        }
-    }
 
     LaunchedEffect(engineUpdateMessage) {
         engineUpdateMessage?.let { message ->

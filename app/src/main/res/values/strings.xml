@@ -1824,7 +1824,6 @@
     <string name="alarmlist_all_alarms_paused">All alarms paused</string>
     <string name="alarmlist_no_alarms_scheduled">No alarms scheduled</string>
     <string name="alarmlist_min">%1$d min</string>
-    <string name="alarmlist_default_length">, default length</string>
     <string name="alarmlist_selected">%1$s selected</string>
     <string name="alarmlist_release_to_delete">Release to delete</string>
     <string name="alarmlist_swipe_to_delete">Swipe to delete</string>
@@ -2223,4 +2222,6 @@
     <string name="youtube_downloading">Downloading “%1$s”…</string>
     <string name="youtube_fallback_sound_name">alarm sound</string>
     <string name="youtube_updating_engine">Updating downloader engine…</string>
+    <string name="settings_unusable_media_warning">These sounds and images belong to apps this phone cannot read, so they will fall back to the default:</string>
+    <string name="ringtone_saved_to_alarms">Saved “%1$s” to your alarms.</string>
 </resources>
