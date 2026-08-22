@@ -449,7 +449,7 @@ fun AlarmEditScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(20.dp),
                                 strokeWidth = 2.dp,
-                                color = TextPrimary
+                                color = LocalContentColor.current
                             )
                         } else {
                             Icon(

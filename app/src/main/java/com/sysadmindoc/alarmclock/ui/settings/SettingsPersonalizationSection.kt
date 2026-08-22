@@ -154,6 +154,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.ui.theme.accentForeground
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
@@ -464,7 +465,7 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
     // the historical default so users always have an obvious "reset" path.
     val palette = listOf(
         "#5B9EF4" to R.string.settings_accent_default_blue,
-        "#7C5CFF" to R.string.settings_accent_violet,
+        "#8F73FF" to R.string.settings_accent_violet,
         "#FF6F8A" to R.string.settings_accent_coral,
         "#FFB347" to R.string.settings_accent_amber,
         "#5BD49A" to R.string.settings_accent_mint,
@@ -495,7 +496,7 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
                 val color = runCatching { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(hex)) }
                     .getOrDefault(androidx.compose.ui.graphics.Color.Gray)
                 val swatchShape = RoundedCornerShape(8.dp)
-                val selectedIconTint = if (hex in lightAccentSwatches) SurfaceDark else TextPrimary
+                val selectedIconTint = accentForeground(color)
                 Box(
                     modifier = Modifier
                         .size(48.dp)
@@ -542,4 +543,3 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
     }
 }
 
-private val lightAccentSwatches = setOf("#FFB347", "#5BD49A", "#E0E4EA")

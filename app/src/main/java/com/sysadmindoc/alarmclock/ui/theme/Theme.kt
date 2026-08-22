@@ -136,9 +136,15 @@ fun AlarmClockXtremeTheme(
             surfaceVariant = SurfaceCard
         )
     } else {
+        // The accent replaces primary and secondary outright, so the "on"
+        // colours have to be derived from it — a fixed near-white label was
+        // invisible on the lighter presets (mono measured 1.2:1).
+        val accentOn = accentForeground(parsedAccent)
         DarkColorScheme.copy(
             primary = parsedAccent,
+            onPrimary = accentOn,
             secondary = parsedAccent,
+            onSecondary = accentOn,
             surfaceTint = parsedAccent
         )
     }
@@ -146,7 +152,9 @@ fun AlarmClockXtremeTheme(
     val colorScheme = if (expressiveMode) {
         baseColorScheme.copy(
             secondary = SnoozeYellow,
+            onSecondary = accentForeground(SnoozeYellow),
             tertiary = DismissGreen,
+            onTertiary = accentForeground(DismissGreen),
             surfaceTint = accent
         )
     } else {

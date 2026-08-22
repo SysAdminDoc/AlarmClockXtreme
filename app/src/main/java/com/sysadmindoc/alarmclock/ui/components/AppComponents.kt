@@ -771,7 +771,8 @@ fun appOutlinedTextFieldColors() = OutlinedTextFieldDefaults.colors(
 
 @Composable
 fun appSwitchColors() = SwitchDefaults.colors(
-    checkedThumbColor = TextPrimary,
+    // Rides on the accent track, so it has to follow the accent's contrast.
+    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
     checkedTrackColor = MaterialTheme.colorScheme.primary,
     checkedBorderColor = MaterialTheme.colorScheme.primary,
     uncheckedThumbColor = ToggleOff,
