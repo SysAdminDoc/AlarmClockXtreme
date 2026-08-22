@@ -282,6 +282,64 @@ class BackupManager @Inject constructor(
         const val MAX_IMPORT_ALARMS = 1_000
 
         /**
+         * Media a backup can still resolve on this device.
+         *
+         * A `content://` URI names a provider on the machine that wrote the
+         * file. The system media store and this app's own provider come back
+         * anywhere, and an `android.resource://` tone ships in the ROM.
+         * Anything else points at another app's provider that this app holds
+         * no grant for: the alarm would fall silent at fire time with no
+         * warning, and the file would have told us which apps the exporter had
+         * installed.
+         */
+        fun isPortableMediaUri(raw: String): Boolean {
+            val value = raw.trim()
+            // Blank means "device default"; "silent" is the app's own sentinel.
+            if (value.isBlank() || value == "silent") return true
+            val lower = value.lowercase(Locale.US)
+            return PORTABLE_MEDIA_PREFIXES.any { lower.startsWith(it) }
+        }
+
+        private val PORTABLE_MEDIA_PREFIXES = listOf(
+            "content://media/",
+            "content://settings/",
+            "android.resource://${BuildConfig.APPLICATION_ID}/",
+            "content://${BuildConfig.APPLICATION_ID}"
+        )
+
+        /** The media fields an imported alarm carries, in one place. */
+        private fun Alarm.mediaUris(): List<String> = buildList {
+            add(ringtoneUri)
+            add(photoMatchUri)
+            add(firingBackgroundImageUri)
+            addAll(ringtonePool.split(",").map { it.trim() })
+        }.filter { it.isNotBlank() }
+
+        /**
+         * Blanks the media this device cannot open, leaving the alarm on the
+         * default tone rather than on a URI that fails silently.
+         */
+        fun withoutUnportableMedia(alarm: Alarm): Alarm {
+            val pool = alarm.ringtonePool.split(",")
+                .map { it.trim() }
+                .filter { it.isNotBlank() && isPortableMediaUri(it) }
+            return alarm.copy(
+                ringtoneUri = alarm.ringtoneUri.takeIf { isPortableMediaUri(it) }.orEmpty(),
+                photoMatchUri = alarm.photoMatchUri.takeIf { isPortableMediaUri(it) }.orEmpty(),
+                firingBackgroundImageUri =
+                    alarm.firingBackgroundImageUri.takeIf { isPortableMediaUri(it) }.orEmpty(),
+                ringtonePool = pool.joinToString(",")
+            ).let {
+                // The flag is meaningless once the image behind it is gone.
+                if (it.firingBackgroundImageUri.isBlank()) {
+                    it.copy(firingBackgroundImageEnabled = false)
+                } else {
+                    it
+                }
+            }
+        }
+
+        /**
          * Values a backup would install into the app's integrations. Named
          * concretely in the import preview so "settings" is not a blank cheque.
          */
@@ -314,6 +372,21 @@ class BackupManager @Inject constructor(
                 }
             }
         }
+
+        /**
+         * Media the file names that this device cannot open. Surfaced in the
+         * preview so a silent alarm is not the first sign of it.
+         */
+        fun unportableMediaWarnings(alarms: List<Alarm>): List<String> =
+            alarms.flatMap { it.mediaUris() }
+                .filterNot { isPortableMediaUri(it) }
+                .distinct()
+                .map { "Sound or image from another app: ${authorityOf(it)}" }
+
+        private fun authorityOf(uri: String): String =
+            runCatching { Uri.parse(uri).authority }.getOrNull()
+                ?.takeIf { it.isNotBlank() }
+                ?: uri.take(60)
 
         private fun hostOf(url: String): String =
             runCatching { Uri.parse(url).host }.getOrNull()?.takeIf { it.isNotBlank() } ?: url
@@ -657,7 +730,8 @@ class BackupManager @Inject constructor(
             invalidAlarmCount = backup.alarms.size - importedAlarms.size,
             settingsIncluded = backup.settings != null,
             privateDataCategories = privateCategories,
-            riskyImportValues = riskyImportValues(backup.settings, importedAlarms),
+            riskyImportValues = riskyImportValues(backup.settings, importedAlarms) +
+                unportableMediaWarnings(importedAlarms),
             compatibilityStatus = compatibility,
             canImport = canImport
         )
@@ -882,6 +956,9 @@ class BackupManager @Inject constructor(
             // Per-alarm Guardian escalation carries its own number, so blanking
             // the global contact is not enough.
             imported = imported.copy(guardianEnabled = false, guardianPhone = "")
+            // Same switch covers media: without it the alarm keeps a URI this
+            // device has no grant for and rings silently.
+            imported = withoutUnportableMedia(imported)
         }
         return if (options.importEnabledAsDisabled) {
             imported.copy(isEnabled = false)

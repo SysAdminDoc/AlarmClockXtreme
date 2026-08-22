@@ -76,14 +76,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Likely
   Effort: S
 
-- [ ] P3 — Backup-imported `content://`/`file://` URIs have no scheme allowlist
-  Category: security
-  Where: data/model/Alarm.kt:289, :305, :342 (`trim().take(2048)` only); consumers service/AlarmService.kt:914-915, ui/alarmfiring/AlarmFiringScreen.kt:257-264, ui/alarmfiring/AlarmFiringActivity.kt:85; data/share/AlarmShareCodec.kt:96-130 (share path already strips)
-  Fix: apply the same strip (or an allowlist: `content://media`, `android.resource://`, app-private `file://`) to backup-imported alarms unless the user opts to keep them in the preview.
-  Acceptance: a backup with `content://com.other.app/…` ringtone imports with the default tone and a preview warning.
-  Confidence: Needs-repro
-  Effort: S
-
 - [ ] P3 — `AlarmClockIntentActivity` can dismiss or disable alarms by id, and create alarms silently, for any app holding SET_ALARM
   Category: security
   Where: platform/AlarmClockIntentParser.kt:132-142, :250-262; platform/AlarmClockIntentHandler.kt:56-86, :119-177
