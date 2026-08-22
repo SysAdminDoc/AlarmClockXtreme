@@ -7,9 +7,6 @@ import androidx.annotation.StringRes
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -461,78 +458,6 @@ internal fun SettingsSectionContent(
         )
         AppSurfaceCard(contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)) {
             content()
-        }
-    }
-}
-
-@Composable
-internal fun CollapsibleGroup(
-    title: String,
-    subtitle: String? = null,
-    initiallyExpanded: Boolean = false,
-    focusedPages: Set<AlarmEditorPage>? = null,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val editorPage = LocalAlarmEditorPage.current
-    if (focusedPages != null) {
-        if (editorPage !in focusedPages) return
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            content()
-        }
-        return
-    }
-
-    var expanded by remember { mutableStateOf(initiallyExpanded) }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Surface(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { expanded = !expanded },
-            shape = RoundedCornerShape(12.dp),
-            color = SurfaceLight.copy(alpha = 0.42f),
-            border = BorderStroke(1.dp, BorderSubtle)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextPrimary
-                    )
-                    if (subtitle != null) {
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextMuted
-                        )
-                    }
-                }
-                Icon(
-                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = stringResource(
-                        if (expanded) R.string.alarm_edit_collapse else R.string.alarm_edit_expand
-                    ),
-                    tint = TextMuted
-                )
-            }
-        }
-        AnimatedVisibility(
-            visible = expanded,
-            enter = expandVertically(),
-            exit = shrinkVertically()
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                content()
-            }
         }
     }
 }

@@ -263,11 +263,6 @@ class TimerViewModel @Inject constructor(
     fun resume() = resume(null)
     fun stop() = stop(null)
     fun dismissFinished() = dismissFinished(null)
-    fun toggleGradualVolume(enabled: Boolean) {}
-    fun toggleOverrideVolume(enabled: Boolean) {}
-    fun toggleVibration(enabled: Boolean) {}
-    fun toggleKeepScreenOn(enabled: Boolean) {}
-
     private fun updateTimer(id: Int, transform: (TimerInstance) -> TimerInstance) {
         _uiState.value = _uiState.value.copy(
             activeTimers = _uiState.value.activeTimers.map {

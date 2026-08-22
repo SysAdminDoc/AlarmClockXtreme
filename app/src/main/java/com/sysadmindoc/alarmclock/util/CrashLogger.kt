@@ -93,13 +93,6 @@ object CrashLogger {
     }
 
     /**
-     * Get all crash logs, newest first.
-     */
-    fun getLogs(context: Context): List<String> {
-        return getLogFiles(context).map { it.readText() }
-    }
-
-    /**
      * Get crash log files, newest first. Support export uses the files so names
      * and timestamps stay intact inside the generated bundle.
      */
@@ -110,13 +103,5 @@ object CrashLogger {
             ?.filter { it.isFile }
             ?.sortedByDescending { it.lastModified() }
             ?: emptyList()
-    }
-
-    /**
-     * Clear all crash logs.
-     */
-    fun clearLogs(context: Context) {
-        val dir = File(context.filesDir, DIR_NAME)
-        dir.listFiles()?.forEach { it.delete() }
     }
 }

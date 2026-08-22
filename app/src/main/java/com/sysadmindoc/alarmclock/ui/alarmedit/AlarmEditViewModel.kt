@@ -531,18 +531,6 @@ class AlarmEditViewModel @Inject constructor(
             .joinToString(",")
         _uiState.value = _uiState.value.copy(ringtonePool = cleaned)
     }
-    fun addRingtoneToPool(uri: String) {
-        if (uri.isBlank()) return
-        val current = _uiState.value.ringtonePool
-            .split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableList()
-        if (uri !in current) current.add(uri)
-        _uiState.value = _uiState.value.copy(ringtonePool = current.joinToString(","))
-    }
-    fun removeRingtoneFromPool(uri: String) {
-        val remaining = _uiState.value.ringtonePool
-            .split(",").map { it.trim() }.filter { it.isNotEmpty() && it != uri }
-        _uiState.value = _uiState.value.copy(ringtonePool = remaining.joinToString(","))
-    }
     // v1.5.0 setters
     fun updateSolarOffset(minutes: Int) {
         // Clamp ±12h so a typo can't strand an alarm off the day grid.

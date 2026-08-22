@@ -83,7 +83,6 @@ import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.ClockTimeLarge
-import com.sysadmindoc.alarmclock.ui.theme.ClockTimeDisplay
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
@@ -423,23 +422,6 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             Spacer(modifier = Modifier.size(8.dp))
             Text(stringResource(R.string.challenge_start), style = MaterialTheme.typography.labelLarge)
         }
-    }
-}
-
-@Composable
-private fun TimeUnit(value: Int, unit: String) {
-    Row(verticalAlignment = Alignment.Bottom) {
-        Text(
-            text = String.format("%02d", value),
-            style = ClockTimeDisplay,
-            color = TextPrimary
-        )
-        Text(
-            text = unit,
-            fontSize = 18.sp,
-            color = TextSecondary,
-            modifier = Modifier.padding(bottom = 10.dp, start = 4.dp, end = 10.dp)
-        )
     }
 }
 

@@ -6,11 +6,9 @@ import android.app.AlarmManager
 import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import androidx.core.content.ContextCompat
 import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
@@ -255,65 +253,6 @@ class SettingsViewModel @Inject constructor(
         ManufacturerCompat.openBatterySettings(context)
     }
 
-    fun requestExactAlarmAccess() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
-        val context = getApplication<Application>()
-        try {
-            context.startActivity(
-                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                    data = Uri.parse("package:${context.packageName}")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            )
-        } catch (_: Exception) {
-            context.startActivity(
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:${context.packageName}")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            )
-        }
-    }
-
-    fun requestDndAccess() {
-        val context = getApplication<Application>()
-        try {
-            // ACTION_ZEN_MODE_SETTINGS has no public SDK constant; the action
-            // string is stable and documented.
-            context.startActivity(
-                Intent("android.settings.ZEN_MODE_SETTINGS").apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            )
-        } catch (_: Exception) {
-            context.startActivity(
-                Intent(Settings.ACTION_SETTINGS).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            )
-        }
-    }
-
-    fun requestFullScreenAlarmAccess() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
-        val context = getApplication<Application>()
-        try {
-            context.startActivity(
-                Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
-                    data = Uri.parse("package:${context.packageName}")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            )
-        } catch (_: Exception) {
-            context.startActivity(
-                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.parse("package:${context.packageName}")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-            )
-        }
-    }
-
     fun refreshWakeReadiness() {
         val context = getApplication<Application>()
         _batteryState.value = BatteryState(
@@ -371,10 +310,6 @@ class SettingsViewModel @Inject constructor(
         updateSettings { it.copy(onCallModeEnabled = enabled) }
     fun updateBedtimeChecklist(items: String) =
         updateSettings { it.copy(bedtimeChecklist = items) }
-    fun updateSleepSoundTimer(minutes: Int) =
-        updateSettings { it.copy(sleepSoundTimerMinutes = minutes.coerceAtLeast(0)) }
-    fun updateSleepSoundFade(seconds: Int) =
-        updateSettings { it.copy(sleepSoundFadeSeconds = seconds.coerceIn(5, 600)) }
 
     // v1.7.1: Bottom-nav visibility toggles
     fun toggleShowDashboardTab(enabled: Boolean) =

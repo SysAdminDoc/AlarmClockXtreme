@@ -824,6 +824,3 @@ fun BottomNavContainer(
         }
     }
 }
-
-// Backwards-compat: legacy constant name still referenced from a few screens.
-val AppCardBorderColor: Color = BorderSubtle

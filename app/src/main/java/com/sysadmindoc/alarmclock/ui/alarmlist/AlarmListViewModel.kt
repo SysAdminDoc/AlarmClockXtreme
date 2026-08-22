@@ -261,11 +261,6 @@ class AlarmListViewModel @Inject constructor(
         _isSelectionMode.value = _selectedIds.value.isNotEmpty()
     }
 
-    fun selectAll() {
-        _selectedIds.value = uiState.value.alarms.map { it.id }.toSet()
-        _isSelectionMode.value = _selectedIds.value.isNotEmpty()
-    }
-
     fun selectMany(alarmIds: Set<Long>) {
         _selectedIds.value = alarmIds
         _isSelectionMode.value = _selectedIds.value.isNotEmpty()

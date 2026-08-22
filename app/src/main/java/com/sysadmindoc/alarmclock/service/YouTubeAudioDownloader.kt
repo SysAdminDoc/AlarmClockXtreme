@@ -55,16 +55,6 @@ interface YouTubeAudioDownloader {
      */
     fun engineVersionName(): String? = null
 
-    /**
-     * True when the active engine version is below [MIN_SAFE_VERSION].
-     * ACX mitigates all known CVEs via --get-url-only usage, but an outdated
-     * engine should still be flagged in diagnostics and the download dialog.
-     */
-    fun isEngineOutdated(): Boolean {
-        val version = engineVersionName() ?: return false
-        return version < MIN_SAFE_VERSION
-    }
-
     companion object {
         const val MIN_SAFE_VERSION = "2026.06.09"
     }

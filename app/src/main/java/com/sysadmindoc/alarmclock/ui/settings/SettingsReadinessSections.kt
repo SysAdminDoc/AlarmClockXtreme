@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -96,7 +95,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
@@ -107,9 +105,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
@@ -141,7 +137,6 @@ import com.sysadmindoc.alarmclock.data.backup.FossifyImportPreview
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
-import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.domain.OnCallDndOverride
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
@@ -156,8 +151,6 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
-import com.sysadmindoc.alarmclock.worker.GuardianReadiness
-import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
 import java.time.DayOfWeek
 import java.time.Instant
@@ -490,192 +483,6 @@ internal fun OnCallModeSection(
                 Text(stringResource(R.string.settings_open_dnd))
             }
         }
-    }
-}
-
-/**
- * v1.11.3: Map the raw bucket value to a sentence we can show in the row.
- * Values from `UsageStatsManager.STANDBY_BUCKET_*` constants (API 28+).
- */
-@Composable
-private fun standbyBucketDescription(bucket: Int): String = when (bucket) {
-    in Int.MIN_VALUE..0 -> stringResource(R.string.settings_standby_unknown)
-    10 -> stringResource(R.string.settings_standby_active)
-    20 -> stringResource(R.string.settings_standby_working)
-    30 -> stringResource(R.string.settings_standby_frequent)
-    40 -> stringResource(R.string.settings_standby_rare)
-    45 -> stringResource(R.string.settings_standby_restricted)
-    else -> stringResource(R.string.settings_standby_other, bucket)
-}
-
-@Composable
-private fun testAlarmProofStatusLabel(proof: TestAlarmProof): String = stringResource(when {
-    proof.hasDetailedCompletion -> R.string.settings_verified
-    proof.legacyCompleted -> R.string.settings_refresh
-    proof.firedAt > 0L -> R.string.settings_dismiss_test
-    else -> R.string.settings_run_test
-})
-
-@Composable
-private fun testAlarmProofDescription(
-    proof: TestAlarmProof,
-    is24HourFormat: Boolean
-): String {
-    if (proof.hasDetailedCompletion) {
-        val completed = formatTestAlarmProofTime(proof.completedAt, is24HourFormat)
-        val latency = proof.latencyMs?.let { formatTestAlarmLatency(it) }
-        val delivery = testAlarmDeliveryPath(proof)
-        return if (latency != null) {
-            stringResource(R.string.settings_test_dismissed_with_latency, completed, latency, delivery)
-        } else {
-            stringResource(R.string.settings_test_dismissed_no_latency, completed)
-        }
-    }
-    if (proof.legacyCompleted) return stringResource(R.string.settings_test_legacy)
-    if (proof.firedAt > 0L) {
-        return stringResource(
-            R.string.settings_test_not_dismissed,
-            formatTestAlarmProofTime(proof.firedAt, is24HourFormat)
-        )
-    }
-    return stringResource(R.string.settings_test_run_description)
-}
-
-@Composable
-private fun formatTestAlarmProofTime(epochMillis: Long, is24HourFormat: Boolean): String {
-    if (epochMillis <= 0L) return stringResource(R.string.settings_unknown_time)
-    val locale = LocalConfiguration.current.locales[0]
-    val pattern = if (is24HourFormat) "EEE HH:mm" else "EEE h:mm a"
-    return Instant.ofEpochMilli(epochMillis)
-        .atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofPattern(pattern, locale))
-}
-
-@Composable
-private fun formatTestAlarmLatency(latencyMs: Long): String {
-    if (latencyMs < 1_500L) return stringResource(R.string.settings_on_time)
-    val totalSeconds = ((latencyMs + 999L) / 1_000L).coerceAtLeast(1L)
-    if (totalSeconds < 60L) return stringResource(R.string.settings_seconds_after_schedule, totalSeconds)
-    val minutes = totalSeconds / 60L
-    val seconds = totalSeconds % 60L
-    return if (seconds == 0L) {
-        stringResource(R.string.settings_minutes_after_schedule, minutes)
-    } else {
-        stringResource(R.string.settings_minutes_seconds_after_schedule, minutes, seconds)
-    }
-}
-
-@Composable
-private fun testAlarmDeliveryPath(proof: TestAlarmProof): String {
-    val parts = buildList {
-        if (proof.notificationPermissionGranted) add(stringResource(R.string.settings_delivery_notification))
-        if (proof.fullScreenIntentRequested) add(stringResource(R.string.settings_delivery_fullscreen))
-        if (proof.activityLaunchSucceeded) add(stringResource(R.string.settings_delivery_direct))
-    }
-    return parts.joinToString(" + ").ifBlank { stringResource(R.string.settings_delivery_alarm_screen) }
-}
-
-@Composable
-private fun guardianReadinessDescription(readiness: GuardianReadiness): String {
-    val alarmCount = pluralStringResource(
-        R.plurals.settings_guardian_alarms,
-        readiness.enabledAlarmCount,
-        readiness.enabledAlarmCount
-    )
-    val callPath = if (readiness.hasCallPhonePermission) {
-        stringResource(R.string.settings_guardian_call_granted)
-    } else {
-        stringResource(R.string.settings_guardian_call_dialer)
-    }
-    return when (readiness.smsPath) {
-        GuardianSmsPath.INACTIVE -> stringResource(R.string.settings_guardian_none)
-        GuardianSmsPath.DIRECT_SMS ->
-            stringResource(R.string.settings_guardian_direct, alarmCount, callPath)
-        GuardianSmsPath.NEEDS_SEND_SMS_PERMISSION ->
-            stringResource(R.string.settings_guardian_needs_sms, alarmCount, callPath)
-        GuardianSmsPath.SMS_COMPOSER ->
-            stringResource(R.string.settings_guardian_composer, alarmCount, callPath)
-    }
-}
-
-@Composable
-private fun guardianReadinessStatusLabel(readiness: GuardianReadiness): String = stringResource(
-    if (readiness.needsUserAction) R.string.settings_review else when (readiness.smsPath) {
-        GuardianSmsPath.INACTIVE -> R.string.settings_off
-        GuardianSmsPath.DIRECT_SMS -> R.string.settings_direct_sms
-        GuardianSmsPath.NEEDS_SEND_SMS_PERMISSION -> R.string.settings_review
-        GuardianSmsPath.SMS_COMPOSER -> R.string.settings_composer
-    }
-)
-
-@Composable
-private fun guardianReadinessActionLabel(readiness: GuardianReadiness): String = stringResource(
-    if (readiness.needsSmsPermission) R.string.settings_allow_sms else R.string.settings_allow_calls
-)
-
-@Composable
-private fun WakeReadinessRow(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    ready: Boolean,
-    statusLabel: String? = null,
-    actionLabel: String,
-    onAction: () -> Unit
-) {
-    val accent = if (ready) DismissGreen else SnoozeYellow
-    val resolvedStatusLabel = statusLabel ?: stringResource(
-        if (ready) R.string.settings_ready else R.string.settings_review
-    )
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 2.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(22.dp)
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(title, color = TextPrimary, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    description,
-                    color = TextSecondary,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            if (ready) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = resolvedStatusLabel,
-                    tint = DismissGreen,
-                    modifier = Modifier.size(22.dp)
-                )
-            } else {
-                TextButton(
-                    onClick = onAction,
-                    modifier = Modifier.semantics {
-                        contentDescription = actionLabel
-                    }
-                ) {
-                    Text(resolvedStatusLabel)
-                }
-            }
-        }
-        HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
     }
 }
 
