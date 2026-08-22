@@ -581,6 +581,11 @@ class BedtimeViewModel @Inject constructor(
     }
 
     private fun refreshNoiseBaselineStatus() {
+        // Sampling happens here, with the Bedtime screen on top, because this
+        // is the only moment the app is in the foreground and allowed to hear
+        // anything. It is a 700 ms read and nothing is written to disk but the
+        // loudness.
+        BedtimeNoiseBaselineSampler.sampleAndPersist(context)
         val snapshot = BedtimeNoiseBaselineSampler.readSnapshot(context)
         _uiState.update {
             it.copy(

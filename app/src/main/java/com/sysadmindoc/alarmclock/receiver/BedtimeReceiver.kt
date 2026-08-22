@@ -208,9 +208,15 @@ class BedtimeReceiver : BroadcastReceiver() {
         notificationManager: NotificationManager
     ) {
         notificationManager.cancel(NOTIFICATION_ID_COUNTDOWN)
+        // Reads the last in-app measurement rather than taking one. A
+        // broadcast receiver is background, and from API 30 a background app
+        // gets silence from AudioRecord, so sampling here stored RMS 0 with a
+        // fresh timestamp every single bedtime: the card would say the room
+        // was quiet no matter how loud it was, and a real measurement taken on
+        // the Bedtime screen was overwritten by the next reminder.
         val reminderText = context.getString(
             EnvironmentalNoiseBaselinePolicy.notificationTextRes(
-                BedtimeNoiseBaselineSampler.sampleAndPersist(context)
+                BedtimeNoiseBaselineSampler.readSnapshot(context).baseline
             )
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_BEDTIME)
