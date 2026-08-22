@@ -902,9 +902,9 @@ private fun AlarmDetailPane(
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             AppSectionTitle(
-                title = alarm.label.ifBlank { "Alarm details" },
+                title = alarm.label.ifBlank { stringResource(R.string.alarm_list_alarm_details) },
                 description = if (suppressedByVacation) {
-                    "Paused until vacation ends"
+                    stringResource(R.string.alarmlist_paused_until_vacation_ends)
                 } else {
                     nextOccurrenceLabel(alarm, is24Hour, pausedUntilMillis)
                 },

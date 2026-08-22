@@ -1,5 +1,8 @@
 package com.sysadmindoc.alarmclock.service
 
+import androidx.annotation.StringRes
+import com.sysadmindoc.alarmclock.R
+
 /**
  * Downloads YouTube audio and saves it as a system alarm tone (visible in the
  * device's MediaStore under Alarms/).
@@ -35,13 +38,28 @@ data class YouTubeEngineUpdateResult(
     val beforeVersionName: String?,
     val afterVersionName: String?,
 ) {
-    fun userMessage(): String = when (state) {
+    /**
+     * The message id for this outcome, and [afterVersionName] as its argument
+     * when there is one.
+     *
+     * A resource id rather than a sentence: this is a data class with no
+     * Context, and its message is what the download dialog's status line
+     * shows. Resolve it with `context.getString(userMessageRes, ...)`.
+     */
+    @get:StringRes
+    val userMessageRes: Int get() = when (state) {
         YouTubeEngineUpdateState.Updated ->
-            afterVersionName?.let { "Downloader engine updated to $it." }
-                ?: "Downloader engine updated."
+            if (afterVersionName != null) {
+                R.string.youtube_engine_updated_to
+            } else {
+                R.string.youtube_engine_updated
+            }
         YouTubeEngineUpdateState.AlreadyCurrent ->
-            afterVersionName?.let { "Downloader engine is current ($it)." }
-                ?: "Downloader engine is already current."
+            if (afterVersionName != null) {
+                R.string.youtube_engine_current
+            } else {
+                R.string.youtube_engine_already_current
+            }
     }
 }
 

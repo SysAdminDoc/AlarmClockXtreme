@@ -218,7 +218,6 @@ val unlocalizedComposeFiles = setOf(
     "domain/WakeConsistencyCalculator.kt",
     "service/AlarmPostDismissController.kt",
     "service/WebhookService.kt",
-    "service/YouTubeAudioDownloader.kt",
     "util/ManufacturerCompat.kt"
 )
 

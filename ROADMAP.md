@@ -45,6 +45,15 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P3
 
+- [ ] P3 — The round and square launcher icons are byte identical at xhdpi
+  Category: visual
+  Where: app/src/main/res/mipmap-xhdpi/ic_launcher.png and ic_launcher_round.png (lint `IconDuplicates`); the other four densities differ
+  Problem: two ways out and both are decisions rather than cleanups, which is why the 2026-08-22 lint pass left this one alone. Either the xhdpi round icon gets a genuinely round render, which is design work, or every raster mipmap goes: minSdk is 26 and `mipmap-anydpi-v26` supplies adaptive icons, so on any supported device the PNGs are already unreachable. Deleting them shrinks the APK and removes the warning, but it also removes the fallback for any launcher that reads the raster anyway.
+  Fix: pick one. If the rasters go, verify a launcher install on an emulator still shows the icon.
+  Acceptance: `IconDuplicates` is absent from `:app:lintPlayDebug` and the launcher icon still renders after an install.
+  Confidence: Verified
+  Effort: S
+
 - [ ] P3 — Shared-alarm import and template picker ignore the 24-hour preference
   Category: ux
   Where: ui/share/SharedAlarmImportScreen.kt:328 (`%02d:%02d` in `Locale.US`); ui/templates/TemplatePickerSheet.kt:216-222 (always AM/PM); data/model/AlarmTemplate.kt:51 ("20 min timer" for an alarm template)

@@ -3,6 +3,7 @@ package com.sysadmindoc.alarmclock.ui.components
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.service.YouTubeAudioDownloader
+import com.sysadmindoc.alarmclock.service.YouTubeEngineUpdateResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,8 +41,10 @@ class YouTubeDownloadViewModel @Inject constructor(
     private val _engineVersion = MutableStateFlow(downloader.engineVersionName())
     val engineVersion: StateFlow<String?> = _engineVersion.asStateFlow()
 
-    private val _engineUpdateMessage = MutableStateFlow<String?>(null)
-    val engineUpdateMessage: StateFlow<String?> = _engineUpdateMessage.asStateFlow()
+    // The result, not a rendered sentence: only the dialog has the Context
+    // that can turn it into one in the reader's language.
+    private val _engineUpdate = MutableStateFlow<YouTubeEngineUpdateResult?>(null)
+    val engineUpdate: StateFlow<YouTubeEngineUpdateResult?> = _engineUpdate.asStateFlow()
 
     /**
      * Held as state rather than emitted as an event: a rotation unsubscribes
@@ -71,14 +74,14 @@ class YouTubeDownloadViewModel @Inject constructor(
         if (_updatingEngine.value) return
         _updatingEngine.value = true
         _outcome.value = null
-        _engineUpdateMessage.value = null
+        _engineUpdate.value = null
         viewModelScope.launch {
             val result = downloader.updateEngine()
             _updatingEngine.value = false
             result.fold(
                 onSuccess = { update ->
                     _engineVersion.value = update.afterVersionName ?: update.beforeVersionName
-                    _engineUpdateMessage.value = update.userMessage()
+                    _engineUpdate.value = update
                 },
                 onFailure = { _outcome.value = Outcome.Failed(it, YouTubeDialogAction.EngineUpdate) }
             )
@@ -90,6 +93,6 @@ class YouTubeDownloadViewModel @Inject constructor(
     }
 
     fun consumeEngineUpdateMessage() {
-        _engineUpdateMessage.value = null
+        _engineUpdate.value = null
     }
 }
