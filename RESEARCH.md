@@ -3,7 +3,7 @@ Research date: 2026-07-22, replacing all prior research. Version facts refreshed
 
 ## Executive Summary
 
-AlarmClockXtreme (v1.15.33, versionCode 135) is a local-first Android alarm /
+AlarmClockXtreme (v1.15.34, versionCode 136) is a local-first Android alarm /
 bedtime / timer / wake-readiness suite whose strongest shape is a native
 `setAlarmClock()` engine with Direct Boot fallback, 30 dismiss challenges plus
 "none",

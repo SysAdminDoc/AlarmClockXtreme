@@ -2,7 +2,7 @@ import java.util.Properties
 import java.io.FileInputStream
 import org.gradle.api.GradleException
 
-// AlarmClockXtreme v1.15.33
+// AlarmClockXtreme v1.15.34
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -19,8 +19,8 @@ android {
         applicationId = "com.sysadmindoc.alarmclock"
         minSdk = 26
         targetSdk = 36
-        versionCode = 135
-        versionName = "1.15.33"
+        versionCode = 136
+        versionName = "1.15.34"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
