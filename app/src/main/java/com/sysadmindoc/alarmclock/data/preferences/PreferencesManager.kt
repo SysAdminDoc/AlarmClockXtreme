@@ -42,8 +42,6 @@ data class AppSettings(
     // Users who prefer a quieter status bar can opt into the exact-idle path.
     val showAlarmClockIcon: Boolean = true,
     val hideAlarmLabelsOnPublicSurfaces: Boolean = false,
-    val upcomingAlarmMinutes: Int = 60,
-    val showNoAlarmsWarning: Boolean = true,
     // Vacation mode
     val vacationModeEnabled: Boolean = false,
     val vacationStartMillis: Long = 0,
@@ -114,12 +112,9 @@ data class AppSettings(
     val calendarCommuteWeatherExtraMinutes: Int = 15,
     val googleRoutesApiKey: String = "",
     // v1.2.0: Guardian defaults
-    val guardianContactName: String = "",
-    val guardianContactPhone: String = "",
     // v1.2.0: Custom typing phrases (newline-separated, appended to built-in)
     val customTypingPhrases: String = "",
     // v1.2.0: Night clock mode
-    val nightClockEnabled: Boolean = false,
     // v1.2.0: Motivational quotes on alarm screen
     val showMotivationalQuotes: Boolean = true,
     // v1.4.0: Use Android 12+ Material You dynamic color palette (overrides accent)
@@ -228,7 +223,6 @@ private fun AppSettings.sanitized(): AppSettings {
     return copy(
         defaultSnoozeDuration = defaultSnoozeDuration.coerceIn(1, 180),
         defaultGradualVolume = defaultGradualVolume.coerceIn(0, 300),
-        upcomingAlarmMinutes = upcomingAlarmMinutes.coerceIn(0, 1_440),
         vacationModeEnabled = vacationModeEnabled && vacationWindowValid,
         vacationStartMillis = normalizedVacationStart,
         vacationEndMillis = normalizedVacationEnd,
@@ -262,8 +256,6 @@ private fun AppSettings.sanitized(): AppSettings {
         calendarCommuteBaselineMinutes = calendarCommuteBaselineMinutes.coerceIn(0, 240),
         calendarCommuteWeatherExtraMinutes = calendarCommuteWeatherExtraMinutes.coerceIn(0, 120),
         googleRoutesApiKey = normalizedGoogleRoutesApiKey,
-        guardianContactName = guardianContactName.trim().take(80),
-        guardianContactPhone = guardianContactPhone.trim().take(40),
         customTypingPhrases = normalizedCustomTypingPhrases,
         bedtimeChecklist = normalizedBedtimeChecklist,
         sleepSoundTimerMinutes = sleepSoundTimerMinutes.coerceIn(0, 240),
@@ -312,8 +304,6 @@ class PreferencesManager @Inject constructor(
         val SHOW_ON_LOCK_SCREEN = booleanPreferencesKey("show_on_lock_screen")
         val SHOW_ALARM_CLOCK_ICON = booleanPreferencesKey("show_alarm_clock_icon")
         val HIDE_ALARM_LABELS_PUBLIC = booleanPreferencesKey("hide_alarm_labels_public")
-        val UPCOMING_ALARM_MINUTES = intPreferencesKey("upcoming_alarm_minutes")
-        val SHOW_NO_ALARMS_WARNING = booleanPreferencesKey("show_no_alarms_warning")
         val VACATION_ENABLED = booleanPreferencesKey("vacation_enabled")
         val VACATION_START = longPreferencesKey("vacation_start")
         val VACATION_END = longPreferencesKey("vacation_end")
@@ -361,10 +351,7 @@ class PreferencesManager @Inject constructor(
         val CALENDAR_COMMUTE_BASELINE_MINUTES = intPreferencesKey("calendar_commute_baseline_minutes")
         val CALENDAR_COMMUTE_WEATHER_EXTRA_MINUTES = intPreferencesKey("calendar_commute_weather_extra_minutes")
         val GOOGLE_ROUTES_API_KEY = stringPreferencesKey("google_routes_api_key")
-        val GUARDIAN_CONTACT_NAME = stringPreferencesKey("guardian_contact_name")
-        val GUARDIAN_CONTACT_PHONE = stringPreferencesKey("guardian_contact_phone")
         val CUSTOM_TYPING_PHRASES = stringPreferencesKey("custom_typing_phrases")
-        val NIGHT_CLOCK = booleanPreferencesKey("night_clock")
         val SHOW_MOTIVATIONAL_QUOTES = booleanPreferencesKey("show_motivational_quotes")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val EXPRESSIVE_MODE = booleanPreferencesKey("expressive_mode")
@@ -461,8 +448,6 @@ class PreferencesManager @Inject constructor(
         showOnLockScreen = this[Keys.SHOW_ON_LOCK_SCREEN] ?: true,
         showAlarmClockIcon = this[Keys.SHOW_ALARM_CLOCK_ICON] ?: true,
         hideAlarmLabelsOnPublicSurfaces = this[Keys.HIDE_ALARM_LABELS_PUBLIC] ?: false,
-        upcomingAlarmMinutes = this[Keys.UPCOMING_ALARM_MINUTES] ?: 60,
-        showNoAlarmsWarning = this[Keys.SHOW_NO_ALARMS_WARNING] ?: true,
         vacationModeEnabled = this[Keys.VACATION_ENABLED] ?: false,
         vacationStartMillis = this[Keys.VACATION_START] ?: 0,
         vacationEndMillis = this[Keys.VACATION_END] ?: 0,
@@ -511,10 +496,7 @@ class PreferencesManager @Inject constructor(
         calendarCommuteBaselineMinutes = this[Keys.CALENDAR_COMMUTE_BASELINE_MINUTES] ?: 0,
         calendarCommuteWeatherExtraMinutes = this[Keys.CALENDAR_COMMUTE_WEATHER_EXTRA_MINUTES] ?: 15,
         googleRoutesApiKey = this[Keys.GOOGLE_ROUTES_API_KEY] ?: "",
-        guardianContactName = this[Keys.GUARDIAN_CONTACT_NAME] ?: "",
-        guardianContactPhone = this[Keys.GUARDIAN_CONTACT_PHONE] ?: "",
         customTypingPhrases = this[Keys.CUSTOM_TYPING_PHRASES] ?: "",
-        nightClockEnabled = this[Keys.NIGHT_CLOCK] ?: false,
         showMotivationalQuotes = this[Keys.SHOW_MOTIVATIONAL_QUOTES] ?: true,
         dynamicColorEnabled = this[Keys.DYNAMIC_COLOR] ?: false,
         expressiveModeEnabled = this[Keys.EXPRESSIVE_MODE] ?: false,
@@ -556,8 +538,6 @@ class PreferencesManager @Inject constructor(
         this[Keys.SHOW_ON_LOCK_SCREEN] = s.showOnLockScreen
         this[Keys.SHOW_ALARM_CLOCK_ICON] = s.showAlarmClockIcon
         this[Keys.HIDE_ALARM_LABELS_PUBLIC] = s.hideAlarmLabelsOnPublicSurfaces
-        this[Keys.UPCOMING_ALARM_MINUTES] = s.upcomingAlarmMinutes
-        this[Keys.SHOW_NO_ALARMS_WARNING] = s.showNoAlarmsWarning
         this[Keys.VACATION_ENABLED] = s.vacationModeEnabled
         this[Keys.VACATION_START] = s.vacationStartMillis
         this[Keys.VACATION_END] = s.vacationEndMillis
@@ -606,10 +586,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.CALENDAR_COMMUTE_BASELINE_MINUTES] = s.calendarCommuteBaselineMinutes
         this[Keys.CALENDAR_COMMUTE_WEATHER_EXTRA_MINUTES] = s.calendarCommuteWeatherExtraMinutes
         this[Keys.GOOGLE_ROUTES_API_KEY] = s.googleRoutesApiKey
-        this[Keys.GUARDIAN_CONTACT_NAME] = s.guardianContactName
-        this[Keys.GUARDIAN_CONTACT_PHONE] = s.guardianContactPhone
         this[Keys.CUSTOM_TYPING_PHRASES] = s.customTypingPhrases
-        this[Keys.NIGHT_CLOCK] = s.nightClockEnabled
         this[Keys.SHOW_MOTIVATIONAL_QUOTES] = s.showMotivationalQuotes
         this[Keys.DYNAMIC_COLOR] = s.dynamicColorEnabled
         this[Keys.EXPRESSIVE_MODE] = s.expressiveModeEnabled

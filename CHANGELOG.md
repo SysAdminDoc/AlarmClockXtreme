@@ -6,6 +6,15 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- The Defaults settings actually apply to new alarms. Default snooze, gradual
+  volume and show-on-lock-screen were advertised as defaults but the editor
+  ignored them, and the per-alarm lock screen choice did nothing at all.
+- An offline weather failure says what went wrong and offers Retry instead of
+  telling you to set a location you already set.
+- A webhook no longer follows redirects, so a 307 from your endpoint cannot
+  forward the signed payload to another host.
+- Restoring a database from a newer version of the app starts with an empty
+  alarm list instead of crashing every screen that reads it.
 - An alarm card shows the whole mission chain, not just the first challenge,
   and shows one even when the single challenge is set to none.
 - The alarm editor keeps your place on the overview when you open a category

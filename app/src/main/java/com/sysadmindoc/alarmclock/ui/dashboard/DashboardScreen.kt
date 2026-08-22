@@ -295,6 +295,11 @@ private fun WeatherSection(
             }
 
             state.weatherError != null -> {
+                // Any fetch failure used to render the "set your location"
+                // prompt, so an offline user with a city already configured was
+                // told to do something they had already done, and the actual
+                // error was never shown.
+                val hasLocation = state.hasLocation
                 AppSurfaceCard(contentPadding = PaddingValues(16.dp)) {
                     AppSectionTitle(title = "Weather")
                     Row(
@@ -313,18 +318,32 @@ private fun WeatherSection(
                             verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
-                                text = "Set your location",
+                                text = if (hasLocation) {
+                                    state.weatherError
+                                } else {
+                                    "Set your location"
+                                },
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text(
-                                text = "Get local conditions and forecasts.",
+                                text = if (hasLocation) {
+                                    "Check your connection and try again."
+                                } else {
+                                    "Get local conditions and forecasts."
+                                },
                                 color = TextSecondary,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
-                        TextButton(onClick = onChangeLocation) {
-                            Text("Choose")
+                        if (hasLocation) {
+                            TextButton(onClick = onRetryWeather) {
+                                Text("Retry")
+                            }
+                        } else {
+                            TextButton(onClick = onChangeLocation) {
+                                Text("Choose")
+                            }
                         }
                     }
                 }

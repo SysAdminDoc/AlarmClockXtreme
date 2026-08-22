@@ -74,6 +74,11 @@ class WebhookService @Inject constructor(
     private val client = OkHttpClient.Builder()
         .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(5, TimeUnit.SECONDS)
+        // Only the configured URL is checked against isAllowedWebhookUrl. A
+        // 307/308 from that endpoint would otherwise forward the body and the
+        // X-ACX-Signature header to any other host, LAN ones included.
+        .followRedirects(false)
+        .followSslRedirects(false)
         .build()
 
     private val JSON = "application/json".toMediaType()

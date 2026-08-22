@@ -211,6 +211,15 @@ class AlarmFiringActivity : ComponentActivity() {
                     state.alarm?.locationDismissEnabled == true && !state.locationDismissReady -> startLocationDismissMonitoring()
                     else -> stopLocationDismissMonitoring()
                 }
+                // The per-alarm "Show on lock screen" choice, applied once the
+                // row is known. onCreate always shows the screen so the alarm
+                // is reachable; an alarm that opted out drops behind the
+                // keyguard from here, and its notification stays available.
+                state.alarm?.let { loaded ->
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                        setShowWhenLocked(loaded.showOnLockScreen)
+                    }
+                }
                 when {
                     challenge is Challenge.NfcChallenge && !state.challengeSolved -> enableNfcForegroundDispatch()
                     else -> disableNfcForegroundDispatch()

@@ -42,25 +42,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Likely
   Effort: S
 
-- [ ] P2 — Room database restored from a newer app version crashes every DB-backed screen
-  Category: reliability
-  Where: app/src/main/AndroidManifest.xml:111 (`android:restoreAnyVersion="true"`); di/DatabaseModule.kt:26-32 (no `fallbackToDestructiveMigrationOnDowngrade`); RestoreAlarmAgent.kt:8-15
-  Problem: a platform restore of `alarm_clock.db` from a newer build onto an older one makes Room throw on open; `BootRescheduleWorker` retries 3× and fails, and the app crashes on every screen that touches the DB with no user-visible explanation.
-  Evidence: grep for `Downgrade|fallbackToDestructive` returns nothing.
-  Fix: either set `restoreAnyVersion="false"`, or add `fallbackToDestructiveMigrationOnDowngrade()` plus a one-time notification ("Alarms from a newer version could not be restored") and make `RestoreAlarmAgent` record the event.
-  Acceptance: restoring a v24-stamped DB onto the v23 build opens the app with an empty alarm list and the notice, instead of crashing.
-  Confidence: Verified (by absence; device repro still needed)
-  Effort: S
-
-- [ ] P2 — Dashboard weather failure is labelled "Set your location" and offers no retry
-  Category: ux
-  Where: ui/dashboard/DashboardViewModel.kt:381-407 (any fetch failure → `weatherError = "Weather unavailable"`); ui/dashboard/DashboardScreen.kt:286-321 (every non-null `weatherError` renders the "Set your location / Choose" card; "Retry weather" exists only in the stale-cache branch :331-339)
-  Problem: an offline user with a city configured is told to set a location; the error text is never shown and there is no retry.
-  Fix: branch on `state.hasLocation`: when true render `AppFeedbackCard` with the error and an `onRetryWeather` button, otherwise the location prompt.
-  Acceptance: with airplane mode on and a city set, the Today tab shows "Weather unavailable" with a Retry button.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — "Pause all alarms" has no banner or Resume on the Alarms tab and the per-card copy is wrong
   Category: ux
   Where: ui/settings/SettingsViewModel.kt:559-576 (`pauseAlarmsForDays`); ui/alarmlist/AlarmListViewModel.kt (never reads `pauseUntilMillis`); ui/alarmlist/AlarmListScreen.kt:1054 (header only says "All alarms paused" because every trigger is 0), :1066 (badge is vacation-only), :1614 ("Paused until you re-enable this alarm")
@@ -68,24 +49,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Fix: add `pausedUntilMillis` to `AlarmListUiState`, show a "Paused until <date> · Resume" chip in the hero (reuse the vacation chip at :1066) and use it in `nextOccurrenceLabel`.
   Acceptance: pause for 2 days, open Alarms: hero shows "Paused until Mon, Aug 24 · Resume"; tapping Resume re-arms.
   Confidence: Verified
-  Effort: S
-
-- [ ] P2 — Settings defaults never seed new alarms; three settings and five orphan fields are dead
-  Category: correctness
-  Where: ui/settings/SettingsScreen.kt:472, :493 (`defaultSnoozeDuration`, `defaultGradualVolume`, copy promises they apply to new alarms), :439-444 (`showOnLockScreen`); ui/alarmedit/AlarmEditViewModel.kt:249-258 (new alarm built from `AlarmEditUiState()` defaults 10/60); ui/alarmfiring/AlarmFiringActivity.kt:163 (`setShowWhenLocked(true)` unconditional); data/preferences/PreferencesManager.kt orphans `upcomingAlarmMinutes`, `showNoAlarmsWarning`, `guardianContactName`, `guardianContactPhone`, `nightClockEnabled` (round-tripped by backup only)
-  Problem: the Defaults category contains three controls that change nothing, and the settings model carries five fields no screen reads or writes.
-  Fix: seed `snoozeDurationMinutes`/`gradualVolumeSeconds` from `preferencesManager.getCachedSettings()` in the new-alarm branch; gate `setShowWhenLocked` on the setting (or delete the row and the per-alarm field); delete the five orphans from `AppSettings`, `Keys`, `SettingsBackup` and the drift test's exemption list (keep JSON tolerant).
-  Acceptance: set default snooze to 15 min, tap New alarm: the Snooze card shows 15 min; `BackupManagerSettingsDriftTest` passes after the field removals.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — Webhook client follows redirects and re-sends the signed payload cross-host
-  Category: security
-  Where: service/WebhookService.kt:74-77 (OkHttp client with default `followRedirects`/`followSslRedirects`), :301-306 `isAllowedWebhookUrl` (validates the initial URL only)
-  Problem: a 307/308 from the configured endpoint forwards the body, `X-ACX-Signature` and `X-ACX-Timestamp` to any HTTPS host, including LAN hosts that bypass the local-network gate.
-  Fix: `.followRedirects(false).followSslRedirects(false)` on the webhook client; treat 3xx as a failed delivery in the status log.
-  Acceptance: a test server answering 307 to another host sees no second request; delivery log shows "HTTP 307".
-  Confidence: Likely
   Effort: S
 
 - [ ] P2 — Hue legacy v1 (HTTP) path and `http://` internet-radio URLs are dead on this targetSdk, yet the UI offers them

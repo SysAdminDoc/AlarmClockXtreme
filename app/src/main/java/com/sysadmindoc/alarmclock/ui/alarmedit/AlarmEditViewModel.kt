@@ -255,10 +255,15 @@ class AlarmEditViewModel @Inject constructor(
                 val now = LocalTime.now()
                 val roundedMinute = ((now.minute / 5) + 1) * 5
                 val adjustedHour = if (roundedMinute >= 60) (now.hour + 1) % 24 else now.hour
+                // Settings > Defaults promises these apply to new alarms; the
+                // editor used to ignore them and hardcode 10 min / 60 s.
                 _uiState.value = AlarmEditUiState(
                     hour = adjustedHour,
                     minute = roundedMinute % 60,
-                    is24HourFormat = is24h
+                    is24HourFormat = is24h,
+                    snoozeDurationMinutes = settings.defaultSnoozeDuration,
+                    gradualVolumeSeconds = settings.defaultGradualVolume,
+                    showOnLockScreen = settings.showOnLockScreen
                 )
                 loadedDraft = _uiState.value
             }

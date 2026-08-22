@@ -58,8 +58,6 @@ class BackupManagerImportConsentTest {
         hueBridgeIp = "10.0.0.9",
         hueApiKey = "hue-key",
         googleRoutesApiKey = "routes-key",
-        guardianContactName = "Not you",
-        guardianContactPhone = "+15550001111",
         is24HourFormat = true
     )
 
@@ -103,8 +101,6 @@ class BackupManagerImportConsentTest {
         assertEquals("", applied.hueApiKey)
         assertEquals("", applied.hueBridgeIp)
         assertEquals("", applied.googleRoutesApiKey)
-        assertEquals("", applied.guardianContactPhone)
-        assertEquals("", applied.guardianContactName)
         // Harmless preferences still restore.
         assertTrue(applied.is24HourFormat)
     }
@@ -117,7 +113,6 @@ class BackupManagerImportConsentTest {
 
         assertTrue(applied!!.webhookEnabled)
         assertEquals("https://collector.example.net/hook", applied.webhookUrl)
-        assertEquals("+15550001111", applied.guardianContactPhone)
     }
 
     @Test
@@ -147,8 +142,8 @@ class BackupManagerImportConsentTest {
             preview.riskyImportValues.any { it.contains("collector.example.net") }
         )
         assertTrue(
-            "Preview should name the guardian number: ${preview.riskyImportValues}",
-            preview.riskyImportValues.any { it.contains("+15550001111") }
+            "Preview should name the per-alarm guardian number: ${preview.riskyImportValues}",
+            preview.riskyImportValues.any { it.contains("+15550002222") }
         )
     }
 

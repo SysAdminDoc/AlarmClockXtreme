@@ -29,6 +29,11 @@ object DatabaseModule {
             "alarm_clock.db"
         )
             .addMigrations(*AlarmDatabase.ALL_MIGRATIONS)
+            // The manifest allows restoring a backup from any version, so a
+            // database stamped by a newer build can land on an older one. Room
+            // throws on open in that case and every DB-backed screen crashes;
+            // starting empty is recoverable, a crash loop is not.
+            .fallbackToDestructiveMigrationOnDowngrade()
             .build()
     }
 

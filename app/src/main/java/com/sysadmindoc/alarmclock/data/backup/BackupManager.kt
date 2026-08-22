@@ -308,9 +308,6 @@ class BackupManager @Inject constructor(
                 if (settings.googleRoutesApiKey.isNotBlank()) {
                     add("Google Routes API key")
                 }
-                if (settings.guardianContactPhone.isNotBlank()) {
-                    add("Guardian contact ${settings.guardianContactPhone}")
-                }
                 if (settings.newsFeedUrl.isCustomFeedUrl()) {
                     add("News feed ${hostOf(settings.newsFeedUrl)}")
                 }
@@ -333,8 +330,6 @@ class BackupManager @Inject constructor(
                 hueApiKey = "",
                 hueLightIds = "",
                 googleRoutesApiKey = "",
-                guardianContactName = "",
-                guardianContactPhone = "",
                 // The app fetches and renders this feed unattended, so a
                 // crafted backup must not be able to point it somewhere else.
                 newsFeedUrl = AppSettings().newsFeedUrl
@@ -475,10 +470,7 @@ class BackupManager @Inject constructor(
                 calendarCommuteBaselineMinutes = settings.calendarCommuteBaselineMinutes,
                 calendarCommuteWeatherExtraMinutes = settings.calendarCommuteWeatherExtraMinutes,
                 googleRoutesApiKey = settings.googleRoutesApiKey,
-                guardianContactName = settings.guardianContactName,
-                guardianContactPhone = settings.guardianContactPhone,
                 customTypingPhrases = settings.customTypingPhrases,
-                nightClockEnabled = settings.nightClockEnabled,
                 showMotivationalQuotes = settings.showMotivationalQuotes,
                 dynamicColorEnabled = settings.dynamicColorEnabled,
                 expressiveModeEnabled = settings.expressiveModeEnabled,
@@ -491,8 +483,6 @@ class BackupManager @Inject constructor(
                 pauseUntilMillis = settings.pauseUntilMillis,
                 healthConnectEnabled = settings.healthConnectEnabled,
                 newsFeedUrl = settings.newsFeedUrl,
-                upcomingAlarmMinutes = settings.upcomingAlarmMinutes,
-                showNoAlarmsWarning = settings.showNoAlarmsWarning,
                 autoSilenceMinutes = settings.autoSilenceMinutes,
                 locationName = settings.locationName,
                 useManualLocation = settings.useManualLocation,
@@ -718,10 +708,7 @@ class BackupManager @Inject constructor(
         calendarCommuteBaselineMinutes = s.calendarCommuteBaselineMinutes,
         calendarCommuteWeatherExtraMinutes = s.calendarCommuteWeatherExtraMinutes,
         googleRoutesApiKey = s.googleRoutesApiKey,
-        guardianContactName = s.guardianContactName,
-        guardianContactPhone = s.guardianContactPhone,
         customTypingPhrases = s.customTypingPhrases,
-        nightClockEnabled = s.nightClockEnabled,
         showMotivationalQuotes = s.showMotivationalQuotes,
         dynamicColorEnabled = s.dynamicColorEnabled,
         expressiveModeEnabled = s.expressiveModeEnabled,
@@ -734,8 +721,6 @@ class BackupManager @Inject constructor(
         pauseUntilMillis = s.pauseUntilMillis,
         healthConnectEnabled = s.healthConnectEnabled,
         newsFeedUrl = s.newsFeedUrl,
-        upcomingAlarmMinutes = s.upcomingAlarmMinutes,
-        showNoAlarmsWarning = s.showNoAlarmsWarning,
         autoSilenceMinutes = s.autoSilenceMinutes,
         locationName = s.locationName,
         useManualLocation = s.useManualLocation,
