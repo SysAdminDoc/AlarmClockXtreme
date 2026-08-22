@@ -527,6 +527,7 @@ fun VoicePhraseChallengeView(
     challenge: Challenge.VoicePhraseChallenge,
     transcript: String,
     status: String,
+    statusTone: ChallengeNoticeTone,
     wrongAttempts: Int,
     onRecognized: (String) -> Unit
 ) {
@@ -550,11 +551,13 @@ fun VoicePhraseChallengeView(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         hasRecordPermission = granted
-        localStatus = if (granted) {
-            "Microphone ready. Start listening again."
-        } else {
-            "Microphone permission was denied. Type the phrase below to finish."
-        }
+        localStatus = resources.getString(
+            if (granted) {
+                R.string.alarmfiring_voice_mic_ready
+            } else {
+                R.string.alarmfiring_voice_mic_denied
+            }
+        )
     }
 
     val speechRecognizer = remember(speechAvailable) {
@@ -576,18 +579,18 @@ fun VoicePhraseChallengeView(
     DisposableEffect(speechRecognizer, listenIntent) {
         val listener = object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
-                localStatus = "Listening. Say the phrase shown below."
+                localStatus = resources.getString(R.string.alarmfiring_voice_listening)
             }
 
             override fun onBeginningOfSpeech() {
-                localStatus = "Speech detected."
+                localStatus = resources.getString(R.string.alarmfiring_voice_speech_detected)
             }
 
             override fun onRmsChanged(rmsdB: Float) = Unit
             override fun onBufferReceived(buffer: ByteArray?) = Unit
 
             override fun onEndOfSpeech() {
-                localStatus = "Checking what was heard..."
+                localStatus = resources.getString(R.string.alarmfiring_voice_checking)
             }
 
             override fun onError(error: Int) {
@@ -610,7 +613,7 @@ fun VoicePhraseChallengeView(
                     ?.firstOrNull()
                     .orEmpty()
                 if (partial.isNotBlank()) {
-                    localStatus = "Hearing: $partial"
+                    localStatus = resources.getString(R.string.alarmfiring_voice_hearing, partial)
                 }
             }
 
@@ -662,17 +665,17 @@ fun VoicePhraseChallengeView(
             onClick = {
                 when {
                     !speechAvailable -> {
-                        localStatus = "Android speech recognition is unavailable here. Type the phrase below."
+                        localStatus = resources.getString(R.string.alarmfiring_voice_recognition_unavailable)
                     }
                     !hasRecordPermission -> permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     else -> {
                         runCatching {
                             isListening = true
-                            localStatus = "Starting microphone..."
+                            localStatus = resources.getString(R.string.alarmfiring_voice_starting_mic)
                             speechRecognizer?.startListening(listenIntent)
                         }.onFailure {
                             isListening = false
-                            localStatus = "Could not start speech recognition. Type the phrase below."
+                            localStatus = resources.getString(R.string.alarmfiring_voice_could_not_start)
                         }
                     }
                 }
@@ -696,7 +699,7 @@ fun VoicePhraseChallengeView(
                 onClick = {
                     runCatching { speechRecognizer?.stopListening() }
                     isListening = false
-                    localStatus = "Stopped listening."
+                    localStatus = resources.getString(R.string.alarmfiring_voice_stopped)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(10.dp)
@@ -709,11 +712,7 @@ fun VoicePhraseChallengeView(
         if (visibleStatus.isNotBlank()) {
             ChallengeNotice(
                 text = visibleStatus,
-                accent = if (status.startsWith("Heard") || status.startsWith("No phrase")) {
-                    AccentRed
-                } else {
-                    SnoozeYellow
-                },
+                accent = challengeNoticeAccent(if (status.isBlank()) ChallengeNoticeTone.PROGRESS else statusTone),
                 icon = Icons.Default.WarningAmber
             )
         } else if (transcript.isNotBlank()) {
@@ -767,6 +766,7 @@ private fun speechErrorMessage(error: Int): Int = when (error) {
 fun HandwritingChallengeView(
     challenge: Challenge.HandwritingChallenge,
     status: String,
+    statusTone: ChallengeNoticeTone,
     busy: Boolean,
     wrongAttempts: Int,
     onRecognize: (List<InkStroke>, Float, Float) -> Unit,
@@ -930,11 +930,7 @@ fun HandwritingChallengeView(
         if (status.isNotBlank()) {
             ChallengeNotice(
                 text = status,
-                accent = when {
-                    status.endsWith("matched.") -> DismissGreen
-                    status.startsWith("Checking") -> SnoozeYellow
-                    else -> AccentRed
-                },
+                accent = challengeNoticeAccent(statusTone),
                 icon = Icons.Default.WarningAmber
             )
         }
@@ -1550,6 +1546,17 @@ private fun ChallengeSupportText(
             .fillMaxWidth()
             .padding(horizontal = 8.dp)
     )
+}
+
+/**
+ * The colour a [ChallengeNoticeTone] paints. Kept next to [ChallengeNotice] so
+ * the mapping lives with the thing it colours, rather than in the state that
+ * only knows why.
+ */
+private fun challengeNoticeAccent(tone: ChallengeNoticeTone): Color = when (tone) {
+    ChallengeNoticeTone.SUCCESS -> DismissGreen
+    ChallengeNoticeTone.PROGRESS -> SnoozeYellow
+    ChallengeNoticeTone.PROBLEM -> AccentRed
 }
 
 @Composable

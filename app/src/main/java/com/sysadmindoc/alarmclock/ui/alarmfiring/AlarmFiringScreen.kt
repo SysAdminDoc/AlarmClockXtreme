@@ -746,6 +746,7 @@ fun AlarmFiringScreen(
                                 challenge = challenge,
                                 transcript = state.voiceTranscript,
                                 status = state.voiceStatus,
+                                statusTone = state.voiceStatusTone,
                                 wrongAttempts = state.wrongAttempts,
                                 onRecognized = viewModel::submitVoicePhrase
                             )
@@ -755,6 +756,7 @@ fun AlarmFiringScreen(
                             HandwritingChallengeView(
                                 challenge = challenge,
                                 status = state.handwritingStatus,
+                                statusTone = state.handwritingStatusTone,
                                 busy = state.handwritingBusy,
                                 wrongAttempts = state.wrongAttempts,
                                 onRecognize = viewModel::submitHandwriting,

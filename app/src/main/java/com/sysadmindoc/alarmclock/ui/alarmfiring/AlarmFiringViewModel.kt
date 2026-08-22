@@ -46,8 +46,10 @@ data class FiringUiState(
     // Voice phrase challenge
     val voiceTranscript: String = "",
     val voiceStatus: String = "",
+    val voiceStatusTone: ChallengeNoticeTone = ChallengeNoticeTone.PROGRESS,
     // Handwriting challenge
     val handwritingStatus: String = "",
+    val handwritingStatusTone: ChallengeNoticeTone = ChallengeNoticeTone.PROGRESS,
     val handwritingBusy: Boolean = false,
     // F4: Walk-steps challenge
     val currentSteps: Int = 0,
@@ -594,17 +596,19 @@ class AlarmFiringViewModel @Inject constructor(
         if (VoicePhraseMatcher.matches(challenge.phrase, cleanTranscript)) {
             _uiState.value = _uiState.value.copy(
                 voiceTranscript = cleanTranscript,
-                voiceStatus = "Voice phrase matched."
+                voiceStatus = appContext.getString(R.string.alarmfiring_voice_matched),
+                voiceStatusTone = ChallengeNoticeTone.SUCCESS
             )
             proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
                 voiceTranscript = cleanTranscript,
                 voiceStatus = if (cleanTranscript.isBlank()) {
-                    "No phrase was detected. Try again or use the typed fallback."
+                    appContext.getString(R.string.alarmfiring_voice_no_phrase)
                 } else {
-                    "Heard \"$cleanTranscript\". Say the phrase shown below."
+                    appContext.getString(R.string.alarmfiring_voice_heard, cleanTranscript)
                 },
+                voiceStatusTone = ChallengeNoticeTone.PROBLEM,
                 wrongAttempts = _uiState.value.wrongAttempts + 1,
                 totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
@@ -614,13 +618,14 @@ class AlarmFiringViewModel @Inject constructor(
     fun submitHandwriting(strokes: List<InkStroke>, width: Float, height: Float) {
         val challenge = _uiState.value.challenge as? Challenge.HandwritingChallenge ?: return
         if (strokes.none { it.points.size >= 2 }) {
-            markHandwritingWrong("Draw the word before checking it.")
+            markHandwritingWrong(appContext.getString(R.string.alarmfiring_handwriting_draw_first))
             return
         }
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 handwritingBusy = true,
-                handwritingStatus = "Checking handwriting..."
+                handwritingStatus = appContext.getString(R.string.alarmfiring_handwriting_checking),
+                handwritingStatusTone = ChallengeNoticeTone.PROGRESS
             )
             val result = digitalInkChallengeRecognizer.recognize(
                 DigitalInkRecognitionRequest(
@@ -634,12 +639,14 @@ class AlarmFiringViewModel @Inject constructor(
                 !result.isAvailable -> _uiState.value = _uiState.value.copy(
                     handwritingBusy = false,
                     handwritingStatus = result.unavailableReason
-                        ?: appContext.getString(R.string.alarmfiring_handwriting_recognition_is_unavailable_type_the)
+                        ?: appContext.getString(R.string.alarmfiring_handwriting_recognition_is_unavailable_type_the),
+                    handwritingStatusTone = ChallengeNoticeTone.PROBLEM
                 )
                 HandwritingChallengeMatcher.matches(challenge.targetText, result.candidates) -> {
                     _uiState.value = _uiState.value.copy(
                         handwritingBusy = false,
-                        handwritingStatus = "Handwriting matched."
+                        handwritingStatus = appContext.getString(R.string.alarmfiring_handwriting_matched),
+                        handwritingStatusTone = ChallengeNoticeTone.SUCCESS
                     )
                     proceedToNextChallenge()
                 }
@@ -656,14 +663,21 @@ class AlarmFiringViewModel @Inject constructor(
         val challenge = _uiState.value.challenge as? Challenge.HandwritingChallenge ?: return
         val cleanText = text.trim()
         if (HandwritingChallengeMatcher.matches(challenge.targetText, listOf(cleanText))) {
-            _uiState.value = _uiState.value.copy(handwritingStatus = "Typed word matched.")
+            _uiState.value = _uiState.value.copy(
+                handwritingStatus = appContext.getString(R.string.alarmfiring_handwriting_typed_matched),
+                handwritingStatusTone = ChallengeNoticeTone.SUCCESS
+            )
             proceedToNextChallenge()
         } else {
             markHandwritingWrong(
                 if (cleanText.isBlank()) {
-                    "Type the displayed word or draw it again."
+                    appContext.getString(R.string.alarmfiring_handwriting_type_or_draw)
                 } else {
-                    "Typed \"$cleanText\". Match ${challenge.targetText} exactly."
+                    appContext.getString(
+                        R.string.alarmfiring_handwriting_typed_mismatch,
+                        cleanText,
+                        challenge.targetText
+                    )
                 }
             )
         }
@@ -674,6 +688,7 @@ class AlarmFiringViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(
             handwritingBusy = false,
             handwritingStatus = message,
+            handwritingStatusTone = ChallengeNoticeTone.PROBLEM,
             wrongAttempts = _uiState.value.wrongAttempts + 1,
             totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
         )

@@ -2184,4 +2184,23 @@
     <string name="bedtime_room_loud_advice">Room baseline is loud. Reduce noise before bed if you can.</string>
     <string name="stats_sonar_decision_detail">Judged from room sound after %1$d min of listening. No audio is kept.</string>
     <string name="stats_motion_decision_detail">%1$s after %2$d min of watching (%3$s)</string>
+    <string name="alarmfiring_voice_matched">Voice phrase matched.</string>
+    <string name="alarmfiring_voice_no_phrase">No phrase was detected. Try again or use the typed fallback.</string>
+    <string name="alarmfiring_voice_heard">Heard \"%1$s\". Say the phrase shown below.</string>
+    <string name="alarmfiring_voice_listening">Listening. Say the phrase shown below.</string>
+    <string name="alarmfiring_voice_speech_detected">Speech detected.</string>
+    <string name="alarmfiring_voice_checking">Checking what was heard…</string>
+    <string name="alarmfiring_voice_hearing">Hearing: %1$s</string>
+    <string name="alarmfiring_voice_recognition_unavailable">Android speech recognition is unavailable here. Type the phrase below.</string>
+    <string name="alarmfiring_voice_starting_mic">Starting microphone…</string>
+    <string name="alarmfiring_voice_could_not_start">Could not start speech recognition. Type the phrase below.</string>
+    <string name="alarmfiring_voice_stopped">Stopped listening.</string>
+    <string name="alarmfiring_voice_mic_ready">Microphone ready. Start listening again.</string>
+    <string name="alarmfiring_voice_mic_denied">Microphone permission was denied. Type the phrase below to finish.</string>
+    <string name="alarmfiring_handwriting_draw_first">Draw the word before checking it.</string>
+    <string name="alarmfiring_handwriting_checking">Checking handwriting…</string>
+    <string name="alarmfiring_handwriting_matched">Handwriting matched.</string>
+    <string name="alarmfiring_handwriting_typed_matched">Typed word matched.</string>
+    <string name="alarmfiring_handwriting_type_or_draw">Type the displayed word or draw it again.</string>
+    <string name="alarmfiring_handwriting_typed_mismatch">Typed \"%1$s\". Match %2$s exactly.</string>
 </resources>
