@@ -23,16 +23,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Needs-repro
   Effort: S
 
-- [ ] P2 — Fourteen files still ship hardcoded English, listed in the guard's exemption set
-  Category: i18n
-  Where: `unlocalizedComposeFiles` in app/build.gradle.kts. That set is the task list and it only shrinks. As of 2026-08-22: AlarmClockApp.kt, MainActivity.kt, data/backup/BackupManager.kt, data/model/ShiftPattern.kt, data/remote/GeocodingApi.kt, data/remote/WeatherApi.kt, data/repository/CalendarRepository.kt, data/support/SupportExportManager.kt, domain/BreathingExercise.kt, domain/ChronotypeEstimator.kt, domain/WakeConsistencyCalculator.kt, service/AlarmPostDismissController.kt, service/WebhookService.kt, util/ManufacturerCompat.kt.
-  Problem: each of these hands display text back from a place with no Context, which is why they were left when the guard was widened. The weather-code table, the shift-pattern names and the chronotype and wake-consistency labels are all `when` expressions returning English. AlarmPostDismissController is the hardest: it builds a spoken sentence out of `DayOfWeek.name` and English minute phrasing ("o'clock", "oh 5"), and its two functions are covered by pure JVM tests that would need a Context or Robolectric.
-  Not all of it is a defect. WebhookService's "Test Alarm" and "12:00 PM" are sample values inside a JSON payload sent to someone else's endpoint, so they should stay fixed; that file needs a narrower exclusion rather than an extraction.
-  Fix: same shape as the ones already done. Return `@StringRes` ids from the Context-free producers and resolve at the call site, and use `getDisplayName(TextStyle, locale)` for day and month names rather than enum constants.
-  Acceptance: `unlocalizedComposeFiles` is empty, or holds only WebhookService with a comment saying why.
-  Confidence: Verified
-  Effort: L
-
 ### P3
 
 - [ ] P3 — The round and square launcher icons are byte identical at xhdpi

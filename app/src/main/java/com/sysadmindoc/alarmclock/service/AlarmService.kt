@@ -1914,7 +1914,15 @@ class AlarmService : Service() {
     // ScheduledExecutorService below (independent of serviceScope) so a
     // pathological TTS backend never holds the engine forever.
     private fun speakMorningAnnouncement() {
-        val text = AlarmPostDismissController.morningAnnouncementText()
+        // The spoken clock stays 12-hour whatever the display setting says:
+        // a text-to-speech engine reads "seven oh five" naturally and
+        // "oh seven hundred" badly.
+        val now = java.time.LocalTime.now()
+        val text = AlarmPostDismissController.morningAnnouncementText(
+            template = getString(R.string.briefing_spoken_time_and_date),
+            spokenTime = AlarmTimeFormatter.format(now.hour, now.minute, is24Hour = false),
+            now = now
+        )
 
         val ttsRef = java.util.concurrent.atomic.AtomicReference<TextToSpeech?>()
         val safetyCancel = java.util.concurrent.atomic.AtomicReference<java.util.concurrent.ScheduledFuture<*>?>()
@@ -1990,6 +1998,9 @@ class AlarmService : Service() {
             ),
             nextEvent = AlarmPostDismissController.nextCalendarEventSummary(
                 events = events,
+                untitledLabel = getString(R.string.briefing_calendar_event),
+                allDayTemplate = getString(R.string.briefing_calendar_all_day),
+                atTemplate = getString(R.string.briefing_calendar_at),
                 is24Hour = preferencesManager.getCachedSettings().is24HourFormat
             )
         )

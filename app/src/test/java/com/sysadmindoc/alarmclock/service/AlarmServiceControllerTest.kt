@@ -88,7 +88,11 @@ class AlarmServiceControllerTest {
 
     @Test
     fun postDismissControllerBuildsAnnouncementAndBriefingPayload() {
+        // The template and the spoken clock come from the caller now, so the
+        // day and month can follow the locale rather than the enum constant.
         val text = AlarmPostDismissController.morningAnnouncementText(
+            template = "It is %1\$s. Today is %2\$s, %3\$s %4\$d.",
+            spokenTime = "6:05 AM",
             now = LocalTime.of(6, 5),
             today = LocalDate.of(2026, 7, 2)
         )
@@ -99,7 +103,7 @@ class AlarmServiceControllerTest {
             is24Hour = false
         )
 
-        assertEquals("It is 6 oh 5 A.M.. Today is Thursday, July 2.", text)
+        assertEquals("It is 6:05 AM. Today is Thursday, July 2.", text)
         assertEquals("1:07 PM", payload.time)
         assertEquals("Thursday, July 2", payload.date)
         assertEquals("", payload.weather)
@@ -159,6 +163,9 @@ class AlarmServiceControllerTest {
         assertTrue(
             AlarmPostDismissController.nextCalendarEventSummary(
                 events = listOf(event),
+                untitledLabel = "Calendar event",
+                allDayTemplate = "%1\$s \u00b7 All day",
+                atTemplate = "%1\$s \u00b7 %2\$s",
                 nowMillis = event.startTime - 1L,
                 is24Hour = false
             ).startsWith("Team sync · ")
@@ -167,6 +174,9 @@ class AlarmServiceControllerTest {
             "",
             AlarmPostDismissController.nextCalendarEventSummary(
                 events = listOf(event),
+                untitledLabel = "Calendar event",
+                allDayTemplate = "%1\$s \u00b7 All day",
+                atTemplate = "%1\$s \u00b7 %2\$s",
                 nowMillis = event.endTime + 1L,
                 is24Hour = false
             )

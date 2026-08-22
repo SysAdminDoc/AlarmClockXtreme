@@ -8,6 +8,8 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.net.Uri
+import androidx.annotation.StringRes
+import com.sysadmindoc.alarmclock.R
 
 /**
  * Handles manufacturer-specific battery optimization detection and guidance.
@@ -39,7 +41,9 @@ object ManufacturerCompat {
 
     data class BatteryGuidance(
         val manufacturer: String,
-        val title: String,
+        // An id: this is a plain object with no Context, and the title is a
+        // heading on the readiness card.
+        @StringRes val titleRes: Int,
         val steps: List<String>,
         /** Vendor-specific DontKillMyApp page with up-to-date remediation. */
         val dontKillMyAppUrl: String,
@@ -108,7 +112,7 @@ object ManufacturerCompat {
         return when (manufacturer.lowercase()) {
             "samsung" -> BatteryGuidance(
                 manufacturer = "Samsung",
-                title = "Prevent Samsung from killing alarms",
+                titleRes = R.string.oem_samsung_title,
                 steps = listOf(
                     "Open Settings > Battery",
                     "Tap 'Background usage limits'",
@@ -126,7 +130,7 @@ object ManufacturerCompat {
             )
             "xiaomi", "redmi", "poco" -> BatteryGuidance(
                 manufacturer = "Xiaomi",
-                title = "Enable Autostart on Xiaomi",
+                titleRes = R.string.oem_xiaomi_title,
                 steps = listOf(
                     "Open Settings > Apps > Manage apps",
                     "Find AlarmClockXtreme and tap it",
@@ -147,7 +151,7 @@ object ManufacturerCompat {
             )
             "oneplus" -> BatteryGuidance(
                 manufacturer = "OnePlus",
-                title = "Disable battery optimization on OnePlus",
+                titleRes = R.string.oem_oneplus_title,
                 steps = listOf(
                     "Open Settings > Battery > Battery optimization",
                     "Find AlarmClockXtreme",
@@ -167,7 +171,7 @@ object ManufacturerCompat {
             )
             "huawei", "honor" -> BatteryGuidance(
                 manufacturer = "Huawei",
-                title = "Allow background activity on Huawei",
+                titleRes = R.string.oem_huawei_title,
                 steps = listOf(
                     "Open Settings > Battery > App launch",
                     "Find AlarmClockXtreme",
@@ -178,7 +182,7 @@ object ManufacturerCompat {
             )
             "oppo", "realme" -> BatteryGuidance(
                 manufacturer = manufacturer.replaceFirstChar { it.uppercase() },
-                title = "Allow background activity on ColorOS",
+                titleRes = R.string.oem_coloros_title,
                 steps = listOf(
                     "Open Settings > Battery > App battery management",
                     "Find AlarmClockXtreme",
@@ -190,7 +194,7 @@ object ManufacturerCompat {
             )
             "vivo", "iqoo" -> BatteryGuidance(
                 manufacturer = "Vivo",
-                title = "Allow background activity on Vivo",
+                titleRes = R.string.oem_vivo_title,
                 steps = listOf(
                     "Open Settings > Battery > Background power consumption",
                     "Find AlarmClockXtreme and allow high background power",

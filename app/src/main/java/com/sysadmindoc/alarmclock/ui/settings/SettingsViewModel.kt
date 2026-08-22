@@ -215,7 +215,7 @@ class SettingsViewModel @Inject constructor(
             needsBatteryGuidance = battery.needsGuidance,
             manufacturerName = guidance?.manufacturer ?: Build.MANUFACTURER.replaceFirstChar { it.uppercase() },
             batteryGuidanceSteps = guidance?.steps ?: emptyList(),
-            batteryGuidanceTitle = guidance?.title ?: "",
+            batteryGuidanceTitle = guidance?.let { getApplication<Application>().getString(it.titleRes) }.orEmpty(),
             batteryGuidanceUrl = guidance?.dontKillMyAppUrl ?: "",
             androidVersion = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
             deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",

@@ -12,6 +12,8 @@ import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 import kotlin.math.roundToInt
 
 internal data class MorningBriefingPayload(
@@ -35,20 +37,28 @@ internal object AlarmPostDismissController {
 
     fun shouldSpeakMorningAnnouncement(alarm: Alarm): Boolean = alarm.ttsEnabled
 
+    /**
+     * The sentence the alarm speaks after dismissal.
+     *
+     * The day and month came from `DayOfWeek.name` and `Month.name`, which are
+     * the English enum constants, so this was English even on a phone that had
+     * never seen an English string anywhere else. They come from the locale's
+     * own full-form names now, the clock time from the shared formatter, and
+     * the sentence from a resource so a translation can reorder it.
+     *
+     * @param spokenTime a clock reading a text-to-speech engine will say
+     * naturally, which is why the caller passes the 12-hour form.
+     */
     fun morningAnnouncementText(
+        template: String,
+        spokenTime: String,
         now: LocalTime = LocalTime.now(),
         today: LocalDate = LocalDate.now()
     ): String {
-        val h = if (now.hour % 12 == 0) 12 else now.hour % 12
-        val minStr = when {
-            now.minute == 0 -> "o'clock"
-            now.minute < 10 -> "oh ${now.minute}"
-            else -> "${now.minute}"
-        }
-        val amPm = if (now.hour < 12) "A.M." else "P.M."
-        val dayName = today.dayOfWeek.name.lowercase().replaceFirstChar { it.uppercase() }
-        val monthName = today.month.name.lowercase().replaceFirstChar { it.uppercase() }
-        return "It is $h $minStr $amPm. Today is $dayName, $monthName ${today.dayOfMonth}."
+        val locale = Locale.getDefault()
+        val dayName = today.dayOfWeek.getDisplayName(TextStyle.FULL, locale)
+        val monthName = today.month.getDisplayName(TextStyle.FULL, locale)
+        return String.format(locale, template, spokenTime, dayName, monthName, today.dayOfMonth)
     }
 
     fun morningBriefingPayload(
@@ -103,8 +113,19 @@ internal object AlarmPostDismissController {
         return parts.joinToString(" · ")
     }
 
+    /**
+     * @param untitledLabel what an event with no title is called
+     * @param allDayTemplate "%1$s · All day"
+     * @param atTemplate "%1$s · %2$s"
+     *
+     * Three strings in rather than a Context, because this object is a pure
+     * function under unit test and the caller is a service that has one.
+     */
     fun nextCalendarEventSummary(
         events: List<CalendarEvent>,
+        untitledLabel: String,
+        allDayTemplate: String,
+        atTemplate: String,
         nowMillis: Long = System.currentTimeMillis(),
         is24Hour: Boolean
     ): String {
@@ -113,8 +134,12 @@ internal object AlarmPostDismissController {
             .filter { it.endTime >= nowMillis }
             .minByOrNull { it.startTime }
             ?: return ""
-        val title = next.title.trim().take(80).ifBlank { "Calendar event" }
-        return if (next.allDay) "$title · All day" else "$title · ${next.startFormatted(is24Hour)}"
+        val title = next.title.trim().take(80).ifBlank { untitledLabel }
+        return if (next.allDay) {
+            String.format(allDayTemplate, title)
+        } else {
+            String.format(atTemplate, title, next.startFormatted(is24Hour))
+        }
     }
 
     fun shouldScheduleWakeConfirmation(alarm: Alarm): Boolean = alarm.wakeConfirmEnabled

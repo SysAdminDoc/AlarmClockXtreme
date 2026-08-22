@@ -90,7 +90,7 @@ class MainActivity : ComponentActivity() {
             .onFailure {
                 Toast.makeText(
                     this,
-                    "Unable to open the roadmap link.",
+                    getString(R.string.roadmap_link_failed),
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -149,7 +149,7 @@ class MainActivity : ComponentActivity() {
                 if (showReadyToast) {
                     Toast.makeText(
                         this,
-                        "Review this shared alarm before saving it.",
+                        getString(R.string.share_review_before_saving),
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -159,7 +159,7 @@ class MainActivity : ComponentActivity() {
                 pendingSharedAlarmDraft = null
                 Toast.makeText(
                     this,
-                    "Unable to import this shared alarm.",
+                    getString(R.string.share_import_failed),
                     Toast.LENGTH_LONG
                 ).show()
             }

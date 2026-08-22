@@ -2348,4 +2348,22 @@
     <string name="breathing_idle_description">Run a short 4-7-8 or box-breathing reset before sleep.</string>
     <string name="geocoding_unknown_place">Unknown</string>
     <string name="calendar_untitled_event">Untitled</string>
+    <string name="default_alarm_label">Wake Up</string>
+    <string name="share_review_before_saving">Review this shared alarm before saving it.</string>
+    <string name="share_import_failed">Unable to import this shared alarm.</string>
+    <string name="roadmap_link_failed">Unable to open the roadmap link.</string>
+    <string name="backup_version_unsupported">Unsupported backup version %1$d.</string>
+    <string name="backup_version_too_new">Unsupported backup version %1$d; this app understands 1-%2$d.</string>
+    <string name="backup_version_older">Compatible older backup v%1$d; missing newer fields import with safe defaults.</string>
+    <string name="backup_version_current">Compatible backup v%1$d.</string>
+    <string name="briefing_calendar_event">Calendar event</string>
+    <string name="briefing_calendar_all_day">%1$s · All day</string>
+    <string name="briefing_calendar_at">%1$s · %2$s</string>
+    <string name="briefing_spoken_time_and_date">It is %1$s. Today is %2$s, %3$s %4$d.</string>
+    <string name="oem_samsung_title">Prevent Samsung from killing alarms</string>
+    <string name="oem_xiaomi_title">Enable Autostart on Xiaomi</string>
+    <string name="oem_oneplus_title">Disable battery optimization on OnePlus</string>
+    <string name="oem_huawei_title">Allow background activity on Huawei</string>
+    <string name="oem_coloros_title">Allow background activity on ColorOS</string>
+    <string name="oem_vivo_title">Allow background activity on Vivo</string>
 </resources>

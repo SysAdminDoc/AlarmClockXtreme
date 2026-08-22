@@ -192,25 +192,25 @@ val verifyRoomSchemaExports by tasks.registering {
 }
 
 /**
- * Files the guard skips, and the only reason it can be green outside ui/.
+ * The two files the guard skips, and why each one is not a translation gap.
  *
- * The tree below covers the whole app package now, not just the screens: a
- * notification channel name, a weather description and a shift-pattern label
- * are read by exactly the same person as a Text(). Every file listed here has
- * hardcoded English in it today. The list only shrinks; adding to it means
- * shipping English that a translator cannot reach, and a new file cannot be
- * added to it without this comment being edited on purpose.
+ * This started at 30 files on 2026-08-22 when the guard was pointed at the
+ * whole app package instead of just `ui/`. Everything else on it has been
+ * drained. What is left is English that is supposed to stay English:
  *
- * Nothing under ui/ is exempt.
+ *  - SupportExportManager writes the crash-log section of the support bundle,
+ *    which a maintainer reads. The rest of that bundle is English headings and
+ *    reason codes for the same reason.
+ *  - WebhookService builds a sample JSON payload ("Test Alarm", "12:00 PM")
+ *    that goes to somebody else's endpoint. Translating a wire value would
+ *    break the consumer, not localise it.
+ *
+ * Adding a third entry means shipping English a translator cannot reach, so it
+ * needs a reason written here, not just a filename.
  */
 val unlocalizedComposeFiles = setOf(
-    "AlarmClockApp.kt",
-    "MainActivity.kt",
-    "data/backup/BackupManager.kt",
     "data/support/SupportExportManager.kt",
-    "service/AlarmPostDismissController.kt",
-    "service/WebhookService.kt",
-    "util/ManufacturerCompat.kt"
+    "service/WebhookService.kt"
 )
 
 val primaryComposeScreenFiles: List<File> = fileTree("src/main/java/com/sysadmindoc/alarmclock") {

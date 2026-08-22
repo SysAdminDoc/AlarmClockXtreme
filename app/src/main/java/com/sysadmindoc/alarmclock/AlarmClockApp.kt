@@ -246,7 +246,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
         val alarm = com.sysadmindoc.alarmclock.data.model.Alarm(
             hour = 6,
             minute = 0,
-            label = "Wake Up",
+            label = getString(R.string.default_alarm_label),
             isEnabled = true,
             repeatDays = weekdays,
             vibrationEnabled = true,

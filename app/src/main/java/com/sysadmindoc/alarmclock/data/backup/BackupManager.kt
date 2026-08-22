@@ -12,6 +12,7 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.LongPressThreshold
 import com.squareup.moshi.JsonClass
 import com.squareup.moshi.Moshi
+import com.sysadmindoc.alarmclock.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.Locale
 import javax.inject.Inject
@@ -747,12 +748,16 @@ class BackupManager @Inject constructor(
         val privateCategories = assessExportWarning(settings, importedAlarms).categories
         val canImport = backup.version in 1..MAX_SUPPORTED_BACKUP_VERSION
         val compatibility = when {
-            backup.version < 1 -> "Unsupported backup version ${backup.version}."
-            backup.version > MAX_SUPPORTED_BACKUP_VERSION ->
-                "Unsupported backup version ${backup.version}; this app understands 1-$MAX_SUPPORTED_BACKUP_VERSION."
+            backup.version < 1 ->
+                context.getString(R.string.backup_version_unsupported, backup.version)
+            backup.version > MAX_SUPPORTED_BACKUP_VERSION -> context.getString(
+                R.string.backup_version_too_new,
+                backup.version,
+                MAX_SUPPORTED_BACKUP_VERSION
+            )
             backup.version < MAX_SUPPORTED_BACKUP_VERSION ->
-                "Compatible older backup v${backup.version}; missing newer fields import with safe defaults."
-            else -> "Compatible backup v${backup.version}."
+                context.getString(R.string.backup_version_older, backup.version)
+            else -> context.getString(R.string.backup_version_current, backup.version)
         }
         return BackupImportPreview(
             version = backup.version,

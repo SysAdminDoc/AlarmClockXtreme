@@ -30,7 +30,9 @@ class ManufacturerCompatTest {
             assertNotNull("$oem should have guidance", guidance)
             requireNotNull(guidance)
             assertTrue("$oem guidance must have steps", guidance.steps.isNotEmpty())
-            assertTrue("$oem title must be set", guidance.title.isNotBlank())
+            // A resource id rather than a string: 0 is the "no resource"
+            // value, so that is what "set" means here.
+            assertTrue("$oem title must be set", guidance.titleRes != 0)
             assertTrue(
                 "$oem must link to dontkillmyapp.com",
                 guidance.dontKillMyAppUrl.startsWith("https://dontkillmyapp.com/")
