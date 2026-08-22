@@ -196,4 +196,67 @@ class TimerPersistenceTest {
         assertTrue(later.created)
         assertEquals(2, store.loadRecords(nowElapsed = 16_000L).size)
     }
+
+    @Test
+    fun runningTimersFromAPreviousBootAreDropped() {
+        setBootCount(5L)
+        store.replace(
+            listOf(
+                PersistedTimerRecord(1, "running", 600, 600_000, TimerState.RUNNING, 900_000),
+                PersistedTimerRecord(2, "paused", 60, 30_000, TimerState.PAUSED)
+            )
+        )
+        assertEquals(listOf(1, 2), store.loadTimers().map { it.id })
+
+        // The device rebooted; elapsedRealtime restarted, so the stored
+        // deadline means nothing any more.
+        setBootCount(6L)
+
+        assertEquals(listOf(2), store.loadTimers().map { it.id })
+        assertTrue(store.restoreSnapshot().newlyFinished.isEmpty())
+    }
+
+    @Test
+    fun runningTimersSurviveWithinTheSameBoot() {
+        setBootCount(11L)
+        store.replace(
+            listOf(PersistedTimerRecord(3, "running", 600, 600_000, TimerState.RUNNING, 900_000))
+        )
+
+        assertEquals(listOf(3), store.loadTimers().map { it.id })
+    }
+
+    @Test
+    fun timersWrittenBeforeTheBootStampExistedAreKept() {
+        setBootCount(9L)
+        context.getSharedPreferences("timer_state", Context.MODE_PRIVATE)
+            .edit()
+            .putString(
+                "timers_json",
+                """[{"id":7,"label":"legacy","totalSeconds":600,""" +
+                    """"remainingMillis":600000,"state":"RUNNING","endElapsedRealtime":900000}]"""
+            )
+            .commit()
+
+        assertEquals(listOf(7), TimerStore(context).loadTimers().map { it.id })
+    }
+
+    @Test
+    fun rebootCleanupStillSeesTimersFromTheOldBoot() {
+        setBootCount(2L)
+        store.replace(
+            listOf(PersistedTimerRecord(8, "running", 600, 600_000, TimerState.RUNNING, 900_000))
+        )
+        setBootCount(3L)
+
+        assertEquals(listOf(8), store.removeRunningTimersForReboot().map { it.id })
+    }
+
+    private fun setBootCount(value: Long) {
+        android.provider.Settings.Global.putLong(
+            context.contentResolver,
+            android.provider.Settings.Global.BOOT_COUNT,
+            value
+        )
+    }
 }

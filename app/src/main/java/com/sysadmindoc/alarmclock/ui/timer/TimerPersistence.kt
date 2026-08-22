@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
+import android.provider.Settings
 import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import org.json.JSONArray
@@ -18,7 +19,17 @@ data class PersistedTimerRecord(
     val totalSeconds: Long,
     val remainingMillis: Long,
     val state: TimerState,
-    val endElapsedRealtime: Long = 0L
+    val endElapsedRealtime: Long = 0L,
+    /**
+     * `Settings.Global.BOOT_COUNT` when the record was written, or -1 when the
+     * counter was unreadable.
+     *
+     * endElapsedRealtime is measured against `SystemClock.elapsedRealtime()`,
+     * which resets to zero on every boot. Without knowing which boot a record
+     * belongs to, a pre-reboot deadline either looks days away or looks long
+     * overdue and rings a timer the user never started.
+     */
+    val bootCount: Long = -1L
 ) {
     fun normalized(nowElapsed: Long = SystemClock.elapsedRealtime()): PersistedTimerRecord {
         if (state != TimerState.RUNNING) return this
@@ -55,6 +66,7 @@ data class TimerStartResult(
 @Singleton
 class TimerStore @Inject constructor(@ApplicationContext context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val contentResolver = context.applicationContext.contentResolver
 
     fun loadRecords(nowElapsed: Long = SystemClock.elapsedRealtime()): List<PersistedTimerRecord> {
         return readStoredRecords().map { it.normalized(nowElapsed) }
@@ -89,9 +101,20 @@ class TimerStore @Inject constructor(@ApplicationContext context: Context) {
             )
         }
 
-    private fun readStoredRecords(): List<PersistedTimerRecord> {
+    /** Monotonic per-boot counter (API 24+). Returns -1 when unavailable. */
+    private fun currentBootCount(): Long = runCatching {
+        Settings.Global.getLong(contentResolver, Settings.Global.BOOT_COUNT)
+    }.getOrDefault(-1L)
+
+    /**
+     * @param dropStaleBoot drop RUNNING records written before the current
+     *   boot. The reboot cleanup path passes false because it wants to count
+     *   and report them.
+     */
+    private fun readStoredRecords(dropStaleBoot: Boolean = true): List<PersistedTimerRecord> {
         val raw = prefs.getString(KEY_TIMERS, null).orEmpty()
         if (raw.isBlank()) return emptyList()
+        val bootCount = if (dropStaleBoot) currentBootCount() else -1L
         return runCatching {
             val array = JSONArray(raw)
             buildList {
@@ -106,12 +129,22 @@ class TimerStore @Inject constructor(@ApplicationContext context: Context) {
                             state = runCatching {
                                 TimerState.valueOf(obj.optString("state"))
                             }.getOrDefault(TimerState.IDLE),
-                            endElapsedRealtime = obj.optLong("endElapsedRealtime")
+                            endElapsedRealtime = obj.optLong("endElapsedRealtime"),
+                            bootCount = obj.optLong("bootCount", -1L)
                         )
                     )
                 }
             }
                 .filter { it.id > 0 && it.totalSeconds > 0L && it.state != TimerState.IDLE }
+                // A RUNNING record from a previous boot carries a deadline on a
+                // clock that no longer exists. Drop it rather than ring a
+                // phantom timer or show a countdown of days.
+                .filter { record ->
+                    record.state != TimerState.RUNNING ||
+                        bootCount < 0L ||
+                        record.bootCount < 0L ||
+                        record.bootCount == bootCount
+                }
                 .sortedBy { it.id }
         }.getOrElse { error ->
             Log.w(TAG, "Failed to read persisted timers; clearing corrupt state", error)
@@ -124,6 +157,7 @@ class TimerStore @Inject constructor(@ApplicationContext context: Context) {
         loadRecords(nowElapsed).map { it.toTimerInstance(nowElapsed) }
 
     fun replace(records: List<PersistedTimerRecord>) = synchronized(WRITE_LOCK) {
+        val bootCountNow = currentBootCount()
         val array = JSONArray()
         records
             .filter { it.id > 0 && it.totalSeconds > 0L && it.state != TimerState.IDLE }
@@ -137,6 +171,14 @@ class TimerStore @Inject constructor(@ApplicationContext context: Context) {
                         .put("remainingMillis", record.remainingMillis)
                         .put("state", record.state.name)
                         .put("endElapsedRealtime", record.endElapsedRealtime)
+                        .put(
+                            "bootCount",
+                            if (record.state == TimerState.RUNNING) {
+                                bootCountNow
+                            } else {
+                                record.bootCount
+                            }
+                        )
                 )
             }
         prefs.edit().putString(KEY_TIMERS, array.toString()).apply()
@@ -234,7 +276,7 @@ class TimerStore @Inject constructor(@ApplicationContext context: Context) {
     }
 
     fun removeRunningTimersForReboot(): List<PersistedTimerRecord> = synchronized(WRITE_LOCK) {
-        val records = readStoredRecords()
+        val records = readStoredRecords(dropStaleBoot = false)
         val running = records.filter { it.state == TimerState.RUNNING }
         if (running.isNotEmpty()) {
             replace(records.filterNot { it.state == TimerState.RUNNING })
