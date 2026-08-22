@@ -113,6 +113,37 @@ private fun visibleBottomNavItems(
     }
 }
 
+/**
+ * Routes an `acx://navigate/...` deep link is allowed to reach.
+ *
+ * MainActivity's VIEW filter is exported and unpermissioned, so any installed
+ * app can send one of these. Handing the raw path to NavController throws
+ * IllegalArgumentException for an unknown destination, which killed the
+ * process from outside the app; the onboarding and shared-import routes also
+ * need state the caller cannot supply. Everything below is a launcher
+ * shortcut target (res/xml/shortcuts.xml) or a top-level tab.
+ */
+private val deepLinkRoutes: Set<String> =
+    bottomNavItems.map { it.screen.route }.toSet() +
+        setOf(Screen.Stats.route, Screen.Bedtime.route, Screen.Stopwatch.route)
+
+/**
+ * Maps the path segments of an `acx://navigate/...` URI to a navigable route,
+ * or null when the caller asked for something that is not on the allowlist.
+ *
+ * Pure and internal so the allowlist is directly testable.
+ */
+internal fun resolveDeepLinkRoute(pathSegments: List<String>): String? {
+    val segments = pathSegments.filter { it.isNotBlank() }
+    if (segments.isEmpty()) return null
+    if (segments.size == 2 && segments[0] == "alarm_edit") {
+        val alarmId = segments[1].toLongOrNull() ?: return null
+        return Screen.AlarmEdit.createRoute(alarmId)
+    }
+    if (segments.size != 1) return null
+    return segments[0].takeIf { it in deepLinkRoutes }
+}
+
 private const val ONBOARDING_VERSION = 1
 private const val ONBOARDING_DONE_KEY = "onboarding_complete_v$ONBOARDING_VERSION"
 
@@ -177,8 +208,8 @@ fun AppNavigation(
     LaunchedEffect(Unit) {
         val data = (context as? android.app.Activity)?.intent?.data ?: return@LaunchedEffect
         if (data.scheme == "acx" && data.host == "navigate") {
-            val targetRoute = data.pathSegments.joinToString("/")
-            if (targetRoute.isNotBlank()) {
+            val targetRoute = resolveDeepLinkRoute(data.pathSegments) ?: return@LaunchedEffect
+            runCatching {
                 navController.navigate(targetRoute) {
                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                     launchSingleTop = true
