@@ -51,6 +51,15 @@ class WakeConfirmWorker @AssistedInject constructor(
         // 7000 + timerId, also unbounded) so a long-lived install with alarm
         // ids past 2000 can't collide wake-confirm and timer notifications.
         const val NOTIF_ID_BASE = 500_000
+
+        /**
+         * Width of the wake-confirm band. Without it the id grew with the alarm
+         * id and eventually reached the Hue sunrise band at 800000.
+         */
+        private const val NOTIF_ID_RANGE = 100_000L
+
+        internal fun notificationId(alarmId: Long): Int =
+            (NOTIF_ID_BASE + (alarmId % NOTIF_ID_RANGE)).toInt()
         // Time the user has to tap "I'm awake" before the alarm re-fires.
         const val CONFIRM_WAIT_SECONDS = 60
         private const val CONFIRM_WAIT_MS = CONFIRM_WAIT_SECONDS * 1_000L
@@ -263,7 +272,7 @@ class WakeConfirmWorker @AssistedInject constructor(
         }
         val fullScreenPi = PendingIntent.getActivity(
             context,
-            (NOTIF_ID_BASE + alarmId).toInt(),
+            notificationId(alarmId),
             activityIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -288,13 +297,13 @@ class WakeConfirmWorker @AssistedInject constructor(
             .setOngoing(true)
             .build()
 
-        nm.notify((NOTIF_ID_BASE + alarmId).toInt(), notification)
+        nm.notify(notificationId(alarmId), notification)
         return true
     }
 
     private fun cancelPrompt(alarmId: Long) {
         context.getSystemService(NotificationManager::class.java)
-            ?.cancel((NOTIF_ID_BASE + alarmId).toInt())
+            ?.cancel(notificationId(alarmId))
     }
 
     private suspend fun recordIncident(

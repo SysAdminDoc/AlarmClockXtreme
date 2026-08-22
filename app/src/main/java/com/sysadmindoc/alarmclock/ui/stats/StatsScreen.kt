@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -49,7 +50,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -121,6 +125,17 @@ fun StatsScreen(
         else -> "Track consistency, snooze behavior, and which mornings are easiest to handle."
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    // Clearing history is the one destructive action here, and it used to give
+    // no sign either way.
+    LaunchedEffect(state.statusMessage) {
+        state.statusMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.consumeStatusMessage()
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -489,6 +504,14 @@ fun StatsScreen(
             },
             containerColor = SurfaceMedium,
             shape = RoundedCornerShape(12.dp)
+        )
+    }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
         )
     }
 }

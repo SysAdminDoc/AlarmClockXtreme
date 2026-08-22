@@ -28,7 +28,9 @@ data class StatsUiState(
     val sleepWakeAnalytics: SleepWakeAnalytics = SleepWakeAnalytics(),
     val actigraphySessions: List<ActigraphySession> = emptyList(),
     val sleepNeedMinutes: Long = DEFAULT_SLEEP_NEED_MINUTES,
-    val wakeConsistency: WakeConsistencyCalculator.Result? = null
+    val wakeConsistency: WakeConsistencyCalculator.Result? = null,
+    /** One-shot feedback for an action the user took, cleared once shown. */
+    val statusMessage: String? = null
 )
 
 @HiltViewModel
@@ -95,9 +97,20 @@ class StatsViewModel @Inject constructor(
 
     fun clearHistory() {
         viewModelScope.launch {
-            eventRepository.clearHistory()
+            // An unguarded Room failure here took the whole process down from a
+            // button the user pressed on purpose.
+            val cleared = runCatching { eventRepository.clearHistory() }.isSuccess
+            _uiState.value = _uiState.value.copy(
+                statusMessage = if (cleared) "History cleared" else "Could not clear history"
+            )
             // observeRecent() will fire with an empty list and trigger getStats()
             // in the collect block above, so no manual reload needed.
+        }
+    }
+
+    fun consumeStatusMessage() {
+        if (_uiState.value.statusMessage != null) {
+            _uiState.value = _uiState.value.copy(statusMessage = null)
         }
     }
 

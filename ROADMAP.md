@@ -54,22 +54,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P3
 
-- [ ] P3 — Wake-confirm notification id band (500000 + alarmId) is unbounded and can enter the Hue band (800000-899999)
-  Category: maintainability
-  Where: worker/WakeConfirmWorker.kt:52 (`NOTIF_ID_BASE + alarmId`, no modulo); worker/HueSunriseNotifications.kt:22-23 (clamped); CLAUDE.md notification-ID table (missing SnoozeCountdown=3003, DirectBoot=1011, OnboardingTestAlarm=1907, Hue=800000+); `alarm.id + 30000` reused by NextAlarmNotifier.kt:157 (broadcast) and MissedAlarmUnlockReceiver.kt:182 (activity)
-  Fix: clamp wake-confirm to `500000 + (alarmId % 100000)`, re-band the MissedAlarmUnlockReceiver activity code to its own base, and update the CLAUDE.md table.
-  Acceptance: a unit test asserts every notification/request-code band is disjoint for alarmId in 0..1_000_000.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P3 — `MissedAlarmUnlockReceiver` posts on the live AlarmService notification id without a comment
-  Category: maintainability
-  Where: receiver/MissedAlarmUnlockReceiver.kt:218 (`NOTIFICATION_ID` 1001)
-  Fix: add a comment explaining the intentional replacement, or use a dedicated id so a ringing alarm's foreground notification cannot be overwritten.
-  Acceptance: comment present or separate id with a test.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — Dead code and duplicated helpers
   Category: maintainability
   Where: ui/components/AppComponents.kt:813-814 (`AppCardBorderColor`, comment claims callers that do not exist); ui/settings/SettingsReadinessSections.kt:501-617 (seven private composables/helpers with zero callers: `standbyBucketDescription`, `testAlarmProofStatusLabel`, `testAlarmProofDescription`, `guardianReadinessDescription`, `guardianReadinessStatusLabel`, `guardianReadinessActionLabel`, `WakeReadinessRow`) plus 27 unused string resources (lint `UnusedResources`, strings.xml:709-878, mostly the same readiness block); ui/timer/TimerViewModel.kt `toggleGradualVolume/toggleKeepScreenOn/toggleOverrideVolume/toggleVibration`; ui/settings/SettingsViewModel.kt `requestDndAccess/requestExactAlarmAccess/requestFullScreenAlarmAccess/updateSleepSoundFade/updateSleepSoundTimer`; ui/alarmlist/AlarmListViewModel.kt `selectAll`; ui/alarmedit/AlarmEditViewModel.kt `addRingtoneToPool/removeRingtoneFromPool`; ui/alarmedit/AlarmEditSupport.kt `CollapsibleGroup`; util/CrashLogger.kt `getLogs/clearLogs`; service/YouTubeAudioDownloader.kt `isEngineOutdated`; ui/timer/TimerScreen.kt:368-383 `TimeUnit`; duplicated 12h/24h time formatting in seven places (service/AlarmService.kt:1917, ui/alarmlist/AlarmListScreen.kt:1565, service/NextAlarmNotifier.kt:164, directboot/DirectBootAlarmCache.kt:255, ui/alarmfiring/AlarmFiringScreen.kt:267, ui/alarmedit/AlarmEditScheduleSections.kt:95, service/BedtimeZenRuleManager.kt:387) with mixed `Locale.US`/default locale; three parallel challenge-label tables (AlarmListScreen.kt:1575, TemplatePickerSheet.kt:245, AlarmEditSupport.kt:863/903/995); `BuildConfig.USE_MEDIA3_ALARM_PLAYER` is `true` for every variant so `startMediaPlayerAudioInternal` (AlarmService.kt:1245-1467) is unreachable in shipped builds
@@ -93,22 +77,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: S
 
-- [ ] P3 — World clock per-city action uses the overflow glyph for a single "Remove" action
-  Category: ux
-  Where: ui/worldclock/WorldClockScreen.kt:257-263
-  Fix: use `Icons.Default.Delete` (or a real menu) and keep the existing confirmation/undo.
-  Acceptance: the icon matches the action.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P3 — Stats "Clear history" is not guarded against repository exceptions
-  Category: reliability
-  Where: ui/stats/StatsViewModel.kt:96-102 (`viewModelScope.launch { eventRepository.clearHistory() }` without try/catch; a Room exception crashes the process); no success feedback
-  Fix: wrap in `runCatching`, emit a snackbar ("History cleared" / "Couldn't clear history").
-  Acceptance: an injected DAO exception shows the error snackbar instead of crashing.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P3 — BedtimeReceiver samples the microphone from a background broadcast and persists a false "quiet room" baseline
   Category: correctness
   Where: receiver/BedtimeReceiver.kt:211-213 → service/BedtimeNoiseBaselineSampler.kt:89-108
@@ -116,14 +84,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Fix: sample only from the Bedtime screen (foreground) or from the Sonar foreground service; skip when `RECORD_AUDIO` is not held.
   Acceptance: the stored baseline changes only after an in-app measurement.
   Confidence: Likely
-  Effort: S
-
-- [ ] P3 — SmartAlarmService wake lock is reference-counted across overlapping windows
-  Category: reliability
-  Where: service/SmartAlarmService.kt:85, :121 (acquire per `onStartCommand`), :277 (single release in `onDestroy`), :125-130 (first session dropped silently)
-  Fix: `wakeLock.setReferenceCounted(false)`; log when a second window pre-empts the first.
-  Acceptance: two overlapping smart windows leave no held wake lock after `onDestroy` (`adb shell dumpsys power | grep acx`).
-  Confidence: Verified
   Effort: S
 
 - [ ] P3 — Crash-log scrubber misses bare hostnames / IPs; yt engine failure reason is exported unscrubbed

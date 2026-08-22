@@ -6,6 +6,13 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Clearing alarm history says whether it worked instead of taking the app down
+  if the database refuses.
+- Removing a world clock shows a delete icon rather than an overflow glyph that
+  promised a menu.
+- Two smart-wake windows that overlap no longer leave the processor awake, and
+  a wake-confirmation notification can no longer collide with a Hue sunrise one
+  on a long-lived install.
 - An NFC, barcode, photo or Wi-Fi dismiss challenge with nothing saved to check
   against now falls back to a maths problem and explains why. It used to accept
   anything, so an imported alarm could be dismissed without solving it.

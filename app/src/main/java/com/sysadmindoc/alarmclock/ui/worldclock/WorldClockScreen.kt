@@ -258,7 +258,8 @@ private fun WorldClockCard(
         )
         IconButton(onClick = onRemove) {
             Icon(
-                Icons.Default.MoreVert,
+                // The overflow glyph promised a menu; there is only one action.
+                Icons.Default.Delete,
                 contentDescription = stringResource(R.string.world_remove_city, entry.cityName),
                 tint = TextMuted
             )

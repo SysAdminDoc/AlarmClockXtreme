@@ -84,6 +84,10 @@ object AlarmFullScreenFallback {
             } else {
                 builder.setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             }
+            // Deliberately the live alarm notification id: this fallback stands
+            // in for the foreground service that could not start, so it should
+            // occupy the same slot rather than sit beside a notification that
+            // does not exist.
             NotificationManagerCompat.from(context)
                 .notify(AlarmService.NOTIFICATION_ID, builder.build())
             true
