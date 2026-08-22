@@ -12,17 +12,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P1
 
-- [ ] P1 — Spotify alarms can ring silently: delegation has no playback check and no fallback
-  Category: reliability
-  Where: service/AlarmService.kt:859-898 `startAudioInternal()` (spotify branch `startActivity(...)` then `return`), :401-470 `startAlarm()` ordering, :591-609 backup-sound job (raises STREAM_ALARM volume only, never starts a player); ui/alarmedit/AlarmEditIntegrationSections.kt:86-100 (Spotify section hint promises a fallback "if unavailable")
-  Problem: once Spotify is installed the service fires an ACTION_VIEW intent with `FLAG_ACTIVITY_NEW_TASK` from a foreground service, records `SPOTIFY_DELEGATED` and returns without starting any in-app audio, MediaSession-based playback check, or watchdog. Two silent-failure modes: (a) Android 10+ background-activity-start restrictions can block the launch (the firing activity is started a few ms earlier, so the app may or may not count as visible); (b) Spotify opens but does not start playback (logged-out, offline, free-tier restrictions, lock screen). In both cases nothing plays and the backup-sound escalation only turns the volume up on silence. The Media3 path by contrast has an 8 s READY watchdog that escalates to the default tone.
-  Evidence: code trace above; issue #50 reports exactly "I don't have sound at all, nor a backup alarm sound if Spotify is not working". Refuted-by-fresh-agent: see status note at the end of this section.
-  Fix: after `startActivity(spotifyIntent)`, arm the same `PLAYBACK_START_TIMEOUT_MS` watchdog used by Media3: register an `AudioManager.OnAudioFocusChangeListener`/`AudioPlaybackCallback` (API 26+) and if no non-ACX playback with `USAGE_MEDIA` is active after ~8 s, call `startMedia3DefaultFallback(alarm)` and record `SPOTIFY_FALLBACK`. Catch `ActivityNotFoundException`/`SecurityException` from the launch and fall back immediately. Update the hint string to say the default tone starts if Spotify does not begin playing within a few seconds. Also accept `https://open.spotify.com/playlist/...` links in the hint text (they already work).
-  Acceptance: with Spotify installed but logged out, the alarm falls back to the default tone within 10 s; incident stream shows `SPOTIFY_DELEGATED` then `SPOTIFY_FALLBACK`.
-  Confidence: Likely
-  Effort: M
-  Reported: #50 — "I don't find a way to use Spotify … I don't have sound at all, nor a backup alarm sound if Spotify is not working. I pasted a playlist link (https://open.spotify.com/track/… format)"
-
 - [ ] P1 — Backup import applies secrets, webhook targets and Guardian phone numbers with no per-field consent or size cap
   Category: security
   Where: data/backup/BackupManager.kt:523-526 `readJsonFromUri()` (`readText()` with no cap), :600-618 `applyBackup()` (copies webhookEnabled/webhookUrl/webhookSigningSecret/hueBridgeIp/hueApiKey/googleRoutesApiKey/guardianContactPhone), :677-690 import flow; data/backup/AlarmBackupMappers.kt:127-128 (guardianEnabled/guardianPhone imported verbatim); ui/settings/SettingsBackupSections.kt:667-796 (preview lists categories only, no "skip settings" toggle); service/AlarmService.kt:611-627 (no global Guardian master switch before enqueueing GuardianWorker); data/backup/FossifyImportManager.kt:87-97 (`MAX_BYTES`/`MAX_ALARMS` exist only on the Fossify path)

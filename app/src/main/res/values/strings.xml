@@ -599,7 +599,7 @@
     <string name="alarm_edit_holidays_hint">Requires holiday auto-skip and country code configured in Settings → Integrations.</string>
     <string name="alarm_edit_spotify_uri">Spotify URI (for example, spotify:track:…)</string>
     <string name="alarm_edit_default_ringtone_placeholder">Leave blank to use default ringtone</string>
-    <string name="alarm_edit_spotify_hint">Requires Spotify installed. Falls back to default ringtone if unavailable.</string>
+    <string name="alarm_edit_spotify_hint">Needs the Spotify app installed and signed in. Paste a track, album or playlist link. If Spotify has not started playing within a few seconds, your default alarm tone takes over.</string>
     <string name="alarm_edit_hue_sunrise">Sunrise light simulation</string>
     <string name="alarm_edit_hue_start">Start lights before alarm</string>
     <string name="alarm_edit_hue_hint">Requires Hue bridge IP and API key configured in Settings → Philips Hue.</string>

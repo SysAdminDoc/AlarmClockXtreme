@@ -910,7 +910,13 @@ class AlarmService : Service() {
                         reasonCode = "SPOTIFY_DELEGATED",
                         source = "AlarmService"
                     )
-                    return  // Spotify handles playback; no in-app player needed
+                    // Delegation is a promise, not proof. A background-activity
+                    // start can be refused without throwing, and Spotify can
+                    // open without playing (logged out, offline, free tier).
+                    // Either way the alarm would be completely silent, so watch
+                    // for real playback and fall back if none arrives.
+                    armSpotifyPlaybackWatchdog(alarm)
+                    return
                 }
             } catch (_: Exception) {
                 // Spotify not installed or URI invalid — fall through to default audio
@@ -1129,6 +1135,35 @@ class AlarmService : Service() {
                 releasePlaybackIfCurrent(playback)
                 escalateMedia3PlaybackFailure(alarm)
             }
+        }
+    }
+
+    /**
+     * Falls back to the in-app tone when nothing is actually playing a few
+     * seconds after Spotify was handed the alarm.
+     */
+    private fun armSpotifyPlaybackWatchdog(alarm: Alarm) {
+        cancelPlaybackWatchdog()
+        playbackWatchdogJob = serviceScope.launch {
+            delay(PLAYBACK_START_TIMEOUT_MS)
+            if (currentAlarmId != alarm.id || alarmPlayback != null) return@launch
+            val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager
+            if (audioManager?.isMusicActive == true) {
+                recordIncidentAsync(
+                    type = AlarmIncidentEvent.TYPE_AUDIO,
+                    status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                    reasonCode = "SPOTIFY_PLAYBACK_CONFIRMED",
+                    source = "AlarmService"
+                )
+                return@launch
+            }
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_AUDIO,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "SPOTIFY_FALLBACK",
+                source = "AlarmService"
+            )
+            startMedia3DefaultFallback(alarm)
         }
     }
 

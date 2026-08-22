@@ -6,6 +6,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- A Spotify alarm no longer rings silently. Handing playback to Spotify was
+  treated as proof that it started, so a logged-out or offline Spotify, or a
+  launch the system refused, left nothing playing at all. The alarm now checks
+  a few seconds later and falls back to your default tone.
 - Hue sunrise now completes for any pre-wake length. The ramp ran as one
   worker that WorkManager stopped after ten minutes, so a 30-minute sunrise
   stalled around a third brightness and restarted from the bottom. Brightness
