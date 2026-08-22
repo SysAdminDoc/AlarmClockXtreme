@@ -15,6 +15,14 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   the navigation host and take the process with it.
 - The Wi-Fi dismiss challenge checks the network you saved on the alarm.
   Any connected network used to unlock it.
+- Button labels, checked switch thumbs and swatch checkmarks now follow the
+  accent colour you picked. On the lighter presets they were near-white on
+  near-white, so the Create alarm label was effectively invisible. The violet
+  preset was brightened so it also reads as label text on a card.
+- The Edit row in an alarm's overflow menu has an icon again, matching the
+  other five rows.
+- Alarm editor category cards wrap their content instead of reserving a fixed
+  height, which removes the empty band under every one-line summary.
 
 ### Internal
 

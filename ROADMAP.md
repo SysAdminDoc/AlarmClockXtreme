@@ -44,16 +44,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: M
 
-- [ ] P1 — Accent presets make primary buttons and switch thumbs unreadable (onPrimary never adapts)
-  Category: a11y
-  Where: ui/theme/Theme.kt:77 (`onPrimary = TextPrimary`), :139-143 (`copy(primary = parsedAccent, secondary = parsedAccent, surfaceTint = parsedAccent)`); consumers with `buttonColors(containerColor = MaterialTheme.colorScheme.primary)` and no `contentColor`: ui/alarmedit/AlarmEditScreen.kt:445 (Save/Create button, spinner hardcoded `TextPrimary` at :452), ui/alarmlist/AlarmListScreen.kt:783, :804, :978, ui/alarmedit/AlarmEditSupport.kt:815; ui/components/AppComponents.kt:773-780 `appSwitchColors()` (`checkedThumbColor = TextPrimary` on `checkedTrackColor = primary`); ui/settings/SettingsPersonalizationSection.kt:466-471 presets, :545 `lightAccentSwatches` (knows which presets are light but only fixes the picker checkmark)
-  Problem: `#F1F5FB` label text on the presets measures blue 2.5:1, violet 4.0:1, coral 2.4:1, amber 1.6:1, mint 1.7:1, mono 1.2:1. All fail WCAG AA for 16 sp bold button text; on Mono the "Create alarm" label and the checked switch thumb are effectively invisible (confirmed by screenshot on the API 35 emulator). Violet (#7C5CFF) also fails as text on `SurfaceCard` (3.8:1) wherever `color = MaterialTheme.colorScheme.primary` is used for labels and chips.
-  Evidence: contrast computed from the hex values; screenshot 11-mono-newalarm shows a blank button. Refuted-by-fresh-agent: CONFIRMED.
-  Fix: in `AlarmClockXtremeTheme` derive `onPrimary`/`onSecondary` from the accent's luminance (`if (accent.luminance() > 0.4f) SurfaceDark else TextPrimary`) and pass them into the `copy(...)`; route the Save-button spinner through `LocalContentColor`; in `appSwitchColors()` use `colorScheme.onPrimary` for `checkedThumbColor`; for violet either darken `SurfaceCard` text usages to `BlueLight` or drop the preset. Add a unit test over the six presets asserting `onPrimary` contrast ≥ 4.5:1.
-  Acceptance: with Mono and Amber selected, the New alarm "Create alarm" label and the checked switch thumb are clearly visible; the new contrast test passes for all presets.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P1 — Backup import applies secrets, webhook targets and Guardian phone numbers with no per-field consent or size cap
   Category: security
   Where: data/backup/BackupManager.kt:523-526 `readJsonFromUri()` (`readText()` with no cap), :600-618 `applyBackup()` (copies webhookEnabled/webhookUrl/webhookSigningSecret/hueBridgeIp/hueApiKey/googleRoutesApiKey/guardianContactPhone), :677-690 import flow; data/backup/AlarmBackupMappers.kt:127-128 (guardianEnabled/guardianPhone imported verbatim); ui/settings/SettingsBackupSections.kt:667-796 (preview lists categories only, no "skip settings" toggle); service/AlarmService.kt:611-627 (no global Guardian master switch before enqueueing GuardianWorker); data/backup/FossifyImportManager.kt:87-97 (`MAX_BYTES`/`MAX_ALARMS` exist only on the Fossify path)
@@ -159,27 +149,6 @@ Refutation status: every P0/P1 above was handed to a fresh-context agent instruc
   Confidence: Verified
   Effort: S
   Reported: #49 — "when I scroll down, click on a sub-menu (like Advanced behavior), then go back, my scroll position should be saved"
-
-- [ ] P2 — Editor category cards reserve 104 dp and top-align their content, leaving a blank band in every card
-  Category: visual
-  Where: ui/alarmedit/AlarmEditSupport.kt:389 (`heightIn(min = 104.dp)` on `AlarmEditorCategoryCard`); ui/components/AppComponents.kt `AppSurfaceCard` (inner Column has no vertical centering)
-  Problem: every card on the editor overview shows title + one-line summary at the top and roughly 40 dp of empty card below it; the reporter read this as broken layout. Reproduced on the API 35 emulator (screenshot 06-edit-bottom).
-  Evidence: rendered card height 273 px at 2.625 density = 104 dp, exactly the min-height.
-  Fix: drop `heightIn(min = 104.dp)` and let the card wrap, or keep the min-height and wrap the Row in a `Box(contentAlignment = Alignment.CenterStart)` with `fillMaxHeight()`; keep two-column rows equal-height with `Modifier.height(IntrinsicSize.Min)` on the Row.
-  Acceptance: no empty band below the summary text on phone widths; two-column tablet rows stay aligned.
-  Confidence: Verified
-  Effort: S
-  Reported: #48 — "Menu boxes have extra blank space on the bottom" (v1.15.32, Pixel 4a, Android 13; screenshot attached to the issue)
-
-- [ ] P2 — "Edit" item in the alarm overflow menu is the only entry without an icon
-  Category: visual
-  Where: ui/alarmlist/AlarmListScreen.kt:1317-1320 (`DropdownMenuItem(text = { Text("Edit") })` with no `leadingIcon`; Duplicate/Share/Skip/History/Delete all pass one)
-  Problem: the first menu row is visibly misaligned against the others. Reproduced on the emulator (screenshot 04-menu).
-  Fix: add `leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(18.dp)) }` and import `Icons.Default.Edit`; move the label to `stringResource(R.string.edit_alarm)` while there.
-  Acceptance: all six overflow rows share the icon column.
-  Confidence: Verified
-  Effort: S
-  Reported: #47 — "In the alarm menu, the 'Edit' button is missing its icon" (v1.15.32, Pixel 4a, Android 13)
 
 - [ ] P2 — Snooze settings are split across two sections and mission chaining sits apart from the challenge picker
   Category: ux
