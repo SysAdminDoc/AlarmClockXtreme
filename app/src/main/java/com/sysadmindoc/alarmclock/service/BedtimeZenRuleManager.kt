@@ -70,7 +70,7 @@ object BedtimeZenRuleManager {
             enabled = settings.bedtimeDndEnabled,
             accessGranted = accessGranted,
             active = settings.bedtimeDndEnabled && condition.state == Condition.STATE_TRUE,
-            summary = statusSummary(settings, schedule, accessGranted, condition.state),
+            summary = statusSummary(context, settings, schedule, accessGranted, condition.state),
             ruleId = storedRuleId(context).orEmpty()
         )
     }
@@ -95,7 +95,7 @@ object BedtimeZenRuleManager {
                 enabled = false,
                 accessGranted = accessGranted,
                 active = false,
-                summary = "Off",
+                summary = appContext.getString(R.string.bedtime_dnd_status_off),
                 ruleId = storedRuleId(appContext).orEmpty()
             )
         }
@@ -105,7 +105,7 @@ object BedtimeZenRuleManager {
                 enabled = true,
                 accessGranted = false,
                 active = false,
-                summary = "Needs DND access",
+                summary = appContext.getString(R.string.bedtime_dnd_status_needs_access),
                 ruleId = storedRuleId(appContext).orEmpty()
             )
         }
@@ -137,7 +137,7 @@ object BedtimeZenRuleManager {
                 enabled = true,
                 accessGranted = true,
                 active = condition.state == Condition.STATE_TRUE,
-                summary = statusSummary(settings, schedule, accessGranted = true, condition.state),
+                summary = statusSummary(appContext, settings, schedule, accessGranted = true, condition.state),
                 ruleId = ruleId
             )
         }.getOrElse { error ->
@@ -145,7 +145,7 @@ object BedtimeZenRuleManager {
                 enabled = true,
                 accessGranted = true,
                 active = false,
-                summary = "Rule sync failed",
+                summary = appContext.getString(R.string.bedtime_dnd_status_sync_failed),
                 ruleId = storedRuleId(appContext).orEmpty(),
                 error = error.message ?: error::class.java.simpleName
             )
@@ -246,17 +246,28 @@ object BedtimeZenRuleManager {
     }
 
     private fun statusSummary(
+        context: Context,
         settings: AppSettings,
         schedule: BedtimeZenSchedule,
         accessGranted: Boolean,
         conditionState: Int
     ): String {
-        if (!settings.bedtimeDndEnabled) return "Off"
-        if (!accessGranted) return "Needs DND access"
+        if (!settings.bedtimeDndEnabled) {
+            return context.getString(R.string.bedtime_dnd_status_off)
+        }
+        if (!accessGranted) {
+            return context.getString(R.string.bedtime_dnd_status_needs_access)
+        }
         return if (conditionState == Condition.STATE_TRUE) {
-            "Active until ${formatTime(schedule.end, settings.is24HourFormat)}"
+            context.getString(
+                R.string.bedtime_dnd_status_active_until,
+                formatTime(schedule.end, settings.is24HourFormat)
+            )
         } else {
-            "Ready at ${formatTime(schedule.start, settings.is24HourFormat)}"
+            context.getString(
+                R.string.bedtime_dnd_status_ready_at,
+                formatTime(schedule.start, settings.is24HourFormat)
+            )
         }
     }
 

@@ -109,7 +109,7 @@ class DirectBootAlarmService : Service() {
         val text = when {
             label.isNotBlank() -> label
             timeLabel.isNotBlank() -> timeLabel
-            else -> "Alarm"
+            else -> getString(R.string.direct_boot_alarm_title)
         }
 
         val fullScreenIntent = DirectBootAlarmActivity.fullScreenIntent(
@@ -119,7 +119,7 @@ class DirectBootAlarmService : Service() {
         )
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Alarm")
+            .setContentTitle(getString(R.string.direct_boot_alarm_title))
             .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -215,10 +215,10 @@ class DirectBootAlarmService : Service() {
     private fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Direct Boot Alarm",
+            getString(R.string.notif_direct_boot_channel_name),
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
-            description = "Fallback alarm before the device is unlocked after reboot"
+            description = getString(R.string.notif_direct_boot_channel_description)
             setBypassDnd(true)
             lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             setSound(null, null)

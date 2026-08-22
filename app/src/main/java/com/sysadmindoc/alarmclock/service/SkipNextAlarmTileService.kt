@@ -89,8 +89,8 @@ class SkipNextAlarmTileService : TileService() {
             val subtitleCandidate: String?
             val state: Int
             if (next == null || next.nextTriggerTime <= 0L) {
-                label = "No alarm"
-                subtitleCandidate = "Tap to re-check"
+                label = getString(R.string.tile_no_alarm)
+                subtitleCandidate = getString(R.string.tile_tap_to_recheck)
                 state = Tile.STATE_INACTIVE
             } else {
                 val time = LocalDateTime.ofInstant(
@@ -98,7 +98,7 @@ class SkipNextAlarmTileService : TileService() {
                     ZoneId.systemDefault()
                 )
                 val timeLabel = time.format(DateTimeFormatter.ofPattern("EEE h:mm a"))
-                label = "Skip $timeLabel"
+                label = getString(R.string.tile_skip, timeLabel)
                 subtitleCandidate = AlarmPublicText.quickSettingsSubtitle(next.label, hideLabel)
                 state = Tile.STATE_ACTIVE
             }

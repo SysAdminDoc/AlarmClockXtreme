@@ -213,18 +213,10 @@ val unlocalizedComposeFiles = setOf(
     "data/remote/WeatherApi.kt",
     "data/repository/CalendarRepository.kt",
     "data/support/SupportExportManager.kt",
-    "directboot/DirectBootAlarmService.kt",
     "domain/BreathingExercise.kt",
     "domain/ChronotypeEstimator.kt",
     "domain/WakeConsistencyCalculator.kt",
-    "receiver/BedtimeReceiver.kt",
     "service/AlarmPostDismissController.kt",
-    "service/AlarmService.kt",
-    "service/BedtimeZenRuleManager.kt",
-    "service/NextAlarmNotifier.kt",
-    "service/SkipNextAlarmTileService.kt",
-    "service/SmartAlarmService.kt",
-    "service/SonarSleepService.kt",
     "service/WebhookService.kt",
     "service/YouTubeAudioDownloader.kt",
     "util/ManufacturerCompat.kt",
@@ -279,7 +271,14 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
             Regex("""\b(?:$uiTextAttributes)\s*=\s*"([^"\r\n]*)""""),
             // Text that never touches a Compose attribute but is still read.
             Regex("""Toast\.makeText\s*\([^,]*,\s*"([^"\r\n]*)""""),
-            Regex("""\bshowSnackbar\s*\(\s*"([^"\r\n]*)"""")
+            Regex("""\bshowSnackbar\s*\(\s*"([^"\r\n]*)""""),
+            // Notification and tile builders. These are setter calls, not
+            // assignments, so neither pattern above could see them, and every
+            // one of them is a line on the lock screen.
+            Regex(
+                """\.set(?:ContentTitle|ContentText|SubText|Ticker|ContentDescription)""" +
+                    """\s*\(\s*"([^"\r\n]*)""""
+            )
         )
         // `text = if (x) "A" else "B"` and `Outcome.WIN -> "You won"`: the
         // literal never sits directly after the `=`, so the patterns above

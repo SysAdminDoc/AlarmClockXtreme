@@ -2182,7 +2182,14 @@ class AlarmService : Service() {
         val notification = NotificationCompat.Builder(this, CHANNEL_MISSED)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(getString(R.string.notif_missed_title))
-            .setContentText("$label at $timeStr was auto-silenced after $autoSilenceMinutes minutes")
+            .setContentText(
+                getString(
+                    R.string.notif_missed_auto_silenced,
+                    label,
+                    timeStr,
+                    autoSilenceMinutes
+                )
+            )
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)

@@ -287,8 +287,12 @@ class SmartAlarmService : Service(), SensorEventListener {
 
     private fun createNotificationChannel() {
         val nm = getSystemService(NotificationManager::class.java)
-        val ch = NotificationChannel(CHANNEL_SMART, "Smart Alarm", NotificationManager.IMPORTANCE_LOW).apply {
-            description = "Smart sleep phase detection"
+        val ch = NotificationChannel(
+            CHANNEL_SMART,
+            getString(R.string.notif_smart_alarm_channel_name),
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = getString(R.string.notif_smart_alarm_channel_description)
         }
         nm.createNotificationChannel(ch)
     }

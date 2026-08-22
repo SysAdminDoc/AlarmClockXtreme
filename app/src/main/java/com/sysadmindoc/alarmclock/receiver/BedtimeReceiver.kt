@@ -295,9 +295,9 @@ class BedtimeReceiver : BroadcastReceiver() {
 
         val notification = Notification.Builder(context, CHANNEL_BEDTIME_COUNTDOWN)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Wind down soon")
+            .setContentTitle(context.getString(R.string.bedtime_countdown_title))
             .setContentText(formatRemaining(reminderTimeMillis - now))
-            .setSubText("Bedtime countdown")
+            .setSubText(context.getString(R.string.bedtime_countdown_subtext))
             .setOngoing(true)
             .setAutoCancel(false)
             .setOnlyAlertOnce(true)

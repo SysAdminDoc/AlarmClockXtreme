@@ -64,10 +64,10 @@ class NextAlarmNotifier @Inject constructor(
     private fun createChannel() {
         val channel = NotificationChannel(
             CHANNEL_PERSISTENT,
-            "Next Alarm",
+            context.getString(R.string.notif_next_alarm_channel_name),
             NotificationManager.IMPORTANCE_LOW
         ).apply {
-            description = "Shows when the next alarm will fire"
+            description = context.getString(R.string.notif_next_alarm_channel_description)
             setShowBadge(false)
             enableLights(false)
             enableVibration(false)
@@ -214,7 +214,7 @@ class NextAlarmNotifier @Inject constructor(
         return NotificationCompat.Builder(context, CHANNEL_PERSISTENT)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(context.getString(R.string.notif_next_alarm_title, timeStr))
-            .setContentText("$title - $remaining remaining")
+            .setContentText(context.getString(R.string.notif_next_alarm_body, title, remaining))
             .setOngoing(true)
             .setAutoCancel(false)
             .setSilent(true)
@@ -261,8 +261,8 @@ class NextAlarmNotifier @Inject constructor(
         val notification = Notification.Builder(context, CHANNEL_PERSISTENT)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(context.getString(R.string.notif_next_alarm_title, timeStr))
-            .setContentText("$title - $remaining remaining")
-            .setSubText("Alarm countdown")
+            .setContentText(context.getString(R.string.notif_next_alarm_body, title, remaining))
+            .setSubText(context.getString(R.string.notif_next_alarm_subtext))
             .setOngoing(true)
             .setAutoCancel(false)
             .setOnlyAlertOnce(true)

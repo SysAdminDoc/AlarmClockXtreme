@@ -446,8 +446,13 @@ class SonarSleepService : Service() {
         val nm = getSystemService(NotificationManager::class.java)
         if (nm.getNotificationChannel(CHANNEL_SONAR) == null) {
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_SONAR, "Sonar Sleep Tracking", NotificationManager.IMPORTANCE_LOW)
-                    .apply { description = "Overnight sleep quality monitoring (experimental)" }
+                NotificationChannel(
+                    CHANNEL_SONAR,
+                    getString(R.string.notif_sonar_channel_name),
+                    NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = getString(R.string.notif_sonar_channel_description)
+                }
             )
         }
     }
@@ -455,8 +460,8 @@ class SonarSleepService : Service() {
     private fun buildNotification(): Notification =
         NotificationCompat.Builder(this, CHANNEL_SONAR)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle("Sleep tracking active")
-            .setContentText("Sonar monitoring in progress")
+            .setContentTitle(getString(R.string.notif_sonar_title))
+            .setContentText(getString(R.string.notif_sonar_text))
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
