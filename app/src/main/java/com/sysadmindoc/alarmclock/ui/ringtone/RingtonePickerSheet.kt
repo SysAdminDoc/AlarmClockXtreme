@@ -134,6 +134,11 @@ fun RingtonePickerSheet(
     var youTubeStatusIsError by remember { mutableStateOf(false) }
     var lastDownloadedTitle by rememberSaveable { mutableStateOf<String?>(null) }
     var folderStatus by remember { mutableStateOf("") }
+    // Resolved here rather than in the callback: LocalContext.current.getString
+    // inside a lambda is compose-ui's LocalContextGetResourceValueCall, an
+    // error, because the text would not follow a language change.
+    val folderAddedText = stringResource(R.string.ringtone_folder_added)
+    val folderLostText = stringResource(R.string.ringtone_folder_lost)
 
     val folderLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -147,9 +152,9 @@ fun RingtonePickerSheet(
         }.onSuccess {
             RingtoneFolderStore.addFolder(context, uri)
             ringtoneLoad = loadRingtones(context)
-            folderStatus = context.getString(R.string.ringtone_folder_added)
+            folderStatus = folderAddedText
         }.onFailure {
-            folderStatus = context.getString(R.string.ringtone_folder_lost)
+            folderStatus = folderLostText
         }
     }
 

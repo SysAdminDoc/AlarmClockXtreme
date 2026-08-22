@@ -177,10 +177,6 @@ All notable changes to AlarmClockXtreme will be documented in this file.
   in English no matter what language the phone is set to, so the alarm card,
   the ringing notification and the bedtime cycle list could each render the
   same alarm differently.
-- Notifications, notification channel names, the Wear tile and the widget's
-  empty states can be translated. That includes the channel descriptions in
-  Android's own settings, which is where you look when an alarm did not make a
-  sound.
 - The bedtime card stops saying "stopping" when sonar tracking is really off.
   It checked its own status text, which is overwritten a moment later, so it
   gave up after one try.
@@ -190,7 +186,30 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The challenge picker lists every challenge the app has. It was a
   hand-written list, which is how four challenges shipped in v1.6.0 that you
   could not choose.
-
+- The app can be translated. Every screen, every notification, the widget, the
+  Wear tile and the notification channel names Android shows in its own
+  settings now come from the string resources instead of being written into
+  the code. The build refuses a new hardcoded line anywhere in the app, not
+  just on a screen.
+- The morning briefing says the day and the month in your language. It read
+  them from the English names built into the code, so it spoke English on a
+  phone that had never shown you an English word anywhere else.
+- The alarm card, the template picker, the shared-alarm import, the calendar
+  strip, the stats list and the quick-settings tile all follow your 24-hour
+  setting. The tile was following the phone's setting rather than the app's,
+  which are separate and disagree by default.
+- The Night Clock's "long press anywhere to exit" is readable. It measured
+  2.8:1 against its background, under the 3:1 floor, and it is the only
+  instruction on a screen designed to show nothing else.
+- The Bedtime room measurement is taken while you have Bedtime open. It used to
+  be taken by the bedtime reminder in the background, where Android hands an
+  app silence, so the card said the room was quiet every night no matter how
+  loud it was.
+- Sleep tracking no longer clicks. Its inaudible tone was restarted from the
+  beginning of the waveform on every audio buffer, which put a click into the
+  audible range several times a second for the whole session.
+- The reliability warning names your phone's manufacturer in your language, and
+  its sentences read as sentences.
 ## [1.15.33] - 2026-08-12
 
 ### Changed
