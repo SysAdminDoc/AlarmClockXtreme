@@ -15,7 +15,9 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -45,12 +47,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -110,6 +117,29 @@ fun TimerScreen(
     // depended on the Card honoring the weight allocation, but Card wraps
     // content and ignored it — so on devices with no active timers, only
     // the hero rendered and the bottom of the screen was empty.
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    // Stop sits beside Pause and removes the timer outright. Immediate, per the
+    // no-confirmation-dialogs rule, with an undo as the safety net.
+    val onStopTimer: (Int) -> Unit = { timerId ->
+        viewModel.stop(timerId)
+        if (viewModel.canUndoStop) {
+            scope.launch {
+                val action = snackbarHostState.showSnackbar(
+                    message = "Timer stopped",
+                    actionLabel = "Undo",
+                    duration = SnackbarDuration.Short
+                )
+                if (action == SnackbarResult.ActionPerformed) {
+                    viewModel.undoStop()
+                } else {
+                    viewModel.clearUndoStop()
+                }
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -149,7 +179,7 @@ fun TimerScreen(
                         timer = timer,
                         onPause = { viewModel.pause(timer.id) },
                         onResume = { viewModel.resume(timer.id) },
-                        onStop = { viewModel.stop(timer.id) },
+                        onStop = { onStopTimer(timer.id) },
                         onDismiss = { viewModel.dismissFinished(timer.id) }
                     )
                 }
@@ -164,6 +194,14 @@ fun TimerScreen(
 
         // Breathing room above the floating bottom-nav.
         Spacer(modifier = Modifier.height(24.dp))
+    }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+        )
     }
 }
 

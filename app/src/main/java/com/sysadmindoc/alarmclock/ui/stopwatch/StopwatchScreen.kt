@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,10 +30,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -57,6 +64,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import kotlinx.coroutines.launch
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -66,7 +74,30 @@ fun StopwatchScreen(
     viewModel: StopwatchViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
+    // Reset is immediate, per the project's no-confirmation-dialogs rule, so
+    // the safety net is an undo rather than a prompt.
+    val onReset: () -> Unit = {
+        viewModel.reset()
+        if (viewModel.canUndoReset) {
+            scope.launch {
+                val action = snackbarHostState.showSnackbar(
+                    message = "Stopwatch reset",
+                    actionLabel = "Undo",
+                    duration = SnackbarDuration.Short
+                )
+                if (action == SnackbarResult.ActionPerformed) {
+                    viewModel.undoReset()
+                } else {
+                    viewModel.clearUndo()
+                }
+            }
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -125,7 +156,7 @@ fun StopwatchScreen(
 
                 StopwatchDial(state = state)
 
-                ControlsRow(state = state, viewModel = viewModel)
+                ControlsRow(state = state, viewModel = viewModel, onReset = onReset)
             }
 
             if (state.laps.isEmpty()) {
@@ -159,6 +190,14 @@ fun StopwatchScreen(
                 }
             }
         }
+        }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+        )
     }
 }
 
@@ -257,7 +296,11 @@ private fun StopwatchDial(state: StopwatchUiState) {
 }
 
 @Composable
-private fun ControlsRow(state: StopwatchUiState, viewModel: StopwatchViewModel) {
+private fun ControlsRow(
+    state: StopwatchUiState,
+    viewModel: StopwatchViewModel,
+    onReset: () -> Unit
+) {
     when (state.state) {
         StopwatchState.IDLE -> {
             Button(
@@ -311,7 +354,7 @@ private fun ControlsRow(state: StopwatchUiState, viewModel: StopwatchViewModel) 
                 StopwatchSecondaryButton(
                     label = "Reset",
                     icon = Icons.Default.Refresh,
-                    onClick = viewModel::reset,
+                    onClick = onReset,
                     accent = AccentRed,
                     modifier = Modifier.weight(1f)
                 )

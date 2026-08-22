@@ -6,6 +6,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Resetting the stopwatch or stopping a timer offers Undo. Both actions are
+  one tap next to a control you use often and there was no way back.
 - Settings descriptions wrap instead of being cut off mid-word, so the
   sentence explaining each toggle is readable.
 - A cold launch is dark all the way through. The system splash used to flash

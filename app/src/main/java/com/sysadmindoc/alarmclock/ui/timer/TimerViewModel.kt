@@ -193,8 +193,17 @@ class TimerViewModel @Inject constructor(
         startCountdownUntil(id, endElapsedRealtime)
     }
 
+    /**
+     * Stop sits next to Pause and removes the timer outright, so a mis-tap used
+     * to end a countdown with nothing to fall back on. The action stays
+     * immediate (no confirmation dialogs by project rule) and the screen offers
+     * an undo instead.
+     */
     fun stop(timerId: Int? = null) {
         val id = timerId ?: _uiState.value.activeTimers.firstOrNull()?.id ?: return
+        _uiState.value.activeTimers.firstOrNull { it.id == id }?.let { stopped ->
+            undoStopSnapshot = stopped
+        }
         countdownJobs[id]?.cancel()
         countdownJobs.remove(id)
         runningEndTimes.remove(id)
@@ -206,6 +215,38 @@ class TimerViewModel @Inject constructor(
             activeTimers = _uiState.value.activeTimers.filter { it.id != id }
         )
     }
+
+    /** True when [stop] removed a timer that can still be put back. */
+    val canUndoStop: Boolean get() = undoStopSnapshot != null
+
+    /** Re-creates the timer [stop] removed, with the time it had left. */
+    fun undoStop() {
+        val stopped = undoStopSnapshot ?: return
+        undoStopSnapshot = null
+        val remainingMillis = stopped.remainingMillis.coerceAtLeast(1_000L)
+        val id = timerStore.nextId()
+        val restored = stopped.copy(
+            id = id,
+            remainingMillis = remainingMillis,
+            state = TimerState.RUNNING
+        )
+        _uiState.value = _uiState.value.copy(
+            activeTimers = _uiState.value.activeTimers + restored
+        )
+        val endElapsedRealtime = SystemClock.elapsedRealtime() + remainingMillis
+        val persisted = restored.toPersistedRecord(endElapsedRealtime)
+        runningEndTimes[id] = endElapsedRealtime
+        timerStore.upsert(persisted)
+        TimerAlarmScheduler.schedule(appContext, id, endElapsedRealtime)
+        TimerNotifications.postRunning(appContext, persisted)
+        startCountdownUntil(id, endElapsedRealtime)
+    }
+
+    fun clearUndoStop() {
+        undoStopSnapshot = null
+    }
+
+    private var undoStopSnapshot: TimerInstance? = null
 
     fun dismissFinished(timerId: Int? = null) {
         val id = timerId ?: _uiState.value.activeTimers.firstOrNull { it.state == TimerState.FINISHED }?.id ?: return

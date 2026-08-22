@@ -87,12 +87,47 @@ class StopwatchViewModel @Inject constructor(
         persist()
     }
 
+    /**
+     * Reset throws away the run and every lap with it. The project rule is no
+     * confirmation dialogs, so the escape hatch is an undo instead: one tap
+     * cannot be the end of a session someone was timing.
+     */
     fun reset() {
+        val discarded = _uiState.value
+        val discardedAccumulated = accumulatedTime
         tickerJob?.cancel()
         accumulatedTime = 0
         _uiState.value = StopwatchUiState()
         persist()
+        undoSnapshot = if (discarded.elapsedMillis > 0L || discarded.laps.isNotEmpty()) {
+            UndoSnapshot(discarded, discardedAccumulated)
+        } else {
+            null
+        }
     }
+
+    /** True when [reset] discarded something worth offering back. */
+    val canUndoReset: Boolean get() = undoSnapshot != null
+
+    /** Restores the run [reset] discarded, paused so nothing keeps counting. */
+    fun undoReset() {
+        val snapshot = undoSnapshot ?: return
+        undoSnapshot = null
+        accumulatedTime = snapshot.accumulatedTime
+        _uiState.value = snapshot.state.copy(state = StopwatchState.PAUSED)
+        persist()
+    }
+
+    fun clearUndo() {
+        undoSnapshot = null
+    }
+
+    private var undoSnapshot: UndoSnapshot? = null
+
+    private data class UndoSnapshot(
+        val state: StopwatchUiState,
+        val accumulatedTime: Long
+    )
 
     fun lap() {
         val current = _uiState.value

@@ -21,14 +21,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: L
 
-- [ ] P2 — Destructive actions with neither confirmation nor undo: Stopwatch Reset and Timer Stop
-  Category: ux
-  Where: ui/stopwatch/StopwatchScreen.kt:311-317 → StopwatchViewModel.kt:90-95 (wipes elapsed time and all laps); ui/timer/TimerScreen.kt:237-239 → TimerViewModel.kt:196-208 (removes the timer immediately, Stop sits next to Pause)
-  Fix: keep the immediate action (project rule: no confirmation dialogs) but add an Undo snackbar for 5 s that restores the lap list / re-creates the timer with the remaining duration.
-  Acceptance: tap Reset then Undo: laps return; tap Stop then Undo: the timer resumes with the same remaining time.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — Microcopy drift and developer jargon in user-facing strings
   Category: ux
   Where: res/values/strings.xml: L73 `Snooze %1$dm` vs seven `%1$d min` strings; L1268 "Snooze Countdown" vs L76 "Snooze countdown"; Title Case channel names L7-L9, L1263, L1266 vs sentence case elsewhere; 13 straight `\'` vs 12 curly `’`; L876 "Alarms-only only" (lint Typos); L988 "SDK available", L991 "READ_SLEEP granted", L986 full permission constant, L984 "F-Droid flavor", L947/L954 JSON field names, L659 "NONE", L671/L670 "content:// URI"; 27 em dashes in in-app copy (house style forbids them in user-facing text); code-side: ui/stats/StatsScreen.kt:726-738, :1141, :1262-1264 ("Motion index 0.42", "Source: sonar RMS…"), ui/bedtime/BedtimeScreen.kt:403, ui/alarmfiring/WakeConfirmActivity.kt:245/:269 ("re-fire"), ui/alarmfiring/MorningBriefingActivity.kt:286 (design rationale shown to the user), ui/share/SharedAlarmImportScreen.kt:219 ("Save, keep off"), ui/components/WhatsNewDialog.kt:56/:85 (two buttons, one outcome), app name written four ways ("AlarmClockXtreme", "ACX", "Alarm Clock Xtreme" in OnboardingScreen.kt:100, wear tile)
