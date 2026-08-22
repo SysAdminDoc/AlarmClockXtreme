@@ -41,12 +41,17 @@ import java.time.format.DateTimeFormatter
 class NextAlarmWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
-        val alarmData = withContext(Dispatchers.IO) {
-            loadNextAlarm(context)
+        // A database failure used to render as "No alarms set", which reads as
+        // "you have none" rather than "the widget could not check".
+        val load = withContext(Dispatchers.IO) {
+            runCatching { loadNextAlarm(context) }
         }
 
         provideContent {
-            NextAlarmWidgetContent(alarmData)
+            NextAlarmWidgetContent(
+                data = load.getOrNull(),
+                failedToLoad = load.isFailure
+            )
         }
     }
 
@@ -81,8 +86,8 @@ class NextAlarmWidget : GlanceAppWidget() {
                     fixedTimezoneId = alarm.fixedTimezoneId.takeIf { alarm.usesFixedTimezone }.orEmpty()
                 )
             } else null
-        } catch (_: Exception) {
-            null
+        } catch (e: Exception) {
+            throw e
         }
     }
 }
@@ -123,16 +128,19 @@ class AdjustAlarmAction : ActionCallback {
     }
 }
 
-// Widget color constants (Glance uses its own color system)
-private val WidgetBg = Color(0xFF0D1B2A)
-private val WidgetCardBg = Color(0xFF152238)
-private val WidgetAccent = Color(0xFF5B9EF4)
-private val WidgetTextPrimary = Color(0xFFE8ECF0)
-private val WidgetTextSecondary = Color(0xFF8A9BB5)
-private val WidgetTextMuted = Color(0xFF4A5568)
+// Glance has its own color system, so the app's theme tokens are mirrored here
+// by value. They had drifted to an older palette, and WidgetTextMuted measured
+// about 2.3:1 on the background, well under the 4.5:1 body-text bar.
+private val WidgetBg = Color(0xFF070B11)        // SurfaceDark
+private val WidgetCardBg = Color(0xFF15202E)    // SurfaceCard
+private val WidgetAccent = Color(0xFF6FB7FF)    // BluePrimary
+private val WidgetTextPrimary = Color(0xFFF1F5FB)   // TextPrimary
+private val WidgetTextSecondary = Color(0xFFA9BED8) // TextSecondary
+private val WidgetTextMuted = Color(0xFF7E93AE)     // TextMuted
+private val WidgetWarning = Color(0xFFF5C96B)       // SnoozeYellow
 
 @Composable
-private fun NextAlarmWidgetContent(data: WidgetAlarmData?) {
+private fun NextAlarmWidgetContent(data: WidgetAlarmData?, failedToLoad: Boolean = false) {
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
@@ -181,7 +189,7 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?) {
                         text = data.fixedTimezoneId.replace('_', ' '),
                         style = TextStyle(
                             color = ColorProvider(WidgetAccent),
-                            fontSize = 10.sp
+                            fontSize = 12.sp
                         )
                     )
                 }
@@ -193,7 +201,7 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?) {
                     text = data.remaining,
                     style = TextStyle(
                         color = ColorProvider(WidgetTextMuted),
-                        fontSize = 11.sp
+                        fontSize = 12.sp
                     )
                 )
 
@@ -210,7 +218,7 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?) {
                             modifier = GlanceModifier
                                 .background(WidgetCardBg)
                                 .cornerRadius(6.dp)
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(horizontal = 14.dp, vertical = 14.dp)
                                 .clickable(actionRunCallback<AdjustAlarmAction>(
                                     actionParametersOf(AdjustMinutesKey to -10)
                                 ))
@@ -226,7 +234,7 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?) {
                             modifier = GlanceModifier
                                 .background(WidgetCardBg)
                                 .cornerRadius(6.dp)
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                .padding(horizontal = 14.dp, vertical = 14.dp)
                                 .clickable(actionRunCallback<AdjustAlarmAction>(
                                     actionParametersOf(AdjustMinutesKey to 10)
                                 ))
@@ -240,9 +248,11 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?) {
                 modifier = GlanceModifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "No alarms set",
+                    text = if (failedToLoad) "Couldn't load alarms" else "No alarms set",
                     style = TextStyle(
-                        color = ColorProvider(WidgetTextMuted),
+                        color = ColorProvider(
+                            if (failedToLoad) WidgetWarning else WidgetTextMuted
+                        ),
                         fontSize = 14.sp
                     )
                 )

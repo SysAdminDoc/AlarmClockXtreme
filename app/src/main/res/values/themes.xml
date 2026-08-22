@@ -1,9 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- SurfaceDark, matching what Compose paints, so a cold launch does not
+         step through two different backgrounds before the app appears. -->
     <style name="Theme.AlarmClockXtreme" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">#0D1B2A</item>
-        <item name="android:navigationBarColor">#0D1B2A</item>
-        <item name="android:windowBackground">#0D1B2A</item>
+        <item name="android:statusBarColor">#070B11</item>
+        <item name="android:navigationBarColor">#070B11</item>
+        <item name="android:windowBackground">#070B11</item>
+        <!-- Theme.Material's colorBackground is white, and the API 31+ system
+             splash reads it, so a dark-only app flashed a white screen. -->
+        <item name="android:colorBackground">#070B11</item>
     </style>
 
     <style name="Theme.AlarmClockXtreme.IntentProxy" parent="android:Theme.Material.NoActionBar">

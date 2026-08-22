@@ -6,6 +6,19 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Settings descriptions wrap instead of being cut off mid-word, so the
+  sentence explaining each toggle is readable.
+- A cold launch is dark all the way through. The system splash used to flash
+  white before the app appeared.
+- Section headings put their action beside the title, which removes the empty
+  band that made the Wake readiness card look broken.
+- The wake-confirmation countdown survives rotation and matches the real
+  deadline, and it announces when the time is up.
+- A failed News refresh keeps the headlines you already had and shows an
+  inline notice, with a Retry button when there is nothing to show.
+- The widget follows the app palette, has readable text sizes and tap targets,
+  and says when it could not load rather than claiming you have no alarms.
+- Previewing a ringtone no longer freezes the picker while the file opens.
 - Removed the "Allow legacy Hue API v1 over HTTP" setting and the code behind
   it. Android blocks plain HTTP for this app, so that path could never connect
   and the toggle only promised something impossible. Hue works over the

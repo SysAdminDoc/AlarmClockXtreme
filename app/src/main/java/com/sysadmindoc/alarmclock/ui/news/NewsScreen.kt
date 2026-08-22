@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -176,7 +177,9 @@ fun NewsScreen(
                         }
                     }
 
-                    state.errorMessage != null -> {
+                    // A failed refresh used to replace headlines that had loaded
+                    // fine a moment earlier, so going offline emptied the tab.
+                    state.errorMessage != null && state.items.isEmpty() -> {
                         item {
                             Box(
                                 modifier = Modifier.padding(
@@ -190,8 +193,12 @@ fun NewsScreen(
                                         title = "Couldn't load this feed",
                                         description = state.errorMessage
                                             ?.takeIf { it.isNotBlank() }
-                                            ?.let { "Tap Refresh to try again, or pick a different source. $it" }
-                                            ?: "Tap Refresh to try again, or pick a different source.",
+                                            ?: "Pick a different source, or try again.",
+                                        footer = {
+                                            OutlinedButton(onClick = viewModel::refresh) {
+                                                Text("Retry")
+                                            }
+                                        },
                                     )
                                 }
                             }
@@ -218,6 +225,23 @@ fun NewsScreen(
                     }
 
                     else -> {
+                        state.errorMessage?.let { message ->
+                            item(key = "news-refresh-failed") {
+                                Box(
+                                    modifier = Modifier.padding(
+                                        horizontal = 16.dp,
+                                        vertical = 8.dp,
+                                    )
+                                ) {
+                                    AppInlineNotice(
+                                        title = "Couldn't refresh",
+                                        message = message,
+                                        icon = Icons.Default.RssFeed,
+                                        color = SnoozeYellow,
+                                    )
+                                }
+                            }
+                        }
                         itemsIndexed(state.items, key = { _, item -> item.id }) { index, item ->
                             Box(
                                 modifier = Modifier.padding(

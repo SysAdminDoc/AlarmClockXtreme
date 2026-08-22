@@ -1323,7 +1323,10 @@ internal fun SettingsToggle(
                         supportingText,
                         color = if (enabled) TextSecondary else TextMuted,
                         style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1,
+                        // These sentences explain what the toggle does. One line
+                        // cut most of them mid-word on a 1080 px phone, which
+                        // made the explanation useless.
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -1396,7 +1399,7 @@ internal fun SettingsActionRow(
                     supportingText,
                     color = if (enabled) TextSecondary else TextMuted,
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
             }

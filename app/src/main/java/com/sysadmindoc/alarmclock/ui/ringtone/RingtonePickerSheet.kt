@@ -218,15 +218,24 @@ fun RingtonePickerSheet(
         stopPreview()
 
         try {
+            // prepareAsync, not prepare: a SAF or folder tone reads through a
+            // content provider, and preparing it on the main thread froze the
+            // sheet for as long as that took.
             mediaPlayer = MediaPlayer().apply {
                 setAudioAttributes(AlarmAudioRouting.alarmSonificationAttributes())
                 setDataSource(context, Uri.parse(uri))
-                prepare()
                 isLooping = false
-                start()
+                setOnPreparedListener { it.start() }
+                setOnErrorListener { _, _, _ ->
+                    stopPreview()
+                    previewError =
+                        "Could not preview that tone. You can still select it for the alarm."
+                    true
+                }
                 setOnCompletionListener {
                     stopPreview()
                 }
+                prepareAsync()
             }
             playingUri = uri
             previewError = ""

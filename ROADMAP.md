@@ -10,7 +10,7 @@ Baseline at audit time: `./gradlew :app:testPlayDebugUnitTest :wear:testDebugUni
 
 Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator and logged below; #49 split into four findings; #50 traced to the Spotify delegation path. Open PRs #33-#42 are Dependabot and are covered by a single blocked item at the end.
 
-### P2 — correctness and reliability
+### P2 — UX, i18n and visual
 
 - [ ] P2 — Half of the user-facing strings bypass localisation, so the new language picker has nothing to switch
   Category: ux
@@ -21,63 +21,11 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: L
 
-- [ ] P2 — Settings description lines are truncated to one line, hiding what each toggle does
-  Category: ux
-  Where: ui/settings/SettingsPersonalizationSection.kt toggle rows (observed: "Shows a short quote on the firing screen alo…", "Auto-bumps math challenges (Easy → Medi…", "Blends the app accent with your wallpaper p…") and the shared toggle-row composable they use (search for `maxLines = 1` / `TextOverflow.Ellipsis` on supporting text in ui/settings/*)
-  Problem: every helper sentence on the Personalization page is cut off mid-word on a 1080 px phone (screenshot 10-mono-settings), so the explanation the copy was written for is unreadable.
-  Fix: allow `maxLines = 2` (or unbounded) on supporting text in the shared settings row; keep titles single-line.
-  Acceptance: no ellipsis on Personalization supporting text at 411 dp width with default font scale.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — Launch shows a white system splash before the dark app
-  Category: visual
-  Where: res/values/themes.xml:3-7 (`Theme.AlarmClockXtreme` parents `android:Theme.Material.NoActionBar`, sets `windowBackground` #0D1B2A but no `windowSplashScreenBackground`); ui/theme/Color.kt:17 (`SurfaceDark = #070B11`)
-  Problem: on API 31+ the system splash uses the theme's `colorBackground` (white for Theme.Material) so a dark-only app flashes a white screen with the icon (screenshot 01-launch), then jumps to #0D1B2A, then to the Compose #070B11.
-  Fix: add `<item name="android:windowSplashScreenBackground">#070B11</item>` (values-v31) or adopt `androidx.core:core-splashscreen` with `Theme.SplashScreen`, and align `windowBackground`, `statusBarColor`, `navigationBarColor` and res/layout/widget_loading.xml:6 to `SurfaceDark`.
-  Acceptance: cold launch on an API 35 emulator shows a dark splash with no white frame.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — "Wake readiness" card on the Settings hub has an empty band between the title and the progress row
-  Category: visual
-  Where: ui/settings/SettingsScreen.kt readiness summary card (the card with "Wake readiness", "Review", "4 of 6 ready" and the progress bar)
-  Problem: the card renders the title, then ~40 dp of nothing, then a right-aligned "Review" link, then the counter and bar (screenshot 08-settings). Likely the same min-height/top-align pattern as the editor cards, or an empty slot reserved for a description string (`settings_wake_readiness_description` is unused per lint).
-  Fix: either render the unused description under the title or remove the reserved space; put "Review" on the same row as the title.
-  Acceptance: no blank band; title and Review on one row, counter and bar directly beneath.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — Wake-confirm countdown resets on rotation and disagrees with the real deadline
-  Category: correctness
-  Where: ui/alarmfiring/WakeConfirmActivity.kt:177-183 (`remember { mutableIntStateOf(countdownSeconds) }` + `LaunchedEffect(Unit)` decrement loop)
-  Problem: rotating the phone restarts the visible countdown from the full value while `WakeConfirmWorker`'s deadline keeps running, so the user is told they have more time than they do.
-  Fix: compute remaining seconds from the intent's `scheduledAt` + `SystemClock.elapsedRealtime()` anchor passed by the worker, and add a `liveRegion` on the "Time's up" transition (:242-246).
-  Acceptance: rotate at 5 s left: the screen still shows 5 s.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — News tab hides already-loaded headlines behind the error card when a refresh fails, and has no retry button
-  Category: ux
-  Where: ui/news/NewsScreen.kt:165-199 (`errorMessage != null` branch wins over `items`; `AppEmptyState` passed no `footer`); ui/news/NewsViewModel.kt:157-163 (keeps `items`, sets `errorMessage`)
-  Fix: when `items` is non-empty show an `AppInlineNotice` above the list instead of replacing it; pass a Retry `footer` to the empty-state (pattern at ui/worldclock/WorldClockScreen.kt:117).
-  Acceptance: pull-to-refresh in airplane mode keeps the old headlines visible with an inline "Couldn't refresh" notice and a Retry button.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — Destructive actions with neither confirmation nor undo: Stopwatch Reset and Timer Stop
   Category: ux
   Where: ui/stopwatch/StopwatchScreen.kt:311-317 → StopwatchViewModel.kt:90-95 (wipes elapsed time and all laps); ui/timer/TimerScreen.kt:237-239 → TimerViewModel.kt:196-208 (removes the timer immediately, Stop sits next to Pause)
   Fix: keep the immediate action (project rule: no confirmation dialogs) but add an Undo snackbar for 5 s that restores the lap list / re-creates the timer with the remaining duration.
   Acceptance: tap Reset then Undo: laps return; tap Stop then Undo: the timer resumes with the same remaining time.
-  Confidence: Verified
-  Effort: S
-
-- [ ] P2 — Glance widget uses an old palette and sub-12sp text, and reports DB errors as "No alarms set"
-  Category: visual
-  Where: widget/NextAlarmWidget.kt:127-132 (WidgetBg #0D1B2A, WidgetCardBg #152238, WidgetTextMuted #4A5568 ≈ 2.3:1 on the bg), :184 (10 sp), :196 (11 sp), :203-233 (-10m/+10m targets ≈ 40×24 dp), :84-86 (any exception → null → "No alarms set" at :243)
-  Fix: map the widget constants to the ui/theme tokens (SurfaceDark/SurfaceCard/TextMuted), raise text to ≥12 sp, pad the ±10m actions to 48 dp, and render a distinct "Couldn't load alarms" state on exception.
-  Acceptance: widget colours match the app; TalkBack targets are 48 dp; an injected DAO exception shows the error state.
   Confidence: Verified
   Effort: S
 
@@ -104,14 +52,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Acceptance: rotate mid-search in the YouTube dialog: query, results and the running download survive.
   Confidence: Verified
   Effort: M
-
-- [ ] P2 — Ringtone preview prepares MediaPlayer synchronously on the main thread
-  Category: perf
-  Where: ui/ringtone/RingtonePickerSheet.kt:216-231 (`MediaPlayer().prepare()` on tap); compare ui/components/YouTubeDownloadDialog.kt:195 (`prepareAsync`)
-  Fix: use `prepareAsync` with `setOnPreparedListener { start() }` and an error listener that sets `previewError`.
-  Acceptance: tapping a SAF/folder ringtone never blocks the UI (no jank in Perfetto / no "Skipped frames" log).
-  Confidence: Verified
-  Effort: S
 
 - [ ] P2 — Dependabot PRs #33-#42 are open against the repo (blocked: GitHub write needed)
   Category: maintainability

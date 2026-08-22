@@ -2,6 +2,7 @@ package com.sysadmindoc.alarmclock.ui.alarmfiring
 
 import android.content.Context
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -39,10 +40,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -174,12 +179,21 @@ private fun WakeConfirmScreen(
     onConfirmAwake: () -> Unit,
     onKeepChecking: () -> Unit
 ) {
+    // Anchored to a fixed instant rather than counted down from the parameter.
+    // Rotating restarted the visible countdown from the full value while the
+    // worker's deadline kept running, so the screen promised more time than
+    // there was.
+    val deadlineElapsedRealtime = rememberSaveable {
+        SystemClock.elapsedRealtime() + countdownSeconds * 1_000L
+    }
     var secondsLeft by remember { mutableIntStateOf(countdownSeconds) }
 
-    LaunchedEffect(Unit) {
-        while (secondsLeft > 0) {
-            delay(1_000L)
-            secondsLeft--
+    LaunchedEffect(deadlineElapsedRealtime) {
+        while (true) {
+            val remainingMs = deadlineElapsedRealtime - SystemClock.elapsedRealtime()
+            secondsLeft = ((remainingMs + 999L) / 1_000L).coerceAtLeast(0L).toInt()
+            if (secondsLeft <= 0) break
+            delay(250L)
         }
     }
 
@@ -246,7 +260,12 @@ private fun WakeConfirmScreen(
                         },
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodyMedium,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        // Announced when it flips, so a TalkBack user is not
+                        // left waiting on a screen that already gave up.
+                        modifier = Modifier.semantics {
+                            liveRegion = LiveRegionMode.Polite
+                        }
                     )
                 }
 

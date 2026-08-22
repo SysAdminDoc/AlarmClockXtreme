@@ -279,12 +279,16 @@ fun AppSectionTitle(
     description: String? = null,
     action: (@Composable RowScope.() -> Unit)? = null
 ) {
-    Column(
+    // The action used to sit on its own row under the title. On a card with no
+    // description that left a visible empty band between the heading and the
+    // content, which read as broken layout.
+    Row(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(if (action != null) 10.dp else 0.dp)
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
@@ -302,17 +306,12 @@ fun AppSectionTitle(
             }
         }
         if (action != null) {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    content = action
-                )
-            }
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                content = action
+            )
         }
     }
 }
