@@ -93,6 +93,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import com.sysadmindoc.alarmclock.R
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 
 @Composable
@@ -487,7 +488,7 @@ fun StatsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) {
-                    Text(stringResource(R.string.alarm_list_cancel), color = TextSecondary)
+                    Text(stringResource(R.string.cancel), color = TextSecondary)
                 }
             },
             title = {
@@ -668,7 +669,11 @@ private fun WakeStreakBadge(stats: AlarmStats, modifier: Modifier = Modifier) {
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = if (current > 0) "${dayCountLabel(current)} wake streak" else "Wake streak",
+                    text = if (current > 0) {
+                        pluralStringResource(R.plurals.stats_wake_streak_days, current, current)
+                    } else {
+                        stringResource(R.string.stats_wake_streak)
+                    },
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold
@@ -684,7 +689,7 @@ private fun WakeStreakBadge(stats: AlarmStats, modifier: Modifier = Modifier) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     AppStatusChip(
-                        label = stringResource(R.string.stats_streak_best, dayCountLabel(best)),
+                        label = pluralStringResource(R.plurals.stats_streak_best_days, best, best),
                         icon = Icons.Default.CheckCircle,
                         color = DismissGreen
                     )

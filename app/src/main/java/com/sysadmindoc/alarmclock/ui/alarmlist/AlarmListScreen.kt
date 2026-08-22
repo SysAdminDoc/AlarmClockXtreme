@@ -171,7 +171,7 @@ fun AlarmListScreen(
             onDismissRequest = { statsAlarmLabel = null; viewModel.clearAlarmStats() },
             confirmButton = {
                 TextButton(onClick = { statsAlarmLabel = null; viewModel.clearAlarmStats() }) {
-                    Text(stringResource(R.string.alarm_list_close))
+                    Text(stringResource(R.string.settings_close))
                 }
             },
             title = { Text(statsAlarmLabel ?: "Alarm history") },
@@ -314,7 +314,7 @@ fun AlarmListScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showBulkDeleteConfirmation = false }) {
-                    Text(stringResource(R.string.alarm_list_cancel), color = TextSecondary)
+                    Text(stringResource(R.string.cancel), color = TextSecondary)
                 }
             },
             title = {
@@ -701,7 +701,7 @@ fun AlarmListScreen(
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text(stringResource(R.string.alarm_list_new_alarm))
+                                    Text(stringResource(R.string.new_alarm))
                                 }
                             }
                         }
@@ -803,7 +803,7 @@ private fun AlarmListEmptyActions(
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text(stringResource(R.string.alarm_list_create_alarm))
+                    Text(stringResource(R.string.alarm_edit_create))
                 }
                 OutlinedButton(
                     onClick = onBrowseTemplates,
@@ -824,7 +824,7 @@ private fun AlarmListEmptyActions(
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text(stringResource(R.string.alarm_list_create_alarm))
+                    Text(stringResource(R.string.alarm_edit_create))
                 }
                 OutlinedButton(
                     onClick = onBrowseTemplates,
@@ -943,7 +943,7 @@ private fun AlarmDetailPane(
                     AppStatusChip(label = challengeLabel, color = SnoozeYellow)
                 }
                 if (alarm.ringtoneUri == "silent") {
-                    AppStatusChip(label = stringResource(R.string.alarm_list_silent), color = TextMuted)
+                    AppStatusChip(label = stringResource(R.string.alarm_edit_silent), color = TextMuted)
                 }
             }
 
@@ -996,7 +996,7 @@ private fun AlarmDetailPane(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text(stringResource(R.string.alarm_list_edit_alarm))
+                    Text(stringResource(R.string.edit_alarm))
                     Spacer(modifier = Modifier.width(6.dp))
                     Icon(Icons.Default.ChevronRight, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
@@ -1109,7 +1109,7 @@ private fun AlarmHeader(
             vacationActive -> {
                 {
                     AppStatusChip(
-                        label = stringResource(R.string.alarm_list_vacation_mode),
+                        label = stringResource(R.string.vacation_mode),
                         icon = Icons.Default.BeachAccess,
                         color = SnoozeYellow
                     )
@@ -1283,7 +1283,7 @@ private fun AlarmCard(
     var showMenu by remember { mutableStateOf(false) }
     val shapeTokens = LocalAppShapeTokens.current
     // Resolved outside the semantics lambda, which is not a composable scope.
-    val selectedStateDescription = stringResource(R.string.alarm_list_selected)
+    val selectedStateDescription = stringResource(R.string.settings_selected)
 
     Card(
         modifier = Modifier

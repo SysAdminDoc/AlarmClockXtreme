@@ -118,7 +118,7 @@ fun WindyRadarCard(
                     modifier = Modifier.size(AppIconSize.md)
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.settings_connection_radar),
+                    Text(stringResource(R.string.dashboard_radar),
                         color = TextPrimary,
                         style = MaterialTheme.typography.titleMedium,
                     )

@@ -1290,14 +1290,12 @@
     <string name="notif_channel_snooze_countdown">Snooze countdown</string>
     <string name="notif_channel_snooze_countdown_desc">Shows the time until a snoozed alarm rings again</string>
     <!-- Alarms screen -->
-    <string name="alarm_list_close">Close</string>
     <string name="alarm_list_stats_window">Last 30 days</string>
-    <string name="alarm_list_stats_empty">This alarm has not fired in the last 30 days yet.</string>
+    <string name="alarm_list_stats_empty">This alarm hasn’t fired in the last 30 days yet.</string>
     <string name="alarm_list_stats_fired">Fired %1$d times</string>
     <string name="alarm_list_stats_avg_snoozes">Avg %1$s snoozes per fire</string>
-    <string name="alarm_list_stats_avg_dismiss">Avg dismiss in %1$d s</string>
+    <string name="alarm_list_stats_avg_dismiss">Avg dismiss in %1$ds</string>
     <string name="alarm_list_stats_missed">%1$d missed</string>
-    <string name="alarm_list_cancel">Cancel</string>
     <string name="alarm_list_groups">Groups</string>
     <string name="alarm_list_profiles">Profiles</string>
     <string name="alarm_list_search_placeholder">Try “weekday”, “gym”, or “medication”</string>
@@ -1309,15 +1307,11 @@
     <string name="alarm_list_duplicate_time_title">Duplicate fire time</string>
     <string name="alarm_list_duplicate_time_message">Multiple enabled alarms are set for %1$s. Review them if that was not intentional.</string>
     <string name="alarm_list_templates">Templates</string>
-    <string name="alarm_list_new_alarm">New alarm</string>
-    <string name="alarm_list_create_alarm">Create alarm</string>
     <string name="alarm_list_browse_templates">Browse templates</string>
     <string name="alarm_list_detail_empty_title">Select an alarm</string>
     <string name="alarm_list_detail_empty_description">Choose an alarm from the list to review its next fire time and actions.</string>
     <string name="alarm_list_paused_by_vacation">Paused by vacation</string>
-    <string name="alarm_list_silent">Silent</string>
     <string name="alarm_list_alarm_state">Alarm state</string>
-    <string name="alarm_list_edit_alarm">Edit alarm</string>
     <string name="alarm_list_duplicate">Duplicate</string>
     <string name="alarm_list_share">Share</string>
     <string name="alarm_list_history">History</string>
@@ -1325,11 +1319,9 @@
     <string name="alarm_list_skip_next_occurrence">Skip next occurrence</string>
     <string name="alarm_list_title">Alarms</string>
     <string name="alarm_list_resume_alarms">Resume alarms</string>
-    <string name="alarm_list_vacation_mode">Vacation mode</string>
     <string name="alarm_list_group_all">All</string>
     <string name="alarm_list_quick_alarms">Quick alarms</string>
     <string name="alarm_list_power_nap">Power nap</string>
-    <string name="alarm_list_selected">Selected</string>
     <string name="alarm_list_edit">Edit</string>
     <string name="alarm_list_skip_next">Skip next</string>
     <string name="alarm_list_select_visible">Select visible</string>
@@ -1415,12 +1407,9 @@
     <string name="challenge_find_one_tile_changed_right">Find the one tile that changed on the right grid.</string>
     <string name="challenge_read_rapid_word_stream_then">Read the rapid word stream, then pick the word you saw.</string>
     <string name="challenge_one_was_off_try_next">That one was off. Try the next option.</string>
-    <string name="challenge_shake">shake</string>
     <string name="challenge_shake_phone">Shake your phone</string>
     <string name="challenge_not_quite_match_phrase_exactly">Not quite. Match the phrase exactly before trying again.</string>
     <string name="challenge_no_tag_registered_yet_any">No tag is registered yet. Any NFC tag will work for now.</string>
-    <string name="challenge_barcodescan">barcodeScan</string>
-    <string name="challenge_scanline">scanLine</string>
     <string name="challenge_no_code_registered_yet_continue">No code is registered yet. Continue to complete this challenge.</string>
     <string name="challenge_take_photo">Take photo</string>
     <string name="challenge_no_reference_photo_registered_yet">No reference photo is registered yet. Any photo will work for now.</string>
@@ -1561,7 +1550,7 @@
     <string name="youtube_download">Download</string>
     <string name="youtube_update">Update</string>
     <string name="youtube_paste_youtube_url_audio_saved">Paste a YouTube URL. The audio is saved into your device’s Alarms folder, so it appears wherever you pick alarm sounds.</string>
-    <string name="youtube_https_youtube_com_watch_v">https://youtube.com/watch?v=...</string>
+    <string name="youtube_https_youtube_com_watch_v" translatable="false">https://youtube.com/watch?v=...</string>
     <string name="youtube_name_sound_optional">Name this sound (optional)</string>
     <string name="youtube_rooster_crow_alarm">rooster crow alarm</string>
     <string name="youtube_search">Search</string>
@@ -1690,7 +1679,7 @@
     <string name="challenge_wordle_reveal">The word was %1$s. New word coming…</string>
     <string name="challenge_pvt_trial">Trial %1$d of %2$d</string>
     <string name="challenge_pvt_average">Avg: %1$d ms</string>
-    <string name="stats_streak_best">Best %1$s</string>
+    
     <string name="stats_streak_next">Next %1$s</string>
     <string name="stats_sleep_last">Last %1$s</string>
     <string name="stats_sleep_deep">Deep %1$s</string>
@@ -1699,7 +1688,6 @@
     <string name="stats_sleep_average">Sleep %1$s avg</string>
     <string name="stats_sleep_score">Sleep score %1$s</string>
     <string name="stats_sleep_debt">Sleep debt %1$s</string>
-    <string name="stats_response_average">Response %1$s</string>
     <!-- Templated text across the secondary screens -->
     <string name="wake_confirm_keep_protection">Closing this screen keeps wake-check protection active. The alarm can ring up to %1$d more times if you do not confirm.</string>
     <string name="breathing_cycle_progress">Cycle %1$d/%2$d</string>
@@ -1711,20 +1699,10 @@
     <string name="weather_tornado_warning">TORNADO WARNING</string>
     <string name="whats_new_updated_to">Updated to v%1$s</string>
     <string name="radar_animated_precipitation">Animated precipitation near %1$s · Windy</string>
-    <string name="news_feed_google_top">Google News: Top</string>
-    <string name="news_feed_google_world">Google News: World</string>
-    <string name="news_feed_google_tech">Google News: Tech</string>
-    <string name="news_feed_bbc_top">BBC: Top stories</string>
-    <string name="news_feed_npr">NPR: News</string>
-    <string name="news_feed_hacker_news">Hacker News: Front page</string>
-    <string name="challenge_maze_back_rank_net">Back-rank net</string>
-    <string name="challenge_maze_corner_squeeze">Corner squeeze</string>
-    <string name="challenge_maze_battery_finish">Battery finish</string>
     <string name="onboarding_step_of">Step %1$d of %2$d</string>
     <string name="stopwatch_lap_number">Lap %1$d</string>
     <string name="world_remove_city_title">Remove %1$s?</string>
     <string name="world_remove_city_message">This removes the saved world clock for %1$s. You can add it again later.</string>
-    <string name="stats_response_value">Response %1$s</string>
     <!-- Onboarding test alarm -->
     <string name="test_alarm_alarmclockxtreme_wake_device_dismiss_test">AlarmClockXtreme can wake this device. Dismiss the test to finish setup.</string>
     <string name="test_alarm_device_launch_alarm_screen_play">Your device can launch the alarm screen, play audio, and vibrate. This did not create or change any saved alarms.</string>
@@ -1738,4 +1716,27 @@
     <string name="world_add_city_action">Add %1$s, %2$s, %3$s</string>
     <string name="firing_challenge_reference_missing">This alarm has no saved tag, code, photo or network to check against, so here is a maths problem instead. Edit the alarm to set one.</string>
     <string name="settings_hue_ip_not_local">Enter the bridge’s local address, like 192.168.1.42 or philips-hue.local. A public hostname is refused because the bridge certificate cannot be verified.</string>
+    <!-- Accessibility and per-screen labels that were reusing another screen’s string -->
+    <string name="world_remove_city_action">Remove %1$s</string>
+    <string name="challenge_rps_cpu">%1$d CPU</string>
+    <string name="challenge_rps_you_won">You won that round!</string>
+    <string name="challenge_rps_computer_won">Computer won that round</string>
+    <string name="challenge_rps_draw">Draw</string>
+    <string name="ringtone_search">Search ringtones</string>
+    <string name="bedtime_title">Bedtime</string>
+    <string name="dashboard_weather">Weather</string>
+    <string name="dashboard_air_quality">Air quality</string>
+    <string name="dashboard_radar">Radar</string>
+    <string name="briefing_morning_routine">Morning routine</string>
+    <string name="timer_title">Timer</string>
+    <string name="timer_dismiss">Dismiss</string>
+    <string name="stopwatch_title">Stopwatch</string>
+    <plurals name="stats_streak_best_days">
+        <item quantity="one">Best %1$d day</item>
+        <item quantity="other">Best %1$d days</item>
+    </plurals>
+    <plurals name="stats_wake_streak_days">
+        <item quantity="one">%1$d day wake streak</item>
+        <item quantity="other">%1$d days wake streak</item>
+    </plurals>
 </resources>

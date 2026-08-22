@@ -320,7 +320,7 @@ fun OnboardingScreen(
                         )
                         ReadinessMiniRow(
                             icon = Icons.Default.NotificationsActive,
-                            title = stringResource(R.string.notif_channel_alarm_desc),
+                            title = stringResource(R.string.settings_alarm_notifications),
                             ready = readiness.notificationsReady,
                             actionLabel = "Enable",
                             onAction = {

@@ -185,7 +185,7 @@ fun BedtimeScreen(
     ) {
         item {
             AlarmClockHeroHeader(
-                title = stringResource(R.string.shortcut_bedtime),
+                title = stringResource(R.string.bedtime_title),
                 subtitle = summaryLine,
                 overline = "Sleep planning",
                 badge = {
@@ -465,7 +465,7 @@ fun BedtimeScreen(
                         }
                         if (state.stayUpLateActive) {
                             TextButton(onClick = { viewModel.clearStayUpLate() }) {
-                                Text(stringResource(R.string.alarm_list_cancel))
+                                Text(stringResource(R.string.cancel))
                             }
                         }
                     }
@@ -535,7 +535,7 @@ fun BedtimeScreen(
                 ) {
                     item {
                         BedtimeMetricCard(
-                            title = stringResource(R.string.shortcut_bedtime),
+                            title = stringResource(R.string.bedtime_title),
                             value = state.bedtimeFormatted,
                             icon = Icons.Default.NightsStay,
                             accent = BlueLight,

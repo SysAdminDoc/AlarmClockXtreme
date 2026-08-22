@@ -260,7 +260,7 @@ fun MorningBriefingScreen(
             if (routineItems.isNotEmpty()) {
                 AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
                     AppSectionTitle(
-                        title = stringResource(R.string.alarm_edit_morning_routine),
+                        title = stringResource(R.string.briefing_morning_routine),
                         description = stringResource(R.string.briefing_short_checklist_get_momentum_without)
                     )
                     routineItems.forEachIndexed { index, item ->

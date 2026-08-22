@@ -443,7 +443,7 @@ fun YouTubeDownloadDialog(
                 },
                 enabled = !inFlight && !searching && !updatingEngine
             ) {
-                Text(stringResource(R.string.alarm_list_cancel), color = TextSecondary)
+                Text(stringResource(R.string.cancel), color = TextSecondary)
             }
         },
         containerColor = SurfaceMedium,

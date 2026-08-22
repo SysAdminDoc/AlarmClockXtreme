@@ -212,7 +212,7 @@ fun ShakeChallengeView(
     val remaining = (challenge.requiredShakes - currentShakes).coerceAtLeast(0)
 
     val shakeOffset = if (LocalMotionEnabled.current) {
-        rememberInfiniteTransition(label = stringResource(R.string.challenge_shake)).animateFloat(
+        rememberInfiniteTransition(label = "shake").animateFloat(
             initialValue = -5f,
             targetValue = 5f,
             animationSpec = infiniteRepeatable(
@@ -1067,11 +1067,11 @@ fun BarcodeScanChallengeView(
 ) {
     var codeInput by remember(challenge.registeredValue) { mutableStateOf("") }
     val lineProgress = if (LocalMotionEnabled.current) {
-        rememberInfiniteTransition(label = stringResource(R.string.challenge_barcodescan)).animateFloat(
+        rememberInfiniteTransition(label = "barcodeScan").animateFloat(
             initialValue = 0.25f,
             targetValue = 1f,
             animationSpec = infiniteRepeatable(tween(1500), RepeatMode.Reverse),
-            label = stringResource(R.string.challenge_scanline)
+            label = "scanLine"
         ).value
     } else {
         1f
@@ -1983,7 +1983,7 @@ fun RockPaperScissorsChallengeView(
                 color = TextMuted
             )
             Text(
-                text = "$computerWins  CPU",
+                text = stringResource(R.string.challenge_rps_cpu, computerWins),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = AccentRed
@@ -1993,9 +1993,9 @@ fun RockPaperScissorsChallengeView(
         val lastRound = rounds.lastOrNull()
         if (lastRound != null) {
             val outcomeText = when (lastRound.outcome) {
-                RpsOutcome.WIN  -> "You won that round!"
-                RpsOutcome.LOSE -> "Computer won that round"
-                RpsOutcome.DRAW -> "Draw"
+                RpsOutcome.WIN  -> stringResource(R.string.challenge_rps_you_won)
+                RpsOutcome.LOSE -> stringResource(R.string.challenge_rps_computer_won)
+                RpsOutcome.DRAW -> stringResource(R.string.challenge_rps_draw)
             }
             val outcomeColor = when (lastRound.outcome) {
                 RpsOutcome.WIN  -> DismissGreen

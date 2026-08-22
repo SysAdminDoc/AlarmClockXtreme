@@ -303,7 +303,7 @@ private fun WeatherSection(
                 // error was never shown.
                 val hasLocation = state.hasLocation
                 AppSurfaceCard(contentPadding = PaddingValues(16.dp)) {
-                    AppSectionTitle(title = stringResource(R.string.settings_connection_weather))
+                    AppSectionTitle(title = stringResource(R.string.dashboard_weather))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -651,7 +651,7 @@ private fun AirQualityCard(summary: AirQualitySummary) {
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(stringResource(R.string.settings_connection_air_quality),
+                Text(stringResource(R.string.dashboard_air_quality),
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold
@@ -1064,7 +1064,7 @@ private fun LocationPickerDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.alarm_list_close), color = TextSecondary)
+                Text(stringResource(R.string.settings_close), color = TextSecondary)
             }
         },
         title = {

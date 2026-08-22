@@ -151,7 +151,7 @@ fun TimerScreen(
             .verticalScroll(androidx.compose.foundation.rememberScrollState())
     ) {
         AlarmClockHeroHeader(
-            title = stringResource(R.string.notif_timer_generic),
+            title = stringResource(R.string.timer_title),
             subtitle = if (state.activeTimers.isEmpty()) {
                 ""
             } else {
@@ -284,7 +284,7 @@ private fun ActiveTimerCard(
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
                 ) {
-                    Text(stringResource(R.string.notif_dismiss_action))
+                    Text(stringResource(R.string.timer_dismiss))
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

@@ -374,7 +374,7 @@ fun RingtonePickerSheet(
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.youtube_search), tint = TextMuted)
+                    Icon(Icons.Default.Search, contentDescription = stringResource(R.string.ringtone_search), tint = TextMuted)
                 },
                 placeholder = {
                     Text(stringResource(R.string.ringtone_search_alarm_sounds), color = TextMuted)
@@ -509,7 +509,7 @@ private fun RingtoneRow(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     when {
                         isSelected -> AppStatusChip(
-                            label = stringResource(R.string.alarm_list_selected),
+                            label = stringResource(R.string.settings_selected),
                             color = MaterialTheme.colorScheme.primary
                         )
                         isPlaying -> AppStatusChip(

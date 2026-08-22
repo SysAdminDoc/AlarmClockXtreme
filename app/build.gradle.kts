@@ -228,7 +228,8 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
         // rememberInfiniteTransition. They never reach a user, and translating
         // them would be meaningless.
         val nonUiComposeLabels = setOf(
-            "alarmPulse", "pulseScale", "pulseAlpha", "shakeAnim", "nfcPulse", "nfcAlpha",
+            "alarmPulse", "pulseScale", "pulseAlpha", "shake", "shakeAnim", "nfcPulse", "nfcAlpha",
+            "barcodeScan", "scanLine",
             "sheep-drift", "sheep-drift-value", "icon_scale", "loading-card", "loading-alpha",
             "skeleton-block", "skeleton-alpha", "funnel", "funnel-rotation", "funnel-drift",
             "glowAlpha", "burnInDrift", "driftX", "driftY", "timer-pulse", "key-press-scale",

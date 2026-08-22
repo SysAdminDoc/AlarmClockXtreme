@@ -260,7 +260,7 @@ private fun WorldClockCard(
             Icon(
                 // The overflow glyph promised a menu; there is only one action.
                 Icons.Default.Delete,
-                contentDescription = stringResource(R.string.world_remove_city, entry.cityName),
+                contentDescription = stringResource(R.string.world_remove_city_action, entry.cityName),
                 tint = TextMuted
             )
         }
@@ -283,7 +283,7 @@ private fun AddTimeZoneDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.alarm_list_close), color = TextSecondary)
+                Text(stringResource(R.string.settings_close), color = TextSecondary)
             }
         },
         title = {

@@ -109,7 +109,7 @@ fun StopwatchScreen(
             .background(SurfaceDark)
     ) {
         AlarmClockHeroHeader(
-            title = stringResource(R.string.nav_stopwatch),
+            title = stringResource(R.string.stopwatch_title),
             subtitle = when (state.state) {
                 StopwatchState.IDLE -> "Start a precise running timer and mark laps whenever you need a split."
                 StopwatchState.RUNNING -> "Timing live. Mark laps as the session unfolds."
