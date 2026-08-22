@@ -1,15 +1,16 @@
 package com.sysadmindoc.alarmclock.data.model
 
+import androidx.annotation.StringRes
+import com.sysadmindoc.alarmclock.R
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 data class ShiftPattern(
     val key: String,
-    val title: String,
-    val shortLabel: String,
+    @StringRes val titleRes: Int,
+    @StringRes val shortLabelRes: Int,
     val pattern: String,
-    val description: String
 ) {
     val cycleLength: Int = pattern.length
 
@@ -29,38 +30,33 @@ data class ShiftPattern(
         val presets: List<ShiftPattern> = listOf(
             ShiftPattern(
                 key = "DDNNO",
-                title = "DDNNO",
-                shortLabel = "DDNNO",
-                pattern = "DDNNO",
-                description = "2 day shifts, 2 night shifts, 1 off day."
+                titleRes = R.string.shift_ddnno_title,
+                shortLabelRes = R.string.shift_ddnno_short,
+                pattern = "DDNNO"
             ),
             ShiftPattern(
                 key = "FOUR_ON_FOUR_OFF",
-                title = "4-on-4-off",
-                shortLabel = "4 on / 4 off",
-                pattern = "WWWWOOOO",
-                description = "4 work days followed by 4 off days."
+                titleRes = R.string.shift_four_title,
+                shortLabelRes = R.string.shift_four_short,
+                pattern = "WWWWOOOO"
             ),
             ShiftPattern(
                 key = "PANAMA",
-                title = "Panama (2-2-3)",
-                shortLabel = "Panama",
-                pattern = "DDOODDDOODDOOO",
-                description = "2 on, 2 off, 3 on, then 2 off, 2 on, 3 off."
+                titleRes = R.string.shift_panama_title,
+                shortLabelRes = R.string.shift_panama_short,
+                pattern = "DDOODDDOODDOOO"
             ),
             ShiftPattern(
                 key = "DUPONT",
-                title = "DuPont",
-                shortLabel = "DuPont",
-                pattern = "NNNNOOODDDONNNOOODDDDOOOOOOO",
-                description = "4 nights, 3 off, 3 days, 1 off, 3 nights, 3 off, 4 days, 7 off."
+                titleRes = R.string.shift_dupont_title,
+                shortLabelRes = R.string.shift_dupont_short,
+                pattern = "NNNNOOODDDONNNOOODDDDOOOOOOO"
             ),
             ShiftPattern(
                 key = "PITMAN",
-                title = "Pitman (2-3-2)",
-                shortLabel = "Pitman",
-                pattern = "NNOONNNOONNOOO",
-                description = "2 on, 2 off, 3 on, 2 off, 2 on, 3 off."
+                titleRes = R.string.shift_pitman_title,
+                shortLabelRes = R.string.shift_pitman_short,
+                pattern = "NNOONNNOONNOOO"
             )
         )
 

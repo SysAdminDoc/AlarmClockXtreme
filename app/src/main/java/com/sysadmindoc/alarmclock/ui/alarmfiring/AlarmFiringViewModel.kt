@@ -374,7 +374,9 @@ class AlarmFiringViewModel @Inject constructor(
             "${temp.toInt()}$unit"
         }
         val weatherDesc = cached?.current?.weatherCode?.let { code ->
-            com.sysadmindoc.alarmclock.data.remote.WeatherCodes.describe(code)
+            appContext.getString(
+                com.sysadmindoc.alarmclock.data.remote.WeatherCodes.describeRes(code)
+            )
         }
 
         val snoozesUsed = AlarmRuntimeState.snoozeCount(appContext, alarm.id)

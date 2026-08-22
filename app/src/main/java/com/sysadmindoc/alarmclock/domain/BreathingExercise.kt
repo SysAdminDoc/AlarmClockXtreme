@@ -1,8 +1,13 @@
 package com.sysadmindoc.alarmclock.domain
 
+import androidx.annotation.StringRes
+import com.sysadmindoc.alarmclock.R
+
 data class BreathingPhase(
-    val label: String,
-    val cue: String,
+    // Ids, not sentences: the phase is computed in a domain object with no
+    // Context and rendered by a composable that has stringResource.
+    @StringRes val labelRes: Int,
+    @StringRes val cueRes: Int,
     val remainingSeconds: Int,
     val cycleNumber: Int,
     val cycleCount: Int,
@@ -44,8 +49,8 @@ enum class BreathingPattern(
         val clamped = elapsedSeconds.coerceIn(0, totalSeconds)
         if (clamped >= totalSeconds) {
             return BreathingPhase(
-                label = "Complete",
-                cue = "Let your breathing return to normal.",
+                labelRes = R.string.breathing_phase_complete,
+                cueRes = R.string.breathing_cue_complete,
                 remainingSeconds = 0,
                 cycleNumber = cycleCount,
                 cycleCount = cycleCount,
@@ -58,11 +63,11 @@ enum class BreathingPattern(
         val cycleNumber = cycleIndex + 1
         var phaseStart = 0
 
-        fun phase(label: String, cue: String, duration: Int): BreathingPhase {
+        fun phase(@StringRes labelRes: Int, @StringRes cueRes: Int, duration: Int): BreathingPhase {
             val remaining = phaseStart + duration - intoCycle
             return BreathingPhase(
-                label = label,
-                cue = cue,
+                labelRes = labelRes,
+                cueRes = cueRes,
                 remainingSeconds = remaining.coerceAtLeast(1),
                 cycleNumber = cycleNumber,
                 cycleCount = cycleCount
@@ -70,21 +75,37 @@ enum class BreathingPattern(
         }
 
         if (intoCycle < phaseStart + inhaleSeconds) {
-            return phase("Inhale", "Breathe in slowly through your nose.", inhaleSeconds)
+            return phase(
+                R.string.breathing_phase_inhale,
+                R.string.breathing_cue_inhale,
+                inhaleSeconds
+            )
         }
         phaseStart += inhaleSeconds
 
         if (holdAfterInhaleSeconds > 0 && intoCycle < phaseStart + holdAfterInhaleSeconds) {
-            return phase("Hold", "Keep your chest relaxed and still.", holdAfterInhaleSeconds)
+            return phase(
+                R.string.breathing_phase_hold,
+                R.string.breathing_cue_hold_after_inhale,
+                holdAfterInhaleSeconds
+            )
         }
         phaseStart += holdAfterInhaleSeconds
 
         if (intoCycle < phaseStart + exhaleSeconds) {
-            return phase("Exhale", "Release the breath slowly.", exhaleSeconds)
+            return phase(
+                R.string.breathing_phase_exhale,
+                R.string.breathing_cue_exhale,
+                exhaleSeconds
+            )
         }
         phaseStart += exhaleSeconds
 
-        return phase("Hold", "Stay soft before the next breath.", holdAfterExhaleSeconds)
+        return phase(
+            R.string.breathing_phase_hold,
+            R.string.breathing_cue_hold_after_exhale,
+            holdAfterExhaleSeconds
+        )
     }
 }
 

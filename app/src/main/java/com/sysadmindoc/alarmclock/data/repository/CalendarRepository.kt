@@ -4,6 +4,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.database.Cursor
 import android.provider.CalendarContract
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
@@ -107,7 +108,7 @@ class CalendarRepository @Inject constructor(
                     events.add(
                         CalendarEvent(
                             id = it.getLong(0),
-                            title = it.getString(1) ?: "Untitled",
+                            title = it.getString(1) ?: context.getString(R.string.calendar_untitled_event),
                             startTime = it.getLong(2),
                             endTime = it.getLong(3),
                             allDay = it.getInt(4) == 1,

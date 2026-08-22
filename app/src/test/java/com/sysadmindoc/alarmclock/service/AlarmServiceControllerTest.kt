@@ -95,7 +95,8 @@ class AlarmServiceControllerTest {
         val payload = AlarmPostDismissController.morningBriefingPayload(
             alarm = Alarm(morningRoutine = "Stretch, water"),
             now = LocalTime.of(13, 7),
-            today = LocalDate.of(2026, 7, 2)
+            today = LocalDate.of(2026, 7, 2),
+            is24Hour = false
         )
 
         assertEquals("It is 6 oh 5 A.M.. Today is Thursday, July 2.", text)
@@ -148,19 +149,26 @@ class AlarmServiceControllerTest {
 
         assertEquals(
             "Partly cloudy · 64°F · high 72, low 56 · 30% precipitation",
-            AlarmPostDismissController.cachedWeatherSummary(weather)
+            // The description is the caller's to resolve: WeatherCodes hands
+            // back a resource id and this object has no Context.
+            AlarmPostDismissController.cachedWeatherSummary(
+                weather = weather,
+                describeCode = { code -> if (code == 2) "Partly cloudy" else "" }
+            )
         )
         assertTrue(
             AlarmPostDismissController.nextCalendarEventSummary(
                 events = listOf(event),
-                nowMillis = event.startTime - 1L
+                nowMillis = event.startTime - 1L,
+                is24Hour = false
             ).startsWith("Team sync · ")
         )
         assertEquals(
             "",
             AlarmPostDismissController.nextCalendarEventSummary(
                 events = listOf(event),
-                nowMillis = event.endTime + 1L
+                nowMillis = event.endTime + 1L,
+                is24Hour = false
             )
         )
     }

@@ -57,11 +57,13 @@ internal fun BreathingExerciseSection(
     ) {
         AppSectionTitle(
             title = stringResource(R.string.breathing_guided_breathing),
-            description = if (running) {
-                "Follow the count and keep the phone nearby while you settle down."
-            } else {
-                "Run a short 4-7-8 or box-breathing reset before sleep."
-            }
+            description = stringResource(
+                if (running) {
+                    R.string.breathing_running_description
+                } else {
+                    R.string.breathing_idle_description
+                }
+            )
         )
 
         Row(
@@ -98,7 +100,7 @@ internal fun BreathingExerciseSection(
                     color = if (phase.completed) DismissGreen else MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = phase.label,
+                    text = stringResource(phase.labelRes),
                     color = TextPrimary,
                     style = MaterialTheme.typography.headlineMedium,
                     // "Inhale" / "Hold" / "Exhale" is the whole exercise; a
@@ -114,7 +116,7 @@ internal fun BreathingExerciseSection(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = phase.cue,
+                    text = stringResource(phase.cueRes),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center

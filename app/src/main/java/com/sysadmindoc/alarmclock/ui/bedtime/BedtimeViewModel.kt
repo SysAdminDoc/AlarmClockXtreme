@@ -968,7 +968,9 @@ class BedtimeViewModel @Inject constructor(
         return ChronotypeUiModel(
             answers = estimate.answers,
             answeredCount = estimate.answeredCount,
-            categoryLabel = category?.let(ChronotypeEstimator::categoryLabel) ?: context.getString(R.string.bedtime_not_set),
+            categoryLabel = category
+                ?.let { context.getString(ChronotypeEstimator.categoryLabelRes(it)) }
+                ?: context.getString(R.string.bedtime_not_set),
             timingLabel = if (
                 estimate.idealBedtimeMinutes != null &&
                 estimate.idealWakeMinutes != null

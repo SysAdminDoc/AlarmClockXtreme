@@ -340,7 +340,9 @@ class DashboardViewModel @Inject constructor(
                         feelsLike = current?.feelsLike?.let { "Feels like ${it.toInt()}" } ?: "",
                         humidity = current?.humidity?.let { "${it}%" } ?: "",
                         windSpeed = current?.windSpeed?.let { "${it.toInt()} $windUnitLabel" } ?: "",
-                        weatherDescription = current?.weatherCode?.let { WeatherCodes.describe(it) } ?: "",
+                        weatherDescription = current?.weatherCode
+                            ?.let { appContext.getString(WeatherCodes.describeRes(it)) }
+                            ?: "",
                         weatherIcon = current?.weatherCode?.let { WeatherCodes.icon(it) } ?: "unknown",
                         currentWeatherCode = current?.weatherCode,
                         highTemp = daily?.maxTemp?.firstOrNull()?.let { "${it.toInt()}" } ?: "--",
@@ -458,7 +460,9 @@ class DashboardViewModel @Inject constructor(
             val lat = result.latitude ?: return@launch
             val lon = result.longitude ?: return@launch
             val settings = preferencesManager.getCurrentSettings()
-            val displayName = result.displayName
+            val displayName = result.displayName(
+                appContext.getString(R.string.geocoding_unknown_place)
+            )
             val shouldRescheduleSolarAlarms = shouldRescheduleSolarAlarms(
                 previous = settings,
                 newLatitude = lat,
@@ -539,7 +543,9 @@ class DashboardViewModel @Inject constructor(
                 dayName = if (i == 0) appContext.getString(R.string.dashboard_today) else date.format(DateTimeFormatter.ofPattern("EEEE")),
                 high = daily.maxTemp?.getOrNull(i)?.let { "${it.toInt()}" } ?: "--",
                 low = daily.minTemp?.getOrNull(i)?.let { "${it.toInt()}" } ?: "--",
-                description = code?.let { WeatherCodes.describe(it) } ?: "",
+                description = code
+                    ?.let { appContext.getString(WeatherCodes.describeRes(it)) }
+                    ?: "",
                 precipChance = daily.precipChance?.getOrNull(i)?.let { "${it}%" } ?: "",
                 icon = code?.let { WeatherCodes.icon(it) } ?: "unknown"
             )

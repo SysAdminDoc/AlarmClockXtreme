@@ -853,7 +853,10 @@ private fun WakeConsistencyCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = com.sysadmindoc.alarmclock.domain.WakeConsistencyCalculator.label(result.score),
+                        text = stringResource(
+                            com.sysadmindoc.alarmclock.domain.WakeConsistencyCalculator
+                                .labelRes(result.score)
+                        ),
                         color = TextPrimary,
                         style = MaterialTheme.typography.titleMedium
                     )

@@ -57,7 +57,7 @@ internal object AlarmPostDismissController {
         nextEvent: String = "",
         now: LocalTime = LocalTime.now(),
         today: LocalDate = LocalDate.now(),
-        is24Hour: Boolean = false
+        is24Hour: Boolean
     ): MorningBriefingPayload {
         // Takes the preference for the same reason nextCalendarEventSummary
         // does: the header and the next-event line under it are one screen, and
@@ -74,12 +74,20 @@ internal object AlarmPostDismissController {
         )
     }
 
-    fun cachedWeatherSummary(weather: WeatherResponse?): String {
+    /**
+     * @param describeCode turns a WMO weather code into a phrase. Passed in
+     * because WeatherCodes hands back a resource id and this object has no
+     * Context to resolve one with.
+     */
+    fun cachedWeatherSummary(
+        weather: WeatherResponse?,
+        describeCode: (Int) -> String
+    ): String {
         val response = weather ?: return ""
         val current = response.current
         val daily = response.daily
         val parts = buildList {
-            current?.weatherCode?.let { add(WeatherCodes.describe(it)) }
+            current?.weatherCode?.let { add(describeCode(it)) }
             current?.temperature?.let { temperature ->
                 add("${temperature.roundToInt()}${response.currentUnits?.temperature.orEmpty()}")
             }
@@ -98,7 +106,7 @@ internal object AlarmPostDismissController {
     fun nextCalendarEventSummary(
         events: List<CalendarEvent>,
         nowMillis: Long = System.currentTimeMillis(),
-        is24Hour: Boolean = false
+        is24Hour: Boolean
     ): String {
         val next = events
             .asSequence()

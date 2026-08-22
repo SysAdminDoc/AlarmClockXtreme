@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.domain
 
+import com.sysadmindoc.alarmclock.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -19,11 +20,13 @@ class BreathingExerciseTest {
     fun fourSevenEightPhaseBoundariesAreStable() {
         val pattern = BreathingPattern.FOUR_SEVEN_EIGHT
 
-        assertEquals("Inhale", pattern.phaseAt(0).label)
+        // The phase carries a resource id rather than a word now, because it
+        // is computed here and rendered by a composable.
+        assertEquals(R.string.breathing_phase_inhale, pattern.phaseAt(0).labelRes)
         assertEquals(4, pattern.phaseAt(0).remainingSeconds)
-        assertEquals("Hold", pattern.phaseAt(4).label)
+        assertEquals(R.string.breathing_phase_hold, pattern.phaseAt(4).labelRes)
         assertEquals(7, pattern.phaseAt(4).remainingSeconds)
-        assertEquals("Exhale", pattern.phaseAt(11).label)
+        assertEquals(R.string.breathing_phase_exhale, pattern.phaseAt(11).labelRes)
         assertEquals(8, pattern.phaseAt(11).remainingSeconds)
         assertEquals(2, pattern.phaseAt(19).cycleNumber)
     }
@@ -32,8 +35,10 @@ class BreathingExerciseTest {
     fun boxBreathingIncludesSecondHold() {
         val phase = BreathingPattern.BOX.phaseAt(12)
 
-        assertEquals("Hold", phase.label)
-        assertEquals("Stay soft before the next breath.", phase.cue)
+        assertEquals(R.string.breathing_phase_hold, phase.labelRes)
+        // The second hold and the first share a label but not a cue, which is
+        // the whole point of this case.
+        assertEquals(R.string.breathing_cue_hold_after_exhale, phase.cueRes)
         assertEquals(4, phase.remainingSeconds)
     }
 
@@ -41,7 +46,7 @@ class BreathingExerciseTest {
     fun completedPhaseClampsAfterSessionEnd() {
         val phase = BreathingPattern.BOX.phaseAt(999)
 
-        assertEquals("Complete", phase.label)
+        assertEquals(R.string.breathing_phase_complete, phase.labelRes)
         assertEquals(0, phase.remainingSeconds)
         assertTrue(phase.completed)
         assertFalse(BreathingPattern.BOX.phaseAt(0).completed)

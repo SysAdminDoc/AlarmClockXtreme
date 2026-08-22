@@ -1,7 +1,9 @@
 package com.sysadmindoc.alarmclock.data.remote
 
+import androidx.annotation.StringRes
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
+import com.sysadmindoc.alarmclock.R
 import retrofit2.http.GET
 import retrofit2.http.Query
 
@@ -85,23 +87,25 @@ data class DailyWeather(
  * https://open-meteo.com/en/docs
  */
 object WeatherCodes {
-    fun describe(code: Int): String = when (code) {
-        0 -> "Clear sky"
-        1 -> "Mainly clear"
-        2 -> "Partly cloudy"
-        3 -> "Overcast"
-        45, 48 -> "Foggy"
-        51, 53, 55 -> "Drizzle"
-        56, 57 -> "Freezing drizzle"
-        61, 63, 65 -> "Rain"
-        66, 67 -> "Freezing rain"
-        71, 73, 75 -> "Snow"
-        77 -> "Snow grains"
-        80, 81, 82 -> "Rain showers"
-        85, 86 -> "Snow showers"
-        95 -> "Thunderstorm"
-        96, 99 -> "Thunderstorm with hail"
-        else -> "Unknown"
+    /** The WMO code's description, as a resource for the caller to resolve. */
+    @StringRes
+    fun describeRes(code: Int): Int = when (code) {
+        0 -> R.string.weather_clear_sky
+        1 -> R.string.weather_mainly_clear
+        2 -> R.string.weather_partly_cloudy
+        3 -> R.string.weather_overcast
+        45, 48 -> R.string.weather_foggy
+        51, 53, 55 -> R.string.weather_drizzle
+        56, 57 -> R.string.weather_freezing_drizzle
+        61, 63, 65 -> R.string.weather_rain
+        66, 67 -> R.string.weather_freezing_rain
+        71, 73, 75 -> R.string.weather_snow
+        77 -> R.string.weather_snow_grains
+        80, 81, 82 -> R.string.weather_rain_showers
+        85, 86 -> R.string.weather_snow_showers
+        95 -> R.string.weather_thunderstorm
+        96, 99 -> R.string.weather_thunderstorm_hail
+        else -> R.string.weather_unknown
     }
 
     fun icon(code: Int): String = when (code) {

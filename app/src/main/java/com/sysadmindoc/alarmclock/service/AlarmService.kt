@@ -33,6 +33,7 @@ import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.remote.WeatherCodes
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
@@ -1983,7 +1984,10 @@ class AlarmService : Service() {
         val payload = AlarmPostDismissController.morningBriefingPayload(
             alarm = alarm,
             is24Hour = preferencesManager.getCachedSettings().is24HourFormat,
-            weather = AlarmPostDismissController.cachedWeatherSummary(cachedWeather),
+            weather = AlarmPostDismissController.cachedWeatherSummary(
+                weather = cachedWeather,
+                describeCode = { code -> getString(WeatherCodes.describeRes(code)) }
+            ),
             nextEvent = AlarmPostDismissController.nextCalendarEventSummary(
                 events = events,
                 is24Hour = preferencesManager.getCachedSettings().is24HourFormat

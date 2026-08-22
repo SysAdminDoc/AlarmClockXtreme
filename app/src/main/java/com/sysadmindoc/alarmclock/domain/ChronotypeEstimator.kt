@@ -1,5 +1,8 @@
 package com.sysadmindoc.alarmclock.domain
 
+import androidx.annotation.StringRes
+import com.sysadmindoc.alarmclock.R
+
 data class ChronotypeQuestion(
     val prompt: String,
     val options: List<String>
@@ -110,11 +113,12 @@ object ChronotypeEstimator {
         )
     }
 
-    fun categoryLabel(category: ChronotypeCategory): String {
+    @StringRes
+    fun categoryLabelRes(category: ChronotypeCategory): Int {
         return when (category) {
-            ChronotypeCategory.EARLY -> "Early type"
-            ChronotypeCategory.BALANCED -> "Balanced"
-            ChronotypeCategory.LATE -> "Late type"
+            ChronotypeCategory.EARLY -> R.string.chronotype_early_type
+            ChronotypeCategory.BALANCED -> R.string.chronotype_balanced
+            ChronotypeCategory.LATE -> R.string.chronotype_late_type
         }
     }
 

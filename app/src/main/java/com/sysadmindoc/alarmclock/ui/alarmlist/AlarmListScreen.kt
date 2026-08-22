@@ -1719,10 +1719,11 @@ internal fun Alarm.challengeChainLabel(): String? {
 internal fun Alarm.repeatLabel(context: Context): String =
     repeatLabelRes?.let { context.getString(it) } ?: repeatDayNames()
 
+@Composable
 private fun Alarm.shiftPatternChipLabel(): String? {
     val pattern = ShiftPattern.fromKey(shiftPattern) ?: return null
     if (shiftPatternStartDate.isBlank()) return null
-    return pattern.shortLabel
+    return stringResource(pattern.shortLabelRes)
 }
 
 @Composable

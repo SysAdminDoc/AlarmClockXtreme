@@ -35,9 +35,13 @@ data class GeocodingResult(
     @Json(name = "admin1") val state: String?,
     val timezone: String?
 ) {
-    val displayName: String
-        get() = buildString {
-            append(name ?: "Unknown")
+    /**
+     * The place as a person reads it. The unnamed case takes its fallback from
+     * the caller because this is a network DTO with no Context.
+     */
+    fun displayName(unknownName: String): String =
+        buildString {
+            append(name ?: unknownName)
             if (!state.isNullOrBlank()) append(", $state")
             if (!country.isNullOrBlank()) append(", $country")
         }

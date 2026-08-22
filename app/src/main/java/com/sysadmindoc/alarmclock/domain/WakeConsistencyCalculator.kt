@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.domain
 
+import androidx.annotation.StringRes
+import com.sysadmindoc.alarmclock.R
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.pow
@@ -46,10 +48,11 @@ object WakeConsistencyCalculator {
         return Result(score = (r * 100).roundToInt().coerceIn(0, 100), sampleCount = n)
     }
 
-    fun label(score: Int): String = when {
-        score >= 85 -> "Very consistent"
-        score >= 65 -> "Fairly consistent"
-        score >= 40 -> "Somewhat variable"
-        else -> "Highly variable"
+    @StringRes
+    fun labelRes(score: Int): Int = when {
+        score >= 85 -> R.string.wake_consistency_very
+        score >= 65 -> R.string.wake_consistency_fairly
+        score >= 40 -> R.string.wake_consistency_somewhat
+        else -> R.string.wake_consistency_highly
     }
 }

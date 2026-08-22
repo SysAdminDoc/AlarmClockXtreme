@@ -169,7 +169,9 @@ internal fun LazyListScope.alarmEditAdvancedSection(
         SettingsRow(label = stringResource(R.string.alarm_edit_shift_pattern)) {
             Box {
                 SettingsValueButton(
-                    label = selectedShiftPattern?.title ?: stringResource(R.string.alarm_edit_disabled),
+                    label = selectedShiftPattern
+                        ?.let { stringResource(it.titleRes) }
+                        ?: stringResource(R.string.alarm_edit_disabled),
                     onClick = { showShiftPatternMenu = true }
                 )
                 DropdownMenu(
@@ -187,7 +189,7 @@ internal fun LazyListScope.alarmEditAdvancedSection(
                         DropdownMenuItem(
                             text = {
                                 Column {
-                                    Text(pattern.title)
+                                    Text(stringResource(pattern.titleRes))
                                     Text(
                                         shiftPatternDescription(pattern),
                                         color = TextMuted,
