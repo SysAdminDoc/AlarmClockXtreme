@@ -105,6 +105,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -380,6 +381,8 @@ fun AlarmListScreen(
                         hasAlarms = state.nextAlarm != null,
                         alarmCount = state.alarms.size,
                         vacationActive = state.vacationActive,
+                        pausedUntilMillis = state.pausedUntilMillis,
+                        onResumeAlarms = viewModel::resumeAlarms,
                         sortLabel = when (state.sortOrder) {
                             AlarmSortOrder.TIME -> "Sort by time"
                             AlarmSortOrder.MANUAL -> "Manual order"
@@ -636,6 +639,7 @@ fun AlarmListScreen(
                                             alarm = alarm,
                                             is24Hour = state.is24HourFormat,
                                             suppressedByVacation = suppressedByVacation,
+                                            pausedUntilMillis = state.pausedUntilMillis,
                                             isActivePaneSelection = useTwoPane && selectedAlarmId == alarm.id,
                                             onToggle = { viewModel.toggleAlarm(alarm) },
                                             onForceToggle = { viewModel.forceDisableAlarm(alarm) },
@@ -731,6 +735,7 @@ fun AlarmListScreen(
                                     state.vacationEndMillis > state.vacationStartMillis &&
                                     alarm.nextTriggerTime in state.vacationStartMillis..state.vacationEndMillis
                             } == true,
+                            pausedUntilMillis = state.pausedUntilMillis,
                             onEdit = { alarm -> onEditAlarm(alarm.id) },
                             onToggle = { alarm -> viewModel.toggleAlarm(alarm) },
                             onForceToggle = { alarm -> viewModel.forceDisableAlarm(alarm) },
@@ -823,6 +828,7 @@ private fun AlarmDetailPane(
     alarm: Alarm?,
     is24Hour: Boolean,
     suppressedByVacation: Boolean,
+    pausedUntilMillis: Long = 0L,
     onEdit: (Alarm) -> Unit,
     onToggle: (Alarm) -> Unit,
     onForceToggle: (Alarm) -> Unit,
@@ -869,7 +875,7 @@ private fun AlarmDetailPane(
                 description = if (suppressedByVacation) {
                     "Paused until vacation ends"
                 } else {
-                    nextOccurrenceLabel(alarm, is24Hour)
+                    nextOccurrenceLabel(alarm, is24Hour, pausedUntilMillis)
                 },
                 action = {
                     AppStatusChip(
@@ -1042,12 +1048,22 @@ private fun AlarmHeader(
     hasAlarms: Boolean,
     alarmCount: Int,
     vacationActive: Boolean,
+    pausedUntilMillis: Long,
+    onResumeAlarms: () -> Unit,
     sortLabel: String,
     onCycleSort: () -> Unit,
 ) {
+    val pausedUntilLabel = pausedUntilMillis
+        .takeIf { it > 0L }
+        ?.let { millis ->
+            Instant.ofEpochMilli(millis)
+                .atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("EEE, MMM d"))
+        }
     AlarmClockHeroHeader(
         title = "Alarms",
         subtitle = when {
+            pausedUntilLabel != null -> "Paused until $pausedUntilLabel"
             hasAlarms && remainingTime.isNotBlank() -> "Next alarm · $remainingTime"
             alarmCount > 0 -> "All alarms paused"
             else -> "No alarms scheduled"
@@ -1061,16 +1077,31 @@ private fun AlarmHeader(
                 )
             }
         },
-        badge = if (vacationActive) {
-            {
-                AppStatusChip(
-                    label = "Vacation mode",
-                    icon = Icons.Default.BeachAccess,
-                    color = SnoozeYellow
-                )
+        badge = when {
+            // Resume lived in Settings only, three screens from where the user
+            // sees the effect.
+            pausedUntilLabel != null -> {
+                {
+                    AppStatusChip(
+                        label = "Resume alarms",
+                        icon = Icons.Default.NotificationsActive,
+                        color = SnoozeYellow,
+                        onClick = onResumeAlarms
+                    )
+                }
             }
-        } else {
-            null
+
+            vacationActive -> {
+                {
+                    AppStatusChip(
+                        label = "Vacation mode",
+                        icon = Icons.Default.BeachAccess,
+                        color = SnoozeYellow
+                    )
+                }
+            }
+
+            else -> null
         }
     )
 }
@@ -1222,6 +1253,7 @@ private fun AlarmCard(
     alarm: Alarm,
     is24Hour: Boolean,
     suppressedByVacation: Boolean = false,
+    pausedUntilMillis: Long = 0L,
     isActivePaneSelection: Boolean = false,
     onToggle: () -> Unit,
     onForceToggle: () -> Unit = {},
@@ -1354,7 +1386,7 @@ private fun AlarmCard(
                 text = if (suppressedByVacation) {
                     "Paused until vacation ends"
                 } else {
-                    nextOccurrenceLabel(alarm, is24Hour)
+                    nextOccurrenceLabel(alarm, is24Hour, pausedUntilMillis)
                 },
                 color = if (suppressedByVacation) SnoozeYellow else TextMuted,
                 style = MaterialTheme.typography.bodySmall
@@ -1373,7 +1405,10 @@ private fun AlarmCard(
                     text = metadata.joinToString(" · "),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2
+                    maxLines = 2,
+                    // A chain plus a group plus a timezone overruns two lines on
+                    // a narrow phone; clip without a marker hid that silently.
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
@@ -1632,7 +1667,19 @@ private fun Alarm.shiftPatternChipLabel(): String? {
     return pattern.shortLabel
 }
 
-private fun nextOccurrenceLabel(alarm: Alarm, is24Hour: Boolean): String {
+private fun nextOccurrenceLabel(
+    alarm: Alarm,
+    is24Hour: Boolean,
+    pausedUntilMillis: Long = 0L
+): String {
+    if (alarm.isEnabled && pausedUntilMillis > 0L) {
+        // "Pause alarms for N days" zeroes every trigger, so the card used to
+        // claim the alarm needed re-enabling by hand. It does not.
+        val until = Instant.ofEpochMilli(pausedUntilMillis)
+            .atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("EEE, MMM d"))
+        return "All alarms paused until $until"
+    }
     if (!alarm.isEnabled || alarm.nextTriggerTime <= 0) {
         return "Paused until you re-enable this alarm"
     }

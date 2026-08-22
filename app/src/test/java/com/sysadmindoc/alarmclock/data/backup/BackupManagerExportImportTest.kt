@@ -300,7 +300,6 @@ class BackupManagerExportImportTest {
         defaultSnoozeDuration = 25,
         defaultGradualVolume = 90,
         usePhoneSpeakers = true,
-        showOnLockScreen = false,
         hideAlarmLabelsOnPublicSurfaces = true,
         showWeatherOnDashboard = false,
         showCalendarOnDashboard = true,

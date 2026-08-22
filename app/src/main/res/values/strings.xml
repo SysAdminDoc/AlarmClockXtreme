@@ -68,6 +68,9 @@
     <string name="shortcut_bedtime_long">Open bedtime tracker</string>
 
     <!-- Notification text (system surfaces — highest i18n priority) -->
+    <string name="notif_channel_database_downgrade">Restore problems</string>
+    <string name="notif_database_downgrade_title">Alarms could not be restored</string>
+    <string name="notif_database_downgrade_text">The restored data came from a newer version of the app, which this version cannot read. Your alarms were not kept and nothing is scheduled. Add them again, or install the newer version and restore once more.</string>
     <string name="notif_alarm_title">Alarm</string>
     <string name="notif_alarm_ringing">Alarm ringing</string>
     <string name="notif_snooze_action">Snooze %1$dm</string>

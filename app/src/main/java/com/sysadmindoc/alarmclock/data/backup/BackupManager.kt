@@ -118,7 +118,9 @@ data class SettingsBackup(
     val defaultSnoozeDuration: Int,
     val defaultGradualVolume: Int,
     val usePhoneSpeakers: Boolean,
-    val showOnLockScreen: Boolean,
+    // Kept so older backups still parse; the setting itself is gone, because
+    // an alarm the user cannot reach from the lock screen is a broken alarm.
+    val showOnLockScreen: Boolean = true,
     val showAlarmClockIcon: Boolean = true,
     val hideAlarmLabelsOnPublicSurfaces: Boolean = false,
     val vacationModeEnabled: Boolean,
@@ -431,7 +433,6 @@ class BackupManager @Inject constructor(
                 defaultSnoozeDuration = settings.defaultSnoozeDuration,
                 defaultGradualVolume = settings.defaultGradualVolume,
                 usePhoneSpeakers = settings.usePhoneSpeakers,
-                showOnLockScreen = settings.showOnLockScreen,
                 showAlarmClockIcon = settings.showAlarmClockIcon,
                 hideAlarmLabelsOnPublicSurfaces = settings.hideAlarmLabelsOnPublicSurfaces,
                 vacationModeEnabled = settings.vacationModeEnabled,
@@ -669,7 +670,6 @@ class BackupManager @Inject constructor(
         defaultSnoozeDuration = s.defaultSnoozeDuration,
         defaultGradualVolume = s.defaultGradualVolume,
         usePhoneSpeakers = s.usePhoneSpeakers,
-        showOnLockScreen = s.showOnLockScreen,
         showAlarmClockIcon = s.showAlarmClockIcon,
         hideAlarmLabelsOnPublicSurfaces = s.hideAlarmLabelsOnPublicSurfaces,
         vacationModeEnabled = s.vacationModeEnabled,

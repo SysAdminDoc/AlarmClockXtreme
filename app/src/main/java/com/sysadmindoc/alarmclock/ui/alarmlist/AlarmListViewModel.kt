@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.data.preferences.isPaused
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
@@ -82,7 +83,14 @@ data class AlarmListUiState(
     // this, the scheduler silently suppressed them while the UI still said
     // "Next alarm in 3 days". 0/0 = no active window.
     val vacationStartMillis: Long = 0L,
-    val vacationEndMillis: Long = 0L
+    val vacationEndMillis: Long = 0L,
+    /**
+     * When "Pause alarms for N days" is active, the moment it expires. 0 when
+     * not paused. Without this the list only knew that every trigger was 0, so
+     * each card claimed it had to be re-enabled by hand, which is untrue, and
+     * the only Resume control was three screens away in Settings.
+     */
+    val pausedUntilMillis: Long = 0L
 )
 
 @HiltViewModel
@@ -168,7 +176,8 @@ class AlarmListViewModel @Inject constructor(
             } else 0L,
             vacationEndMillis = if (VacationAlarmPolicy.hasConfiguredWindow(settings)) {
                 settings.vacationEndMillis
-            } else 0L
+            } else 0L,
+            pausedUntilMillis = if (settings.isPaused(now)) settings.pauseUntilMillis else 0L
         )
     }.stateIn(
         viewModelScope,
@@ -333,6 +342,14 @@ class AlarmListViewModel @Inject constructor(
         }
     }
 
+    /** Ends a "Pause alarms for N days" window early and re-arms everything. */
+    fun resumeAlarms() {
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(pauseUntilMillis = 0L) }
+            scheduler.rescheduleAll(forceRecalculate = true)
+        }
+    }
+
     fun toggleAlarm(alarm: Alarm) {
         viewModelScope.launch {
             val newEnabled = !alarm.isEnabled
@@ -436,12 +453,17 @@ class AlarmListViewModel @Inject constructor(
             val instant = Instant.ofEpochMilli(triggerTime)
             val localTime = instant.atZone(ZoneId.systemDefault()).toLocalTime()
 
+            // Settings > Defaults says it is "the behavior new alarms start
+            // with", and a quick alarm is a new alarm.
+            val defaults = preferencesManager.getCurrentSettings()
             val alarm = Alarm(
                 hour = localTime.hour,
                 minute = localTime.minute,
                 label = "${minutesFromNow}m quick alarm",
                 isEnabled = true,
                 repeatDays = emptySet(),
+                snoozeDurationMinutes = defaults.defaultSnoozeDuration,
+                gradualVolumeSeconds = defaults.defaultGradualVolume,
                 nextTriggerTime = triggerTime
             )
 
@@ -459,6 +481,8 @@ class AlarmListViewModel @Inject constructor(
         viewModelScope.launch {
             val isRelative = template.hour == 0 && template.minute > 0 && template.repeatDays.isEmpty()
 
+            // No defaults seeding here: a template states its own snooze,
+            // gradual volume and vibration, which is the point of picking one.
             val alarm = if (isRelative) {
                 val triggerTime = System.currentTimeMillis() + (template.minute * 60 * 1000L)
                 val instant = Instant.ofEpochMilli(triggerTime)

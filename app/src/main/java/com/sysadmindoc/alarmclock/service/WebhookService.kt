@@ -78,7 +78,6 @@ class WebhookService @Inject constructor(
         // 307/308 from that endpoint would otherwise forward the body and the
         // X-ACX-Signature header to any other host, LAN ones included.
         .followRedirects(false)
-        .followSslRedirects(false)
         .build()
 
     private val JSON = "application/json".toMediaType()
@@ -192,7 +191,15 @@ class WebhookService @Inject constructor(
                     code = response.code,
                     failure = null
                 )
-                if (response.isSuccessful) WebhookDeliveryOutcome.Delivered else WebhookDeliveryOutcome.Failed
+                when {
+                    response.isSuccessful -> WebhookDeliveryOutcome.Delivered
+                    // Redirects are not followed, so the signed payload cannot
+                    // be forwarded to another host. A 3xx is then a permanent
+                    // misconfiguration of the endpoint, not a network blip:
+                    // retrying it to exhaustion would just fill the log.
+                    response.isRedirect -> WebhookDeliveryOutcome.Skipped
+                    else -> WebhookDeliveryOutcome.Failed
+                }
             }
         } catch (e: Exception) {
             recordDeliveryStatus(

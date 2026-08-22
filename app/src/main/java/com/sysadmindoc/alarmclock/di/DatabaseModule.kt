@@ -2,11 +2,14 @@ package com.sysadmindoc.alarmclock.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sysadmindoc.alarmclock.data.local.ActigraphySessionDao
 import com.sysadmindoc.alarmclock.data.local.AlarmDao
 import com.sysadmindoc.alarmclock.data.local.AlarmDatabase
 import com.sysadmindoc.alarmclock.data.local.AlarmEventDao
 import com.sysadmindoc.alarmclock.data.local.AlarmIncidentEventDao
+import com.sysadmindoc.alarmclock.data.local.DatabaseDowngradeNotice
 import com.sysadmindoc.alarmclock.data.local.PreSleepTagDao
 import com.sysadmindoc.alarmclock.data.local.SnoreEventDao
 import dagger.Module
@@ -32,8 +35,14 @@ object DatabaseModule {
             // The manifest allows restoring a backup from any version, so a
             // database stamped by a newer build can land on an older one. Room
             // throws on open in that case and every DB-backed screen crashes;
-            // starting empty is recoverable, a crash loop is not.
+            // starting empty is recoverable, a crash loop is not. Losing the
+            // alarms quietly would be its own failure, so say so.
             .fallbackToDestructiveMigrationOnDowngrade()
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onDestructiveMigration(db: SupportSQLiteDatabase) {
+                    DatabaseDowngradeNotice.post(context)
+                }
+            })
             .build()
     }
 

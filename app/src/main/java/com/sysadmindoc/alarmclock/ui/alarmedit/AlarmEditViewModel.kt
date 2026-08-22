@@ -262,8 +262,7 @@ class AlarmEditViewModel @Inject constructor(
                     minute = roundedMinute % 60,
                     is24HourFormat = is24h,
                     snoozeDurationMinutes = settings.defaultSnoozeDuration,
-                    gradualVolumeSeconds = settings.defaultGradualVolume,
-                    showOnLockScreen = settings.showOnLockScreen
+                    gradualVolumeSeconds = settings.defaultGradualVolume
                 )
                 loadedDraft = _uiState.value
             }

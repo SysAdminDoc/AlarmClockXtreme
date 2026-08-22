@@ -172,6 +172,60 @@ internal fun LazyListScope.alarmEditDismissSections(
         )
     }
 
+    // v1.2.0: Anti-Snooze Features
+    SettingsSection(editorPage, AlarmEditorSection.ANTI_SNOOZE) {
+        SettingsRow(
+            label = stringResource(R.string.alarm_edit_backup_sound),
+            trailing = {
+                Switch(
+                    checked = state.backupSoundEnabled,
+                    onCheckedChange = { viewModel.updateBackupSound(it) },
+                    colors = appSwitchColors()
+                )
+            }
+        )
+        if (state.backupSoundEnabled) {
+            var showDelayMenu by remember { mutableStateOf(false) }
+            SettingsRow(label = stringResource(R.string.alarm_edit_escalate_after)) {
+                Box {
+                    SettingsValueButton(
+                        label = stringResource(R.string.alarm_edit_seconds_short, state.backupSoundDelaySec),
+                        onClick = { showDelayMenu = true }
+                    )
+                    DropdownMenu(expanded = showDelayMenu, onDismissRequest = { showDelayMenu = false }) {
+                        listOf(20, 30, 40, 60, 90, 120).forEach { sec ->
+                            DropdownMenuItem(
+                                text = { Text(pluralStringResource(R.plurals.alarm_edit_seconds, sec, sec)) },
+                                onClick = { viewModel.updateBackupSound(true, sec); showDelayMenu = false }
+                            )
+                        }
+                    }
+                }
+            }
+            SettingsHint(
+                stringResource(R.string.alarm_edit_backup_sound_hint),
+                tone = HintTone.Warning
+            )
+        }
+
+        SettingsRow(
+            label = stringResource(R.string.alarm_edit_flashlight_strobe),
+            trailing = {
+                Switch(
+                    checked = state.flashlightStrobe,
+                    onCheckedChange = viewModel::updateFlashlightStrobe,
+                    colors = appSwitchColors()
+                )
+            }
+        )
+        if (state.flashlightStrobe) {
+            SettingsHint(
+                stringResource(R.string.alarm_edit_flashlight_warning),
+                tone = HintTone.Warning
+            )
+        }
+    }
+
     // Dismiss Challenge
     SettingsSection(editorPage, AlarmEditorSection.DISMISS_CHALLENGE) {
         val challengeOptions = alarmChallengeOptions()
@@ -401,6 +455,68 @@ internal fun LazyListScope.alarmEditDismissSections(
         }
     }
 
+    // v1.2.0: Mission Chaining
+    SettingsSection(editorPage, AlarmEditorSection.CHAIN) {
+        val chainItems = state.challengeChain.toChallengeChainList()
+        SettingsRow(
+            label = stringResource(R.string.alarm_edit_challenge_chain),
+            trailing = {
+                SettingsValueButton(
+                    label = if (chainItems.isEmpty()) {
+                        stringResource(R.string.alarm_edit_choose)
+                    } else {
+                        pluralStringResource(R.plurals.alarm_edit_challenges, chainItems.size, chainItems.size)
+                    },
+                    onClick = onOpenChainPicker
+                )
+            }
+        )
+        if (chainItems.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                chainItems.forEachIndexed { index, challenge ->
+                    AppStatusChip(
+                        label = "${index + 1}. ${challenge.toAlarmChallengeSummary()}",
+                        color = SnoozeYellow
+                    )
+                }
+            }
+        }
+        OutlinedTextField(
+            value = state.challengeChain,
+            onValueChange = viewModel::updateChallengeChain,
+            label = { Text(stringResource(R.string.alarm_edit_chain_override), color = TextMuted) },
+            placeholder = { Text(stringResource(R.string.alarm_edit_chain_placeholder), color = TextMuted) },
+            colors = appOutlinedTextFieldColors(),
+            shape = AppInputShape,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            singleLine = true
+        )
+        SettingsHint(
+            stringResource(R.string.alarm_edit_chain_hint),
+            tone = HintTone.Neutral
+        )
+        if (chainItems.isNotEmpty()) {
+            val missingRefs = buildList {
+                if ("NFC_SCAN" in chainItems && state.nfcTagId.isBlank()) add(stringResource(R.string.alarm_edit_nfc_id))
+                if ("BARCODE_SCAN" in chainItems && state.barcodeValue.isBlank()) add(stringResource(R.string.alarm_edit_barcode_value_short))
+                if ("PHOTO_MATCH" in chainItems && state.photoMatchUri.isBlank()) add(stringResource(R.string.alarm_edit_reference_photo_lower))
+                if ("WIFI_CONNECT" in chainItems && state.wifiDismissSsid.isBlank()) add(stringResource(R.string.alarm_edit_wifi_ssid))
+            }
+            if (missingRefs.isNotEmpty()) {
+                SettingsHint(
+                    stringResource(R.string.alarm_edit_missing_references, missingRefs.joinToString(", ")),
+                    tone = HintTone.Warning
+                )
+            }
+        }
+    }
+
     SettingsSection(editorPage, AlarmEditorSection.LOCATION) {
         val hasLocationTarget = LocationDismissPolicy.hasTarget(
             state.locationDismissLat,
@@ -501,121 +617,6 @@ internal fun LazyListScope.alarmEditDismissSections(
         }
     }
 
-    // v1.2.0: Mission Chaining
-    SettingsSection(editorPage, AlarmEditorSection.CHAIN) {
-        val chainItems = state.challengeChain.toChallengeChainList()
-        SettingsRow(
-            label = stringResource(R.string.alarm_edit_challenge_chain),
-            trailing = {
-                SettingsValueButton(
-                    label = if (chainItems.isEmpty()) {
-                        stringResource(R.string.alarm_edit_choose)
-                    } else {
-                        pluralStringResource(R.plurals.alarm_edit_challenges, chainItems.size, chainItems.size)
-                    },
-                    onClick = onOpenChainPicker
-                )
-            }
-        )
-        if (chainItems.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                chainItems.forEachIndexed { index, challenge ->
-                    AppStatusChip(
-                        label = "${index + 1}. ${challenge.toAlarmChallengeSummary()}",
-                        color = SnoozeYellow
-                    )
-                }
-            }
-        }
-        OutlinedTextField(
-            value = state.challengeChain,
-            onValueChange = viewModel::updateChallengeChain,
-            label = { Text(stringResource(R.string.alarm_edit_chain_override), color = TextMuted) },
-            placeholder = { Text(stringResource(R.string.alarm_edit_chain_placeholder), color = TextMuted) },
-            colors = appOutlinedTextFieldColors(),
-            shape = AppInputShape,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-            singleLine = true
-        )
-        SettingsHint(
-            stringResource(R.string.alarm_edit_chain_hint),
-            tone = HintTone.Neutral
-        )
-        if (chainItems.isNotEmpty()) {
-            val missingRefs = buildList {
-                if ("NFC_SCAN" in chainItems && state.nfcTagId.isBlank()) add(stringResource(R.string.alarm_edit_nfc_id))
-                if ("BARCODE_SCAN" in chainItems && state.barcodeValue.isBlank()) add(stringResource(R.string.alarm_edit_barcode_value_short))
-                if ("PHOTO_MATCH" in chainItems && state.photoMatchUri.isBlank()) add(stringResource(R.string.alarm_edit_reference_photo_lower))
-                if ("WIFI_CONNECT" in chainItems && state.wifiDismissSsid.isBlank()) add(stringResource(R.string.alarm_edit_wifi_ssid))
-            }
-            if (missingRefs.isNotEmpty()) {
-                SettingsHint(
-                    stringResource(R.string.alarm_edit_missing_references, missingRefs.joinToString(", ")),
-                    tone = HintTone.Warning
-                )
-            }
-        }
-    }
-
-    // v1.2.0: Anti-Snooze Features
-    SettingsSection(editorPage, AlarmEditorSection.ANTI_SNOOZE) {
-        SettingsRow(
-            label = stringResource(R.string.alarm_edit_backup_sound),
-            trailing = {
-                Switch(
-                    checked = state.backupSoundEnabled,
-                    onCheckedChange = { viewModel.updateBackupSound(it) },
-                    colors = appSwitchColors()
-                )
-            }
-        )
-        if (state.backupSoundEnabled) {
-            var showDelayMenu by remember { mutableStateOf(false) }
-            SettingsRow(label = stringResource(R.string.alarm_edit_escalate_after)) {
-                Box {
-                    SettingsValueButton(
-                        label = stringResource(R.string.alarm_edit_seconds_short, state.backupSoundDelaySec),
-                        onClick = { showDelayMenu = true }
-                    )
-                    DropdownMenu(expanded = showDelayMenu, onDismissRequest = { showDelayMenu = false }) {
-                        listOf(20, 30, 40, 60, 90, 120).forEach { sec ->
-                            DropdownMenuItem(
-                                text = { Text(pluralStringResource(R.plurals.alarm_edit_seconds, sec, sec)) },
-                                onClick = { viewModel.updateBackupSound(true, sec); showDelayMenu = false }
-                            )
-                        }
-                    }
-                }
-            }
-            SettingsHint(
-                stringResource(R.string.alarm_edit_backup_sound_hint),
-                tone = HintTone.Warning
-            )
-        }
-
-        SettingsRow(
-            label = stringResource(R.string.alarm_edit_flashlight_strobe),
-            trailing = {
-                Switch(
-                    checked = state.flashlightStrobe,
-                    onCheckedChange = viewModel::updateFlashlightStrobe,
-                    colors = appSwitchColors()
-                )
-            }
-        )
-        if (state.flashlightStrobe) {
-            SettingsHint(
-                stringResource(R.string.alarm_edit_flashlight_warning),
-                tone = HintTone.Warning
-            )
-        }
-    }
 }
 
 /**

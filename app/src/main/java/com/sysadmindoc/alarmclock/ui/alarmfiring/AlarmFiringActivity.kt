@@ -158,7 +158,10 @@ class AlarmFiringActivity : ComponentActivity() {
         )
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
 
-        // Show on lock screen
+        // Always shown over the lock screen. This is deliberately not
+        // configurable: an alarm the user cannot reach without entering a PIN
+        // at 6am is a broken alarm. Label privacy is handled separately by
+        // "Hide alarm labels on public surfaces".
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             setShowWhenLocked(true)
             setTurnScreenOn(true)
@@ -210,15 +213,6 @@ class AlarmFiringActivity : ComponentActivity() {
                 when {
                     state.alarm?.locationDismissEnabled == true && !state.locationDismissReady -> startLocationDismissMonitoring()
                     else -> stopLocationDismissMonitoring()
-                }
-                // The per-alarm "Show on lock screen" choice, applied once the
-                // row is known. onCreate always shows the screen so the alarm
-                // is reachable; an alarm that opted out drops behind the
-                // keyguard from here, and its notification stays available.
-                state.alarm?.let { loaded ->
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-                        setShowWhenLocked(loaded.showOnLockScreen)
-                    }
                 }
                 when {
                     challenge is Challenge.NfcChallenge && !state.challengeSolved -> enableNfcForegroundDispatch()

@@ -6,6 +6,17 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Pausing all alarms shows the date it ends and a Resume chip on the Alarms
+  tab. Each card used to claim it had to be re-enabled by hand, which was
+  false, and Resume was three screens away.
+- Removed the "Show alarm on lock screen" setting. It was never applied, and an
+  alarm you cannot reach without unlocking is a broken alarm. "Hide alarm
+  labels on public surfaces" still covers the privacy case.
+- Quick alarms use your default snooze and gradual volume.
+- Losing a database to a version downgrade now tells you what happened instead
+  of quietly starting empty.
+- A webhook endpoint that answers with a redirect is reported as such rather
+  than retried until the attempts run out.
 - When Android will not reveal the connected network name, a Wi-Fi dismiss
   alarm now swaps in a maths problem and says why, instead of showing a
   "continue without Wi-Fi check" button that dismissed the alarm from anywhere.

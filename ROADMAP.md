@@ -12,15 +12,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### P2 — correctness and reliability
 
-- [ ] P2 — "Pause all alarms" has no banner or Resume on the Alarms tab and the per-card copy is wrong
-  Category: ux
-  Where: ui/settings/SettingsViewModel.kt:559-576 (`pauseAlarmsForDays`); ui/alarmlist/AlarmListViewModel.kt (never reads `pauseUntilMillis`); ui/alarmlist/AlarmListScreen.kt:1054 (header only says "All alarms paused" because every trigger is 0), :1066 (badge is vacation-only), :1614 ("Paused until you re-enable this alarm")
-  Problem: after pausing from Settings, each alarm card claims it must be re-enabled (false), and the only Resume control is three screens away.
-  Fix: add `pausedUntilMillis` to `AlarmListUiState`, show a "Paused until <date> · Resume" chip in the hero (reuse the vacation chip at :1066) and use it in `nextOccurrenceLabel`.
-  Acceptance: pause for 2 days, open Alarms: hero shows "Paused until Mon, Aug 24 · Resume"; tapping Resume re-arms.
-  Confidence: Verified
-  Effort: S
-
 - [ ] P2 — Hue legacy v1 (HTTP) path and `http://` internet-radio URLs are dead on this targetSdk, yet the UI offers them
   Category: correctness
   Where: integration/hue/HueBridgeClient.kt:140, worker/HueSunriseWorker.kt:159, service/DismissActionExecutor.kt:201 (`http://$bridgeIp/api/$apiKey/...`); ui/settings/SettingsViewModel.kt:471-515 (`hueLegacyHttpEnabled` toggle and "reachable (legacy API v1 over HTTP)" message); service/AlarmService.kt:907-908 (`http://` accepted for radio); res/values/strings.xml:614 ("Stream URL (http://…)")

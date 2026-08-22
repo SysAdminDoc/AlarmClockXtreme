@@ -446,12 +446,6 @@ fun SettingsScreen(
                     onToggle = viewModel::toggle24Hour
                 )
                 SettingsToggle(
-                    label = stringResource(R.string.settings_show_lock_screen),
-                    checked = state.settings.showOnLockScreen,
-                    supportingText = stringResource(R.string.settings_show_lock_screen_description),
-                    onToggle = viewModel::toggleLockScreen
-                )
-                SettingsToggle(
                     label = stringResource(R.string.settings_alarm_status_icon),
                     checked = state.settings.showAlarmClockIcon,
                     supportingText = stringResource(R.string.settings_alarm_status_icon_description),
