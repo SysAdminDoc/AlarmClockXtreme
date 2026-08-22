@@ -2220,4 +2220,7 @@
     <string name="notif_external_alarm_title">An alarm was added</string>
     <string name="notif_external_alarm_text_named">%1$s added an alarm without opening the app. Tap to review it.</string>
     <string name="notif_external_alarm_text">Another app added an alarm without opening the app. Tap to review it.</string>
+    <string name="youtube_downloading">Downloading “%1$s”…</string>
+    <string name="youtube_fallback_sound_name">alarm sound</string>
+    <string name="youtube_updating_engine">Updating downloader engine…</string>
 </resources>

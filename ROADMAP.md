@@ -23,16 +23,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Needs-repro
   Effort: S
 
-- [ ] P2 — A YouTube download is cancelled by a rotation
-  Category: ux
-  Where: ui/components/YouTubeDownloadDialog.kt:345-360 and :380-395 (`scope.launch` on a `rememberCoroutineScope`, cancelled when the composition is destroyed); ui/ringtone/RingtonePickerSheet.kt:126 (the parent flag now survives rotation, so the dialog itself reopens)
-  Problem: the mode, pasted URL, typed query, search results and dialog visibility all survive a rotation now, but a download in flight does not: it runs on the composition's scope, so turning the phone kills it partway with no message. The user sees the dialog reopen with the fields intact and nothing downloading.
-  Evidence: the rest of that finding shipped; this piece needs the work hoisted out of composition.
-  Fix: move the download (and the engine update, which has the same shape) into a `@HiltViewModel` owned by the ringtone picker, exposing progress and a terminal result as state. The dialog then observes rather than launches.
-  Acceptance: start a download, rotate: it keeps going and still reports success or failure into the picker.
-  Confidence: Verified
-  Effort: M
-
 ### P3
 
 - [ ] P3 — Dead code and duplicated helpers

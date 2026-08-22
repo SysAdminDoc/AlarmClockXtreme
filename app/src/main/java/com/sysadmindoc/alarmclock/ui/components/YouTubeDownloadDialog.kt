@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.components
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.platform.LocalResources
 import androidx.annotation.StringRes
 import android.media.AudioAttributes
@@ -164,11 +166,47 @@ fun YouTubeDownloadDialog(
     }
     var hasSearched by rememberSaveable { mutableStateOf(false) }
     var searching by remember { mutableStateOf(false) }
-    var inFlight by remember { mutableStateOf(false) }
-    var updatingEngine by remember { mutableStateOf(false) }
-    var engineVersion by remember { mutableStateOf(downloader.engineVersionName()) }
-    var statusMessage by remember { mutableStateOf("") }
-    var statusIsError by remember { mutableStateOf(false) }
+    // The download and the engine update outlive this composition, so they
+    // belong to a ViewModel; a rotation used to cancel both.
+    val downloadViewModel: YouTubeDownloadViewModel = hiltViewModel()
+    val inFlight by downloadViewModel.downloading.collectAsStateWithLifecycle()
+    val updatingEngine by downloadViewModel.updatingEngine.collectAsStateWithLifecycle()
+    val engineVersion by downloadViewModel.engineVersion.collectAsStateWithLifecycle()
+    val downloadOutcome by downloadViewModel.outcome.collectAsStateWithLifecycle()
+    val engineUpdateMessage by downloadViewModel.engineUpdateMessage.collectAsStateWithLifecycle()
+    val downloadingTemplate = stringResource(R.string.youtube_downloading)
+    val downloadingMessage = { title: String -> downloadingTemplate.format(title) }
+    val fallbackSoundName = stringResource(R.string.youtube_fallback_sound_name)
+    val stringResourceUpdatingEngine = stringResource(R.string.youtube_updating_engine)
+    var statusMessage by rememberSaveable { mutableStateOf("") }
+    var statusIsError by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(downloadOutcome) {
+        when (val finished = downloadOutcome) {
+            null -> Unit
+            is YouTubeDownloadViewModel.Outcome.Downloaded -> {
+                downloadViewModel.consumeOutcome()
+                onDownloaded(finished.savedTitle)
+            }
+            is YouTubeDownloadViewModel.Outcome.Failed -> {
+                downloadViewModel.consumeOutcome()
+                val message = resources.getString(
+                    youTubeDialogErrorMessage(finished.error, finished.action)
+                )
+                statusMessage = message
+                statusIsError = true
+                if (finished.action == YouTubeDialogAction.Download) onError(message)
+            }
+        }
+    }
+
+    LaunchedEffect(engineUpdateMessage) {
+        engineUpdateMessage?.let { message ->
+            downloadViewModel.consumeEngineUpdateMessage()
+            statusMessage = message
+            statusIsError = false
+        }
+    }
 
     // Preview machinery — the URL currently resolving (loading) or playing.
     // Owns a single MediaPlayer so a second preview tap stops the first.
@@ -283,24 +321,8 @@ fun YouTubeDownloadDialog(
                     enabled = !inFlight && !searching,
                     onUpdate = {
                         stopPreview()
-                        updatingEngine = true
-                        setStatus("Updating downloader engine...")
-                        scope.launch {
-                            val result = downloader.updateEngine()
-                            updatingEngine = false
-                            result.fold(
-                                onSuccess = { update ->
-                                    engineVersion = update.afterVersionName ?: update.beforeVersionName
-                                    setStatus(update.userMessage())
-                                },
-                                onFailure = { error ->
-                                    setStatus(
-                                        resources.getString(youTubeDialogErrorMessage(error, YouTubeDialogAction.EngineUpdate)),
-                                        isError = true
-                                    )
-                                }
-                            )
-                        }
+                        setStatus(stringResourceUpdatingEngine)
+                        downloadViewModel.updateEngine()
                     }
                 )
 
@@ -381,20 +403,8 @@ fun YouTubeDownloadDialog(
                         },
                         onPick = { hit ->
                             stopPreview()
-                            inFlight = true
-                            setStatus("Downloading \"${hit.title.take(40)}\"...")
-                            scope.launch {
-                                val r = downloader.downloadAsAlarm(hit.videoUrl, hit.title)
-                                inFlight = false
-                                r.fold(
-                                    onSuccess = onDownloaded,
-                                    onFailure = { e ->
-                                        val message = resources.getString(youTubeDialogErrorMessage(e, YouTubeDialogAction.Download))
-                                        setStatus(message, isError = true)
-                                        onError(message)
-                                    }
-                                )
-                            }
+                            setStatus(downloadingMessage(hit.title.take(40)))
+                            downloadViewModel.download(hit.videoUrl, hit.title)
                         },
                         inFlight = inFlight,
                     )
@@ -416,21 +426,9 @@ fun YouTubeDownloadDialog(
                     enabled = !inFlight && !updatingEngine && url.isNotBlank(),
                     onClick = {
                         stopPreview()
-                        inFlight = true
                         val labelGuess = name.ifBlank { url.substringAfter("v=").substringBefore('&').take(11) }
-                        setStatus("Downloading \"${labelGuess.ifBlank { "alarm sound" }}\"...")
-                        scope.launch {
-                            val result = downloader.downloadAsAlarm(url.trim(), labelGuess)
-                            inFlight = false
-                            result.fold(
-                                onSuccess = onDownloaded,
-                                onFailure = { e ->
-                                    val message = resources.getString(youTubeDialogErrorMessage(e, YouTubeDialogAction.Download))
-                                    setStatus(message, isError = true)
-                                    onError(message)
-                                }
-                            )
-                        }
+                        setStatus(downloadingMessage(labelGuess.ifBlank { fallbackSoundName }))
+                        downloadViewModel.download(url.trim(), labelGuess)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                     shape = RoundedCornerShape(10.dp)
