@@ -52,6 +52,32 @@ class TimerAlarmServiceTest {
         TimerStore(context).replace(emptyList())
     }
 
+    /** Timer ids the shadow AlarmManager is holding an expiry alarm for. */
+    private fun scheduledTimerAlarmIds(): List<Int> =
+        shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms
+            .mapNotNull { it.operation }
+            .map { shadowOf(it).savedIntent }
+            .filter { it.action == TimerAlarmScheduler.ACTION_TIMER_EXPIRED }
+            .map { it.getIntExtra(TimerAlarmScheduler.EXTRA_TIMER_ID, -1) }
+            .sorted()
+
+    /**
+     * Everything the shadow is holding, timer alarm or not. A bare count told
+     * us nothing the one time this assertion failed: the point of naming each
+     * alarm is that the next failure says which one arrived uninvited.
+     */
+    private fun scheduledAlarmSummary(): String =
+        shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms
+            .joinToString(prefix = "[", postfix = "]") { alarm ->
+                val intent = alarm.operation?.let { shadowOf(it).savedIntent }
+                when {
+                    intent == null -> "listener@${alarm.triggerAtTime}"
+                    intent.action == TimerAlarmScheduler.ACTION_TIMER_EXPIRED ->
+                        "timer#${intent.getIntExtra(TimerAlarmScheduler.EXTRA_TIMER_ID, -1)}"
+                    else -> "${intent.action ?: intent.component?.className}@${alarm.triggerAtTime}"
+                }
+            }
+
     @Test
     fun `simultaneous and duplicate expiries share one foreground alert`() {
         service.onStartCommand(fireIntent(1, "Tea"), 0, 1)
@@ -179,8 +205,9 @@ class TimerAlarmServiceTest {
         assertEquals(60L, running.totalSeconds)
         assertEquals(TimerState.RUNNING, running.state)
         assertEquals(
-            1,
-            shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms.size
+            "expected an expiry alarm for timer 4 only; scheduled: ${scheduledAlarmSummary()}",
+            listOf(4),
+            scheduledTimerAlarmIds()
         )
         val notifications = shadowOf(context.getSystemService(NotificationManager::class.java))
         assertNull(notifications.getNotification(TimerNotifications.notificationId(3)))
