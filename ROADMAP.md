@@ -113,9 +113,4 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
 
 ### Unaudited — needs a pass
 
-- [ ] Unaudited — Direct Boot fallback (directboot/*) end-to-end on a device with file-based encryption: only the cache logic was read, not exercised.
-- [ ] Unaudited — Wear module runtime behaviour (tile, complication, Data Layer round trip) on a Wear emulator; only source was read.
-- [ ] Unaudited — Health Connect, YouTube engine update, and NewPipe search paths with live network; code-traced only.
-- [ ] Unaudited — Actigraphy / Sonar sleep analysis math (data/actigraphy/*, service/SonarSleepService.kt DSP): not reviewed for numerical correctness.
-- [ ] Unaudited — Tablet/foldable (NavigationRail, 840 dp list/detail) layouts: adaptive code was read, no wide-window emulator run.
-- [ ] Unaudited — Android 12/12L device run (no API 31/32 AVD on this machine); the P0 above is from code and platform semantics.
+- [ ] Unaudited — Actigraphy / Sonar sleep analysis math (data/actigraphy/*, service/SonarSleepService.kt DSP): not reviewed for numerical correctness. This one is not device-gated: the DSP is pure Kotlin and can be checked against hand-computed cases on the JVM. The other five audits moved to Roadmap_Blocked.md on 2026-08-22 because each needs hardware or a live network.
