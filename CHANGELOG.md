@@ -6,6 +6,12 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ### Fixed
 
+- Accessibility on the secondary screens: the Bedtime switches are named, the
+  wind-down checklist reports whether each item is ticked, the breathing phase
+  and the moment a timer runs out are announced, the News feed tabs report
+  which one is active, night clock exposes an exit action instead of only a
+  long-press gesture, filter chips always say whether they are selected, and
+  decorative icons stopped being read twice.
 - A Replace-mode restore of a backup that genuinely holds no alarms clears the
   list again, while one whose rows cannot be saved leaves your alarms alone.
 - The alarm event history is capped by row count rather than by age, so the

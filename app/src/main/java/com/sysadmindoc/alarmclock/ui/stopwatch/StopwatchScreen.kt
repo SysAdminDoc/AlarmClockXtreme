@@ -42,6 +42,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
@@ -132,7 +135,12 @@ fun StopwatchScreen(
                 AppStatusChip(
                     label = "${state.laps.size} laps",
                     icon = Icons.Default.Flag,
-                    color = if (state.laps.isEmpty()) TextMuted else MaterialTheme.colorScheme.primary
+                    color = if (state.laps.isEmpty()) TextMuted else MaterialTheme.colorScheme.primary,
+                    // Start, pause, resume and reset all change only the chip
+                    // above and the numbers, neither of which announced.
+                    modifier = Modifier.semantics {
+                        liveRegion = LiveRegionMode.Polite
+                    }
                 )
             },
             actions = {

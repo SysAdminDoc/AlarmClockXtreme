@@ -34,6 +34,9 @@ import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -150,6 +153,15 @@ fun NightClockScreen(onExit: () -> Unit) {
             )
             .pointerInput(Unit) {
                 detectTapGestures(onLongPress = { onExit() })
+            }
+            // A raw long-press gesture is invisible to a screen reader, so the
+            // only way out of night clock had no accessible equivalent.
+            .semantics {
+                contentDescription = "Night clock"
+                onLongClick(label = "Exit night clock") {
+                    onExit()
+                    true
+                }
             },
         contentAlignment = Alignment.Center
     ) {

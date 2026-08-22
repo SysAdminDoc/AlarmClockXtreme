@@ -57,6 +57,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -687,7 +688,12 @@ private fun SearchResultRow(
                 if (isLoadingPreview) {
                     IconButton(
                         onClick = onTogglePreview,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier
+                            .size(40.dp)
+                            // The spinner replaces the play button, and an
+                            // IconButton wrapping only a progress indicator has
+                            // nothing for a screen reader to read.
+                            .semantics { contentDescription = "Loading preview, tap to cancel" }
                     ) {
                         CircularProgressIndicator(
                             strokeWidth = 3.dp,

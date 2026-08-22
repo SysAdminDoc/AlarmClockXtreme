@@ -17,6 +17,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -91,7 +94,12 @@ internal fun BreathingExerciseSection(
                 Text(
                     text = phase.label,
                     color = TextPrimary,
-                    style = MaterialTheme.typography.headlineMedium
+                    style = MaterialTheme.typography.headlineMedium,
+                    // "Inhale" / "Hold" / "Exhale" is the whole exercise; a
+                    // screen-reader user needs it read as it changes.
+                    modifier = Modifier.semantics {
+                        liveRegion = LiveRegionMode.Polite
+                    }
                 )
                 Text(
                     text = if (phase.completed) "Done" else "${phase.remainingSeconds}",

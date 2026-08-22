@@ -60,6 +60,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
@@ -258,6 +260,18 @@ private fun ActiveTimerCard(
                     )
                     if (timer.state == TimerState.PAUSED) {
                         AppStatusChip(label = "Paused", icon = Icons.Default.Pause, color = SnoozeYellow)
+                    }
+                    // Running out is the event that matters, and it was
+                    // signalled only by a colour change and a pulse.
+                    if (isFinished) {
+                        Text(
+                            text = "${timer.label.ifBlank { "Timer" }} finished",
+                            color = AccentRed,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.semantics {
+                                liveRegion = LiveRegionMode.Assertive
+                            }
+                        )
                     }
                 }
             }

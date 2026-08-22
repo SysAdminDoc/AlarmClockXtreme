@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -119,9 +120,14 @@ fun NewsScreen(
                             val selected = feed.key == state.activeFeedKey
                             Column(
                                 modifier = Modifier
-                                    .clickable(role = Role.Button) {
-                                        viewModel.selectFeed(feed.key)
-                                    }
+                                    // The active feed was signalled only by
+                                    // colour and an underline, so a screen
+                                    // reader could not tell which tab was on.
+                                    .selectable(
+                                        selected = selected,
+                                        role = Role.Tab,
+                                        onClick = { viewModel.selectFeed(feed.key) }
+                                    )
                                     .padding(horizontal = 10.dp, vertical = 6.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(7.dp)

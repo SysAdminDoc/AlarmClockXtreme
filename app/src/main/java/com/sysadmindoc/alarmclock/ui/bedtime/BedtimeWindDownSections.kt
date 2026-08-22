@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -82,7 +83,13 @@ internal fun WindDownChecklistSection(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(role = Role.Checkbox) { onToggle(index) },
+                    // toggleable, not clickable(role = Checkbox): the role alone
+                    // says "checkbox" without ever saying whether it is ticked.
+                    .toggleable(
+                        value = done,
+                        role = Role.Checkbox,
+                        onValueChange = { onToggle(index) }
+                    ),
                 shape = RoundedCornerShape(12.dp),
                 color = if (done) DismissGreen.copy(alpha = 0.09f) else SurfaceCard.copy(alpha = 0.72f)
             ) {

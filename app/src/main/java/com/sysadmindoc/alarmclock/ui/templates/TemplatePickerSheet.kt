@@ -192,7 +192,7 @@ private fun TemplateCard(
 
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Use template",
+                contentDescription = null,
                 tint = TextMuted
             )
         }

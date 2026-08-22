@@ -484,7 +484,7 @@ private fun RingtoneRow(
                         ringtone.title.contains("(notification)", ignoreCase = true) -> Icons.Default.Notifications
                         else -> Icons.AutoMirrored.Filled.VolumeUp
                     },
-                    contentDescription = ringtone.title,
+                    contentDescription = null,
                     tint = accent
                 )
             }

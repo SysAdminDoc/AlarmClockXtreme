@@ -662,7 +662,9 @@ fun AppFilterChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
-    selectionSemantics: Boolean = selected,
+    // Defaulting this to `selected` meant an unselected chip announced no state
+    // at all, so a screen reader could not tell a filter chip from a button.
+    selectionSemantics: Boolean = true,
     accessibilityLabel: String? = null,
 ) {
     val isSelected = selected

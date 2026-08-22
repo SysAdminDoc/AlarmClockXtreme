@@ -39,14 +39,6 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Verified
   Effort: M
 
-- [ ] P2 — Accessibility gaps on secondary screens
-  Category: a11y
-  Where: ui/bedtime/BedtimeScreen.kt:272-276, :367-379 (Switches with no label association); ui/bedtime/BedtimeWindDownSections.kt:82-85 (`clickable(role = Checkbox)` without `toggleable` state); ui/bedtime/BedtimeSleepTrackingSections.kt:70-76 (tag chips without `selectionSemantics = true`); ui/bedtime/BedtimeBreathingSection.kt:91-95 (phase label changes with no `liveRegion`); ui/nightclock/NightClockActivity.kt:151-153 (exit is a raw long-press gesture with no semantics); ui/news/NewsScreen.kt:119-142 (feed tabs convey selection by colour/underline only, no `selected` state); ui/timer/TimerScreen.kt:211-220 and ui/stopwatch/StopwatchScreen.kt:77-100 (state changes not announced); ui/templates/TemplatePickerSheet.kt:193-197 and ui/ringtone/RingtonePickerSheet.kt:477 (duplicated announcements from labelled decorative icons); ui/components/YouTubeDownloadDialog.kt:654-663 (unlabelled progress IconButton)
-  Fix: `Modifier.toggleable`/`semantics { selected }` on the listed controls, `liveRegion = Polite` on the listed status labels, `Modifier.combinedClickable(onLongClick)` or a visible Exit button on Night Clock, `contentDescription = null` on decorative icons inside merged rows.
-  Acceptance: TalkBack announces "Bedtime reminder, switch, on", "Inhale", "Selected" on tags, and Night Clock exposes an exit action.
-  Confidence: Verified
-  Effort: M
-
 - [ ] P2 — A YouTube download is cancelled by a rotation
   Category: ux
   Where: ui/components/YouTubeDownloadDialog.kt:345-360 and :380-395 (`scope.launch` on a `rememberCoroutineScope`, cancelled when the composition is destroyed); ui/ringtone/RingtonePickerSheet.kt:126 (the parent flag now survives rotation, so the dialog itself reopens)
