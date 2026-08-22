@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.ui.alarmedit.toAlarmChallengeSummary
@@ -63,6 +64,7 @@ import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import java.util.Locale
 import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.ui.alarmlist.repeatLabel
 
 @Composable
 fun SharedAlarmImportScreen(
@@ -119,10 +121,16 @@ fun SharedAlarmImportScreen(
                 fontWeight = FontWeight.SemiBold
             )
             SharedImportDetailRow(label = stringResource(R.string.share_import_time), value = alarm.formatSharedImportTime())
-            SharedImportDetailRow(label = stringResource(R.string.share_import_repeat), value = alarm.repeatLabel)
+            SharedImportDetailRow(
+                label = stringResource(R.string.share_import_repeat),
+                value = alarm.repeatLabel(LocalContext.current)
+            )
             SharedImportDetailRow(label = stringResource(R.string.share_import_challenge), value = alarm.challengeSummary())
             SharedImportDetailRow(label = stringResource(R.string.alarm_edit_sound), value = alarm.soundSummary())
-            SharedImportDetailRow(label = stringResource(R.string.share_import_status), value = "Saved off until reviewed")
+            SharedImportDetailRow(
+                label = stringResource(R.string.share_import_status),
+                value = stringResource(R.string.share_import_saved_off)
+            )
         }
 
         AppSurfaceCard(highlighted = riskyFields.isNotEmpty()) {

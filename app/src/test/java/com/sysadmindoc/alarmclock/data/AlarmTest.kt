@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.data
 
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.ChallengeType
 import com.sysadmindoc.alarmclock.ui.timer.TimerUiState
@@ -7,6 +8,8 @@ import org.junit.Assert.*
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.LocalTime
+import java.util.Locale
+import org.junit.Assert.assertNull
 
 class AlarmTest {
 
@@ -16,38 +19,59 @@ class AlarmTest {
         assertEquals(LocalTime.of(14, 30), alarm.time)
     }
 
+    // repeatLabel used to return English straight from the entity, so these
+    // asserted the words. It hands back a resource id now, which is the only
+    // form a Room entity can offer without a Context, so they assert the id.
+
     @Test
-    fun `repeatLabel returns Once for empty days`() {
-        val alarm = Alarm(repeatDays = emptySet())
-        assertEquals("Once", alarm.repeatLabel)
+    fun `an alarm with no repeat days names itself Once`() {
+        assertEquals(R.string.alarm_repeat_once, Alarm(repeatDays = emptySet()).repeatLabelRes)
     }
 
     @Test
-    fun `repeatLabel returns Every day for all days`() {
-        val alarm = Alarm(repeatDays = DayOfWeek.entries.toSet())
-        assertEquals("Every day", alarm.repeatLabel)
+    fun `every day is its own name, not a list of seven`() {
+        assertEquals(
+            R.string.alarm_repeat_every_day,
+            Alarm(repeatDays = DayOfWeek.entries.toSet()).repeatLabelRes
+        )
     }
 
     @Test
-    fun `repeatLabel returns Weekdays for Monday-Friday`() {
+    fun `Monday to Friday is Weekdays`() {
         val alarm = Alarm(repeatDays = setOf(
             DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
             DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
         ))
-        assertEquals("Weekdays", alarm.repeatLabel)
+        assertEquals(R.string.alarm_repeat_weekdays, alarm.repeatLabelRes)
     }
 
     @Test
-    fun `repeatLabel returns Weekend for Saturday-Sunday`() {
+    fun `Saturday and Sunday is Weekend`() {
         val alarm = Alarm(repeatDays = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY))
-        assertEquals("Weekend", alarm.repeatLabel)
+        assertEquals(R.string.alarm_repeat_weekend, alarm.repeatLabelRes)
     }
 
     @Test
-    fun `repeatLabel returns custom day names for partial selection`() {
+    fun `an arbitrary set of days has no name, and lists the days instead`() {
         val alarm = Alarm(repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY))
-        assertTrue(alarm.repeatLabel.contains("Mon"))
-        assertTrue(alarm.repeatLabel.contains("Wed"))
+
+        // null is the signal to the caller that there is nothing to name.
+        assertNull(alarm.repeatLabelRes)
+        assertEquals("Mon, Wed", alarm.repeatDayNames(Locale.US))
+        // The day names come from the locale, not from the enum constant.
+        assertEquals("lun., mer.", alarm.repeatDayNames(Locale.FRANCE))
+    }
+
+    @Test
+    fun `the support bundle gets a stable token, not the display label`() {
+        // A supporter reading a diagnostics dump should see the same value
+        // whatever language the phone was set to.
+        assertEquals("ONCE", Alarm(repeatDays = emptySet()).repeatWireLabel)
+        assertEquals("DAILY", Alarm(repeatDays = DayOfWeek.entries.toSet()).repeatWireLabel)
+        assertEquals(
+            "MON,WED",
+            Alarm(repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY)).repeatWireLabel
+        )
     }
 
     @Test

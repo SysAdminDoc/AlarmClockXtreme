@@ -2266,4 +2266,9 @@
     <string name="youtube_engine_current">Downloader engine is current (%1$s).</string>
     <string name="youtube_engine_already_current">Downloader engine is already current.</string>
     <string name="alarm_list_alarm_details">Alarm details</string>
+    <string name="alarm_repeat_once">Once</string>
+    <string name="alarm_repeat_every_day">Every day</string>
+    <string name="alarm_repeat_weekdays">Weekdays</string>
+    <string name="alarm_repeat_weekend">Weekend</string>
+    <string name="share_import_saved_off">Saved off until reviewed</string>
 </resources>

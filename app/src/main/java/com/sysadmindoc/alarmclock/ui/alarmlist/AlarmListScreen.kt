@@ -286,7 +286,8 @@ fun AlarmListScreen(
         }
     }
 
-    val filteredAlarms = remember(state.alarms, searchQuery, state.selectedGroup) {
+    val searchContext = LocalContext.current
+    val filteredAlarms = remember(state.alarms, searchQuery, state.selectedGroup, searchContext) {
         state.alarms
             .filter { alarm ->
                 state.selectedGroup == null || alarm.group == state.selectedGroup
@@ -296,7 +297,7 @@ fun AlarmListScreen(
                     true
                 } else {
                     alarm.label.contains(searchQuery, ignoreCase = true) ||
-                        alarm.repeatLabel.contains(searchQuery, ignoreCase = true) ||
+                        alarm.repeatLabel(searchContext).contains(searchQuery, ignoreCase = true) ||
                         alarm.group.contains(searchQuery, ignoreCase = true)
                 }
             }
@@ -936,9 +937,10 @@ private fun AlarmDetailPane(
                         color = SnoozeYellow
                     )
                 }
-                if (alarm.repeatLabel.isNotBlank()) {
+                val repeatLabel = alarm.repeatLabel(LocalContext.current)
+                if (repeatLabel.isNotBlank()) {
                     AppStatusChip(
-                        label = alarm.repeatLabel,
+                        label = repeatLabel,
                         icon = Icons.Default.CheckCircle,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -1358,7 +1360,7 @@ private fun AlarmCard(
                         style = ClockTimeSmall
                     )
                     Text(
-                        text = alarm.label.ifBlank { alarm.repeatLabel },
+                        text = alarm.label.ifBlank { alarm.repeatLabel(LocalContext.current) },
                         color = if (alarm.isEnabled) TextSecondary else TextMuted,
                         style = MaterialTheme.typography.bodyLarge
                     )
@@ -1453,8 +1455,9 @@ private fun AlarmCard(
 
             val silentLabel = stringResource(R.string.alarm_edit_silent)
             val chainLabel = alarm.challengeChainLabel()
+            val cardRepeatLabel = alarm.repeatLabel(LocalContext.current)
             val metadata = buildList {
-                if (alarm.label.isNotBlank() && alarm.repeatLabel.isNotBlank()) add(alarm.repeatLabel)
+                if (alarm.label.isNotBlank() && cardRepeatLabel.isNotBlank()) add(cardRepeatLabel)
                 alarm.shiftPatternChipLabel()?.let(::add)
                 if (alarm.usesFixedTimezone) add(alarm.fixedTimezoneId)
                 if (alarm.group.isNotBlank()) add(alarm.group)
@@ -1627,7 +1630,7 @@ private fun SelectableAlarmCard(
                     fontWeight = FontWeight.Light
                 )
                 Text(
-                    text = alarm.label.ifBlank { alarm.repeatLabel },
+                    text = alarm.label.ifBlank { alarm.repeatLabel(LocalContext.current) },
                     color = if (alarm.isEnabled) TextSecondary else TextMuted,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -1703,6 +1706,15 @@ internal fun Alarm.challengeChainLabel(): String? {
         else -> steps.map { it.toAlarmChallengeSummary() }.joinToString(" · ")
     }
 }
+
+/**
+ * How this alarm repeats, in the reader's language.
+ *
+ * [Alarm.repeatLabelRes] is null for an arbitrary set of days, which is the
+ * case that has no name and falls back to the day list.
+ */
+internal fun Alarm.repeatLabel(context: Context): String =
+    repeatLabelRes?.let { context.getString(it) } ?: repeatDayNames()
 
 private fun Alarm.shiftPatternChipLabel(): String? {
     val pattern = ShiftPattern.fromKey(shiftPattern) ?: return null

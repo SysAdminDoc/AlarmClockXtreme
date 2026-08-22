@@ -18,6 +18,7 @@ import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.ui.alarmlist.repeatLabel
 import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import com.sysadmindoc.alarmclock.util.LocationHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -186,8 +187,10 @@ class DashboardViewModel @Inject constructor(
                 } else {
                     Triple(
                         alarm.time.format(AlarmTimeFormatter.formatter(settings.is24HourFormat)),
-                        alarm.label.ifBlank { "Alarm" },
-                        alarm.repeatLabel
+                        alarm.label.ifBlank {
+                            getApplication<Application>().getString(R.string.notif_alarm_title)
+                        },
+                        alarm.repeatLabel(getApplication<Application>())
                     )
                 }
             }.collect { (time, label, schedule) ->

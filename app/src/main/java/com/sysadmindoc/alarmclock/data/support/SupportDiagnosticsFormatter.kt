@@ -33,7 +33,7 @@ data class SupportAlarmDiagnostic(
                 id = sanitized.id,
                 enabled = sanitized.isEnabled,
                 time = "%02d:%02d".format(sanitized.hour, sanitized.minute),
-                repeat = sanitized.repeatLabel,
+                repeat = sanitized.repeatWireLabel,
                 nextTriggerTime = sanitized.nextTriggerTime,
                 timezonePolicy = sanitized.timezonePolicy,
                 fixedTimezoneId = sanitized.fixedTimezoneId,

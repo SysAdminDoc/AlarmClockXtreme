@@ -23,16 +23,15 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Confidence: Needs-repro
   Effort: S
 
-- [ ] P2 — The localisation guard does not match `return "literal"`, so user-facing English survives behind it
+- [ ] P2 — Fourteen files still ship hardcoded English, listed in the guard's exemption set
   Category: i18n
-  Where: ui/alarmlist/AlarmListScreen.kt:1727-1739 (`nextOccurrenceLabel` returns "All alarms paused until X", "Paused until you re-enable this alarm", "Next occurrence: X"); ui/bedtime/BedtimeViewModel.kt:883, :892-894, :900 ("No baseline", "Checks at reminder", "Mic permission needed", "Last X; no audio saved"); service/YouTubeAudioDownloader.kt:38-45 (`YouTubeEngineUpdateResult.userMessage()`, shown by YouTubeDownloadViewModel as the engine-update status); receiver/BedtimeReceiver.kt:215 ("Time to wind down") and service/AlarmService.kt:2176 ("$label at $timeStr was auto-silenced after $autoSilenceMinutes minutes"), both outside the guard's `ui/` tree entirely; wear/ (every runtime string is English in the source; the module's res/values/strings.xml exists but holds only the five manifest labels)
-  Also: ui/alarmfiring/AlarmFiringViewModel.kt:597, :603, :623, :642, :659 assign English voice and handwriting status sentences, and ui/alarmfiring/challenges/ChallengeViews.kt:712, :934-935 pick the notice colour by `startsWith("Heard")` / `startsWith("No phrase")` / `endsWith("matched.")` / `startsWith("Checking")`. Those two have to move together: localising the sentences without replacing the colour rule turns every challenge notice the wrong colour.
-  Problem: the guard's branch-literal patterns match `->`, `else`, `?` and `if (...)` heads but not a bare `return "literal"`, so these survived the extraction. `userMessage()` also builds the string inside a data class with no Context, so it needs to return a `@StringRes` id plus arguments the way ChallengeReadiness does.
-  Fix: add `return` to the guard's branch-literal patterns first so the gap cannot reopen, then extract what it catches, and widen the guard's tree past `ui/` so receiver/ and service/ are covered.
-  Acceptance: `:app:verifyLocalizedPrimaryScreens` passes with the `return` pattern added, and no `stringResource`-free English reaches the download dialog or an alarm card.
-  Progress 2026-08-22: the `return` pattern, a notification-builder setter pattern and a URL exclusion are in, the scanned tree covers the whole app package rather than `ui/`, and roughly 90 strings are extracted (bedtime, stats, alarm list, challenge statuses, every notification channel and body, the workers and the widget). The alarm-list, bedtime and challenge sites named above are done. Two named in the acceptance are not: `Alarm.repeatLabel` still hands "Once"/"Every day"/"Weekdays" to the alarm card, and `YouTubeEngineUpdateResult.userMessage()` still hands English to the download dialog. Sixteen files remain on `unlocalizedComposeFiles` in app/build.gradle.kts, and that list is the live task list for this item.
+  Where: `unlocalizedComposeFiles` in app/build.gradle.kts. That set is the task list and it only shrinks. As of 2026-08-22: AlarmClockApp.kt, MainActivity.kt, data/backup/BackupManager.kt, data/model/ShiftPattern.kt, data/remote/GeocodingApi.kt, data/remote/WeatherApi.kt, data/repository/CalendarRepository.kt, data/support/SupportExportManager.kt, domain/BreathingExercise.kt, domain/ChronotypeEstimator.kt, domain/WakeConsistencyCalculator.kt, service/AlarmPostDismissController.kt, service/WebhookService.kt, util/ManufacturerCompat.kt.
+  Problem: each of these hands display text back from a place with no Context, which is why they were left when the guard was widened. The weather-code table, the shift-pattern names and the chronotype and wake-consistency labels are all `when` expressions returning English. AlarmPostDismissController is the hardest: it builds a spoken sentence out of `DayOfWeek.name` and English minute phrasing ("o'clock", "oh 5"), and its two functions are covered by pure JVM tests that would need a Context or Robolectric.
+  Not all of it is a defect. WebhookService's "Test Alarm" and "12:00 PM" are sample values inside a JSON payload sent to someone else's endpoint, so they should stay fixed; that file needs a narrower exclusion rather than an extraction.
+  Fix: same shape as the ones already done. Return `@StringRes` ids from the Context-free producers and resolve at the call site, and use `getDisplayName(TextStyle, locale)` for day and month names rather than enum constants.
+  Acceptance: `unlocalizedComposeFiles` is empty, or holds only WebhookService with a comment saying why.
   Confidence: Verified
-  Effort: M
+  Effort: L
 
 - [ ] P2 — Eight more screens format the time as 12-hour regardless of the setting
   Category: ux
@@ -44,6 +43,15 @@ Issue tracker intake (read-only): #47 and #48 reproduced on the API 35 emulator 
   Effort: S
 
 ### P3
+
+- [ ] P3 — Three literal shapes the localisation guard still cannot see
+  Category: i18n
+  Where: app/build.gradle.kts, `verifyLocalizedPrimaryScreens`
+  Problem: a literal inside a lambda block (`ifBlank { "Alarm details" }`), a literal assigned to a local `var` that a `Text` reads later (the whole speech-recogniser commentary in ChallengeViews was invisible this way), and a literal passed to a parameter named `value`. All three shipped English past a green guard run during the 2026-08-22 pass and were found by review, not by the task.
+  Fix: add the shapes, then fix what they catch. `value =` is the risky one: it is a common parameter name, so measure the false-positive rate before keeping it.
+  Acceptance: each shape is covered by a pattern, and the guard still passes.
+  Confidence: Verified
+  Effort: M
 
 - [ ] P3 — The round and square launcher icons are byte identical at xhdpi
   Category: visual

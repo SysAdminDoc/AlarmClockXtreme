@@ -207,7 +207,6 @@ val unlocalizedComposeFiles = setOf(
     "AlarmClockApp.kt",
     "MainActivity.kt",
     "data/backup/BackupManager.kt",
-    "data/model/Alarm.kt",
     "data/model/ShiftPattern.kt",
     "data/remote/GeocodingApi.kt",
     "data/remote/WeatherApi.kt",

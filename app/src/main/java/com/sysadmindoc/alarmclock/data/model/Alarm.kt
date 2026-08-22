@@ -1,11 +1,14 @@
 package com.sysadmindoc.alarmclock.data.model
 
+import androidx.annotation.StringRes
+import com.sysadmindoc.alarmclock.R
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import java.time.format.TextStyle
 import java.util.Locale
 
 /**
@@ -222,14 +225,39 @@ data class Alarm(
             (ShiftPattern.fromKey(shiftPattern) != null &&
                 runCatching { LocalDate.parse(shiftPatternStartDate) }.isSuccess)
 
-    val repeatLabel: String get() = when {
-        repeatDays.isEmpty() -> "Once"
-        repeatDays.size == 7 -> "Every day"
+    /**
+     * The resource naming this schedule, or null when it is an arbitrary set of
+     * days and there is nothing to name. Callers fall back to [repeatDayNames].
+     *
+     * An id rather than a sentence because this is a Room entity: it is read
+     * from a ViewModel, a Compose screen and a support bundle, and only two of
+     * those have a Context. The alarm card used to show "Once" and "Weekdays"
+     * in English on every phone because of it.
+     */
+    @get:StringRes
+    val repeatLabelRes: Int? get() = when {
+        repeatDays.isEmpty() -> R.string.alarm_repeat_once
+        repeatDays.size == 7 -> R.string.alarm_repeat_every_day
         repeatDays == setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
-            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY) -> "Weekdays"
-        repeatDays == setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) -> "Weekend"
-        else -> repeatDays.sortedBy { it.value }
-            .joinToString(", ") { it.name.take(3).lowercase().replaceFirstChar { c -> c.uppercase() } }
+            DayOfWeek.THURSDAY, DayOfWeek.FRIDAY) -> R.string.alarm_repeat_weekdays
+        repeatDays == setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY) -> R.string.alarm_repeat_weekend
+        else -> null
+    }
+
+    /** "Mon, Wed, Fri" in the reader's language, for a schedule with no name. */
+    fun repeatDayNames(locale: Locale = Locale.getDefault()): String =
+        repeatDays.sortedBy { it.value }
+            .joinToString(", ") { it.getDisplayName(TextStyle.SHORT, locale) }
+
+    /**
+     * A stable, machine-readable form for the support bundle. Deliberately not
+     * the display label: a supporter reading a diagnostics dump should see the
+     * same token whatever language the phone was set to.
+     */
+    val repeatWireLabel: String get() = when {
+        repeatDays.isEmpty() -> "ONCE"
+        repeatDays.size == 7 -> "DAILY"
+        else -> repeatDays.sortedBy { it.value }.joinToString(",") { it.name.take(3) }
     }
 
     /**
