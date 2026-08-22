@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.worldclock
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -310,7 +311,11 @@ private fun AddTimeZoneDialog(
 
                 if (searchResults.isNotEmpty()) {
                     AppStatusChip(
-                        label = stringResource(R.string.worldclock_match, searchResults.size, if (searchResults.size == 1) "" else "es"),
+                        label = pluralStringResource(
+                            R.plurals.worldclock_match_count,
+                            searchResults.size,
+                            searchResults.size
+                        ),
                         icon = Icons.Default.Public,
                         color = MaterialTheme.colorScheme.primary
                     )

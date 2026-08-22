@@ -207,7 +207,13 @@ val primaryComposeScreenFiles: List<File> = fileTree("src/main/java/com/sysadmin
 
 val verifyLocalizedPrimaryScreens by tasks.registering {
     group = "verification"
-    description = "Rejects new hardcoded user-facing text anywhere under ui/."
+    // Deliberately narrow: this rejects literals in the shapes listed below, not
+    // "all hardcoded text". It cannot tell a `when` arm feeding a Text from one
+    // feeding an API query parameter, and it does not follow a string through a
+    // local val. Say what it does, so nobody reads a green run as proof the
+    // screens hold no English.
+    description = "Rejects literals passed to Text(), to a known text attribute, " +
+        "to a Toast or a snackbar, or returned from a branch that reads like copy, under ui/."
     inputs.files(primaryComposeScreenFiles)
 
     doLast {
@@ -222,9 +228,15 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
             "caption", "helperText", "errorText", "emptyText"
         ).joinToString("|")
         // Assigning a literal to one of those attributes is unambiguously UI.
+        // `\bText\(` needs a word boundary, so a composable whose name merely
+        // ends in "Text" (ChallengeSupportText) used to slip past; match any
+        // identifier ending in Text instead.
         val directUiLiteralPatterns = listOf(
-            Regex("""\bText\s*\(\s*"([^"\r\n]*)""""),
-            Regex("""\b(?:$uiTextAttributes)\s*=\s*"([^"\r\n]*)"""")
+            Regex("""\b[A-Za-z]*Text\s*\(\s*"([^"\r\n]*)""""),
+            Regex("""\b(?:$uiTextAttributes)\s*=\s*"([^"\r\n]*)""""),
+            // Text that never touches a Compose attribute but is still read.
+            Regex("""Toast\.makeText\s*\([^,]*,\s*"([^"\r\n]*)""""),
+            Regex("""\bshowSnackbar\s*\(\s*"([^"\r\n]*)"""")
         )
         // `text = if (x) "A" else "B"` and `Outcome.WIN -> "You won"`: the
         // literal never sits directly after the `=`, so the patterns above

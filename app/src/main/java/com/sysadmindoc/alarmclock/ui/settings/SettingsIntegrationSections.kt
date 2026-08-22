@@ -250,7 +250,7 @@ internal fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsView
                     ?: stringResource(R.string.settings_webhook_payload_description),
                 color = when {
                     state.isWebhookTesting -> MaterialTheme.colorScheme.primary
-                    state.webhookTestResult?.contains("OK") == true -> DismissGreen
+                    state.webhookTestSucceeded == true -> DismissGreen
                     state.webhookTestResult == null && lastDeliveryStatus?.contains("OK") == true -> DismissGreen
                     state.webhookTestResult == null && lastDeliveryStatus != null -> AccentRed
                     state.webhookTestResult != null -> AccentRed
@@ -483,7 +483,7 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
                 text = state.hueTestResult ?: stringResource(R.string.settings_hue_test_description),
                 color = when {
                     state.isHueTesting -> MaterialTheme.colorScheme.primary
-                    state.hueTestResult?.contains("reachable") == true -> DismissGreen
+                    state.hueTestSucceeded == true -> DismissGreen
                     state.hueTestResult != null -> AccentRed
                     else -> TextMuted
                 },

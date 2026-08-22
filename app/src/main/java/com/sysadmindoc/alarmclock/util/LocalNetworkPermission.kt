@@ -33,17 +33,29 @@ object LocalNetworkPermission {
     }
 
     /**
+     * Suffixes a router hands out for machines that exist only on the LAN.
+     * `.local` is mDNS (RFC 6762) and `.home.arpa` is the one the IETF actually
+     * reserved for this (RFC 8375); the rest are what consumer routers ship as
+     * defaults, so a Hue bridge is routinely reachable as `hue.lan` or
+     * `hue.fritz.box` and nothing else.
+     */
+    private val LOCAL_SUFFIXES = listOf(
+        ".local", ".localdomain", ".lan", ".home", ".home.arpa", ".internal",
+        ".intranet", ".private", ".fritz.box"
+    )
+
+    /**
      * True when [rawHost] can only resolve on the local network: a private or
      * link-local IPv4 literal, a ULA/link-local IPv6 literal, localhost, a
-     * single-label name, or an mDNS `.local` name. Integrations that are
-     * supposed to talk to hardware in the house use this to refuse a public
-     * hostname outright.
+     * single-label name, or a name under one of [LOCAL_SUFFIXES]. Integrations
+     * that are supposed to talk to hardware in the house use this to refuse a
+     * public hostname outright.
      */
     fun isLikelyLocalHost(rawHost: String): Boolean {
         val host = rawHost.trim().trim('[', ']').lowercase()
         if (host.isBlank()) return false
         if (host == "localhost" || host == "::1") return true
-        if (host.endsWith(".local")) return true
+        if (LOCAL_SUFFIXES.any { host.endsWith(it) }) return true
         if (!host.contains('.') && !host.contains(':')) return true
         if (host.contains(':') && (
                 host.startsWith("fe80:") ||

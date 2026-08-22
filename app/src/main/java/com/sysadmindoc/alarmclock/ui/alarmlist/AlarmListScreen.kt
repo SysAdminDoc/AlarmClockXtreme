@@ -228,6 +228,9 @@ fun AlarmListScreen(
     var draggingAlarmId by remember { mutableStateOf<Long?>(null) }
     var dragOffsetPx by remember { mutableStateOf(0f) }
     var selectedAlarmId by rememberSaveable { mutableStateOf<Long?>(null) }
+    // Read here: the snackbar itself is shown from a coroutine.
+    val savedToneTemplate = stringResource(R.string.alarmlist_saved_tone)
+    val savedToneMessage = { title: String -> savedToneTemplate.format(title) }
 
     if (showYouTubeDialog) {
         com.sysadmindoc.alarmclock.ui.components.YouTubeDownloadDialog(
@@ -236,7 +239,7 @@ fun AlarmListScreen(
                 showYouTubeDialog = false
                 snackbarScope.launch {
                     snackbarHostState.showSnackbar(
-                        "Saved \"$savedTitle\". Pick it from any alarm's sound list.",
+                        savedToneMessage(savedTitle),
                         duration = SnackbarDuration.Long
                     )
                 }
@@ -1640,9 +1643,15 @@ private fun shareAlarm(context: Context, alarm: Alarm, is24Hour: Boolean) {
         putExtra(Intent.EXTRA_TEXT, shareText)
     }
     runCatching {
-        context.startActivity(Intent.createChooser(intent, "Share alarm"))
+        context.startActivity(
+            Intent.createChooser(intent, context.getString(R.string.alarmlist_share_alarm))
+        )
     }.onFailure {
-        Toast.makeText(context, "No app is available to share this alarm.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(
+            context,
+            context.getString(R.string.alarmlist_no_share_target),
+            Toast.LENGTH_SHORT
+        ).show()
     }
 }
 

@@ -271,7 +271,7 @@ fun OnboardingScreen(
                         val dotWidth by animateDpAsState(
                             targetValue = if (isActive) 20.dp else 8.dp,
                             animationSpec = tween(durationMillis = 250),
-                            label = stringResource(R.string.onboarding_dotwidth, index)
+                            label = "dotWidth$index"
                         )
                         Box(
                             modifier = Modifier

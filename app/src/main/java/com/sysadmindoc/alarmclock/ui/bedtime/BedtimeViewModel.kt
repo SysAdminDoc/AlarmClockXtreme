@@ -77,7 +77,7 @@ data class BedtimeUiState(
     val bedtimeDndError: String? = null,
     val healthConnectEnabled: Boolean = false,
     val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary(),
-    // v1.15.0: context.getString(R.string.bedtime_stay_up_late_tonight) — shows how long the override is active.
+    // v1.15.0: stay up late tonight. Shows how long the override is active.
     val stayUpLateUntilMillis: Long = 0,
     val stayUpLateActive: Boolean = false,
     val stayUpLateLabel: String = "",

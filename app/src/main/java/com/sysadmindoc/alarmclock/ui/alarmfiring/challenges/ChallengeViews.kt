@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring.challenges
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.platform.LocalResources
 import androidx.annotation.StringRes
 import android.Manifest
@@ -1731,7 +1732,7 @@ fun CountSheepChallengeView(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        ChallengeSupportText("Tap every sheep. Skip the goats \u2014 they subtract from your count.")
+        ChallengeSupportText(stringResource(R.string.challenge_sheep_instructions))
 
         Box(
             modifier = Modifier
@@ -1864,7 +1865,7 @@ fun DateBackwardsChallengeView(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
         ChallengeSupportText(
-            "Today is ${challenge.targetDate}. Type it reversed character-by-character."
+            stringResource(R.string.challenge_date_backwards_instructions, challenge.targetDate)
         )
 
         Text(
@@ -2016,7 +2017,13 @@ fun RockPaperScissorsChallengeView(
             )
         }
 
-        ChallengeSupportText("First to ${challenge.requiredWins} wins. Pick your move:")
+        ChallengeSupportText(
+            pluralStringResource(
+                R.plurals.challenge_rps_instructions,
+                challenge.requiredWins,
+                challenge.requiredWins
+            )
+        )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -2091,7 +2098,7 @@ fun EmojiMemoryChallengeView(
                 )
             EmojiMemoryPhase.INPUT -> {
                 val pairs = matchedIndices.size / 2
-                ChallengeSupportText("$pairs of 8 pairs found. Tap two cards to match them.")
+                ChallengeSupportText(stringResource(R.string.challenge_emoji_pairs_found, pairs))
             }
         }
 
@@ -2183,7 +2190,11 @@ fun TypingSpeedChallengeView(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
         ChallengeSupportText(
-            "Type the phrase at ${challenge.minWpm}+ wpm with at most ${challenge.maxErrors} word error(s)."
+            stringResource(
+                R.string.challenge_typing_speed_instructions,
+                challenge.minWpm,
+                challenge.maxErrors
+            )
         )
 
         Box(
@@ -2255,7 +2266,9 @@ fun WordleChallengeView(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
         val triesLeft = challenge.maxGuesses - guesses.size
-        ChallengeSupportText("Guess the 5-letter word \u2014 $triesLeft tr${if (triesLeft == 1) "y" else stringResource(R.string.alarmfiring_ies)} left.")
+        ChallengeSupportText(
+            pluralStringResource(R.plurals.challenge_wordle_tries_left, triesLeft, triesLeft)
+        )
 
         if (gameOver) {
             ChallengeNotice(

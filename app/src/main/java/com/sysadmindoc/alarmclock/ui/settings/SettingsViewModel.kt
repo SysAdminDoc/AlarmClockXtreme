@@ -74,9 +74,11 @@ data class SettingsUiState(
     val appVersion: String = "",
     // Webhook test result
     val webhookTestResult: String? = null,
+    val webhookTestSucceeded: Boolean? = null,
     val isWebhookTesting: Boolean = false,
     // Hue test result
     val hueTestResult: String? = null,
+    val hueTestSucceeded: Boolean? = null,
     val isHueTesting: Boolean = false,
     // Wake readiness
     val hasNotificationPermission: Boolean = true,
@@ -221,8 +223,10 @@ class SettingsViewModel @Inject constructor(
             deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
             appVersion = BuildConfig.VERSION_NAME,
             webhookTestResult = webhookState.message,
+            webhookTestSucceeded = webhookState.succeeded,
             isWebhookTesting = webhookState.isRunning,
             hueTestResult = hueState.message,
+            hueTestSucceeded = hueState.succeeded,
             isHueTesting = hueState.isRunning,
             hasNotificationPermission = wakeReadiness.hasNotificationPermission,
             canScheduleExactAlarms = wakeReadiness.canScheduleExactAlarms,
@@ -454,7 +458,9 @@ class SettingsViewModel @Inject constructor(
                 ) -> appContext.getString(R.string.settings_webhook_ok)
                 else -> appContext.getString(R.string.settings_webhook_failed_endpoint_did_not_return)
             }
-            _webhookTestState.value = IntegrationTestState(message = result, isRunning = false)
+            val webhookOk = result == appContext.getString(R.string.settings_webhook_ok)
+            _webhookTestState.value =
+                IntegrationTestState(message = result, isRunning = false, succeeded = webhookOk)
             kotlinx.coroutines.delay(4000)
             if (_webhookTestState.value.message == result) {
                 _webhookTestState.value = IntegrationTestState()
@@ -484,8 +490,9 @@ class SettingsViewModel @Inject constructor(
             if (LocalNetworkPermission.isRuntimeRequired() &&
                 !LocalNetworkPermission.isGranted(getApplication())
             ) {
-                val result = "Hue bridge not checked — allow local network access first"
-                _hueTestState.value = IntegrationTestState(message = result, isRunning = false)
+                val result = appContext.getString(R.string.settings_hue_needs_local_network)
+                _hueTestState.value =
+                    IntegrationTestState(message = result, isRunning = false, succeeded = false)
                 kotlinx.coroutines.delay(4000)
                 if (_hueTestState.value.message == result) {
                     _hueTestState.value = IntegrationTestState()
@@ -497,14 +504,18 @@ class SettingsViewModel @Inject constructor(
                 rawApiKey = settings.hueApiKey,
                 pinnedFingerprint = settings.hueBridgeCertFingerprint
             )
+            var hueReachable = false
             val result = when (connection) {
                 is HueConnectionResult.V2Reachable -> when (
                     val pin = hueTrustStore.rememberFirstUse(connection.observedFingerprint)
                 ) {
-                    is HuePinResult.Accepted -> if (pin.newlyPinned) {
-                        "Hue bridge reachable (API v2) — certificate saved"
-                    } else {
-                        "Hue bridge reachable (API v2)"
+                    is HuePinResult.Accepted -> {
+                        hueReachable = true
+                        if (pin.newlyPinned) {
+                            appContext.getString(R.string.settings_hue_reachable_certificate_saved)
+                        } else {
+                            appContext.getString(R.string.settings_hue_reachable)
+                        }
                     }
                     is HuePinResult.Changed ->
                         appContext.getString(R.string.settings_hue_certificate_changed_verify_the_bridge)
@@ -517,7 +528,8 @@ class SettingsViewModel @Inject constructor(
                 is HueConnectionResult.Unreachable ->
                     appContext.getString(R.string.settings_hue_bridge_not_found_check_the)
             }
-            _hueTestState.value = IntegrationTestState(message = result, isRunning = false)
+            _hueTestState.value =
+                IntegrationTestState(message = result, isRunning = false, succeeded = hueReachable)
             kotlinx.coroutines.delay(4000)
             if (_hueTestState.value.message == result) {
                 _hueTestState.value = IntegrationTestState()
@@ -543,7 +555,7 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * v1.11.6 (roadmap N6): appContext.getString(R.string.settings_pause_alarms_for_n_days) — distinct from
+     * v1.11.6 (roadmap N6): pause alarms for N days, distinct from
      * vacation. `days` of 0 (or negative) clears the pause and resumes
      * normal scheduling. Otherwise the pause expires at midnight `days`
      * days from now (so "Pause for 1 day" means "skip tonight's and
@@ -887,7 +899,13 @@ class SettingsViewModel @Inject constructor(
     private data class BatteryState(val isIgnoring: Boolean, val needsGuidance: Boolean)
     private data class IntegrationTestState(
         val message: String? = null,
-        val isRunning: Boolean = false
+        val isRunning: Boolean = false,
+        /**
+         * Null while idle or still running. Carried rather than derived: the
+         * status chip used to pick its colour by searching [message] for
+         * "OK" or "reachable", which only ever worked in English.
+         */
+        val succeeded: Boolean? = null
     )
 
     private data class SettingsAuxiliaryState(

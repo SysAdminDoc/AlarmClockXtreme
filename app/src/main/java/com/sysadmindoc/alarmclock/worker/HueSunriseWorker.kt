@@ -72,8 +72,16 @@ class HueSunriseWorker @AssistedInject constructor(
         if (!alarm.hueEnabled) return Result.success()
 
         val settings = preferencesManager.getCurrentSettings()
-        val bridgeIp = HueBridgeClient.sanitiseHost(settings.hueBridgeIp)
-            ?: return Result.failure()
+        val bridgeIp = HueBridgeClient.sanitiseHost(settings.hueBridgeIp) ?: run {
+            // A public hostname is refused because the TLS trust here is
+            // trust-on-first-use. Say so in the log rather than stopping
+            // silently; the Hue settings group shows the same inline.
+            android.util.Log.w(
+                "HueSunriseWorker",
+                "Hue bridge host is not a local address, skipping sunrise"
+            )
+            return Result.failure()
+        }
         val apiKey = HueBridgeClient.sanitiseToken(settings.hueApiKey)
             ?: return Result.failure()
         val lightIds = settings.hueLightIds

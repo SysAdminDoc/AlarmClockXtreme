@@ -62,8 +62,14 @@ object CrashLogScrubber {
     // A stack trace names the host without a scheme, so URL_PATTERN misses it.
     // "Unable to resolve host \"radio.example.com\"" is the common shape, and it
     // leaks whichever stream or webhook endpoint the user configured.
+    //
+    // Only the phrases that are actually followed by a host, and the separator
+    // is spaces and tabs rather than \s: the real message ends with "No address
+    // associated with hostname" and then a newline, and a \s there ate the
+    // newline plus the "at" of the first frame, welding the frame onto the
+    // exception line.
     private val UNRESOLVED_HOST_PATTERN = Regex(
-        """(?:Unable to resolve host|Failed to connect to|No address associated with hostname)[:\s]*["']?[A-Za-z0-9.\-]+["']?""",
+        """(?:Unable to resolve host|Failed to connect to)[:\t ]*["']?[A-Za-z0-9.\-]+["']?""",
         RegexOption.IGNORE_CASE
     )
     private val IPV4_PATTERN = Regex(

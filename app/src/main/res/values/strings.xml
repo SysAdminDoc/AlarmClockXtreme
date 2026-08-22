@@ -1726,7 +1726,7 @@
     <string name="bedtime_title">Bedtime</string>
     <string name="dashboard_weather">Weather</string>
     <string name="dashboard_air_quality">Air quality</string>
-    <string name="dashboard_radar">Radar</string>
+    <string name="dashboard_radar">Live radar</string>
     <string name="briefing_morning_routine">Morning routine</string>
     <string name="timer_title">Timer</string>
     <string name="timer_dismiss">Dismiss</string>
@@ -1755,7 +1755,6 @@
     <string name="timer_resume_timer">Resume timer</string>
     <string name="timer_add_double_zero">Add double zero</string>
     <string name="timer_enter">Enter %1$s</string>
-    <string name="worldclock_match">%1$s match%2$s</string>
     <string name="worldclock_no_city_matches_that_search">No city matches that search</string>
     <string name="world_same_time">Same time</string>
     <string name="world_hours_ahead">%1$sh ahead</string>
@@ -1778,7 +1777,6 @@
     <string name="components_preview_sound">Preview sound</string>
     <string name="components_tap_row_to_save_this_preview">Tap row to save this preview</string>
     <string name="components_tap_row_to_save">Tap row to save</string>
-    <string name="onboarding_dotwidth">dotWidth%1$s</string>
     <string name="onboarding_open">Open</string>
     <string name="onboarding_run">Run</string>
     <string name="onboarding_could_not_schedule_the_test_alarm">Could not schedule the test alarm.</string>
@@ -1793,9 +1791,6 @@
     <string name="ringtone_download_needs_attention">Download needs attention</string>
     <string name="ringtone_sound_saved">Sound saved</string>
     <string name="ringtone_default_alarm">Default Alarm</string>
-    <string name="ringtone_result">%1$s result%2$s</string>
-    <string name="ringtone_default">default</string>
-    <string name="ringtone_silent">silent</string>
     <string name="stopwatch_stopwatch_reset">Stopwatch reset</string>
     <string name="stopwatch_start_a_precise_running_timer_and">Start a precise running timer and mark laps whenever you need a split.</string>
     <string name="stopwatch_timing_live_mark_laps_as_the">Timing live. Mark laps as the session unfolds.</string>
@@ -1828,7 +1823,7 @@
     <string name="alarmlist_next_alarm">Next alarm · %1$s</string>
     <string name="alarmlist_all_alarms_paused">All alarms paused</string>
     <string name="alarmlist_no_alarms_scheduled">No alarms scheduled</string>
-    <string name="alarmlist_min">%1$s min</string>
+    <string name="alarmlist_min">%1$d min</string>
     <string name="alarmlist_default_length">, default length</string>
     <string name="alarmlist_selected">%1$s selected</string>
     <string name="alarmlist_release_to_delete">Release to delete</string>
@@ -1906,12 +1901,9 @@
     <string name="alarmfiring_not_connected_to_wi_fi_yet">Not connected to Wi-Fi yet.</string>
     <string name="alarmfiring_connected_to">Connected to: %1$s</string>
     <string name="alarmfiring_complete_2">%1$s%% complete</string>
-    <string name="alarmfiring_ud83d_udc11">\uD83D\uDC11</string>
-    <string name="alarmfiring_ud83d_udc10">\uD83D\uDC10</string>
     <string name="alarmfiring_pad">%1$s pad</string>
     <string name="alarmfiring_correct">%1$s / %2$s correct</string>
     <string name="alarmfiring_choice">%1$s choice</string>
-    <string name="alarmfiring_ies">ies</string>
     <string name="alarmfiring_empty">empty</string>
     <string name="alarmfiring_correct_position">%1$s, correct position</string>
     <string name="alarmfiring_in_the_word_wrong_position">%1$s, in the word, wrong position</string>
@@ -1964,18 +1956,18 @@
     <string name="bedtime_last_sonar_session_saved_locally">Last sonar session saved locally.</string>
     <string name="bedtime_ready_to_monitor_local_movement_during">Ready to monitor local movement during sleep.</string>
     <string name="bedtime_no_tagged_nights_yet">No tagged nights yet</string>
-    <string name="bedtime_tagged_waiting_for_sleep_sessions">%1$s tagged; waiting for sleep sessions</string>
-    <string name="bedtime_tagged_nights_with_local_sleep_data">%1$s/%2$s tagged nights with local sleep data</string>
+    <string name="bedtime_tagged_waiting_for_sleep_sessions">%1$d tagged; waiting for sleep sessions</string>
+    <string name="bedtime_tagged_nights_with_local_sleep_data">%1$d/%2$d tagged nights with local sleep data</string>
     <string name="bedtime_start_sonar_or_smart_wake_to">Start Sonar or smart wake to compare restlessness</string>
-    <string name="bedtime_m_restless_vs_baseline">+%1$sm restless vs baseline</string>
-    <string name="bedtime_m_restless_vs_baseline_2">%1$sm restless vs baseline</string>
+    <string name="bedtime_m_restless_vs_baseline">+%1$dm restless vs baseline</string>
+    <string name="bedtime_m_restless_vs_baseline_2">%1$dm restless vs baseline</string>
     <string name="bedtime_matches_baseline_restlessness">Matches baseline restlessness</string>
     <string name="bedtime_last_night">Last night</string>
     <string name="bedtime_not_set">Not set</string>
     <string name="bedtime_local_estimate">Local estimate</string>
     <string name="bedtime_fits_sleep_target">Fits %1$s sleep target</string>
     <string name="alarmfiring_no_saved_place_is_set_so">No saved place is set, so location dismissal is not locked.</string>
-    <string name="alarmfiring_waiting_for_a_location_fix_leave">Waiting for a location fix. Leave the saved %1$s m area to unlock dismiss.</string>
+    <string name="alarmfiring_waiting_for_a_location_fix_leave">Waiting for a location fix. Leave the saved %1$d m area to unlock dismiss.</string>
     <string name="alarmfiring_handwriting_recognition_is_unavailable_type_the">Handwriting recognition is unavailable. Type the word instead.</string>
     <string name="alarmfiring_recognized_draw_again">Recognized "%1$s". Draw %2$s again.</string>
     <string name="alarmfiring_no_handwriting_match_draw_again">No handwriting match. Draw %1$s again.</string>
@@ -2002,7 +1994,6 @@
     <string name="settings_hue_bridge_returned_an_invalid_certificate">Hue bridge returned an invalid certificate fingerprint</string>
     <string name="settings_hue_bridge_not_checked_enter_a">Hue bridge not checked. Enter a valid IP and API key.</string>
     <string name="settings_hue_bridge_not_found_check_the">Hue bridge not found. Check the IP and the API key.</string>
-    <string name="settings_pause_alarms_for_n_days">Pause alarms for N days</string>
     <string name="stats_history_cleared">History cleared</string>
     <string name="stats_could_not_clear_history">Could not clear history</string>
     <string name="settings_backup_exported">Backup exported: %1$s.</string>
@@ -2139,7 +2130,6 @@
     <string name="chess_puzzle_battery_finish_title">Battery finish</string>
     <string name="chess_puzzle_battery_finish_explanation">The queen lands on f7 with bishop support and no king escape.</string>
     <string name="chess_side_white">White</string>
-    <string name="chess_side_black">Black</string>
     <string name="news_error_no_connection">Check your connection and try again.</string>
     <string name="news_error_timeout">This feed took too long to respond. Try again later.</string>
     <string name="news_error_tls">This feed could not be loaded securely. Choose another source.</string>
@@ -2151,4 +2141,30 @@
     <string name="news_error_unreadable">This feed could not be read. Try another source or refresh later.</string>
     <string name="news_error_generic">The feed could not be refreshed.</string>
     <string name="news_stale_headlines">Showing saved headlines. Use Refresh to try again. %1$s</string>
+    <plurals name="worldclock_match_count">
+        <item quantity="one">%1$d match</item>
+        <item quantity="other">%1$d matches</item>
+    </plurals>
+    <plurals name="ringtone_result_count">
+        <item quantity="one">%1$d result</item>
+        <item quantity="other">%1$d results</item>
+    </plurals>
+    <plurals name="challenge_wordle_tries_left">
+        <item quantity="one">Guess the 5-letter word. %1$d try left.</item>
+        <item quantity="other">Guess the 5-letter word. %1$d tries left.</item>
+    </plurals>
+    <string name="settings_hue_needs_local_network">Hue bridge not checked. Allow local network access first.</string>
+    <string name="settings_hue_reachable_certificate_saved">Hue bridge reachable (API v2). Certificate saved.</string>
+    <string name="settings_hue_reachable">Hue bridge reachable (API v2)</string>
+    <string name="challenge_sheep_instructions">Tap every sheep. Skip the goats, which subtract from your count.</string>
+    <string name="challenge_date_backwards_instructions">Today is %1$s. Type it reversed character-by-character.</string>
+    <string name="challenge_emoji_pairs_found">%1$d of 8 pairs found. Tap two cards to match them.</string>
+    <string name="challenge_typing_speed_instructions">Type the phrase at %1$d+ wpm with at most %2$d word errors.</string>
+    <string name="alarmlist_share_alarm">Share alarm</string>
+    <string name="alarmlist_no_share_target">No app is available to share this alarm.</string>
+    <string name="alarmlist_saved_tone">Saved “%1$s”. Pick it from any alarm’s sound list.</string>
+    <plurals name="challenge_rps_instructions">
+        <item quantity="one">First to %1$d win. Pick your move:</item>
+        <item quantity="other">First to %1$d wins. Pick your move:</item>
+    </plurals>
 </resources>

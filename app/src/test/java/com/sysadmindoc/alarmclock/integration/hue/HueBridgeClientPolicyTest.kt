@@ -56,6 +56,34 @@ class HueBridgeClientPolicyTest {
     }
 
     @Test
+    fun `router-assigned local domains are accepted, not just dot-local`() {
+        // A Hue bridge is routinely reachable only as hue.lan or hue.fritz.box.
+        // Refusing those sent the sunrise worker down the silent-failure path
+        // for anyone whose router does not hand out .local.
+        listOf(
+            "hue.lan",
+            "hue.home",
+            "hue.home.arpa",
+            "hue.internal",
+            "hue.intranet",
+            "hue.private",
+            "hue.localdomain",
+            "hue.fritz.box"
+        ).forEach {
+            assertEquals("$it is a LAN-only name and must be accepted", it, HueBridgeClient.sanitiseHost(it))
+        }
+    }
+
+    @Test
+    fun `a bracketed IPv6 literal on the LAN is accepted and a public one is not`() {
+        // The name regex runs first and has no colons in it, so an IPv6 address
+        // could never reach the local-network check.
+        assertEquals("[fd00::1]", HueBridgeClient.sanitiseHost("[fd00::1]"))
+        assertEquals("[fe80::1]:443", HueBridgeClient.sanitiseHost("[fe80::1]:443"))
+        assertNull(HueBridgeClient.sanitiseHost("[2001:4860:4860::8888]"))
+    }
+
+    @Test
     fun `local bridge addresses are still accepted`() {
         listOf(
             "192.168.1.42",

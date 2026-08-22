@@ -145,6 +145,14 @@ class HueBridgeClient @Inject constructor(
         fun sanitiseHost(raw: String): String? {
             val trimmed = raw.trim()
             if (trimmed.isBlank()) return null
+            // A bracketed IPv6 literal is a legitimate bridge address and has
+            // colons of its own, so it cannot go through the name regex.
+            val bracketed = Regex("^\\[([0-9A-Fa-f:]{2,45})](:\\d{1,5})?$").matchEntire(trimmed)
+            if (bracketed != null) {
+                return trimmed.takeIf {
+                    LocalNetworkPermission.isLikelyLocalHost(bracketed.groupValues[1])
+                }
+            }
             if (!Regex("^[A-Za-z0-9.\\-]{1,253}(:\\d{1,5})?$").matches(trimmed)) return null
             val hostOnly = trimmed.substringBeforeLast(':', trimmed)
             return trimmed.takeIf { LocalNetworkPermission.isLikelyLocalHost(hostOnly) }

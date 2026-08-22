@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.ringtone
 
+import androidx.compose.ui.res.pluralStringResource
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
@@ -330,7 +331,11 @@ fun RingtonePickerSheet(
                     color = MaterialTheme.colorScheme.primary
                 )
                 AppStatusChip(
-                    label = stringResource(R.string.ringtone_result, filteredRingtones.size, if (filteredRingtones.size == 1) "" else "s"),
+                    label = pluralStringResource(
+                        R.plurals.ringtone_result_count,
+                        filteredRingtones.size,
+                        filteredRingtones.size
+                    ),
                     color = DismissGreen
                 )
                 AppStatusChip(

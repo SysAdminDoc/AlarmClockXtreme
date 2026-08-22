@@ -58,14 +58,17 @@ object CrashLogger {
         val threadId = thread.id
         val file = File(dir, "crash_${timestamp}_${threadId}.txt")
 
+        val header = buildString {
+            appendLine("Thread: ${thread.name}")
+            appendLine("Time: $timestamp")
+            appendLine("Version: ${getVersionInfo(context)}")
+            appendLine("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
+            appendLine("Android: ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})")
+            appendLine("---")
+        }
+
         val sw = StringWriter()
         val pw = PrintWriter(sw)
-        pw.println("Thread: ${thread.name}")
-        pw.println("Time: $timestamp")
-        pw.println("Version: ${getVersionInfo(context)}")
-        pw.println("Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}")
-        pw.println("Android: ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})")
-        pw.println("---")
         throwable.printStackTrace(pw)
         pw.flush()
 
@@ -73,7 +76,12 @@ object CrashLogger {
         // export, but a log sitting in app-private storage can still be pulled
         // by a device backup or a debug pull, and a stack trace routinely names
         // the host or URL the user configured.
-        file.writeText(CrashLogScrubber.scrub(sw.toString()))
+        //
+        // The header is written as-is. Every line of it is ours, none of it is
+        // user data, and the timestamp reads as a phone number to the scrubber,
+        // so passing it through would only cost us the one field that says when
+        // the crash happened.
+        file.writeText(header + CrashLogScrubber.scrub(sw.toString()))
         Log.e(TAG, "Crash log written to: ${file.absolutePath}")
     }
 

@@ -384,6 +384,28 @@ java.lang.NullPointerException: Attempt to invoke virtual method
     }
 
     @Test
+    fun `crash log scrubber keeps every stack frame on its own line`() {
+        // The host pattern used to allow \s between the phrase and the host, so
+        // on the real message it ate the newline and the "at" of the first
+        // frame and welded that frame onto the exception line.
+        val input = "java.net.UnknownHostException: Unable to resolve host " +
+            "\"radio.example.com\": No address associated with hostname\n" +
+            "\tat java.net.Inet6AddressImpl.lookupHostByName(Inet6AddressImpl.java:156)\n" +
+            "\tat java.net.InetAddress.getAllByName(InetAddress.java:1152)"
+        val scrubbed = CrashLogScrubber.scrub(input)
+
+        assertEquals(
+            "the scrubber must not change how many lines the trace has",
+            input.lines().size,
+            scrubbed.lines().size
+        )
+        scrubbed.lines().drop(1).forEach { frame ->
+            assertTrue("a frame lost its at marker: $frame", frame.trimStart().startsWith("at "))
+        }
+        assertFalse(scrubbed.contains("radio.example.com"))
+    }
+
+    @Test
     fun `crash log scrubber redacts the host an unresolved-host trace names`() {
         val input = """java.net.UnknownHostException: Unable to resolve host "radio.example.com": No address associated with hostname
 	at java.net.Inet6AddressImpl.lookupHostByName(Inet6AddressImpl.java:156)"""
