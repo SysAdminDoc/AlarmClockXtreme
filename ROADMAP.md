@@ -103,13 +103,6 @@ Cross-references, not new items: the AGP 8 to 9 migration in `Roadmap_Blocked.md
   Acceptance: both flavors can auto-send the Guardian SMS after explicit in-app opt-in and a runtime grant; the README permission table lists `SEND_SMS` with its reason; the manifest-permission-to-README lint still passes.
   Complexity: S
 
-- [ ] P2: Cut the store-gated items out of Roadmap_Blocked.md
-  Why: Three blocked items can never be worked because standing policy forbids store distribution entirely, so they sit in the blocked list forever and dilute it.
-  Evidence: `Roadmap_Blocked.md:292` (F-Droid submission), `:298` (developer verification readiness), `:307` (reproducible-build badge).
-  Touches: `Roadmap_Blocked.md`.
-  Acceptance: the three items are deleted, and the file's "Requires External Credentials / Actions" section contains only work that could actually start if a credential appeared.
-  Complexity: S
-
 - [ ] P2: Extract the alarm audio cluster out of AlarmService
   Why: `service/AlarmService.kt` is 2400 lines and every residual audio defect in this research pass lives in one 470-line region of it: source selection, two watchdogs, escalation and volume management are interleaved with service lifecycle, so none of it can be tested without Robolectric standing up a service.
   Evidence: `service/AlarmService.kt:841-1310`; the seam-extraction pattern already worked on `SettingsScreen.kt` (4129 to 1744) and on `AlarmHapticController` / `AlarmFlashlightController` / `AlarmPostDismissController`.
