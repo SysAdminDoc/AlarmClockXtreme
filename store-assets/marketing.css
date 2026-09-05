@@ -1,0 +1,334 @@
+:root {
+  color-scheme: dark;
+  --ink: #08131f;
+  --surface: #111f31;
+  --surface-strong: #18283c;
+  --blue: #5ca6ff;
+  --blue-soft: #8bc0ff;
+  --mint: #65ddb9;
+  --white: #f6faff;
+  --muted: #9fb4cf;
+  --line: rgba(139, 192, 255, 0.24);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: "Segoe UI Variable Display", "Segoe UI", Arial, sans-serif;
+  background: var(--ink);
+  color: var(--white);
+}
+
+.canvas {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(92, 166, 255, 0.22), transparent 31%),
+    radial-gradient(circle at 15% 86%, rgba(101, 221, 185, 0.11), transparent 32%),
+    linear-gradient(145deg, #0c1a2a 0%, #08131f 55%, #050c14 100%);
+}
+
+.canvas::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  opacity: 0.22;
+  background-image:
+    linear-gradient(rgba(139, 192, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139, 192, 255, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to right, black, transparent 72%);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 30px;
+  font-weight: 720;
+  letter-spacing: -1.2px;
+}
+
+.brand strong {
+  color: var(--blue);
+}
+
+.brand-mark {
+  width: 58px;
+  height: 58px;
+  filter: drop-shadow(0 10px 24px rgba(92, 166, 255, 0.24));
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+  padding: 10px 16px;
+  border: 1px solid rgba(101, 221, 185, 0.28);
+  border-radius: 999px;
+  color: var(--mint);
+  background: rgba(101, 221, 185, 0.09);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  content: "";
+  background: var(--mint);
+  box-shadow: 0 0 18px rgba(101, 221, 185, 0.8);
+}
+
+.tags {
+  display: flex;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.tags span {
+  padding: 10px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: #c4d6ec;
+  background: rgba(17, 31, 49, 0.72);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.device {
+  position: absolute;
+  overflow: hidden;
+  border: 5px solid #243b56;
+  border-radius: 36px;
+  background: #050a10;
+  box-shadow:
+    0 34px 78px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(246, 250, 255, 0.08),
+    0 0 56px rgba(92, 166, 255, 0.13);
+}
+
+.device img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.device::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.08), transparent 18% 82%, rgba(92, 166, 255, 0.05));
+}
+
+body.hero {
+  width: 1280px;
+  height: 640px;
+}
+
+.hero .copy {
+  position: absolute;
+  z-index: 3;
+  top: 64px;
+  left: 72px;
+  width: 610px;
+}
+
+.hero h1 {
+  margin: 52px 0 20px;
+  font-size: 78px;
+  font-weight: 780;
+  line-height: 0.96;
+  letter-spacing: -4px;
+}
+
+.hero p {
+  width: 560px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 24px;
+  line-height: 1.42;
+}
+
+.hero .device-main {
+  top: 58px;
+  right: 108px;
+  width: 278px;
+  height: 618px;
+  transform: rotate(1.4deg);
+}
+
+.hero .device-back {
+  top: 112px;
+  right: -34px;
+  width: 232px;
+  height: 516px;
+  opacity: 0.78;
+  transform: rotate(5deg);
+}
+
+body.feature {
+  width: 1024px;
+  height: 500px;
+}
+
+.feature .copy {
+  position: absolute;
+  z-index: 3;
+  top: 52px;
+  left: 58px;
+  width: 560px;
+}
+
+.feature .brand {
+  font-size: 24px;
+}
+
+.feature .brand-mark {
+  width: 46px;
+  height: 46px;
+}
+
+.feature h1 {
+  margin: 48px 0 16px;
+  font-size: 56px;
+  font-weight: 780;
+  line-height: 0.96;
+  letter-spacing: -3px;
+}
+
+.feature p {
+  width: 520px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 21px;
+  line-height: 1.38;
+}
+
+.feature .tags {
+  margin-top: 24px;
+}
+
+.feature .tags span {
+  padding: 8px 13px;
+  font-size: 14px;
+}
+
+.feature .device-main {
+  top: 38px;
+  right: 54px;
+  width: 202px;
+  height: 450px;
+  border-width: 4px;
+  border-radius: 28px;
+  transform: rotate(1.5deg);
+}
+
+.feature .device-back {
+  top: 86px;
+  right: -52px;
+  width: 176px;
+  height: 392px;
+  border-width: 4px;
+  border-radius: 24px;
+  opacity: 0.74;
+  transform: rotate(5deg);
+}
+
+body.store-shot {
+  width: 1080px;
+  height: 1920px;
+}
+
+.store-shot .copy {
+  position: absolute;
+  z-index: 3;
+  top: 82px;
+  left: 88px;
+  width: 904px;
+  text-align: center;
+}
+
+.store-shot .eyebrow {
+  margin-bottom: 24px;
+}
+
+.store-shot h1 {
+  margin: 0;
+  font-size: 72px;
+  font-weight: 780;
+  line-height: 1.02;
+  letter-spacing: -3px;
+}
+
+.store-shot p {
+  width: 820px;
+  margin: 18px auto 0;
+  color: var(--muted);
+  font-size: 30px;
+  line-height: 1.35;
+}
+
+.store-shot .device {
+  top: 350px;
+  left: 192px;
+  width: 696px;
+  height: 1548px;
+  border-width: 7px;
+  border-radius: 48px;
+}
+
+body.logo-sheet {
+  width: 1024px;
+  height: 1024px;
+}
+
+.logo-sheet {
+  display: grid;
+  place-items: center;
+}
+
+.logo-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateY(-22px);
+}
+
+.logo-lockup .brand-mark {
+  width: 330px;
+  height: 330px;
+  filter: drop-shadow(0 28px 60px rgba(92, 166, 255, 0.28));
+}
+
+.logo-lockup .wordmark {
+  margin-top: 52px;
+  font-size: 70px;
+  font-weight: 760;
+  letter-spacing: -4px;
+}
+
+.logo-lockup .wordmark strong {
+  color: var(--blue);
+}
+
+.logo-lockup .tagline {
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}

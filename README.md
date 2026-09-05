@@ -1,469 +1,198 @@
 # AlarmClockXtreme
 
-![Version](https://img.shields.io/badge/version-1.15.34-blue)
-![License](https://img.shields.io/badge/license-Apache%202.0-green)
-![Platform](https://img.shields.io/badge/platform-Android%208.0+-3DDC84?logo=android&logoColor=white)
-![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?logo=kotlin&logoColor=white)
-![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4)
-
-> A feature-rich, open-source alarm clock for Android with 50+ alarm fields, 30 dismiss challenges, smart wake intelligence, a built-in YouTube alarm-sound downloader, and a deep dark theme. No ads, no tracking, no accounts.
+[![Version](https://img.shields.io/badge/version-1.15.35-5CA6FF)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
+[![License](https://img.shields.io/badge/license-Apache%202.0-65DDB9)](LICENSE)
+[![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
+[![Stars](https://img.shields.io/github/stars/SysAdminDoc/AlarmClockXtreme?style=flat&color=FFD166)](https://github.com/SysAdminDoc/AlarmClockXtreme/stargazers)
+[![Downloads](https://img.shields.io/github/downloads/SysAdminDoc/AlarmClockXtreme/total?color=8EA8C9)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases)
 
 <p align="center">
-  <img src="assets/screenshots/alarm-list.png" width="360" alt="AlarmClockXtreme alarm list with next alarm, alarm cards, quick actions, and bottom navigation" />
+  <img src="assets/marketing/hero.png" width="100%" alt="AlarmClockXtreme, an Android alarm clock with exact scheduling and wake-up challenges" />
 </p>
 
-## Download
+AlarmClockXtreme is an open-source Android alarm clock built for heavy sleepers and shift workers. It also suits anyone who wants more control than the stock clock provides. Exact scheduling handles the wake-up. Thirty dismiss challenges help make sure you stay awake.
 
-**Latest signed APK**: [Releases page](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
+**No ads or account. Nothing tracks you.**
 
+<p align="center">
+  <a href="assets/screenshots/alarm-list.png"><img src="assets/screenshots/alarm-list.png" width="18%" alt="Alarm list with three weekday alarms and a math challenge" /></a>
+  <a href="assets/screenshots/today.png"><img src="assets/screenshots/today.png" width="18%" alt="Today dashboard with New York weather and air quality" /></a>
+  <a href="assets/screenshots/alarm-editor.png"><img src="assets/screenshots/alarm-editor.png" width="18%" alt="Alarm editor with weekday schedule and math challenge" /></a>
+  <a href="assets/screenshots/timer.png"><img src="assets/screenshots/timer.png" width="18%" alt="Running timer alongside a new timer keypad" /></a>
+  <a href="assets/screenshots/settings.png"><img src="assets/screenshots/settings.png" width="18%" alt="Settings overview with wake readiness and preference categories" /></a>
+</p>
+
+## Get AlarmClockXtreme
+
+Download the signed APKs and matching checksums from the [latest release](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest).
+
+| Package | Best for | What it includes |
+|---|---|---|
+| Play APK | Most phones | YouTube alarm sounds, Health Connect, handwriting recognition, and the Wear bridge |
+| F-Droid APK | Fully open-source installs | The complete alarm engine without Play-specific libraries |
+| Wear APK | Paired Wear OS watches | Next-alarm tile, complication, skip, snooze, and dismiss controls |
+
+Install the Play build over ADB:
+
+```bash
+adb install AlarmClockXtreme-v1.15.35-play-release.apk
 ```
-adb install AlarmClockXtreme-v1.15.34-play-release.apk
-```
 
-The Play-flavor APK includes the YouTube alarm-sound downloader (yt-dlp + NewPipe Extractor), Wear OS Data Layer bridge, Wear next-alarm tile/complication support, optional Health Connect READ_SLEEP integration, and ML Kit Digital Ink handwriting recognition. The F-Droid flavor strips proprietary or Play-distribution-adjacent phone pieces for an unencumbered build.
+Each release includes `SHA256SUMS.txt` and certificate fingerprints so you can verify the file before installing it.
 
-## Roadmap
+## Why People Choose It
 
-Current release-hardening work is focused on public F-Droid inclusion, signed-release automation, API 37 platform readiness, Wear action acknowledgement, localization/pseudo-locale cleanup, and permission/store-declaration drift guards. Local planning details stay in the repository maintainer backlog; public release notes and issues track user-visible changes.
+### Alarms that take reliability seriously
+
+AlarmClockXtreme uses Android's exact alarm path, restores schedules after reboot, and keeps a minimal Direct Boot fallback for the next alarm. A wake-readiness check shows which system settings could get in the way before bedtime.
+
+- Smart wake can watch for light movement before the scheduled time.
+- Wake confirmation rings again if you dismiss an alarm and fall back asleep.
+- Rotating shifts support DDNNO, 4-on-4-off, Panama, DuPont, and Pitman cycles.
+- Vacation mode and public-holiday skips pause the right alarms without deleting them.
+
+### Thirty ways to prove you are awake
+
+Choose a quick math problem or build a chain of challenges. The list also includes typing, memory, walking, squats, push-ups, NFC, barcode, Wi-Fi, photo match, a maze, Wordle, and more. An accessibility bypass can unlock dismissal after a chosen delay when a physical challenge is not suitable.
+
+### Sound and automation that fit your routine
+
+Use a system ringtone, an HTTPS radio stream, Spotify, or a random pool of saved sounds. The Play build can search YouTube or accept a link and save the audio to the phone's alarm library. Webhooks, Tasker broadcasts, and Philips Hue scenes can run when an alarm fires or is dismissed.
+
+### Useful after the alarm stops
+
+The Today tab combines local weather with air quality and sunrise timing. You also get concurrent timers, a stopwatch, world clocks, bedtime reminders, guided breathing, local sleep summaries, widgets, and Wear OS controls.
+
+## Highlights
+
+| Area | What you can do |
+|---|---|
+| Scheduling | Exact alarms, date-specific alarms, solar offsets, shift patterns, profiles, groups, manual order, and shareable alarm links |
+| Wake-up | Thirty challenge types, mission chains, adaptive math, progressive snooze, hold-to-dismiss, wake confirmation, and a guardian contact |
+| Sound | Gradual volume, vibration patterns, ringtone pools, Spotify, HTTPS radio, YouTube audio in the Play build, and haptic-only alarms |
+| Context | Weather, air quality, NWS alerts in the US, calendar events, public holidays, sunrise and sunset, plus optional RSS news |
+| Bedtime | Sleep goal, wind-down checklist, breathing timer, night clock, chronotype estimate, local Sonar summaries, and Health Connect in the Play build |
+| Reliability | Reboot restore, Direct Boot fallback, missed-alarm watchdog, wake-readiness checks, local diagnostics, and encrypted backup |
+| Devices | Phones, tablets, foldables, Chromebooks, DeX, home-screen widgets, Quick Settings, and Wear OS |
+
+## Privacy
+
+The alarm engine, challenge state, schedules, statistics, and settings stay on your device. No analytics SDK or ad network is included, and the app has no account system.
+
+Network access is optional and tied to features you choose. Weather uses Open-Meteo. Public-holiday skips use Nager.Date, US alerts use the National Weather Service, and the radar card loads Windy. RSS feeds, internet radio, webhooks, Philips Hue, and the Play-only YouTube downloader contact the service you configure.
+
+Sonar tracking keeps compact movement and loud-sound summaries for 30 days. It does not save raw audio. Crash logs are capped, app-private files. They are never uploaded automatically and only leave the phone when you export a support bundle.
+
+See the full [privacy policy](PRIVACY_POLICY.html) for the exact data and network boundaries.
 
 ## Build From Source
+
+Requirements:
+
+- Android Studio or the included Gradle wrapper
+- JDK 17 or 21
+- Android SDK 36
 
 ```bash
 git clone https://github.com/SysAdminDoc/AlarmClockXtreme.git
 cd AlarmClockXtreme
-./gradlew assemblePlayDebug
-# Install: adb install app/build/outputs/apk/play/debug/app-play-debug.apk
-./gradlew :wear:assembleDebug
-# Wear tile: install wear/build/outputs/apk/debug/wear-debug.apk on a paired Wear OS watch
+./gradlew :app:assemblePlayDebug :app:assembleFdroidDebug :wear:assembleDebug
 ```
 
-**Requirements:** Android Studio Narwhal+ or the included Gradle wrapper, JDK 17, Android SDK 36
+Debug outputs:
 
-## Features
-
-### Core Alarm Engine
-| Feature | Description |
-|---------|-------------|
-| Reliable Scheduling | `setAlarmClock()` for maximum reliability, survives Doze mode |
-| Direct Boot Fallback | Re-registers a default-sound/vibration alarm from device-encrypted storage before first unlock after reboot, with a full-screen stop UI |
-| Solar-Relative Firing | Fire relative to sunrise/sunset with a configurable offset (NOAA approximation) |
-| Alarm Groups | Tag alarms (Work, School, Gym), filter with chips |
-| Alarm Profiles | Named configurations (Work, Travel, Weekend) for quick switching |
-| Date-Specific Alarms | Set alarm for a particular calendar date (overrides repeat days) |
-| Rotating Shift Patterns | Gate any alarm through DDNNO, 4-on-4-off, Panama, DuPont, or Pitman cycles with an anchor date |
-| Duplicate Alarm | Clone any alarm with all settings via overflow menu |
-| Skip Next | Skip one occurrence of a repeating alarm |
-| Vacation Mode | Date range auto-skip for all repeating alarms |
-| Holiday Auto-Skip | Skip public holidays via Nager.Date API (40+ countries) |
-| Templates | Power Nap, Early Bird, Weekday, Weekend presets |
-| Shareable Alarms | Share a single alarm as an `acx://alarm?data=` link; imports open a review screen, stay disabled, and can strip private references before saving |
-| Early Dismiss | Skip upcoming alarm from the persistent notification |
-| Calendar Auto-Alarm | Keeps one reusable alarm shifted before tomorrow's first timed calendar event |
-| Commute-Aware Auto-Alarm | Optional event-location commute buffer uses Google Routes transit ETA when you supply a key, and falls back to no-key bad-weather buffers |
-| Manual Alarm Order | Drag alarms into a custom list order that persists across app restarts, backup, and restore |
-| Wear OS Tile + Complication | Shows the next alarm on the watch tile and compatible watch faces; the tile also exposes skip controls before fire and snooze/dismiss controls while ringing and honors the public-label privacy setting |
-
-### Dismiss Challenges (30 Types)
-| Challenge | Description |
-|-----------|-------------|
-| Math (Easy/Medium/Hard) | Solve arithmetic problems with explicit operator precedence |
-| Shake Phone | Shake device N times (configurable) |
-| Number Sequence | Tap 6 numbers in ascending order |
-| Memory Pattern | Memorize and recreate a tile pattern on 3x3 grid |
-| Type a Phrase | Type a displayed phrase exactly (custom phrases supported) |
-| Voice Phrase | Say the displayed phrase with Android speech recognition; typed fallback protects denied-permission and no-recognizer devices |
-| Handwriting | Draw a displayed wake word with Play-flavor ML Kit Digital Ink; typed fallback keeps F-Droid and offline-missing-model devices dismissable |
-| Walk Steps | Walk N steps using step counter sensor |
-| NFC Tag Scan | Tap a pre-registered NFC tag |
-| Barcode/QR Scan | Scan a pre-registered barcode |
-| Photo Match | Photograph a registered location (similarity scoring) |
-| Location Dismissal Lock | Anti-Sleepyhead mode keeps Dismiss locked until GPS/network location confirms the phone left the saved area |
-| Squats | Accelerometer-based squat detection |
-| Maze Puzzle | Navigate a randomized 5x5 maze |
-| Wi-Fi Connect | Connect to a specific Wi-Fi network |
-| Count the Sheep | Tap every drifting sheep; avoid the decoy goats (novel CAPTCHA) |
-| Simon Says | Watch a 4-pad color sequence and play it back in order |
-| Type Date Backwards | Type today's ISO date reversed character-by-character |
-| Stroop Test | Tap the INK color of a color-word, not the word itself |
-| Rock / Paper / Scissors | Best-of-5 RPS against the computer (first to 3 wins) |
-| Emoji Memory | Match 8 emoji pairs on a face-down 4x4 grid |
-| Typing Speed | Type a phrase at >= N wpm with limited word mistakes |
-| Wordle | Guess the 5-letter target word in <= 6 attempts |
-| Reaction Test (PVT) | Tap 5 times when a green stimulus appears; average under 500ms to dismiss |
-| Spot the Difference | Compare two color grids and tap the single changed tile |
-| Chess Mate in 1 | Pick the checkmate move from a compact board position |
-| RSVP Speed Reading | Read a rapid word stream, then identify a word that appeared |
-| Push-ups | Accelerometer-based push-up detection with the phone face-down on the floor |
-| Plank Hold | Hold the phone level in a plank position for 30 seconds |
-| Mission Chaining | Stack 2-5 challenges in sequence (e.g., Math + Shake + Typing) |
-| Adaptive Difficulty | Auto-escalates math difficulty based on snooze history |
-
-### Anti-Snooze Arsenal
-| Feature | Description |
-|---------|-------------|
-| Progressive Snooze | Each snooze shortens by 1 minute (10 -> 9 -> 8 -> ...) |
-| Backup Sound Escalation | Ultra-loud volume boost if no interaction within configurable delay |
-| On-call Mode | Opt-in DND override for on-call alarms; temporarily moves total silence to Alarms-only and restores it after the ring |
-| Max Snooze Count | Auto-dismiss after N snoozes reached |
-| Guardian Angel | Emergency-contact escalation if an alarm is not dismissed; F-Droid can auto-send SMS, Play opens a prefilled SMS composer |
-| Wake Confirmation | Re-fires alarm if user doesn't confirm they're awake |
-| Flashlight Strobe | Camera flash LED strobe during alarm |
-| Repeat Missed Alarms | Auto-silenced alarm re-fires briefly on next unlock or charge disconnect (configurable) |
-| Cover-to-Snooze | Hold a hand over the proximity sensor for ~1.5s to snooze |
-| Hardware Button Action | Map volume / headset / camera keys to snooze or dismiss per alarm |
-
-### Wake Experience
-| Feature | Description |
-|---------|-------------|
-| Flash Wake | Gradual screen brightness increase alongside volume |
-| Sunrise Simulation | Screen transitions from deep red to warm yellow |
-| TTS Announcement | Speaks time, date, and weather after dismissal |
-| Morning Briefing | Full-screen good morning card with weather + calendar |
-| Morning Routine | Post-alarm checklist (stretch, water, journal, etc.) |
-| Motivational Quotes | Random inspirational quotes on alarm firing screen |
-| Swipe Gestures | Swipe left to dismiss, right to snooze |
-| Custom Snooze | Pick 1/3/5/15/30 minute snooze from firing screen |
-| Hold to Dismiss | Optional 1.5-second hold gesture before final dismissal |
-| Per-Alarm Background Image | Optional selected image behind the ringing screen, with Android 12+ blur and default-off behavior per alarm |
-
-### Sound & Vibration
-| Feature | Description |
-|---------|-------------|
-| Ringtone Picker | Browse and preview system ringtones, import an audio folder through the system document picker, and keep its access without broad storage permission |
-| Hearing-Aid Routing | Alarm tones, previews, Direct Boot fallback, and setup test alarms use `AudioAttributes.USAGE_ALARM` so Android's system hearing-aid/speaker routing can apply |
-| Media3 Alarm Playback | App-owned alarm tones and internet radio use Media3/ExoPlayer, with a build-flagged legacy MediaPlayer fallback for platform ringtone providers |
-| YouTube Alarm Sounds | Search YouTube or paste a URL, preview before downloading, save the audio straight to your alarm library (Play flavor only) |
-| Random Ringtone Pool | Per-alarm pool of URIs; a random one is picked each fire (anti-habituation) |
-| Dismiss at Ringtone End | Auto-dismiss when the chosen song/tone finishes (Spotify-friendly) |
-| Spotify Integration | Play Spotify tracks/playlists as alarm sound |
-| Internet Radio | Stream any HTTP/HTTPS radio station URL |
-| Gradual Volume | Configurable fade-in (15s to 5 min) |
-| Custom Vibration | 5 patterns: Default, Gentle, Heartbeat, Escalating, SOS |
-| Silent Mode | Fire alarm with notification only, no sound |
-| Haptic-Only Profile | One-tap "Don't wake partner" preset mutes alarm audio and keeps tactile wake cues |
-
-### Smart Features
-| Feature | Description |
-|---------|-------------|
-| Smart Alarm | Accelerometer-based light sleep detection, fires early during optimal window |
-| Sonar Sleep Tracking | Experimental ultrasonic breathing/movement detection with manual Bedtime start/stop, local Statistics summaries, and a loud sleep-sound timeline; no raw audio is retained |
-| Local Actigraphy Buckets | Smart-alarm windows store compact awake-motion, light-motion, and still-motion summaries for 30 days; raw accelerometer samples are not retained |
-| Philips Hue Sunrise | Gradually ramp smart lights before alarm fires |
-| Webhook / Tasker | POST HTTPS JSON on `alarm_fired`, `alarm_snoozed`, `alarm_dismissed`, `alarm_missed`, and `alarm_skipped` events |
-| Dismiss Actions | Trigger a validated webhook, package-scoped broadcast, or configured Philips Hue scene after a successful dismiss |
-| Flip-to-Snooze | Place phone face-down to snooze |
-
-### Dashboard & Utilities
-| Feature | Description |
-|---------|-------------|
-| Weather Tab | Centered weather hero, 3-day vertical forecast, sunrise/sunset, UV index with EPA bands, hourly strip with rain probability, and last-good stale fallback. Open-Meteo, free, no API key |
-| Live Radar | Animated precipitation radar embedded from Windy.com (no key, no SDK). Auto-centers on your weather location |
-| Time-of-Day Sky | The Today tab background follows your real sunrise/sunset through a 15-keyframe gradient: deep night, civil dawn, sunrise, midday peak, golden hour, dusk |
-| Weather-Aware Theme | Storms swap the sky to overcast blue-gray; night storms drop to near-black with subtle lightning flashes; tornado warnings render a rotating funnel cloud silhouette + warning banner |
-| Tornado Alerts (US) | NWS active-alerts integration via api.weather.gov. No key, free, US-only, and it drives the on-screen warning |
-| News Tab | Public RSS reader (Google News, BBC, NPR, Hacker News presets) with pull-to-refresh, stale saved-headlines fallback, tap to open in browser, no accounts |
-| Calendar Integration | Today's events from device calendar |
-| World Clock | Live time zones with UTC offset, 24h format support, persistent saved cities |
-| Multiple Timers | Run several countdown timers concurrently (monotonic clock) |
-| Stopwatch | Lap tracking with best/worst marking |
-| Bedtime Tracking | Sleep goal, sleep cycle calculator, chronotype estimate, bedtime reminders, guided breathing, sleep sounds, local room-noise baseline, pre-sleep factor tags with a local correlation chart, snore/loud-sound timeline, and Android 16 final-hour bedtime countdown Live Updates |
-| Bedtime DND | App-owned alarms-only Do Not Disturb rule for the sleep window, with clear access/status feedback |
-| Health Connect Sleep | Play flavor only: opt-in READ_SLEEP summaries and local sleep/wake trend charts in Bedtime and Statistics |
-| Statistics | Wake-streak flame badge, snooze rate, day-of-week breakdown, response times, searchable alarm history |
-| Night Clock | Always-on bedside display with minimal brightness |
-| Home Widget | Glance-based widget showing next alarm countdown, with optional neutral alarm labels on public surfaces |
-| Persistent Notification | Always-visible next alarm countdown in shade, with Android 16 Live Update progress during the final two hours and optional public-label hiding |
-| Quick Settings Tile | Skip the next alarm from the system shade with one tap; subtitles can use neutral next-alarm text |
-| Tab Visibility Toggles | Hide Weather / Timer / World / News tabs from the bottom nav (Alarms + Settings always visible) |
-| Adaptive Wide Layouts | Tablets, foldables, Chromebooks, and DeX use a navigation rail plus Alarms list/detail and Settings category/detail panes while phones keep the compact bottom-nav flow |
-| Accent Color | Customizable accent color within dark theme |
-| Material You | Opt-in dynamic color from wallpaper palette (Android 12+) |
-| Expressive Surfaces | Opt-in Material 3 Expressive shape rhythm and accent semantics across shared cards, chips, loading states, and navigation |
-| Wind-Down Checklist | Pre-sleep checklist rendered on the Bedtime tab |
-| Configurable Sleep Timer | Sleep-sound fade-out with 5s-10min taper and configurable hold |
-| Jet Lag Planner | Local target-wake planner with gradual wake/bed shifts and bright/dim-light timing cues for travel days |
-
-### Data & Reliability
-| Feature | Description |
-|---------|-------------|
-| Backup/Restore | JSON export/import of all 50+ alarm fields and 60 settings, with optional AES-256 passphrase encryption, custom news-feed/background-image/manual-order/webhook-signing/jet-lag-planner round-trip, pre-export disclosure for secrets/private references, and restore preview with append/replace/disabled import choices (v17 format) |
-| Shareable Alarms | Export a single alarm to a copy/paste-able `acx://` link; received links are reviewed and saved disabled |
-| Boot Reschedule | All alarms re-registered after device reboot, with a Direct Boot fallback for the next alarm before first unlock |
-| Wake Readiness | Settings checks exact alarms, notifications, Android 14+ full-screen alarm access, battery optimization, and App Standby state before bedtime |
-| Manufacturer Compat | Onboarding warnings for Xiaomi/Samsung/Huawei battery killers |
-| Crash Logger | Local app-private crash log files for debugging; capped, backup-excluded, and never uploaded automatically |
-| Local Support Bundle | Settings can package crash logs plus redacted version, device, wake-readiness, smart-wake, incident-timeline, and alarm diagnostics into a shareable ZIP without telemetry |
-| Alarm Diagnostics | Settings shows the latest redacted incident event and can clear incident history separately from Statistics |
-| Sleep/Wake Analytics | Statistics correlates local alarm history with Health Connect sleep duration, snoozes, dismiss response, and challenge retries |
-| Alarm Status Icon | Keeps the next alarm visible in the status bar by default; can be disabled for quieter exact-idle scheduling |
-| Auto-Silence | Configurable timeout (0/5/10/15/30 min), records as missed |
-| Webhook Reliability | Application-lived dispatch scope keeps automation events moving even when the alarm service stops mid-flight; payloads use a versioned schema |
-
-## Architecture
-
-```
-+---------------------------------------------------------+
-|                    UI Layer (Compose)                     |
-|  Screens <- ViewModels <- StateFlow                      |
-|  30 challenge flows, 8 alarm edit sections               |
-+---------------------------------------------------------+
-|                   Domain Layer                           |
-|  AlarmScheduler | NextAlarmCalculator | SolarCalculator  |
-|  Date-specific + holiday + vacation + solar-anchor logic |
-+---------------------------------------------------------+
-|                    Data Layer                            |
-|  Room DB v23 | DataStore | Retrofit (Open-Meteo, Nager, NWS) |
-|  HealthConnectSleepRepository (Play READ_SLEEP summaries) |
-|  50+ field Alarm entity | 35+ field AppSettings          |
-|  YouTubeAudioDownloader (yt-dlp + NewPipe Extractor)     |
-+---------------------------------------------------------+
-|                   Android Platform                       |
-|  AlarmManager | 4 ForegroundServices | 8 Workers         |
-|  7 BroadcastReceivers | Direct Boot fallback | Glance/QS Tile |
-+---------------------------------------------------------+
+```text
+app/build/outputs/apk/play/debug/app-play-debug.apk
+app/build/outputs/apk/fdroid/debug/app-fdroid-debug.apk
+wear/build/outputs/apk/debug/wear-debug.apk
 ```
 
-**Tech stack:** Kotlin 2.1, Jetpack Compose (Material 3), Room, Hilt, Retrofit + Moshi (codegen), DataStore, Glance widgets, OkHttp, Coroutines/Flow, WorkManager, Wear Tiles/Protolayout/Complications, Health Connect client (Play flavor), ML Kit Digital Ink (Play flavor), yt-dlp, NewPipe Extractor (Play flavor)
+The Play and F-Droid phone builds share the same alarm engine. The F-Droid flavor omits the YouTube downloader, Health Connect SDK path, Play Data Layer bridge, and ML Kit handwriting recognizer.
 
-## Configuration
+## Release Signing
 
-### Signing
-
-1. Generate a keystore: `keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias alarm`
-2. Copy `keystore.properties.template` to `keystore.properties`
-3. Fill in your keystore path and credentials
-4. Build: `./gradlew :app:bundlePlayRelease :app:assemblePlayRelease :app:verifyFdroidReleaseSize :wear:assembleRelease`
-
-Local release builds use `keystore.properties`. If you mirror this setup in
-another environment, use either the preferred `ANDROID_*` names or the legacy
-short names for the same values:
-
-| Preferred secret | Legacy alias | Purpose |
-|------------------|--------------|---------|
-| `ANDROID_KEYSTORE_BASE64` | `KEYSTORE_BASE64` | Base64-encoded release keystore |
-| `ANDROID_KEYSTORE_PASSWORD` | `KEYSTORE_PASSWORD` | Keystore password |
-| `ANDROID_KEY_ALIAS` | `KEY_ALIAS` | Signing key alias |
-| `ANDROID_KEY_PASSWORD` | `KEY_PASSWORD` | Signing key password |
-
-Release artifact tasks depend on the root `verifyReleaseSigning` check and fail
-closed when `keystore.properties` or its configured keystore is missing. This
-prevents an unsigned AAB or APK from being mistaken for a publishable artifact.
-Release builds produce signed Play, F-Droid, and Wear APKs locally; the F-Droid
-size check also builds its release APK and enforces the 40 MiB budget. The Play
-bundle is written under `app/build/outputs/bundle/playRelease/`. Verify
-signatures with `apksigner`, write `SHA256SUMS.txt` and
-`APK-CERT-FINGERPRINTS.txt`, and attach the artifacts to the GitHub Release.
-
-To verify a sideloaded APK's signing certificate:
+Copy `keystore.properties.template` to `keystore.properties`, point it at your release keystore, then provide the password and alias values. Release tasks fail closed when the signing material is missing.
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.34-play-release.apk
-```
-
-Compare the `certificate SHA-256 digest` against the fingerprint published in
-the release's `APK-CERT-FINGERPRINTS.txt`.
-
-Before a local release, run:
-
-```bash
-bash scripts/check-signing-hygiene.sh
-./gradlew verifyReleaseMetadata
-./gradlew verifyDependencyIntegrity
-./gradlew :app:verifyRoomSchemaExports
+./gradlew verifyReleaseMetadata verifyDependencyIntegrity :app:verifyRoomSchemaExports
 python scripts/osv_gradle_audit.py
-python scripts/verify_api37_release.py --device <api37-16kb-serial> --run-test-alarm --fresh-install
+./gradlew :app:bundlePlayRelease :app:assemblePlayRelease :app:assembleFdroidRelease :wear:assembleRelease
 ```
 
-Dependency artifacts are SHA-256 verified and the Play, F-Droid, and Wear
-release runtime graphs are locked. When intentionally updating dependencies,
-refresh both controls and review every checksum/version diff before committing:
+Verify an APK against the certificate fingerprint published with the release:
 
-```powershell
-.\scripts\update-dependency-integrity.ps1
+```bash
+apksigner verify --print-certs AlarmClockXtreme-v1.15.35-play-release.apk
 ```
 
-The signing check fails if keystore files or `keystore.properties` are
-tracked/staged, or if common signing-material paths are not ignored. The OSV
-gate resolves Play, F-Droid, and Wear release runtime classpaths and exits
-non-zero on reported vulnerabilities. The Android 17 verifier checks 16 KB APK
-alignment for Play, F-Droid, and Wear release APKs, installs the Play release
-on an API 37 16 KB device, verifies exact-alarm, promoted-notification,
-notification, and local-network permission state, and can drive the built-in
-test alarm.
+For Android 17 and 16 KB page-size testing, run:
 
-### Build Variants
-
-| Variant | Description |
-|---------|-------------|
-| `playDebug` | Google Play flavor, debug signing |
-| `playRelease` | Google Play flavor, release signing, R8 minified |
-| `fdroidDebug` | F-Droid flavor, debug signing |
-| `fdroidRelease` | F-Droid flavor, release signing, R8 minified |
+```bash
+python scripts/verify_api37_release.py --device <emulator-serial> --run-test-alarm --fresh-install
+```
 
 ## Permissions
 
-| Permission | Purpose | Required |
-|------------|---------|----------|
-| `USE_EXACT_ALARM` | Fire alarms at exact time | Yes |
-| `POST_NOTIFICATIONS` | Show alarm alerts | Yes |
-| `POST_PROMOTED_NOTIFICATIONS` | Android 16 promoted alarm updates where available | Optional |
-| `USE_FULL_SCREEN_INTENT` | Show the alarm firing screen over the lock screen | Yes |
-| `ACCESS_NOTIFICATION_POLICY` | Optional bedtime DND rule access | Optional |
-| `FOREGROUND_SERVICE` | Reliable alarm playback | Yes |
-| `FOREGROUND_SERVICE_MEDIA_PLAYBACK` | Alarm audio | Yes |
-| `FOREGROUND_SERVICE_DATA_SYNC` | Smart alarm monitoring | Yes |
-| `FOREGROUND_SERVICE_MICROPHONE` | Sonar sleep tracking | Yes |
-| `RECEIVE_BOOT_COMPLETED` | Reschedule after reboot | Yes |
-| `WAKE_LOCK` | Keep CPU during alarm | Yes |
-| `VIBRATE` | Alarm vibration | Yes |
-| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Optional manufacturer/battery reliability flow | Optional |
-| `INTERNET` | Weather, holidays, radar, news, webhooks, radio, Hue, and Play-flavor YouTube downloads | Yes |
-| `ACCESS_LOCAL_NETWORK` | Android 17+: LAN access for Philips Hue bridge and local webhook endpoints | Optional |
-| `ACCESS_COARSE_LOCATION` | Weather for your area | Optional |
-| `ACCESS_FINE_LOCATION` | Wi-Fi challenge matching on Android 12+ | Optional |
-| `ACCESS_WIFI_STATE` | Wi-Fi dismiss challenge reads the connected SSID | Optional |
-| `READ_CALENDAR` | Dashboard events + auto-alarm | Optional |
-| `NFC` | NFC tag dismiss challenge | Optional |
-| `CAMERA` | Barcode scan + photo match challenges | Optional |
-| `RECORD_AUDIO` | Voice phrase dismiss + Sonar sleep tracking | Optional |
-| `android.permission.health.READ_SLEEP` | Health Connect sleep-session summaries in Bedtime and Statistics | Optional (Play flavor only) |
-| `MODIFY_AUDIO_SETTINGS` | Alarm audio routing and volume behavior | Yes |
-| `ACTIVITY_RECOGNITION` | Walk steps + smart alarm | Optional |
-| `SEND_SMS` | Guardian Angel automatic emergency SMS | Optional (F-Droid flavor only) |
-| `CALL_PHONE` | Guardian Angel emergency call path; falls back to the dialer when denied | Optional |
-| `READ_MEDIA_AUDIO` / `READ_EXTERNAL_STORAGE` | Browse device audio for alarm sounds | Optional |
-| `WRITE_EXTERNAL_STORAGE` (<= Android 9) | Save downloaded YouTube alarm sounds to MediaStore | Optional (Play flavor only) |
+AlarmClockXtreme asks only when a feature needs access.
 
-## Privacy
+| Permission or access | Used for |
+|---|---|
+| Alarms and reminders | Exact wake-up scheduling |
+| Notifications and full-screen alarms | Showing the ringing screen and alarm controls |
+| Battery optimization exemption | Reducing missed alarms on aggressive Android builds |
+| Calendar and location | Optional Today dashboard, commute timing, weather, and location dismissal |
+| Microphone, camera, NFC, and activity recognition | Optional voice, Sonar, photo, barcode, tag, walking, and exercise challenges |
+| Do Not Disturb | Optional bedtime and on-call alarm rules |
+| Health Connect | Optional Play-build sleep summaries |
+| SMS or phone | Optional guardian escalation, with behavior that differs by flavor |
 
-No analytics. No ads. No tracking. No accounts. No data leaves your device except:
-- Weather, air-quality, geocoding, and pollen calls to Open-Meteo for your selected location
-- Active-alerts calls to api.weather.gov / NWS for US weather-alert coverage
-- Holiday API calls to Nager.Date for the selected country
-- Live radar embed from Windy.com on the Weather tab; Windy's privacy policy applies inside the embed
-- News RSS calls to your configured feed source, including Google News, BBC, NPR, Hacker News, or a custom URL
-- Webhook calls to your configured HTTPS URL, including alarm event metadata. Payloads include `schemaVersion`, `event`, `eventId`, `occurredAt`, `alarmId`, `scheduledFor`, `displayTime`, and `labelIncluded`; alarm labels are included only when the Settings toggle is on.
-- Google Routes transit ETA calls for commute-aware calendar auto-alarms only when you enable the feature and provide your own Routes API key; event locations and saved origin coordinates are sent for that lookup.
-- Internet radio streaming to your configured station
-- Philips Hue commands to your configured bridge on your local network
-- ML Kit Digital Ink model download in the Play flavor when you first use handwriting recognition; recognition runs on-device after the model is available
-- YouTube search, preview, stream resolution, and download requests in the Play flavor only; F-Droid excludes this feature
+Basic alarms, local challenges, timers, and backups work without enabling the optional network or sensor features.
 
-Play-flavor Health Connect support is opt-in and requests only `android.permission.health.READ_SLEEP`. Recent sleep-session summaries are used locally in Bedtime and Statistics, including sleep/wake trend charts; they are not copied into Room/DataStore/backups and are never uploaded to the developer. Smart-alarm actigraphy stores only compact local motion-bucket summaries for 30 days; raw accelerometer samples are not retained and the buckets are not medical sleep-stage records. Sonar sleep tracking is manually started from Bedtime, uses the microphone only while its foreground notification is active, stores compact movement/restless/still summaries plus loud sleep-sound event metadata locally for 30 days, and does not retain raw audio. Pre-sleep factor tags store only the selected caffeine/exercise/alcohol/stress flags and local date for 30 days, then compare tagged nights against local Sonar/smart-wake restlessness summaries on device. Chronotype estimates store only five local preference answers and derive a bedtime/wake target on device. Jet-lag planner settings store only target wake time, adjustment days, and direction on device. Bedtime room-noise baselines use the microphone only at reminder time when permission is granted, keep only a quiet/moderate/loud label plus timestamp, exclude that label from backup and device transfer, and do not save raw audio. Weather and news keep one compact last-good cache file each for offline display; these caches stay in app files storage and are excluded from manual backups, system backup includes, and support bundles. Support bundles are created only when you choose to export them and include redacted wake-readiness, test-alarm proof timing, aggregate smart-wake decision metadata, and recent alarm incident event codes, not labels, pre-sleep tag rows, snore-event rows, or per-minute motion/audio buckets. Crash logs are capped local files in app-private storage, excluded from backups, and never uploaded automatically; they leave the device only if you explicitly export a support bundle. Plain JSON backups and share links are created only when you choose to export or share, and may contain alarm labels, schedules, settings, integration URLs, webhook URLs, Hue configuration, selected firing background image URIs, chronotype answers, and jet-lag planner settings. Backup import previews read the selected file first and do not write alarms or settings until you choose Append or Replace.
+## Webhooks and Tasker
 
-Settings can hide alarm and timer labels on public surfaces. When enabled, alarm notifications, finished-timer notifications, missed-alarm prompts, wake-confirm prompts, the home widget, the quick settings tile, and Play-flavor Wear next-alarm snapshots use neutral text while labels remain visible in private notification content and inside the unlocked app.
+Webhooks can fire on `alarm_fired`, `alarm_snoozed`, `alarm_dismissed`, `alarm_missed`, or `alarm_skipped`. HTTPS is required. Optional HMAC-SHA256 signing adds `X-ACX-Timestamp` and `X-ACX-Signature` headers.
 
-Android system Auto Backup is deliberately narrower than manual export. On Android 12+, cloud backup includes the Room alarm database (schedules, labels, challenge configs, and local pre-sleep tags) but excludes DataStore preferences, which contain webhook URLs, Hue API keys, guardian contacts, and custom feed URLs. Device-transfer (same-device or direct migration) includes DataStore so those settings survive a local upgrade. On Android 8-11, legacy cloud backup includes only DataStore preferences. Crash logs, support bundles, downloaded media, and challenge reference files are excluded from all backup paths. After a cloud restore, enabled alarms are automatically re-armed via a restore agent.
-
-Full privacy policy: [PRIVACY_POLICY.html](PRIVACY_POLICY.html)
-
-## Webhook Integration Recipes
-
-ACX sends an HTTPS POST with a JSON payload on alarm lifecycle events. Enable webhooks in Settings > Integrations > Webhooks and enter your HTTPS endpoint URL.
-
-**Payload schema (v1):**
+Example payload:
 
 ```json
 {
   "schemaVersion": 1,
-  "event": "alarm_fired",
-  "eventId": "550e8400-e29b-41d4-a716-446655440000",
-  "occurredAt": "2026-06-13T07:00:00Z",
+  "event": "alarm_dismissed",
   "alarmId": 42,
-  "scheduledFor": "2026-06-13T07:00:00Z",
-  "displayTime": "7:00 AM",
-  "labelIncluded": true,
-  "label": "Work alarm",
-  "fireId": "42-1718258400000"
+  "label": "Work Alarm",
+  "time": "7:00 AM",
+  "timestamp": 1788591600000
 }
 ```
 
-Events: `alarm_fired`, `alarm_snoozed`, `alarm_dismissed`, `alarm_missed`, `alarm_skipped`, `test`. The `label` field is present only when `labelIncluded` is `true` (controlled by Settings > Webhooks > Include alarm labels). `fireId` is present when available.
-
-When Settings > Webhooks > Signing secret is set, ACX adds:
-
-- `X-ACX-Timestamp`: Unix epoch seconds at send time.
-- `X-ACX-Signature`: `v1=<hmac-sha256>` over `timestamp + "." + raw_json_body`.
-
-Reject signed payloads whose timestamp differs from receiver time by more than five minutes. Settings also shows the most recent webhook delivery result so failed automations can be diagnosed without blocking alarm dismissal.
-
-Delivery is asynchronous and never blocks alarm UI or dismissal. The initial request uses a five-second connect/read timeout. `alarm_fired` and `alarm_missed` retry up to three times through WorkManager when the first request fails, with approximately 30-, 60-, and 120-second exponential backoff; `eventId` and `occurredAt` remain unchanged so receivers can deduplicate. Snooze, dismiss, skip, and test events are best-effort single attempts. A successful HTTP 2xx-3xx response is recorded as delivered; a non-2xx response or transport error is recorded in the recent-delivery log.
-
-### Home Assistant
-
-Create a webhook automation in your `automations.yaml`:
-
-```yaml
-automation:
-  - alias: "ACX alarm fired, turn on lights"
-    trigger:
-      - platform: webhook
-        webhook_id: "your-secret-random-id-here"
-        allowed_methods:
-          - POST
-        local_only: true
-    condition:
-      - condition: template
-        value_template: "{{ trigger.json.event == 'alarm_fired' }}"
-    action:
-      - service: light.turn_on
-        target:
-          entity_id: light.bedroom
-        data:
-          brightness_pct: 80
-          color_temp_kelvin: 3000
-```
-
-In ACX Settings, enter `https://your-ha-host:8123/api/webhook/your-secret-random-id-here`. Generate a unique random `webhook_id` (e.g., `uuidgen` or `python -c "import uuid; print(uuid.uuid4())"`). Don't reuse example values. Home Assistant webhook triggers do not require an API token when `local_only: true`.
-
-### Tasker
-
-ACX requires HTTPS endpoints. For local Tasker automation, set up a local HTTPS bridge:
-
-1. Install the **Tasker** app and the **AutoRemote** plugin (or another HTTPS-capable receiver).
-2. In Tasker, create a Profile > Event > Plugin > AutoRemote > Message Filter = `acx_alarm`.
-3. In ACX Settings, enter your AutoRemote personal HTTPS URL.
-4. Create a Tasker Task linked to the profile with your desired actions (e.g., enable Wi-Fi, launch music app, set display brightness).
-
-Alternatively, if your network supports it, use a Tasker HTTP Server plugin with a self-signed certificate and configure ACX to POST to `https://your-phone-ip:port/alarm`.
-
-### MacroDroid
-
-1. In MacroDroid, create a Macro with trigger **Webhook (URL)**.
-2. Copy the generated HTTPS webhook URL (MacroDroid provides one per macro via cloud relay; requires Play Services).
-3. Paste the URL into ACX Settings > Webhooks.
-4. In the macro action, use **Set Variable** to capture `{webhook_body}`, then parse with `JSONPath` expressions:
-   - Event: `$.event`
-   - Alarm ID: `$.alarmId`
-   - Display time: `$.displayTime`
-5. Add a **Condition** checking the variable against your target event (e.g., `alarm_fired`).
-
-Note: MacroDroid's saved webhook body limit is ~3800 characters. ACX payloads are well under this limit.
+For local automation, choose a package-scoped broadcast dismiss action and target your Tasker or MacroDroid package. The app validates the package and action before saving it.
 
 ## FAQ
 
-**How does the YouTube alarm-sound downloader work?**
-On the Alarms tab tap "Download alarm sound from YouTube." A dialog opens with two modes: search YouTube directly (powered by NewPipe Extractor) or paste a video URL. Each result has a play/stop button to preview the audio before committing. Tap the row to download; yt-dlp resolves the best-audio stream with a fixed `--get-url` option allow-list, OkHttp streams it to your alarm library via MediaStore (`IS_ALARM=1`), and the ringtone picker re-enumerates so the new sound is immediately selectable. The Play flavor also includes a manual "Update" action for the local yt-dlp engine; ACX never updates it in the background, and a failed update keeps the existing engine in place. F-Droid builds ship without this feature for licensing reasons.
+### Will it work offline?
 
-**Why does the alarm not fire on my Xiaomi/Samsung/Huawei?**
-These manufacturers aggressively kill background apps. The app shows a manufacturer-specific warning during onboarding with steps to whitelist it. Generally: Settings > Battery > App Launch > AlarmClockXtreme > Manual > enable all toggles.
+Yes. Scheduling, local sounds, challenges, timers, backups, and most bedtime tools work offline. Weather, alerts, RSS, radio, Hue, webhooks, and YouTube audio need a connection.
 
-**Why does the weather show the wrong temperature?**
-Check Settings > Dashboard > Temperature unit. The app defaults to Fahrenheit. You can also set a manual location if GPS isn't available.
+### Why does Android show several reliability settings?
 
-**Can I use this without Google Play Services?**
-Yes. Core alarm features do not require Google Play Services. Weather uses Open-Meteo, Nager.Date, and api.weather.gov depending on enabled features. The F-Droid build variant excludes Play-specific code, including the YouTube downloader, Wear OS Data Layer bridge, Health Connect SDK path, and ML Kit handwriting recognizer; the handwriting challenge still has a typed fallback.
+Phone makers can restrict background work differently. Wake readiness puts the relevant switches in one place and explains which ones matter on the current device.
 
-**How does Mission Chaining work?**
-In alarm edit, set the "Challenge chain" field to a comma-separated list of challenge types (e.g., `MATH_EASY,SHAKE,TYPING`). The alarm will require you to solve each challenge in order before dismissing.
+### Can I move my alarms to another phone?
 
-**What is Guardian Angel?**
-If enabled on an alarm, and you don't dismiss within the configured delay (default 5 minutes), the app escalates to your emergency contact. F-Droid builds can auto-send the emergency SMS when you grant `SEND_SMS`, then open the call path. Play builds do not request `SEND_SMS`; they open a prefilled SMS composer and fall back to call or dialer if texting cannot open. `CALL_PHONE` is optional because the app can always fall back to the dialer. Settings > Wake readiness shows active Guardian alarms, the current SMS/call path, and direct recovery actions for missing SMS or call permission.
+Yes. Export a JSON backup, or protect it with AES-256 encryption and a passphrase. Import previews the file before changing your alarms.
+
+### Does it claim to measure sleep stages?
+
+No. Smart wake and Sonar provide local motion or sound summaries. They are not medical sleep-stage measurements.
+
+### Is the F-Droid build reduced?
+
+It keeps the full scheduling, challenge, weather, bedtime, timer, backup, and automation core. Only libraries tied to Play distribution or proprietary SDKs are removed.
 
 ## Contributing
 
-Issues and PRs welcome. Please open an issue before starting major work to discuss approach.
+Bug reports and focused pull requests are welcome. Please include the Android version, phone model, app flavor, and clear reproduction steps for alarm-delivery issues.
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+[Apache License 2.0](LICENSE)

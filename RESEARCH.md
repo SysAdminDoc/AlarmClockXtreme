@@ -1,58 +1,48 @@
 # Research: AlarmClockXtreme
-Date: 2026-09-04. Replaces all prior research (previous pass: 2026-07-22).
+Date: 2026-09-04. Delivery status updated 2026-09-05. Replaces all prior research (previous pass: 2026-07-22).
 
 ## Executive Summary
 
-AlarmClockXtreme is a local-first Android alarm / bedtime / timer suite at
-v1.15.34 (versionCode 136, DB v24, backup v19, 675 JVM tests across 125 test
+AlarmClockXtreme is a local-first Android alarm, bedtime, and timer suite at
+v1.15.35 (versionCode 137, DB v24, backup v19, 675 JVM tests across 125 test
 files). The engine is mature: `setAlarmClock()` + Direct Boot fallback, a
 post-fire watchdog (`worker/FireWatchdogWorker.kt`), an 8-second in-ring stall
 watchdog, a redacted incident stream (`alarm_incident_events`), 30 dismiss
 challenges, Android 16 Live Updates already wired into three notification
-surfaces, and 859 components pinned in `gradle/verification-metadata.xml`. There
+surfaces, and 860 components pinned in `gradle/verification-metadata.xml`. There
 are zero TODO/FIXME markers in 113k lines of Kotlin. The technical debt is not
 in the code.
 
-**The debt is in delivery.** The last published release is **v1.15.32
-(2026-07-29)**. Two versions of shipped fixes sit on `main` and have never
-reached a user: the Spotify silent-alarm fix, the dismiss-gate hardening, the
-whole i18n extraction, and the fixes for issues #47, #48 and #49. The README
-already instructs users to `adb install AlarmClockXtreme-v1.15.34-play-release.apk`
-(`README.md:20`), a file that does not exist. The app has **no in-app update
-check** (grep for `api.github.com` / `releases/latest` across `app/src/main`
-returns nothing), and distribution is sideload-only, so a user has no way to
-learn a fix exists. Issue **#53 was filed 2026-08-30 against 1.15.32 reporting a
-bug fixed on `main` on 2026-08-22** (`2c17a85`). That single fact is the highest
-value finding in this pass.
+The immediate delivery gap was resolved in v1.15.35. Signed Play, F-Droid, and
+Wear APKs now carry the fixes that had been sitting on `main`, with checksums
+and certificate fingerprints. The README names a real release asset and shows
+current app screens. The app still has **no in-app update check** (grep for
+`api.github.com` / `releases/latest` across `app/src/main` returns nothing), so
+sideloaded installs have no built-in way to learn that a newer release exists.
 
 Top opportunities in priority order:
 
-1. Publish v1.15.34 with signed APKs, then answer #53. Everything else is
-   invisible until this happens.
-2. Ship an in-app GitHub-Releases update check. Sideload distribution without
+1. Ship an in-app GitHub-Releases update check. Sideload distribution without
    one guarantees a permanently fragmented install base.
-3. Normalise pasted Spotify web links to `spotify:` URIs. A pasted
+2. Normalise pasted Spotify web links to `spotify:` URIs. A pasted
    `https://open.spotify.com/playlist/...?si=...` is handed to Spotify verbatim
    (`service/AlarmService.kt:893-908`), which is the most likely reason #50/#53
    saw Spotify open and play nothing.
-4. Fix the Spotify playback watchdog's detection predicate
+3. Fix the Spotify playback watchdog's detection predicate
    (`AlarmService.kt:1179-1186`) so the fallback tone does not fire over working
    playback.
-5. Make backup-sound escalation audible when the service owns no player
+4. Make backup-sound escalation audible when the service owns no player
    (`AlarmService.kt:575` promises a behaviour `:580-592` does not implement).
-6. Give users a real "no snooze" option. Issue #49 asked for it; today
+5. Give users a real "no snooze" option. Issue #49 asked for it; today
    `maxSnoozeCount = 0` means *unlimited*, the exact inverse
    (`domain/SnoozeCapPolicy.kt:41`).
-7. Pin `org.jsoup:jsoup` to 1.23.1. A fresh OSV batch query over both lockfiles
-   on 2026-09-04 returned exactly one hit: jsoup 1.22.2 in
-   `playReleaseRuntimeClasspath`, CVE-2026-71497, published 2026-07-30.
-8. Capture `ApplicationExitInfo` and surface a user-facing reliability report.
+6. Capture `ApplicationExitInfo` and surface a user-facing reliability report.
    The app records rich incidents but can never say *why* the OS killed it,
    which is precisely the "unknown reason" failure the whole Android ecosystem
    is complaining about.
-9. Land the first translation locale. 2136 strings and 43 plurals are extracted,
+7. Land the first translation locale. 2136 strings and 43 plurals are extracted,
    the build guard is in place, and `values-*` contains **zero** locales.
-10. Add undo to bulk alarm delete. It is the one irreversible data action left
+8. Add undo to bulk alarm delete. It is the one irreversible data action left
     (`ui/alarmlist/AlarmListScreen.kt:356` states the gap explicitly).
 
 Confidence is **Verified** unless marked otherwise.
@@ -264,9 +254,9 @@ stale `dependabot/*` branches still exist on the remote.
   `org.jetbrains.kotlin:kotlin-gradle-plugin` before 2.4.20-Beta1; the repo is on
   2.1.0. Moderate (6.7), local, build-time only, no runtime exposure in shipped
   APKs. It is one more reason to unblock the AGP 9 chain, not a standalone item.
-- **Verified: `verification-metadata.xml` is current.** 859 pinned components,
+- **Verified: `verification-metadata.xml` is current.** 860 pinned components,
   `verify-metadata = true`, `verify-signatures = false`, last touched `80127d8`
-  on the same day as the 1.15.34 release commit. Dependency locking is
+  with the v1.15.35 audit adding jsoup 1.23.2. Dependency locking is
   `LockMode.STRICT` over all three release runtime classpaths, and
   `verifyStableReleaseDependencies` rejects any alpha, beta or rc.
 - **Verified: signing material sits in the working tree.** `keystore.properties`
@@ -318,16 +308,10 @@ stale `dependabot/*` branches still exist on the remote.
   latent correctness bug in the extraction: `ui/alarmlist/AlarmListScreen.kt:274`
   renders alarm-delete undo using `R.string.timer_undo`, so a translator giving
   that key a timer-specific wording produces wrong text on the alarm screen.
-- **Documentation drift in `README.md`,** which is the only git-tracked markdown
-  and therefore the only thing a user reads. Three concrete errors: the download
-  block names a v1.15.34 APK that was never published (`:20`); "Media3 Alarm
-  Playback … with a build-flagged legacy MediaPlayer fallback" describes the
-  `USE_MEDIA3_ALARM_PLAYER` flag deleted on 2026-08-22 (the fallback survived,
-  the flag did not); the Roadmap paragraph (`:27`) advertises F-Droid inclusion
-  and store-declaration work that standing policy rules out. `CLAUDE.md` carries
-  its own stale line claiming sleep sounds are "placeholder WAVs in res/raw/";
-  `res/raw/` is empty and `service/SleepSoundPlayer.kt` renders procedural noise
-  through `domain/NoiseSynth.kt`.
+- **README drift was resolved in v1.15.35.** The download example now matches
+  a published asset, package differences are explicit, and the feature claims
+  reflect the current code. Five current phone captures and a real-screen hero
+  replaced the single old screenshot.
 - **`Roadmap_Blocked.md` holds items that standing policy forbids ever doing:**
   F-Droid submission (`:292`), developer verification readiness (`:298`),
   reproducible-build badge (`:307`). They should be deleted, not left blocking.

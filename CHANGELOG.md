@@ -2,6 +2,30 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## [1.15.35] - 2026-09-05
+
+### Changed
+
+- Rebuilt the GitHub README around the decisions a new user needs to make,
+  with a shorter product tour, clearer package choices, and direct privacy
+  answers.
+- Replaced the single older screenshot and four synthetic store mockups with
+  current screens captured from the Android app at 1080 by 2400 pixels.
+- Added a GitHub hero, a refreshed feature graphic, and four matching store
+  cards that use those real app screens.
+- Tightened the repository and F-Droid descriptions around exact scheduling,
+  wake-up challenges, and the no-account model.
+- Kept the existing adaptive launcher icon after checking its contrast,
+  small-size silhouette, monochrome layer, and fit with the in-app palette.
+  The standalone logo now uses the same clock geometry and colors.
+- Updated the Play build's constrained jsoup dependency to 1.23.2 after the
+  release audit found GHSA-pmhh-3w7g-xqp8 in 1.22.2.
+
+### Notes
+
+- This release changes presentation and packaging metadata only. Alarm
+  scheduling and stored data formats are unchanged.
+
 ## [1.15.34] - 2026-08-22
 
 ### Fixed
