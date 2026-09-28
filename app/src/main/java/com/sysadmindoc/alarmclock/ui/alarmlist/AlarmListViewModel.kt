@@ -160,7 +160,7 @@ class AlarmListViewModel @Inject constructor(
             alarms = sorted,
             nextAlarm = nextAlarm,
             remainingTime = if (nextAlarm != null && nextAlarm.nextTriggerTime > 0) {
-                calculator.formatRemaining(nextAlarm.nextTriggerTime)
+                calculator.formatRemaining(context, nextAlarm.nextTriggerTime)
             } else "",
             vacationActive = VacationAlarmPolicy.isActive(settings, now),
             sortOrder = sort,

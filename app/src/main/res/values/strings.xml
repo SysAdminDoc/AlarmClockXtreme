@@ -196,6 +196,13 @@
     <string name="firing_snooze_minutes">Snooze %1$d min</string>
     <string name="firing_default">Default</string>
 
+    <string name="time_unit_h">%1$dh</string>
+    <string name="time_unit_m">%1$dm</string>
+    <string name="time_unit_s">%1$ds</string>
+    <string name="time_unit_d">%1$dd</string>
+    <string name="time_unit_now">now</string>
+    <string name="time_unit_less_than_1m">&lt;1m</string>
+
     <!-- Alarm firing challenge summaries -->
     <string name="firing_challenge_none_title">Alarm ready</string>
     <string name="firing_challenge_math_title">Solve the final problem</string>

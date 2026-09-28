@@ -1,10 +1,12 @@
 package com.sysadmindoc.alarmclock.domain
 
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.util.SolarCalculator
+import android.content.Context
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -180,21 +182,29 @@ class NextAlarmCalculator private constructor(
      * never sees the misleading "0m" label that the previous formatter produced
      * in the last 60 seconds before fire.
      */
-    fun formatRemaining(triggerTimeMillis: Long): String {
+    fun formatRemaining(context: Context, triggerTimeMillis: Long): String {
         val now = System.currentTimeMillis()
         val diff = triggerTimeMillis - now
-        if (diff <= 0) return "now"
+        if (diff <= 0) return context.getString(R.string.time_unit_now)
 
         val days = diff / (24 * 60 * 60 * 1000)
         val hours = (diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000)
         val minutes = (diff % (60 * 60 * 1000)) / (60 * 1000)
 
-        if (days == 0L && hours == 0L && minutes == 0L) return "<1m"
+        if (days == 0L && hours == 0L && minutes == 0L) return context.getString(R.string.time_unit_less_than_1m)
 
         return buildString {
-            if (days > 0) append("${days}d ")
-            if (hours > 0) append("${hours}h ")
-            if (minutes > 0 || (days == 0L && hours == 0L)) append("${minutes}m")
+            if (days > 0) {
+                append(context.getString(R.string.time_unit_d, days.toInt()))
+                append(" ")
+            }
+            if (hours > 0) {
+                append(context.getString(R.string.time_unit_h, hours.toInt()))
+                append(" ")
+            }
+            if (minutes > 0 || (days == 0L && hours == 0L)) {
+                append(context.getString(R.string.time_unit_m, minutes.toInt()))
+            }
         }.trim()
     }
 }
