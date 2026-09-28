@@ -1614,7 +1614,7 @@
     <string name="challenge_wordle_reveal">The word was %1$s. New word coming…</string>
     <string name="challenge_pvt_trial">Trial %1$d of %2$d</string>
     <string name="challenge_pvt_average">Avg: %1$d ms</string>
-    
+
     <string name="stats_streak_next">Next %1$s</string>
     <string name="stats_sleep_last">Last %1$s</string>
     <string name="stats_sleep_deep">Deep %1$s</string>

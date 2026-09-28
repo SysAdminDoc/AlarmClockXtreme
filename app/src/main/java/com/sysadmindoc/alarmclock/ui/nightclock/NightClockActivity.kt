@@ -6,6 +6,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -22,6 +23,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -63,6 +66,7 @@ import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
+import kotlin.math.sin
 
 /**
  * v1.2.0: Night clock / bedside mode.
@@ -126,25 +130,30 @@ fun NightClockScreen(onExit: () -> Unit) {
     // Burn-in drift is a hardware safeguard (imperceptibly slow pixel shifting), not
     // decorative motion, so it deliberately ignores the reduce-motion gate. Only the
     // glow pulse above stays gated behind motionEnabled.
+    // v1.11.2 (ALA-70): Use sine waves starting at phase 0 so the clock begins
+    // exactly at center (drift = 0) rather than at a range boundary.
     val driftTransition = rememberInfiniteTransition(label = "burnInDrift")
-    val driftX = driftTransition.animateFloat(
-        initialValue = -24f,
-        targetValue = 24f,
+    val driftPhaseX = driftTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2f * Math.PI.toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 120_000),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(durationMillis = 240_000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "driftX"
+        label = "driftPhaseX"
     ).value
-    val driftY = driftTransition.animateFloat(
-        initialValue = 18f,
-        targetValue = -18f,
+    val driftX = sin(driftPhaseX) * 24f
+
+    val driftPhaseY = driftTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2f * Math.PI.toFloat(),
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 90_000),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(durationMillis = 180_000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
         ),
-        label = "driftY"
+        label = "driftPhaseY"
     ).value
+    val driftY = sin(driftPhaseY) * 18f
 
     // Resolved outside the semantics lambda, which is not a composable scope.
     val screenLabel = stringResource(R.string.settings_night_clock)
@@ -214,6 +223,7 @@ fun NightClockScreen(onExit: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.Center
                 ) {
@@ -223,13 +233,23 @@ fun NightClockScreen(onExit: () -> Unit) {
                         style = MaterialTheme.typography.displayLarge,
                         fontWeight = FontWeight.Light
                     )
-                    if (amPm.isNotBlank()) {
-                        Text(
-                            text = amPm,
-                            color = SnoozeYellow.copy(alpha = 0.72f),
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(start = 10.dp, bottom = 10.dp)
-                        )
+                    // v1.11.2 (ALA-70): Anchor AM/PM to the right of the centered digits
+                    // without shifting the digits' own bounding box. A 0-dp width box
+                    // allows its content to overflow (wrapContentSize) while taking no
+                    // space in the Row's arrangement measurement.
+                    Box(
+                        modifier = Modifier
+                            .width(0.dp)
+                            .wrapContentSize(unbounded = true, align = Alignment.CenterStart)
+                    ) {
+                        if (amPm.isNotBlank()) {
+                            Text(
+                                text = amPm,
+                                color = SnoozeYellow.copy(alpha = 0.72f),
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.padding(start = 10.dp, bottom = 10.dp)
+                            )
+                        }
                     }
                 }
 

@@ -475,45 +475,49 @@ fun SettingsScreen(
                     label = stringResource(R.string.settings_default_snooze),
                     value = stringResource(R.string.settings_minutes_short, state.settings.defaultSnoozeDuration),
                     supportingText = stringResource(R.string.settings_default_snooze_description),
-                    onClick = { showDefaultSnoozeMenu = true }
-                )
-                DropdownMenu(
-                    expanded = showDefaultSnoozeMenu,
-                    onDismissRequest = { showDefaultSnoozeMenu = false }
-                ) {
-                    listOf(1, 3, 5, 10, 15, 20, 30).forEach { minutes ->
-                        DropdownMenuItem(
-                            text = { Text(pluralStringResource(R.plurals.settings_minutes, minutes, minutes)) },
-                            onClick = {
-                                viewModel.updateDefaultSnooze(minutes)
-                                showDefaultSnoozeMenu = false
+                    onClick = { showDefaultSnoozeMenu = true },
+                    dropdownMenu = {
+                        DropdownMenu(
+                            expanded = showDefaultSnoozeMenu,
+                            onDismissRequest = { showDefaultSnoozeMenu = false }
+                        ) {
+                            listOf(1, 3, 5, 10, 15, 20, 30).forEach { minutes ->
+                                DropdownMenuItem(
+                                    text = { Text(pluralStringResource(R.plurals.settings_minutes, minutes, minutes)) },
+                                    onClick = {
+                                        viewModel.updateDefaultSnooze(minutes)
+                                        showDefaultSnoozeMenu = false
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
-                }
+                )
 
                 SettingsActionRow(
                     label = stringResource(R.string.settings_default_volume_ramp),
                     value = formatSeconds(state.settings.defaultGradualVolume),
                     supportingText = stringResource(R.string.settings_default_volume_ramp_description),
-                    onClick = { showGradualVolumeMenu = true }
-                )
-                DropdownMenu(
-                    expanded = showGradualVolumeMenu,
-                    onDismissRequest = { showGradualVolumeMenu = false }
-                ) {
-                    listOf(0, 15, 30, 60, 90, 120, 180, 300).forEach { seconds ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(formatSeconds(seconds))
-                            },
-                            onClick = {
-                                viewModel.updateDefaultGradualVolume(seconds)
-                                showGradualVolumeMenu = false
+                    onClick = { showGradualVolumeMenu = true },
+                    dropdownMenu = {
+                        DropdownMenu(
+                            expanded = showGradualVolumeMenu,
+                            onDismissRequest = { showGradualVolumeMenu = false }
+                        ) {
+                            listOf(0, 15, 30, 60, 90, 120, 180, 300).forEach { seconds ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(formatSeconds(seconds))
+                                    },
+                                    onClick = {
+                                        viewModel.updateDefaultGradualVolume(seconds)
+                                        showGradualVolumeMenu = false
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
-                }
+                )
 
                 SettingsActionRow(
                     label = stringResource(R.string.auto_silence),
@@ -523,27 +527,29 @@ fun SettingsScreen(
                         stringResource(R.string.settings_minutes_short, state.settings.autoSilenceMinutes)
                     },
                     supportingText = stringResource(R.string.settings_auto_silence_description),
-                    onClick = { showAutoSilenceMenu = true }
-                )
-                DropdownMenu(
-                    expanded = showAutoSilenceMenu,
-                    onDismissRequest = { showAutoSilenceMenu = false }
-                ) {
-                    listOf(0, 5, 10, 15, 30).forEach { minutes ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    if (minutes == 0) stringResource(R.string.settings_never)
-                                    else pluralStringResource(R.plurals.settings_minutes, minutes, minutes)
+                    onClick = { showAutoSilenceMenu = true },
+                    dropdownMenu = {
+                        DropdownMenu(
+                            expanded = showAutoSilenceMenu,
+                            onDismissRequest = { showAutoSilenceMenu = false }
+                        ) {
+                            listOf(0, 5, 10, 15, 30).forEach { minutes ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (minutes == 0) stringResource(R.string.settings_never)
+                                            else pluralStringResource(R.plurals.settings_minutes, minutes, minutes)
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.updateAutoSilence(minutes)
+                                        showAutoSilenceMenu = false
+                                    }
                                 )
-                            },
-                            onClick = {
-                                viewModel.updateAutoSilence(minutes)
-                                showAutoSilenceMenu = false
                             }
-                        )
+                        }
                     }
-                }
+                )
             }
             }
 
@@ -594,22 +600,25 @@ fun SettingsScreen(
                     label = stringResource(R.string.settings_meeting_lead_time),
                     value = stringResource(R.string.settings_minutes_short, state.settings.calendarAutoAlarmMinutesBefore),
                     supportingText = stringResource(R.string.settings_meeting_lead_description),
-                    onClick = { showCalendarLeadMenu = true }
-                )
-                DropdownMenu(
-                    expanded = showCalendarLeadMenu,
-                    onDismissRequest = { showCalendarLeadMenu = false }
-                ) {
-                    listOf(15, 30, 45, 60, 90, 120).forEach { minutes ->
-                        DropdownMenuItem(
-                            text = { Text(pluralStringResource(R.plurals.settings_minutes, minutes, minutes)) },
-                            onClick = {
-                                viewModel.updateCalendarAutoAlarmMinutes(minutes)
-                                showCalendarLeadMenu = false
+                    onClick = { showCalendarLeadMenu = true },
+                    dropdownMenu = {
+                        DropdownMenu(
+                            expanded = showCalendarLeadMenu,
+                            onDismissRequest = { showCalendarLeadMenu = false }
+                        ) {
+                            listOf(15, 30, 45, 60, 90, 120).forEach { minutes ->
+                                DropdownMenuItem(
+                                    text = { Text(pluralStringResource(R.plurals.settings_minutes, minutes, minutes)) },
+                                    onClick = {
+                                        viewModel.updateCalendarAutoAlarmMinutes(minutes)
+                                        showCalendarLeadMenu = false
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
-                }
+                )
+
                 SettingsToggle(
                     label = stringResource(R.string.settings_commute_aware),
                     checked = state.settings.calendarCommuteAwareEnabled,
@@ -626,53 +635,58 @@ fun SettingsScreen(
                     },
                     supportingText = stringResource(R.string.settings_normal_commute_description),
                     onClick = { showCommuteBaselineMenu = true },
-                    enabled = state.settings.calendarCommuteAwareEnabled
-                )
-                DropdownMenu(
-                    expanded = showCommuteBaselineMenu,
-                    onDismissRequest = { showCommuteBaselineMenu = false }
-                ) {
-                    listOf(0, 15, 30, 45, 60, 90, 120).forEach { minutes ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    if (minutes == 0) stringResource(R.string.settings_use_meeting_lead)
-                                    else pluralStringResource(R.plurals.settings_minutes, minutes, minutes)
+                    enabled = state.settings.calendarCommuteAwareEnabled,
+                    dropdownMenu = {
+                        DropdownMenu(
+                            expanded = showCommuteBaselineMenu,
+                            onDismissRequest = { showCommuteBaselineMenu = false }
+                        ) {
+                            listOf(0, 15, 30, 45, 60, 90, 120).forEach { minutes ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (minutes == 0) stringResource(R.string.settings_use_meeting_lead)
+                                            else pluralStringResource(R.plurals.settings_minutes, minutes, minutes)
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.updateCalendarCommuteBaselineMinutes(minutes)
+                                        showCommuteBaselineMenu = false
+                                    }
                                 )
-                            },
-                            onClick = {
-                                viewModel.updateCalendarCommuteBaselineMinutes(minutes)
-                                showCommuteBaselineMenu = false
                             }
-                        )
+                        }
                     }
-                }
+                )
+
                 SettingsActionRow(
                     label = stringResource(R.string.settings_weather_buffer),
                     value = stringResource(R.string.settings_minutes_short, state.settings.calendarCommuteWeatherExtraMinutes),
                     supportingText = stringResource(R.string.settings_weather_buffer_description),
                     onClick = { showCommuteWeatherMenu = true },
-                    enabled = state.settings.calendarCommuteAwareEnabled
-                )
-                DropdownMenu(
-                    expanded = showCommuteWeatherMenu,
-                    onDismissRequest = { showCommuteWeatherMenu = false }
-                ) {
-                    listOf(0, 10, 15, 20, 30, 45, 60).forEach { minutes ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    if (minutes == 0) stringResource(R.string.settings_no_weather_buffer)
-                                    else pluralStringResource(R.plurals.settings_minutes, minutes, minutes)
+                    enabled = state.settings.calendarCommuteAwareEnabled,
+                    dropdownMenu = {
+                        DropdownMenu(
+                            expanded = showCommuteWeatherMenu,
+                            onDismissRequest = { showCommuteWeatherMenu = false }
+                        ) {
+                            listOf(0, 10, 15, 20, 30, 45, 60).forEach { minutes ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            if (minutes == 0) stringResource(R.string.settings_no_weather_buffer)
+                                            else pluralStringResource(R.plurals.settings_minutes, minutes, minutes)
+                                        )
+                                    },
+                                    onClick = {
+                                        viewModel.updateCalendarCommuteWeatherExtraMinutes(minutes)
+                                        showCommuteWeatherMenu = false
+                                    }
                                 )
-                            },
-                            onClick = {
-                                viewModel.updateCalendarCommuteWeatherExtraMinutes(minutes)
-                                showCommuteWeatherMenu = false
                             }
-                        )
+                        }
                     }
-                }
+                )
                 BufferedSettingsTextField(
                     value = state.settings.googleRoutesApiKey,
                     onCommit = viewModel::updateGoogleRoutesApiKey,
@@ -705,27 +719,29 @@ fun SettingsScreen(
                         else R.string.settings_fahrenheit
                     ),
                     supportingText = stringResource(R.string.settings_temperature_description),
-                    onClick = { showTemperatureMenu = true }
-                )
-                DropdownMenu(
-                    expanded = showTemperatureMenu,
-                    onDismissRequest = { showTemperatureMenu = false }
-                ) {
-                    listOf(
-                        "fahrenheit" to stringResource(R.string.settings_fahrenheit),
-                        "celsius" to stringResource(R.string.settings_celsius)
-                    ).forEach { (unit, label) ->
-                        DropdownMenuItem(
-                            text = { Text(label) },
-                            onClick = {
-                                if (unit != state.settings.temperatureUnit) {
-                                    viewModel.toggleTemperatureUnit()
-                                }
-                                showTemperatureMenu = false
+                    onClick = { showTemperatureMenu = true },
+                    dropdownMenu = {
+                        DropdownMenu(
+                            expanded = showTemperatureMenu,
+                            onDismissRequest = { showTemperatureMenu = false }
+                        ) {
+                            listOf(
+                                "fahrenheit" to stringResource(R.string.settings_fahrenheit),
+                                "celsius" to stringResource(R.string.settings_celsius)
+                            ).forEach { (unit, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        if (unit != state.settings.temperatureUnit) {
+                                            viewModel.toggleTemperatureUnit()
+                                        }
+                                        showTemperatureMenu = false
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
-                }
+                )
 
                 if (showClearCommuteHistoryDialog) {
                     AlertDialog(
@@ -1350,7 +1366,8 @@ internal fun SettingsActionRow(
     value: String,
     supportingText: String? = null,
     enabled: Boolean = true,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    dropdownMenu: @Composable () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier
@@ -1377,22 +1394,26 @@ internal fun SettingsActionRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        value,
-                        color = if (enabled) MaterialTheme.colorScheme.primary else TextMuted,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        null,
-                        tint = if (enabled) MaterialTheme.colorScheme.primary else TextMuted
-                    )
+                Box {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            value,
+                            color = if (enabled) MaterialTheme.colorScheme.primary else TextMuted,
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Icon(
+                            Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = if (enabled) TextMuted else TextMuted.copy(alpha = 0.5f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    dropdownMenu()
                 }
             }
             if (!supportingText.isNullOrBlank()) {
