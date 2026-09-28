@@ -1614,7 +1614,7 @@
     <string name="challenge_wordle_reveal">The word was %1$s. New word coming…</string>
     <string name="challenge_pvt_trial">Trial %1$d of %2$d</string>
     <string name="challenge_pvt_average">Avg: %1$d ms</string>
-    
+
     <string name="stats_streak_next">Next %1$s</string>
     <string name="stats_sleep_last">Last %1$s</string>
     <string name="stats_sleep_deep">Deep %1$s</string>
@@ -1648,6 +1648,7 @@
     <string name="stats_response_avg">Response %1$s avg</string>
     <string name="world_add_city_action">Add %1$s, %2$s, %3$s</string>
     <string name="firing_challenge_reference_missing">This alarm has no saved tag, code, photo or network to check against, so here is a maths problem instead. Edit the alarm to set one.</string>
+    <string name="firing_challenge_technical_failure">Technical issue with the challenge; solve this instead.</string>
     <string name="settings_hue_ip_not_local">Enter the bridge’s local address, like 192.168.1.42 or philips-hue.local. A public hostname is refused because the bridge certificate cannot be verified.</string>
     <!-- Accessibility and per-screen labels that were reusing another screen’s string -->
     <string name="world_remove_city_action">Remove %1$s</string>

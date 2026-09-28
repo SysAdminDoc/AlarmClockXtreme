@@ -156,7 +156,16 @@ class AlarmFiringActivity : ComponentActivity() {
             status = AlarmIncidentEvent.STATUS_RECEIVED,
             reasonCode = "FIRING_ACTIVITY_CREATED"
         )
-        nfcAdapter = NfcAdapter.getDefaultAdapter(this)
+        val nfc = NfcAdapter.getDefaultAdapter(this)
+        nfcAdapter = nfc
+
+        // v1.11.2 (ALA-85): Early check for missing NFC hardware if the first challenge needs it.
+        if (nfc == null) {
+            val state = viewModel.uiState.value
+            if (state.challenge is Challenge.NfcChallenge) {
+                viewModel.handleTechnicalFailure("NFC_HARDWARE_MISSING")
+            }
+        }
 
         // Always shown over the lock screen. This is deliberately not
         // configurable: an alarm the user cannot reach without entering a PIN
@@ -215,7 +224,13 @@ class AlarmFiringActivity : ComponentActivity() {
                     else -> stopLocationDismissMonitoring()
                 }
                 when {
-                    challenge is Challenge.NfcChallenge && !state.challengeSolved -> enableNfcForegroundDispatch()
+                    challenge is Challenge.NfcChallenge && !state.challengeSolved -> {
+                        if (nfcAdapter == null) {
+                            viewModel.handleTechnicalFailure("NFC_HARDWARE_MISSING")
+                        } else {
+                            enableNfcForegroundDispatch()
+                        }
+                    }
                     else -> disableNfcForegroundDispatch()
                 }
             }
@@ -398,9 +413,20 @@ class AlarmFiringActivity : ComponentActivity() {
 
     private fun startShakeDetection() {
         if (shakeDetector != null) return
-        shakeDetector = ShakeDetector(this) { count ->
-            viewModel.updateShakeCount(count)
-        }.also { it.start() }
+        val detector = ShakeDetector(
+            context = this,
+            onSensorFailure = {
+                viewModel.handleTechnicalFailure("SHAKE_SENSOR_WATCHDOG_TIMEOUT")
+            },
+            onShake = { count ->
+                viewModel.updateShakeCount(count)
+            }
+        )
+        if (!detector.start()) {
+            viewModel.handleTechnicalFailure("SHAKE_SENSOR_REGISTRATION_FAILED")
+            return
+        }
+        shakeDetector = detector
     }
 
     private fun stopShakeDetection() {

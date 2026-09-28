@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -840,6 +841,28 @@ class AlarmFiringViewModel @Inject constructor(
             locationDismissReady = false,
             locationDismissStatus = message
         )
+    }
+
+    /**
+     * v1.11.2 (ALA-85): Generic entry point for technical hardware/service
+     * failures (Shake watchdog, NFC adapter null). Swaps the active
+     * challenge for MATH_MEDIUM for the remainder of this firing session.
+     */
+    fun handleTechnicalFailure(errorCode: String) {
+        val alarm = currentAlarm ?: _uiState.value.alarm ?: return
+        // Defensive: don't loop if math itself fails (unlikely as it has no dependencies).
+        if (_uiState.value.challenge?.type == ChallengeType.MATH_MEDIUM) return
+
+        val substitute = buildChallengeForType(ChallengeType.MATH_MEDIUM, alarm) ?: return
+        _uiState.value = _uiState.value.copy(
+            challenge = substitute,
+            challengeSolved = false,
+            challengeNotice = appContext.getString(R.string.firing_challenge_technical_failure),
+            // Reset state related to sensor-backed progress
+            shakeCount = 0,
+            nfcScanStatus = ""
+        )
+        Log.w("AlarmFiringViewModel", "Technical failure ($errorCode); swapped to Math fallback")
     }
 
     // v1.2.0: Squat challenge
