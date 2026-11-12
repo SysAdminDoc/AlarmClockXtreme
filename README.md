@@ -67,7 +67,7 @@ Choose a quick math problem or build a chain of challenges. The list also includ
 
 ### Sound and automation that fit your routine
 
-Use a system ringtone, an HTTPS radio stream, Spotify, or a random pool of saved sounds. The Play build can search YouTube or accept a link and save the audio to the phone's alarm library. Webhooks, Tasker broadcasts, and Philips Hue scenes can run when an alarm fires or is dismissed.
+Use a system ringtone, an HTTPS radio stream, Spotify, or a random pool of saved sounds. The Play build can search YouTube or accept a link and save the audio to the phone's alarm library. Webhooks, Tasker broadcasts, and Philips Hue scenes can run when an alarm fires or is dismissed, and Hue or IKEA DIRIGERA lights can fade up like a sunrise before it rings.
 
 ### Useful after the alarm stops
 
@@ -77,19 +77,19 @@ The Today tab combines local weather with air quality and sunrise timing. You al
 
 | Area | What you can do |
 |---|---|
-| Scheduling | Exact alarms, date-specific alarms, solar offsets, shift patterns, profiles, groups, manual order, and shareable alarm links |
+| Scheduling | Exact alarms, date-specific alarms, solar offsets, shift patterns, calendar-tag skips, profiles, groups, manual order, shareable alarm links, and a Test now ring that leaves the schedule alone |
 | Wake-up | Thirty challenge types, mission chains, adaptive math, progressive snooze, hold-to-dismiss, wake confirmation, and a guardian contact |
 | Sound | Gradual volume, vibration patterns, ringtone pools, Spotify, HTTPS radio, YouTube audio in the Play build, and haptic-only alarms |
 | Context | Weather, air quality, NWS alerts in the US, calendar events, public holidays, sunrise and sunset, plus optional RSS news |
 | Bedtime | Sleep goal, wind-down checklist, breathing timer, night clock, chronotype estimate, local Sonar summaries, and Health Connect in the Play build |
 | Reliability | Reboot restore, Direct Boot fallback, missed-alarm watchdog, wake-readiness checks, local diagnostics, and encrypted backup |
-| Devices | Phones, tablets, foldables, Chromebooks, DeX, home-screen widgets, Quick Settings, and Wear OS |
+| Devices | Phones, tablets, foldables, Chromebooks, DeX, home-screen widgets, Quick Settings, and Wear OS, in English or Japanese |
 
 ## Privacy
 
 The alarm engine, challenge state, schedules, statistics, and settings stay on your device. No analytics SDK or ad network is included, and the app has no account system.
 
-Network access is optional and tied to features you choose. Weather uses Open-Meteo. Public-holiday skips use Nager.Date, US alerts use the National Weather Service, and the radar card loads Windy. RSS feeds, internet radio, webhooks, Philips Hue, and the Play-only YouTube downloader contact the service you configure.
+Network access is optional and tied to features you choose. Weather uses Open-Meteo. Public-holiday skips use Nager.Date, US alerts use the National Weather Service, and the radar card loads Windy. RSS feeds, internet radio, webhooks, Philips Hue, IKEA DIRIGERA, and the Play-only YouTube downloader contact the service or hub you configure.
 
 Sonar tracking keeps compact movement and loud-sound summaries for 30 days. It does not save raw audio. Crash logs are capped, app-private files. They are never uploaded automatically and only leave the phone when you export a support bundle.
 
@@ -150,7 +150,7 @@ AlarmClockXtreme asks only when a feature needs access.
 | Alarms and reminders | Exact wake-up scheduling |
 | Notifications and full-screen alarms | Showing the ringing screen and alarm controls |
 | Battery optimization exemption | Reducing missed alarms on aggressive Android builds |
-| Calendar and location | Optional Today dashboard, commute timing, weather, and location dismissal |
+| Calendar and location | Optional Today dashboard, calendar-tag skips, commute timing, weather, and location dismissal |
 | Microphone, camera, NFC, and activity recognition | Optional voice, Sonar, photo, barcode, tag, walking, and exercise challenges |
 | Do Not Disturb | Optional bedtime and on-call alarm rules |
 | Health Connect | Optional Play-build sleep summaries |
