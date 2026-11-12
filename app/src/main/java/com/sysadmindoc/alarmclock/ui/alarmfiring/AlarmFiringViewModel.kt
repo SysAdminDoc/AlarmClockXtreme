@@ -163,7 +163,8 @@ data class ChallengeAudioDuckingPreference(
 internal fun buildChallenge(
     type: ChallengeType,
     alarm: Alarm,
-    customPhrases: String
+    customPhrases: String,
+    customPhrasesOnly: Boolean = false
 ): Challenge? = when (type) {
     ChallengeType.NONE -> null
     ChallengeType.WALK_STEPS -> Challenge.WalkChallenge(requiredSteps = alarm.walkStepsRequired)
@@ -189,7 +190,7 @@ internal fun buildChallenge(
     ChallengeType.WIFI_CONNECT ->
         if (alarm.wifiDismissSsid.isBlank()) substituteChallenge(customPhrases)
         else Challenge.WifiChallenge(requiredSsid = alarm.wifiDismissSsid)
-    else -> ChallengeGenerator.generate(type, customPhrases)
+    else -> ChallengeGenerator.generate(type, customPhrases, customPhrasesOnly)
 }
 
 /** Stand-in for a challenge whose saved reference is missing. */
@@ -328,6 +329,7 @@ class AlarmFiringViewModel @Inject constructor(
         // Read recent events to decide if we should bump difficulty
         val firingSettings = preferencesManager.getCurrentSettings()
         customPhrases = firingSettings.customTypingPhrases
+        customPhrasesOnly = firingSettings.customPhrasesOnly
         val adaptiveDifficultyEnabled = firingSettings.adaptiveDifficultyEnabled
         val adaptedChain = if (adaptiveDifficultyEnabled && chainTypes.isNotEmpty()) {
             try {
@@ -448,9 +450,10 @@ class AlarmFiringViewModel @Inject constructor(
      * VOICE_PHRASE always drew from the built-in list only (issue #43).
      */
     private var customPhrases: String = ""
+    private var customPhrasesOnly: Boolean = false
 
     private fun buildChallengeForType(type: ChallengeType, alarm: Alarm): Challenge? =
-        buildChallenge(type, alarm, customPhrases)
+        buildChallenge(type, alarm, customPhrases, customPhrasesOnly)
 
     fun proceedToNextChallenge() {
         val nextIndex = _uiState.value.currentChallengeIndex + 1

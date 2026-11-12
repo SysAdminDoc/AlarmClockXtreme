@@ -2378,4 +2378,6 @@
     <string name="settings_next_alarm_notification_always">Always</string>
     <plurals name="settings_next_alarm_notification_minutes_before"><item quantity="one">%1$d minute before</item><item quantity="other">%1$d minutes before</item></plurals>
     <plurals name="settings_next_alarm_notification_hours_before"><item quantity="one">%1$d hour before</item><item quantity="other">%1$d hours before</item></plurals>
+    <string name="settings_custom_phrases_only">Use only my phrases</string>
+    <string name="settings_custom_phrases_only_description">Typing and voice challenges skip the built-in list and pick from your phrases above.</string>
 </resources>

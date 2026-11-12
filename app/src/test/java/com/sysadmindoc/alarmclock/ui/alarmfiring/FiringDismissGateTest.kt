@@ -129,6 +129,31 @@ class FiringDismissGateTest {
     }
 
     @Test
+    fun `only my phrases keeps the built-in list out of typing and voice challenges`() {
+        val custom = "feet on the floor\nopen the curtains"
+        val mine = setOf("feet on the floor", "open the curtains")
+
+        val typed = (1..200)
+            .mapNotNull { buildChallenge(ChallengeType.TYPING, alarmWith("TYPING"), custom, customPhrasesOnly = true) }
+            .map { (it as Challenge.TypingChallenge).phrase }
+            .toSet()
+        val spoken = (1..200)
+            .mapNotNull { buildChallenge(ChallengeType.VOICE_PHRASE, alarmWith("VOICE_PHRASE"), custom, customPhrasesOnly = true) }
+            .map { (it as Challenge.VoicePhraseChallenge).phrase }
+            .toSet()
+
+        assertEquals(mine, typed)
+        assertEquals(mine, spoken)
+    }
+
+    @Test
+    fun `only my phrases with no phrases written still uses the built-in list`() {
+        val challenge = buildChallenge(ChallengeType.TYPING, alarmWith("TYPING"), "  \n", customPhrasesOnly = true)
+
+        assertTrue((challenge as Challenge.TypingChallenge).phrase.isNotBlank())
+    }
+
+    @Test
     fun `blank custom phrases leave the built-in pool intact`() {
         val challenge = buildChallenge(ChallengeType.TYPING, alarmWith("TYPING"), "")
             as Challenge.TypingChallenge

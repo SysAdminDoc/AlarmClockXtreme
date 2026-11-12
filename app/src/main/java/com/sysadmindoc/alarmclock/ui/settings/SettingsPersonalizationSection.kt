@@ -382,6 +382,13 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
             color = TextMuted,
             style = MaterialTheme.typography.bodySmall
         )
+        SettingsToggle(
+            label = stringResource(R.string.settings_custom_phrases_only),
+            supportingText = stringResource(R.string.settings_custom_phrases_only_description),
+            checked = state.settings.customPhrasesOnly,
+            enabled = state.settings.customTypingPhrases.isNotBlank(),
+            onToggle = viewModel::updateCustomPhrasesOnly
+        )
 
         SettingsToggle(
             label = stringResource(R.string.settings_challenge_bypass),

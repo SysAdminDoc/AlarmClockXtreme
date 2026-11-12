@@ -115,6 +115,8 @@ data class AppSettings(
     // v1.2.0: Guardian defaults
     // v1.2.0: Custom typing phrases (newline-separated, appended to built-in)
     val customTypingPhrases: String = "",
+    // Typing and voice challenges draw only from customTypingPhrases (when there are any).
+    val customPhrasesOnly: Boolean = false,
     // v1.2.0: Night clock mode
     // v1.2.0: Motivational quotes on alarm screen
     val showMotivationalQuotes: Boolean = true,
@@ -353,6 +355,7 @@ class PreferencesManager @Inject constructor(
         val CALENDAR_COMMUTE_WEATHER_EXTRA_MINUTES = intPreferencesKey("calendar_commute_weather_extra_minutes")
         val GOOGLE_ROUTES_API_KEY = stringPreferencesKey("google_routes_api_key")
         val CUSTOM_TYPING_PHRASES = stringPreferencesKey("custom_typing_phrases")
+        val CUSTOM_PHRASES_ONLY = booleanPreferencesKey("custom_phrases_only")
         val SHOW_MOTIVATIONAL_QUOTES = booleanPreferencesKey("show_motivational_quotes")
         val DYNAMIC_COLOR = booleanPreferencesKey("dynamic_color")
         val EXPRESSIVE_MODE = booleanPreferencesKey("expressive_mode")
@@ -497,6 +500,7 @@ class PreferencesManager @Inject constructor(
         calendarCommuteWeatherExtraMinutes = this[Keys.CALENDAR_COMMUTE_WEATHER_EXTRA_MINUTES] ?: 15,
         googleRoutesApiKey = this[Keys.GOOGLE_ROUTES_API_KEY] ?: "",
         customTypingPhrases = this[Keys.CUSTOM_TYPING_PHRASES] ?: "",
+        customPhrasesOnly = this[Keys.CUSTOM_PHRASES_ONLY] ?: false,
         showMotivationalQuotes = this[Keys.SHOW_MOTIVATIONAL_QUOTES] ?: true,
         dynamicColorEnabled = this[Keys.DYNAMIC_COLOR] ?: false,
         expressiveModeEnabled = this[Keys.EXPRESSIVE_MODE] ?: false,
@@ -586,6 +590,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.CALENDAR_COMMUTE_WEATHER_EXTRA_MINUTES] = s.calendarCommuteWeatherExtraMinutes
         this[Keys.GOOGLE_ROUTES_API_KEY] = s.googleRoutesApiKey
         this[Keys.CUSTOM_TYPING_PHRASES] = s.customTypingPhrases
+        this[Keys.CUSTOM_PHRASES_ONLY] = s.customPhrasesOnly
         this[Keys.SHOW_MOTIVATIONAL_QUOTES] = s.showMotivationalQuotes
         this[Keys.DYNAMIC_COLOR] = s.dynamicColorEnabled
         this[Keys.EXPRESSIVE_MODE] = s.expressiveModeEnabled

@@ -2254,4 +2254,6 @@
     <string name="settings_next_alarm_notification_always">常に表示</string>
     <plurals name="settings_next_alarm_notification_minutes_before"><item quantity="other">%1$d分前</item></plurals>
     <plurals name="settings_next_alarm_notification_hours_before"><item quantity="other">%1$d時間前</item></plurals>
+    <string name="settings_custom_phrases_only">自分のフレーズだけを使う</string>
+    <string name="settings_custom_phrases_only_description">タイピングと音声のチャレンジで組み込みリストを使わず、上に入力したフレーズから選びます。</string>
 </resources>

@@ -357,7 +357,11 @@ private val HANDWRITING_WORDS = listOf(
 
 object ChallengeGenerator {
 
-    fun generate(type: ChallengeType, customPhrases: String = ""): Challenge = when (type) {
+    fun generate(
+        type: ChallengeType,
+        customPhrases: String = "",
+        customPhrasesOnly: Boolean = false
+    ): Challenge = when (type) {
         ChallengeType.NONE -> Challenge.MathChallenge(ChallengeType.NONE, "0", 0, listOf(0))
         ChallengeType.MATH_EASY -> generateMathEasy()
         ChallengeType.MATH_MEDIUM -> generateMathMedium()
@@ -365,20 +369,10 @@ object ChallengeGenerator {
         ChallengeType.SHAKE -> Challenge.ShakeChallenge(requiredShakes = 30)
         ChallengeType.SEQUENCE -> generateSequence()
         ChallengeType.MEMORY_PATTERN -> generateMemoryPattern()
-        ChallengeType.TYPING -> {
-            val allPhrases = TYPING_PHRASES.toMutableList()
-            if (customPhrases.isNotBlank()) {
-                allPhrases.addAll(customPhrases.split("\n").filter { it.isNotBlank() })
-            }
-            Challenge.TypingChallenge(phrase = allPhrases.random())
-        }
-        ChallengeType.VOICE_PHRASE -> {
-            val allPhrases = TYPING_PHRASES.toMutableList()
-            if (customPhrases.isNotBlank()) {
-                allPhrases.addAll(customPhrases.split("\n").filter { it.isNotBlank() })
-            }
-            Challenge.VoicePhraseChallenge(phrase = allPhrases.random())
-        }
+        ChallengeType.TYPING ->
+            Challenge.TypingChallenge(phrase = phrasePool(customPhrases, customPhrasesOnly).random())
+        ChallengeType.VOICE_PHRASE ->
+            Challenge.VoicePhraseChallenge(phrase = phrasePool(customPhrases, customPhrasesOnly).random())
         ChallengeType.HANDWRITING -> Challenge.HandwritingChallenge(
             targetText = HANDWRITING_WORDS.random()
         )
@@ -432,6 +426,15 @@ object ChallengeGenerator {
         ChallengeType.RSVP_READING -> generateRsvpReading()
         ChallengeType.PUSH_UP -> Challenge.PushUpChallenge(requiredPushUps = 10)
         ChallengeType.PLANK_HOLD -> Challenge.PlankHoldChallenge(requiredSeconds = 30)
+    }
+
+    /**
+     * Phrases for TYPING and VOICE_PHRASE: the built-in list plus the user's,
+     * or only the user's when they asked for that and wrote at least one.
+     */
+    internal fun phrasePool(customPhrases: String, customPhrasesOnly: Boolean): List<String> {
+        val custom = customPhrases.split("\n").filter { it.isNotBlank() }
+        return if (customPhrasesOnly && custom.isNotEmpty()) custom else TYPING_PHRASES + custom
     }
 
     private fun generateMathEasy(): Challenge.MathChallenge {

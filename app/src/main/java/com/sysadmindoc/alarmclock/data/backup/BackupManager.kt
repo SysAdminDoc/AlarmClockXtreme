@@ -178,6 +178,7 @@ data class SettingsBackup(
     val guardianContactName: String = "",
     val guardianContactPhone: String = "",
     val customTypingPhrases: String = "",
+    val customPhrasesOnly: Boolean = false,
     val nightClockEnabled: Boolean = false,
     val showMotivationalQuotes: Boolean = true,
     // v1.4.0 settings
@@ -580,6 +581,7 @@ class BackupManager @Inject constructor(
                 calendarCommuteWeatherExtraMinutes = settings.calendarCommuteWeatherExtraMinutes,
                 googleRoutesApiKey = settings.googleRoutesApiKey,
                 customTypingPhrases = settings.customTypingPhrases,
+                customPhrasesOnly = settings.customPhrasesOnly,
                 showMotivationalQuotes = settings.showMotivationalQuotes,
                 dynamicColorEnabled = settings.dynamicColorEnabled,
                 expressiveModeEnabled = settings.expressiveModeEnabled,
@@ -822,6 +824,7 @@ class BackupManager @Inject constructor(
         calendarCommuteWeatherExtraMinutes = s.calendarCommuteWeatherExtraMinutes,
         googleRoutesApiKey = s.googleRoutesApiKey,
         customTypingPhrases = s.customTypingPhrases,
+        customPhrasesOnly = s.customPhrasesOnly,
         showMotivationalQuotes = s.showMotivationalQuotes,
         dynamicColorEnabled = s.dynamicColorEnabled,
         expressiveModeEnabled = s.expressiveModeEnabled,

@@ -280,6 +280,8 @@ class SettingsViewModel @Inject constructor(
     }
     fun updateCustomTypingPhrases(phrases: String) =
         updateSettings { it.copy(customTypingPhrases = phrases) }
+    fun updateCustomPhrasesOnly(enabled: Boolean) =
+        updateSettings { it.copy(customPhrasesOnly = enabled) }
 
     // v1.4.0 personalization + wake-up settings
     fun toggleDynamicColor(enabled: Boolean) =
