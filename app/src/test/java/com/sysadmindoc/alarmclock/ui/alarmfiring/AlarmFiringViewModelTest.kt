@@ -269,6 +269,22 @@ class AlarmFiringViewModelTest {
         assertEquals("MATH_MEDIUM", state.challenge?.type?.name)
     }
 
+    @Test
+    fun `a wrong math answer brings a new problem`() = runTest(dispatcher) {
+        val viewModel = viewModelFor(challengeType = "MATH_HARD")
+        advanceUntilIdle()
+        val first = viewModel.uiState.value.challenge as Challenge.MathChallenge
+
+        viewModel.submitMathAnswer(false)
+
+        val state = viewModel.uiState.value
+        val next = state.challenge as Challenge.MathChallenge
+        assertEquals("MATH_HARD", next.type.name)
+        assertTrue(next.expression != first.expression)
+        assertEquals(1, state.wrongAttempts)
+        assertFalse(state.challengeSolved)
+    }
+
     private fun stroke() = InkStroke(
         points = listOf(InkPoint(1f, 1f, 0L), InkPoint(20f, 30f, 12L), InkPoint(40f, 10f, 24L))
     )

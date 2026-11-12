@@ -1347,7 +1347,7 @@
     <string name="challenge_tap_green_square_as_fast">Tap the green square as fast as you can</string>
     <string name="challenge_find_one_tile_changed_right">Find the one tile that changed on the right grid.</string>
     <string name="challenge_read_rapid_word_stream_then">Read the rapid word stream, then pick the word you saw.</string>
-    <string name="challenge_one_was_off_try_next">That one was off. Try the next option.</string>
+    <string name="challenge_one_was_off_try_next">Not quite. Here’s a new problem.</string>
     <string name="challenge_shake_phone">Shake your phone</string>
     <string name="challenge_not_quite_match_phrase_exactly">Not quite. Match the phrase exactly before trying again.</string>
     <string name="challenge_no_tag_registered_yet_any">No tag is registered yet. Any NFC tag will work for now.</string>

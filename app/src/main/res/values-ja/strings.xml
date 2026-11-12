@@ -1293,7 +1293,7 @@
     <string name="challenge_tap_green_square_as_fast">緑色の正方形をできるだけ速くタップしてください</string>
     <string name="challenge_find_one_tile_changed_right">右側のグリッドで変化した1つのタイルを見つけてください。</string>
     <string name="challenge_read_rapid_word_stream_then">急速に流れる単語を読み、見た単語を選択してください。</string>
-    <string name="challenge_one_was_off_try_next">今のものは違いました。次の選択肢を試してください。</string>
+    <string name="challenge_one_was_off_try_next">不正解です。新しい問題に変わりました。</string>
     <string name="challenge_shake_phone">スマホを振ってください</string>
     <string name="challenge_not_quite_match_phrase_exactly">少し違います。もう一度試す前に、フレーズと正確に一致させてください。</string>
     <string name="challenge_no_tag_registered_yet_any">タグがまだ登録されていません。今はどのNFCタグでも機能します。</string>

@@ -531,17 +531,26 @@ class AlarmFiringViewModel @Inject constructor(
         }
     }
 
-    // Math challenge - check answer
+    // Math challenge - check answer. A wrong pick swaps in a new problem, so
+    // tapping through the four choices can't stand in for working it out.
     fun submitMathAnswer(correct: Boolean) {
         if (correct) {
             proceedToNextChallenge()
         } else {
+            val current = _uiState.value.challenge
             _uiState.value = _uiState.value.copy(
+                challenge = (current as? Challenge.MathChallenge)?.let(::freshMathProblem) ?: current,
                 wrongAttempts = _uiState.value.wrongAttempts + 1,
                 totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
     }
+
+    private fun freshMathProblem(current: Challenge.MathChallenge): Challenge.MathChallenge =
+        generateSequence { ChallengeGenerator.generate(current.type) as? Challenge.MathChallenge }
+            .take(5)
+            .firstOrNull { it.expression != current.expression }
+            ?: current
 
     // Shake challenge - update count from sensor
     fun updateShakeCount(count: Int) {

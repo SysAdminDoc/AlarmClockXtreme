@@ -15,6 +15,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - When a shake challenge's sensor never reports, or an NFC challenge rings on a phone without NFC, the alarm swaps in a math problem for that ring so it can still be dismissed. Thanks to knocker-g (#58).
 - Night Clock starts centered and its burn-in drift swings evenly around the middle, with AM/PM sitting beside the digits instead of pushing them off center. Settings menus open next to the row you tapped. Thanks to knocker-g (#56).
 - The time left until the next alarm (notification, widget, alarm list and editor) uses the app's translations for its units instead of fixed English letters. Thanks to knocker-g (#54).
+- A wrong answer to a math challenge brings up a new problem instead of leaving the same one with three choices left, so tapping through the answers no longer gets you past it. The "not quite" message stays up a little longer too.
 
 ### Fixed
 

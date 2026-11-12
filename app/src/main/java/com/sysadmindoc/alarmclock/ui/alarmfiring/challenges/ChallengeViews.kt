@@ -200,7 +200,7 @@ fun MathChallengeView(
 
     LaunchedEffect(wrongFlash) {
         if (wrongFlash) {
-            delay(400)
+            delay(1_200)
             wrongFlash = false
         }
     }
