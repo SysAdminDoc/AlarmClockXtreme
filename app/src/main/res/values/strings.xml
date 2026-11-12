@@ -1279,6 +1279,15 @@
     <string name="alarm_list_history">History</string>
     <string name="alarm_list_delete">Delete</string>
     <string name="alarm_list_skip_next_occurrence">Skip next occurrence</string>
+    <string name="alarm_test_now">Test now</string>
+    <string name="alarm_test_marker">Test</string>
+    <string name="alarm_test_end">End test</string>
+    <string name="alarm_test_notification_title">Test alarm</string>
+    <string name="alarm_test_snoozed_title">Test alarm snoozed</string>
+    <string name="alarm_test_snoozed_text">Rings again at %1$s as a test. Your real alarm is not affected.</string>
+    <string name="alarm_test_refused_ringing">An alarm is ringing right now. Try the test once it stops.</string>
+    <string name="alarm_test_failed">Could not start the test alarm.</string>
+    <string name="alarm_test_save_first">Save your changes first. The test rings the saved alarm.</string>
     <string name="alarm_list_title">Alarms</string>
     <string name="alarm_list_resume_alarms">Resume alarms</string>
     <string name="alarm_list_group_all">All</string>

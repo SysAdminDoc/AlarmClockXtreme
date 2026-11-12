@@ -148,19 +148,23 @@ internal object AlarmPostDismissController {
         alarm: Alarm,
         fireId: String,
         scheduledAt: Long,
-        refireCount: Int
+        refireCount: Int,
+        testRun: Boolean = false
     ): WakeConfirmationPlan {
         val delayMinutes = alarm.wakeConfirmDelayMinutes.coerceAtLeast(1).toLong()
         val data = workDataOf(
             WakeConfirmWorker.KEY_ALARM_ID to alarm.id,
             WakeConfirmWorker.KEY_ALARM_FIRE_ID to fireId,
             WakeConfirmWorker.KEY_SCHEDULED_AT to scheduledAt,
-            WakeConfirmWorker.KEY_REFIRE_COUNT to refireCount
+            WakeConfirmWorker.KEY_REFIRE_COUNT to refireCount,
+            WakeConfirmWorker.KEY_TEST_RUN to testRun
         )
-        val name = "wake_confirm_${alarm.id}"
+        // A test's check runs under its own name, so it never replaces the
+        // real alarm's pending check, and one tag lets ending the test drop it.
+        val name = if (testRun) AlarmTestRun.wakeConfirmWorkName(alarm.id) else "wake_confirm_${alarm.id}"
         return WakeConfirmationPlan(
             uniqueWorkName = name,
-            tag = name,
+            tag = if (testRun) AlarmTestRun.WAKE_CONFIRM_TAG else name,
             delayMinutes = delayMinutes,
             inputData = data
         )

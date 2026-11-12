@@ -19,12 +19,14 @@ object AlarmFireDismissContract {
         context: Context,
         alarmId: Long,
         scheduledAt: Long,
-        fireId: String = fireId(alarmId, scheduledAt)
+        fireId: String = fireId(alarmId, scheduledAt),
+        testRun: Boolean = false
     ): Intent = Intent(context, AlarmService::class.java).apply {
         action = AlarmService.ACTION_START_ALARM
         putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
         putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, scheduledAt)
         putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
+        markTestRun(testRun)
     }
 
     fun snoozeServiceIntent(
@@ -33,7 +35,8 @@ object AlarmFireDismissContract {
         scheduledAt: Long,
         fireId: String = fireId(alarmId, scheduledAt),
         customMinutes: Int? = null,
-        snoozeAtMillis: Long? = null
+        snoozeAtMillis: Long? = null,
+        testRun: Boolean = false
     ): Intent = Intent(context, AlarmService::class.java).apply {
         action = AlarmService.ACTION_SNOOZE
         putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
@@ -45,6 +48,7 @@ object AlarmFireDismissContract {
         if (snoozeAtMillis != null) {
             putExtra(AlarmService.EXTRA_SNOOZE_UNTIL_MILLIS, snoozeAtMillis)
         }
+        markTestRun(testRun)
     }
 
     fun dismissServiceIntent(
@@ -53,7 +57,8 @@ object AlarmFireDismissContract {
         scheduledAt: Long,
         fireId: String = fireId(alarmId, scheduledAt),
         challengeRetryCount: Int = 0,
-        challengeSolveTimeMs: Long = 0L
+        challengeSolveTimeMs: Long = 0L,
+        testRun: Boolean = false
     ): Intent = Intent(context, AlarmService::class.java).apply {
         action = AlarmService.ACTION_DISMISS
         putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
@@ -61,13 +66,15 @@ object AlarmFireDismissContract {
         putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
         putExtra(AlarmService.EXTRA_CHALLENGE_RETRY_COUNT, challengeRetryCount.coerceAtLeast(0))
         putExtra(AlarmService.EXTRA_CHALLENGE_SOLVE_TIME_MS, challengeSolveTimeMs.coerceAtLeast(0L))
+        markTestRun(testRun)
     }
 
     fun firingActivityIntent(
         context: Context,
         alarmId: Long,
         scheduledAt: Long,
-        fireId: String = fireId(alarmId, scheduledAt)
+        fireId: String = fireId(alarmId, scheduledAt),
+        testRun: Boolean = false
     ): Intent = Intent(context, AlarmFiringActivity::class.java).apply {
         addFlags(
             Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -77,6 +84,12 @@ object AlarmFireDismissContract {
         putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
         putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, scheduledAt)
         putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
+        markTestRun(testRun)
+    }
+
+    /** Only a test carries the extra, so every real intent stays exactly as it was. */
+    private fun Intent.markTestRun(testRun: Boolean) {
+        if (testRun) putExtra(AlarmTestRun.EXTRA_TEST_RUN, true)
     }
 
     fun alarmEvent(

@@ -12,6 +12,7 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.service.AlarmService
+import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import com.sysadmindoc.alarmclock.ui.timer.TimerStore
 import com.sysadmindoc.alarmclock.ui.timer.PersistedTimerRecord
 import com.sysadmindoc.alarmclock.ui.timer.TimerStartResult
@@ -240,6 +241,20 @@ class AlarmClockIntentHandlerTest {
         assertEquals(AlarmService.ACTION_SNOOZE, started.action)
         assertEquals(77L, started.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1L))
         assertEquals(15, started.getIntExtra(AlarmService.EXTRA_CUSTOM_SNOOZE_MINUTES, -1))
+        assertFalse(AlarmTestRun.isTestRun(started))
+    }
+
+    @Test
+    fun snoozingARingingTestKeepsItATest() = runTest {
+        AlarmService.activeAlarm.set(
+            AlarmService.Companion.ActiveAlarmSnapshot(77L, 1_000L, "fire-77", isTestRun = true)
+        )
+
+        handler.handle(Intent(AlarmClock.ACTION_SNOOZE_ALARM))
+        val started = shadowOf(context as Application).nextStartedService
+
+        assertEquals(AlarmService.ACTION_SNOOZE, started.action)
+        assertTrue(AlarmTestRun.isTestRun(started))
     }
 
     @Test

@@ -65,6 +65,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
@@ -116,6 +117,7 @@ import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
@@ -238,6 +240,20 @@ fun AlarmListScreen(
     // Read here: the snackbar itself is shown from a coroutine.
     val savedToneTemplate = stringResource(R.string.alarmlist_saved_tone)
     val savedToneMessage = { title: String -> savedToneTemplate.format(title) }
+    val testRefusedMessage = stringResource(R.string.alarm_test_refused_ringing)
+    val testFailedMessage = stringResource(R.string.alarm_test_failed)
+    val testNow = { alarm: Alarm ->
+        val message = when (AlarmTestRun.start(context, alarm.id)) {
+            AlarmTestRun.StartResult.STARTED -> null
+            AlarmTestRun.StartResult.ALARM_RINGING -> testRefusedMessage
+            AlarmTestRun.StartResult.FAILED -> testFailedMessage
+        }
+        if (message != null) {
+            snackbarScope.launch {
+                snackbarHostState.showSnackbar(message, duration = SnackbarDuration.Short)
+            }
+        }
+    }
 
     // Outside the visibility check on purpose: a download started here keeps
     // running after the dialog closes, and its result still has to arrive.
@@ -689,6 +705,7 @@ fun AlarmListScreen(
                                             onSkipNext = { viewModel.skipNextOccurrence(alarm) },
                                             onDuplicate = { viewModel.duplicateAlarm(alarm) },
                                             onShare = { shareAlarm(context, alarm, state.is24HourFormat) },
+                                            onTestNow = { testNow(alarm) },
                                             onShowHistory = {
                                                 statsAlarmLabel = alarm.label.ifBlank { "%d:%02d".format(alarm.hour, alarm.minute) }
                                                 viewModel.loadAlarmStats(alarm.id)
@@ -779,6 +796,7 @@ fun AlarmListScreen(
                             onSkipNext = { alarm -> viewModel.skipNextOccurrence(alarm) },
                             onDuplicate = { alarm -> viewModel.duplicateAlarm(alarm) },
                             onShare = { alarm -> shareAlarm(context, alarm, state.is24HourFormat) },
+                            onTestNow = testNow,
                             onShowHistory = { alarm ->
                                 statsAlarmLabel = alarm.label.ifBlank { "%d:%02d".format(alarm.hour, alarm.minute) }
                                 viewModel.loadAlarmStats(alarm.id)
@@ -873,6 +891,7 @@ private fun AlarmDetailPane(
     onSkipNext: (Alarm) -> Unit,
     onDuplicate: (Alarm) -> Unit,
     onShare: (Alarm) -> Unit,
+    onTestNow: (Alarm) -> Unit,
     onShowHistory: (Alarm) -> Unit,
     onAddAlarm: () -> Unit,
     onBrowseTemplates: () -> Unit,
@@ -1090,6 +1109,15 @@ private fun AlarmDetailPane(
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(stringResource(R.string.alarm_list_skip_next_occurrence))
                     }
+                }
+                OutlinedButton(
+                    onClick = { onTestNow(alarm) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(stringResource(R.string.alarm_test_now))
                 }
             }
         }
@@ -1327,6 +1355,7 @@ private fun AlarmCard(
     onSkipNext: () -> Unit,
     onDuplicate: () -> Unit,
     onShare: () -> Unit,
+    onTestNow: () -> Unit = {},
     onShowHistory: () -> Unit = {},
     onLongClick: () -> Unit
 ) {
@@ -1432,6 +1461,11 @@ private fun AlarmCard(
                                 text = { Text(stringResource(R.string.alarm_list_share)) },
                                 leadingIcon = { Icon(Icons.Default.Share, null, modifier = Modifier.size(18.dp)) },
                                 onClick = { showMenu = false; onShare() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.alarm_test_now)) },
+                                leadingIcon = { Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(18.dp)) },
+                                onClick = { showMenu = false; onTestNow() }
                             )
                             if (alarm.isEnabled && alarm.isRecurringSchedule) {
                                 DropdownMenuItem(

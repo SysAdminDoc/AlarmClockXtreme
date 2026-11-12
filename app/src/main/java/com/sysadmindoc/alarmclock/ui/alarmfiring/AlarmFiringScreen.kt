@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material.icons.filled.WarningAmber
@@ -165,6 +166,7 @@ fun AlarmFiringScreen(
     onSnoozeCustom: (Int) -> Unit = { onSnooze() },
     onSnoozeUntil: (Long) -> Unit = { onSnooze() },
     onTakePhoto: () -> Unit = {},
+    onEndTest: () -> Unit = {},
     viewModel: AlarmFiringViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -428,6 +430,27 @@ fun AlarmFiringScreen(
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (state.isTestRun) {
+                // A test rings for real, so say plainly that it is one and
+                // offer a way out that skips the challenge.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AppStatusChip(
+                        label = stringResource(R.string.alarm_test_marker),
+                        icon = Icons.Default.Science,
+                        color = AccentBlue
+                    )
+                    TextButton(onClick = onEndTest) {
+                        Text(
+                            text = stringResource(R.string.alarm_test_end),
+                            color = TextSecondary
+                        )
+                    }
+                }
+            }
             AppSurfaceCard(
                 modifier = Modifier.fillMaxWidth(),
                 highlighted = true

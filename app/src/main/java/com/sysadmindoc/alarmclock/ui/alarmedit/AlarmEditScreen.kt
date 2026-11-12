@@ -58,6 +58,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -75,6 +76,7 @@ import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.DayOfWeek
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 internal enum class AlarmEditorPage(
     @StringRes val titleRes: Int,
@@ -232,6 +234,25 @@ fun AlarmEditScreen(
     val locationSavedMessage = stringResource(R.string.alarm_edit_location_saved)
     val locationFixFailedMessage = stringResource(R.string.alarm_edit_location_fix_failed)
     val locationPermissionMessage = stringResource(R.string.alarm_edit_location_permission_required)
+    val testSaveFirstMessage = stringResource(R.string.alarm_test_save_first)
+    val testRefusedMessage = stringResource(R.string.alarm_test_refused_ringing)
+    val testFailedMessage = stringResource(R.string.alarm_test_failed)
+    val testScope = rememberCoroutineScope()
+    // A test rings what is saved, so unsaved edits would make it lie.
+    val testNow = {
+        val message = if (state.hasUnsavedChanges) {
+            testSaveFirstMessage
+        } else {
+            when (viewModel.testNow()) {
+                AlarmTestRun.StartResult.STARTED -> null
+                AlarmTestRun.StartResult.ALARM_RINGING -> testRefusedMessage
+                AlarmTestRun.StartResult.FAILED -> testFailedMessage
+            }
+        }
+        if (message != null) {
+            testScope.launch { snackbarHostState.showSnackbar(message) }
+        }
+    }
 
     val requestNavigateBack = {
         when (alarmEditorExitDecision(state.hasUnsavedChanges, state.isSaving, editorPage)) {
@@ -442,7 +463,17 @@ fun AlarmEditScreen(
                         )
                     }
                 },
-                actions = {},
+                actions = {
+                    if (state.isEditing) {
+                        IconButton(onClick = testNow, enabled = !state.isSaving) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = stringResource(R.string.alarm_test_now),
+                                tint = TextPrimary
+                            )
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = SurfaceDark
                 )

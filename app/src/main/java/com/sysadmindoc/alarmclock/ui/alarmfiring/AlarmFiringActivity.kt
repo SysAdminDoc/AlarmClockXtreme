@@ -27,6 +27,7 @@ import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmFireDismissContract
+import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.Challenge
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
 import com.sysadmindoc.alarmclock.util.FlipDetector
@@ -71,6 +72,7 @@ class AlarmFiringActivity : ComponentActivity() {
     private var alarmId: Long = -1
     private var scheduledAt: Long = 0L
     private var fireId: String = ""
+    private var isTestRun: Boolean = false
     private var wifiPollingJob: kotlinx.coroutines.Job? = null
     private var walkPermissionRequestInFlight = false
     private var wifiPermissionRequestInFlight = false
@@ -140,6 +142,7 @@ class AlarmFiringActivity : ComponentActivity() {
         alarmId = intent?.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1) ?: -1
         scheduledAt = intent?.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, 0L) ?: 0L
         fireId = intent?.getStringExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID).orEmpty()
+        isTestRun = AlarmTestRun.isTestRun(intent)
         // Defensive: if launched without a valid alarm id (rare — only really
         // possible from a stale full-screen-intent or a third party), get out
         // immediately rather than rendering broken state. The user will see
@@ -314,6 +317,13 @@ class AlarmFiringActivity : ComponentActivity() {
             }
         }
 
+        // Ending a test from its notification closes this screen with it.
+        if (isTestRun) {
+            lifecycleScope.launch {
+                AlarmTestRun.ended.collect { finish() }
+            }
+        }
+
         setContent {
             val reduceMotionAndFlashing by viewModel.reduceMotionAndFlashing.collectAsStateWithLifecycle()
             AlarmClockXtremeTheme(reduceMotionAndFlashing = reduceMotionAndFlashing) {
@@ -323,6 +333,7 @@ class AlarmFiringActivity : ComponentActivity() {
                     onSnoozeCustom = { minutes -> snooze(minutes) },
                     onSnoozeUntil = { snoozeAtMillis -> snooze(snoozeAtMillis = snoozeAtMillis) },
                     onTakePhoto = { launchPhotoCapture() },
+                    onEndTest = { endTest() },
                     viewModel = viewModel
                 )
             }
@@ -381,8 +392,11 @@ class AlarmFiringActivity : ComponentActivity() {
         // SavedStateHandle at construction, so relaunch cleanly for the new
         // alarm — leaving the old screen up would show (and dismiss) an alarm
         // the service has already finalized as missed.
+        // A real alarm taking over from a test of the same alarm relaunches
+        // too, so the screen stops showing the test marker and test buttons.
         val incomingAlarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1L)
-        if (incomingAlarmId != -1L && incomingAlarmId != alarmId) {
+        val incomingIsTest = AlarmTestRun.isTestRun(intent)
+        if (incomingAlarmId != -1L && (incomingAlarmId != alarmId || incomingIsTest != isTestRun)) {
             finish()
             startActivity(Intent(intent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
@@ -709,7 +723,8 @@ class AlarmFiringActivity : ComponentActivity() {
             scheduledAt = scheduledAt,
             fireId = fireId,
             customMinutes = customMinutes,
-            snoozeAtMillis = snoozeAtMillis
+            snoozeAtMillis = snoozeAtMillis,
+            testRun = isTestRun
         )
         try {
             startForegroundService(intent)
@@ -745,7 +760,8 @@ class AlarmFiringActivity : ComponentActivity() {
             scheduledAt = scheduledAt,
             fireId = fireId,
             challengeRetryCount = state.totalWrongAttempts,
-            challengeSolveTimeMs = challengeSolveTimeMs
+            challengeSolveTimeMs = challengeSolveTimeMs,
+            testRun = isTestRun
         )
         try {
             startForegroundService(intent)
@@ -762,6 +778,11 @@ class AlarmFiringActivity : ComponentActivity() {
                 reasonCode = "UI_DISMISS_START_FAILED_${e.javaClass.simpleName}"
             )
         }
+        finish()
+    }
+
+    private fun endTest() {
+        AlarmTestRun.end(this)
         finish()
     }
 
@@ -847,7 +868,7 @@ class AlarmFiringActivity : ComponentActivity() {
         status: String,
         reasonCode: String
     ) {
-        if (alarmId <= 0L) return
+        if (alarmId <= 0L || isTestRun) return
         // Repository-owned scope: most records here are immediately followed
         // by finish(), which would cancel lifecycleScope mid-write.
         alarmIncidentRepository.recordAsync(

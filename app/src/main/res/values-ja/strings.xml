@@ -1229,6 +1229,15 @@
     <string name="alarm_list_history">履歴</string>
     <string name="alarm_list_delete">削除</string>
     <string name="alarm_list_skip_next_occurrence">次回の鳴動をスキップ</string>
+    <string name="alarm_test_now">今すぐテスト</string>
+    <string name="alarm_test_marker">テスト</string>
+    <string name="alarm_test_end">テストを終了</string>
+    <string name="alarm_test_notification_title">テストアラーム</string>
+    <string name="alarm_test_snoozed_title">テストアラームをスヌーズ中</string>
+    <string name="alarm_test_snoozed_text">%1$s にテストとしてもう一度鳴ります。本来のアラームには影響しません。</string>
+    <string name="alarm_test_refused_ringing">アラームが鳴っています。止まってからテストしてください。</string>
+    <string name="alarm_test_failed">テストアラームを開始できませんでした。</string>
+    <string name="alarm_test_save_first">先に変更を保存してください。テストは保存済みのアラームで鳴ります。</string>
     <string name="alarm_list_title">アラーム</string>
     <string name="alarm_list_resume_alarms">アラームを再開</string>
     <string name="alarm_list_group_all">すべて</string>

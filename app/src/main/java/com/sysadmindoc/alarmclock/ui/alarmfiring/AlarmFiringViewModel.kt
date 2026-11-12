@@ -11,6 +11,7 @@ import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.LongPressThreshold
 import com.sysadmindoc.alarmclock.domain.SnoozeCapPolicy
 import com.sysadmindoc.alarmclock.service.AlarmRuntimeState
+import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -20,6 +21,8 @@ import com.sysadmindoc.alarmclock.R
 
 data class FiringUiState(
     val alarm: Alarm? = null,
+    /** A "Test now" ring: the screen shows a Test marker and an End test button. */
+    val isTestRun: Boolean = false,
     /**
      * False until [AlarmFiringViewModel.loadAlarm] has resolved the alarm row and
      * decided whether a challenge is required.
@@ -230,8 +233,9 @@ class AlarmFiringViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val alarmId: Long = savedStateHandle.get<Long>(AlarmScheduler.EXTRA_ALARM_ID) ?: -1
+    private val isTestRun: Boolean = savedStateHandle.get<Boolean>(AlarmTestRun.EXTRA_TEST_RUN) == true
 
-    private val _uiState = MutableStateFlow(FiringUiState())
+    private val _uiState = MutableStateFlow(FiringUiState(isTestRun = isTestRun))
     val uiState: StateFlow<FiringUiState> = _uiState.asStateFlow()
 
     /**
@@ -408,9 +412,15 @@ class AlarmFiringViewModel @Inject constructor(
             )
         }
 
-        val snoozesUsed = AlarmRuntimeState.snoozeCount(appContext, alarm.id)
+        // A test counts its snoozes apart from the real alarm's.
+        val snoozesUsed = if (isTestRun) {
+            AlarmTestRun.snoozeCount(appContext, alarm.id)
+        } else {
+            AlarmRuntimeState.snoozeCount(appContext, alarm.id)
+        }
         _uiState.value = FiringUiState(
             alarm = alarm,
+            isTestRun = isTestRun,
             alarmLoaded = true,
             snoozesUsed = snoozesUsed,
             snoozesRemaining = SnoozeCapPolicy.snoozesRemaining(alarm, snoozesUsed),

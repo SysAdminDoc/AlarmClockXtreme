@@ -17,6 +17,7 @@ import com.sysadmindoc.alarmclock.service.AlarmFullScreenFallback
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmService
+import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import com.sysadmindoc.alarmclock.ui.alarmfiring.WakeConfirmActivity
 import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import dagger.assisted.Assisted
@@ -46,6 +47,7 @@ class WakeConfirmWorker @AssistedInject constructor(
         const val KEY_ALARM_FIRE_ID = "alarm_fire_id"
         const val KEY_SCHEDULED_AT = "scheduled_at"
         const val KEY_REFIRE_COUNT = "refire_count"
+        const val KEY_TEST_RUN = "test_run"
         const val CHANNEL_WAKE_CONFIRM = "wake_confirm_channel"
         // Far above the other per-id notification ranges (TimerFinished is
         // 7000 + timerId, also unbounded) so a long-lived install with alarm
@@ -67,9 +69,16 @@ class WakeConfirmWorker @AssistedInject constructor(
         const val MAX_REFIRES = 3
     }
 
+    // A test run's check prompts and re-rings like the real one but leaves no
+    // incident behind and uses its own answer key and notification.
+    private var testRun = false
+
     override suspend fun doWork(): Result {
         val alarmId = inputData.getLong(KEY_ALARM_ID, -1L)
         if (alarmId == -1L) return Result.success()
+        testRun = inputData.getBoolean(KEY_TEST_RUN, false)
+        val confirmKey = AlarmTestRun.wakeConfirmKey(alarmId, testRun)
+        val promptId = if (testRun) AlarmTestRun.WAKE_CONFIRM_NOTIFICATION_ID else notificationId(alarmId)
         val scheduledAt = inputData.getLong(KEY_SCHEDULED_AT, 0L)
         val fireId = inputData.getString(KEY_ALARM_FIRE_ID)
             ?.takeIf { it.isNotBlank() }
@@ -91,9 +100,9 @@ class WakeConfirmWorker @AssistedInject constructor(
         // One-shot alarms are auto-disabled by handleAlarmFired() before
         // this worker runs, so checking isEnabled on them would always
         // skip — defeating wake confirmation for the exact use case where
-        // users need it most.
+        // users need it most. A test runs whatever the alarm's switch says.
         val isOneShot = !alarm.isRecurringSchedule
-        if (!alarm.isEnabled && !isOneShot) {
+        if (!testRun && !alarm.isEnabled && !isOneShot) {
             recordIncident(
                 alarmId = alarmId,
                 fireId = fireId,
@@ -106,7 +115,7 @@ class WakeConfirmWorker @AssistedInject constructor(
 
         val prefs = context.getSharedPreferences("wake_confirm", Context.MODE_PRIVATE)
         // Clean any prior confirmation token before posting the prompt.
-        prefs.edit().remove("confirmed_$alarmId").apply()
+        prefs.edit().remove(confirmKey).apply()
 
         ensureChannel()
         recordIncident(
@@ -128,7 +137,8 @@ class WakeConfirmWorker @AssistedInject constructor(
             fireId = fireId,
             scheduledAt = scheduledAt,
             refireCount = refireCount,
-            deadlineMillis = deadline
+            deadlineMillis = deadline,
+            promptId = promptId
         )
         recordIncident(
             alarmId = alarmId,
@@ -141,8 +151,8 @@ class WakeConfirmWorker @AssistedInject constructor(
         // Poll for confirmation up to the shared deadline.
         while (System.currentTimeMillis() < deadline) {
             if (isStopped) {
-                cancelPrompt(alarmId)
-                prefs.edit().remove("confirmed_$alarmId").apply()
+                cancelPrompt(promptId)
+                prefs.edit().remove(confirmKey).apply()
                 recordIncident(
                     alarmId = alarmId,
                     fireId = fireId,
@@ -152,9 +162,9 @@ class WakeConfirmWorker @AssistedInject constructor(
                 )
                 return Result.failure()
             }
-            if (prefs.getBoolean("confirmed_$alarmId", false)) {
-                prefs.edit().remove("confirmed_$alarmId").apply()
-                cancelPrompt(alarmId)
+            if (prefs.getBoolean(confirmKey, false)) {
+                prefs.edit().remove(confirmKey).apply()
+                cancelPrompt(promptId)
                 recordIncident(
                     alarmId = alarmId,
                     fireId = fireId,
@@ -169,8 +179,8 @@ class WakeConfirmWorker @AssistedInject constructor(
 
         // No confirmation in time: clear the prompt and re-fire the alarm
         // unless the repeat cap has been reached.
-        cancelPrompt(alarmId)
-        prefs.edit().remove("confirmed_$alarmId").apply()
+        cancelPrompt(promptId)
+        prefs.edit().remove(confirmKey).apply()
         recordIncident(
             alarmId = alarmId,
             fireId = fireId,
@@ -190,12 +200,18 @@ class WakeConfirmWorker @AssistedInject constructor(
             return Result.success()
         }
 
+        if (testRun && AlarmService.activeAlarm.get()?.isTestRun == false) {
+            // A real alarm is ringing now; a test never rings over it.
+            return Result.success()
+        }
+
         val startIntent = Intent(context, AlarmService::class.java).apply {
             action = AlarmService.ACTION_START_ALARM
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarmId)
             putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, scheduledAt)
             putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
             putExtra(AlarmService.EXTRA_WAKE_CONFIRM_REFIRE_COUNT, refireCount + 1)
+            if (testRun) putExtra(AlarmTestRun.EXTRA_TEST_RUN, true)
         }
         try {
             context.startForegroundService(startIntent)
@@ -208,6 +224,9 @@ class WakeConfirmWorker @AssistedInject constructor(
                 reasonCode = "WAKE_CONFIRM_REFIRE_REQUESTED"
             )
         } catch (_: Exception) {
+            // The fallback screen would ring the real alarm, which a test
+            // must never do.
+            if (testRun) return Result.success()
             // Same background foreground-service restriction as the fire
             // watchdog: fall back to a full-screen intent so a user who never
             // confirmed still gets woken.
@@ -258,7 +277,8 @@ class WakeConfirmWorker @AssistedInject constructor(
         fireId: String,
         scheduledAt: Long,
         refireCount: Int,
-        deadlineMillis: Long
+        deadlineMillis: Long,
+        promptId: Int
     ): Boolean {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return false
         val activityIntent = Intent(context, WakeConfirmActivity::class.java).apply {
@@ -269,10 +289,11 @@ class WakeConfirmWorker @AssistedInject constructor(
             putExtra(WakeConfirmActivity.EXTRA_COUNTDOWN_SECONDS, CONFIRM_WAIT_SECONDS)
             putExtra(WakeConfirmActivity.EXTRA_DEADLINE_MILLIS, deadlineMillis)
             putExtra(WakeConfirmActivity.EXTRA_REFIRE_COUNT, refireCount)
+            if (testRun) putExtra(AlarmTestRun.EXTRA_TEST_RUN, true)
         }
         val fullScreenPi = PendingIntent.getActivity(
             context,
-            notificationId(alarmId),
+            promptId,
             activityIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -295,15 +316,26 @@ class WakeConfirmWorker @AssistedInject constructor(
             .setContentIntent(fullScreenPi)
             .setAutoCancel(true)
             .setOngoing(true)
+            .apply {
+                if (testRun) {
+                    addAction(
+                        R.drawable.ic_alarm,
+                        context.getString(R.string.alarm_test_end),
+                        AlarmTestRun.actionPendingIntent(
+                            context, AlarmTestRun.ACTION_END, alarmId, scheduledAt, fireId
+                        )
+                    )
+                }
+            }
             .build()
 
-        nm.notify(notificationId(alarmId), notification)
+        nm.notify(promptId, notification)
         return true
     }
 
-    private fun cancelPrompt(alarmId: Long) {
+    private fun cancelPrompt(promptId: Int) {
         context.getSystemService(NotificationManager::class.java)
-            ?.cancel(notificationId(alarmId))
+            ?.cancel(promptId)
     }
 
     private suspend fun recordIncident(
@@ -314,6 +346,7 @@ class WakeConfirmWorker @AssistedInject constructor(
         reasonCode: String,
         type: String = AlarmIncidentEvent.TYPE_WAKE_CONFIRM
     ) {
+        if (testRun) return
         alarmIncidentRepository.record(
             alarmId = alarmId,
             fireId = fireId,

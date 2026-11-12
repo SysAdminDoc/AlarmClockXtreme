@@ -10,6 +10,8 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.service.AlarmRuntimeState
+import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.Challenge
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.ChallengeNoticeTone
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.DigitalInkChallengeRecognizer
@@ -62,7 +64,11 @@ class AlarmFiringViewModelTest {
     }
 
     @After
-    fun tearDown() = Dispatchers.resetMain()
+    fun tearDown() {
+        Dispatchers.resetMain()
+        AlarmTestRun.clearSnoozeCount(context)
+        AlarmRuntimeState.clear(context, 5L)
+    }
 
     @Test
     fun `a rejected voice answer reads as a problem`() = runTest(dispatcher) {
@@ -403,11 +409,42 @@ class AlarmFiringViewModelTest {
         assertEquals(1, state.challengeRounds)
     }
 
+    @Test
+    fun `a test ring is marked and counts only its own snoozes`() = runTest(dispatcher) {
+        AlarmRuntimeState.setSnoozeCount(context, 5L, 1)
+        AlarmTestRun.setSnoozeCount(context, 5L, 2)
+
+        val viewModel = viewModelFor(challengeType = "NONE", testRun = true)
+        assertTrue("the marker has to show before the alarm row loads", viewModel.uiState.value.isTestRun)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.isTestRun)
+        assertEquals(2, state.snoozesUsed)
+    }
+
+    @Test
+    fun `a real ring is not marked as a test`() = runTest(dispatcher) {
+        AlarmRuntimeState.setSnoozeCount(context, 5L, 1)
+        AlarmTestRun.setSnoozeCount(context, 5L, 2)
+
+        val viewModel = viewModelFor(challengeType = "NONE")
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.isTestRun)
+        assertEquals(1, state.snoozesUsed)
+    }
+
     private fun stroke() = InkStroke(
         points = listOf(InkPoint(1f, 1f, 0L), InkPoint(20f, 30f, 12L), InkPoint(40f, 10f, 24L))
     )
 
-    private fun viewModelFor(challengeType: String, nfcTagId: String = ""): AlarmFiringViewModel {
+    private fun viewModelFor(
+        challengeType: String,
+        nfcTagId: String = "",
+        testRun: Boolean = false
+    ): AlarmFiringViewModel {
         coEvery { repository.getById(any()) } returns Alarm(
             id = 5L,
             hour = 7,
@@ -417,10 +454,10 @@ class AlarmFiringViewModelTest {
             challengeType = challengeType,
             nfcTagId = nfcTagId
         )
-        return viewModel()
+        return viewModel(testRun = testRun)
     }
 
-    private fun viewModel(settings: AppSettings = AppSettings()): AlarmFiringViewModel {
+    private fun viewModel(settings: AppSettings = AppSettings(), testRun: Boolean = false): AlarmFiringViewModel {
         val preferencesManager: PreferencesManager = mockk(relaxed = true)
         every { preferencesManager.settings } returns flowOf(settings)
         coEvery { preferencesManager.getCurrentSettings() } returns settings
@@ -428,7 +465,12 @@ class AlarmFiringViewModelTest {
 
         return AlarmFiringViewModel(
             appContext = context,
-            savedStateHandle = SavedStateHandle(mapOf(AlarmScheduler.EXTRA_ALARM_ID to 5L)),
+            savedStateHandle = SavedStateHandle(
+                buildMap<String, Any> {
+                    put(AlarmScheduler.EXTRA_ALARM_ID, 5L)
+                    if (testRun) put(AlarmTestRun.EXTRA_TEST_RUN, true)
+                }
+            ),
             repository = repository,
             eventRepository = mockk<AlarmEventRepository>(relaxed = true),
             preferencesManager = preferencesManager,

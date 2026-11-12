@@ -18,6 +18,7 @@ import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmService
+import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import com.sysadmindoc.alarmclock.ui.alarmfiring.AlarmFiringActivity
 import com.sysadmindoc.alarmclock.ui.components.WhatsNewDialog
 import com.sysadmindoc.alarmclock.ui.navigation.AppNavigation
@@ -104,6 +105,7 @@ class MainActivity : ComponentActivity() {
             putExtra(AlarmScheduler.EXTRA_ALARM_ID, snapshot.alarmId)
             putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, snapshot.scheduledAt)
             putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, snapshot.fireId)
+            if (snapshot.isTestRun) putExtra(AlarmTestRun.EXTRA_TEST_RUN, true)
         }
         startActivity(intent)
     }

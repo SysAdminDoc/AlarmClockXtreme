@@ -119,7 +119,8 @@ class AlarmClockIntentHandler @Inject constructor(
                 alarmId = active.alarmId,
                 scheduledAt = active.scheduledAt,
                 fireId = active.fireId,
-                customMinutes = durationMinutes
+                customMinutes = durationMinutes,
+                testRun = active.isTestRun
             )
         )
         return AlarmClockHandleResult.Handled()
@@ -139,7 +140,8 @@ class AlarmClockIntentHandler @Inject constructor(
                     context = context,
                     alarmId = active.alarmId,
                     scheduledAt = active.scheduledAt,
-                    fireId = active.fireId
+                    fireId = active.fireId,
+                    testRun = active.isTestRun
                 )
             )
         }

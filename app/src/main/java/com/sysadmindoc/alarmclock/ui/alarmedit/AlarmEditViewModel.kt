@@ -11,6 +11,7 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -158,6 +159,12 @@ class AlarmEditViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val alarmId: Long = savedStateHandle.get<Long>("alarmId") ?: -1
+
+    /** Rings the saved alarm now as a test; a new alarm has nothing saved to test yet. */
+    fun testNow(): AlarmTestRun.StartResult {
+        if (!_uiState.value.isEditing || alarmId <= 0L) return AlarmTestRun.StartResult.FAILED
+        return AlarmTestRun.start(context, alarmId)
+    }
 
     private var loadedDraft: AlarmEditUiState? = null
     private val _uiState = MutableStateFlow(AlarmEditUiState())

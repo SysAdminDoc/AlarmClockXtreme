@@ -263,6 +263,11 @@
             android:name=".receiver.DismissReceiver"
             android:exported="false" />
 
+        <!-- Test now: notification actions and the snooze re-ring of a test run -->
+        <receiver
+            android:name=".receiver.AlarmTestRunReceiver"
+            android:exported="false" />
+
         <!-- Skip Next Receiver (from persistent next-alarm notification) -->
         <receiver
             android:name=".receiver.SkipNextReceiver"

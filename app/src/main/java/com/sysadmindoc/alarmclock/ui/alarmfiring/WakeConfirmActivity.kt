@@ -66,6 +66,7 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
+import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.delay
 
@@ -85,6 +86,9 @@ class WakeConfirmActivity : ComponentActivity() {
         const val EXTRA_DEADLINE_MILLIS = "deadline_millis"
         const val EXTRA_REFIRE_COUNT = "refire_count"
     }
+
+    // A test run's check answers its own key and leaves no incident behind.
+    private var isTestRun = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -115,6 +119,7 @@ class WakeConfirmActivity : ComponentActivity() {
             ?: (System.currentTimeMillis() + countdownSeconds * 1_000L)
         val refireCount = intent.getIntExtra(EXTRA_REFIRE_COUNT, 0)
         val remainingRefires = WakeConfirmWorker.MAX_REFIRES - refireCount
+        isTestRun = AlarmTestRun.isTestRun(intent)
 
         recordIncidentAsync(
             alarmId = alarmId,
@@ -133,7 +138,9 @@ class WakeConfirmActivity : ComponentActivity() {
                     onConfirmAwake = {
                         if (alarmId != -1L) {
                             val prefs = getSharedPreferences("wake_confirm", Context.MODE_PRIVATE)
-                            prefs.edit().putBoolean("confirmed_$alarmId", true).apply()
+                            prefs.edit()
+                                .putBoolean(AlarmTestRun.wakeConfirmKey(alarmId, isTestRun), true)
+                                .apply()
                         }
                         recordIncidentAsync(
                             alarmId = alarmId,
@@ -166,7 +173,7 @@ class WakeConfirmActivity : ComponentActivity() {
         status: String,
         reasonCode: String
     ) {
-        if (alarmId <= 0L) return
+        if (alarmId <= 0L || isTestRun) return
         EntryPointAccessors
             .fromApplication(
                 applicationContext,

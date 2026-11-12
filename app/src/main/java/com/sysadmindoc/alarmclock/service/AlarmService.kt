@@ -87,6 +87,7 @@ class AlarmService : Service() {
         const val ACTION_DISMISS = "com.sysadmindoc.alarmclock.DISMISS"
         const val ACTION_SET_CHALLENGE_DUCKING =
             "com.sysadmindoc.alarmclock.SET_CHALLENGE_DUCKING"
+        const val ACTION_END_TEST = "com.sysadmindoc.alarmclock.END_ALARM_TEST"
         const val EXTRA_CUSTOM_SNOOZE_MINUTES = "custom_snooze_minutes"
         const val EXTRA_SNOOZE_UNTIL_MILLIS = "snooze_until_millis"
         const val EXTRA_CHALLENGE_RETRY_COUNT = "challenge_retry_count"
@@ -115,7 +116,8 @@ class AlarmService : Service() {
         data class ActiveAlarmSnapshot(
             val alarmId: Long,
             val scheduledAt: Long,
-            val fireId: String
+            val fireId: String,
+            val isTestRun: Boolean = false
         )
 
         /**
@@ -203,6 +205,20 @@ class AlarmService : Service() {
     private var flashlightJob: Job? = null
     private var currentSnoozeCount: Int = 0
     private var currentWakeConfirmRefireCount: Int = 0
+    // True while the ring in progress is a "Test now" run. Set together with
+    // currentAlarmId; every path that leaves something behind reads it.
+    @Volatile
+    private var currentIsTest: Boolean = false
+    private val outcomes by lazy {
+        AlarmOutcomeEffects(
+            eventRepository = eventRepository,
+            incidentRepository = alarmIncidentRepository,
+            webhookService = webhookService,
+            dismissActionExecutor = dismissActionExecutor,
+            alarmScheduler = alarmScheduler,
+            wearBridge = wearNextAlarmBridge
+        )
+    }
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var wakeLock: PowerManager.WakeLock? = null
     // v1.9.1: AtomicBoolean (was @Volatile Boolean). Multiple coroutines on
@@ -280,15 +296,24 @@ class AlarmService : Service() {
                     val scheduledAt = intent.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, 0L)
                     val fireId = intent.getStringExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID)
                         ?: AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt)
+                    val testRun = AlarmTestRun.isTestRun(intent)
+                    // A test never talks over a real alarm that is ringing.
+                    if (testRun && currentAlarmId != -1L && !currentIsTest) {
+                        return START_NOT_STICKY
+                    }
+                    // A real alarm takes over from any test, and a test's
+                    // snooze or wake check must not ring on top of it later.
+                    if (!testRun) AlarmTestRun.cancelPending(this)
                     // A different alarm still mid-ring is being preempted (two
                     // alarms in the same minute, or one firing inside another's
                     // auto-silence window). Finalize it first: record the missed
                     // outcome and re-arm its next occurrence — otherwise a
                     // repeating alarm is left with a stale past nextTriggerTime
                     // and no armed PendingIntent, silently losing every future
-                    // occurrence until the next full reschedule pass.
+                    // occurrence until the next full reschedule pass. A test
+                    // being cut short has nothing to finalize.
                     val preemptedAlarmId = currentAlarmId
-                    if (preemptedAlarmId != -1L && preemptedAlarmId != alarmId) {
+                    if (preemptedAlarmId != -1L && preemptedAlarmId != alarmId && !currentIsTest) {
                         val preemptedScheduledAt = currentScheduledAt
                         val preemptedFiredAt = alarmFiredAt
                         val preemptedSnoozeCount = currentSnoozeCount
@@ -310,8 +335,9 @@ class AlarmService : Service() {
                     currentAlarmId = alarmId
                     currentScheduledAt = scheduledAt
                     currentFireId = fireId
-                    activeAlarm.set(ActiveAlarmSnapshot(alarmId, scheduledAt, fireId))
-                    currentSnoozeCount = readPersistedSnoozeCount(alarmId)
+                    currentIsTest = testRun
+                    activeAlarm.set(ActiveAlarmSnapshot(alarmId, scheduledAt, fireId, testRun))
+                    currentSnoozeCount = readPersistedSnoozeCount(alarmId, testRun)
                     currentWakeConfirmRefireCount = intent.getIntExtra(
                         EXTRA_WAKE_CONFIRM_REFIRE_COUNT, 0
                     )
@@ -332,7 +358,7 @@ class AlarmService : Service() {
                     // coroutine using a placeholder; startAlarm() later replaces
                     // the notification via nm.notify() with the labelled version.
                     startForegroundWithPlaceholder()
-                    serviceScope.launch { startAlarm(alarmId) }
+                    serviceScope.launch { startAlarm(alarmId, testRun) }
                 }
             }
             ACTION_SNOOZE -> {
@@ -345,6 +371,7 @@ class AlarmService : Service() {
                     ?.coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES)
                 val snoozeAtMillis = intent.getLongExtra(EXTRA_SNOOZE_UNTIL_MILLIS, -1L)
                     .takeIf { it > System.currentTimeMillis() }
+                val testRun = AlarmTestRun.isTestRun(intent)
                 // v1.5.1: If the service was killed+restarted between fire and
                 // snooze, currentSnoozeCount is 0 (fresh instance). Re-read the
                 // persisted count so the progressive-snooze ladder doesn't reset.
@@ -352,9 +379,14 @@ class AlarmService : Service() {
                     currentAlarmId = alarmId
                     currentScheduledAt = scheduledAt
                     currentFireId = fireId
-                    currentSnoozeCount = readPersistedSnoozeCount(alarmId)
+                    currentIsTest = testRun
+                    currentSnoozeCount = readPersistedSnoozeCount(alarmId, testRun)
+                } else if (testRun && currentAlarmId != -1L && !currentIsTest) {
+                    // A leftover test action never snoozes a real alarm.
+                    return START_NOT_STICKY
                 }
-                serviceScope.launch { snoozeAlarm(alarmId, customMinutes, snoozeAtMillis) }
+                val runIsTest = if (currentAlarmId != -1L) currentIsTest else testRun
+                serviceScope.launch { snoozeAlarm(alarmId, customMinutes, snoozeAtMillis, runIsTest) }
             }
             ACTION_SET_CHALLENGE_DUCKING -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1L)
@@ -370,6 +402,9 @@ class AlarmService : Service() {
                     applyPlaybackGain()
                 }
             }
+            ACTION_END_TEST -> {
+                if (currentAlarmId != -1L && currentIsTest) endTestRun()
+            }
             ACTION_DISMISS -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, currentAlarmId)
                 val scheduledAt = intent.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
@@ -381,18 +416,25 @@ class AlarmService : Service() {
                 val challengeSolveTimeMs = intent
                     .getLongExtra(EXTRA_CHALLENGE_SOLVE_TIME_MS, 0L)
                     .coerceAtLeast(0L)
+                val testRun = AlarmTestRun.isTestRun(intent)
                 // v1.5.1: Same service-restart protection as ACTION_SNOOZE.
                 if (currentAlarmId == -1L && alarmId > 0L) {
                     currentAlarmId = alarmId
                     currentScheduledAt = scheduledAt
                     currentFireId = fireId
-                    currentSnoozeCount = readPersistedSnoozeCount(alarmId)
+                    currentIsTest = testRun
+                    currentSnoozeCount = readPersistedSnoozeCount(alarmId, testRun)
+                } else if (testRun && currentAlarmId != -1L && !currentIsTest) {
+                    // A leftover test action never dismisses a real alarm.
+                    return START_NOT_STICKY
                 }
+                val runIsTest = if (currentAlarmId != -1L) currentIsTest else testRun
                 serviceScope.launch {
                     dismissAlarm(
                         alarmId = alarmId,
                         challengeRetryCount = challengeRetryCount,
-                        challengeSolveTimeMs = challengeSolveTimeMs
+                        challengeSolveTimeMs = challengeSolveTimeMs,
+                        testRun = runIsTest
                     )
                 }
             }
@@ -400,8 +442,9 @@ class AlarmService : Service() {
         return START_NOT_STICKY
     }
 
-    private suspend fun startAlarm(alarmId: Long) {
-        SnoozeCountdownReceiver.cancel(this)
+    private suspend fun startAlarm(alarmId: Long, testRun: Boolean) {
+        // The countdown belongs to a real snooze, which a test leaves running.
+        if (!testRun) SnoozeCountdownReceiver.cancel(this)
         // v1.5.1: Sanitise before any downstream logic touches the row. This
         // catches corrupt challengeType / vibrationPattern / specificDate /
         // ringtonePool entries so a bad backup restore or buggy older-version
@@ -411,9 +454,10 @@ class AlarmService : Service() {
                 type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
                 status = AlarmIncidentEvent.STATUS_FAILED,
                 reasonCode = "ALARM_ROW_MISSING",
-                source = "AlarmService"
+                source = "AlarmService",
+                testRun = testRun
             )
-            clearAlarmRuntimeState(alarmId)
+            clearAlarmRuntimeState(alarmId, testRun)
             activeAlarm.set(null)
             releaseAlarmMediaSession()
             stopSelf()
@@ -427,7 +471,7 @@ class AlarmService : Service() {
         // onStartCommand with a placeholder to satisfy Android 14+ timing.
         // Update the notification in-place with the fully-labelled version.
         val notification = buildAlarmNotification(alarm)
-        wearNextAlarmBridge.publishAlarmFiring(alarm)
+        outcomes.publishFiring(testRun, alarm)
         try {
             if (isForeground.compareAndSet(false, true)) {
                 startForeground(NOTIFICATION_ID, notification)
@@ -457,7 +501,8 @@ class AlarmService : Service() {
             context = this,
             alarmId = alarmId,
             scheduledAt = currentScheduledAt,
-            fireId = currentFireId
+            fireId = currentFireId,
+            testRun = testRun
         )
         try {
             startActivity(firingIntent)
@@ -499,27 +544,30 @@ class AlarmService : Service() {
         }
 
         // F8: Webhook on alarm fire (fire-and-forget on its own scope; see WebhookService)
-        webhookService.fireAsync(
+        outcomes.fireWebhook(
+            testRun = testRun,
             event = WebhookEvent.AlarmFired,
-            alarmId = alarm.id,
-            label = alarm.label,
+            alarm = alarm,
             timeFormatted = wireAlarmTime(alarm),
             scheduledForMillis = currentScheduledAt.takeIf { it > 0L },
             fireId = currentFireId
         )
-        AlarmBroadcastContract.send(
-            this, AlarmBroadcastContract.ACTION_ALARM_FIRED,
-            alarmId = alarm.id, label = alarm.label,
-            displayTime = wireAlarmTime(alarm), fireId = currentFireId
-        )
+        if (!testRun) {
+            AlarmBroadcastContract.send(
+                this, AlarmBroadcastContract.ACTION_ALARM_FIRED,
+                alarmId = alarm.id, label = alarm.label,
+                displayTime = wireAlarmTime(alarm), fireId = currentFireId
+            )
+        }
 
-        // Auto-silence after timeout - records as missed
+        // Auto-silence after timeout - records as missed. A test that times
+        // out just goes quiet: it was never a missed alarm.
         val autoSilenceMinutes = settings.autoSilenceMinutes.toLong()
         if (autoSilenceMinutes > 0) {
             autoSilenceJob = serviceScope.launch {
                 kotlinx.coroutines.delay(autoSilenceMinutes * 60 * 1000L)
                 val missedAlarm = repository.getById(alarmId)
-                if (missedAlarm != null) {
+                if (missedAlarm != null && !testRun) {
                     // Once the auto-silence delay elapses the outcome IS "missed".
                     // A dismiss arriving at this exact instant can cancel
                     // serviceScope (onDestroy -> serviceScope.cancel()) and drop
@@ -527,17 +575,22 @@ class AlarmService : Service() {
                     // missed event, incident, webhook, broadcast, notification,
                     // and repeat-missed state all land atomically before teardown.
                     withContext(NonCancellable) {
-                        recordEvent(missedAlarm, com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent.ACTION_MISSED)
+                        recordEvent(
+                            missedAlarm,
+                            com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent.ACTION_MISSED,
+                            testRun = testRun
+                        )
                         recordIncident(
                             type = AlarmIncidentEvent.TYPE_AUTO_SILENCE,
                             status = AlarmIncidentEvent.STATUS_SUCCEEDED,
                             reasonCode = "AUTO_SILENCED_AFTER_${autoSilenceMinutes}_MINUTES",
-                            source = "AlarmService"
+                            source = "AlarmService",
+                            testRun = testRun
                         )
-                        webhookService.fireAsync(
+                        outcomes.fireWebhook(
+                            testRun = testRun,
                             event = WebhookEvent.AlarmMissed,
-                            alarmId = missedAlarm.id,
-                            label = missedAlarm.label,
+                            alarm = missedAlarm,
                             timeFormatted = wireAlarmTime(missedAlarm),
                             scheduledForMillis = currentScheduledAt.takeIf { it > 0L },
                             fireId = currentFireId
@@ -556,11 +609,11 @@ class AlarmService : Service() {
                         }
                     }
                 }
-                clearAlarmRuntimeState(alarmId)
+                clearAlarmRuntimeState(alarmId, testRun)
                 currentSnoozeCount = 0
                 currentAlarmId = -1
                 activeAlarm.set(null)
-                alarmScheduler.handleAlarmFired(alarmId, currentScheduledAt)
+                outcomes.finishOccurrence(testRun, alarmId, currentScheduledAt)
                 stopAlarmPlayback()
                 if (isForeground.compareAndSet(true, false)) {
                     stopForeground(STOP_FOREGROUND_REMOVE)
@@ -621,7 +674,8 @@ class AlarmService : Service() {
         // v1.2.0: Guardian Angel — schedule emergency contact call if not dismissed.
         // Floor at 30 s so a misconfigured 0-second delay can't fire the guardian
         // before the user has any reasonable chance to interact with the alarm.
-        if (alarm.guardianEnabled && alarm.guardianPhone.isNotBlank()) {
+        // A test never calls or texts anyone.
+        if (!testRun && alarm.guardianEnabled && alarm.guardianPhone.isNotBlank()) {
             val guardianDelay = alarm.guardianDelaySec.coerceAtLeast(30).toLong()
             val guardianData = workDataOf(
                 "alarm_id" to alarm.id,
@@ -687,43 +741,60 @@ class AlarmService : Service() {
     }
 
     private fun buildAlarmNotification(alarm: Alarm): Notification {
+        val testRun = currentIsTest
         val fullScreenIntent = AlarmFireDismissContract.firingActivityIntent(
             context = this,
             alarmId = alarm.id,
             scheduledAt = currentScheduledAt,
-            fireId = currentFireId
+            fireId = currentFireId,
+            testRun = testRun
         )
         val fullScreenPi = PendingIntent.getActivity(
             this, alarm.id.toInt(), fullScreenIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val snoozeIntent = Intent(this, SnoozeReceiver::class.java).apply {
-            putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
-            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, currentFireId)
+        // A test's buttons go to the test receiver, which records nothing.
+        val snoozePi = if (testRun) {
+            AlarmTestRun.actionPendingIntent(
+                this, AlarmTestRun.ACTION_SNOOZE, alarm.id, currentScheduledAt, currentFireId
+            )
+        } else {
+            val snoozeIntent = Intent(this, SnoozeReceiver::class.java).apply {
+                putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
+                putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
+                putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, currentFireId)
+            }
+            PendingIntent.getBroadcast(
+                this, alarm.id.toInt() + 10000, snoozeIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         }
-        val snoozePi = PendingIntent.getBroadcast(
-            this, alarm.id.toInt() + 10000, snoozeIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
 
-        val dismissIntent = Intent(this, DismissReceiver::class.java).apply {
-            putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
-            putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
-            putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, currentFireId)
+        val dismissPi = if (testRun) {
+            AlarmTestRun.actionPendingIntent(
+                this, AlarmTestRun.ACTION_DISMISS, alarm.id, currentScheduledAt, currentFireId
+            )
+        } else {
+            val dismissIntent = Intent(this, DismissReceiver::class.java).apply {
+                putExtra(AlarmScheduler.EXTRA_ALARM_ID, alarm.id)
+                putExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, currentScheduledAt)
+                putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, currentFireId)
+            }
+            PendingIntent.getBroadcast(
+                this, alarm.id.toInt() + 20000, dismissIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         }
-        val dismissPi = PendingIntent.getBroadcast(
-            this, alarm.id.toInt() + 20000, dismissIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
 
         val timeText = displayAlarmTime(alarm)
         val hideLabel = preferencesManager.getCachedSettings().hideAlarmLabelsOnPublicSurfaces
 
         return NotificationCompat.Builder(this, CHANNEL_ALARM)
             .setSmallIcon(R.drawable.ic_alarm)
-            .setContentTitle(getString(R.string.notif_alarm_title))
+            .setContentTitle(
+                getString(if (testRun) R.string.alarm_test_notification_title else R.string.notif_alarm_title)
+            )
             .setContentText(
                 AlarmPublicText.firingNotificationText(
                     label = alarm.label,
@@ -759,6 +830,19 @@ class AlarmService : Service() {
                         R.drawable.ic_alarm,
                         getString(R.string.notif_dismiss_action),
                         dismissPi
+                    )
+                }
+                if (testRun) {
+                    addAction(
+                        R.drawable.ic_alarm,
+                        getString(R.string.alarm_test_end),
+                        AlarmTestRun.actionPendingIntent(
+                            this@AlarmService,
+                            AlarmTestRun.ACTION_END,
+                            alarm.id,
+                            currentScheduledAt,
+                            currentFireId
+                        )
                     )
                 }
             }
@@ -1107,7 +1191,8 @@ class AlarmService : Service() {
                     if (alarm.dismissAtRingtoneEnd) {
                         val id = currentAlarmId
                         if (id != -1L) {
-                            serviceScope.launch { dismissAlarm(id) }
+                            val runIsTest = currentIsTest
+                            serviceScope.launch { dismissAlarm(id, testRun = runIsTest) }
                         }
                     }
                 },
@@ -1478,7 +1563,8 @@ class AlarmService : Service() {
                     setOnCompletionListener {
                         val id = currentAlarmId
                         if (id != -1L) {
-                            serviceScope.launch { dismissAlarm(id) }
+                            val runIsTest = currentIsTest
+                            serviceScope.launch { dismissAlarm(id, testRun = runIsTest) }
                         }
                     }
                 }
@@ -1692,7 +1778,8 @@ class AlarmService : Service() {
     private suspend fun snoozeAlarm(
         alarmId: Long,
         customMinutes: Int? = null,
-        snoozeAtMillis: Long? = null
+        snoozeAtMillis: Long? = null,
+        testRun: Boolean
     ) {
         // A challenge-protected alarm must not be talked out of its challenge
         // by tapping Snooze past the cap, so check before anything is torn
@@ -1706,12 +1793,13 @@ class AlarmService : Service() {
                 status = AlarmIncidentEvent.STATUS_SKIPPED,
                 reasonCode = if (capped.snoozeEnabled) "SNOOZE_CAP_REACHED" else "SNOOZE_DISABLED",
                 source = "AlarmService",
-                alarmId = capped.id
+                alarmId = capped.id,
+                testRun = testRun
             )
             refreshFiringNotification(capped)
             return
         }
-        SnoozeCountdownReceiver.cancel(this)
+        if (!testRun) SnoozeCountdownReceiver.cancel(this)
         autoSilenceJob?.cancel()
         backupSoundJob?.cancel()
         flashlightJob?.cancel()
@@ -1724,7 +1812,7 @@ class AlarmService : Service() {
             // Snoozing means the user interacted with the alarm, so cancel any pending
             // Guardian Angel call/SMS — they're plainly awake enough to hit snooze.
             // The next fire after snooze will re-arm Guardian if still configured.
-            if (alarm.guardianEnabled) {
+            if (!testRun && alarm.guardianEnabled) {
                 WorkManager.getInstance(applicationContext)
                     .cancelUniqueWork("guardian_${alarm.id}")
             }
@@ -1739,13 +1827,14 @@ class AlarmService : Service() {
             ) {
                 // Max snoozes reached - treat as dismiss
                 currentSnoozeCount = alarm.maxSnoozeCount
-                recordEvent(alarm, AlarmEvent.ACTION_DISMISSED)
+                recordEvent(alarm, AlarmEvent.ACTION_DISMISSED, testRun = testRun)
                 recordIncident(
                     type = AlarmIncidentEvent.TYPE_USER_ACTION,
                     status = AlarmIncidentEvent.STATUS_SUCCEEDED,
                     reasonCode = "MAX_SNOOZE_DISMISSED",
                     source = "AlarmService",
-                    alarmId = alarm.id
+                    alarmId = alarm.id,
+                    testRun = testRun
                 )
                 // A user who snoozed to the cap is the strongest still-asleep
                 // signal there is — the cap-exhaustion auto-dismiss must not
@@ -1754,18 +1843,19 @@ class AlarmService : Service() {
                     scheduleWakeConfirmation(
                         alarm = alarm,
                         fireId = currentFireId,
-                        scheduledAt = currentScheduledAt
+                        scheduledAt = currentScheduledAt,
+                        testRun = testRun
                     )
                 }
-                clearAlarmRuntimeState(alarmId)
+                clearAlarmRuntimeState(alarmId, testRun)
                 currentSnoozeCount = 0
                 currentAlarmId = -1
                 activeAlarm.set(null)
-                alarmScheduler.handleAlarmFired(alarmId, currentScheduledAt)
+                outcomes.finishOccurrence(testRun, alarmId, currentScheduledAt)
                 webhookEvent = WebhookEvent.AlarmDismissed
             } else {
                 currentSnoozeCount = nextSnoozeCount
-                persistSnoozeCount(alarmId, currentSnoozeCount)
+                persistSnoozeCount(alarmId, currentSnoozeCount, testRun)
                 val effectiveSnooze = if (alarm.progressiveSnooze && customMinutes == null && snoozeAtMillis == null) {
                     (alarm.snoozeDurationMinutes - currentSnoozeCount).coerceAtLeast(1)
                 } else customMinutes
@@ -1775,46 +1865,59 @@ class AlarmService : Service() {
                         .coerceAtLeast(1) * 60_000L
                 val snoozeEndAt = (snoozeAtMillis ?: defaultSnoozeEndAt)
                     .coerceAtLeast(snoozeStartedAt + 1_000L)
-                if (alarmScheduler.scheduleSnoozeAt(alarm, snoozeEndAt)) {
+                val snoozeArmed = outcomes.scheduleSnooze(testRun, alarm, snoozeEndAt) { _, atMillis ->
+                    AlarmTestRun.scheduleSnooze(
+                        context = this@AlarmService,
+                        alarmId = alarm.id,
+                        scheduledAt = webhookScheduledAt,
+                        fireId = webhookFireId,
+                        atMillis = atMillis
+                    )
+                }
+                if (snoozeArmed && !testRun) {
                     SnoozeCountdownReceiver.schedule(
                         context = this@AlarmService,
                         startAtMillis = snoozeStartedAt,
                         endAtMillis = snoozeEndAt
                     )
                 }
-                recordEvent(alarm, AlarmEvent.ACTION_SNOOZED)
+                recordEvent(alarm, AlarmEvent.ACTION_SNOOZED, testRun = testRun)
                 recordIncident(
                     type = AlarmIncidentEvent.TYPE_USER_ACTION,
                     status = AlarmIncidentEvent.STATUS_SUCCEEDED,
                     reasonCode = "SNOOZED",
                     source = "AlarmService",
-                    alarmId = alarm.id
+                    alarmId = alarm.id,
+                    testRun = testRun
                 )
                 webhookEvent = WebhookEvent.AlarmSnoozed
             }
-            webhookService.fireAsync(
+            outcomes.fireWebhook(
+                testRun = testRun,
                 event = webhookEvent,
-                alarmId = alarm.id,
-                label = alarm.label,
+                alarm = alarm,
                 timeFormatted = wireAlarmTime(alarm),
                 scheduledForMillis = webhookScheduledAt.takeIf { it > 0L },
                 fireId = webhookFireId
             )
-            AlarmBroadcastContract.send(
-                this, AlarmBroadcastContract.ACTION_ALARM_SNOOZED,
-                alarmId = alarm.id, label = alarm.label,
-                displayTime = wireAlarmTime(alarm), fireId = webhookFireId
-            )
-            wearNextAlarmBridge.publishAlarmIdle(alarm.id)
+            if (!testRun) {
+                AlarmBroadcastContract.send(
+                    this, AlarmBroadcastContract.ACTION_ALARM_SNOOZED,
+                    alarmId = alarm.id, label = alarm.label,
+                    displayTime = wireAlarmTime(alarm), fireId = webhookFireId
+                )
+            }
+            outcomes.publishIdle(testRun, alarm.id)
         } else {
             recordIncident(
                 type = AlarmIncidentEvent.TYPE_USER_ACTION,
                 status = AlarmIncidentEvent.STATUS_FAILED,
                 reasonCode = "SNOOZE_ALARM_ROW_MISSING",
                 source = "AlarmService",
-                alarmId = alarmId
+                alarmId = alarmId,
+                testRun = testRun
             )
-            clearAlarmRuntimeState(alarmId)
+            clearAlarmRuntimeState(alarmId, testRun)
             currentSnoozeCount = 0
             currentAlarmId = -1
             activeAlarm.set(null)
@@ -1828,9 +1931,10 @@ class AlarmService : Service() {
     private suspend fun dismissAlarm(
         alarmId: Long,
         challengeRetryCount: Int = 0,
-        challengeSolveTimeMs: Long = 0L
+        challengeSolveTimeMs: Long = 0L,
+        testRun: Boolean
     ) {
-        SnoozeCountdownReceiver.cancel(this)
+        if (!testRun) SnoozeCountdownReceiver.cancel(this)
         autoSilenceJob?.cancel()
         backupSoundJob?.cancel()
         flashlightJob?.cancel()
@@ -1846,37 +1950,41 @@ class AlarmService : Service() {
                 alarm = alarm,
                 action = AlarmEvent.ACTION_DISMISSED,
                 challengeRetryCount = challengeRetryCount,
-                challengeSolveTimeMs = challengeSolveTimeMs
+                challengeSolveTimeMs = challengeSolveTimeMs,
+                testRun = testRun
             )
             recordIncident(
                 type = AlarmIncidentEvent.TYPE_USER_ACTION,
                 status = AlarmIncidentEvent.STATUS_SUCCEEDED,
                 reasonCode = "DISMISSED",
                 source = "AlarmService",
-                alarmId = alarm.id
+                alarmId = alarm.id,
+                testRun = testRun
             )
-            clearAlarmRuntimeState(alarmId)
+            clearAlarmRuntimeState(alarmId, testRun)
             currentSnoozeCount = 0
             currentAlarmId = -1
             activeAlarm.set(null)
 
             // F8: Webhook on dismiss (fire-and-forget on its own scope)
-            webhookService.fireAsync(
+            outcomes.fireWebhook(
+                testRun = testRun,
                 event = WebhookEvent.AlarmDismissed,
-                alarmId = alarm.id,
-                label = alarm.label,
+                alarm = alarm,
                 timeFormatted = wireAlarmTime(alarm),
                 scheduledForMillis = wakeConfirmScheduledAt.takeIf { it > 0L },
                 fireId = wakeConfirmFireId
             )
-            AlarmBroadcastContract.send(
-                this, AlarmBroadcastContract.ACTION_ALARM_DISMISSED,
-                alarmId = alarm.id, label = alarm.label,
-                displayTime = wireAlarmTime(alarm), fireId = wakeConfirmFireId
-            )
+            if (!testRun) {
+                AlarmBroadcastContract.send(
+                    this, AlarmBroadcastContract.ACTION_ALARM_DISMISSED,
+                    alarmId = alarm.id, label = alarm.label,
+                    displayTime = wireAlarmTime(alarm), fireId = wakeConfirmFireId
+                )
+            }
 
             // v1.15.1: Per-alarm dismiss action (AlarmKit pattern)
-            dismissActionExecutor.executeAsync(alarm)
+            outcomes.runDismissAction(testRun, alarm)
 
             // F11: TTS morning announcement
             if (AlarmPostDismissController.shouldSpeakMorningAnnouncement(alarm)) {
@@ -1891,27 +1999,53 @@ class AlarmService : Service() {
                 scheduleWakeConfirmation(
                     alarm = alarm,
                     fireId = wakeConfirmFireId,
-                    scheduledAt = wakeConfirmScheduledAt
+                    scheduledAt = wakeConfirmScheduledAt,
+                    testRun = testRun
                 )
             }
 
-            // v1.2.0: Cancel guardian if active (alarm was dismissed in time)
-            WorkManager.getInstance(applicationContext).cancelUniqueWork("guardian_${alarm.id}")
+            // v1.2.0: Cancel guardian if active (alarm was dismissed in time).
+            // A test never armed one, and a real one may be waiting.
+            if (!testRun) {
+                WorkManager.getInstance(applicationContext).cancelUniqueWork("guardian_${alarm.id}")
+            }
         } else {
             recordIncident(
                 type = AlarmIncidentEvent.TYPE_USER_ACTION,
                 status = AlarmIncidentEvent.STATUS_FAILED,
                 reasonCode = "DISMISS_ALARM_ROW_MISSING",
                 source = "AlarmService",
-                alarmId = alarmId
+                alarmId = alarmId,
+                testRun = testRun
             )
-            clearAlarmRuntimeState(alarmId)
+            clearAlarmRuntimeState(alarmId, testRun)
             currentSnoozeCount = 0
             currentAlarmId = -1
             activeAlarm.set(null)
         }
-        alarmScheduler.handleAlarmFired(alarmId, currentScheduledAt)
-        wearNextAlarmBridge.publishAlarmIdle(alarmId)
+        outcomes.finishOccurrence(testRun, alarmId, currentScheduledAt)
+        outcomes.publishIdle(testRun, alarmId)
+        if (isForeground.compareAndSet(true, false)) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        }
+        stopSelf()
+    }
+
+    /**
+     * Stops a test ring outright, from the screen or the notification. Nothing
+     * is recorded and nothing is scheduled: a test never fired a real
+     * occurrence, so there is nothing to finish.
+     */
+    private fun endTestRun() {
+        autoSilenceJob?.cancel()
+        backupSoundJob?.cancel()
+        flashlightJob?.cancel()
+        volumeJob?.cancel()
+        stopAlarmPlayback()
+        AlarmTestRun.clearSnoozeCount(this)
+        currentSnoozeCount = 0
+        currentAlarmId = -1
+        activeAlarm.set(null)
         if (isForeground.compareAndSet(true, false)) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         }
@@ -2043,13 +2177,15 @@ class AlarmService : Service() {
         alarm: Alarm,
         fireId: String,
         scheduledAt: Long,
-        refireCount: Int = currentWakeConfirmRefireCount
+        refireCount: Int = currentWakeConfirmRefireCount,
+        testRun: Boolean = currentIsTest
     ) {
         val plan = AlarmPostDismissController.wakeConfirmationPlan(
             alarm = alarm,
             fireId = fireId,
             scheduledAt = scheduledAt,
-            refireCount = refireCount
+            refireCount = refireCount,
+            testRun = testRun
         )
         val request = OneTimeWorkRequestBuilder<WakeConfirmWorker>()
             .setInitialDelay(plan.delayMinutes, TimeUnit.MINUTES)
@@ -2069,7 +2205,8 @@ class AlarmService : Service() {
             source = "AlarmService",
             alarmId = alarm.id,
             fireId = fireId,
-            scheduledAt = scheduledAt
+            scheduledAt = scheduledAt,
+            testRun = testRun
         )
     }
 
@@ -2153,9 +2290,10 @@ class AlarmService : Service() {
         alarm: Alarm,
         action: String,
         challengeRetryCount: Int = 0,
-        challengeSolveTimeMs: Long = 0L
+        challengeSolveTimeMs: Long = 0L,
+        testRun: Boolean = currentIsTest
     ) {
-        eventRepository.record(
+        outcomes.recordEvent(testRun) {
             AlarmFireDismissContract.alarmEvent(
                 alarm = alarm,
                 scheduledAt = currentScheduledAt,
@@ -2166,7 +2304,7 @@ class AlarmService : Service() {
                 challengeSolveTimeMs = challengeSolveTimeMs,
                 snoozeCount = currentSnoozeCount
             )
-        )
+        }
     }
 
     private fun recordIncidentAsync(
@@ -2176,12 +2314,13 @@ class AlarmService : Service() {
         source: String,
         alarmId: Long = currentAlarmId,
         fireId: String = currentFireId,
-        scheduledAt: Long = currentScheduledAt
+        scheduledAt: Long = currentScheduledAt,
+        testRun: Boolean = currentIsTest
     ) {
-        if (alarmId <= 0L) return
         // Repository-owned scope: records issued right before stopSelf()
         // must not race serviceScope.cancel() in onDestroy().
-        alarmIncidentRepository.recordAsync(
+        outcomes.recordIncidentAsync(
+            testRun = testRun,
             alarmId = alarmId,
             fireId = fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) },
             scheduledAt = scheduledAt,
@@ -2199,10 +2338,11 @@ class AlarmService : Service() {
         source: String,
         alarmId: Long = currentAlarmId,
         fireId: String = currentFireId,
-        scheduledAt: Long = currentScheduledAt
+        scheduledAt: Long = currentScheduledAt,
+        testRun: Boolean = currentIsTest
     ) {
-        if (alarmId <= 0L) return
-        alarmIncidentRepository.record(
+        outcomes.recordIncident(
+            testRun = testRun,
             alarmId = alarmId,
             fireId = fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, scheduledAt) },
             scheduledAt = scheduledAt,
@@ -2213,14 +2353,20 @@ class AlarmService : Service() {
         )
     }
 
-    private fun readPersistedSnoozeCount(alarmId: Long): Int =
-        AlarmRuntimeState.snoozeCount(this, alarmId)
+    // A test keeps its own snooze count, so testing an alarm never spends or
+    // resets the snoozes of a real ring of the same alarm.
+    private fun readPersistedSnoozeCount(alarmId: Long, testRun: Boolean): Int =
+        if (testRun) AlarmTestRun.snoozeCount(this, alarmId) else AlarmRuntimeState.snoozeCount(this, alarmId)
 
-    private fun persistSnoozeCount(alarmId: Long, count: Int) =
-        AlarmRuntimeState.setSnoozeCount(this, alarmId, count)
+    private fun persistSnoozeCount(alarmId: Long, count: Int, testRun: Boolean) =
+        if (testRun) {
+            AlarmTestRun.setSnoozeCount(this, alarmId, count)
+        } else {
+            AlarmRuntimeState.setSnoozeCount(this, alarmId, count)
+        }
 
-    private fun clearAlarmRuntimeState(alarmId: Long) =
-        AlarmRuntimeState.clear(this, alarmId)
+    private fun clearAlarmRuntimeState(alarmId: Long, testRun: Boolean = false) =
+        if (testRun) AlarmTestRun.clearSnoozeCount(this) else AlarmRuntimeState.clear(this, alarmId)
 
     private fun showMissedNotification(alarm: Alarm, autoSilenceMinutes: Long = DEFAULT_AUTO_SILENCE_MINUTES) {
         val nm = getSystemService(NotificationManager::class.java)
