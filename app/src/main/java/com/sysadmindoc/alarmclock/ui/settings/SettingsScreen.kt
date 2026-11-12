@@ -1327,12 +1327,10 @@ internal fun SettingsToggle(
                     Text(
                         supportingText,
                         color = if (enabled) TextSecondary else TextMuted,
-                        style = MaterialTheme.typography.bodySmall,
-                        // These sentences explain what the toggle does. One line
-                        // cut most of them mid-word on a 1080 px phone, which
-                        // made the explanation useless.
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis
+                        // These sentences explain what the toggle does, so they
+                        // wrap in full. Any line cap cut some of them off on
+                        // narrow phones and at larger font sizes.
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
             }
@@ -1408,9 +1406,7 @@ internal fun SettingsActionRow(
                 Text(
                     supportingText,
                     color = if (enabled) TextSecondary else TextMuted,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
         }
