@@ -123,12 +123,10 @@
     <string name="firing_snooze_hint">Long-press Snooze for exact minutes, or choose a clock time. Your saved default stays unchanged.</string>
     <string name="firing_exact_snooze">Exact snooze</string>
     <string name="firing_exact_snooze_hint">Applies once to this alarm.</string>
-    <string name="firing_flip_to_snooze">Flip to snooze</string>
     <string name="firing_hold_dismiss">Hold dismiss %1$.1fs</string>
     <string name="firing_leave_area_hint">Leave the saved area to unlock dismissal. Snooze remains available.</string>
     <string name="firing_leave_place_title">Leave the saved place</string>
     <string name="firing_step_of">Step %1$d of %2$d</string>
-    <string name="firing_single_step">Single-step dismissal</string>
     <string name="firing_status_hold_or_snooze">Wake-up steps are complete. Hold Dismiss for %1$.1f seconds, or right-swipe to snooze.</string>
     <string name="firing_status_swipe_or_snooze">Wake-up steps are complete. Swipe left to dismiss, or right to snooze.</string>
     <string name="firing_status_hold_to_stop">Hold Dismiss for %1$.1f seconds to stop the alarm.</string>
@@ -149,7 +147,6 @@
     <string name="firing_weather_fallback">weather</string>
     <string name="firing_weather_early">Fired early: %1$s</string>
     <string name="firing_weather_summary">%1$s %2$s</string>
-    <string name="firing_wakeup_check">Wake-up check</string>
     <string name="firing_left_saved_place">Left saved place</string>
     <string name="firing_distance_from_place">%1$d m from place</string>
     <string name="firing_location_lock">Location lock</string>
@@ -157,7 +154,6 @@
         <item quantity="one">%1$d retry</item>
         <item quantity="other">%1$d retries</item>
     </plurals>
-    <string name="firing_default_snooze_minutes">Default snooze %1$d min</string>
     <string name="firing_ready_title">Alarm ready to dismiss</string>
     <string name="firing_ready_hold_description">You’ve cleared every required step. Hold the Dismiss button to finish, or snooze if you need a short buffer.</string>
     <string name="firing_ready_description">You’ve cleared every required step. Dismiss now or snooze if you need a short buffer.</string>
@@ -1617,7 +1613,7 @@
     <string name="challenge_wordle_reveal">The word was %1$s. New word coming…</string>
     <string name="challenge_pvt_trial">Trial %1$d of %2$d</string>
     <string name="challenge_pvt_average">Avg: %1$d ms</string>
-    
+
     <string name="stats_streak_next">Next %1$s</string>
     <string name="stats_sleep_last">Last %1$s</string>
     <string name="stats_sleep_deep">Deep %1$s</string>

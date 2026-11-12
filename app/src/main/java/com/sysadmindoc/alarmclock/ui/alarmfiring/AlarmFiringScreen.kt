@@ -53,7 +53,6 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.TaskAlt
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -277,7 +276,7 @@ fun AlarmFiringScreen(
             state.totalChallenges
         )
     } else {
-        stringResource(R.string.firing_single_step)
+        ""
     }
     val statusLine = when {
         state.canDismiss && holdToDismissEnabled ->
@@ -411,7 +410,7 @@ fun AlarmFiringScreen(
                 .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             AppSurfaceCard(
                 modifier = Modifier.fillMaxWidth(),
@@ -489,11 +488,13 @@ fun AlarmFiringScreen(
                             color = TextSecondary,
                             style = MaterialTheme.typography.titleSmall
                         )
-                        Text(
-                            text = stepLabel,
-                            color = TextMuted,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        if (stepLabel.isNotBlank()) {
+                            Text(
+                                text = stepLabel,
+                                color = TextMuted,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
 
@@ -521,15 +522,13 @@ fun AlarmFiringScreen(
                             color = TextSecondary
                         )
                     }
-                    AppStatusChip(
-                        label = if (state.totalChallenges > 1) {
-                            stepLabel
-                        } else {
-                            stringResource(R.string.firing_wakeup_check)
-                        },
-                        icon = Icons.Default.TaskAlt,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    if (state.totalChallenges > 1) {
+                        AppStatusChip(
+                            label = stepLabel,
+                            icon = Icons.Default.TaskAlt,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     if (state.alarm?.locationDismissEnabled == true) {
                         AppStatusChip(
                             label = when {
@@ -554,23 +553,6 @@ fun AlarmFiringScreen(
                             ),
                             icon = Icons.Default.WarningAmber,
                             color = AccentRed
-                        )
-                    }
-                    AppStatusChip(
-                        label = stringResource(
-                            R.string.firing_default_snooze_minutes,
-                            state.alarm?.snoozeDurationMinutes ?: 10
-                        ),
-                        icon = Icons.Default.Timer,
-                        color = SnoozeYellow
-                    )
-                    // Only advertise flip-to-snooze when the user actually
-                    // enabled the global setting — otherwise the chip lies.
-                    if (flipToSnoozeEnabled) {
-                        AppStatusChip(
-                            label = stringResource(R.string.firing_flip_to_snooze),
-                            icon = Icons.Default.Snooze,
-                            color = TextMuted
                         )
                     }
                     if (holdToDismissEnabled) {
