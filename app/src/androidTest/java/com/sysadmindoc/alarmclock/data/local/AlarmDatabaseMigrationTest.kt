@@ -330,6 +330,25 @@ class AlarmDatabaseMigrationTest {
     }
 
     @Test
+    fun migrationTwentyFourToTwentyFiveAddsCalendarSkipRepeatAndSnoozeDefaults() {
+        var db = helper.createDatabase("migration-24-to-25.db", 24)
+        insertSyntheticAlarm(db)
+        db.close()
+
+        db = helper.runMigrationsAndValidate(
+            "migration-24-to-25.db",
+            25,
+            true,
+            AlarmDatabase.MIGRATION_24_25,
+        )
+
+        assertEquals("", db.queryString("SELECT skipCalendarTag FROM alarms LIMIT 1"))
+        assertEquals(1L, db.queryLong("SELECT challengeRepeatCount FROM alarms LIMIT 1"))
+        assertEquals(1L, db.queryLong("SELECT snoozeEnabled FROM alarms LIMIT 1"))
+        db.close()
+    }
+
+    @Test
     fun freshInstallVersionMatchesLatestExportedSchema() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val exportedLatest = latestExportedSchemaVersion()
@@ -532,6 +551,6 @@ class AlarmDatabaseMigrationTest {
     )
 
     private companion object {
-        const val LATEST_SCHEMA_VERSION = 24
+        const val LATEST_SCHEMA_VERSION = 25
     }
 }

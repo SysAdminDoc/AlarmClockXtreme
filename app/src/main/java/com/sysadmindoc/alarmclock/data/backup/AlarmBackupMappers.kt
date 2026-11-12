@@ -76,7 +76,10 @@ fun Alarm.toAlarmBackup(): AlarmBackup {
         shiftPattern = shiftPattern,
         shiftPatternStartDate = shiftPatternStartDate,
         timezonePolicy = timezonePolicy,
-        fixedTimezoneId = fixedTimezoneId
+        fixedTimezoneId = fixedTimezoneId,
+        skipCalendarTag = skipCalendarTag,
+        challengeRepeatCount = challengeRepeatCount,
+        snoozeEnabled = snoozeEnabled
     )
 }
 
@@ -155,7 +158,10 @@ fun AlarmBackup.toAlarmOrNull(): Alarm? {
             shiftPattern = shiftPattern,
             shiftPatternStartDate = shiftPatternStartDate,
             timezonePolicy = timezonePolicy,
-            fixedTimezoneId = fixedTimezoneId
+            fixedTimezoneId = fixedTimezoneId,
+            skipCalendarTag = skipCalendarTag,
+            challengeRepeatCount = challengeRepeatCount,
+            snoozeEnabled = snoozeEnabled
         ).sanitized()
     }.getOrNull()
 }

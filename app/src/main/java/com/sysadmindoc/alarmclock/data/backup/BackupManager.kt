@@ -113,7 +113,12 @@ data class AlarmBackup(
     val shiftPatternStartDate: String = "",
     // v1.15.28: optional IANA zone pin. Older backups follow the device zone.
     val timezonePolicy: String = Alarm.TIMEZONE_POLICY_LOCAL,
-    val fixedTimezoneId: String = ""
+    val fixedTimezoneId: String = "",
+    // v20: calendar tag skip, mission chain repeats and the per-alarm snooze
+    // switch. Older backups get no tag, one round and snooze on.
+    val skipCalendarTag: String = "",
+    val challengeRepeatCount: Int = 1,
+    val snoozeEnabled: Boolean = true
 )
 
 @JsonClass(generateAdapter = true)

@@ -176,4 +176,64 @@ class AlarmBackupMappersTest {
         assertEquals(Alarm.TIMEZONE_POLICY_LOCAL, restored.timezonePolicy)
         assertEquals("", restored.fixedTimezoneId)
     }
+
+    @Test
+    fun calendarTagRepeatCountAndSnoozeSwitchSurviveTheRoundTrip() {
+        val restored = Alarm(
+            hour = 7,
+            minute = 0,
+            skipCalendarTag = "#holiday",
+            challengeRepeatCount = 3,
+            snoozeEnabled = false
+        ).toAlarmBackup().toAlarmOrNull()
+
+        requireNotNull(restored)
+        assertEquals("#holiday", restored.skipCalendarTag)
+        assertEquals(3, restored.challengeRepeatCount)
+        assertEquals(false, restored.snoozeEnabled)
+    }
+
+    @Test
+    fun aPreVersionTwentyBackupKeepsSnoozeOnWithOneRoundAndNoTag() {
+        val restored = AlarmBackup(
+            id = 5L,
+            hour = 7,
+            minute = 0,
+            label = "",
+            isEnabled = true,
+            repeatDays = emptyList(),
+            ringtoneUri = "",
+            vibrationEnabled = true,
+            vibrationIntensity = 2,
+            volume = 80,
+            overrideSystemVolume = false,
+            gradualVolumeSeconds = 0,
+            snoozeDurationMinutes = 10,
+            maxSnoozeCount = 3,
+            showOnLockScreen = true,
+            challengeType = "NONE"
+        ).toAlarmOrNull()
+
+        requireNotNull(restored)
+        assertEquals("", restored.skipCalendarTag)
+        assertEquals(1, restored.challengeRepeatCount)
+        assertEquals(true, restored.snoozeEnabled)
+    }
+
+    @Test
+    fun outOfRangeRepeatCountAndOverlongTagAreClampedOnImport() {
+        val backup = Alarm(hour = 7, minute = 0).toAlarmBackup().copy(
+            skipCalendarTag = "  " + "x".repeat(200) + "  ",
+            challengeRepeatCount = 99
+        )
+
+        val restored = requireNotNull(backup.toAlarmOrNull())
+
+        assertEquals(Alarm.MAX_CALENDAR_TAG_CHARS, restored.skipCalendarTag.length)
+        assertEquals(Alarm.MAX_CHALLENGE_REPEAT_COUNT, restored.challengeRepeatCount)
+        assertEquals(
+            1,
+            requireNotNull(backup.copy(challengeRepeatCount = 0).toAlarmOrNull()).challengeRepeatCount
+        )
+    }
 }

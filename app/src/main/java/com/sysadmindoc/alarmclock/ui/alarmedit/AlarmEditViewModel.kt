@@ -124,6 +124,9 @@ data class AlarmEditUiState(
     val shiftPatternStartDate: String = "",
     val timezonePolicy: String = Alarm.TIMEZONE_POLICY_LOCAL,
     val fixedTimezoneId: String = "",
+    val skipCalendarTag: String = "",
+    val challengeRepeatCount: Int = 1,
+    val snoozeEnabled: Boolean = true,
     val forecastDates: List<ForecastEntry> = emptyList(),
     val hasUnsavedChanges: Boolean = false
 )
@@ -246,7 +249,10 @@ class AlarmEditViewModel @Inject constructor(
                         shiftPattern = alarm.shiftPattern,
                         shiftPatternStartDate = alarm.shiftPatternStartDate,
                         timezonePolicy = alarm.timezonePolicy,
-                        fixedTimezoneId = alarm.fixedTimezoneId
+                        fixedTimezoneId = alarm.fixedTimezoneId,
+                        skipCalendarTag = alarm.skipCalendarTag,
+                        challengeRepeatCount = alarm.challengeRepeatCount,
+                        snoozeEnabled = alarm.snoozeEnabled
                     )
                     loadedDraft = _uiState.value
                 } else {
@@ -386,6 +392,22 @@ class AlarmEditViewModel @Inject constructor(
 
     fun updateSkipOnHolidays(skip: Boolean) {
         _uiState.value = _uiState.value.copy(skipOnHolidays = skip)
+    }
+
+    fun updateSkipCalendarTag(tag: String) {
+        _uiState.value = _uiState.value.copy(
+            skipCalendarTag = tag.take(Alarm.MAX_CALENDAR_TAG_CHARS)
+        )
+    }
+
+    fun updateChallengeRepeatCount(count: Int) {
+        _uiState.value = _uiState.value.copy(
+            challengeRepeatCount = count.coerceIn(1, Alarm.MAX_CHALLENGE_REPEAT_COUNT)
+        )
+    }
+
+    fun updateSnoozeEnabled(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(snoozeEnabled = enabled)
     }
 
     fun updateNfcTagId(tagId: String) {
@@ -707,7 +729,10 @@ class AlarmEditViewModel @Inject constructor(
                 shiftPattern = s.shiftPattern,
                 shiftPatternStartDate = s.shiftPatternStartDate,
                 timezonePolicy = s.timezonePolicy,
-                fixedTimezoneId = s.fixedTimezoneId
+                fixedTimezoneId = s.fixedTimezoneId,
+                skipCalendarTag = s.skipCalendarTag,
+                challengeRepeatCount = s.challengeRepeatCount,
+                snoozeEnabled = s.snoozeEnabled
             ).sanitized()
 
             try {

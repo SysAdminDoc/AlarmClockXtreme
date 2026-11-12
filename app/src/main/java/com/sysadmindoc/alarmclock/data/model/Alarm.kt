@@ -149,12 +149,21 @@ data class Alarm(
     // LOCAL follows the device wall clock. FIXED keeps the alarm's wall clock
     // anchored to [fixedTimezoneId] while the user travels.
     val timezonePolicy: String = TIMEZONE_POLICY_LOCAL,
-    val fixedTimezoneId: String = ""
+    val fixedTimezoneId: String = "",
+    // Skip any day a calendar event title contains this text. Empty = off.
+    val skipCalendarTag: String = "",
+    // How many times the whole mission chain runs before dismiss unlocks.
+    val challengeRepeatCount: Int = 1,
+    // Off removes snoozing entirely. Kept apart from maxSnoozeCount, whose
+    // 0 already means unlimited.
+    val snoozeEnabled: Boolean = true
 ) {
     companion object {
         const val TIMEZONE_POLICY_LOCAL = "LOCAL"
         const val TIMEZONE_POLICY_FIXED = "FIXED"
         const val MAX_SMART_ALARM_WINDOW_MINUTES = 60
+        const val MAX_CALENDAR_TAG_CHARS = 64
+        const val MAX_CHALLENGE_REPEAT_COUNT = 10
         private const val MAX_LABEL_CHARS = 120
         private const val MAX_GROUP_CHARS = 40
         private const val MAX_PHONE_CHARS = 40
@@ -388,7 +397,9 @@ data class Alarm(
                 normalizedFixedTimezoneId
             } else {
                 ""
-            }
+            },
+            skipCalendarTag = skipCalendarTag.trim().take(MAX_CALENDAR_TAG_CHARS),
+            challengeRepeatCount = challengeRepeatCount.coerceIn(1, MAX_CHALLENGE_REPEAT_COUNT)
         )
     }
 }
