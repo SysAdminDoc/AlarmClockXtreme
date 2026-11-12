@@ -117,7 +117,7 @@ internal fun LazyListScope.alarmEditIntegrationSections(
     // Dismiss action. The field has existed since backup v13 but had no editor,
     // so the only way to set one was to hand-edit a backup file — and the next
     // Save wiped it again.
-    SettingsSection(editorPage, AlarmEditorSection.SPOTIFY) {
+    SettingsSection(editorPage, AlarmEditorSection.DISMISS_ACTION) {
         val actionOptions = listOf(
             "NONE" to stringResource(R.string.alarm_edit_dismiss_action_none),
             "WEBHOOK" to stringResource(R.string.alarm_edit_dismiss_action_webhook),

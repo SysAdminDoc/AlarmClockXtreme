@@ -333,6 +333,8 @@
     <string name="alarm_edit_section_smart_alarm_description">Allow the alarm to ring inside a window when the timing is more natural.</string>
     <string name="alarm_edit_section_holidays_description">Prevent routine alarms from firing when the day should stay flexible.</string>
     <string name="alarm_edit_section_spotify_description">Use music services when you want a less generic wake-up sound.</string>
+    <string name="alarm_edit_section_dismiss_action">After you dismiss</string>
+    <string name="alarm_edit_section_dismiss_action_description">Kick off one automation the moment this alarm is dismissed.</string>
     <string name="alarm_edit_section_hue_description">Coordinate bedside lighting with the alarm for a gentler rise.</string>
     <string name="alarm_edit_section_chain_description">Stack multiple wake-up steps when one challenge is not enough.</string>
     <string name="alarm_edit_section_anti_snooze_description">Add guardrails that make repeated delay harder.</string>
