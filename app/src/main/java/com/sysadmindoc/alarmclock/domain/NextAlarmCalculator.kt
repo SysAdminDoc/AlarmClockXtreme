@@ -1,10 +1,12 @@
 package com.sysadmindoc.alarmclock.domain
 
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.util.SolarCalculator
+import android.content.Context
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -179,22 +181,52 @@ class NextAlarmCalculator private constructor(
      * e.g. "2d 13h 57m". For sub-minute remainders we render "<1m" so the user
      * never sees the misleading "0m" label that the previous formatter produced
      * in the last 60 seconds before fire.
+     *
+     * Every screen passes a [Context] so the units come from the app's
+     * translations (#54). The context-free form keeps the English units.
      */
-    fun formatRemaining(triggerTimeMillis: Long): String {
+    fun formatRemaining(context: Context, triggerTimeMillis: Long): String =
+        formatRemaining(triggerTimeMillis) { unit, value ->
+            when (unit) {
+                RemainingUnit.NOW -> context.getString(R.string.time_unit_now)
+                RemainingUnit.UNDER_A_MINUTE -> context.getString(R.string.time_unit_less_than_1m)
+                RemainingUnit.DAYS -> context.getString(R.string.time_unit_d, value.toInt())
+                RemainingUnit.HOURS -> context.getString(R.string.time_unit_h, value.toInt())
+                RemainingUnit.MINUTES -> context.getString(R.string.time_unit_m, value.toInt())
+            }
+        }
+
+    fun formatRemaining(triggerTimeMillis: Long): String =
+        formatRemaining(triggerTimeMillis) { unit, value ->
+            when (unit) {
+                RemainingUnit.NOW -> "now"
+                RemainingUnit.UNDER_A_MINUTE -> "<1m"
+                RemainingUnit.DAYS -> "${value}d"
+                RemainingUnit.HOURS -> "${value}h"
+                RemainingUnit.MINUTES -> "${value}m"
+            }
+        }
+
+    private inline fun formatRemaining(
+        triggerTimeMillis: Long,
+        label: (RemainingUnit, Long) -> String
+    ): String {
         val now = System.currentTimeMillis()
         val diff = triggerTimeMillis - now
-        if (diff <= 0) return "now"
+        if (diff <= 0) return label(RemainingUnit.NOW, 0L)
 
         val days = diff / (24 * 60 * 60 * 1000)
         val hours = (diff % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000)
         val minutes = (diff % (60 * 60 * 1000)) / (60 * 1000)
 
-        if (days == 0L && hours == 0L && minutes == 0L) return "<1m"
+        if (days == 0L && hours == 0L && minutes == 0L) return label(RemainingUnit.UNDER_A_MINUTE, 0L)
 
-        return buildString {
-            if (days > 0) append("${days}d ")
-            if (hours > 0) append("${hours}h ")
-            if (minutes > 0 || (days == 0L && hours == 0L)) append("${minutes}m")
-        }.trim()
+        return buildList {
+            if (days > 0) add(label(RemainingUnit.DAYS, days))
+            if (hours > 0) add(label(RemainingUnit.HOURS, hours))
+            if (minutes > 0 || (days == 0L && hours == 0L)) add(label(RemainingUnit.MINUTES, minutes))
+        }.joinToString(" ")
     }
+
+    private enum class RemainingUnit { NOW, UNDER_A_MINUTE, DAYS, HOURS, MINUTES }
 }

@@ -9,6 +9,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The ringing screen shows less. The default-snooze and flip-to-snooze chips are gone (the Snooze button already shows its minutes), and a one-step alarm no longer carries a "Single-step dismissal" or "Wake-up check" label. Thanks to knocker-g (#57).
 - When a shake challenge's sensor never reports, or an NFC challenge rings on a phone without NFC, the alarm swaps in a math problem for that ring so it can still be dismissed. Thanks to knocker-g (#58).
 - Night Clock starts centered and its burn-in drift swings evenly around the middle, with AM/PM sitting beside the digits instead of pushing them off center. Settings menus open next to the row you tapped. Thanks to knocker-g (#56).
+- The time left until the next alarm (notification, widget, alarm list and editor) uses the app's translations for its units instead of fixed English letters. Thanks to knocker-g (#54).
 
 ### Fixed
 

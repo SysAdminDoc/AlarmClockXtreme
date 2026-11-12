@@ -170,7 +170,7 @@ class NextAlarmNotifier @Inject constructor(
         val localDateTime = triggerInstant.atZone(ZoneId.systemDefault()).toLocalDateTime()
         val timePattern = "EEE " + AlarmTimeFormatter.pattern(settings.is24HourFormat)
         val timeStr = localDateTime.format(DateTimeFormatter.ofPattern(timePattern))
-        val remaining = calculator.formatRemaining(alarm.nextTriggerTime)
+        val remaining = calculator.formatRemaining(context, alarm.nextTriggerTime)
 
         val title = AlarmPublicText.requiredAlarmLabel(
             label = alarm.label,

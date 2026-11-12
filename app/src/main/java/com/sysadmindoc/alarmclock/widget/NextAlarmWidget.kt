@@ -73,7 +73,7 @@ class NextAlarmWidget : GlanceAppWidget() {
                     .getCurrentSettings()
                     .hideAlarmLabelsOnPublicSurfaces
                 val calc = ep.nextAlarmCalculator()
-                val remaining = calc.formatRemaining(alarm.nextTriggerTime)
+                val remaining = calc.formatRemaining(context, alarm.nextTriggerTime)
                 val triggerInstant = Instant.ofEpochMilli(alarm.nextTriggerTime)
                 val localTime = triggerInstant.atZone(ZoneId.systemDefault()).toLocalDateTime()
                 val is24Hour = DateFormat.is24HourFormat(context)
