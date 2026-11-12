@@ -2256,4 +2256,5 @@
     <plurals name="settings_next_alarm_notification_hours_before"><item quantity="other">%1$d時間前</item></plurals>
     <string name="settings_custom_phrases_only">自分のフレーズだけを使う</string>
     <string name="settings_custom_phrases_only_description">タイピングと音声のチャレンジで組み込みリストを使わず、上に入力したフレーズから選びます。</string>
+    <plurals name="bedtime_countdown_remaining"><item quantity="other">就寝リマインダーまであと%1$d分</item></plurals>
 </resources>

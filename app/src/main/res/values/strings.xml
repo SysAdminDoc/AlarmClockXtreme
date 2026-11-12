@@ -2380,4 +2380,5 @@
     <plurals name="settings_next_alarm_notification_hours_before"><item quantity="one">%1$d hour before</item><item quantity="other">%1$d hours before</item></plurals>
     <string name="settings_custom_phrases_only">Use only my phrases</string>
     <string name="settings_custom_phrases_only_description">Typing and voice challenges skip the built-in list and pick from your phrases above.</string>
+    <plurals name="bedtime_countdown_remaining"><item quantity="one">Bedtime reminder in %1$d minute</item><item quantity="other">Bedtime reminder in %1$d minutes</item></plurals>
 </resources>

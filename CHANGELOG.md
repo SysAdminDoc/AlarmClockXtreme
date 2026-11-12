@@ -23,6 +23,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - A Spotify alarm no longer goes quiet when Spotify doesn't start playing. Pasted open.spotify.com links (locale prefixes and old /user/ playlist links included) are turned into the spotify: form Spotify actually opens, the watchdog ignores the alarm's own stream when it checks for playback, and if nothing is playing when the backup sound is due, the default tone starts. Backup sound is now on for new alarms. A link that isn't Spotify gets a warning in the editor and is cleared on save.
 - Opening "Integrations & safety" in the alarm editor no longer crashes the app. The "After you dismiss" card had reused the Spotify card's slot, and two cards in one slot crashed the page; it now has its own heading.
 - Setting descriptions wrap in full. They used to stop after three lines, which cut some of them off on narrow phones and at larger font sizes.
+- The bedtime reminder countdown in the notification is translated now. It was always in English, even with the app set to Japanese.
 
 ## [1.15.35] - 2026-09-05
 

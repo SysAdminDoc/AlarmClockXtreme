@@ -302,7 +302,7 @@ class BedtimeReceiver : BroadcastReceiver() {
         val notification = Notification.Builder(context, CHANNEL_BEDTIME_COUNTDOWN)
             .setSmallIcon(R.drawable.ic_alarm)
             .setContentTitle(context.getString(R.string.bedtime_countdown_title))
-            .setContentText(formatRemaining(reminderTimeMillis - now))
+            .setContentText(formatRemaining(context, reminderTimeMillis - now))
             .setSubText(context.getString(R.string.bedtime_countdown_subtext))
             .setOngoing(true)
             .setAutoCancel(false)
@@ -320,12 +320,8 @@ class BedtimeReceiver : BroadcastReceiver() {
         return notification.build()
     }
 
-    private fun formatRemaining(remainingMillis: Long): String {
-        val minutes = ((remainingMillis + 59_999L) / 60_000L).coerceAtLeast(1L)
-        return if (minutes == 1L) {
-            "Bedtime reminder in 1 minute"
-        } else {
-            "Bedtime reminder in $minutes minutes"
-        }
+    private fun formatRemaining(context: Context, remainingMillis: Long): String {
+        val minutes = ((remainingMillis + 59_999L) / 60_000L).coerceAtLeast(1L).toInt()
+        return context.resources.getQuantityString(R.plurals.bedtime_countdown_remaining, minutes, minutes)
     }
 }
