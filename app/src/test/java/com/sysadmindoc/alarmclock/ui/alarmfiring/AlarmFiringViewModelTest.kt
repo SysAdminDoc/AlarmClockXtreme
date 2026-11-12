@@ -237,6 +237,37 @@ class AlarmFiringViewModelTest {
         assertEquals(0, recognizer.calls)
     }
 
+    @Test
+    fun `a technical failure swaps the challenge for math for the current session`() = runTest(dispatcher) {
+        val viewModel = viewModelFor(challengeType = "SHAKE")
+        advanceUntilIdle()
+        val originalChallenge = viewModel.uiState.value.challenge
+        assertTrue(originalChallenge is Challenge.ShakeChallenge)
+
+        viewModel.handleTechnicalFailure("SENSOR_ERROR")
+
+        val state = viewModel.uiState.value
+        assertTrue("challenge should be math after failure", state.challenge is Challenge.MathChallenge)
+        assertEquals("MATH_MEDIUM", state.challenge?.type?.name)
+        assertFalse("challengeNotice should be populated", state.challengeNotice.isBlank())
+        assertFalse("challengeSolved should stay false", state.challengeSolved)
+        // Verify state reset
+        assertEquals(0, state.shakeCount)
+    }
+
+    @Test
+    fun `NFC hardware missing swaps the challenge for math`() = runTest(dispatcher) {
+        val viewModel = viewModelFor(challengeType = "NFC_SCAN")
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.challenge is Challenge.NfcChallenge)
+
+        viewModel.handleTechnicalFailure("NFC_HARDWARE_MISSING")
+
+        val state = viewModel.uiState.value
+        assertTrue(state.challenge is Challenge.MathChallenge)
+        assertEquals("MATH_MEDIUM", state.challenge?.type?.name)
+    }
+
     private fun stroke() = InkStroke(
         points = listOf(InkPoint(1f, 1f, 0L), InkPoint(20f, 30f, 12L), InkPoint(40f, 10f, 24L))
     )

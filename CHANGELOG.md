@@ -7,6 +7,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 ### Changed
 
 - The ringing screen shows less. The default-snooze and flip-to-snooze chips are gone (the Snooze button already shows its minutes), and a one-step alarm no longer carries a "Single-step dismissal" or "Wake-up check" label. Thanks to knocker-g (#57).
+- When a shake challenge's sensor never reports, or an NFC challenge rings on a phone without NFC, the alarm swaps in a math problem for that ring so it can still be dismissed. Thanks to knocker-g (#58).
 
 ### Fixed
 
