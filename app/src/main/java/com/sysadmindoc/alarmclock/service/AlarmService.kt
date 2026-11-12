@@ -43,6 +43,7 @@ import com.sysadmindoc.alarmclock.domain.OnCallDndOverride
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.SnoozeCapOutcome
 import com.sysadmindoc.alarmclock.domain.SnoozeCapPolicy
+import com.sysadmindoc.alarmclock.domain.SpotifyUriNormalizer
 import com.sysadmindoc.alarmclock.receiver.DismissReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeCountdownReceiver
 import com.sysadmindoc.alarmclock.receiver.SnoozeReceiver
@@ -590,6 +591,21 @@ class AlarmService : Service() {
                 )
                 playbackRampGain = 1f
                 applyPlaybackGain()
+                // Raising STREAM_ALARM does nothing when this service owns no
+                // player: a Spotify alarm plays on the other app's stream and
+                // this one returns without a player at all, so the escalation
+                // that exists to rescue a silent ring was itself silent. Start
+                // the tone the comment always promised.
+                //
+                // Two alarms are left alone. One the user deliberately set to
+                // silent, matching the gate in startAudio. And a delegated
+                // alarm that is audibly playing somewhere else: this escalation
+                // is for a ring that produced no sound, not a second tone on
+                // top of the music the user chose.
+                val ringIsSilent = alarm.ringtoneUri == "silent"
+                if (alarmPlayback == null && !ringIsSilent && otherAppPlaybackStreams() == 0) {
+                    startMedia3DefaultFallback(alarm)
+                }
             }
         }
 
@@ -887,15 +903,13 @@ class AlarmService : Service() {
     private fun startAudioInternal(alarm: Alarm) {
 
         // F14: Spotify ringtone — open Spotify URI and skip in-app playback.
-        // Only accept canonical Spotify schemes ("spotify:..." or
-        // "https://open.spotify.com/...") so a typo'd setting can't accidentally
-        // open the browser or another deep-linked app at alarm time.
-        val spotifyUri = alarm.spotifyUri.trim()
-        if (spotifyUri.isNotBlank() && (
-                spotifyUri.startsWith("spotify:", ignoreCase = true) ||
-                spotifyUri.startsWith("https://open.spotify.com/", ignoreCase = true)
-            )
-        ) {
+        // The normalizer rewrites a pasted share link to the spotify: scheme,
+        // which is the form that actually autoplays, and rejects anything that
+        // is not Spotify so a typo'd setting can't open the browser or another
+        // deep-linked app at alarm time. Rows saved before the normalizer
+        // existed still hold raw web links, so this runs at fire time too.
+        val spotifyUri = SpotifyUriNormalizer.normalize(alarm.spotifyUri).orEmpty()
+        if (spotifyUri.isNotBlank()) {
             try {
                 val parsed = Uri.parse(spotifyUri)
                 val spotifyIntent = android.content.Intent(
@@ -910,6 +924,12 @@ class AlarmService : Service() {
                 // fall through to the default ringtone path so the alarm still
                 // makes noise instead of silently no-oping.
                 if (spotifyIntent.resolveActivity(packageManager) != null) {
+                    // Sample the baseline before the launch. A warm Spotify can
+                    // start inside the window between startActivity and the
+                    // watchdog being armed, and a baseline taken after that
+                    // already includes it, so real playback would read as a
+                    // failure and the fallback tone would land on top of it.
+                    val streamsAtLaunch = otherAppPlaybackStreams()
                     startActivity(spotifyIntent)
                     updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
                     recordIncidentAsync(
@@ -923,7 +943,7 @@ class AlarmService : Service() {
                     // open without playing (logged out, offline, free tier).
                     // Either way the alarm would be completely silent, so watch
                     // for real playback and fall back if none arrives.
-                    armSpotifyPlaybackWatchdog(alarm, mediaStreamsBefore())
+                    armSpotifyPlaybackWatchdog(alarm, streamsAtLaunch)
                     return
                 }
             } catch (_: Exception) {
@@ -1168,30 +1188,26 @@ class AlarmService : Service() {
      * seconds after Spotify was handed the alarm.
      */
     /**
-     * How many media streams are playing right now.
+     * How many streams other than our own alarm are playing right now.
      *
      * `isMusicActive` alone is not proof Spotify started: a podcast or
      * white-noise app the user fell asleep to keeps it true, and the alarm
      * would stay silent while the watchdog congratulated itself. Counting
-     * active media configurations lets a *new* stream be distinguished from
+     * active playback configurations lets a *new* stream be distinguished from
      * one that was already running.
      */
-    private fun mediaStreamsBefore(): Int {
+    private fun otherAppPlaybackStreams(): Int {
         val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager ?: return 0
-        return runCatching {
-            audioManager.activePlaybackConfigurations.count {
-                it.audioAttributes.usage == AudioAttributes.USAGE_MEDIA
-            }
-        }.getOrDefault(if (audioManager.isMusicActive) 1 else 0)
+        return AlarmAudioRouting.otherAppPlaybackStreams(audioManager)
     }
 
-    private fun armSpotifyPlaybackWatchdog(alarm: Alarm, mediaStreamsAtLaunch: Int) {
+    private fun armSpotifyPlaybackWatchdog(alarm: Alarm, streamsAtLaunch: Int) {
         cancelPlaybackWatchdog()
         playbackWatchdogJob = serviceScope.launch {
             delay(PLAYBACK_START_TIMEOUT_MS)
             if (currentAlarmId != alarm.id || alarmPlayback != null) return@launch
             val audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager
-            val started = audioManager != null && mediaStreamsBefore() > mediaStreamsAtLaunch
+            val started = audioManager != null && otherAppPlaybackStreams() > streamsAtLaunch
             if (started) {
                 recordIncidentAsync(
                     type = AlarmIncidentEvent.TYPE_AUDIO,

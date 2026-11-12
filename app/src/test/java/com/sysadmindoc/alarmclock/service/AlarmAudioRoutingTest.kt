@@ -1,19 +1,72 @@
 package com.sysadmindoc.alarmclock.service
 
+import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import androidx.media3.common.C
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [30])
 class AlarmAudioRoutingTest {
+
+    private fun audioManager(): AudioManager =
+        ApplicationProvider.getApplicationContext<Context>()
+            .getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+    private fun attributes(usage: Int): AudioAttributes =
+        AudioAttributes.Builder().setUsage(usage).build()
+
+    /**
+     * The fallback case: nothing new started after the alarm was handed to
+     * Spotify, so the count does not rise and the watchdog rings a tone.
+     */
+    @Test
+    fun otherAppPlaybackStreamsIgnoresOurOwnAlarm() {
+        val manager = audioManager()
+        shadowOf(manager).setActivePlaybackConfigurationsFor(
+            listOf(attributes(AudioAttributes.USAGE_ALARM))
+        )
+
+        assertEquals(0, AlarmAudioRouting.otherAppPlaybackStreams(manager))
+    }
+
+    /**
+     * The confirmed case. Counts by "not our alarm" rather than by USAGE_MEDIA:
+     * Android anonymises another app's configuration for callers without
+     * MODIFY_AUDIO_ROUTING and the usage does not reliably survive, so a
+     * USAGE_MEDIA test can miss Spotify and drop a tone on top of it.
+     */
+    @Test
+    fun otherAppPlaybackStreamsCountsUsagesThatSurviveAnonymisation() {
+        val manager = audioManager()
+        shadowOf(manager).setActivePlaybackConfigurationsFor(
+            listOf(
+                attributes(AudioAttributes.USAGE_MEDIA),
+                attributes(AudioAttributes.USAGE_UNKNOWN),
+                attributes(AudioAttributes.USAGE_ALARM)
+            )
+        )
+
+        assertEquals(2, AlarmAudioRouting.otherAppPlaybackStreams(manager))
+    }
+
+    @Test
+    fun otherAppPlaybackStreamsIsZeroWhenNothingIsPlaying() {
+        val manager = audioManager()
+        shadowOf(manager).setActivePlaybackConfigurationsFor(emptyList())
+
+        assertEquals(0, AlarmAudioRouting.otherAppPlaybackStreams(manager))
+    }
 
     @Test
     fun alarmMusicAttributesUseAlarmRouting() {

@@ -2,6 +2,7 @@ package com.sysadmindoc.alarmclock.data.model
 
 import androidx.annotation.StringRes
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.domain.SpotifyUriNormalizer
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.DayOfWeek
@@ -66,8 +67,12 @@ data class Alarm(
     val challengeChain: String = "",
     // v1.2.0: Progressive snooze (each snooze shortens by 1 min)
     val progressiveSnooze: Boolean = false,
-    // v1.2.0: Backup sound escalation (ultra-loud after delay)
-    val backupSoundEnabled: Boolean = false,
+    // v1.2.0: Backup sound escalation (ultra-loud after delay).
+    // On by default since v1.15.36: it is the safety net for an alarm that
+    // rings silently, and the people who most needed it were the ones who
+    // never found the setting. Existing rows keep whatever they were saved
+    // with, because Room reads the stored column rather than this default.
+    val backupSoundEnabled: Boolean = true,
     val backupSoundDelaySec: Int = 40,
     // v1.2.0: Sunrise screen simulation (color transition)
     val sunriseSimulation: Boolean = false,
@@ -292,6 +297,13 @@ data class Alarm(
             .lowercase(Locale.US)
             .takeIf { it in VALID_VIBRATION_PATTERNS }
             ?: "default"
+        // A pasted share link opens Spotify without playing far more often than
+        // the spotify: scheme does, so canonicalise here rather than at fire
+        // time. An unrecognisable value is dropped: a Spotify field that cannot
+        // be opened is worse than an empty one, because the alarm would wait
+        // out the delegation timeout before falling back to a tone.
+        val normalizedSpotifyUri = (SpotifyUriNormalizer.normalize(spotifyUri) ?: "")
+            .take(MAX_URI_CHARS)
         val normalizedFiringBackgroundImageUri = firingBackgroundImageUri.trim().take(MAX_URI_CHARS)
         val normalizedShiftPatternKey = ShiftPattern.normalizedKey(shiftPattern)
         val normalizedShiftPatternStartDate = shiftPatternStartDate.trim().takeIf {
@@ -328,7 +340,7 @@ data class Alarm(
             smartAlarmWindowMinutes = smartAlarmWindowMinutes.coerceIn(0, MAX_SMART_ALARM_WINDOW_MINUTES),
             nfcTagId = nfcTagId.trim().take(MAX_SHORT_REFERENCE_CHARS),
             barcodeValue = barcodeValue.trim().take(MAX_BARCODE_CHARS),
-            spotifyUri = spotifyUri.trim().take(MAX_URI_CHARS),
+            spotifyUri = normalizedSpotifyUri,
             huePreWakeMinutes = huePreWakeMinutes.coerceIn(0, 180),
             photoMatchUri = photoMatchUri.trim().take(MAX_URI_CHARS),
             challengeChain = normalizedChallengeChain,

@@ -59,6 +59,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.domain.SpotifyUriNormalizer
 import com.sysadmindoc.alarmclock.service.DismissActionExecutor
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
@@ -86,16 +87,27 @@ internal fun LazyListScope.alarmEditIntegrationSections(
 ) {
     // Spotify Ringtone
     SettingsSection(editorPage, AlarmEditorSection.SPOTIFY) {
+        // Save drops a value Spotify cannot open, so say so while it is still
+        // on screen rather than letting the alarm wait out the delegation
+        // timeout before falling back to a tone.
+        val spotifyRejected = !SpotifyUriNormalizer.isAcceptable(state.spotifyUri)
         OutlinedTextField(
             value = state.spotifyUri,
             onValueChange = viewModel::updateSpotifyUri,
             label = { Text(stringResource(R.string.alarm_edit_spotify_uri), color = TextMuted) },
             placeholder = { Text(stringResource(R.string.alarm_edit_default_ringtone_placeholder), color = TextMuted) },
+            isError = spotifyRejected,
             colors = appOutlinedTextFieldColors(),
             shape = AppInputShape,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             singleLine = true
         )
+        if (spotifyRejected) {
+            SettingsHint(
+                stringResource(R.string.alarm_edit_spotify_not_recognised),
+                tone = HintTone.Warning
+            )
+        }
         SettingsHint(
             stringResource(R.string.alarm_edit_spotify_hint),
             tone = HintTone.Warning

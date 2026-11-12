@@ -15,6 +15,54 @@ import java.time.DayOfWeek
  */
 class AlarmBackupMappersTest {
 
+    /**
+     * The backup-sound safety net is armed for a new alarm, but a backup that
+     * predates the field must not gain a behaviour its author never chose, so
+     * [AlarmBackup] keeps the old default and the mapper carries it through.
+     */
+    @Test
+    fun backupSoundIsOnForANewAlarmAndOffForAPreFieldBackup() {
+        assertTrue(Alarm(id = 1L, hour = 7, minute = 0).backupSoundEnabled)
+
+        // Only the fields every backup version carries, so the rest take the
+        // defaults Moshi applies to a file written before they existed.
+        val preFieldBackup = AlarmBackup(
+            id = 2L,
+            hour = 7,
+            minute = 0,
+            label = "",
+            isEnabled = true,
+            repeatDays = emptyList(),
+            ringtoneUri = "",
+            vibrationEnabled = true,
+            vibrationIntensity = 2,
+            volume = 80,
+            overrideSystemVolume = false,
+            gradualVolumeSeconds = 0,
+            snoozeDurationMinutes = 10,
+            maxSnoozeCount = 3,
+            showOnLockScreen = true,
+            challengeType = "NONE"
+        )
+        val restored = preFieldBackup.toAlarmOrNull()
+
+        assertNotNull(restored)
+        assertEquals(false, requireNotNull(restored).backupSoundEnabled)
+    }
+
+    @Test
+    fun anExplicitBackupSoundChoiceSurvivesTheRoundTrip() {
+        val off = Alarm(id = 3L, hour = 7, minute = 0, backupSoundEnabled = false)
+            .toAlarmBackup()
+            .toAlarmOrNull()
+        assertEquals(false, requireNotNull(off).backupSoundEnabled)
+
+        val on = Alarm(id = 4L, hour = 7, minute = 0, backupSoundEnabled = true)
+            .toAlarmBackup()
+            .toAlarmOrNull()
+        assertEquals(true, requireNotNull(on).backupSoundEnabled)
+    }
+
     @Test
     fun roundTripPreservesCoreFields() {
         val alarm = Alarm(

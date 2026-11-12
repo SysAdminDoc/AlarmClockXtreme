@@ -2,6 +2,12 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
+## Unreleased
+
+### Fixed
+
+- A Spotify alarm no longer goes quiet when Spotify doesn't start playing. Pasted open.spotify.com links (locale prefixes and old /user/ playlist links included) are turned into the spotify: form Spotify actually opens, the watchdog ignores the alarm's own stream when it checks for playback, and if nothing is playing when the backup sound is due, the default tone starts. Backup sound is now on for new alarms. A link that isn't Spotify gets a warning in the editor and is cleared on save.
+
 ## [1.15.35] - 2026-09-05
 
 ### Changed

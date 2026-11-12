@@ -54,4 +54,24 @@ object AlarmAudioRouting {
     fun builtInSpeaker(audioManager: AudioManager): AudioDeviceInfo? =
         audioManager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
             .firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+
+    /**
+     * How many playback streams other than our own alarm are running.
+     *
+     * Used to tell whether handing an alarm to Spotify actually produced sound:
+     * sample once before the launch, once after the timeout, and a rise means
+     * something started.
+     *
+     * Deliberately counts every usage except [AudioAttributes.USAGE_ALARM]
+     * rather than looking for [AudioAttributes.USAGE_MEDIA]. Android hands out
+     * an anonymised copy of another app's playback configuration to callers
+     * without MODIFY_AUDIO_ROUTING, and the usage does not reliably survive
+     * that, so a USAGE_MEDIA test can miss Spotify entirely and drop the
+     * fallback tone on top of music that is already playing.
+     */
+    fun otherAppPlaybackStreams(audioManager: AudioManager): Int = runCatching {
+        audioManager.activePlaybackConfigurations.count {
+            it.audioAttributes.usage != AudioAttributes.USAGE_ALARM
+        }
+    }.getOrDefault(if (audioManager.isMusicActive) 1 else 0)
 }

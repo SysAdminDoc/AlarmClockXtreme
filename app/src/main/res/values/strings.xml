@@ -627,6 +627,7 @@
     <string name="alarm_edit_sunrise_hint">Transitions the screen from deep red to warm yellow to simulate sunrise.</string>
     <string name="alarm_edit_stream_url">Stream URL (https://…)</string>
     <string name="alarm_edit_radio_https_required">Only https stream addresses can play. Android blocks plain http.</string>
+    <string name="alarm_edit_spotify_not_recognised">That is not a Spotify link, so it will be cleared when you save. Copy a track, album or playlist link from Spotify\'s share menu.</string>
     <string name="alarm_edit_radio_hint">Streams internet radio as the alarm sound and falls back to the default ringtone on failure. The address has to be https.</string>
     <string name="alarm_edit_emergency_alert">Emergency contact alert</string>
     <string name="alarm_edit_emergency_phone">Emergency phone number</string>

@@ -81,7 +81,9 @@ data class AlarmEditUiState(
     // v1.2.0 new features
     val challengeChain: String = "",
     val progressiveSnooze: Boolean = false,
-    val backupSoundEnabled: Boolean = false,
+    // Matches Alarm.backupSoundEnabled so a new alarm opens with the safety
+    // net already armed.
+    val backupSoundEnabled: Boolean = true,
     val backupSoundDelaySec: Int = 40,
     val sunriseSimulation: Boolean = false,
     val sunriseMinutes: Int = 15,
