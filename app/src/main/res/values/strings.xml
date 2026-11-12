@@ -323,7 +323,6 @@
     <string name="alarm_edit_holidays">Holidays</string>
     <string name="alarm_edit_spotify">Spotify ringtone</string>
     <string name="alarm_edit_hue">Philips Hue sunrise</string>
-    <string name="alarm_edit_mission_chain">Mission chaining</string>
     <string name="alarm_edit_anti_snooze">Anti-snooze</string>
     <string name="alarm_edit_sunrise">Sunrise simulation</string>
     <string name="alarm_edit_internet_radio">Internet radio</string>
@@ -336,7 +335,7 @@
     <string name="alarm_edit_section_vibration_description">Control how physical feedback supports the ring pattern.</string>
     <string name="alarm_edit_section_snooze_description">Decide how much room this alarm gives you to delay getting up.</string>
     <string name="alarm_edit_section_upcoming_description">Review the next scheduled rings and any vacation skips.</string>
-    <string name="alarm_edit_section_challenge_description">Add a wake-up task so dismissing the alarm takes real intent.</string>
+    <string name="alarm_edit_section_challenge_description">Add a wake-up task, or a chain of them, so dismissing the alarm takes real intent.</string>
     <string name="alarm_edit_section_location_description">Keep Dismiss locked until the phone leaves the saved area.</string>
     <string name="alarm_edit_section_wake_effects_description">Layer in extra visual or physical cues to make waking up harder to ignore.</string>
     <string name="alarm_edit_section_announcement_description">Let the alarm speak useful context once you are up.</string>
@@ -347,7 +346,6 @@
     <string name="alarm_edit_section_dismiss_action">After you dismiss</string>
     <string name="alarm_edit_section_dismiss_action_description">Kick off one automation the moment this alarm is dismissed.</string>
     <string name="alarm_edit_section_hue_description">Coordinate bedside lighting with the alarm for a gentler rise.</string>
-    <string name="alarm_edit_section_chain_description">Stack multiple wake-up steps when one challenge is not enough.</string>
     <string name="alarm_edit_section_anti_snooze_description">Add guardrails that make repeated delay harder.</string>
     <string name="alarm_edit_section_sunrise_description">Blend the screen into a brighter pre-wake color transition.</string>
     <string name="alarm_edit_section_radio_description">Wake up to a live stream instead of a local ringtone.</string>

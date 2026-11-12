@@ -103,10 +103,9 @@ internal enum class AlarmEditorSection(
     // under the snooze settings it modifies.
     ANTI_SNOOZE(AlarmEditorPage.DISMISS, R.string.alarm_edit_anti_snooze, R.string.alarm_edit_section_anti_snooze_description),
     UPCOMING(AlarmEditorPage.SCHEDULE, R.string.alarm_edit_upcoming_dates, R.string.alarm_edit_section_upcoming_description),
+    // Holds the chain too: a chain replaces the single challenge, so both
+    // sit in one card where neither can be missed.
     DISMISS_CHALLENGE(AlarmEditorPage.DISMISS, R.string.dismiss_challenge, R.string.alarm_edit_section_challenge_description),
-    // Directly after the challenge picker: a chain replaces the single
-    // challenge, which was not discoverable with a card in between.
-    CHAIN(AlarmEditorPage.DISMISS, R.string.alarm_edit_mission_chain, R.string.alarm_edit_section_chain_description),
     LOCATION(AlarmEditorPage.DISMISS, R.string.alarm_edit_location_lock, R.string.alarm_edit_section_location_description),
     WAKE_EFFECTS(AlarmEditorPage.WAKE, R.string.alarm_edit_wake_effects, R.string.alarm_edit_section_wake_effects_description),
     ANNOUNCEMENT(AlarmEditorPage.WAKE, R.string.alarm_edit_announcement, R.string.alarm_edit_section_announcement_description),

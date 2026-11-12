@@ -279,7 +279,6 @@
     <string name="alarm_edit_holidays">祝日</string>
     <string name="alarm_edit_spotify">Spotifyの着信音</string>
     <string name="alarm_edit_hue">Philips Hue サンライズ</string>
-    <string name="alarm_edit_mission_chain">ミッションチェーン</string>
     <string name="alarm_edit_anti_snooze">アンチスヌーズ</string>
     <string name="alarm_edit_sunrise">サンライズシミュレーション</string>
     <string name="alarm_edit_internet_radio">インターネットラジオ</string>
@@ -292,7 +291,7 @@
     <string name="alarm_edit_section_vibration_description">バイブレーションの動作。</string>
     <string name="alarm_edit_section_snooze_description">スヌーズ間隔。</string>
     <string name="alarm_edit_section_upcoming_description">次の鳴動日・休暇スキップ。</string>
-    <string name="alarm_edit_section_challenge_description">停止前の起床タスク。</string>
+    <string name="alarm_edit_section_challenge_description">停止前の起床タスク。複数を順番につなげることもできます。</string>
     <string name="alarm_edit_section_location_description">エリア外まで停止をロック。</string>
     <string name="alarm_edit_section_wake_effects_description">視覚・物理エフェクトで起床を促す。</string>
     <string name="alarm_edit_section_announcement_description">起床後に時刻・日付・天気を読み上げ。</string>
@@ -301,7 +300,6 @@
     <string name="alarm_edit_section_holidays_description">祝日やカレンダーで印を付けた日の鳴動をスキップ。</string>
     <string name="alarm_edit_section_spotify_description">ミュージックサービスをアラーム音に。</string>
     <string name="alarm_edit_section_hue_description">照明を連動して穏やかに起こす。</string>
-    <string name="alarm_edit_section_chain_description">複数の起床ステップを順番に実行。</string>
     <string name="alarm_edit_section_anti_snooze_description">繰り返しスヌーズを防止。</string>
     <string name="alarm_edit_section_sunrise_description">起床前に明るい色へ変化。</string>
     <string name="alarm_edit_section_radio_description">ライブストリームをアラーム音に。</string>

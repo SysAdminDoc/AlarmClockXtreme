@@ -130,6 +130,21 @@ internal fun LazyListScope.alarmEditDismissSections(
                 }
             }
 
+            SettingsRow(
+                label = stringResource(R.string.alarm_edit_progressive_snooze),
+                trailing = {
+                    Switch(
+                        checked = state.progressiveSnooze,
+                        onCheckedChange = viewModel::updateProgressiveSnooze,
+                        colors = appSwitchColors()
+                    )
+                }
+            )
+            SettingsHint(
+                stringResource(R.string.alarm_edit_progressive_snooze_hint),
+                tone = HintTone.Neutral
+            )
+
             var showSnoozeLimitMenu by remember { mutableStateOf(false) }
             SettingsRow(label = stringResource(R.string.alarm_edit_snooze_limit)) {
                 Box {
@@ -164,21 +179,6 @@ internal fun LazyListScope.alarmEditDismissSections(
             }
             SettingsHint(
                 stringResource(R.string.alarm_edit_snooze_limit_hint),
-                tone = HintTone.Neutral
-            )
-
-            SettingsRow(
-                label = stringResource(R.string.alarm_edit_progressive_snooze),
-                trailing = {
-                    Switch(
-                        checked = state.progressiveSnooze,
-                        onCheckedChange = viewModel::updateProgressiveSnooze,
-                        colors = appSwitchColors()
-                    )
-                }
-            )
-            SettingsHint(
-                stringResource(R.string.alarm_edit_progressive_snooze_hint),
                 tone = HintTone.Neutral
             )
         } else {
@@ -470,10 +470,10 @@ internal fun LazyListScope.alarmEditDismissSections(
                 )
             }
         }
-    }
 
-    // v1.2.0: Mission Chaining
-    SettingsSection(editorPage, AlarmEditorSection.CHAIN) {
+        // A chain replaces the single challenge above, so it lives in the
+        // same card instead of a section of its own.
+        HorizontalDivider(color = TextMuted.copy(alpha = 0.16f))
         val chainItems = state.challengeChain.toChallengeChainList()
         SettingsRow(
             label = stringResource(R.string.alarm_edit_challenge_chain),

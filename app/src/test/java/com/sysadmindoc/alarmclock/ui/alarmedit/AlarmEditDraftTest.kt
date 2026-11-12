@@ -99,7 +99,6 @@ class AlarmEditDraftTest {
             AlarmEditorSection.SPOTIFY to AlarmEditorPage.INTEGRATIONS,
             AlarmEditorSection.DISMISS_ACTION to AlarmEditorPage.INTEGRATIONS,
             AlarmEditorSection.HUE to AlarmEditorPage.INTEGRATIONS,
-            AlarmEditorSection.CHAIN to AlarmEditorPage.DISMISS,
             AlarmEditorSection.ANTI_SNOOZE to AlarmEditorPage.DISMISS,
             AlarmEditorSection.SUNRISE to AlarmEditorPage.WAKE,
             AlarmEditorSection.RADIO to AlarmEditorPage.INTEGRATIONS,
