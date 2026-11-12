@@ -2292,4 +2292,21 @@
     <string name="news_feed_npr_short">ニュース</string>
     <string name="news_feed_hn">Hacker News: フロントページ</string>
     <string name="news_feed_hn_short">フロントページ</string>
+    <string-array name="motivational_quotes">
+        <item>前に進む秘訣は、まず始めることです。</item>
+        <item>今日は新しい始まり。精一杯楽しみましょう。</item>
+        <item>未来は今日の行動でつくられます。</item>
+        <item>起きて、新しく始めて、毎日のチャンスを見つけよう。</item>
+        <item>毎朝、新しい可能性がやってきます。</item>
+        <item>未来の自分が感謝するようなことを、今日ひとつやろう。</item>
+        <item>素晴らしい仕事をする唯一の方法は、自分の仕事を愛することです。</item>
+        <item>できると信じれば、もう半分は達成しています。</item>
+        <item>成功は終わりではなく、失敗は致命的ではない。大切なのは続ける勇気です。</item>
+        <item>新しいことを始めるのに最適な時は、今です。</item>
+        <item>新しい目標を立てたり、新しい夢を見たりするのに、遅すぎることはありません。</item>
+        <item>今日の行動が、これからの毎日を良くします。</item>
+        <item>今いる場所から始めよう。持っているものを使おう。できることをやろう。</item>
+        <item>止まらない限り、どんなにゆっくり進んでもかまいません。</item>
+        <item>自分の行動が違いを生むと信じて動こう。本当にそうなのだから。</item>
+    </string-array>
 </resources>
