@@ -162,6 +162,9 @@ class NextAlarmNotifier @Inject constructor(
                 if (showAt != scheduledShowAt) scheduleShowWakeup(showAt)
                 delay(untilShown.coerceAtMost(HIDDEN_RECHECK_MS))
             } else {
+                // A wakeup left from a longer lead (or "Always" chosen after
+                // one) would only wake the phone to re-post what's showing.
+                cancelShowWakeup()
                 showNotification(alarm, settings)
                 delay(NextAlarmNotificationTiming.millisUntilNextRefresh(now, alarm.nextTriggerTime))
             }
