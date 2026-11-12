@@ -1819,9 +1819,8 @@
     <plurals name="alarmfiring_more_checks_left">
         <item quantity="other">残り %1$d 回のチェック</item>
     </plurals>
-    <plurals name="alarmlist_challenge_count">
-        <item quantity="other">%1$d 個のチャレンジ</item>
-    </plurals>
+    <string name="alarmlist_chain_repeat">%1$s ×%2$d</string>
+    <string name="alarmlist_chain_repeat_group">（%1$s）×%2$d</string>
     <string name="alarmlist_paused_until_vacation_ends">休暇が終わるまで一時停止中</string>
     <string name="alarmlist_skipped_by_calendar">スキップ: %1$s</string>
     <string name="bedtime_service_unavailable">サービス利用不可</string>

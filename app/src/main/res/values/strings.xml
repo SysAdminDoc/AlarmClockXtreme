@@ -1906,10 +1906,8 @@
         <item quantity="one">%1$d more check left</item>
         <item quantity="other">%1$d more checks left</item>
     </plurals>
-    <plurals name="alarmlist_challenge_count">
-        <item quantity="one">%1$d challenge</item>
-        <item quantity="other">%1$d challenges</item>
-    </plurals>
+    <string name="alarmlist_chain_repeat">%1$s ×%2$d</string>
+    <string name="alarmlist_chain_repeat_group">(%1$s) ×%2$d</string>
     <string name="alarmlist_paused_until_vacation_ends">Paused until vacation ends</string>
     <string name="alarmlist_skipped_by_calendar">Skipped: %1$s</string>
     <string name="bedtime_service_unavailable">service unavailable</string>

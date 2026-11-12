@@ -1713,7 +1713,21 @@ internal fun Alarm.challengeChainSteps(): List<String> {
 }
 
 /**
+ * How many times [challengeChainSteps] run back to back, 1 when there is
+ * nothing to run. The firing screen clamps the same way.
+ */
+internal fun Alarm.challengeChainRounds(): Int =
+    if (challengeChainSteps().isEmpty()) {
+        1
+    } else {
+        challengeRepeatCount.coerceIn(1, Alarm.MAX_CHALLENGE_REPEAT_COUNT)
+    }
+
+/**
  * Card-sized summary of [challengeChainSteps], or null when there is none.
+ *
+ * Every step is named in order, so a long chain reads as what it is instead
+ * of a bare count, and a repeated chain carries its round count.
  *
  * Composable because the step names come from the same resources the alarm
  * editor uses; the private copy this used to keep named the same challenges
@@ -1722,12 +1736,14 @@ internal fun Alarm.challengeChainSteps(): List<String> {
 @Composable
 internal fun Alarm.challengeChainLabel(): String? {
     val steps = challengeChainSteps()
+    if (steps.isEmpty()) return null
+    // joinToString takes a non-inline lambda, so resolve the names first.
+    val chain = steps.map { it.toAlarmChallengeSummary() }.joinToString(" → ")
+    val rounds = challengeChainRounds()
     return when {
-        steps.isEmpty() -> null
-        steps.size > 3 ->
-            pluralStringResource(R.plurals.alarmlist_challenge_count, steps.size, steps.size)
-        // joinToString takes a non-inline lambda, so resolve the names first.
-        else -> steps.map { it.toAlarmChallengeSummary() }.joinToString(" · ")
+        rounds <= 1 -> chain
+        steps.size == 1 -> stringResource(R.string.alarmlist_chain_repeat, chain, rounds)
+        else -> stringResource(R.string.alarmlist_chain_repeat_group, chain, rounds)
     }
 }
 
