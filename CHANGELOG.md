@@ -12,6 +12,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - An alarm can skip any day where one of your calendar events has a word or tag you pick in its title, like #nowake. Delete the event and the alarm comes back (#60).
 - Snooze can be switched off for a single alarm. The Snooze button and its notification action go away, and flipping or covering the phone or pressing a volume key won't snooze it (#49).
 - A dismiss challenge, or a whole chain of them, can repeat up to ten times with a fresh puzzle each round. The ringing screen shows which round you're on.
+- Test now rings an alarm right away with its own sound, challenges, snooze and wake check. It's in the alarm's menu and in the editor, and it leaves the schedule, your history, webhooks and Guardian Angel alone (#62).
+- The sunrise light feature works with IKEA lights on a DIRIGERA hub. Pair the hub in Settings with a press of its button and pick your lights, and they fade up from warm white before the alarm rings (#63).
 
 ### Changed
 
