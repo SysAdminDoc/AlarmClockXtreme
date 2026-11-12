@@ -305,7 +305,8 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
             "nfcAlpha", "sheep-drift", "sheep-drift-value", "icon_scale", "loading-card",
             "loading-alpha", "skeleton-block", "skeleton-alpha", "funnel", "funnel-rotation",
             "funnel-drift", "glowAlpha", "burnInDrift", "driftX", "driftY", "timer-pulse",
-            "key-press-scale", "barcodeScan", "scanLine", "dotWidth\$index"
+            "key-press-scale", "barcodeScan", "scanLine", "dotWidth\$index",
+            "driftPhaseX", "driftPhaseY"
         )
         val animationLabelPattern = Regex("""\blabel\s*=\s*"([^"\r\n]*)"""")
         // What is left once every `$x` and `${...}` is removed: only that part
@@ -313,8 +314,9 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
         val interpolation = Regex("""\$\{[^}]*\}|\$[A-Za-z_][A-Za-z0-9_]*""")
         val wireConstant = Regex("""^[A-Z0-9_]+$""")
         // A URL is an address, not copy. Translating "https://www.windy.com/..."
-        // would break the radar card rather than localise it.
-        val urlLiteral = Regex("""^[A-Za-z][A-Za-z0-9+.\-]*://""")
+        // would break the radar card rather than localise it. Spotify's own
+        // URIs ("spotify:playlist:<id>") have no "//" but are addresses too.
+        val urlLiteral = Regex("""^(?:[A-Za-z][A-Za-z0-9+.\-]*://|spotify:)""")
         // SimpleDateFormat / DateTimeFormatter patterns are not prose.
         val dateFormatPattern = Regex("""^[hHmMsSaEdDMyLZzGwWkKubB:./,•\s'\-]+$""")
         // A literal holding a nested one ("${String.format("%02d", n)}") cannot be
