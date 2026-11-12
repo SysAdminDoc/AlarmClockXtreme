@@ -197,6 +197,7 @@ class SupportExportManager @Inject constructor(
                     showNewsTab = appSettings.showNewsTab,
                     webhookEnabled = appSettings.webhookEnabled,
                     hueBridgeConfigured = appSettings.hueBridgeIp.isNotBlank(),
+                    dirigeraHubPaired = appSettings.dirigeraAccessToken.isNotBlank(),
                     healthConnectEnabled = appSettings.healthConnectEnabled,
                     learnedCommuteRouteCount = commuteHistorySummary.routeCount,
                     learnedCommuteSampleCount = commuteHistorySummary.sampleCount

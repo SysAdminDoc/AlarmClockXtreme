@@ -348,6 +348,7 @@ object SupportDiagnosticsFormatter {
         showNewsTab: Boolean = false,
         webhookEnabled: Boolean = false,
         hueBridgeConfigured: Boolean = false,
+        dirigeraHubPaired: Boolean = false,
         healthConnectEnabled: Boolean = false,
         learnedCommuteRouteCount: Int = 0,
         learnedCommuteSampleCount: Int = 0
@@ -442,6 +443,7 @@ object SupportDiagnosticsFormatter {
             appendLine("- News feed: ${if (showNewsTab) "active" else "off"}")
             appendLine("- Webhook: ${if (webhookEnabled) "active" else "off"}")
             appendLine("- Hue bridge: ${if (hueBridgeConfigured) "configured" else "off"}")
+            appendLine("- IKEA DIRIGERA hub: ${if (dirigeraHubPaired) "paired" else "off"}")
             appendLine("- Health Connect: ${if (healthConnectEnabled) "active" else "off"}")
             appendLine("- Learned commute routes: ${learnedCommuteRouteCount.coerceAtLeast(0)}")
             appendLine("- Learned commute samples: ${learnedCommuteSampleCount.coerceAtLeast(0)}")
@@ -451,7 +453,7 @@ object SupportDiagnosticsFormatter {
             appendLine()
             appendLine("Privacy note")
             appendLine("This bundle is generated locally and is not uploaded by the app.")
-            appendLine("It omits alarm labels, custom media URIs, internet-radio URLs, Spotify URIs, Hue/webhook secrets, Wi-Fi/location/contact values, learned commute route keys, challenge reference values, Health Connect records, raw audio, and per-minute local motion buckets.")
+            appendLine("It omits alarm labels, custom media URIs, internet-radio URLs, Spotify URIs, Hue/DIRIGERA/webhook secrets, Wi-Fi/location/contact values, learned commute route keys, challenge reference values, Health Connect records, raw audio, and per-minute local motion buckets.")
         }
     }
 

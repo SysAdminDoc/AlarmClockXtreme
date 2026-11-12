@@ -38,6 +38,11 @@ import com.sysadmindoc.alarmclock.data.support.SupportExportManager
 import com.sysadmindoc.alarmclock.domain.AlarmMuteRiskPolicy
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.LongPressThreshold
+import com.sysadmindoc.alarmclock.integration.dirigera.DirigeraClient
+import com.sysadmindoc.alarmclock.integration.dirigera.DirigeraLight
+import com.sysadmindoc.alarmclock.integration.dirigera.DirigeraLightsResult
+import com.sysadmindoc.alarmclock.integration.dirigera.DirigeraPairResult
+import com.sysadmindoc.alarmclock.integration.dirigera.DirigeraTrustStore
 import com.sysadmindoc.alarmclock.integration.hue.HueBridgeClient
 import com.sysadmindoc.alarmclock.integration.hue.HueConnectionResult
 import com.sysadmindoc.alarmclock.integration.hue.HuePinResult
@@ -151,6 +156,17 @@ data class SettingsIncidentTimelineState(
     }
 }
 
+/** Pairing and light picking for the IKEA DIRIGERA card. */
+data class DirigeraUiState(
+    val isBusy: Boolean = false,
+    /** The hub handed out a pairing code and is waiting for its button. */
+    val waitingForButton: Boolean = false,
+    val message: String? = null,
+    val succeeded: Boolean? = null,
+    val lights: List<DirigeraLight> = emptyList(),
+    val lightsLoaded: Boolean = false
+)
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     application: Application,
@@ -164,6 +180,8 @@ class SettingsViewModel @Inject constructor(
     private val alarmIncidentRepository: AlarmIncidentRepository,
     private val hueBridgeClient: HueBridgeClient,
     private val hueTrustStore: HueTrustStore,
+    private val dirigeraClient: DirigeraClient,
+    private val dirigeraTrustStore: DirigeraTrustStore,
     private val commuteHistoryStore: CommuteHistoryStore,
     private val fossifyImportManager: FossifyImportManager
 ) : AndroidViewModel(application) {
@@ -179,6 +197,8 @@ class SettingsViewModel @Inject constructor(
     )
     private val _webhookTestState = MutableStateFlow(IntegrationTestState())
     private val _hueTestState = MutableStateFlow(IntegrationTestState())
+    private val _dirigeraState = MutableStateFlow(DirigeraUiState())
+    val dirigeraState: StateFlow<DirigeraUiState> = _dirigeraState.asStateFlow()
     private val _wakeReadinessState = MutableStateFlow(WakeReadinessState.from(application))
     private val _healthConnectSleepState = MutableStateFlow(HealthConnectSleepSummary())
 
@@ -474,6 +494,146 @@ class SettingsViewModel @Inject constructor(
                 _hueTestState.value = IntegrationTestState()
             }
         }
+    }
+
+    // IKEA DIRIGERA. Changing the address keeps the pairing: if it now points
+    // at a different hub, the certificate pin says so on the next call.
+    fun updateDirigeraHubIp(ip: String) = updateSettings { it.copy(dirigeraHubIp = ip.trim()) }
+
+    fun pairDirigera() {
+        if (_dirigeraState.value.isBusy) return
+        _dirigeraState.update {
+            it.copy(
+                isBusy = true,
+                waitingForButton = false,
+                message = appContext.getString(R.string.settings_dirigera_connecting),
+                succeeded = null
+            )
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            if (!LocalNetworkPermission.isGranted(appContext)) {
+                finishDirigera(R.string.settings_dirigera_needs_local_network, succeeded = false)
+                return@launch
+            }
+            val settings = preferencesManager.getCurrentSettings()
+            val result = dirigeraClient.pair(
+                rawHost = settings.dirigeraHubIp,
+                session = dirigeraClient.openSession(settings.dirigeraCertFingerprint),
+                clientName = DirigeraClient.CLIENT_NAME,
+                onPressButton = {
+                    _dirigeraState.update {
+                        it.copy(
+                            waitingForButton = true,
+                            message = appContext.getString(R.string.settings_dirigera_press_button)
+                        )
+                    }
+                }
+            )
+            when (result) {
+                is DirigeraPairResult.Paired -> {
+                    when (result.observedFingerprint?.let { dirigeraTrustStore.rememberFirstUse(it) }) {
+                        is HuePinResult.Accepted -> {
+                            preferencesManager.update { it.copy(dirigeraAccessToken = result.accessToken) }
+                            loadDirigeraLightsNow(R.string.settings_dirigera_paired)
+                        }
+                        is HuePinResult.Changed ->
+                            finishDirigera(R.string.settings_dirigera_cert_changed, succeeded = false)
+                        else -> finishDirigera(R.string.settings_dirigera_unreachable, succeeded = false)
+                    }
+                }
+                DirigeraPairResult.ButtonNotPressed ->
+                    finishDirigera(R.string.settings_dirigera_button_timeout, succeeded = false)
+                is DirigeraPairResult.CertificateChanged ->
+                    finishDirigera(R.string.settings_dirigera_cert_changed, succeeded = false)
+                DirigeraPairResult.InvalidHost ->
+                    finishDirigera(R.string.settings_dirigera_ip_not_local, succeeded = false)
+                is DirigeraPairResult.Failed ->
+                    finishDirigera(R.string.settings_dirigera_unreachable, succeeded = false)
+            }
+        }
+    }
+
+    fun loadDirigeraLights() {
+        if (_dirigeraState.value.isBusy) return
+        _dirigeraState.update { it.copy(isBusy = true) }
+        viewModelScope.launch(Dispatchers.IO) { loadDirigeraLightsNow() }
+    }
+
+    private suspend fun loadDirigeraLightsNow(@StringRes successMessage: Int? = null) {
+        if (!LocalNetworkPermission.isGranted(appContext)) {
+            finishDirigera(R.string.settings_dirigera_needs_local_network, succeeded = false)
+            return
+        }
+        val settings = preferencesManager.getCurrentSettings()
+        val result = dirigeraClient.listLights(
+            settings.dirigeraHubIp,
+            settings.dirigeraAccessToken,
+            dirigeraClient.openSession(settings.dirigeraCertFingerprint)
+        )
+        when (result) {
+            is DirigeraLightsResult.Loaded -> {
+                when (result.observedFingerprint?.let { dirigeraTrustStore.rememberFirstUse(it) }) {
+                    is HuePinResult.Accepted -> Unit
+                    is HuePinResult.Changed -> {
+                        finishDirigera(R.string.settings_dirigera_cert_changed, succeeded = false)
+                        return
+                    }
+                    else -> {
+                        finishDirigera(R.string.settings_dirigera_lights_failed, succeeded = false)
+                        return
+                    }
+                }
+                val empty = result.lights.isEmpty()
+                _dirigeraState.update {
+                    it.copy(
+                        isBusy = false,
+                        waitingForButton = false,
+                        lights = result.lights,
+                        lightsLoaded = true,
+                        message = when {
+                            empty -> appContext.getString(R.string.settings_dirigera_no_lights)
+                            successMessage != null -> appContext.getString(successMessage)
+                            else -> null
+                        },
+                        succeeded = if (empty) false else successMessage?.let { true }
+                    )
+                }
+            }
+            DirigeraLightsResult.Unauthorized ->
+                finishDirigera(R.string.settings_dirigera_unauthorized, succeeded = false)
+            is DirigeraLightsResult.CertificateChanged ->
+                finishDirigera(R.string.settings_dirigera_cert_changed, succeeded = false)
+            is DirigeraLightsResult.Failed ->
+                finishDirigera(R.string.settings_dirigera_lights_failed, succeeded = false)
+        }
+    }
+
+    private fun finishDirigera(@StringRes message: Int, succeeded: Boolean) {
+        _dirigeraState.update {
+            it.copy(
+                isBusy = false,
+                waitingForButton = false,
+                message = appContext.getString(message),
+                succeeded = succeeded
+            )
+        }
+    }
+
+    fun setDirigeraLightSelected(id: String, selected: Boolean) = updateSettings { current ->
+        val ids = DirigeraClient.parseLightIds(current.dirigeraLightIds)
+        val next = if (selected) (ids + id).distinct() else ids - id
+        current.copy(dirigeraLightIds = next.joinToString(","))
+    }
+
+    /**
+     * Forgets the pairing on this phone. The hub keeps its entry for the app
+     * until it is removed in the IKEA app, which does no harm.
+     */
+    fun unpairDirigera() {
+        updateSettings {
+            it.copy(dirigeraAccessToken = "", dirigeraCertFingerprint = "", dirigeraLightIds = "")
+        }
+        _dirigeraState.value = DirigeraUiState()
     }
 
     fun setVacationMode(enabled: Boolean, startMillis: Long = 0, endMillis: Long = 0) {

@@ -36,6 +36,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import com.sysadmindoc.alarmclock.integration.dirigera.DirigeraClient
 import com.sysadmindoc.alarmclock.integration.hue.HueBridgeClient
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -64,6 +65,7 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
@@ -547,6 +549,149 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
 }
 
 /**
+ * IKEA DIRIGERA hub: pairing by the button on the hub, then a pick of which
+ * lights the per-alarm sunrise brightens alongside any Hue lights.
+ */
+@Composable
+internal fun IkeaDirigeraSection(state: SettingsUiState, viewModel: SettingsViewModel) {
+    val dirigera by viewModel.dirigeraState.collectAsStateWithLifecycle()
+    val settings = state.settings
+    val paired = settings.dirigeraAccessToken.isNotBlank()
+    val localNetworkPermissionMissing = LocalNetworkPermission.isRuntimeRequired() &&
+        settings.dirigeraHubIp.isNotBlank() &&
+        !state.hasLocalNetworkPermission
+    LaunchedEffect(paired, localNetworkPermissionMissing) {
+        if (paired && !localNetworkPermissionMissing && !dirigera.lightsLoaded) {
+            viewModel.loadDirigeraLights()
+        }
+    }
+    SettingsGroup(
+        title = stringResource(R.string.settings_dirigera_title),
+        description = stringResource(R.string.settings_dirigera_description)
+    ) {
+        val hostRejected = settings.dirigeraHubIp.isNotBlank() &&
+            DirigeraClient.sanitiseHost(settings.dirigeraHubIp) == null
+        BufferedSettingsTextField(
+            value = settings.dirigeraHubIp,
+            onCommit = viewModel::updateDirigeraHubIp,
+            label = { Text(stringResource(R.string.settings_dirigera_ip)) },
+            placeholder = { Text(stringResource(R.string.settings_dirigera_ip_placeholder)) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !dirigera.isBusy,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            isError = hostRejected,
+            supportingText = if (hostRejected) {
+                { Text(stringResource(R.string.settings_dirigera_ip_not_local)) }
+            } else {
+                null
+            }
+        )
+        if (localNetworkPermissionMissing) {
+            AppInlineNotice(
+                title = stringResource(R.string.settings_local_network_needed),
+                message = stringResource(R.string.settings_dirigera_network_description),
+                icon = Icons.Default.Link,
+                color = SnoozeYellow
+            )
+        }
+        if (paired) {
+            Text(
+                text = stringResource(R.string.settings_dirigera_lights),
+                style = MaterialTheme.typography.labelLarge,
+                color = TextSecondary
+            )
+            if (dirigera.isBusy && dirigera.lights.isEmpty()) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            val selectedIds = remember(settings.dirigeraLightIds) {
+                DirigeraClient.parseLightIds(settings.dirigeraLightIds).toSet()
+            }
+            dirigera.lights.forEach { light ->
+                val checked = light.id in selectedIds
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .toggleable(
+                            value = checked,
+                            enabled = !dirigera.isBusy,
+                            role = Role.Checkbox,
+                            onValueChange = { viewModel.setDirigeraLightSelected(light.id, it) }
+                        ),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(checked = checked, onCheckedChange = null, enabled = !dirigera.isBusy)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (light.isReachable) {
+                            light.name
+                        } else {
+                            stringResource(R.string.settings_dirigera_light_offline, light.name)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (light.isReachable) TextPrimary else TextMuted,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = dirigera.message
+                    ?: if (paired) "" else stringResource(R.string.settings_dirigera_pair_steps),
+                color = when {
+                    dirigera.isBusy -> MaterialTheme.colorScheme.primary
+                    dirigera.succeeded == true -> DismissGreen
+                    dirigera.succeeded == false -> AccentRed
+                    else -> TextMuted
+                },
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(modifier = Modifier.size(12.dp))
+            if (paired) {
+                TextButton(
+                    onClick = viewModel::loadDirigeraLights,
+                    enabled = !dirigera.isBusy && !localNetworkPermissionMissing
+                ) {
+                    Text(stringResource(R.string.settings_dirigera_refresh))
+                }
+                TextButton(onClick = viewModel::unpairDirigera, enabled = !dirigera.isBusy) {
+                    Text(stringResource(R.string.settings_dirigera_unpair))
+                }
+            } else {
+                OutlinedButton(
+                    onClick = viewModel::pairDirigera,
+                    enabled = settings.dirigeraHubIp.isNotBlank() &&
+                        !hostRejected &&
+                        !localNetworkPermissionMissing &&
+                        !dirigera.isBusy,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    if (dirigera.isBusy) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Icon(Icons.Default.Link, null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.settings_dirigera_pair))
+                }
+            }
+        }
+    }
+}
+
+/**
  * v1.13.2 (roadmap X1): Play builds request only Health Connect READ_SLEEP and
  * read recent sleep-session summaries for foreground Bedtime/Stats surfaces.
  * F-Droid keeps the preference for backup compatibility without shipping the
@@ -769,6 +914,15 @@ internal fun ConnectionsSection(state: SettingsUiState) {
                 enabled = true,
                 domain = stringResource(R.string.settings_connection_lan_domain, state.settings.hueBridgeIp),
                 dataSent = stringResource(R.string.settings_connection_hue_data),
+                offlineFallback = stringResource(R.string.settings_connection_sunrise_skipped)
+            ))
+        }
+        if (state.settings.dirigeraHubIp.isNotBlank()) {
+            add(ConnectionInfo(
+                name = stringResource(R.string.settings_connection_dirigera),
+                enabled = state.settings.dirigeraAccessToken.isNotBlank(),
+                domain = stringResource(R.string.settings_connection_lan_domain, state.settings.dirigeraHubIp),
+                dataSent = stringResource(R.string.settings_connection_dirigera_data),
                 offlineFallback = stringResource(R.string.settings_connection_sunrise_skipped)
             ))
         }

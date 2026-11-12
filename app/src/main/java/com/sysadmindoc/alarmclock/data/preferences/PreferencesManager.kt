@@ -101,6 +101,11 @@ data class AppSettings(
     val hueApiKey: String = "",
     val hueLightIds: String = "",         // Comma-separated Hue light IDs
     val hueBridgeCertFingerprint: String = "",  // SHA-256 hex of bridge TLS cert (TOFU)
+    // IKEA DIRIGERA hub, driven by the same per-alarm sunrise switch as Hue
+    val dirigeraHubIp: String = "",
+    val dirigeraAccessToken: String = "",       // Issued by the hub at pairing; never backed up
+    val dirigeraLightIds: String = "",          // Comma-separated DIRIGERA device IDs
+    val dirigeraCertFingerprint: String = "",   // SHA-256 hex of hub TLS cert (TOFU)
     // v1.2.0: Accent color (hex)
     val accentColor: String = "#5B9EF4",
     // v1.2.0: Adaptive challenge difficulty
@@ -255,6 +260,10 @@ private fun AppSettings.sanitized(): AppSettings {
         hueApiKey = hueApiKey.trim(),
         hueLightIds = hueLightIds.trim(),
         hueBridgeCertFingerprint = hueBridgeCertFingerprint.trim(),
+        dirigeraHubIp = dirigeraHubIp.trim(),
+        dirigeraAccessToken = dirigeraAccessToken.trim(),
+        dirigeraLightIds = dirigeraLightIds.trim(),
+        dirigeraCertFingerprint = dirigeraCertFingerprint.trim(),
         accentColor = normalizedAccent,
         calendarAutoAlarmMinutesBefore = calendarAutoAlarmMinutesBefore.coerceIn(0, 720),
         calendarCommuteBaselineMinutes = calendarCommuteBaselineMinutes.coerceIn(0, 240),
@@ -346,6 +355,10 @@ class PreferencesManager @Inject constructor(
         val HUE_API_KEY = stringPreferencesKey("hue_api_key")
         val HUE_LIGHT_IDS = stringPreferencesKey("hue_light_ids")
         val HUE_BRIDGE_CERT_FINGERPRINT = stringPreferencesKey("hue_bridge_cert_fingerprint")
+        val DIRIGERA_HUB_IP = stringPreferencesKey("dirigera_hub_ip")
+        val DIRIGERA_ACCESS_TOKEN = stringPreferencesKey("dirigera_access_token")
+        val DIRIGERA_LIGHT_IDS = stringPreferencesKey("dirigera_light_ids")
+        val DIRIGERA_CERT_FINGERPRINT = stringPreferencesKey("dirigera_cert_fingerprint")
         val ACCENT_COLOR = stringPreferencesKey("accent_color")
         val ADAPTIVE_DIFFICULTY = booleanPreferencesKey("adaptive_difficulty")
         val CALENDAR_AUTO_ALARM = booleanPreferencesKey("calendar_auto_alarm")
@@ -491,6 +504,10 @@ class PreferencesManager @Inject constructor(
         hueApiKey = this[Keys.HUE_API_KEY] ?: "",
         hueLightIds = this[Keys.HUE_LIGHT_IDS] ?: "",
         hueBridgeCertFingerprint = this[Keys.HUE_BRIDGE_CERT_FINGERPRINT] ?: "",
+        dirigeraHubIp = this[Keys.DIRIGERA_HUB_IP] ?: "",
+        dirigeraAccessToken = this[Keys.DIRIGERA_ACCESS_TOKEN] ?: "",
+        dirigeraLightIds = this[Keys.DIRIGERA_LIGHT_IDS] ?: "",
+        dirigeraCertFingerprint = this[Keys.DIRIGERA_CERT_FINGERPRINT] ?: "",
         accentColor = this[Keys.ACCENT_COLOR] ?: "#5B9EF4",
         adaptiveDifficultyEnabled = this[Keys.ADAPTIVE_DIFFICULTY] ?: false,
         calendarAutoAlarmEnabled = this[Keys.CALENDAR_AUTO_ALARM] ?: false,
@@ -581,6 +598,10 @@ class PreferencesManager @Inject constructor(
         this[Keys.HUE_API_KEY] = s.hueApiKey
         this[Keys.HUE_LIGHT_IDS] = s.hueLightIds
         this[Keys.HUE_BRIDGE_CERT_FINGERPRINT] = s.hueBridgeCertFingerprint
+        this[Keys.DIRIGERA_HUB_IP] = s.dirigeraHubIp
+        this[Keys.DIRIGERA_ACCESS_TOKEN] = s.dirigeraAccessToken
+        this[Keys.DIRIGERA_LIGHT_IDS] = s.dirigeraLightIds
+        this[Keys.DIRIGERA_CERT_FINGERPRINT] = s.dirigeraCertFingerprint
         this[Keys.ACCENT_COLOR] = s.accentColor
         this[Keys.ADAPTIVE_DIFFICULTY] = s.adaptiveDifficultyEnabled
         this[Keys.CALENDAR_AUTO_ALARM] = s.calendarAutoAlarmEnabled

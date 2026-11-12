@@ -171,6 +171,10 @@ data class SettingsBackup(
     val hueBridgeIp: String = "",
     val hueApiKey: String = "",
     val hueLightIds: String = "",
+    // The hub's access token and pinned certificate stay on the device: a
+    // restore has to pair again with a press of the hub button.
+    val dirigeraHubIp: String = "",
+    val dirigeraLightIds: String = "",
     // v1.2.0 settings
     val accentColor: String = "#5B9EF4",
     val adaptiveDifficultyEnabled: Boolean = false,
@@ -405,6 +409,9 @@ class BackupManager @Inject constructor(
                 if (settings.hueApiKey.isNotBlank()) {
                     add("Philips Hue API key")
                 }
+                if (settings.dirigeraHubIp.isNotBlank()) {
+                    add("IKEA DIRIGERA hub ${settings.dirigeraHubIp}")
+                }
                 if (settings.googleRoutesApiKey.isNotBlank()) {
                     add("Google Routes API key")
                 }
@@ -444,6 +451,8 @@ class BackupManager @Inject constructor(
                 hueBridgeIp = "",
                 hueApiKey = "",
                 hueLightIds = "",
+                dirigeraHubIp = "",
+                dirigeraLightIds = "",
                 googleRoutesApiKey = "",
                 // The app fetches and renders this feed unattended, so a
                 // crafted backup must not be able to point it somewhere else.
@@ -467,6 +476,9 @@ class BackupManager @Inject constructor(
                     settings.hueLightIds.isNotBlank()
                 ) {
                     add("Philips Hue bridge details and API key")
+                }
+                if (settings.dirigeraHubIp.isNotBlank() || settings.dirigeraLightIds.isNotBlank()) {
+                    add("IKEA DIRIGERA hub address and lights")
                 }
                 if (settings.newsFeedUrl.isCustomFeedUrl()) {
                     add("Custom news feed URL")
@@ -577,6 +589,8 @@ class BackupManager @Inject constructor(
                 hueBridgeIp = settings.hueBridgeIp,
                 hueApiKey = settings.hueApiKey,
                 hueLightIds = settings.hueLightIds,
+                dirigeraHubIp = settings.dirigeraHubIp,
+                dirigeraLightIds = settings.dirigeraLightIds,
                 accentColor = settings.accentColor,
                 adaptiveDifficultyEnabled = settings.adaptiveDifficultyEnabled,
                 calendarAutoAlarmEnabled = settings.calendarAutoAlarmEnabled,
@@ -820,6 +834,8 @@ class BackupManager @Inject constructor(
         hueBridgeIp = s.hueBridgeIp,
         hueApiKey = s.hueApiKey,
         hueLightIds = s.hueLightIds,
+        dirigeraHubIp = s.dirigeraHubIp,
+        dirigeraLightIds = s.dirigeraLightIds,
         accentColor = s.accentColor,
         adaptiveDifficultyEnabled = s.adaptiveDifficultyEnabled,
         calendarAutoAlarmEnabled = s.calendarAutoAlarmEnabled,

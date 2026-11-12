@@ -43,6 +43,11 @@ class BackupManagerSettingsDriftTest {
         // Accessibility behavior follows each device's display/animation
         // needs and Android system setting instead of migrating blindly.
         "reduceMotionAndFlashing",
+        // The DIRIGERA access token is a credential the hub issued to this
+        // install after a button press, and the certificate pin belongs to
+        // that pairing. A restore pairs again instead of carrying either.
+        "dirigeraAccessToken",
+        "dirigeraCertFingerprint",
     )
 
     @Test

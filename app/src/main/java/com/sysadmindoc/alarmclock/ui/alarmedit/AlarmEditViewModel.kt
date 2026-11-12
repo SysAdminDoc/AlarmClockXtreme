@@ -12,11 +12,13 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.service.AlarmTestRun
+import com.sysadmindoc.alarmclock.worker.SunriseLightHub
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -175,6 +177,12 @@ class AlarmEditViewModel @Inject constructor(
             )
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, _uiState.value)
+
+    /** Light hubs set up in Settings that the sunrise switch would drive. */
+    val sunriseHubs: StateFlow<List<SunriseLightHub>> = preferencesManager.settings
+        .map { SunriseLightHub.configured(it) }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     init {
         viewModelScope.launch {

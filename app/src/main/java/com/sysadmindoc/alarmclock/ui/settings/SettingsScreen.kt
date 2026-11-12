@@ -836,6 +836,9 @@ fun SettingsScreen(
             settingsItem("integrations-hue") {
                 PhilipsHueSection(state, viewModel)
             }
+            settingsItem("integrations-dirigera") {
+                IkeaDirigeraSection(state, viewModel)
+            }
             settingsItem("integrations-health") {
             HealthConnectSection(
                 state = state,
@@ -1648,6 +1651,7 @@ internal fun wakeReadinessSummary(state: SettingsUiState): String {
 internal fun requiresLocalNetworkAccess(state: SettingsUiState): Boolean {
     if (!LocalNetworkPermission.isRuntimeRequired()) return false
     return state.settings.hueBridgeIp.isNotBlank() ||
+        state.settings.dirigeraHubIp.isNotBlank() ||
         LocalNetworkPermission.isLikelyLocalEndpoint(state.settings.webhookUrl)
 }
 

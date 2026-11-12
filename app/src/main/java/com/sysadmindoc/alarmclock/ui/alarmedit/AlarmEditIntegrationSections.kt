@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -75,6 +76,7 @@ import com.sysadmindoc.alarmclock.util.PhotoMatcher
 import com.sysadmindoc.alarmclock.worker.GuardianEscalationPolicy
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
+import com.sysadmindoc.alarmclock.worker.SunriseLightHub
 import java.time.DayOfWeek
 import java.util.Locale
 
@@ -237,6 +239,26 @@ internal fun LazyListScope.alarmEditIntegrationSections(
                     }
                 }
             }
+        }
+        val sunriseHubs by viewModel.sunriseHubs.collectAsStateWithLifecycle()
+        if (sunriseHubs.isNotEmpty()) {
+            val hubNames = sunriseHubs.map { hub ->
+                stringResource(
+                    when (hub) {
+                        SunriseLightHub.HUE -> R.string.settings_connection_hue
+                        SunriseLightHub.DIRIGERA -> R.string.settings_connection_dirigera
+                    }
+                )
+            }
+            val locale = LocalConfiguration.current.locales[0]
+            SettingsHint(
+                stringResource(
+                    R.string.alarm_edit_sunrise_hubs,
+                    android.icu.text.ListFormatter.getInstance(locale).format(hubNames)
+                ),
+                tone = HintTone.Neutral
+            )
+        } else if (state.hueEnabled) {
             SettingsHint(
                 stringResource(R.string.alarm_edit_hue_hint),
                 tone = HintTone.Warning
