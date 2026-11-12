@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.worker
 
+import android.Manifest
+
 enum class GuardianSmsPath {
     INACTIVE,
     DIRECT_SMS,
@@ -24,6 +26,13 @@ data class GuardianReadiness(
 
     val needsUserAction: Boolean
         get() = needsSmsPermission || needsCallPermission
+
+    /** The runtime permissions to ask for, texts first since they go out first. */
+    val missingPermissions: List<String>
+        get() = buildList {
+            if (needsSmsPermission) add(Manifest.permission.SEND_SMS)
+            if (needsCallPermission) add(Manifest.permission.CALL_PHONE)
+        }
 }
 
 internal object GuardianEscalationPolicy {

@@ -664,6 +664,8 @@
     <string name="alarm_edit_guardian_direct_sms">Sends an emergency SMS automatically, then opens the call path if the alarm is not dismissed. %1$s</string>
     <string name="alarm_edit_guardian_needs_sms">F-Droid can send automatic SMS after SEND_SMS is allowed. Until then, it opens a prefilled SMS composer. %1$s</string>
     <string name="alarm_edit_guardian_composer">Opens a prefilled emergency SMS composer if the alarm is not dismissed, then falls back to call or dialer. %1$s</string>
+    <string name="alarm_edit_guardian_allow_sms">Allow automatic texts</string>
+    <string name="alarm_edit_guardian_allow_calls">Allow direct calls</string>
     <string name="alarm_edit_checklist_label">Checklist items (one per line)</string>
     <string name="alarm_edit_checklist_placeholder">Stretch\nDrink water\nBrush teeth</string>
     <string name="alarm_edit_checklist_hint">Shown as a checklist after dismissal on the morning briefing screen.</string>
@@ -935,7 +937,7 @@
     <string name="settings_webhook_blocked_description">Plain HTTP webhooks are blocked. Use an HTTPS endpoint or a local HTTPS bridge for Home Assistant or Tasker.</string>
     <string name="settings_local_network_needed">Local network access needed</string>
     <string name="settings_local_network_allow">Allow access</string>
-    <string name="settings_local_network_open_settings">Open app settings</string>
+    <string name="permission_open_app_settings">Open app settings</string>
     <string name="settings_webhook_network_description">Android 17+ requires local network access before this LAN webhook can be tested or fired.</string>
     <string name="settings_webhook_payload_description">Every payload carries a schema version, an event id, when it happened, when the alarm was due, the display time and whether the label was included.</string>
     <string name="settings_testing">Testing</string>

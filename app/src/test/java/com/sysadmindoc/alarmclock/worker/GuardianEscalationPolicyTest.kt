@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.worker
 
+import android.Manifest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -83,6 +84,45 @@ class GuardianEscalationPolicyTest {
         assertFalse(readiness.hasEnabledAlarms)
         assertFalse(readiness.needsCallPermission)
         assertFalse(readiness.needsUserAction)
+    }
+
+    @Test
+    fun fdroidWithoutGrantsAsksForTextsThenCalls() {
+        val readiness = GuardianEscalationPolicy.readiness(
+            flavor = GuardianEscalationPolicy.FDROID_FLAVOR,
+            enabledAlarmCount = 1,
+            hasSendSmsPermission = false,
+            hasCallPhonePermission = false
+        )
+
+        assertEquals(
+            listOf(Manifest.permission.SEND_SMS, Manifest.permission.CALL_PHONE),
+            readiness.missingPermissions
+        )
+    }
+
+    @Test
+    fun playNeverAsksForTexts() {
+        val readiness = GuardianEscalationPolicy.readiness(
+            flavor = "play",
+            enabledAlarmCount = 1,
+            hasSendSmsPermission = false,
+            hasCallPhonePermission = false
+        )
+
+        assertEquals(listOf(Manifest.permission.CALL_PHONE), readiness.missingPermissions)
+    }
+
+    @Test
+    fun nothingToAskForOnceBothAreGranted() {
+        val readiness = GuardianEscalationPolicy.readiness(
+            flavor = GuardianEscalationPolicy.FDROID_FLAVOR,
+            enabledAlarmCount = 1,
+            hasSendSmsPermission = true,
+            hasCallPhonePermission = true
+        )
+
+        assertTrue(readiness.missingPermissions.isEmpty())
     }
 
     @Test

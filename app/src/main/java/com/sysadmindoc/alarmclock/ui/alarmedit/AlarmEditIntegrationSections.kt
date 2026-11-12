@@ -53,6 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.R
@@ -69,6 +72,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
+import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestButton
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.*
 import com.sysadmindoc.alarmclock.util.LocationHelper
@@ -342,22 +346,50 @@ internal fun LazyListScope.alarmEditIntegrationSections(
                     }
                 }
             }
-            val guardianReadiness = GuardianEscalationPolicy.readiness(
-                flavor = BuildConfig.FLAVOR,
-                enabledAlarmCount = 1,
-                hasSendSmsPermission = ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.SEND_SMS
-                ) == PackageManager.PERMISSION_GRANTED,
-                hasCallPhonePermission = ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.CALL_PHONE
-                ) == PackageManager.PERMISSION_GRANTED
-            )
+            // Re-read the grants after each answer and on return from App info.
+            val lifecycleOwner = LocalLifecycleOwner.current
+            var guardianPermissionCheck by remember { mutableIntStateOf(0) }
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) guardianPermissionCheck++
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+            val guardianReadiness = remember(guardianPermissionCheck) {
+                GuardianEscalationPolicy.readiness(
+                    flavor = BuildConfig.FLAVOR,
+                    enabledAlarmCount = 1,
+                    hasSendSmsPermission = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.SEND_SMS
+                    ) == PackageManager.PERMISSION_GRANTED,
+                    hasCallPhonePermission = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.CALL_PHONE
+                    ) == PackageManager.PERMISSION_GRANTED
+                )
+            }
             SettingsHint(
                 guardianEditHint(guardianReadiness),
                 tone = if (guardianReadiness.needsUserAction) HintTone.Warning else HintTone.Danger
             )
+            guardianReadiness.missingPermissions.forEach { permission ->
+                PermissionRequestButton(
+                    permission = permission,
+                    label = stringResource(
+                        if (permission == Manifest.permission.SEND_SMS) {
+                            R.string.alarm_edit_guardian_allow_sms
+                        } else {
+                            R.string.alarm_edit_guardian_allow_calls
+                        }
+                    ),
+                    onResult = { guardianPermissionCheck++ },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }

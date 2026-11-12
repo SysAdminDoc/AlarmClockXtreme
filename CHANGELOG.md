@@ -37,6 +37,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Back from a Settings page like Utilities returns to the Settings list instead of leaving Settings.
 - After a snooze, opening the app no longer brings back the ringing screen for the snoozed alarm. Until the app was restarted it also blocked Test now, which said an alarm was still ringing.
 - On Android 17 the "Local network access needed" notice under Philips Hue, IKEA DIRIGERA and LAN webhooks has an Allow access button now. Nothing in the app asked for that permission, so those integrations couldn't connect unless you found the switch in Android's settings yourself.
+- Guardian Angel can ask for its permissions from the alarm editor. "Allow direct calls" lets it call your emergency contact instead of only opening the dialer, and the F-Droid build also gets "Allow automatic texts" so the alert text goes out on its own. The app never asked for either one before, so Settings kept counting Guardian Angel as not ready with no way to fix it short of Android's app settings.
 
 ## [1.15.35] - 2026-09-05
 

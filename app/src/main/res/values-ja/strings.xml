@@ -628,6 +628,8 @@
     <string name="alarm_edit_guardian_direct_sms">メッセージを自動送信し、停止されない場合は電話をかけます。%1$s</string>
     <string name="alarm_edit_guardian_needs_sms">許可されるとメッセージを自動送信します。未許可の場合は作成画面を開きます。%1$s</string>
     <string name="alarm_edit_guardian_composer">停止されない場合はメッセージ作成画面を開き、その後電話へ切り替えます。%1$s</string>
+    <string name="alarm_edit_guardian_allow_sms">メッセージの自動送信を許可</string>
+    <string name="alarm_edit_guardian_allow_calls">直接通話を許可</string>
     <string name="alarm_edit_checklist_label">チェックリスト項目 (1行に1つ)</string>
     <string name="alarm_edit_checklist_placeholder">ストレッチ\n水を飲む\n歯を磨く</string>
     <string name="alarm_edit_checklist_hint">停止後、モーニングブリーフィングにチェックリストを表示します。</string>
@@ -892,7 +894,7 @@
     <string name="settings_webhook_blocked_description">HTTP Webhookはブロックされます。HTTPSエンドポイント、またはHome Assistant・Tasker用のローカルHTTPSブリッジを使用してください。</string>
     <string name="settings_local_network_needed">ローカルネットワークへのアクセスが必要</string>
     <string name="settings_local_network_allow">アクセスを許可</string>
-    <string name="settings_local_network_open_settings">アプリの設定を開く</string>
+    <string name="permission_open_app_settings">アプリの設定を開く</string>
     <string name="settings_webhook_network_description">Android 17 以降では、LAN内のWebhookをテストまたは作動させる前に、ローカルネットワークへのアクセス権限が必要です。</string>
     <string name="settings_webhook_payload_description">すべてのペイロードには、スキーマバージョン、イベントID、発生時刻、アラーム予定時刻、表示時刻、およびラベルが含まれているかどうかの情報が含まれます。</string>
     <string name="settings_testing">テスト</string>
