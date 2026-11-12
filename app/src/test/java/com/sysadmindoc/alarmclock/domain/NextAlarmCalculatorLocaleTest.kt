@@ -6,6 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * The "rings in" text on the notification, widget, alarm list and editor
@@ -30,8 +31,17 @@ class NextAlarmCalculatorLocaleTest {
         assertEquals("<1m", calculator.formatRemaining(context, System.currentTimeMillis() + 10_000L))
     }
 
+    @Test
+    @Config(qualifiers = "ja")
+    fun japaneseUnitsComeFromTheJapaneseStrings() {
+        val inThreeHoursTwentyMinutes = System.currentTimeMillis() + 3 * HOUR + 20 * MINUTE + 30_000L
+        assertEquals("3時間 20分", calculator.formatRemaining(context, inThreeHoursTwentyMinutes))
+        assertEquals("1分未満", calculator.formatRemaining(context, System.currentTimeMillis() + 10_000L))
+    }
+
     private companion object {
         const val MINUTE = 60_000L
-        const val DAY = 24 * 60 * MINUTE
+        const val HOUR = 60 * MINUTE
+        const val DAY = 24 * HOUR
     }
 }

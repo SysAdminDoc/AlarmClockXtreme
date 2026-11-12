@@ -4,6 +4,10 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 
 ## Unreleased
 
+### Added
+
+- Japanese translation. On Android 13 and newer you can pick it under Settings > App language, and phones set to Japanese get it on their own. Thanks to knocker-g (#55).
+
 ### Changed
 
 - The ringing screen shows less. The default-snooze and flip-to-snooze chips are gone (the Snooze button already shows its minutes), and a one-step alarm no longer carries a "Single-step dismissal" or "Wake-up check" label. Thanks to knocker-g (#57).

@@ -21,6 +21,14 @@ class AppLanguageManagerTest {
     }
 
     @Test
+    fun japaneseLanguageTagsSelectJapanese() {
+        assertEquals(
+            AppLanguageOption.JAPANESE,
+            AppLanguageManager.optionForLanguageTags("ja-JP")
+        )
+    }
+
+    @Test
     fun unsupportedLanguageFallsBackToSystemDefault() {
         assertEquals(
             AppLanguageOption.SYSTEM_DEFAULT,

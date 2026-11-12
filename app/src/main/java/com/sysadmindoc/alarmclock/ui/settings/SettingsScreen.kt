@@ -843,12 +843,7 @@ fun SettingsScreen(
             ) {
                 SettingsActionRow(
                     label = stringResource(R.string.settings_language),
-                    value = stringResource(
-                        when (selectedLanguageOption) {
-                            AppLanguageOption.SYSTEM_DEFAULT -> R.string.settings_language_system_default
-                            AppLanguageOption.ENGLISH -> R.string.settings_language_english
-                        }
-                    ),
+                    value = stringResource(selectedLanguageOption.labelRes),
                     supportingText = stringResource(
                         if (languagePickerSupported) {
                             R.string.settings_language_description
@@ -1032,24 +1027,17 @@ fun SettingsScreen(
             title = { Text(stringResource(R.string.settings_language_dialog_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    AppLanguageOptionRow(
-                        label = stringResource(R.string.settings_language_system_default),
-                        selected = selectedLanguageOption == AppLanguageOption.SYSTEM_DEFAULT,
-                        onSelect = {
-                            selectedLanguageOption = AppLanguageOption.SYSTEM_DEFAULT
-                            AppLanguageManager.setOption(context, AppLanguageOption.SYSTEM_DEFAULT)
-                            showLanguageDialog = false
-                        }
-                    )
-                    AppLanguageOptionRow(
-                        label = stringResource(R.string.settings_language_english),
-                        selected = selectedLanguageOption == AppLanguageOption.ENGLISH,
-                        onSelect = {
-                            selectedLanguageOption = AppLanguageOption.ENGLISH
-                            AppLanguageManager.setOption(context, AppLanguageOption.ENGLISH)
-                            showLanguageDialog = false
-                        }
-                    )
+                    AppLanguageOption.entries.forEach { option ->
+                        AppLanguageOptionRow(
+                            label = stringResource(option.labelRes),
+                            selected = selectedLanguageOption == option,
+                            onSelect = {
+                                selectedLanguageOption = option
+                                AppLanguageManager.setOption(context, option)
+                                showLanguageDialog = false
+                            }
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -1428,6 +1416,13 @@ internal fun SettingsActionRow(
         }
     }
 }
+
+private val AppLanguageOption.labelRes: Int
+    get() = when (this) {
+        AppLanguageOption.SYSTEM_DEFAULT -> R.string.settings_language_system_default
+        AppLanguageOption.ENGLISH -> R.string.settings_language_english
+        AppLanguageOption.JAPANESE -> R.string.settings_language_japanese
+    }
 
 @Composable
 private fun AppLanguageOptionRow(
