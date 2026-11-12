@@ -36,6 +36,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Tapping Alarms from Settings opens Alarms again. It used to bring Settings straight back, and after the first-run setup the tabs stacked up, so Back walked through every tab you'd visited.
 - Back from a Settings page like Utilities returns to the Settings list instead of leaving Settings.
 - After a snooze, opening the app no longer brings back the ringing screen for the snoozed alarm. Until the app was restarted it also blocked Test now, which said an alarm was still ringing.
+- On Android 17 the "Local network access needed" notice under Philips Hue, IKEA DIRIGERA and LAN webhooks has an Allow access button now. Nothing in the app asked for that permission, so those integrations couldn't connect unless you found the switch in Android's settings yourself.
 
 ## [1.15.35] - 2026-09-05
 

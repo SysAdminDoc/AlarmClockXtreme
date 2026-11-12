@@ -1,11 +1,14 @@
 package com.sysadmindoc.alarmclock.ui.settings
 
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import androidx.core.app.ActivityCompat
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
@@ -232,11 +235,9 @@ internal fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsView
             )
         }
         if (localWebhookPermissionMissing) {
-            AppInlineNotice(
-                title = stringResource(R.string.settings_local_network_needed),
+            LocalNetworkAccessNotice(
                 message = stringResource(R.string.settings_webhook_network_description),
-                icon = Icons.Default.Link,
-                color = SnoozeYellow
+                onResult = viewModel::refreshWakeReadiness
             )
         }
 
@@ -399,6 +400,58 @@ internal fun HolidaysSection(state: SettingsUiState, viewModel: SettingsViewMode
     }
 }
 
+/**
+ * The "Local network access needed" notice with the button that asks for it.
+ * Nothing else in the app requests the permission. After a second "Don't
+ * allow" Android stops showing the dialog, so the button then opens the app's
+ * system settings, the only place left to turn it on.
+ */
+@Composable
+private fun LocalNetworkAccessNotice(message: String, onResult: () -> Unit) {
+    val activity = LocalActivity.current
+    val context = LocalContext.current
+    var openSettingsInstead by rememberSaveable { mutableStateOf(false) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        openSettingsInstead = !granted && activity != null &&
+            !ActivityCompat.shouldShowRequestPermissionRationale(
+                activity,
+                LocalNetworkPermission.ACCESS_LOCAL_NETWORK
+            )
+        onResult()
+    }
+    AppInlineNotice(
+        title = stringResource(R.string.settings_local_network_needed),
+        message = message,
+        icon = Icons.Default.Link,
+        color = SnoozeYellow
+    )
+    OutlinedButton(
+        onClick = {
+            if (openSettingsInstead) {
+                context.startActivity(
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:${context.packageName}")
+                    )
+                )
+            } else {
+                launcher.launch(LocalNetworkPermission.ACCESS_LOCAL_NETWORK)
+            }
+        },
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            stringResource(
+                if (openSettingsInstead) {
+                    R.string.settings_local_network_open_settings
+                } else {
+                    R.string.settings_local_network_allow
+                }
+            )
+        )
+    }
+}
+
 @Composable
 internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewModel) {
     var showForgetCertificateDialog by remember { mutableStateOf(false) }
@@ -469,11 +522,9 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
             }
         }
         if (localNetworkPermissionMissing) {
-            AppInlineNotice(
-                title = stringResource(R.string.settings_local_network_needed),
+            LocalNetworkAccessNotice(
                 message = stringResource(R.string.settings_hue_network_description),
-                icon = Icons.Default.Link,
-                color = SnoozeYellow
+                onResult = viewModel::refreshWakeReadiness
             )
         }
         Row(
@@ -588,11 +639,9 @@ internal fun IkeaDirigeraSection(state: SettingsUiState, viewModel: SettingsView
             }
         )
         if (localNetworkPermissionMissing) {
-            AppInlineNotice(
-                title = stringResource(R.string.settings_local_network_needed),
+            LocalNetworkAccessNotice(
                 message = stringResource(R.string.settings_dirigera_network_description),
-                icon = Icons.Default.Link,
-                color = SnoozeYellow
+                onResult = viewModel::refreshWakeReadiness
             )
         }
         if (paired) {

@@ -295,11 +295,6 @@ fun SettingsScreen(
     ) {
         viewModel.refreshWakeReadiness()
     }
-    val localNetworkPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) {
-        viewModel.refreshWakeReadiness()
-    }
     // Turning the first-meeting alarm on is inert without calendar access, and
     // nothing else in the app ever asks for it.
     val calendarPermissionLauncher = rememberLauncherForActivityResult(
