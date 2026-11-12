@@ -12,6 +12,7 @@ import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
 import com.sysadmindoc.alarmclock.data.repository.WeatherRepository
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
@@ -68,6 +69,8 @@ class AlarmSchedulerExactPermissionTest {
         val holidayRepository: HolidayRepository = mockk()
         val weatherRepository: WeatherRepository = mockk(relaxed = true)
         val workManager: WorkManager = mockk(relaxed = true)
+        val calendarRepository: CalendarRepository = mockk()
+        every { calendarRepository.hasReadPermission() } returns false
 
         mockkStatic(WorkManager::class)
         every { WorkManager.getInstance(any<Context>()) } returns workManager
@@ -88,7 +91,8 @@ class AlarmSchedulerExactPermissionTest {
             preferencesManager = preferencesManager,
             holidayRepository = holidayRepository,
             alarmIncidentRepository = incidentRepository,
-            weatherRepository = weatherRepository
+            weatherRepository = weatherRepository,
+            calendarRepository = calendarRepository
         )
     }
 

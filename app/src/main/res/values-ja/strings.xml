@@ -295,7 +295,7 @@
     <string name="alarm_edit_section_announcement_description">起床後に時刻・日付・天気を読み上げ。</string>
     <string name="alarm_edit_section_wake_confirmation_description">停止後の起床確認。</string>
     <string name="alarm_edit_section_smart_alarm_description">自然なタイミングで早めに鳴動。</string>
-    <string name="alarm_edit_section_holidays_description">祝日の鳴動をスキップ。</string>
+    <string name="alarm_edit_section_holidays_description">祝日やカレンダーで印を付けた日の鳴動をスキップ。</string>
     <string name="alarm_edit_section_spotify_description">ミュージックサービスをアラーム音に。</string>
     <string name="alarm_edit_section_hue_description">照明を連動して穏やかに起こす。</string>
     <string name="alarm_edit_section_chain_description">複数の起床ステップを順番に実行。</string>
@@ -566,6 +566,11 @@
     <string name="alarm_edit_smart_alarm_hint">動きのスコアを使い、十分な証拠が得られるまで待って早めに作動します。</string>
     <string name="alarm_edit_skip_holidays">公休日はスキップ</string>
     <string name="alarm_edit_holidays_hint">[設定] → [連携] で祝日スキップと国コードを設定します。</string>
+    <string name="alarm_edit_skip_calendar_tag">予定のタイトルにこの語句があればスキップ</string>
+    <string name="alarm_edit_skip_calendar_tag_placeholder">#休み</string>
+    <string name="alarm_edit_skip_calendar_tag_hint">タイトルにこの語句を含む予定がある日はスキップします。大文字と小文字は区別しません。終日の予定や数日にわたる予定は、その期間のすべての日が対象です。空欄にするとオフになります。</string>
+    <string name="alarm_edit_skip_calendar_no_permission">カレンダーへのアクセスがオフのため、該当する日も鳴ります。</string>
+    <string name="alarm_edit_skip_calendar_allow">カレンダーへのアクセスを許可</string>
     <string name="alarm_edit_spotify_uri">Spotify URI (例: spotify:track:…)</string>
     <string name="alarm_edit_default_ringtone_placeholder">デフォルト着信音を使用するには空白のままにします</string>
     <string name="alarm_edit_spotify_hint">Spotifyにサインインし、トラック等のリンクを貼り付けます。再生できなければデフォルト音に切り替えます。</string>
@@ -1806,6 +1811,7 @@
         <item quantity="other">%1$d 個のチャレンジ</item>
     </plurals>
     <string name="alarmlist_paused_until_vacation_ends">休暇が終わるまで一時停止中</string>
+    <string name="alarmlist_skipped_by_calendar">スキップ: %1$s</string>
     <string name="bedtime_service_unavailable">サービス利用不可</string>
     <string name="bedtime_monitoring_movement_and_loud_sleep_sounds">動きと大きな睡眠音をモニタリング中。生の音声は記録されません。</string>
     <string name="bedtime_last_sonar_session_saved_locally">最新のSonarセッションがローカルに保存されました。</string>

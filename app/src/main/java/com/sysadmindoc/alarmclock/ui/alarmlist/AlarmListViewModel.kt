@@ -10,6 +10,8 @@ import com.sysadmindoc.alarmclock.data.preferences.isPaused
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
+import com.sysadmindoc.alarmclock.domain.CalendarSkipMarks
+import com.sysadmindoc.alarmclock.domain.CalendarSkipPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.domain.VacationAlarmPolicy
 import com.sysadmindoc.alarmclock.ui.templates.AlarmTemplate
@@ -92,7 +94,9 @@ data class AlarmListUiState(
      * each card claimed it had to be re-enabled by hand, which is untrue, and
      * the only Resume control was three screens away in Settings.
      */
-    val pausedUntilMillis: Long = 0L
+    val pausedUntilMillis: Long = 0L,
+    /** Alarm id to calendar tag, for alarms whose next ring the tag moved. */
+    val calendarSkips: Map<Long, String> = emptyMap()
 )
 
 @HiltViewModel
@@ -179,13 +183,25 @@ class AlarmListViewModel @Inject constructor(
             vacationEndMillis = if (VacationAlarmPolicy.hasConfiguredWindow(settings)) {
                 settings.vacationEndMillis
             } else 0L,
-            pausedUntilMillis = if (settings.isPaused(now)) settings.pauseUntilMillis else 0L
+            pausedUntilMillis = if (settings.isPaused(now)) settings.pauseUntilMillis else 0L,
+            calendarSkips = alarms.mapNotNull { alarm ->
+                calendarSkipTagOf(alarm)?.let { tag -> alarm.id to tag }
+            }.toMap()
         )
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
         AlarmListUiState()
     )
+
+    private fun calendarSkipTagOf(alarm: Alarm): String? {
+        if (!alarm.isEnabled) return null
+        val tag = alarm.skipCalendarTag.trim()
+        if (!CalendarSkipPolicy.isActive(tag)) return null
+        val origin = CalendarSkipMarks.origin(context, alarm.id) ?: return null
+        val stored = alarm.nextTriggerTime
+        return tag.takeIf { stored == 0L || stored > origin }
+    }
 
     init {
         viewModelScope.launch {

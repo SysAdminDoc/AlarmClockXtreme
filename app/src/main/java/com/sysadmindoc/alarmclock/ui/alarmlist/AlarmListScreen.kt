@@ -59,6 +59,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EventBusy
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Notifications
@@ -672,6 +673,7 @@ fun AlarmListScreen(
                                             alarm = alarm,
                                             is24Hour = state.is24HourFormat,
                                             suppressedByVacation = suppressedByVacation,
+                                            calendarSkipTag = state.calendarSkips[alarm.id],
                                             pausedUntilMillis = state.pausedUntilMillis,
                                             isActivePaneSelection = useTwoPane && selectedAlarmId == alarm.id,
                                             onToggle = { viewModel.toggleAlarm(alarm) },
@@ -768,6 +770,7 @@ fun AlarmListScreen(
                                     state.vacationEndMillis > state.vacationStartMillis &&
                                     alarm.nextTriggerTime in state.vacationStartMillis..state.vacationEndMillis
                             } == true,
+                            calendarSkipTag = selectedAlarm?.let { state.calendarSkips[it.id] },
                             pausedUntilMillis = state.pausedUntilMillis,
                             onEdit = { alarm -> onEditAlarm(alarm.id) },
                             onToggle = { alarm -> viewModel.toggleAlarm(alarm) },
@@ -861,6 +864,7 @@ private fun AlarmDetailPane(
     alarm: Alarm?,
     is24Hour: Boolean,
     suppressedByVacation: Boolean,
+    calendarSkipTag: String? = null,
     pausedUntilMillis: Long = 0L,
     onEdit: (Alarm) -> Unit,
     onToggle: (Alarm) -> Unit,
@@ -935,6 +939,13 @@ private fun AlarmDetailPane(
                     AppStatusChip(
                         label = stringResource(R.string.alarm_list_paused_by_vacation),
                         icon = Icons.Default.BeachAccess,
+                        color = SnoozeYellow
+                    )
+                }
+                if (calendarSkipTag != null) {
+                    AppStatusChip(
+                        label = stringResource(R.string.alarmlist_skipped_by_calendar, calendarSkipTag),
+                        icon = Icons.Default.EventBusy,
                         color = SnoozeYellow
                     )
                 }
@@ -1306,6 +1317,7 @@ private fun AlarmCard(
     alarm: Alarm,
     is24Hour: Boolean,
     suppressedByVacation: Boolean = false,
+    calendarSkipTag: String? = null,
     pausedUntilMillis: Long = 0L,
     isActivePaneSelection: Boolean = false,
     onToggle: () -> Unit,
@@ -1453,6 +1465,15 @@ private fun AlarmCard(
                 color = if (suppressedByVacation) SnoozeYellow else TextMuted,
                 style = MaterialTheme.typography.bodySmall
             )
+            if (calendarSkipTag != null && !suppressedByVacation) {
+                Text(
+                    text = stringResource(R.string.alarmlist_skipped_by_calendar, calendarSkipTag),
+                    color = SnoozeYellow,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
 
             val silentLabel = stringResource(R.string.alarm_edit_silent)
             val chainLabel = alarm.challengeChainLabel()

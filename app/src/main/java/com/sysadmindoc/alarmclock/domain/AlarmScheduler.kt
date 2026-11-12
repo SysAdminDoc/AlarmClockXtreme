@@ -14,6 +14,7 @@ import com.sysadmindoc.alarmclock.data.preferences.isPaused
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
 import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
 import com.sysadmindoc.alarmclock.receiver.AlarmReceiver
@@ -22,12 +23,16 @@ import com.sysadmindoc.alarmclock.service.SmartAlarmService
 import com.sysadmindoc.alarmclock.service.AlarmRuntimeState
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
 import com.sysadmindoc.alarmclock.worker.FireWatchdogPolicy
+import com.sysadmindoc.alarmclock.worker.CalendarSkipWatchWorker
 import com.sysadmindoc.alarmclock.worker.FireWatchdogWorker
 import com.sysadmindoc.alarmclock.worker.HueSunriseNotifications
 import com.sysadmindoc.alarmclock.worker.HueSunriseWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -41,7 +46,8 @@ class AlarmScheduler @Inject constructor(
     private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager,
     private val holidayRepository: HolidayRepository,
     private val alarmIncidentRepository: AlarmIncidentRepository,
-    private val weatherRepository: com.sysadmindoc.alarmclock.data.repository.WeatherRepository
+    private val weatherRepository: com.sysadmindoc.alarmclock.data.repository.WeatherRepository,
+    private val calendarRepository: CalendarRepository
 ) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
@@ -71,6 +77,7 @@ class AlarmScheduler @Inject constructor(
         notBeforeMillis: Long = 0L
     ) {
         val sanitizedAlarm = alarm.sanitized()
+        CalendarSkipMarks.clear(context, sanitizedAlarm.id)
         if (!sanitizedAlarm.isEnabled) {
             cancel(sanitizedAlarm.id)
             return
@@ -177,6 +184,68 @@ class AlarmScheduler @Inject constructor(
             }
         }
 
+        // Calendar tag skip, shaped like the holiday step: a one-shot alarm on
+        // a tagged day stores 0, a repeating one moves to the next untagged
+        // occurrence. Without calendar access the tag is ignored, so a revoked
+        // permission leaves the alarm ringing instead of silently skipping.
+        val calendarTag = sanitizedAlarm.skipCalendarTag
+        if (CalendarSkipPolicy.isActive(calendarTag) && calendarRepository.hasReadPermission()) {
+            CalendarSkipWatchWorker.watch(context)
+            val calendarZone = sanitizedAlarm.schedulingZone(ZoneId.systemDefault())
+            val calendarOrigin = triggerTime
+            if (!sanitizedAlarm.isRecurringSchedule) {
+                val triggerDate = Instant.ofEpochMilli(triggerTime)
+                    .atZone(calendarZone).toLocalDate()
+                if (isCalendarSkipDay(triggerDate, calendarTag, calendarZone)) {
+                    cancelScheduledEntries(sanitizedAlarm.id)
+                    CalendarSkipMarks.set(context, sanitizedAlarm.id, calendarOrigin)
+                    repository.updateNextTrigger(sanitizedAlarm.id, 0)
+                    requestWidgetUpdateIfNeeded(requestWidgetUpdate)
+                    return
+                }
+            } else {
+                var advanced = advanceTriggerPastCalendarTag(
+                    sanitizedAlarm, triggerTime, calendarTag, calendarZone
+                )
+                if (advanced != null && advanced != triggerTime) {
+                    // The new day can fall inside the vacation window or on a
+                    // holiday; settle both, then clear tagged days once more
+                    // from wherever they left it.
+                    var settled: Long? = VacationAlarmPolicy.adjustTrigger(
+                        alarm = sanitizedAlarm,
+                        initialTriggerTime = advanced,
+                        settings = settings,
+                        calculateFrom = calculator::calculate
+                    ).triggerTime
+                    if (settled != null &&
+                        sanitizedAlarm.skipOnHolidays && settings.holidayAutoSkipEnabled
+                    ) {
+                        settled = advanceTriggerPastHolidays(sanitizedAlarm, settled, calendarZone)
+                    }
+                    advanced = if (settled != null && settled != advanced) {
+                        advanceTriggerPastCalendarTag(
+                            sanitizedAlarm, settled, calendarTag, calendarZone
+                        )
+                    } else {
+                        settled
+                    }
+                }
+                if (advanced == null) {
+                    // A month of tagged days (or holidays) in a row: suppress
+                    // rather than ring on one. A calendar change reschedules it.
+                    cancelScheduledEntries(sanitizedAlarm.id)
+                    CalendarSkipMarks.set(context, sanitizedAlarm.id, calendarOrigin)
+                    repository.updateNextTrigger(sanitizedAlarm.id, 0)
+                    requestWidgetUpdateIfNeeded(requestWidgetUpdate)
+                    return
+                }
+                if (advanced != calendarOrigin) {
+                    CalendarSkipMarks.set(context, sanitizedAlarm.id, calendarOrigin)
+                }
+                triggerTime = advanced
+            }
+        }
+
         if (sanitizedAlarm.weatherEarlyMinutes > 0 && triggerTime > 0) {
             val weatherSettings = preferencesManager.getCurrentSettings()
             val lat = weatherSettings.lastKnownLatitude
@@ -228,6 +297,7 @@ class AlarmScheduler @Inject constructor(
         // next one. A leftover count at or past the cap would otherwise make a
         // fresh ring open with snooze already withdrawn.
         AlarmRuntimeState.clear(context, alarmId)
+        CalendarSkipMarks.clear(context, alarmId)
         WidgetUpdater.requestUpdate(context)
     }
 
@@ -523,6 +593,64 @@ class AlarmScheduler @Inject constructor(
         }
         val finalDate = Instant.ofEpochMilli(trigger).atZone(zone).toLocalDate()
         return if (holidayRepository.isHoliday(finalDate)) null else trigger
+    }
+
+    private suspend fun advanceTriggerPastCalendarTag(
+        alarm: Alarm,
+        startTrigger: Long,
+        tag: String,
+        zone: ZoneId
+    ): Long? {
+        var trigger = startTrigger
+        var attempts = 0
+        while (attempts < 30) {
+            val date = Instant.ofEpochMilli(trigger).atZone(zone).toLocalDate()
+            if (!isCalendarSkipDay(date, tag, zone)) return trigger
+            trigger = calculator.calculate(alarm, date.plusDays(1).atStartOfDay(zone))
+            attempts++
+        }
+        val finalDate = Instant.ofEpochMilli(trigger).atZone(zone).toLocalDate()
+        return if (isCalendarSkipDay(finalDate, tag, zone)) null else trigger
+    }
+
+    /** A provider failure reads as "not tagged": a skipped alarm is the worse mistake. */
+    private suspend fun isCalendarSkipDay(date: LocalDate, tag: String, zone: ZoneId): Boolean {
+        val (start, end) = CalendarSkipPolicy.queryWindow(date, zone)
+        val events = withContext(Dispatchers.IO) {
+            calendarRepository.getEventsOverlapping(start, end).getOrNull()
+        } ?: return false
+        return CalendarSkipPolicy.shouldSkip(date, tag, events, zone)
+    }
+
+    /**
+     * Re-runs the calendar skip for every enabled alarm with a tag, after the
+     * calendar changed.
+     *
+     *  - A live snooze (a stored trigger earlier than the natural next
+     *    occurrence) is left alone, as the forced reschedule does.
+     *  - An alarm the calendar moved is recomputed from the trigger it was
+     *    moved from, so removing the tag from the event brings it back.
+     *  - Any other stored future trigger is only checked from where it is: a
+     *    newly tagged day moves it later, but a skip-next or a dismissed early
+     *    fire is never undone by a calendar sync.
+     */
+    suspend fun rescheduleCalendarTaggedAlarms(): Int {
+        val now = System.currentTimeMillis()
+        val tagged = repository.getEnabled()
+            .filter { CalendarSkipPolicy.isActive(it.sanitized().skipCalendarTag) }
+        tagged.forEach { alarm ->
+            val stored = alarm.nextTriggerTime
+            if (stored > now && stored < calculator.calculate(alarm.sanitized())) return@forEach
+            val origin = CalendarSkipMarks.origin(context, alarm.id)
+            val floor = when {
+                origin != null -> if (origin > now) origin - 1 else 0L
+                stored > now -> stored - 1
+                else -> 0L
+            }
+            schedule(alarm, requestWidgetUpdate = false, notBeforeMillis = floor)
+        }
+        if (tagged.isNotEmpty()) WidgetUpdater.requestUpdate(context)
+        return tagged.size
     }
 
     private fun canScheduleExactAlarms(): Boolean {

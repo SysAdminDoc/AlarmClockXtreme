@@ -39,6 +39,10 @@ class BootRescheduleWorker @AssistedInject constructor(
                 batchSize = RESCHEDULE_BATCH_SIZE
             )
             Log.i(TAG, "Rescheduled $count enabled alarms after $sourceAction")
+            // A stored trigger is re-armed as is above, so calendar events
+            // added or deleted while the phone was off are read here. This
+            // also re-arms the calendar watch.
+            alarmScheduler.rescheduleCalendarTaggedAlarms()
             Result.success()
         } catch (e: CancellationException) {
             throw e

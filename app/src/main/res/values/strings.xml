@@ -339,7 +339,7 @@
     <string name="alarm_edit_section_announcement_description">Let the alarm speak useful context once you are up.</string>
     <string name="alarm_edit_section_wake_confirmation_description">Require a second check-in if this alarm needs extra accountability.</string>
     <string name="alarm_edit_section_smart_alarm_description">Allow the alarm to ring inside a window when the timing is more natural.</string>
-    <string name="alarm_edit_section_holidays_description">Prevent routine alarms from firing when the day should stay flexible.</string>
+    <string name="alarm_edit_section_holidays_description">Keep routine alarms quiet on public holidays or on days your calendar marks.</string>
     <string name="alarm_edit_section_spotify_description">Use music services when you want a less generic wake-up sound.</string>
     <string name="alarm_edit_section_dismiss_action">After you dismiss</string>
     <string name="alarm_edit_section_dismiss_action_description">Kick off one automation the moment this alarm is dismissed.</string>
@@ -605,6 +605,11 @@
     <string name="alarm_edit_smart_alarm_hint">Uses conservative phone-motion scoring and waits for enough evidence before firing early.</string>
     <string name="alarm_edit_skip_holidays">Skip on public holidays</string>
     <string name="alarm_edit_holidays_hint">Requires holiday auto-skip and country code configured in Settings → Integrations.</string>
+    <string name="alarm_edit_skip_calendar_tag">Skip when a calendar event contains</string>
+    <string name="alarm_edit_skip_calendar_tag_placeholder">#holiday</string>
+    <string name="alarm_edit_skip_calendar_tag_hint">Any day with an event whose title includes this text is skipped, ignoring case. All-day events and events that run over several days count for every day they cover. Leave it empty to turn this off.</string>
+    <string name="alarm_edit_skip_calendar_no_permission">Calendar access is off, so this alarm still rings on those days.</string>
+    <string name="alarm_edit_skip_calendar_allow">Allow calendar access</string>
     <string name="alarm_edit_spotify_uri">Spotify URI (for example, spotify:track:…)</string>
     <string name="alarm_edit_default_ringtone_placeholder">Leave blank to use default ringtone</string>
     <string name="alarm_edit_spotify_hint">Needs the Spotify app installed and signed in. Paste a track, album or playlist link. If Spotify has not started playing within a few seconds, your default alarm tone takes over.</string>
@@ -1896,6 +1901,7 @@
         <item quantity="other">%1$d challenges</item>
     </plurals>
     <string name="alarmlist_paused_until_vacation_ends">Paused until vacation ends</string>
+    <string name="alarmlist_skipped_by_calendar">Skipped: %1$s</string>
     <string name="bedtime_service_unavailable">service unavailable</string>
     <string name="bedtime_monitoring_movement_and_loud_sleep_sounds">Monitoring movement and loud sleep sounds. No raw audio is recorded.</string>
     <string name="bedtime_last_sonar_session_saved_locally">Last sonar session saved locally.</string>

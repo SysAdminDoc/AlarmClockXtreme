@@ -1,9 +1,12 @@
 package com.sysadmindoc.alarmclock.data.repository
 
+import android.Manifest
 import android.content.ContentResolver
 import android.content.Context
+import android.content.pm.PackageManager
 import android.database.Cursor
 import android.provider.CalendarContract
+import androidx.core.content.ContextCompat
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -78,7 +81,28 @@ class CalendarRepository @Inject constructor(
         }
     }
 
-    private fun queryEvents(startMillis: Long, endMillis: Long): List<CalendarEvent> {
+    fun hasReadPermission(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) ==
+            PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Every event instance that overlaps [startMillis, endMillis), including
+     * ones that began earlier. [getEvents] only returns events that start in
+     * the window, which misses the second day of a multi-day event.
+     */
+    fun getEventsOverlapping(startMillis: Long, endMillis: Long): Result<List<CalendarEvent>> {
+        return try {
+            Result.success(queryEvents(startMillis, endMillis, overlapping = true))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    private fun queryEvents(
+        startMillis: Long,
+        endMillis: Long,
+        overlapping: Boolean = false
+    ): List<CalendarEvent> {
         val projection = arrayOf(
             CalendarContract.Instances.EVENT_ID,
             CalendarContract.Instances.TITLE,
@@ -89,8 +113,16 @@ class CalendarRepository @Inject constructor(
             CalendarContract.Instances.CALENDAR_COLOR
         )
 
-        val selection = "${CalendarContract.Instances.BEGIN} >= ? AND ${CalendarContract.Instances.BEGIN} < ?"
-        val selectionArgs = arrayOf(startMillis.toString(), endMillis.toString())
+        val selection = if (overlapping) {
+            "${CalendarContract.Instances.BEGIN} < ? AND ${CalendarContract.Instances.END} > ?"
+        } else {
+            "${CalendarContract.Instances.BEGIN} >= ? AND ${CalendarContract.Instances.BEGIN} < ?"
+        }
+        val selectionArgs = if (overlapping) {
+            arrayOf(endMillis.toString(), startMillis.toString())
+        } else {
+            arrayOf(startMillis.toString(), endMillis.toString())
+        }
         val sortOrder = "${CalendarContract.Instances.BEGIN} ASC"
 
         val uri = CalendarContract.Instances.CONTENT_URI.buildUpon()

@@ -167,5 +167,47 @@ internal fun LazyListScope.alarmEditScheduleSections(
             stringResource(R.string.alarm_edit_holidays_hint),
             tone = HintTone.Warning
         )
+        CalendarTagSkipField(state = state, viewModel = viewModel)
+    }
+}
+
+@Composable
+private fun CalendarTagSkipField(state: AlarmEditUiState, viewModel: AlarmEditViewModel) {
+    val context = LocalContext.current
+    var hasCalendarAccess by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) ==
+                PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val calendarPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> hasCalendarAccess = granted }
+
+    OutlinedTextField(
+        value = state.skipCalendarTag,
+        onValueChange = viewModel::updateSkipCalendarTag,
+        label = { Text(stringResource(R.string.alarm_edit_skip_calendar_tag), color = TextMuted) },
+        placeholder = { Text(stringResource(R.string.alarm_edit_skip_calendar_tag_placeholder)) },
+        colors = appOutlinedTextFieldColors(),
+        shape = AppInputShape,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        singleLine = true
+    )
+    SettingsHint(
+        stringResource(R.string.alarm_edit_skip_calendar_tag_hint),
+        tone = HintTone.Neutral
+    )
+    if (state.skipCalendarTag.isNotBlank() && !hasCalendarAccess) {
+        SettingsHint(
+            stringResource(R.string.alarm_edit_skip_calendar_no_permission),
+            tone = HintTone.Warning
+        )
+        TextButton(
+            onClick = { calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR) },
+            modifier = Modifier.padding(horizontal = 8.dp)
+        ) {
+            Text(stringResource(R.string.alarm_edit_skip_calendar_allow))
+        }
     }
 }

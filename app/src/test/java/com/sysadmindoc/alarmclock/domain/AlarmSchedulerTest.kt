@@ -12,6 +12,8 @@ import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
+import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
 import io.mockk.Runs
@@ -26,6 +28,7 @@ import io.mockk.slot
 import io.mockk.unmockkAll
 import io.mockk.verify
 import java.time.DayOfWeek
+import java.time.ZonedDateTime
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -48,6 +51,7 @@ class AlarmSchedulerTest {
     private lateinit var incidentRepository: AlarmIncidentRepository
     private lateinit var weatherRepository: com.sysadmindoc.alarmclock.data.repository.WeatherRepository
     private lateinit var workManager: WorkManager
+    private lateinit var calendarRepository: CalendarRepository
     private lateinit var scheduler: AlarmScheduler
 
     @Before
@@ -59,6 +63,8 @@ class AlarmSchedulerTest {
         holidayRepository = mockk()
         incidentRepository = mockk(relaxed = true)
         workManager = mockk(relaxed = true)
+        calendarRepository = mockk()
+        every { calendarRepository.hasReadPermission() } returns false
 
         mockkStatic(WorkManager::class)
         every { WorkManager.getInstance(any<Context>()) } returns workManager
@@ -81,7 +87,8 @@ class AlarmSchedulerTest {
             preferencesManager = preferencesManager,
             holidayRepository = holidayRepository,
             alarmIncidentRepository = incidentRepository,
-            weatherRepository = weatherRepository
+            weatherRepository = weatherRepository,
+            calendarRepository = calendarRepository
         )
     }
 
@@ -315,6 +322,162 @@ class AlarmSchedulerTest {
         snowCodes.forEach { assert(AlarmScheduler.isSnowOrIceCode(it)) { "Expected $it to be snow/ice" } }
         clearCodes.forEach { assert(!AlarmScheduler.isSnowOrIceCode(it)) { "Expected $it to NOT be snow/ice" } }
     }
+
+    @Test
+    fun oneShotOnACalendarTaggedDayStoresZeroTrigger() = runTest {
+        val triggerTime = System.currentTimeMillis() + 20 * 60_000L
+        val oneShot = enabledAlarm(id = 88L).copy(
+            repeatDays = emptySet(),
+            skipCalendarTag = "#holiday"
+        )
+        every { calculator.calculate(any<Alarm>(), any()) } returns triggerTime
+        every { calendarRepository.hasReadPermission() } returns true
+        every { calendarRepository.getEventsOverlapping(any(), any()) } returns
+            Result.success(listOf(timedEvent("Office closed #Holiday", triggerTime)))
+
+        scheduler.schedule(oneShot, requestWidgetUpdate = false)
+
+        coVerify { repository.updateNextTrigger(88L, 0L) }
+        assertEquals(
+            0,
+            shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms.size
+        )
+    }
+
+    @Test
+    fun repeatingAlarmMovesPastACalendarTaggedDay() = runTest {
+        val now = System.currentTimeMillis()
+        val taggedDay = now + 2 * 3_600_000L
+        val nextWeek = taggedDay + 7 * 86_400_000L
+        val alarm = enabledAlarm(id = 61L).copy(skipCalendarTag = "#holiday")
+        every { calculator.calculate(any<Alarm>(), any()) } answers {
+            val from = secondArg<ZonedDateTime>().toInstant().toEpochMilli()
+            if (from <= now + 60_000L) taggedDay else nextWeek
+        }
+        every { calendarRepository.hasReadPermission() } returns true
+        every { calendarRepository.getEventsOverlapping(any(), any()) } returns
+            Result.success(listOf(timedEvent("#holiday", taggedDay)))
+
+        scheduler.schedule(alarm, requestWidgetUpdate = false)
+
+        coVerify { repository.updateNextTrigger(61L, nextWeek) }
+    }
+
+    @Test
+    fun calendarTagIsIgnoredWithoutCalendarPermission() = runTest {
+        val triggerTime = System.currentTimeMillis() + 20 * 60_000L
+        val oneShot = enabledAlarm(id = 89L).copy(
+            repeatDays = emptySet(),
+            skipCalendarTag = "#holiday"
+        )
+        every { calculator.calculate(any<Alarm>(), any()) } returns triggerTime
+        every { calendarRepository.hasReadPermission() } returns false
+
+        scheduler.schedule(oneShot, requestWidgetUpdate = false)
+
+        coVerify { repository.updateNextTrigger(89L, triggerTime) }
+        verify(exactly = 0) { calendarRepository.getEventsOverlapping(any(), any()) }
+    }
+
+    @Test
+    fun calendarReadFailureKeepsTheAlarm() = runTest {
+        val triggerTime = System.currentTimeMillis() + 20 * 60_000L
+        val oneShot = enabledAlarm(id = 90L).copy(
+            repeatDays = emptySet(),
+            skipCalendarTag = "#holiday"
+        )
+        every { calculator.calculate(any<Alarm>(), any()) } returns triggerTime
+        every { calendarRepository.hasReadPermission() } returns true
+        every { calendarRepository.getEventsOverlapping(any(), any()) } returns
+            Result.failure(SecurityException("revoked"))
+
+        scheduler.schedule(oneShot, requestWidgetUpdate = false)
+
+        coVerify { repository.updateNextTrigger(90L, triggerTime) }
+    }
+
+    @Test
+    fun calendarRefreshReschedulesTaggedAlarmsAndLeavesASnoozeAlone() = runTest {
+        val now = System.currentTimeMillis()
+        val natural = now + 20 * 3_600_000L
+        val snoozeAt = now + 5 * 60_000L
+        val snoozed = enabledAlarm(id = 1L).copy(skipCalendarTag = "gym", nextTriggerTime = snoozeAt)
+        val tagged = enabledAlarm(id = 2L).copy(skipCalendarTag = "gym")
+        val untagged = enabledAlarm(id = 3L)
+        coEvery { repository.getEnabled() } returns listOf(snoozed, tagged, untagged)
+        every { calculator.calculate(any<Alarm>(), any()) } returns natural
+        every { calendarRepository.hasReadPermission() } returns true
+        every { calendarRepository.getEventsOverlapping(any(), any()) } returns
+            Result.success(emptyList())
+
+        val processed = scheduler.rescheduleCalendarTaggedAlarms()
+
+        assertEquals(2, processed)
+        coVerify { repository.updateNextTrigger(2L, natural) }
+        coVerify(exactly = 0) { repository.updateNextTrigger(1L, any()) }
+        coVerify(exactly = 0) { repository.updateNextTrigger(3L, any()) }
+    }
+
+    @Test
+    fun calendarRefreshBringsBackADayWhoseTagWasRemoved() = runTest {
+        val now = System.currentTimeMillis()
+        val taggedDay = now + 2 * 3_600_000L
+        val nextWeek = taggedDay + 7 * 86_400_000L
+        val alarm = enabledAlarm(id = 62L).copy(skipCalendarTag = "#holiday")
+        every { calculator.calculate(any<Alarm>(), any()) } answers {
+            val from = secondArg<ZonedDateTime>().toInstant().toEpochMilli()
+            if (from < taggedDay) taggedDay else nextWeek
+        }
+        every { calendarRepository.hasReadPermission() } returns true
+        every { calendarRepository.getEventsOverlapping(any(), any()) } returns
+            Result.success(listOf(timedEvent("#holiday", taggedDay)))
+        scheduler.schedule(alarm, requestWidgetUpdate = false)
+        coVerify { repository.updateNextTrigger(62L, nextWeek) }
+
+        every { calendarRepository.getEventsOverlapping(any(), any()) } returns
+            Result.success(emptyList())
+        coEvery { repository.getEnabled() } returns listOf(alarm.copy(nextTriggerTime = nextWeek))
+        scheduler.rescheduleCalendarTaggedAlarms()
+
+        coVerify { repository.updateNextTrigger(62L, taggedDay) }
+    }
+
+    @Test
+    fun calendarRefreshNeverUndoesASkipNext() = runTest {
+        // The stored trigger sits past the natural one because the user
+        // skipped it, not because of the calendar, so a calendar sync must
+        // leave it there.
+        val now = System.currentTimeMillis()
+        val skippedDay = now + 2 * 3_600_000L
+        val nextWeek = skippedDay + 7 * 86_400_000L
+        val alarm = enabledAlarm(id = 63L).copy(
+            skipCalendarTag = "#holiday",
+            nextTriggerTime = nextWeek
+        )
+        every { calculator.calculate(any<Alarm>(), any()) } answers {
+            val from = secondArg<ZonedDateTime>().toInstant().toEpochMilli()
+            if (from < skippedDay) skippedDay else nextWeek
+        }
+        every { calendarRepository.hasReadPermission() } returns true
+        every { calendarRepository.getEventsOverlapping(any(), any()) } returns
+            Result.success(emptyList())
+        coEvery { repository.getEnabled() } returns listOf(alarm)
+
+        scheduler.rescheduleCalendarTaggedAlarms()
+
+        coVerify { repository.updateNextTrigger(63L, nextWeek) }
+        coVerify(exactly = 0) { repository.updateNextTrigger(63L, skippedDay) }
+    }
+
+    private fun timedEvent(title: String, around: Long) = CalendarEvent(
+        id = 1L,
+        title = title,
+        startTime = around - 30 * 60_000L,
+        endTime = around + 30 * 60_000L,
+        allDay = false,
+        location = "",
+        calendarColor = 0
+    )
 
     private fun enabledAlarm(id: Long): Alarm = Alarm(
         id = id,
