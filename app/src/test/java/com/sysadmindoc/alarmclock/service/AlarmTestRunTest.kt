@@ -137,6 +137,22 @@ class AlarmTestRunTest {
     }
 
     @Test
+    fun `a snoozed alarm stops counting as ringing`() {
+        // Snoozing left the snapshot behind: the app reopened the ringing
+        // screen and Test now kept answering that an alarm was ringing.
+        AlarmService.activeAlarm.set(
+            AlarmService.Companion.ActiveAlarmSnapshot(alarmId = 3L, scheduledAt = 1L, fireId = "real")
+        )
+
+        AlarmService.releaseActiveAlarm("an older fire")
+        assertEquals(AlarmTestRun.StartResult.ALARM_RINGING, AlarmTestRun.start(context, ALARM_ID, now = SCHEDULED_AT))
+
+        AlarmService.releaseActiveAlarm("real")
+        assertNull(AlarmService.activeAlarm.get())
+        assertEquals(AlarmTestRun.StartResult.STARTED, AlarmTestRun.start(context, ALARM_ID, now = SCHEDULED_AT))
+    }
+
+    @Test
     fun `a test wake check never shares the real one's name or answer`() {
         val alarm = Alarm(id = ALARM_ID, hour = 6, minute = 0, wakeConfirmEnabled = true, wakeConfirmDelayMinutes = 3)
 

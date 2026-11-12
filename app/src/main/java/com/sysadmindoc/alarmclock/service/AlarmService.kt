@@ -131,6 +131,17 @@ class AlarmService : Service() {
 
         internal val activeAlarmId: Long get() = activeAlarm.get()?.alarmId ?: -1L
 
+        /**
+         * The ringing screen calls this as it closes on a snooze or dismiss. The
+         * service clears the snapshot too, but only after a database read, and
+         * MainActivity resuming in that gap opened the ringing screen again.
+         * Matching [fireId] keeps a stale screen from releasing a newer alarm.
+         */
+        internal fun releaseActiveAlarm(fireId: String) {
+            val current = activeAlarm.get() ?: return
+            if (current.fireId == fireId) activeAlarm.compareAndSet(current, null)
+        }
+
         fun createNotificationChannels(context: Context) {
             val nm = context.getSystemService(NotificationManager::class.java)
 
@@ -1796,6 +1807,10 @@ class AlarmService : Service() {
                 alarmId = capped.id,
                 testRun = testRun
             )
+            // Still ringing: put back the snapshot the ringing screen released.
+            if (currentAlarmId != -1L) {
+                activeAlarm.set(ActiveAlarmSnapshot(currentAlarmId, currentScheduledAt, currentFireId, currentIsTest))
+            }
             refreshFiringNotification(capped)
             return
         }
@@ -1805,6 +1820,10 @@ class AlarmService : Service() {
         flashlightJob?.cancel()
         volumeJob?.cancel()
         stopAlarmPlayback()
+        // Not ringing any more. A snooze used to leave this set, so opening the
+        // app showed the ringing screen for a snoozed alarm and Test now said an
+        // alarm was ringing until the app was restarted.
+        activeAlarm.set(null)
         val alarm = repository.getById(alarmId)?.sanitized()
         if (alarm != null) {
             val webhookScheduledAt = currentScheduledAt

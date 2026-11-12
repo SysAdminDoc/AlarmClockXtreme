@@ -35,6 +35,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The welcome pages' feature lines, the quick alarm and timer preset chips, and the ringing screen's sensor and permission messages are translated now. A first run in Japanese showed English lines under every Japanese title.
 - Tapping Alarms from Settings opens Alarms again. It used to bring Settings straight back, and after the first-run setup the tabs stacked up, so Back walked through every tab you'd visited.
 - Back from a Settings page like Utilities returns to the Settings list instead of leaving Settings.
+- After a snooze, opening the app no longer brings back the ringing screen for the snoozed alarm. Until the app was restarted it also blocked Test now, which said an alarm was still ringing.
 
 ## [1.15.35] - 2026-09-05
 

@@ -28,6 +28,7 @@ import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmFireDismissContract
+import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.Challenge
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
@@ -729,6 +730,7 @@ class AlarmFiringActivity : ComponentActivity() {
         )
         try {
             startForegroundService(intent)
+            AlarmService.releaseActiveAlarm(fireId)
             recordIncidentAsync(
                 type = AlarmIncidentEvent.TYPE_USER_ACTION,
                 status = AlarmIncidentEvent.STATUS_REQUESTED,
@@ -766,6 +768,7 @@ class AlarmFiringActivity : ComponentActivity() {
         )
         try {
             startForegroundService(intent)
+            AlarmService.releaseActiveAlarm(fireId)
             recordIncidentAsync(
                 type = AlarmIncidentEvent.TYPE_USER_ACTION,
                 status = AlarmIncidentEvent.STATUS_REQUESTED,
@@ -784,6 +787,7 @@ class AlarmFiringActivity : ComponentActivity() {
 
     private fun endTest() {
         AlarmTestRun.end(this)
+        AlarmService.releaseActiveAlarm(fireId)
         finish()
     }
 
