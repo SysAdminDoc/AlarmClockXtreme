@@ -47,7 +47,9 @@ class BedtimeReminderBaselineTest {
     private fun fireReminder(): Notification? {
         BedtimeReceiver().onReceive(context, Intent(BedtimeReceiver.ACTION_BEDTIME_REMINDER))
         val manager = shadowOf(context.getSystemService(NotificationManager::class.java))
-        return manager.allNotifications.lastOrNull()
+        // By id: the app's next-alarm notifier posts from a background
+        // coroutine at startup and sometimes lands after the reminder.
+        return manager.getNotification(BedtimeReceiver.NOTIFICATION_ID)
     }
 
     @Test
