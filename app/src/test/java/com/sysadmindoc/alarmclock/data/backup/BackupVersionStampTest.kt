@@ -18,10 +18,10 @@ class BackupVersionStampTest {
     private companion object {
         /** Bump with [BackupData.version] whenever these change. */
         // 74 alarm fields since v20 added skipCalendarTag, challengeRepeatCount and
-        // snoozeEnabled; 79 settings since v20 added the next-alarm lead time and
-        // only-my-phrases.
+        // snoozeEnabled; 81 settings since v20 added the next-alarm lead time,
+        // only-my-phrases and the DIRIGERA hub address and lights.
         const val ALARM_BACKUP_FIELDS = 74
-        const val SETTINGS_BACKUP_FIELDS = 79
+        const val SETTINGS_BACKUP_FIELDS = 81
     }
 
     @Test
