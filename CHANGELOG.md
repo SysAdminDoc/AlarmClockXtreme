@@ -9,6 +9,9 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Japanese translation. On Android 13 and newer you can pick it under Settings > App language, and phones set to Japanese get it on their own. Thanks to knocker-g (#55).
 - You can choose when the next-alarm notification shows up, from always (the old behavior) down to 10 minutes before the alarm. Until then it stays out of the notification shade and off the lock screen. It's under Settings as "Next-alarm notification" and comes along in backups.
 - "Use only my phrases" sits under your custom phrases in Settings. Turn it on and typing and voice challenges pick only from the phrases you wrote, leaving the built-in list out (#43).
+- An alarm can skip any day where one of your calendar events has a word or tag you pick in its title, like #nowake. Delete the event and the alarm comes back (#60).
+- Snooze can be switched off for a single alarm. The Snooze button and its notification action go away, and flipping or covering the phone or pressing a volume key won't snooze it (#49).
+- A dismiss challenge, or a whole chain of them, can repeat up to ten times with a fresh puzzle each round. The ringing screen shows which round you're on.
 
 ### Changed
 
@@ -17,6 +20,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Night Clock starts centered and its burn-in drift swings evenly around the middle, with AM/PM sitting beside the digits instead of pushing them off center. Settings menus open next to the row you tapped. Thanks to knocker-g (#56).
 - The time left until the next alarm (notification, widget, alarm list and editor) uses the app's translations for its units instead of fixed English letters. Thanks to knocker-g (#54).
 - A wrong answer to a math challenge brings up a new problem instead of leaving the same one with three choices left, so tapping through the answers no longer gets you past it. The "not quite" message stays up a little longer too.
+- Progressive snooze sits right under the snooze length it shortens, and the challenge chain moved into the Dismiss challenge card (#49).
+- Alarm cards name every step of a challenge chain instead of a bare count, and add the number of rounds when it repeats (#49).
 
 ### Fixed
 
