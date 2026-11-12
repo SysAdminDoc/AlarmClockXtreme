@@ -75,6 +75,13 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
   Acceptance: both modules declare the same version, both lockfiles regenerate cleanly, `verifyDependencyIntegrity` passes, and both unit suites are green.
   Complexity: S
 
+- [ ] P2: Move the remaining hardcoded English into string resources
+  Why: With the app set to Japanese, about 90 lines still show in English because they are Kotlin literals in shapes `verifyLocalizedPrimaryScreens` does not catch: `if`/`else` arms assigned to a text val, data-class fields, function arguments, ViewModel state defaults and string templates. The tab bar, quotes, onboarding highlights and ringing-screen messages were moved on 2026-11-12; the rest were not.
+  Evidence: a prose-literal sweep of `app/src/main/java` on 2026-11-12. Biggest clusters: `domain/ChronotypeEstimator.kt` (questions and answers), `domain/PreSleepTagAnalytics.kt` (tag names), `ui/bedtime/` (BedtimeScreen, BedtimeViewModel defaults, BedtimeSleepTrackingSections, BedtimeChronotypeSection), `ui/dashboard/` (weather and calendar status), `ui/alarmlist/` (bulk-delete dialog, feedback toasts), `ui/permissions/PermissionHelper.kt`, `ui/ringtone/RingtonePickerSheet.kt`, `ui/share/` (import screen), `ui/stats/StatsScreen.kt`, `ui/worldclock/WorldClockScreen.kt`, `ui/components/YouTubeDownloadDialog.kt`, `util/AlarmPublicText.kt` ("Alarm", "Next alarm", "Are you awake?" in notifications), `util/ManufacturerCompat.kt` (battery steps), `MainActivity.kt` (What's new lines), `data/backup/BackupManager.kt` (excluded-field labels). Typing-challenge phrases in `ChallengeGenerator.kt` stay English on purpose until there is a way to type Japanese answers without IME conversion getting in the way.
+  Touches: those files, `values/strings.xml` and `values-ja/strings.xml` (both CRLF), and the guard in `app/build.gradle.kts` (teach it the `if`/`else` arm and data-class shapes so the gap can't reopen).
+  Acceptance: the sweep finds no user-visible English outside the typing phrases, a Robolectric `qualifiers = "ja"` test per moved cluster passes, and a walk of every tab on a phone set to Japanese shows no English lines.
+  Complexity: M
+
 ### P3
 
 - [ ] P3: Per-alarm "pause until a date"
