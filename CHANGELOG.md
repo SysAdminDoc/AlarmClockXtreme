@@ -24,6 +24,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Opening "Integrations & safety" in the alarm editor no longer crashes the app. The "After you dismiss" card had reused the Spotify card's slot, and two cards in one slot crashed the page. It has its own heading now (#59).
 - Setting descriptions wrap in full. They used to stop after three lines, which cut some of them off on narrow phones and at larger font sizes.
 - The bedtime reminder countdown in the notification is translated now. It was always in English, even with the app set to Japanese.
+- The tab bar and the news feed names follow the app's language too. Both stayed in English with the app set to Japanese.
 
 ## [1.15.35] - 2026-09-05
 

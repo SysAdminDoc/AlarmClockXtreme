@@ -15,6 +15,12 @@
     <string name="timer_restart">再開</string>
     <string name="nav_stopwatch">ストップウォッチ</string>
     <string name="nav_bedtime">就寝時刻</string>
+    <string name="nav_today">今日</string>
+    <string name="nav_alarms">アラーム</string>
+    <string name="nav_timer">タイマー</string>
+    <string name="nav_world">世界時計</string>
+    <string name="nav_news">ニュース</string>
+    <string name="nav_settings">設定</string>
     <string name="edit_alarm">アラームを編集</string>
     <string name="new_alarm">新しいアラーム</string>
     <string name="save">保存</string>
@@ -2257,4 +2263,16 @@
     <string name="settings_custom_phrases_only">自分のフレーズだけを使う</string>
     <string name="settings_custom_phrases_only_description">タイピングと音声のチャレンジで組み込みリストを使わず、上に入力したフレーズから選びます。</string>
     <plurals name="bedtime_countdown_remaining"><item quantity="other">就寝リマインダーまであと%1$d分</item></plurals>
+    <string name="news_feed_google_top">Google ニュース: トップ</string>
+    <string name="news_feed_google_top_short">トップ</string>
+    <string name="news_feed_google_world">Google ニュース: 世界</string>
+    <string name="news_feed_google_world_short">世界</string>
+    <string name="news_feed_google_tech">Google ニュース: テクノロジー</string>
+    <string name="news_feed_google_tech_short">テクノロジー</string>
+    <string name="news_feed_bbc">BBC: トップニュース</string>
+    <string name="news_feed_bbc_short">トップニュース</string>
+    <string name="news_feed_npr">NPR: ニュース</string>
+    <string name="news_feed_npr_short">ニュース</string>
+    <string name="news_feed_hn">Hacker News: フロントページ</string>
+    <string name="news_feed_hn_short">フロントページ</string>
 </resources>

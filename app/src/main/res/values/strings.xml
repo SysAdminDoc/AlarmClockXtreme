@@ -21,6 +21,12 @@
     <string name="timer_restart">Restart</string>
     <string name="nav_stopwatch">Stopwatch</string>
     <string name="nav_bedtime">Bedtime</string>
+    <string name="nav_today">Today</string>
+    <string name="nav_alarms">Alarms</string>
+    <string name="nav_timer">Timer</string>
+    <string name="nav_world">World</string>
+    <string name="nav_news">News</string>
+    <string name="nav_settings">Settings</string>
 
     <!-- Alarm list -->
 

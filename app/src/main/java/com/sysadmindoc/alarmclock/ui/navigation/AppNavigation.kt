@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.navigation
 
 import androidx.activity.ComponentActivity
+import androidx.annotation.StringRes
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,6 +35,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.ui.alarmedit.AlarmEditScreen
 import com.sysadmindoc.alarmclock.ui.alarmlist.AlarmListScreen
@@ -70,7 +73,7 @@ sealed class Screen(val route: String) {
 
 data class BottomNavItem(
     val screen: Screen,
-    val label: String,
+    @StringRes val labelRes: Int,
     val icon: ImageVector
 )
 
@@ -90,12 +93,12 @@ val bottomNavItems = listOf(
     // hero still reads "Weather", so we shorten just the *nav label* to
     // "Today" (which is also accurate — it's a daily-overview hub with
     // weather + radar + calendar). "Settings" fits at default fontWeight.
-    BottomNavItem(Screen.Dashboard, "Today", Icons.Default.WbSunny),
-    BottomNavItem(Screen.AlarmList, "Alarms", Icons.Default.Alarm),
-    BottomNavItem(Screen.Timer, "Timer", Icons.Default.Timer),
-    BottomNavItem(Screen.WorldClock, "World", Icons.Default.Language),
-    BottomNavItem(Screen.News, "News", Icons.AutoMirrored.Filled.Article),
-    BottomNavItem(Screen.Settings, "Settings", Icons.Default.Settings),
+    BottomNavItem(Screen.Dashboard, R.string.nav_today, Icons.Default.WbSunny),
+    BottomNavItem(Screen.AlarmList, R.string.nav_alarms, Icons.Default.Alarm),
+    BottomNavItem(Screen.Timer, R.string.nav_timer, Icons.Default.Timer),
+    BottomNavItem(Screen.WorldClock, R.string.nav_world, Icons.Default.Language),
+    BottomNavItem(Screen.News, R.string.nav_news, Icons.AutoMirrored.Filled.Article),
+    BottomNavItem(Screen.Settings, R.string.nav_settings, Icons.Default.Settings),
 )
 
 private fun visibleBottomNavItems(
@@ -259,12 +262,13 @@ fun AppNavigation(
                             val selected = currentDestination?.hierarchy?.any {
                                 it.route == item.screen.route
                             } == true
+                            val label = stringResource(item.labelRes)
 
                             NavigationBarItem(
                                 icon = {
                                     Icon(
                                         imageVector = item.icon,
-                                        contentDescription = item.label,
+                                        contentDescription = label,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 },
@@ -280,7 +284,7 @@ fun AppNavigation(
                                     // override) so the label has the most
                                     // breathing room inside the pill.
                                     Text(
-                                        text = item.label,
+                                        text = label,
                                         maxLines = 1,
                                         style = MaterialTheme.typography.labelSmall,
                                     )
@@ -317,15 +321,16 @@ fun AppNavigation(
                         val selected = currentDestination?.hierarchy?.any {
                             it.route == item.screen.route
                         } == true
+                        val label = stringResource(item.labelRes)
                         NavigationRailItem(
                             icon = {
                                 Icon(
                                     imageVector = item.icon,
-                                    contentDescription = item.label,
+                                    contentDescription = label,
                                     modifier = Modifier.size(22.dp)
                                 )
                             },
-                            label = { Text(text = item.label, maxLines = 1) },
+                            label = { Text(text = label, maxLines = 1) },
                             selected = selected,
                             alwaysShowLabel = true,
                             onClick = { onTabClick(item.screen) },
