@@ -133,6 +133,8 @@
     <string name="firing_leave_area_hint">Leave the saved area to unlock dismissal. Snooze remains available.</string>
     <string name="firing_leave_place_title">Leave the saved place</string>
     <string name="firing_step_of">Step %1$d of %2$d</string>
+    <string name="firing_round_of">Round %1$d of %2$d</string>
+    <string name="firing_round_step_of">Round %1$d of %2$d, step %3$d of %4$d</string>
     <string name="firing_status_hold_or_snooze">Wake-up steps are complete. Hold Dismiss for %1$.1f seconds, or right-swipe to snooze.</string>
     <string name="firing_status_swipe_or_snooze">Wake-up steps are complete. Swipe left to dismiss, or right to snooze.</string>
     <string name="firing_status_hold_to_stop">Hold Dismiss for %1$.1f seconds to stop the alarm.</string>
@@ -511,6 +513,10 @@
     <string name="alarm_edit_chain_override">Advanced chain override</string>
     <string name="alarm_edit_chain_placeholder" translatable="false">MATH_EASY,SHAKE,TYPING</string>
     <string name="alarm_edit_chain_hint">Stack multiple challenges in sequence. Use the picker above for a guided setup, or edit the raw chain directly if you already know the codes.</string>
+    <string name="alarm_edit_challenge_repeat">Repeat the challenges</string>
+    <string name="alarm_edit_challenge_repeat_once">Once</string>
+    <string name="alarm_edit_challenge_repeat_hint">The challenge, or the whole chain in order, runs this many times before Dismiss unlocks. Each run brings a fresh puzzle.</string>
+    <plurals name="alarm_edit_challenge_repeat_times"><item quantity="one">%1$d time</item><item quantity="other">%1$d times</item></plurals>
     <string name="alarm_edit_missing_references">Missing %1$s. These challenges will be skipped at fire time.</string>
     <string name="alarm_edit_chain_picker_description">Pick the wake-up tasks in the order they should happen. The first item appears first when the alarm rings.</string>
     <string name="alarm_edit_chain_picker_empty_hint">Start with two or more challenges when you want dismissal to feel more deliberate than a single math or shake task.</string>

@@ -271,14 +271,25 @@ fun AlarmFiringScreen(
     val dateText = currentDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL))
     val alarmLabel = state.alarm?.label?.takeIf { it.isNotBlank() }
         ?: stringResource(R.string.notif_alarm_ringing)
-    val stepLabel = if (state.totalChallenges > 1) {
-        stringResource(
+    val stepLabel = when {
+        state.challengeRounds > 1 && state.stepsPerRound > 1 -> stringResource(
+            R.string.firing_round_step_of,
+            state.currentRound,
+            state.challengeRounds,
+            state.stepInRound,
+            state.stepsPerRound
+        )
+        state.challengeRounds > 1 -> stringResource(
+            R.string.firing_round_of,
+            state.currentRound,
+            state.challengeRounds
+        )
+        state.totalChallenges > 1 -> stringResource(
             R.string.firing_step_of,
             state.currentChallengeIndex + 1,
             state.totalChallenges
         )
-    } else {
-        ""
+        else -> ""
     }
     val statusLine = when {
         state.canDismiss && holdToDismissEnabled && snoozeOff ->

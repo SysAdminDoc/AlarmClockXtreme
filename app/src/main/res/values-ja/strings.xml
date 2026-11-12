@@ -100,6 +100,8 @@
     <string name="firing_leave_area_hint">保存済みエリアを離れると停止できます。スヌーズは利用できます。</string>
     <string name="firing_leave_place_title">保存済みの場所から離れる</string>
     <string name="firing_step_of">ステップ %1$d / %2$d</string>
+    <string name="firing_round_of">ラウンド %1$d / %2$d</string>
+    <string name="firing_round_step_of">ラウンド %1$d / %2$d・ステップ %3$d / %4$d</string>
     <string name="firing_status_hold_or_snooze">起床ステップ完了。停止を%1$.1f秒長押し、または右スワイプでスヌーズ。</string>
     <string name="firing_status_swipe_or_snooze">起床ステップ完了。左スワイプで停止、右スワイプでスヌーズ。</string>
     <string name="firing_status_hold_to_stop">%1$.1f秒長押しで停止。</string>
@@ -474,6 +476,12 @@
     <string name="alarm_edit_challenge_chain">チャレンジチェーン</string>
     <string name="alarm_edit_chain_override">高度なチェーンの上書き</string>
     <string name="alarm_edit_chain_hint">複数のチャレンジを順番に実行します。上のピッカーで設定できます。</string>
+    <string name="alarm_edit_challenge_repeat">チャレンジの繰り返し</string>
+    <string name="alarm_edit_challenge_repeat_once">1回</string>
+    <string name="alarm_edit_challenge_repeat_hint">チャレンジ（チェーンなら全体を順番に）をこの回数こなすと停止できます。毎回新しい問題が出ます。</string>
+    <plurals name="alarm_edit_challenge_repeat_times">
+        <item quantity="other">%1$d回</item>
+    </plurals>
     <string name="alarm_edit_missing_references">%1$s が不足しています。これらのチャレンジは作動時にスキップされます。</string>
     <string name="alarm_edit_chain_picker_description">起床タスクの順番で選択します。最初の項目から表示されます。</string>
     <string name="alarm_edit_chain_picker_empty_hint">停止を慎重にするなら、2つ以上のチャレンジを設定します。</string>

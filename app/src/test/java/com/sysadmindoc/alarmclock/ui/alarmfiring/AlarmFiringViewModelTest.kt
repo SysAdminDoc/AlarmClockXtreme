@@ -318,6 +318,91 @@ class AlarmFiringViewModelTest {
         assertTrue(viewModel.coverToSnoozeEnabled.value)
     }
 
+    @Test
+    fun `a repeated chain runs every step of every round before dismiss unlocks`() = runTest(dispatcher) {
+        coEvery { repository.getById(any()) } returns Alarm(
+            id = 5L,
+            hour = 7,
+            minute = 0,
+            isEnabled = true,
+            challengeChain = "MATH_EASY,MATH_HARD",
+            challengeRepeatCount = 3
+        )
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val start = viewModel.uiState.value
+        assertEquals(6, start.totalChallenges)
+        assertEquals(3, start.challengeRounds)
+        assertEquals(2, start.stepsPerRound)
+        assertEquals(1, start.currentRound)
+        assertEquals(1, start.stepInRound)
+
+        val seen = mutableListOf<Challenge?>(start.challenge)
+        val expectedPositions = listOf(1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2)
+        val expectedTypes = listOf("MATH_HARD", "MATH_EASY", "MATH_HARD", "MATH_EASY", "MATH_HARD")
+        expectedPositions.forEachIndexed { i, (round, step) ->
+            viewModel.submitMathAnswer(correct = true)
+            val state = viewModel.uiState.value
+            assertFalse("dismiss unlocked before the last round finished", state.challengeSolved)
+            assertEquals(round, state.currentRound)
+            assertEquals(step, state.stepInRound)
+            assertEquals(expectedTypes[i], state.challenge?.type?.name)
+            seen += state.challenge
+        }
+        // Each round builds its own puzzle rather than replaying the first one.
+        val distinct = java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Challenge?, Boolean>())
+        distinct.addAll(seen)
+        assertEquals(6, distinct.size)
+
+        viewModel.submitMathAnswer(correct = true)
+
+        assertTrue(viewModel.uiState.value.challengeSolved)
+    }
+
+    @Test
+    fun `a single challenge with a repeat count runs once per round`() = runTest(dispatcher) {
+        coEvery { repository.getById(any()) } returns Alarm(
+            id = 5L,
+            hour = 7,
+            minute = 0,
+            isEnabled = true,
+            challengeType = "MATH_EASY",
+            challengeRepeatCount = 2
+        )
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        assertEquals(2, viewModel.uiState.value.totalChallenges)
+        assertEquals(2, viewModel.uiState.value.challengeRounds)
+        assertEquals(1, viewModel.uiState.value.stepsPerRound)
+
+        viewModel.submitMathAnswer(correct = true)
+        assertFalse(viewModel.uiState.value.challengeSolved)
+        assertEquals(2, viewModel.uiState.value.currentRound)
+
+        viewModel.submitMathAnswer(correct = true)
+        assertTrue(viewModel.uiState.value.challengeSolved)
+    }
+
+    @Test
+    fun `a repeat count on an alarm with no challenge leaves nothing to solve`() = runTest(dispatcher) {
+        coEvery { repository.getById(any()) } returns Alarm(
+            id = 5L,
+            hour = 7,
+            minute = 0,
+            isEnabled = true,
+            challengeRepeatCount = 4
+        )
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.challengeSolved)
+        assertEquals(1, state.totalChallenges)
+        assertEquals(1, state.challengeRounds)
+    }
+
     private fun stroke() = InkStroke(
         points = listOf(InkPoint(1f, 1f, 0L), InkPoint(20f, 30f, 12L), InkPoint(40f, 10f, 24L))
     )

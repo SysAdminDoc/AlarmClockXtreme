@@ -532,6 +532,44 @@ internal fun LazyListScope.alarmEditDismissSections(
                 )
             }
         }
+        if (state.challengeType != "NONE" || chainItems.isNotEmpty()) {
+            var showRepeatMenu by remember { mutableStateOf(false) }
+            SettingsRow(label = stringResource(R.string.alarm_edit_challenge_repeat)) {
+                Box {
+                    SettingsValueButton(
+                        label = challengeRepeatLabel(state.challengeRepeatCount),
+                        onClick = { showRepeatMenu = true }
+                    )
+                    DropdownMenu(
+                        expanded = showRepeatMenu,
+                        onDismissRequest = { showRepeatMenu = false }
+                    ) {
+                        (1..Alarm.MAX_CHALLENGE_REPEAT_COUNT).forEach { count ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        challengeRepeatLabel(count),
+                                        color = if (count == state.challengeRepeatCount) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            TextPrimary
+                                        }
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.updateChallengeRepeatCount(count)
+                                    showRepeatMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            SettingsHint(
+                stringResource(R.string.alarm_edit_challenge_repeat_hint),
+                tone = HintTone.Neutral
+            )
+        }
     }
 
     SettingsSection(editorPage, AlarmEditorSection.LOCATION) {
@@ -645,4 +683,16 @@ private fun snoozeLimitLabel(limit: Int): String =
         stringResource(R.string.alarm_edit_snooze_limit_unlimited)
     } else {
         pluralStringResource(R.plurals.alarm_edit_snooze_limit_value, limit, limit)
+    }
+
+/**
+ * Label for how many times the challenge or chain runs. 1 is the plain,
+ * unrepeated case.
+ */
+@Composable
+private fun challengeRepeatLabel(count: Int): String =
+    if (count <= 1) {
+        stringResource(R.string.alarm_edit_challenge_repeat_once)
+    } else {
+        pluralStringResource(R.plurals.alarm_edit_challenge_repeat_times, count, count)
     }

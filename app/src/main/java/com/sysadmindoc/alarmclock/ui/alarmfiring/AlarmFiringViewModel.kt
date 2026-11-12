@@ -62,9 +62,13 @@ data class FiringUiState(
     val barcodeScanStatus: String = "",
     // F16: Photo match status
     val photoMatchStatus: String = "",
-    // v1.2.0: Mission chaining
+    // v1.2.0: Mission chaining. currentChallengeIndex and totalChallenges
+    // count every step of every round.
     val currentChallengeIndex: Int = 0,
     val totalChallenges: Int = 1,
+    /** How many times the whole chain runs, and how many steps one run has. */
+    val challengeRounds: Int = 1,
+    val stepsPerRound: Int = 1,
     // v1.2.0: Squat challenge
     val squatCount: Int = 0,
     // v1.2.0: Motivational quote
@@ -146,6 +150,10 @@ data class FiringUiState(
         val locationReady = !requiresLocationDismiss || locationDismissReady || challengeBypassAvailable
         return wakeChallengeReady && locationReady
     }
+    /** 1-based round the current step belongs to. */
+    val currentRound: Int get() = currentChallengeIndex / stepsPerRound.coerceAtLeast(1) + 1
+    /** 1-based position of the current step inside its round. */
+    val stepInRound: Int get() = currentChallengeIndex % stepsPerRound.coerceAtLeast(1) + 1
 }
 
 data class ChallengeAudioDuckingPreference(
@@ -355,7 +363,15 @@ class AlarmFiringViewModel @Inject constructor(
                 } else chainTypes
             } catch (_: Exception) { chainTypes }
         } else chainTypes
-        challengeChainTypes = adaptedChain
+        // The whole chain runs as one round, repeated as many times as the
+        // alarm asks. Every repeat builds a fresh challenge, so a repeated
+        // math step is a new problem each time.
+        val rounds = if (adaptedChain.isEmpty()) {
+            1
+        } else {
+            alarm.challengeRepeatCount.coerceIn(1, Alarm.MAX_CHALLENGE_REPEAT_COUNT)
+        }
+        challengeChainTypes = List(rounds) { adaptedChain }.flatten()
 
         val firstChallenge = if (adaptedChain.isNotEmpty()) {
             buildChallengeForType(adaptedChain[0], alarm)
@@ -403,8 +419,10 @@ class AlarmFiringViewModel @Inject constructor(
             challenge = firstChallenge,
             challengeSolved = adaptedChain.isEmpty(),
             challengeStartedAtMillis = if (firstChallenge != null) System.currentTimeMillis() else 0L,
-            totalChallenges = maxOf(adaptedChain.size, 1),
+            totalChallenges = maxOf(challengeChainTypes.size, 1),
             currentChallengeIndex = 0,
+            challengeRounds = rounds,
+            stepsPerRound = maxOf(adaptedChain.size, 1),
             motivationalQuote = quote,
             mazeCurrentPos = (firstChallenge as? Challenge.MazeChallenge)?.startPos ?: 0,
             locationDismissReady = !locationDismissActive,
