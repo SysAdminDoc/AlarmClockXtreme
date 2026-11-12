@@ -21,6 +21,17 @@ internal object NextAlarmNotificationTiming {
     }
 
     /**
+     * How long the next-alarm notification stays hidden before it appears.
+     * Zero means show it now: either no lead time is set (always shown) or
+     * the alarm is already inside the lead window.
+     */
+    fun millisUntilShown(leadMinutes: Int, nowMillis: Long, triggerTimeMillis: Long): Long {
+        if (leadMinutes <= 0) return 0L
+        val remaining = triggerTimeMillis - nowMillis
+        return (remaining - leadMinutes * ONE_MINUTE_MS).coerceAtLeast(0L)
+    }
+
+    /**
      * Whether the upcoming-alarm notification should offer Skip.
      *
      * The per-alarm "Early dismiss window" exists so a skip has to be a

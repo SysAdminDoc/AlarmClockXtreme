@@ -2373,4 +2373,9 @@
     <string name="oem_huawei_title">Allow background activity on Huawei</string>
     <string name="oem_coloros_title">Allow background activity on ColorOS</string>
     <string name="oem_vivo_title">Allow background activity on Vivo</string>
+    <string name="settings_next_alarm_notification_lead">Next-alarm notification</string>
+    <string name="settings_next_alarm_notification_lead_description">When the next-alarm notification appears. Until then it stays out of the shade and off the lock screen.</string>
+    <string name="settings_next_alarm_notification_always">Always</string>
+    <plurals name="settings_next_alarm_notification_minutes_before"><item quantity="one">%1$d minute before</item><item quantity="other">%1$d minutes before</item></plurals>
+    <plurals name="settings_next_alarm_notification_hours_before"><item quantity="one">%1$d hour before</item><item quantity="other">%1$d hours before</item></plurals>
 </resources>

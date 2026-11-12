@@ -330,6 +330,8 @@ class SettingsViewModel @Inject constructor(
         updateSettingsAndReschedule { it.copy(showAlarmClockIcon = enabled) }
     fun toggleHideAlarmLabelsOnPublicSurfaces(enabled: Boolean) =
         updateSettings { it.copy(hideAlarmLabelsOnPublicSurfaces = enabled) }
+    fun updateNextAlarmNotificationLead(minutes: Int) =
+        updateSettings { it.copy(nextAlarmNotificationLeadMinutes = minutes) }
     fun updateDefaultSnooze(minutes: Int) = updateSettings { it.copy(defaultSnoozeDuration = minutes) }
     fun updateDefaultGradualVolume(seconds: Int) = updateSettings { it.copy(defaultGradualVolume = seconds) }
     fun toggleShowWeather(enabled: Boolean) = updateSettings { it.copy(showWeatherOnDashboard = enabled) }

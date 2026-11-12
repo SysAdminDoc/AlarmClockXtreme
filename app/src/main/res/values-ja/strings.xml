@@ -2249,4 +2249,9 @@
     <string name="alarm_edit_section_dismiss_action_description">このアラームを止めた直後に、自動化をひとつ実行します。</string>
     <string name="alarm_edit_spotify_not_recognised">Spotifyのリンクではないため、保存時に削除されます。Spotifyの共有メニューから曲、アルバム、プレイリストのリンクをコピーしてください。</string>
     <string name="firing_challenge_technical_failure">このチャレンジは現在この端末で実行できないため、代わりに計算問題を出します。</string>
+    <string name="settings_next_alarm_notification_lead">次のアラームの通知</string>
+    <string name="settings_next_alarm_notification_lead_description">次のアラームの通知を表示するタイミングです。それまでは通知シェードにもロック画面にも表示されません。</string>
+    <string name="settings_next_alarm_notification_always">常に表示</string>
+    <plurals name="settings_next_alarm_notification_minutes_before"><item quantity="other">%1$d分前</item></plurals>
+    <plurals name="settings_next_alarm_notification_hours_before"><item quantity="other">%1$d時間前</item></plurals>
 </resources>

@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.service
 
+import android.app.AlarmManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -13,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.MainActivity
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.model.Alarm
+import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
@@ -51,11 +53,14 @@ class NextAlarmNotifier @Inject constructor(
         const val CHANNEL_PERSISTENT = "persistent_alarm_channel"
         const val NOTIFICATION_ID_PERSISTENT = 2004
         private const val ANDROID_16_API = 36
+        private const val SHOW_WAKEUP_REQUEST_CODE = 2004
+        private const val HIDDEN_RECHECK_MS = 60_000L
     }
 
     private val notificationManager = context.getSystemService(NotificationManager::class.java)
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private var observeJob: kotlinx.coroutines.Job? = null
+    @Volatile private var scheduledShowAt = 0L
 
     init {
         createChannel()
@@ -85,12 +90,7 @@ class NextAlarmNotifier @Inject constructor(
             repository.observeNextAlarm()
                 .combine(
                     preferencesManager.settings
-                        .map {
-                            NextAlarmNotificationSettings(
-                                is24HourFormat = it.is24HourFormat,
-                                hideAlarmLabelsOnPublicSurfaces = it.hideAlarmLabelsOnPublicSurfaces
-                            )
-                        }
+                        .map { it.toNotificationSettings() }
                         .distinctUntilChanged()
                 ) { alarm, settings ->
                     alarm to settings
@@ -99,10 +99,31 @@ class NextAlarmNotifier @Inject constructor(
                     if (alarm != null && alarm.nextTriggerTime > System.currentTimeMillis()) {
                         refreshNotificationUntilInvalid(alarm, settings)
                     } else {
+                        cancelShowWakeup()
                         dismiss()
                     }
                 }
         }
+    }
+
+    /**
+     * Called by [NextAlarmNotificationReceiver] when a lead-time window opens.
+     * Coroutine delays stop counting while the phone is in deep sleep, so the
+     * observer can be asleep past the moment the notification was due. Show
+     * it now if it is due, then restart the observer from the wall clock.
+     */
+    suspend fun refreshNow() {
+        val settings = preferencesManager.getCurrentSettings().toNotificationSettings()
+        val alarm = repository.getNextAlarm()
+        val now = System.currentTimeMillis()
+        if (alarm != null && alarm.isEnabled && alarm.nextTriggerTime > now &&
+            NextAlarmNotificationTiming.millisUntilShown(
+                settings.leadMinutes, now, alarm.nextTriggerTime
+            ) == 0L
+        ) {
+            showNotification(alarm, settings)
+        }
+        startObserving()
     }
 
     fun stopObserving() {
@@ -126,19 +147,60 @@ class NextAlarmNotifier @Inject constructor(
                     alarm = nextAlarm
                     continue
                 } else {
+                    cancelShowWakeup()
                     dismiss()
                     return
                 }
             }
 
-            showNotification(alarm, settings)
-            delay(NextAlarmNotificationTiming.millisUntilNextRefresh(now, alarm.nextTriggerTime))
+            val untilShown = NextAlarmNotificationTiming.millisUntilShown(
+                settings.leadMinutes, now, alarm.nextTriggerTime
+            )
+            if (untilShown > 0L) {
+                dismiss()
+                val showAt = now + untilShown
+                if (showAt != scheduledShowAt) scheduleShowWakeup(showAt)
+                delay(untilShown.coerceAtMost(HIDDEN_RECHECK_MS))
+            } else {
+                showNotification(alarm, settings)
+                delay(NextAlarmNotificationTiming.millisUntilNextRefresh(now, alarm.nextTriggerTime))
+            }
             alarm = repository.getById(alarm.id) ?: repository.getNextAlarm() ?: run {
+                cancelShowWakeup()
                 dismiss()
                 return
             }
         }
     }
+
+    /**
+     * Wakes the app when a hidden notification is due, because the observer's
+     * delay alone can run late in Doze. Exact when the app may schedule exact
+     * alarms, otherwise the closest inexact equivalent.
+     */
+    private fun scheduleShowWakeup(showAtMillis: Long) {
+        val alarmManager = context.getSystemService(AlarmManager::class.java)
+        val pendingIntent = showWakeupIntent()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || alarmManager.canScheduleExactAlarms()) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, showAtMillis, pendingIntent)
+        } else {
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, showAtMillis, pendingIntent)
+        }
+        scheduledShowAt = showAtMillis
+    }
+
+    private fun cancelShowWakeup() {
+        if (scheduledShowAt == 0L) return
+        context.getSystemService(AlarmManager::class.java).cancel(showWakeupIntent())
+        scheduledShowAt = 0L
+    }
+
+    private fun showWakeupIntent(): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        SHOW_WAKEUP_REQUEST_CODE,
+        Intent(context, NextAlarmNotificationReceiver::class.java),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
 
     private fun showNotification(alarm: Alarm, settings: NextAlarmNotificationSettings) {
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -297,5 +359,12 @@ class NextAlarmNotifier @Inject constructor(
 
 private data class NextAlarmNotificationSettings(
     val is24HourFormat: Boolean,
-    val hideAlarmLabelsOnPublicSurfaces: Boolean
+    val hideAlarmLabelsOnPublicSurfaces: Boolean,
+    val leadMinutes: Int
+)
+
+private fun AppSettings.toNotificationSettings() = NextAlarmNotificationSettings(
+    is24HourFormat = is24HourFormat,
+    hideAlarmLabelsOnPublicSurfaces = hideAlarmLabelsOnPublicSurfaces,
+    leadMinutes = nextAlarmNotificationLeadMinutes
 )

@@ -32,6 +32,26 @@ class NextAlarmNotificationTimingTest {
     }
 
     @Test
+    fun noLeadTimeShowsTheNotificationRightAway() {
+        val now = 1_000_000L
+        val trigger = now + 8 * 60 * 60_000L
+
+        assertEquals(0L, NextAlarmNotificationTiming.millisUntilShown(0, now, trigger))
+    }
+
+    @Test
+    fun tenMinuteLeadHidesUntilTenMinutesBefore() {
+        val now = 1_000_000L
+
+        assertEquals(
+            60_000L,
+            NextAlarmNotificationTiming.millisUntilShown(10, now, now + 11 * 60_000L)
+        )
+        assertEquals(0L, NextAlarmNotificationTiming.millisUntilShown(10, now, now + 10 * 60_000L))
+        assertEquals(0L, NextAlarmNotificationTiming.millisUntilShown(10, now, now + 30_000L))
+    }
+
+    @Test
     fun returnsZeroForExpiredAlarm() {
         val now = 1_000_000L
         val trigger = now - 1L

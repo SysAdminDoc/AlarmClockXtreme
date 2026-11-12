@@ -41,6 +41,9 @@ data class AppSettings(
     // Users who prefer a quieter status bar can opt into the exact-idle path.
     val showAlarmClockIcon: Boolean = true,
     val hideAlarmLabelsOnPublicSurfaces: Boolean = false,
+    // 0 keeps the next-alarm notification up all the time; otherwise it only
+    // appears this many minutes before the alarm.
+    val nextAlarmNotificationLeadMinutes: Int = 0,
     // Vacation mode
     val vacationModeEnabled: Boolean = false,
     val vacationStartMillis: Long = 0,
@@ -227,6 +230,7 @@ private fun AppSettings.sanitized(): AppSettings {
         lastKnownLatitude = lastKnownLatitude.coerceIn(-90.0, 90.0),
         lastKnownLongitude = lastKnownLongitude.coerceIn(-180.0, 180.0),
         autoSilenceMinutes = autoSilenceMinutes.coerceIn(0, 240),
+        nextAlarmNotificationLeadMinutes = nextAlarmNotificationLeadMinutes.coerceIn(0, 1_440),
         temperatureUnit = normalizedTemperatureUnit,
         locationName = normalizedLocationName,
         useManualLocation = useManualLocation && normalizedLocationName.isNotBlank(),
@@ -301,6 +305,7 @@ class PreferencesManager @Inject constructor(
         val USE_PHONE_SPEAKERS = booleanPreferencesKey("use_phone_speakers")
         val SHOW_ALARM_CLOCK_ICON = booleanPreferencesKey("show_alarm_clock_icon")
         val HIDE_ALARM_LABELS_PUBLIC = booleanPreferencesKey("hide_alarm_labels_public")
+        val NEXT_ALARM_NOTIFICATION_LEAD = intPreferencesKey("next_alarm_notification_lead_minutes")
         val VACATION_ENABLED = booleanPreferencesKey("vacation_enabled")
         val VACATION_START = longPreferencesKey("vacation_start")
         val VACATION_END = longPreferencesKey("vacation_end")
@@ -443,6 +448,7 @@ class PreferencesManager @Inject constructor(
         usePhoneSpeakers = this[Keys.USE_PHONE_SPEAKERS] ?: false,
         showAlarmClockIcon = this[Keys.SHOW_ALARM_CLOCK_ICON] ?: true,
         hideAlarmLabelsOnPublicSurfaces = this[Keys.HIDE_ALARM_LABELS_PUBLIC] ?: false,
+        nextAlarmNotificationLeadMinutes = this[Keys.NEXT_ALARM_NOTIFICATION_LEAD] ?: 0,
         vacationModeEnabled = this[Keys.VACATION_ENABLED] ?: false,
         vacationStartMillis = this[Keys.VACATION_START] ?: 0,
         vacationEndMillis = this[Keys.VACATION_END] ?: 0,
@@ -531,6 +537,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.USE_PHONE_SPEAKERS] = s.usePhoneSpeakers
         this[Keys.SHOW_ALARM_CLOCK_ICON] = s.showAlarmClockIcon
         this[Keys.HIDE_ALARM_LABELS_PUBLIC] = s.hideAlarmLabelsOnPublicSurfaces
+        this[Keys.NEXT_ALARM_NOTIFICATION_LEAD] = s.nextAlarmNotificationLeadMinutes
         this[Keys.VACATION_ENABLED] = s.vacationModeEnabled
         this[Keys.VACATION_START] = s.vacationStartMillis
         this[Keys.VACATION_END] = s.vacationEndMillis

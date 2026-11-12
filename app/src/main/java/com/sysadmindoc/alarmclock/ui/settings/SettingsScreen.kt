@@ -259,6 +259,7 @@ fun SettingsScreen(
     }
 
     var showDefaultSnoozeMenu by remember { mutableStateOf(false) }
+    var showNextAlarmLeadMenu by remember { mutableStateOf(false) }
     var showGradualVolumeMenu by remember { mutableStateOf(false) }
     var showAutoSilenceMenu by remember { mutableStateOf(false) }
     var showTemperatureMenu by remember { mutableStateOf(false) }
@@ -457,6 +458,28 @@ fun SettingsScreen(
                     checked = state.settings.hideAlarmLabelsOnPublicSurfaces,
                     supportingText = stringResource(R.string.settings_hide_public_labels_description),
                     onToggle = viewModel::toggleHideAlarmLabelsOnPublicSurfaces
+                )
+                SettingsActionRow(
+                    label = stringResource(R.string.settings_next_alarm_notification_lead),
+                    value = nextAlarmNotificationLeadLabel(state.settings.nextAlarmNotificationLeadMinutes),
+                    supportingText = stringResource(R.string.settings_next_alarm_notification_lead_description),
+                    onClick = { showNextAlarmLeadMenu = true },
+                    dropdownMenu = {
+                        DropdownMenu(
+                            expanded = showNextAlarmLeadMenu,
+                            onDismissRequest = { showNextAlarmLeadMenu = false }
+                        ) {
+                            listOf(0, 10, 15, 30, 60, 120, 240, 480).forEach { minutes ->
+                                DropdownMenuItem(
+                                    text = { Text(nextAlarmNotificationLeadLabel(minutes)) },
+                                    onClick = {
+                                        viewModel.updateNextAlarmNotificationLead(minutes)
+                                        showNextAlarmLeadMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                 )
                 SettingsToggle(
                     label = stringResource(R.string.settings_phone_speakers),
@@ -1411,6 +1434,17 @@ internal fun SettingsActionRow(
             }
         }
     }
+}
+
+@Composable
+private fun nextAlarmNotificationLeadLabel(minutes: Int): String = when {
+    minutes <= 0 -> stringResource(R.string.settings_next_alarm_notification_always)
+    minutes % 60 == 0 -> pluralStringResource(
+        R.plurals.settings_next_alarm_notification_hours_before, minutes / 60, minutes / 60
+    )
+    else -> pluralStringResource(
+        R.plurals.settings_next_alarm_notification_minutes_before, minutes, minutes
+    )
 }
 
 private val AppLanguageOption.labelRes: Int

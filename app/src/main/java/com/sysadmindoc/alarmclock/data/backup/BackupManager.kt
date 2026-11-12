@@ -118,7 +118,7 @@ data class AlarmBackup(
 
 @JsonClass(generateAdapter = true)
 data class BackupData(
-    val version: Int = 19,
+    val version: Int = 20,
     val appVersion: String = BuildConfig.VERSION_NAME,
     val exportedAt: Long = System.currentTimeMillis(),
     val alarms: List<AlarmBackup>,
@@ -136,6 +136,7 @@ data class SettingsBackup(
     val showOnLockScreen: Boolean = true,
     val showAlarmClockIcon: Boolean = true,
     val hideAlarmLabelsOnPublicSurfaces: Boolean = false,
+    val nextAlarmNotificationLeadMinutes: Int = 0,
     val vacationModeEnabled: Boolean,
     val vacationStartMillis: Long,
     val vacationEndMillis: Long,
@@ -290,7 +291,7 @@ class BackupManager @Inject constructor(
 
     companion object {
         /** Highest backup format version we know how to read end-to-end. */
-        const val MAX_SUPPORTED_BACKUP_VERSION = 19
+        const val MAX_SUPPORTED_BACKUP_VERSION = 20
 
         /**
          * Ceiling on an imported file. A full export of the maximum alarm count
@@ -541,6 +542,7 @@ class BackupManager @Inject constructor(
                 usePhoneSpeakers = settings.usePhoneSpeakers,
                 showAlarmClockIcon = settings.showAlarmClockIcon,
                 hideAlarmLabelsOnPublicSurfaces = settings.hideAlarmLabelsOnPublicSurfaces,
+                nextAlarmNotificationLeadMinutes = settings.nextAlarmNotificationLeadMinutes,
                 vacationModeEnabled = settings.vacationModeEnabled,
                 vacationStartMillis = settings.vacationStartMillis,
                 vacationEndMillis = settings.vacationEndMillis,
@@ -782,6 +784,7 @@ class BackupManager @Inject constructor(
         usePhoneSpeakers = s.usePhoneSpeakers,
         showAlarmClockIcon = s.showAlarmClockIcon,
         hideAlarmLabelsOnPublicSurfaces = s.hideAlarmLabelsOnPublicSurfaces,
+        nextAlarmNotificationLeadMinutes = s.nextAlarmNotificationLeadMinutes,
         vacationModeEnabled = s.vacationModeEnabled,
         vacationStartMillis = s.vacationStartMillis,
         vacationEndMillis = s.vacationEndMillis,

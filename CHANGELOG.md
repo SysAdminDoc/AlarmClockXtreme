@@ -7,6 +7,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 ### Added
 
 - Japanese translation. On Android 13 and newer you can pick it under Settings > App language, and phones set to Japanese get it on their own. Thanks to knocker-g (#55).
+- You can choose when the next-alarm notification shows up, from always (the old behavior) down to 10 minutes before the alarm. Until then it stays out of the notification shade and off the lock screen. It's under Settings as "Next-alarm notification" and comes along in backups.
 
 ### Changed
 
