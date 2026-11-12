@@ -42,17 +42,25 @@ object SnoozeCapPolicy {
 
     /**
      * Snoozes still available after [snoozeCount] have been used, or null when
-     * the alarm is uncapped.
+     * the alarm is uncapped. An alarm with snooze switched off has none.
      */
-    fun snoozesRemaining(alarm: Alarm, snoozeCount: Int): Int? =
-        if (!isCapped(alarm)) null
-        else (alarm.maxSnoozeCount - snoozeCount.coerceAtLeast(0)).coerceAtLeast(0)
+    fun snoozesRemaining(alarm: Alarm, snoozeCount: Int): Int? = when {
+        !alarm.snoozeEnabled -> 0
+        !isCapped(alarm) -> null
+        else -> (alarm.maxSnoozeCount - snoozeCount.coerceAtLeast(0)).coerceAtLeast(0)
+    }
 
     /** True when the user may still snooze after [snoozeCount] snoozes. */
     fun canSnooze(alarm: Alarm, snoozeCount: Int): Boolean =
         outcomeFor(alarm, snoozeCount) != SnoozeCapOutcome.REFUSE
 
+    /**
+     * With snooze switched off every request is refused, never turned into a
+     * dismiss: a flip, a volume key or a notification tap must not stop an
+     * alarm the user set up to have no snooze at all.
+     */
     fun outcomeFor(alarm: Alarm, snoozeCount: Int): SnoozeCapOutcome {
+        if (!alarm.snoozeEnabled) return SnoozeCapOutcome.REFUSE
         val next = snoozeCount.coerceAtLeast(0) + 1
         if (!isCapped(alarm) || next <= alarm.maxSnoozeCount) return SnoozeCapOutcome.SNOOZE
         return if (hasDismissGate(alarm)) {

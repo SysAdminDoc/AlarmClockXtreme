@@ -739,8 +739,9 @@ class AlarmService : Service() {
             .setOngoing(true)
             .setAutoCancel(false)
             .apply {
-                // Dropped once a challenge alarm has spent its snooze cap, so
-                // the notification cannot offer a way out the screen refuses.
+                // Dropped once a challenge alarm has spent its snooze cap, or
+                // when snooze is switched off for this alarm, so the
+                // notification cannot offer a way out the screen refuses.
                 if (SnoozeCapPolicy.canSnooze(alarm, currentSnoozeCount)) {
                     addAction(
                         R.drawable.ic_alarm,
@@ -1703,7 +1704,7 @@ class AlarmService : Service() {
             recordIncident(
                 type = AlarmIncidentEvent.TYPE_USER_ACTION,
                 status = AlarmIncidentEvent.STATUS_SKIPPED,
-                reasonCode = "SNOOZE_CAP_REACHED",
+                reasonCode = if (capped.snoozeEnabled) "SNOOZE_CAP_REACHED" else "SNOOZE_DISABLED",
                 source = "AlarmService",
                 alarmId = capped.id
             )

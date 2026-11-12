@@ -140,6 +140,9 @@
     <string name="firing_controls_ready_description">起床タスク完了。終了方法を選択してください。</string>
     <string name="firing_controls_location_description">スヌーズ利用可。エリア外へ移動で解除できます。</string>
     <string name="firing_controls_locked_description">スヌーズは常に利用できます。起床ステップ完了後に停止できます。</string>
+    <string name="firing_snooze_off_locked">このアラームはスヌーズがオフです。起床ステップ完了後に停止できます。</string>
+    <string name="firing_snooze_off_location">このアラームはスヌーズがオフです。エリア外へ移動すると停止できます。</string>
+    <string name="firing_snooze_off_hold">長押しで停止を確定。このアラームはスヌーズがオフです。</string>
     <string name="firing_hold_to_finish">長押しして終了</string>
     <string name="firing_tap_dismiss">タップして停止</string>
     <string name="firing_dismiss_after_location">位置確認後に停止可能</string>
@@ -429,6 +432,7 @@
     <string name="alarm_edit_vibration_on">バイブレーション オン</string>
     <string name="alarm_edit_vibration_off">バイブレーション オフ</string>
     <string name="alarm_edit_dismiss_category_summary">%1$s • %2$d分スヌーズ</string>
+    <string name="alarm_edit_dismiss_category_summary_no_snooze">%1$s • スヌーズなし</string>
     <string name="alarm_edit_standard_wake">標準起床</string>
     <string name="alarm_edit_no_integrations">オプションの連携なし</string>
     <string name="alarm_edit_using_defaults">デフォルトを使用中</string>
@@ -590,6 +594,8 @@
     <string name="alarm_edit_snooze_limit">スヌーズ制限</string>
     <string name="alarm_edit_snooze_limit_unlimited">無制限</string>
     <string name="alarm_edit_snooze_limit_hint">最後のスヌーズ後に停止。チャレンジ付きなら解くまで鳴り続けます。</string>
+    <string name="alarm_edit_snooze_enabled">スヌーズを許可</string>
+    <string name="alarm_edit_snooze_off_hint">スヌーズをオフにすると、ボタン、スワイプ、裏返し、覆う操作、音量キー、通知のどれでもスヌーズできず、停止するまで鳴り続けます。</string>
     <plurals name="alarm_edit_snooze_limit_value">
         <item quantity="other">%1$d回のスヌーズ</item>
     </plurals>

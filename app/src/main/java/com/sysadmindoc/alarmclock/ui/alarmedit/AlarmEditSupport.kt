@@ -300,11 +300,18 @@ internal fun AlarmEditorCategoryOverview(
         AlarmEditorCategory(
             page = AlarmEditorPage.DISMISS,
             title = stringResource(R.string.alarm_edit_page_dismiss),
-            summary = stringResource(
-                R.string.alarm_edit_dismiss_category_summary,
-                state.challengeSummary(),
-                state.snoozeDurationMinutes
-            ),
+            summary = if (state.snoozeEnabled) {
+                stringResource(
+                    R.string.alarm_edit_dismiss_category_summary,
+                    state.challengeSummary(),
+                    state.snoozeDurationMinutes
+                )
+            } else {
+                stringResource(
+                    R.string.alarm_edit_dismiss_category_summary_no_snooze,
+                    state.challengeSummary()
+                )
+            },
             icon = Icons.Default.TaskAlt
         ),
         AlarmEditorCategory(

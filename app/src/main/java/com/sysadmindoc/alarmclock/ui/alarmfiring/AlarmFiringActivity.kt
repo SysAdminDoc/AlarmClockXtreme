@@ -689,11 +689,17 @@ class AlarmFiringActivity : ComponentActivity() {
         // The service refuses a snooze once a challenge alarm has spent its cap.
         // Closing the screen anyway would leave the alarm ringing with no
         // challenge on display and no way back to it.
-        if (!viewModel.uiState.value.snoozeAllowed) {
+        // An alarm with snooze switched off is refused the same way.
+        val state = viewModel.uiState.value
+        if (!state.snoozeAllowed) {
             recordIncidentAsync(
                 type = AlarmIncidentEvent.TYPE_USER_ACTION,
                 status = AlarmIncidentEvent.STATUS_SKIPPED,
-                reasonCode = "UI_SNOOZE_REFUSED_CAP"
+                reasonCode = if (state.alarm?.snoozeEnabled == false) {
+                    "UI_SNOOZE_REFUSED_DISABLED"
+                } else {
+                    "UI_SNOOZE_REFUSED_CAP"
+                }
             )
             return
         }

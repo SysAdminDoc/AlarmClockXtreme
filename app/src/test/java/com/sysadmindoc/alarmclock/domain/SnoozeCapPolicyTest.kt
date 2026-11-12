@@ -95,4 +95,31 @@ class SnoozeCapPolicyTest {
         assertTrue(SnoozeCapPolicy.canSnooze(strict, 0))
         assertFalse(SnoozeCapPolicy.canSnooze(strict, 1))
     }
+
+    @Test
+    fun `snooze switched off refuses every request`() {
+        listOf(
+            alarm(maxSnoozeCount = 0),
+            alarm(maxSnoozeCount = 3),
+            alarm(maxSnoozeCount = 3, challengeType = "TYPING")
+        ).forEach { base ->
+            val noSnooze = base.copy(snoozeEnabled = false)
+            listOf(-1, 0, 2, 3, 99).forEach { used ->
+                assertEquals(SnoozeCapOutcome.REFUSE, SnoozeCapPolicy.outcomeFor(noSnooze, used))
+                assertFalse(SnoozeCapPolicy.canSnooze(noSnooze, used))
+                assertEquals(0, SnoozeCapPolicy.snoozesRemaining(noSnooze, used))
+            }
+        }
+    }
+
+    @Test
+    fun `snooze switched off never turns a snooze press into a dismiss`() {
+        // A plain capped alarm past its cap would auto-dismiss with snooze on.
+        val spent = alarm(maxSnoozeCount = 1)
+        assertEquals(SnoozeCapOutcome.AUTO_DISMISS, SnoozeCapPolicy.outcomeFor(spent, 1))
+        assertEquals(
+            SnoozeCapOutcome.REFUSE,
+            SnoozeCapPolicy.outcomeFor(spent.copy(snoozeEnabled = false), 1)
+        )
+    }
 }

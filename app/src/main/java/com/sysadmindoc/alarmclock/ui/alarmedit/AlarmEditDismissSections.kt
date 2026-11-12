@@ -90,86 +90,103 @@ internal fun LazyListScope.alarmEditDismissSections(
 ) {
     // Snooze - interactive picker
     SettingsSection(editorPage, AlarmEditorSection.SNOOZE) {
-        var showSnoozeMenu by remember { mutableStateOf(false) }
-        SettingsRow(label = stringResource(R.string.snooze_duration)) {
-            Box {
-                SettingsValueButton(
-                    label = stringResource(R.string.alarm_edit_minutes_short, state.snoozeDurationMinutes),
-                    onClick = { showSnoozeMenu = true }
-                )
-                DropdownMenu(
-                    expanded = showSnoozeMenu,
-                    onDismissRequest = { showSnoozeMenu = false }
-                ) {
-                    listOf(1, 3, 5, 10, 15, 20, 30).forEach { mins ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    pluralStringResource(R.plurals.alarm_edit_minutes, mins, mins),
-                                    color = if (mins == state.snoozeDurationMinutes) MaterialTheme.colorScheme.primary else TextPrimary
-                                )
-                            },
-                            onClick = {
-                                viewModel.updateSnoozeDuration(mins)
-                                showSnoozeMenu = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-
-        var showSnoozeLimitMenu by remember { mutableStateOf(false) }
-        SettingsRow(label = stringResource(R.string.alarm_edit_snooze_limit)) {
-            Box {
-                SettingsValueButton(
-                    label = snoozeLimitLabel(state.maxSnoozeCount),
-                    onClick = { showSnoozeLimitMenu = true }
-                )
-                DropdownMenu(
-                    expanded = showSnoozeLimitMenu,
-                    onDismissRequest = { showSnoozeLimitMenu = false }
-                ) {
-                    listOf(0, 1, 2, 3, 5, 10).forEach { limit ->
-                        DropdownMenuItem(
-                            text = {
-                                Text(
-                                    snoozeLimitLabel(limit),
-                                    color = if (limit == state.maxSnoozeCount) {
-                                        MaterialTheme.colorScheme.primary
-                                    } else {
-                                        TextPrimary
-                                    }
-                                )
-                            },
-                            onClick = {
-                                viewModel.updateMaxSnoozeCount(limit)
-                                showSnoozeLimitMenu = false
-                            }
-                        )
-                    }
-                }
-            }
-        }
-        SettingsHint(
-            stringResource(R.string.alarm_edit_snooze_limit_hint),
-            tone = HintTone.Neutral
-        )
-
         SettingsRow(
-            label = stringResource(R.string.alarm_edit_progressive_snooze),
+            label = stringResource(R.string.alarm_edit_snooze_enabled),
             trailing = {
                 Switch(
-                    checked = state.progressiveSnooze,
-                    onCheckedChange = viewModel::updateProgressiveSnooze,
+                    checked = state.snoozeEnabled,
+                    onCheckedChange = viewModel::updateSnoozeEnabled,
                     colors = appSwitchColors()
                 )
             }
         )
-        SettingsHint(
-            stringResource(R.string.alarm_edit_progressive_snooze_hint),
-            tone = HintTone.Neutral
-        )
+        if (state.snoozeEnabled) {
+            var showSnoozeMenu by remember { mutableStateOf(false) }
+            SettingsRow(label = stringResource(R.string.snooze_duration)) {
+                Box {
+                    SettingsValueButton(
+                        label = stringResource(R.string.alarm_edit_minutes_short, state.snoozeDurationMinutes),
+                        onClick = { showSnoozeMenu = true }
+                    )
+                    DropdownMenu(
+                        expanded = showSnoozeMenu,
+                        onDismissRequest = { showSnoozeMenu = false }
+                    ) {
+                        listOf(1, 3, 5, 10, 15, 20, 30).forEach { mins ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        pluralStringResource(R.plurals.alarm_edit_minutes, mins, mins),
+                                        color = if (mins == state.snoozeDurationMinutes) MaterialTheme.colorScheme.primary else TextPrimary
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.updateSnoozeDuration(mins)
+                                    showSnoozeMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+
+            var showSnoozeLimitMenu by remember { mutableStateOf(false) }
+            SettingsRow(label = stringResource(R.string.alarm_edit_snooze_limit)) {
+                Box {
+                    SettingsValueButton(
+                        label = snoozeLimitLabel(state.maxSnoozeCount),
+                        onClick = { showSnoozeLimitMenu = true }
+                    )
+                    DropdownMenu(
+                        expanded = showSnoozeLimitMenu,
+                        onDismissRequest = { showSnoozeLimitMenu = false }
+                    ) {
+                        listOf(0, 1, 2, 3, 5, 10).forEach { limit ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        snoozeLimitLabel(limit),
+                                        color = if (limit == state.maxSnoozeCount) {
+                                            MaterialTheme.colorScheme.primary
+                                        } else {
+                                            TextPrimary
+                                        }
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.updateMaxSnoozeCount(limit)
+                                    showSnoozeLimitMenu = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+            SettingsHint(
+                stringResource(R.string.alarm_edit_snooze_limit_hint),
+                tone = HintTone.Neutral
+            )
+
+            SettingsRow(
+                label = stringResource(R.string.alarm_edit_progressive_snooze),
+                trailing = {
+                    Switch(
+                        checked = state.progressiveSnooze,
+                        onCheckedChange = viewModel::updateProgressiveSnooze,
+                        colors = appSwitchColors()
+                    )
+                }
+            )
+            SettingsHint(
+                stringResource(R.string.alarm_edit_progressive_snooze_hint),
+                tone = HintTone.Neutral
+            )
+        } else {
+            SettingsHint(
+                stringResource(R.string.alarm_edit_snooze_off_hint),
+                tone = HintTone.Neutral
+            )
+        }
     }
 
     // v1.2.0: Anti-Snooze Features

@@ -235,10 +235,18 @@ class AlarmFiringViewModel @Inject constructor(
     private val _finish = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val finishEvents: SharedFlow<Unit> = _finish.asSharedFlow()
 
+    /** False until the alarm loads, and for good when that alarm has snooze switched off. */
+    private val alarmTakesSnooze: Flow<Boolean> = _uiState
+        .map { it.alarm?.snoozeEnabled == true }
+        .distinctUntilChanged()
+
     /** Exposes the global flip-to-snooze preference so the Activity only registers
-     *  the orientation listener when the user has actually opted in. */
-    val flipToSnoozeEnabled: StateFlow<Boolean> = preferencesManager.settings
-        .map { it.flipToSnoozeEnabled }
+     *  the orientation listener when the user has actually opted in and the
+     *  ringing alarm can be snoozed at all. */
+    val flipToSnoozeEnabled: StateFlow<Boolean> = combine(
+        preferencesManager.settings.map { it.flipToSnoozeEnabled },
+        alarmTakesSnooze
+    ) { enabled, takesSnooze -> enabled && takesSnooze }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     /** Whether the user has opted into motivational quotes on the firing screen. */
@@ -255,8 +263,10 @@ class AlarmFiringViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.Eagerly, LongPressThreshold.DEFAULT_MILLIS)
 
     /** v1.4.0: Whether "cover the phone" snooze is enabled globally. */
-    val coverToSnoozeEnabled: StateFlow<Boolean> = preferencesManager.settings
-        .map { it.coverToSnoozeEnabled }
+    val coverToSnoozeEnabled: StateFlow<Boolean> = combine(
+        preferencesManager.settings.map { it.coverToSnoozeEnabled },
+        alarmTakesSnooze
+    ) { enabled, takesSnooze -> enabled && takesSnooze }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
     val firingControlMode: StateFlow<String> = preferencesManager.settings

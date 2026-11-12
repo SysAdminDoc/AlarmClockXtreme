@@ -250,6 +250,8 @@ fun AlarmFiringScreen(
     val swipeThreshold = 200f
     val defaultSnoozeMinutes = state.alarm?.snoozeDurationMinutes ?: 10
     val holdToDismissEnabled = state.alarm?.holdToDismissEnabled == true
+    // Snooze switched off for this alarm: every snooze control and hint goes away.
+    val snoozeOff = state.alarm?.snoozeEnabled == false
     var customSnoozeMinutes by remember(defaultSnoozeMinutes) {
         mutableIntStateOf(defaultSnoozeMinutes.coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES))
     }
@@ -279,8 +281,11 @@ fun AlarmFiringScreen(
         ""
     }
     val statusLine = when {
+        state.canDismiss && holdToDismissEnabled && snoozeOff ->
+            stringResource(R.string.firing_status_hold_to_stop, holdDurationSeconds)
         state.canDismiss && holdToDismissEnabled ->
             stringResource(R.string.firing_status_hold_or_snooze, holdDurationSeconds)
+        state.canDismiss && snoozeOff -> stringResource(R.string.firing_status_swipe_to_stop)
         state.canDismiss -> stringResource(R.string.firing_status_swipe_or_snooze)
         locationDismissActive && state.wakeChallengeReady -> locationDismissMessage
         challenge == null && holdToDismissEnabled ->
@@ -311,7 +316,7 @@ fun AlarmFiringScreen(
             )
             .let { mod ->
                 if (!showSwipeControls) return@let mod
-                mod.pointerInput(state.canDismiss, holdToDismissEnabled, state.snoozeAllowed) {
+                mod.pointerInput(state.canDismiss, holdToDismissEnabled, state.snoozeAllowed, snoozeOff) {
                 detectHorizontalDragGestures(
                     onDragStart = { swipeCumulativeDrag = 0f },
                     onDragEnd = {
@@ -322,7 +327,7 @@ fun AlarmFiringScreen(
                                 onDismiss()
                                 swipeHint = ""
                             }
-                        } else if (swipeCumulativeDrag > swipeThreshold) {
+                        } else if (swipeCumulativeDrag > swipeThreshold && !snoozeOff) {
                             if (state.snoozeAllowed) {
                                 onSnooze()
                                 swipeHint = ""
@@ -345,14 +350,14 @@ fun AlarmFiringScreen(
                                 holdDismissHint
                             swipeCumulativeDrag < -swipeThreshold / 2 && state.canDismiss ->
                                 releaseDismissHint
-                            swipeCumulativeDrag > swipeThreshold / 2 ->
+                            swipeCumulativeDrag > swipeThreshold / 2 && !snoozeOff ->
                                 releaseSnoozeHint
                             swipeCumulativeDrag < -50 && state.canDismiss && holdToDismissEnabled ->
                                 swipeProtectedHint
                             swipeCumulativeDrag < -50 && state.canDismiss ->
                                 swipeLeftHint
                             swipeCumulativeDrag < -50 -> finishStepHint
-                            swipeCumulativeDrag > 50 -> swipeRightHint
+                            swipeCumulativeDrag > 50 && !snoozeOff -> swipeRightHint
                             else -> ""
                         }
                     }
@@ -947,7 +952,16 @@ fun AlarmFiringScreen(
                 if (showSwipeControls) {
                     Text(
                         text = if (swipeHint.isBlank()) {
-                            if (state.canDismiss) {
+                            if (snoozeOff) {
+                                when {
+                                    state.canDismiss && holdToDismissEnabled ->
+                                        stringResource(R.string.firing_status_hold_to_stop, holdDurationSeconds)
+                                    state.canDismiss -> stringResource(R.string.firing_swipe_left_dismiss)
+                                    locationDismissActive && state.wakeChallengeReady ->
+                                        stringResource(R.string.firing_snooze_off_location)
+                                    else -> stringResource(R.string.firing_snooze_off_locked)
+                                }
+                            } else if (state.canDismiss) {
                                 if (holdToDismissEnabled && flipToSnoozeEnabled) {
                                     stringResource(
                                         R.string.firing_swipe_hold_flip_hint,
@@ -989,13 +1003,21 @@ fun AlarmFiringScreen(
                 AppSectionTitle(
                     title = stringResource(R.string.firing_controls_title),
                     description = if (state.canDismiss) {
-                        if (holdToDismissEnabled) {
+                        if (holdToDismissEnabled && snoozeOff) {
+                            stringResource(R.string.firing_snooze_off_hold)
+                        } else if (holdToDismissEnabled) {
                             stringResource(R.string.firing_controls_hold_description)
                         } else {
                             stringResource(R.string.firing_controls_ready_description)
                         }
                     } else if (locationDismissActive && state.wakeChallengeReady) {
-                        stringResource(R.string.firing_controls_location_description)
+                        if (snoozeOff) {
+                            stringResource(R.string.firing_snooze_off_location)
+                        } else {
+                            stringResource(R.string.firing_controls_location_description)
+                        }
+                    } else if (snoozeOff) {
+                        stringResource(R.string.firing_snooze_off_locked)
                     } else {
                         stringResource(R.string.firing_controls_locked_description)
                     }
@@ -1021,17 +1043,19 @@ fun AlarmFiringScreen(
                         icon = if (state.canDismiss) Icons.Default.CheckCircle else Icons.Default.WarningAmber,
                         color = if (state.canDismiss) DismissGreen else TextMuted
                     )
-                    AppStatusChip(
-                        label = when {
-                            !state.snoozeAllowed ->
-                                stringResource(R.string.firing_snoozes_none_left)
-                            showSwipeControls ->
-                                stringResource(R.string.firing_swipe_right_snooze)
-                            else -> stringResource(R.string.firing_tap_snooze)
-                        },
-                        icon = Icons.Default.Snooze,
-                        color = if (state.snoozeAllowed) SnoozeYellow else TextMuted
-                    )
+                    if (!snoozeOff) {
+                        AppStatusChip(
+                            label = when {
+                                !state.snoozeAllowed ->
+                                    stringResource(R.string.firing_snoozes_none_left)
+                                showSwipeControls ->
+                                    stringResource(R.string.firing_swipe_right_snooze)
+                                else -> stringResource(R.string.firing_tap_snooze)
+                            },
+                            icon = Icons.Default.Snooze,
+                            color = if (state.snoozeAllowed) SnoozeYellow else TextMuted
+                        )
+                    }
                 }
 
                 if (showButtonControls) {
@@ -1068,93 +1092,95 @@ fun AlarmFiringScreen(
                         }
                     }
 
-                    LongPressSnoozeButton(
-                        minutes = defaultSnoozeMinutes,
-                        enabled = state.snoozeAllowed,
-                        onClick = onSnooze,
-                        onLongClick = {
-                            customSnoozeMinutes = defaultSnoozeMinutes
-                                .coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES)
-                            showSnoozeOptions = true
-                        }
-                    )
-
-                    val snoozesLeft = state.snoozesRemaining
-                    Text(
-                        text = when {
-                            !state.snoozeAllowed ->
-                                stringResource(R.string.firing_snoozes_none_left)
-                            // Zero remaining on an alarm with no dismiss gate
-                            // still snoozes; it just ends the alarm. Saying
-                            // "0 snoozes left" beside a live button would read
-                            // as a contradiction, so fall through to the hint.
-                            snoozesLeft != null && snoozesLeft > 0 -> pluralStringResource(
-                                R.plurals.firing_snoozes_left,
-                                snoozesLeft,
-                                snoozesLeft
-                            )
-                            else -> stringResource(R.string.firing_snooze_hint)
-                        },
-                        color = TextMuted,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    TextButton(
-                        onClick = { showSnoozeOptions = !showSnoozeOptions },
-                        enabled = state.snoozeAllowed,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    ) {
-                        Text(
-                            text = if (showSnoozeOptions) {
-                                stringResource(R.string.firing_hide_snooze_choices)
-                            } else {
-                                stringResource(R.string.firing_choose_snooze)
-                            },
-                            color = TextSecondary
-                        )
-                    }
-
-                    if (showSnoozeOptions) {
-                        Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            listOf(1, 3, 5, 15, 30).forEach { minutes ->
-                                QuickSnoozeButton(
-                                    minutes = minutes,
-                                    isDefault = minutes == defaultSnoozeMinutes,
-                                    onClick = { onSnoozeCustom(minutes) }
-                                )
+                    if (!snoozeOff) {
+                        LongPressSnoozeButton(
+                            minutes = defaultSnoozeMinutes,
+                            enabled = state.snoozeAllowed,
+                            onClick = onSnooze,
+                            onLongClick = {
+                                customSnoozeMinutes = defaultSnoozeMinutes
+                                    .coerceIn(MIN_CUSTOM_SNOOZE_MINUTES, MAX_CUSTOM_SNOOZE_MINUTES)
+                                showSnoozeOptions = true
                             }
-                        }
-
-                        SnoozeMinutePicker(
-                            minutes = customSnoozeMinutes,
-                            onMinutesChange = { minutes ->
-                                customSnoozeMinutes = minutes.coerceIn(
-                                    MIN_CUSTOM_SNOOZE_MINUTES,
-                                    MAX_CUSTOM_SNOOZE_MINUTES
-                                )
-                            },
-                            onSnooze = { onSnoozeCustom(customSnoozeMinutes) }
                         )
 
-                        OutlinedButton(
-                            onClick = { showSnoozeUntilPicker = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.2.dp, SnoozeYellow.copy(alpha = 0.74f)),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = SnoozeYellow)
+                        val snoozesLeft = state.snoozesRemaining
+                        Text(
+                            text = when {
+                                !state.snoozeAllowed ->
+                                    stringResource(R.string.firing_snoozes_none_left)
+                                // Zero remaining on an alarm with no dismiss gate
+                                // still snoozes; it just ends the alarm. Saying
+                                // "0 snoozes left" beside a live button would read
+                                // as a contradiction, so fall through to the hint.
+                                snoozesLeft != null && snoozesLeft > 0 -> pluralStringResource(
+                                    R.plurals.firing_snoozes_left,
+                                    snoozesLeft,
+                                    snoozesLeft
+                                )
+                                else -> stringResource(R.string.firing_snooze_hint)
+                            },
+                            color = TextMuted,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        TextButton(
+                            onClick = { showSnoozeOptions = !showSnoozeOptions },
+                            enabled = state.snoozeAllowed,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.AccessTime,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
+                            Text(
+                                text = if (showSnoozeOptions) {
+                                    stringResource(R.string.firing_hide_snooze_choices)
+                                } else {
+                                    stringResource(R.string.firing_choose_snooze)
+                                },
+                                color = TextSecondary
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.firing_choose_snooze_until))
+                        }
+
+                        if (showSnoozeOptions) {
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf(1, 3, 5, 15, 30).forEach { minutes ->
+                                    QuickSnoozeButton(
+                                        minutes = minutes,
+                                        isDefault = minutes == defaultSnoozeMinutes,
+                                        onClick = { onSnoozeCustom(minutes) }
+                                    )
+                                }
+                            }
+
+                            SnoozeMinutePicker(
+                                minutes = customSnoozeMinutes,
+                                onMinutesChange = { minutes ->
+                                    customSnoozeMinutes = minutes.coerceIn(
+                                        MIN_CUSTOM_SNOOZE_MINUTES,
+                                        MAX_CUSTOM_SNOOZE_MINUTES
+                                    )
+                                },
+                                onSnooze = { onSnoozeCustom(customSnoozeMinutes) }
+                            )
+
+                            OutlinedButton(
+                                onClick = { showSnoozeUntilPicker = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.2.dp, SnoozeYellow.copy(alpha = 0.74f)),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = SnoozeYellow)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AccessTime,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(stringResource(R.string.firing_choose_snooze_until))
+                            }
                         }
                     }
                 }

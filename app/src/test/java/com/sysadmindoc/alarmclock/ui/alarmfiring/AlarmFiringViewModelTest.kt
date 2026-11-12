@@ -285,6 +285,39 @@ class AlarmFiringViewModelTest {
         assertFalse(state.challengeSolved)
     }
 
+    @Test
+    fun `snooze switched off takes away the button, flip and cover`() = runTest(dispatcher) {
+        val gestures = AppSettings(flipToSnoozeEnabled = true, coverToSnoozeEnabled = true)
+        coEvery { repository.getById(any()) } returns Alarm(
+            id = 5L,
+            hour = 7,
+            minute = 0,
+            isEnabled = true,
+            maxSnoozeCount = 0,
+            snoozeEnabled = false
+        )
+        val viewModel = viewModel(gestures)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.snoozeAllowed)
+        assertEquals(0, state.snoozesRemaining)
+        assertFalse("flip must not snooze an alarm with snooze off", viewModel.flipToSnoozeEnabled.value)
+        assertFalse("cover must not snooze an alarm with snooze off", viewModel.coverToSnoozeEnabled.value)
+    }
+
+    @Test
+    fun `flip and cover follow the setting once a snoozable alarm loads`() = runTest(dispatcher) {
+        val gestures = AppSettings(flipToSnoozeEnabled = true, coverToSnoozeEnabled = true)
+        coEvery { repository.getById(any()) } returns Alarm(id = 5L, hour = 7, minute = 0, isEnabled = true)
+        val viewModel = viewModel(gestures)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.snoozeAllowed)
+        assertTrue(viewModel.flipToSnoozeEnabled.value)
+        assertTrue(viewModel.coverToSnoozeEnabled.value)
+    }
+
     private fun stroke() = InkStroke(
         points = listOf(InkPoint(1f, 1f, 0L), InkPoint(20f, 30f, 12L), InkPoint(40f, 10f, 24L))
     )
@@ -302,11 +335,11 @@ class AlarmFiringViewModelTest {
         return viewModel()
     }
 
-    private fun viewModel(): AlarmFiringViewModel {
+    private fun viewModel(settings: AppSettings = AppSettings()): AlarmFiringViewModel {
         val preferencesManager: PreferencesManager = mockk(relaxed = true)
-        every { preferencesManager.settings } returns flowOf(AppSettings())
-        coEvery { preferencesManager.getCurrentSettings() } returns AppSettings()
-        every { preferencesManager.getCachedSettings() } returns AppSettings()
+        every { preferencesManager.settings } returns flowOf(settings)
+        coEvery { preferencesManager.getCurrentSettings() } returns settings
+        every { preferencesManager.getCachedSettings() } returns settings
 
         return AlarmFiringViewModel(
             appContext = context,
