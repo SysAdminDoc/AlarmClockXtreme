@@ -510,6 +510,8 @@ dependencies {
     // WorkManager test harness: drives WebhookRetryWorker.doWork() in the JVM so
     // the outcome->Result / retry-cap mapping is unit-tested without a device.
     testImplementation("androidx.work:work-testing:2.9.1")
+    // TestNavHostController: TabNavigationTest drives the bottom-bar back stack.
+    testImplementation("androidx.navigation:navigation-testing:2.8.5")
     // Drift guard: BackupManagerSettingsDriftTest reflects over AppSettings /
     // SettingsBackup constructor parameters so a new settings field can't ship
     // without a backup round-trip again.

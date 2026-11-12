@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -147,6 +148,22 @@ internal fun resolveDeepLinkRoute(pathSegments: List<String>): String? {
     return segments[0].takeIf { it in deepLinkRoutes }
 }
 
+/**
+ * Bottom-bar navigation. Pops back to Alarms rather than the graph's start
+ * destination: after onboarding the start (Onboarding) is gone from the stack,
+ * so popping to it did nothing and tabs piled up. Alarms stays at the base and
+ * is never popped, so it has no state of its own to restore; asking it to
+ * restore brought back whatever the first tab switch had saved, which left
+ * Settings on screen when Alarms was tapped.
+ */
+internal fun NavController.navigateToTab(route: String) {
+    navigate(route) {
+        popUpTo(Screen.AlarmList.route) { saveState = true }
+        launchSingleTop = true
+        restoreState = route != Screen.AlarmList.route
+    }
+}
+
 private const val ONBOARDING_VERSION = 1
 private const val ONBOARDING_DONE_KEY = "onboarding_complete_v$ONBOARDING_VERSION"
 
@@ -229,21 +246,13 @@ fun AppNavigation(
         val isManagedTab = current in bottomNavItems.map { it.screen.route }
         if (isManagedTab && visibleTabs.none { it.screen.route == current }) {
             navController.navigate(Screen.AlarmList.route) {
-                popUpTo(navController.graph.findStartDestination().id) { saveState = false }
+                popUpTo(Screen.AlarmList.route) { saveState = false }
                 launchSingleTop = true
             }
         }
     }
 
-    val onTabClick: (Screen) -> Unit = { screen ->
-        navController.navigate(screen.route) {
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
-            }
-            launchSingleTop = true
-            restoreState = true
-        }
-    }
+    val onTabClick: (Screen) -> Unit = { screen -> navController.navigateToTab(screen.route) }
 
     Scaffold(
         containerColor = SurfaceDark,
@@ -433,11 +442,7 @@ private fun AppNavHost(
 
         composable(Screen.Dashboard.route) {
             DashboardScreen(
-                onOpenAlarms = {
-                    navController.navigate(Screen.AlarmList.route) {
-                        launchSingleTop = true
-                    }
-                }
+                onOpenAlarms = { navController.navigateToTab(Screen.AlarmList.route) }
             )
         }
 
@@ -445,7 +450,7 @@ private fun AppNavHost(
             AlarmListScreen(
                 onAddAlarm = { navController.navigate(Screen.AlarmEdit.createRoute(-1)) },
                 onEditAlarm = { id -> navController.navigate(Screen.AlarmEdit.createRoute(id)) },
-                onOpenSettings = { navController.navigate(Screen.Settings.route) }
+                onOpenSettings = { navController.navigateToTab(Screen.Settings.route) }
             )
         }
 

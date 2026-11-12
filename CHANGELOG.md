@@ -33,6 +33,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The bedtime reminder countdown in the notification is translated now. It was always in English, even with the app set to Japanese.
 - The tab bar, the news feed names and the quotes on the ringing screen follow the app's language too. They all stayed in English with the app set to Japanese.
 - The welcome pages' feature lines, the quick alarm and timer preset chips, and the ringing screen's sensor and permission messages are translated now. A first run in Japanese showed English lines under every Japanese title.
+- Tapping Alarms from Settings opens Alarms again. It used to bring Settings straight back, and after the first-run setup the tabs stacked up, so Back walked through every tab you'd visited.
 
 ## [1.15.35] - 2026-09-05
 
