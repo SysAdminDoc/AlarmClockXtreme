@@ -95,18 +95,18 @@ data class OnboardingPage(
     @StringRes val titleRes: Int,
     @StringRes val descriptionRes: Int,
     val accentColor: Color,
-    val highlights: List<String>
+    val highlightRes: List<Int>
 )
 
-private val onboardingPages = listOf(
+internal val onboardingPages = listOf(
     OnboardingPage(
         icon = Icons.Default.Alarm,
         titleRes = R.string.onboarding_reliable_wake_ups,
         descriptionRes = R.string.onboarding_alarmclockxtreme_built_stay_dependable_even,
         accentColor = AccentBlue,
-        highlights = listOf(
-            "Exact alarms designed to survive Doze mode",
-            "Battery guidance for aggressive device vendors"
+        highlightRes = listOf(
+            R.string.onboarding_highlight_exact_alarms,
+            R.string.onboarding_highlight_battery_guidance
         )
     ),
     OnboardingPage(
@@ -114,9 +114,9 @@ private val onboardingPages = listOf(
         titleRes = R.string.onboarding_wake_up_real,
         descriptionRes = R.string.onboarding_challenge_based_dismiss_flows_help,
         accentColor = SnoozeYellow,
-        highlights = listOf(
-            "Math, shake, memory, steps, barcode, and more",
-            "Layer multiple challenges when you need extra certainty"
+        highlightRes = listOf(
+            R.string.onboarding_highlight_challenge_types,
+            R.string.onboarding_highlight_layer_challenges
         )
     ),
     OnboardingPage(
@@ -124,9 +124,9 @@ private val onboardingPages = listOf(
         titleRes = R.string.onboarding_start_day_informed,
         descriptionRes = R.string.onboarding_see_weather_calendar_next_alarm,
         accentColor = DismissGreen,
-        highlights = listOf(
-            "A quick daily dashboard with forecast and events",
-            "Useful context without ads or noisy clutter"
+        highlightRes = listOf(
+            R.string.onboarding_highlight_daily_dashboard,
+            R.string.onboarding_highlight_no_clutter
         )
     ),
     OnboardingPage(
@@ -134,9 +134,9 @@ private val onboardingPages = listOf(
         titleRes = R.string.onboarding_private_by_default,
         descriptionRes = R.string.onboarding_no_ads_no_tracking_no,
         accentColor = AccentRed,
-        highlights = listOf(
-            "Permissions are optional and can be changed later",
-            "Data stays on your device unless you configure an integration"
+        highlightRes = listOf(
+            R.string.onboarding_highlight_optional_permissions,
+            R.string.onboarding_highlight_data_stays_local
         )
     )
 )
@@ -430,17 +430,18 @@ fun OnboardingScreen(
                 }
 
                 if (isLastPage) {
+                    val finishDescription = if (readiness.notificationsReady) {
+                        stringResource(R.string.onboarding_finish_setup_without_more_changes)
+                    } else {
+                        stringResource(R.string.onboarding_finish_setup_without_alarm_alerts)
+                    }
                     TextButton(
                         onClick = onComplete,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
                             .semantics {
-                                contentDescription = if (readiness.notificationsReady) {
-                                    "Finish setup without more changes"
-                                } else {
-                                    "Finish setup without enabling alarm alerts"
-                                }
+                                contentDescription = finishDescription
                                 role = Role.Button
                             }
                     ) {
@@ -524,9 +525,9 @@ private fun OnboardingPageContent(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                page.highlights.forEach { highlight ->
+                page.highlightRes.forEach { highlight ->
                     FeatureRow(
-                        text = highlight,
+                        text = stringResource(highlight),
                         accent = page.accentColor
                     )
                 }

@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 enum class TimerState { IDLE, RUNNING, PAUSED, FINISHED }
 
-data class TimerPreset(val label: String, val seconds: Long)
+data class TimerPreset(val seconds: Long)
 
 data class TimerInstance(
     val id: Int,
@@ -72,12 +72,12 @@ data class TimerUiState(
 }
 
 val defaultPresets = listOf(
-    TimerPreset("1 min", 60),
-    TimerPreset("3 min", 180),
-    TimerPreset("5 min", 300),
-    TimerPreset("10 min", 600),
-    TimerPreset("15 min", 900),
-    TimerPreset("30 min", 1800),
+    TimerPreset(60),
+    TimerPreset(180),
+    TimerPreset(300),
+    TimerPreset(600),
+    TimerPreset(900),
+    TimerPreset(1800),
 )
 
 @HiltViewModel

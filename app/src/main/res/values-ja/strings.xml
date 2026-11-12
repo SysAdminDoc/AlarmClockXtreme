@@ -2342,4 +2342,32 @@
         <item>止まらない限り、どんなにゆっくり進んでもかまいません。</item>
         <item>自分の行動が違いを生むと信じて動こう。本当にそうなのだから。</item>
     </string-array>
+    <string name="onboarding_highlight_exact_alarms">Dozeモード中でも鳴るように作られた正確なアラーム</string>
+    <string name="onboarding_highlight_battery_guidance">省電力が厳しいメーカー向けのバッテリー設定ガイド</string>
+    <string name="onboarding_highlight_challenge_types">計算、シェイク、記憶、歩数、バーコードなど</string>
+    <string name="onboarding_highlight_layer_challenges">確実に起きたい日は複数のチャレンジを重ねられます</string>
+    <string name="onboarding_highlight_daily_dashboard">天気予報と予定をひと目で見られる毎日のダッシュボード</string>
+    <string name="onboarding_highlight_no_clutter">広告や余計な表示のない、役立つ情報だけ</string>
+    <string name="onboarding_highlight_optional_permissions">権限は任意で、あとから変更できます</string>
+    <string name="onboarding_highlight_data_stays_local">連携を設定しない限り、データは端末の中だけに残ります</string>
+    <string name="onboarding_finish_setup_without_more_changes">これ以上変更せずにセットアップを完了</string>
+    <string name="onboarding_finish_setup_without_alarm_alerts">アラーム通知を有効にせずにセットアップを完了</string>
+    <string name="challenge_no_photo_captured">写真が撮影されませんでした。もう一度お試しください。</string>
+    <string name="challenge_camera_permission_photo_match">写真照合にはカメラの権限が必要です。</string>
+    <string name="challenge_activity_permission_steps">この端末で歩数を数えるには身体活動の権限が必要です。</string>
+    <string name="challenge_location_permission_wifi_name">Androidで現在のWi-Fiネットワーク名を読み取るには位置情報の権限が必要です。</string>
+    <string name="challenge_location_permission_dismiss">停止できるようにするには位置情報の権限が必要です。</string>
+    <string name="challenge_no_step_sensor">この端末には歩数センサーがありません。</string>
+    <string name="challenge_no_wifi_details">この端末ではWi-Fiの接続情報を読み取れません。</string>
+    <string name="challenge_wifi_name_blocked">Androidが現在のWi-Fiネットワーク名へのアクセスをブロックしました。</string>
+    <string name="challenge_wifi_unreadable">現在のWi-Fiネットワークを読み取れません。位置情報がオンで、Wi-Fiに接続しているか確認してください。</string>
+    <string name="challenge_no_location_service">この端末には位置情報サービスがありません。</string>
+    <string name="challenge_location_blocked">アラームが鳴っている間、Androidが位置情報へのアクセスをブロックしました。</string>
+    <string name="challenge_no_location_provider">使える位置情報プロバイダがありません。</string>
+    <string name="challenge_turn_on_location">保存した場所を離れたら停止できるように、端末の位置情報をオンにしてください。</string>
+    <string name="challenge_continue_without_squat_count">スクワットカウントなしで続行</string>
+    <string name="challenge_continue_without_pushup_count">腕立て伏せカウントなしで続行</string>
+    <string name="alarmlist_alarm_options">アラームのオプション</string>
+    <plurals name="alarmlist_hours"><item quantity="other">%1$d 時間</item></plurals>
+    <string name="timer_preset_minutes">%1$d 分</string>
 </resources>

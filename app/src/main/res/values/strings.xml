@@ -2435,4 +2435,32 @@
     <string name="settings_custom_phrases_only">Use only my phrases</string>
     <string name="settings_custom_phrases_only_description">Typing and voice challenges skip the built-in list and pick from your phrases above.</string>
     <plurals name="bedtime_countdown_remaining"><item quantity="one">Bedtime reminder in %1$d minute</item><item quantity="other">Bedtime reminder in %1$d minutes</item></plurals>
+    <string name="onboarding_highlight_exact_alarms">Exact alarms designed to survive Doze mode</string>
+    <string name="onboarding_highlight_battery_guidance">Battery guidance for aggressive device vendors</string>
+    <string name="onboarding_highlight_challenge_types">Math, shake, memory, steps, barcode, and more</string>
+    <string name="onboarding_highlight_layer_challenges">Layer multiple challenges when you need extra certainty</string>
+    <string name="onboarding_highlight_daily_dashboard">A quick daily dashboard with forecast and events</string>
+    <string name="onboarding_highlight_no_clutter">Useful context without ads or noisy clutter</string>
+    <string name="onboarding_highlight_optional_permissions">Permissions are optional and can be changed later</string>
+    <string name="onboarding_highlight_data_stays_local">Data stays on your device unless you configure an integration</string>
+    <string name="onboarding_finish_setup_without_more_changes">Finish setup without more changes</string>
+    <string name="onboarding_finish_setup_without_alarm_alerts">Finish setup without enabling alarm alerts</string>
+    <string name="challenge_no_photo_captured">No photo captured. Try again.</string>
+    <string name="challenge_camera_permission_photo_match">Camera permission is required for photo match.</string>
+    <string name="challenge_activity_permission_steps">Activity recognition permission is required to count steps on this device.</string>
+    <string name="challenge_location_permission_wifi_name">Location permission is required for Android to reveal the current Wi-Fi network name.</string>
+    <string name="challenge_location_permission_dismiss">Location permission is required before dismiss can unlock.</string>
+    <string name="challenge_no_step_sensor">This device does not expose a step sensor.</string>
+    <string name="challenge_no_wifi_details">This device does not expose Wi-Fi connection details.</string>
+    <string name="challenge_wifi_name_blocked">Android blocked access to the current Wi-Fi network name.</string>
+    <string name="challenge_wifi_unreadable">Unable to read the current Wi-Fi network. Make sure location is enabled and you are connected to Wi-Fi.</string>
+    <string name="challenge_no_location_service">This device does not expose a location service.</string>
+    <string name="challenge_location_blocked">Android blocked location access during alarm firing.</string>
+    <string name="challenge_no_location_provider">No usable location provider is available.</string>
+    <string name="challenge_turn_on_location">Turn on device Location to unlock dismissal after leaving the saved place.</string>
+    <string name="challenge_continue_without_squat_count">Continue without squat count</string>
+    <string name="challenge_continue_without_pushup_count">Continue without push-up count</string>
+    <string name="alarmlist_alarm_options">Alarm options</string>
+    <plurals name="alarmlist_hours"><item quantity="one">%1$d hour</item><item quantity="other">%1$d hours</item></plurals>
+    <string name="timer_preset_minutes">%1$d min</string>
 </resources>

@@ -395,7 +395,7 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
         ) {
             defaultPresets.forEach { preset ->
                 AppFilterChip(
-                    label = preset.label,
+                    label = stringResource(R.string.timer_preset_minutes, (preset.seconds / 60).toInt()),
                     selected = false,
                     onClick = { viewModel.selectPreset(preset) },
                 )

@@ -1288,7 +1288,12 @@ private fun QuickAlarmRow(
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            listOf(10 to "10 min", 30 to "30 min", 60 to "1 hour", 120 to "2 hours").forEach { (minutes, label) ->
+            listOf(10, 30, 60, 120).forEach { minutes ->
+                val label = if (minutes < 60) {
+                    stringResource(R.string.alarmlist_min, minutes)
+                } else {
+                    pluralStringResource(R.plurals.alarmlist_hours, minutes / 60, minutes / 60)
+                }
                 AppFilterChip(
                     label = label,
                     selected = false,
@@ -1441,7 +1446,7 @@ private fun AlarmCard(
                     }
                     Box {
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, "Alarm options", tint = TextSecondary)
+                            Icon(Icons.Default.MoreVert, stringResource(R.string.alarmlist_alarm_options), tint = TextSecondary)
                         }
                         DropdownMenu(
                             expanded = showMenu,

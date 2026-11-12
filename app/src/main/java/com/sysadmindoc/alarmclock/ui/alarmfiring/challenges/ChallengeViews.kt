@@ -1260,7 +1260,7 @@ fun SquatChallengeView(
             summary = if (currentSquats == 0) stringResource(R.string.alarmfiring_start_with_one_clean_squat) else stringResource(R.string.alarmfiring_squats_remaining, remaining)
         )
 
-        ExerciseSensorFallback(exerciseStatus, fallbackAllowed, "Continue without squat count", onContinueWithoutSensor)
+        ExerciseSensorFallback(exerciseStatus, fallbackAllowed, stringResource(R.string.challenge_continue_without_squat_count), onContinueWithoutSensor)
     }
 }
 
@@ -1292,7 +1292,7 @@ fun PushUpChallengeView(
             summary = if (currentPushUps == 0) stringResource(R.string.alarmfiring_start_your_first_push_up) else stringResource(R.string.alarmfiring_push_ups_remaining, remaining)
         )
 
-        ExerciseSensorFallback(exerciseStatus, fallbackAllowed, "Continue without push-up count", onContinueWithoutSensor)
+        ExerciseSensorFallback(exerciseStatus, fallbackAllowed, stringResource(R.string.challenge_continue_without_pushup_count), onContinueWithoutSensor)
     }
 }
 
