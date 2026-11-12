@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.ui.settings
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.Manifest
@@ -349,6 +350,10 @@ fun SettingsScreen(
             ?: settingsPaneCategories.first()
         val showSettingsHome = !useTwoPane && selectedPaneId == null
         val settingsListState = rememberLazyListState()
+
+        // System back from a category goes to the category list, like the
+        // header's Settings button, instead of leaving Settings altogether.
+        BackHandler(enabled = !useTwoPane && selectedPaneId != null) { selectedPaneId = null }
 
         androidx.compose.runtime.LaunchedEffect(useTwoPane, selectedPane.id) {
             if (useTwoPane) settingsListState.scrollToItem(0)

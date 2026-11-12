@@ -34,6 +34,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The tab bar, the news feed names and the quotes on the ringing screen follow the app's language too. They all stayed in English with the app set to Japanese.
 - The welcome pages' feature lines, the quick alarm and timer preset chips, and the ringing screen's sensor and permission messages are translated now. A first run in Japanese showed English lines under every Japanese title.
 - Tapping Alarms from Settings opens Alarms again. It used to bring Settings straight back, and after the first-run setup the tabs stacked up, so Back walked through every tab you'd visited.
+- Back from a Settings page like Utilities returns to the Settings list instead of leaving Settings.
 
 ## [1.15.35] - 2026-09-05
 
