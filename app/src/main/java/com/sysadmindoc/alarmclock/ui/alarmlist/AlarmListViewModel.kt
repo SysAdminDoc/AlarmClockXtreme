@@ -215,7 +215,7 @@ class AlarmListViewModel @Inject constructor(
                 val avg = eventRepository.avgSnoozeCountForAlarm(alarm.id) ?: continue
                 if (avg >= 3.0) {
                     val label = alarm.label.ifBlank { "%d:%02d".format(alarm.hour, alarm.minute) }
-                    emitFeedback("\"$label\" averages ${avg.toInt()} snoozes — consider moving it 15 min later")
+                    emitFeedback("\"$label\" averages ${avg.toInt()} snoozes. Try moving it 15 minutes later.")
                     prefs.edit().putString("last_suggest_day", today).apply()
                     break
                 }
@@ -376,7 +376,7 @@ class AlarmListViewModel @Inject constructor(
                 if (lockMinutes > 0 && alarm.nextTriggerTime > 0) {
                     val minutesUntilFire = (alarm.nextTriggerTime - System.currentTimeMillis()) / 60_000
                     if (minutesUntilFire in 0..lockMinutes) {
-                        emitFeedback("Locked — fires in $minutesUntilFire min. Long-press toggle to override.")
+                        emitFeedback("Locked. It rings in $minutesUntilFire min. Long-press the switch to override.")
                         return@launch
                     }
                 }
@@ -388,7 +388,7 @@ class AlarmListViewModel @Inject constructor(
     fun forceDisableAlarm(alarm: Alarm) {
         viewModelScope.launch {
             disableAlarm(alarm)
-            emitFeedback("Cancellation lock overridden — alarm paused")
+            emitFeedback("Lock overridden, alarm paused")
         }
     }
 
@@ -599,7 +599,7 @@ class AlarmListViewModel @Inject constructor(
                         )
                     )
                 )
-            emitFeedback("Next occurrence skipped — resuming $skippedDate")
+            emitFeedback("Skipped the next one. Back on $skippedDate")
         }
     }
 

@@ -31,6 +31,8 @@
     <string name="dismiss_challenge">解除チャレンジ</string>
     <string name="dismiss_alarm">アラームを停止</string>
     <string name="settings_title">設定</string>
+    <string name="settings_back_to_settings">設定に戻る</string>
+    <string name="common_back">戻る</string>
     <string name="format_24h">24時間形式</string>
     <string name="auto_silence">自動消音</string>
     <string name="vacation_mode">休暇モード</string>
@@ -331,9 +333,6 @@
     <string name="alarm_edit_create">アラームを作成</string>
     <string name="alarm_edit_preview_title">アラームプレビュー</string>
     <string name="alarm_edit_preview_description">時間または曜日をタップして鳴動日時を設定します。</string>
-    <string name="alarm_edit_existing_status">既存のアラームを編集内容</string>
-    <string name="alarm_edit_new_status">新しいアラーム</string>
-    <string name="alarm_edit_adjust_time_hint">時間をタップして調整します。</string>
     <string name="alarm_edit_rings_in">%1$s後に鳴ります</string>
     <string name="alarm_edit_default">デフォルト</string>
     <string name="alarm_edit_none">なし</string>
@@ -422,17 +421,17 @@
     <string name="alarm_edit_feature_shift">シフトパターン</string>
     <string name="alarm_edit_feature_solar">ソーラータイミング</string>
     <string name="alarm_edit_feature_wifi">Wi-Fiルール</string>
-    <string name="alarm_edit_schedule_specific">%1$s • 特定の日付が設定されています</string>
-    <string name="alarm_edit_schedule_smart">%1$s • スマート %2$d分ウィンドウ</string>
-    <string name="alarm_edit_schedule_fixed">%1$s • 固定起床時間</string>
-    <string name="alarm_edit_schedule_zone">%1$s • %2$s</string>
-    <string name="alarm_edit_schedule_device_zone">%1$s • デバイスのタイムゾーンに従う</string>
+    <string name="alarm_edit_schedule_specific">%1$s · 特定の日付が設定されています</string>
+    <string name="alarm_edit_schedule_smart">%1$s · スマート %2$d分ウィンドウ</string>
+    <string name="alarm_edit_schedule_fixed">%1$s · 固定起床時間</string>
+    <string name="alarm_edit_schedule_zone">%1$s · %2$s</string>
+    <string name="alarm_edit_schedule_device_zone">%1$s · デバイスのタイムゾーンに従う</string>
     <string name="alarm_edit_invalid_fixed_zone">無効な固定ゾーン</string>
-    <string name="alarm_edit_sound_category_summary">%1$s • %2$s</string>
+    <string name="alarm_edit_sound_category_summary">%1$s · %2$s</string>
     <string name="alarm_edit_vibration_on">バイブレーション オン</string>
     <string name="alarm_edit_vibration_off">バイブレーション オフ</string>
-    <string name="alarm_edit_dismiss_category_summary">%1$s • %2$d分スヌーズ</string>
-    <string name="alarm_edit_dismiss_category_summary_no_snooze">%1$s • スヌーズなし</string>
+    <string name="alarm_edit_dismiss_category_summary">%1$s · %2$d分スヌーズ</string>
+    <string name="alarm_edit_dismiss_category_summary_no_snooze">%1$s · スヌーズなし</string>
     <string name="alarm_edit_standard_wake">標準起床</string>
     <string name="alarm_edit_no_integrations">オプションの連携なし</string>
     <string name="alarm_edit_using_defaults">デフォルトを使用中</string>
@@ -636,6 +635,8 @@
     <string name="alarm_edit_profile">プロファイル</string>
     <string name="alarm_edit_profile_placeholder">例: 仕事、旅行</string>
     <string name="alarm_edit_specific_date">特定の日付</string>
+    <string name="alarm_edit_specific_date_hint">YYYY-MM-DD 形式で入力するか、カレンダーから選びます。空欄なら繰り返し曜日を使います。</string>
+    <string name="alarm_edit_pick_date">日付を選択</string>
     <string name="alarm_edit_time_zone">タイムゾーン</string>
     <string name="alarm_edit_fixed_zone">固定ゾーン</string>
     <string name="alarm_edit_follow_device">デバイスに従う</string>
@@ -695,7 +696,7 @@
     <string name="alarm_edit_custom_tone">カスタムトーン</string>
     <string name="alarm_edit_spotify_short">Spotify</string>
     <string name="settings_pane_readiness">利用準備</string>
-    <string name="settings_pane_readiness_description">権限・診断・バッテリー・休暇・一時停止の設定。</string>
+    <string name="settings_pane_readiness_description">一時停止・休暇・オンコール・バッテリー・アラーム診断。</string>
     <string name="settings_pane_defaults">デフォルト設定</string>
     <string name="settings_pane_defaults_description">新しいアラームの動作、ダッシュボードの内容、およびナビゲーションタブ。</string>
     <string name="settings_pane_integrations">連携</string>
@@ -784,7 +785,6 @@
     <string name="news_custom_feed">カスタム</string>
     <string name="settings_radar_tab">「天気」タブにライブレーダーを表示</string>
     <string name="settings_radar_description">Windy.comのアニメーション降水レーダーを天気カードの下に埋め込みます。</string>
-    <string name="settings_utilities">ユーティリティ</string>
     <string name="settings_utilities_description">アプリを補完するツールへのクイックアクセス。</string>
     <string name="settings_alarm_statistics">アラーム統計</string>
     <string name="settings_alarm_statistics_description">ストリーク、応答時間、習慣の推移を確認します。</string>
@@ -823,7 +823,7 @@
     <string name="settings_latest_degraded">最新の低下イベント</string>
     <string name="settings_latest_incident">最新の不具合イベント</string>
     <plurals name="settings_recent_diagnostics">
-        <item quantity="other">%1$d 件の最近の診断イベントがローカルに保持されています。</item>
+        <item quantity="other">最近のイベント %1$d 件。この端末にのみ保存されます。</item>
     </plurals>
     <string name="settings_reason_code">理由コード</string>
     <string name="settings_clear_diagnostics_hint">診断をクリアすると不具合行のみが削除されます。アラーム統計とサポートエクスポートのクラッシュログは別に保管されます。</string>
@@ -831,7 +831,7 @@
     <string name="settings_clear_diagnostics_title">アラーム診断をクリアしますか？</string>
     <string name="settings_clear_diagnostics_message">これにより、匿名化された不具合のタイムラインのみが削除されます。アラーム統計、アラーム、バックアップ、およびクラッシュログは変更されません。</string>
     <string name="settings_at_a_glance">一目で確認</string>
-    <string name="settings_at_a_glance_description">すべてのカテゴリを掘り下げることなく、最も影響の大きい設定を確認できます。</string>
+    <string name="settings_at_a_glance_description">時間どおりに起きるために大事な設定です。</string>
     <string name="settings_preferences">設定</string>
     <string name="settings_reliability">信頼性</string>
     <string name="settings_ready">準備完了</string>
@@ -851,16 +851,17 @@
     <string name="settings_open_manufacturer_battery">%1$s の信頼性設定を開く</string>
     <string name="settings_open_dnd">応答不可設定を開く</string>
     <string name="settings_on_call_mode">オンコールモード</string>
-    <string name="settings_on_call_mode_description">完全消音の「応答不可」をオンコールアラームが突破する必要がある場合に、ローテーションシフトパターンと併用してください。</string>
-    <string name="settings_on_call_mode_toggle_description">このデバイスが鳴動している間、一時的に「完全消音」を「アラームのみ」に変更し、その後以前のDND設定に戻します。</string>
+    <string name="settings_on_call_mode_description">シフト勤務向け。「応答不可」が完全消音でも、オンコールのアラームを鳴らします。</string>
+    <string name="settings_on_call_mode_toggle_description">アラームが鳴っている間だけ「応答不可」を完全消音からアラームのみに切り替え、その後元の設定に戻します。</string>
+    <string name="settings_on_call_ring_through">完全消音でも鳴らす</string>
     <string name="settings_on_call_access_needed">DNDアクセスが必要</string>
     <string name="settings_on_call_access_description">アプリがオンコール中に完全消音をアラームのみに切り替えられるよう、通知ポリシーへのアクセスを許可してください。</string>
     <string name="settings_refresh">更新</string>
     <string name="settings_review">確認</string>
     <string name="settings_off">オフ</string>
     <string name="settings_pause_alarms">アラームを一時停止</string>
-    <string name="settings_pause_until">すべてのアラームを %1$s の終わりまで停止しました。</string>
-    <string name="settings_pause_description">不測の事態のための、ワンタップ一時停止。単発のアラームにも有効です。</string>
+    <string name="settings_pause_until">%1$s まですべてのアラームを停止中です。</string>
+    <string name="settings_pause_description">単発のアラームも含め、選んだ期間が終わるまですべてのアラームを止めます。</string>
     <string name="settings_paused">一時停止中</string>
     <string name="settings_tonight">今夜</string>
     <plurals name="settings_days">
@@ -982,7 +983,7 @@
     <string name="settings_connection_cached_forecast">最後にキャッシュされた予報</string>
     <string name="settings_connection_hidden_unavailable">利用不可の場合は非表示</string>
     <string name="settings_connection_no_alerts">アラートは表示されません</string>
-    <string name="settings_connection_cached_holidays">キャッシュされた祝日。スキップは無効</string>
+    <string name="settings_connection_cached_holidays">前回キャッシュした祝日。なければスキップしません</string>
     <string name="settings_connection_radar_hidden">レーダーカードは非表示</string>
     <string name="settings_connection_user_configured">ユーザー設定済み</string>
     <string name="settings_connection_feed_data">フィードURLの取得のみ</string>
@@ -1001,7 +1002,6 @@
     <string name="settings_connections_data_description">オプションのネットワークサービスと、それらが送信する内容。有効にしない限り、デバイス外にデータが出ることはありません。</string>
     <string name="settings_connection_sends">送信: %1$s</string>
     <string name="settings_connection_offline">オフライン: %1$s</string>
-    <string name="settings_personalization">パーソナライズ</string>
     <string name="settings_personalization_description">アクセントカラーの選択、アダプティブ難易度の有効化、起床画面の調整。</string>
     <string name="settings_motivational_quotes">アラームに格言を表示</string>
     <string name="settings_motivational_quotes_description">作動画面に時刻とともに短い格言を表示します。</string>
@@ -1072,8 +1072,8 @@
     <string name="settings_confirm_passphrase">パスフレーズの確認</string>
     <string name="settings_confirm_passphrase_required">暗号化エクスポートの前に必須です</string>
     <string name="settings_passphrase_mismatch">パスフレーズが一致しません。暗号化インポートでは最初のフィールドのみを使用します。</string>
-    <string name="settings_encrypt_export">暗号化して\nエクスポート</string>
-    <string name="settings_decrypt_import">復号して\nインポート</string>
+    <string name="settings_encrypt_export">暗号化してエクスポート</string>
+    <string name="settings_decrypt_import">復号してインポート</string>
     <string name="settings_inspecting_backup">バックアップを検査中</string>
     <string name="settings_backup_in_progress">バックアップ操作が進行中</string>
     <string name="settings_restore_choices_description">ファイルのチェック後に復元の選択肢が表示されます。</string>
@@ -1086,7 +1086,7 @@
     <plurals name="settings_fossify_unreadable_ringtones">
         <item quantity="other">このデバイスで読み取れない着信音URIが %1$d 個あります。デフォルトのアラーム音が使用されます。</item>
     </plurals>
-    <string name="settings_fossify_days_suffix">" • %1$s"</string>
+    <string name="settings_fossify_days_suffix">" · %1$s"</string>
     <string name="settings_fossify_alarm_summary">"%1$s %2$s%3$s"</string>
     <plurals name="settings_more_items">
         <item quantity="other">他 %1$d 項目</item>
@@ -1097,7 +1097,9 @@
     <string name="settings_backup_version">バックアップ v%1$d (アプリ %2$s より)</string>
     <string name="settings_unknown">不明</string>
     <string name="settings_close">閉じる</string>
-    <string name="settings_backup_alarm_counts">アラーム %1$d 個、有効 %2$d 個</string>
+    <plurals name="settings_backup_alarm_counts">
+        <item quantity="other">アラーム %1$d 個、有効 %2$d 個</item>
+    </plurals>
     <plurals name="settings_backup_invalid_rows">
         <item quantity="other">読み取れなかったためスキップされるアラーム行が %1$d 行あります。</item>
     </plurals>
@@ -1122,21 +1124,36 @@
     <string name="settings_plain_backup_warning">自分のデバイス外でバックアップを共有・保存する場合は、暗号化エクスポートを使用してください。</string>
     <string name="settings_export_encrypted_backup">暗号化バックアップをエクスポート</string>
     <string name="settings_export_plain_backup">プレーンバックアップをエクスポート</string>
-    <string name="settings_incident_timing">%1$s - %2$s</string>
+    <string name="settings_incident_timing">%1$s · %2$s</string>
     <string name="settings_dashboard_weather_calendar">天気 + カレンダー</string>
     <string name="settings_dashboard_weather_only">天気のみ</string>
     <string name="settings_dashboard_calendar_only">カレンダーのみ</string>
     <string name="settings_dashboard_minimal">最小限</string>
     <string name="settings_dashboard_auto_alarm">%1$s + 自動アラーム</string>
     <string name="settings_time_unknown">時刻不明</string>
-    <string name="settings_no_schedule_delta">スケジュール誤差なし</string>
-    <string name="settings_within_minute_schedule">スケジュールから1分以内</string>
-    <plurals name="settings_minutes_before_schedule">
-        <item quantity="other">スケジュールの %1$d 分前</item>
-    </plurals>
-    <plurals name="settings_minutes_after_schedule_plural">
-        <item quantity="other">スケジュールの %1$d 分後</item>
-    </plurals>
+    <string name="settings_no_schedule_delta">アラーム時刻の記録なし</string>
+    <string name="settings_within_minute_schedule">アラーム時刻から1分以内</string>
+    <string name="settings_incident_before_alarm">アラーム時刻の %1$s 前</string>
+    <string name="settings_incident_after_alarm">アラーム時刻の %1$s 後</string>
+    <string name="settings_incident_duration_hours_minutes">%1$d 時間 %2$d 分</string>
+    <string name="settings_incident_duration_hours">%1$d 時間</string>
+    <string name="settings_incident_duration_minutes">%1$d 分</string>
+    <string name="settings_incident_status_requested">要求済み</string>
+    <string name="settings_incident_status_received">受信済み</string>
+    <string name="settings_incident_status_succeeded">成功</string>
+    <string name="settings_incident_status_failed">失敗</string>
+    <string name="settings_incident_status_skipped">スキップ</string>
+    <string name="settings_incident_status_unknown">不明</string>
+    <string name="settings_incident_type_schedule">アラームの予約</string>
+    <string name="settings_incident_type_broadcast">アラームの起動</string>
+    <string name="settings_incident_type_foreground_service">鳴動サービス</string>
+    <string name="settings_incident_type_foreground_promotion">鳴動サービスの開始</string>
+    <string name="settings_incident_type_notification">アラーム通知</string>
+    <string name="settings_incident_type_activity_launch">鳴動画面</string>
+    <string name="settings_incident_type_audio">サウンド</string>
+    <string name="settings_incident_type_user_action">ユーザー操作</string>
+    <string name="settings_incident_type_auto_silence">自動消音</string>
+    <string name="settings_incident_type_wake_confirm">起床確認</string>
     <string name="settings_readiness_exact_alarms">正確なアラーム</string>
     <string name="settings_readiness_notifications">通知</string>
     <string name="settings_readiness_fullscreen_alarm">フルスクリーンアラームアクセス</string>
@@ -1152,7 +1169,8 @@
     <string name="settings_last_delivery">最終配信 %1$s: %2$s</string>
     <string name="settings_change_date">%1$s の日付を変更</string>
     <string name="settings_date_field_description">%1$s: %2$s</string>
-    <string name="settings_minutes_seconds_compact">%1$d分 %2$d秒</string>
+    <string name="settings_seconds_value">%1$d 秒</string>
+    <string name="settings_minutes_seconds_value">%1$d 分 %2$d 秒</string>
     <string name="settings_webhook_log_line">%1$s: %2$s</string>
     <string name="alarm_edit_empty_ringtone">(空)</string>
     <string name="alarm_edit_clock_entry">時計</string>
@@ -1167,8 +1185,6 @@
     <string name="bedtime_jetlag_title">時差ぼけプランナー</string>
     <string name="bedtime_jetlag_aligned_description">目標の起床時間はすでにリンクされた起床時間と一致しています。光の合図を一定に保ってください。</string>
     <string name="bedtime_jetlag_shift_description">起床時間と就寝時間を徐々にずらし、明るい光と薄暗い光のウィンドウをタイミングの合図として使用します。</string>
-    <string name="bedtime_jetlag_current_chip">現在 %1$s</string>
-    <string name="bedtime_jetlag_target_chip">目標 %1$s</string>
     <plurals name="bedtime_jetlag_days">
         <item quantity="other">%1$d 日間</item>
     </plurals>
@@ -1188,7 +1204,7 @@
     <string name="bedtime_jetlag_bed_chip">就寝 %1$s</string>
     <string name="bedtime_jetlag_bright_chip">明光 %1$s</string>
     <string name="bedtime_jetlag_dim_chip">暗光 %1$s</string>
-    <string name="bedtime_jetlag_time_range">%1$s - %2$s</string>
+    <string name="bedtime_jetlag_time_range">%1$s〜%2$s</string>
     <string name="bedtime_jetlag_no_shift">シフトなし</string>
     <string name="bedtime_jetlag_shift_earlier">%1$s 早い</string>
     <string name="bedtime_jetlag_shift_later">%1$s 遅い</string>
@@ -1308,11 +1324,11 @@
     <string name="dashboard_day_clear">今日は予定がありません。</string>
     <string name="dashboard_choose_weather_location">天気の場所を選択</string>
     <string name="dashboard_optional">オプション</string>
-    <string name="dashboard_use_city_zip_code_device">ダッシュボードが後で追加のセットアップなしで正確に保たれるよう、都市、郵便番号、またはデバイスの位置情報を使用してください。</string>
+    <string name="dashboard_use_city_zip_code_device">今日の天気と大気質はこの場所のものを表示します。</string>
     <string name="dashboard_searching_locations">場所を検索中</string>
     <string name="dashboard_use">使用</string>
     <string name="dashboard_search_city">都市を検索</string>
-    <string name="dashboard_type_at_least_two_characters">場所を見つけるために少なくとも2文字入力するか、現在のデバイスの位置情報を使用してください。</string>
+    <string name="dashboard_type_at_least_two_characters">2文字以上入力すると候補が表示されます。</string>
     <string name="dashboard_no_matching_places">一致する場所はありません</string>
     <string name="dashboard_try_broader_city_name_postal">より広い都市名、郵便番号、または近くの地域を試してください。</string>
     <string name="challenge_choose_correct_answer_unlock_dismiss">停止を解除するには正しい答えを選択してください。</string>
@@ -1381,11 +1397,18 @@
     <string name="stats_removes_recorded_alarm_outcomes_resets">これにより、記録されたアラームの結果が削除され、この画面に表示される統計がリセットされます。実際のアラームは削除されません。</string>
     <string name="stats_search_label_challenge_action_day">ラベル、チャレンジ、アクション、または曜日を検索</string>
     <string name="stats_statistics">統計</string>
-    <string name="stats_close_statistics">統計を閉じる</string>
     <string name="stats_loading_alarm_statistics">アラーム統計を読み込み中</string>
     <string name="stats_streak">ストリーク</string>
     <string name="stats_week">今週</string>
     <string name="stats_snoozed">スヌーズ済み</string>
+    <string name="stats_dismissed">停止済み</string>
+    <string name="stats_skipped">スキップ済み</string>
+    <string name="stats_missed">見逃し</string>
+    <string name="stats_fastest_day">最も早く起きる曜日: %1$s · %2$d秒</string>
+    <string name="stats_legend_sleep">睡眠</string>
+    <string name="stats_legend_dismiss">停止</string>
+    <string name="stats_legend_snooze">スヌーズ</string>
+    <string name="stats_legend_retry">再試行</string>
     <string name="stats_average_wake_up_time">平均起床時刻</string>
     <string name="stats_how_long_usually_takes_dismiss">アラーム開始から停止までに通常かかる時間。</string>
     <string name="stats_average_response">平均応答時間</string>
@@ -1405,6 +1428,9 @@
     <string name="stats_clear_search">検索をクリア</string>
     <string name="stats_outcome">結果</string>
     <string name="stats_day">曜日</string>
+    <string name="stats_filter_hint">ラベルやチャレンジで検索し、結果や曜日で絞り込めます。</string>
+    <string name="stats_filter_all">すべて</string>
+    <string name="stats_filter_all_days">すべての曜日</string>
     <string name="stats_wake_streak">起床ストリーク</string>
     <string name="stats_next_streak_badge">次のストリークバッジ</string>
     <string name="stats_sleep_context">睡眠の文脈</string>
@@ -1420,7 +1446,6 @@
     <string name="bedtime_grant_dnd_access">DNDアクセスを許可</string>
     <string name="bedtime_save_bedtime">就寝時刻を保存</string>
     <string name="bedtime_choose_bedtime">就寝時刻を選択</string>
-    <string name="bedtime_close_bedtime">就寝時刻を閉じる</string>
     <string name="bedtime_bedtime_reminder">就寝時刻リマインダー</string>
     <string name="bedtime_alarms_only">アラームのみ</string>
     <string name="bedtime_do_not_disturb_at_bedtime">就寝時に「応答不可」</string>
@@ -1458,9 +1483,7 @@
     <string name="onboarding_dependable_mornings_less_friction">手間の少ない、信頼できる朝</string>
     <string name="onboarding_recommended_setup">推奨セットアップ</string>
     <string name="onboarding_test_alarm">テストアラーム</string>
-    <string name="stopwatch_close_stopwatch">ストップウォッチを閉じる</string>
     <string name="stopwatch_current_run">現在の計測</string>
-    <string name="stopwatch_high_contrast_display_built_quick">素早く確認できるように構築された高コントラスト表示。</string>
     <string name="stopwatch_no_laps_recorded_yet">ラップはまだ記録されていません</string>
     <string name="stopwatch_tap_lap_while_stopwatch_running">ストップウォッチの実行中に「ラップ」をタップして、スプリットタイムを記録し、ペースを比較します。</string>
     <string name="stopwatch_lap_history">ラップ履歴</string>
@@ -1475,7 +1498,7 @@
     <string name="world_remove_city">都市を削除</string>
     <string name="world_keep_city">都市を保持</string>
     <string name="world_add_city_2">都市を追加</string>
-    <string name="world_search_by_city_country_time">都市、国、またはタイムゾーン領域で検索し、結果をタップして追加します。</string>
+    <string name="world_search_by_city_country_time">結果をタップすると時計に追加されます。</string>
     <string name="world_search_city_country_region">都市、国、または地域を検索</string>
     <string name="world_world_clock">世界時計</string>
     <string name="world_no_world_clocks_yet">世界時計はまだありません</string>
@@ -1507,9 +1530,8 @@
     <string name="ringtone_youtube">YouTubeから</string>
     <string name="ringtone_search_alarm_sounds">アラーム音を検索</string>
     <string name="ringtone_alarm_sound">アラーム音</string>
-    <string name="ringtone_preview_tones_before_applying_them">適用する前にトーンをプレビューします。デフォルトとサイレントのオプションは上部にあります。</string>
+    <string name="ringtone_preview_tones_before_applying_them">トーンをタップすると選ぶ前に試聴できます。デフォルトとサイレントは一番上にあります。</string>
     <string name="ringtone_folder_source">フォルダソース</string>
-    <string name="ringtone_tap_tone_preview">タップしてプレビュー</string>
     <string name="ringtone_preview_playing">プレビュー再生中</string>
     <string name="ringtone_preview_unavailable">プレビュー不可</string>
     <string name="ringtone_sound_list_limited">サウンドリストが制限されています</string>
@@ -1579,9 +1601,7 @@
     <string name="swipe_swipe_bg">スワイプ背景</string>
     <string name="swipe_undo_available_right_after_removal">削除直後に元に戻すことができます</string>
     <string name="template_quick_start_templates">クイックスタートテンプレート</string>
-    <string name="template_start_thoughtful_preset_common_routines">一般的なルーティンのための考え抜かれたプリセットから始めて、後で詳細を微調整してください。</string>
-    <string name="template_creates_draft_alarm">下書きアラームを作成</string>
-    <string name="template_fully_editable">完全に編集可能</string>
+    <string name="template_start_thoughtful_preset_common_routines">1つ選んで新しいアラームを作成します。保存する前にすべて変更できます。</string>
     <string name="breathing_guided_breathing">ガイド付き呼吸</string>
     <string name="wind_down_reset_checklist">チェックリストをリセット</string>
     <string name="wind_down_wind_down_checklist">リラックスチェックリスト</string>
@@ -1649,12 +1669,24 @@
     <plurals name="stats_streak_best_days">
         <item quantity="other">ベスト %1$d 日間</item>
     </plurals>
+    <plurals name="stats_filter_showing">
+        <item quantity="other">最近のイベント%2$d件中%1$d件を表示</item>
+    </plurals>
+    <plurals name="stats_streak_progress_days">
+        <item quantity="other">%1$d / %2$d日</item>
+    </plurals>
     <plurals name="stats_wake_streak_days">
         <item quantity="other">%1$d 日間の起床ストリーク</item>
     </plurals>
     <string name="news_pick_a_different_source_or_try">別のソースを選択するか、再試行してください。</string>
     <string name="permissions_recommended_permissions">推奨される権限</string>
     <string name="permissions_context_permissions">コンテキスト権限</string>
+    <string name="permissions_recommended_description">任意の権限です。天気やカレンダーの情報を表示し、アラームの通知をわかりやすくします。</string>
+    <string name="permissions_context_description">任意の情報です。今日タブと朝のブリーフィングがより便利になります。</string>
+    <string name="permissions_enable_final">最後の権限を有効にする</string>
+    <plurals name="permissions_enable_count">
+        <item quantity="other">%1$d件の権限を有効にする</item>
+    </plurals>
     <string name="permissions_of_ready">%1$s / %2$s 準備完了</string>
     <string name="permissions_final_step">最終ステップ</string>
     <string name="permissions_missing">%1$s 不足</string>
@@ -1664,6 +1696,7 @@
     <string name="timer_time_s_up">時間です</string>
     <string name="timer_finished">%1$s 終了</string>
     <string name="timer_pause_timer">タイマーを一時停止</string>
+    <string name="timer_stop_timer">タイマーを停止</string>
     <string name="timer_resume_timer">タイマーを再開</string>
     <string name="timer_add_double_zero">00を追加</string>
     <string name="timer_enter">%1$s を入力</string>
@@ -1698,26 +1731,21 @@
     <string name="onboarding_test_alarm_unavailable">テストアラーム利用不可</string>
     <string name="onboarding_finish_setup">セットアップを完了</string>
     <string name="onboarding_enable_alarm_alerts">アラーム通知を有効にする</string>
-    <string name="onboarding_finish_without_more_changes">これ以上の変更なしで完了</string>
     <string name="onboarding_skip_permissions">権限をスキップ</string>
     <string name="ringtone_download_needs_attention">ダウンロードに注意が必要です</string>
     <string name="ringtone_sound_saved">サウンドを保存しました</string>
     <string name="ringtone_default_alarm">デフォルトアラーム</string>
     <string name="stopwatch_stopwatch_reset">ストップウォッチをリセットしました</string>
     <string name="stopwatch_start_a_precise_running_timer_and">精密なタイマーを開始し、スプリットが必要なときはいつでもラップをマークします。</string>
-    <string name="stopwatch_timing_live_mark_laps_as_the">計測中。セッションの進行に合わせてラップをマークします。</string>
-    <string name="stopwatch_paused_in_place_resume_when_you">一時停止中。準備ができたら再開するか、リセットして新しく開始してください。</string>
+    <string name="stopwatch_timing_live_mark_laps_as_the">計測中。ラップで区間を記録できます。</string>
+    <string name="stopwatch_paused_in_place_resume_when_you">一時停止中。再開するか、リセットしてやり直します。</string>
     <string name="stopwatch_timing">計測中</string>
     <string name="stopwatch_running">実行中</string>
     <string name="stopwatch_laps">%1$s ラップ</string>
     <string name="stopwatch_best_split">ベストスプリット</string>
     <string name="stopwatch_slowest_split">ワーストスプリット</string>
-    <string name="stopwatch_split">スプリット</string>
-    <string name="templates_ready_made_setups">%1$s 個の既製セットアップ</string>
     <string name="templates_min_snooze">%1$s 分スヌーズ</string>
     <string name="dashboard_open_meteo_does_not_report_pollen">Open-Meteoはこの場所の花粉情報をまだ報告していません。</string>
-    <string name="dashboard_search_a_city">都市を検索</string>
-    <string name="dashboard_matches">%1$s 件の一致</string>
     <string name="dashboard_unknown_location">不明な場所</string>
     <string name="alarmlist_alarm_history">アラーム履歴</string>
     <string name="alarmlist_alarm_deleted">アラームを削除しました</string>
@@ -1760,7 +1788,6 @@
     <string name="bedtime_stay_up_late_tonight">今夜は夜更かしする</string>
     <string name="bedtime_before_bedtime">就寝時刻の前</string>
     <string name="bedtime_turn_on_above">上記をオンにする</string>
-    <string name="bedtime_30_minute_steps">30分刻み</string>
     <string name="bedtime_playing">再生中</string>
     <string name="bedtime_tap_to_preview">タップしてプレビュー</string>
     <string name="bedtime_tag_the_signals_that_may_shape">%1$s: 明日の起床時の負担を左右する可能性のある要因にタグを付けます。</string>
@@ -1933,17 +1960,11 @@
     <string name="stats_action_missed">ミス</string>
     <string name="ringtone_folder_item">%1$s (フォルダ)</string>
     <string name="template_early_bird_name">早起き</string>
-    <string name="template_early_bird_description">平日 午前5:30、ジェントルウェイク</string>
     <string name="template_work_alarm_name">仕事用アラーム</string>
-    <string name="template_work_alarm_description">平日 午前7:00、計算チャレンジ</string>
     <string name="template_weekend_sleep_in_name">週末の寝坊</string>
-    <string name="template_weekend_sleep_in_description">週末 午前9:00、穏やか</string>
     <string name="template_power_nap_name">パワーナップ</string>
-    <string name="template_power_nap_description">20分後に鳴動、シェイクで停止</string>
     <string name="template_heavy_sleeper_name">深追い</string>
-    <string name="template_heavy_sleeper_description">毎日 午前6:00、難しい計算、最大音量</string>
     <string name="template_medication_reminder_name">服薬リマインダー</string>
-    <string name="template_medication_reminder_description">毎日 午前8:00、穏やかな通知</string>
     <plurals name="alarmlist_template_starts_in">
         <item quantity="other">%1$s は %2$d 分後に開始されます</item>
     </plurals>
@@ -1968,8 +1989,6 @@
     <string name="dashboard_d_ago">%1$s日前</string>
     <string name="ringtone_uses_your_device_s_current_default">デバイスの現在のデフォルトアラーム音を使用します。</string>
     <string name="ringtone_no_audio_best_paired_with_vibration">音声なし。バイブレーションや他の起床エフェクトとの組み合わせに最適です。</string>
-    <string name="ringtone_tap_to_preview_then_choose_use">タップしてプレビューし、気に入ったら [使用] を選択してください。</string>
-    <string name="ringtone_ready_to_apply">適用する準備ができました。</string>
     <string name="stats_dismiss_one_alarm_to_start_building">起床ストリークの構築を開始するには、アラームを1つ停止してください。</string>
     <string name="stats_today_s_wake_is_already_counted">今日の起床はすでにカウントされています。明日もチェーンを続けましょう。</string>
     <string name="stats_still_alive_from_yesterday_dismiss_today">昨日のストリークはまだ有効です。維持するには今日のアラームを停止してください。</string>
@@ -2100,10 +2119,15 @@
     <string name="alarm_list_all_alarms_paused_until">すべてのアラームは %1$s まで一時停止中です</string>
     <string name="alarm_list_paused_until_reenabled">再び有効にするまで一時停止中です</string>
     <string name="alarm_list_next_occurrence">次回：%1$s</string>
+    <string name="alarm_list_day_today">今日</string>
+    <string name="alarm_list_day_tomorrow">明日</string>
     <string name="bedtime_delayed_until">%1$s まで遅延中</string>
-    <string name="bedtime_sonar_last_session">前回のセッション: %1$d分、動き %2$d分、落ち着かない %3$d分、静止 %4$d分</string>
-    <string name="bedtime_sonar_loud_bursts">; %1$d 回の大きな音、推定ピーク %2$d dB</string>
-    <string name="bedtime_sonar_no_loud_bursts">; 大きな音なし</string>
+    <string name="bedtime_sonar_last_session">前回のセッション: %1$d分、動き %2$d分、落ち着かない %3$d分、静止 %4$d分。</string>
+    <string name="bedtime_sonar_session_and_bursts">%1$s%2$s</string>
+    <plurals name="bedtime_sonar_loud_bursts">
+        <item quantity="other">大きな音 %1$d 回、推定ピーク %2$d dB。</item>
+    </plurals>
+    <string name="bedtime_sonar_no_loud_bursts">大きな音はありませんでした。</string>
     <string name="bedtime_noise_no_baseline">ベースラインなし</string>
     <string name="bedtime_noise_checks_at_reminder">就寝時刻画面を開いたときに測定されます</string>
     <string name="bedtime_noise_mic_permission_needed">マイクの権限が必要です</string>
@@ -2216,6 +2240,10 @@
     <string name="alarm_list_share_default_title">アラーム %1$s</string>
     <string name="dashboard_your_area">お住まいの地域</string>
     <string name="dashboard_weather_fallback_title">天気</string>
+    <string name="dashboard_no_location_title">場所が未設定です</string>
+    <string name="dashboard_no_location_description">場所を設定すると、地域の天気と予報を表示します。</string>
+    <string name="dashboard_set_location">場所を設定</string>
+    <string name="dashboard_weather_check_connection">接続を確認して、再試行してください。</string>
     <string name="dashboard_last_location">最終位置</string>
     <string name="bedtime_sonar_needs_mic">ローカルSonar睡眠トラッキングを使用するには、マイクの権限を許可してください。</string>
     <string name="bedtime_sonar_starting">Sonarを開始し、マイクの監視を確認中。</string>
@@ -2226,8 +2254,8 @@
     <string name="bedtime_sonar_monitoring">動きと大きな睡眠音をモニタリング中。生の音声は記録されません。</string>
     <string name="bedtime_sonar_unconfirmed">Sonarによるマイク監視を確認できませんでした。再試行してください。</string>
     <string name="bedtime_snore_peak_average">推定ピーク %1$d dB / 平均 %2$d</string>
-    <string name="onboarding_test_alarm_completed_detail">テストアラーム完了。デバイスでアラーム画面が正常に開きました。</string>
-    <string name="onboarding_test_alarm_scheduled_detail">テストアラームをスケジュールしました。10秒後に鳴ります。</string>
+    <string name="onboarding_test_alarm_completed_detail">アラーム画面が開いたので、本番のアラームも届きます。</string>
+    <string name="onboarding_test_alarm_scheduled_detail">10秒後に鳴ります。この画面のままでも、画面をロックしてもかまいません。</string>
     <string name="onboarding_readiness_review">アラームを使う前に、アラーム・通知・バッテリー設定とテストアラームを確認してください。</string>
     <string name="ringtone_folder_added">フォルダが追加されました。そのオーディオファイルが以下で利用可能になりました。</string>
     <string name="ringtone_folder_lost">そのフォルダへのアクセスを維持できませんでした。必要なら再度選択してください。</string>
@@ -2240,11 +2268,11 @@
     <string name="shift_ddnno_short">DDNNO</string>
     <string name="shift_four_title">4オン4オフ</string>
     <string name="shift_four_short">4オン / 4オフ</string>
-    <string name="shift_panama_title">パナマ (2–2–3)</string>
+    <string name="shift_panama_title">パナマ (2-2-3)</string>
     <string name="shift_panama_short">パナマ</string>
     <string name="shift_dupont_title">デュポン</string>
     <string name="shift_dupont_short">デュポン</string>
-    <string name="shift_pitman_title">ピットマン (2–3–2)</string>
+    <string name="shift_pitman_title">ピットマン (2-3-2)</string>
     <string name="shift_pitman_short">ピットマン</string>
     <string name="weather_clear_sky">快晴</string>
     <string name="weather_mainly_clear">晴れ</string>
@@ -2354,7 +2382,6 @@
     <string name="onboarding_highlight_no_clutter">広告や余計な表示のない、役立つ情報だけ</string>
     <string name="onboarding_highlight_optional_permissions">権限は任意で、あとから変更できます</string>
     <string name="onboarding_highlight_data_stays_local">連携を設定しない限り、データは端末の中だけに残ります</string>
-    <string name="onboarding_finish_setup_without_more_changes">これ以上変更せずにセットアップを完了</string>
     <string name="onboarding_finish_setup_without_alarm_alerts">アラーム通知を有効にせずにセットアップを完了</string>
     <string name="challenge_no_photo_captured">写真が撮影されませんでした。もう一度お試しください。</string>
     <string name="challenge_camera_permission_photo_match">写真照合にはカメラの権限が必要です。</string>
@@ -2374,4 +2401,42 @@
     <string name="alarmlist_alarm_options">アラームのオプション</string>
     <plurals name="alarmlist_hours"><item quantity="other">%1$d 時間</item></plurals>
     <string name="timer_preset_minutes">%1$d 分</string>
+    <plurals name="settings_minutes_after_schedule_plural">
+        <item quantity="other">スケジュールの %1$d 分後</item>
+    </plurals>
+    <plurals name="settings_minutes_before_schedule">
+        <item quantity="other">スケジュールの %1$d 分前</item>
+    </plurals>
+    <string name="alarm_edit_adjust_time_hint">時間をタップして調整します。</string>
+    <string name="alarm_edit_existing_status">既存のアラームを編集内容</string>
+    <string name="alarm_edit_new_status">新しいアラーム</string>
+    <string name="bedtime_30_minute_steps">30分刻み</string>
+    <string name="bedtime_close_bedtime">就寝時刻を閉じる</string>
+    <string name="bedtime_jetlag_current_chip">現在 %1$s</string>
+    <string name="bedtime_jetlag_target_chip">目標 %1$s</string>
+    <string name="bedtime_sonar_loud_bursts">; %1$d 回の大きな音、推定ピーク %2$d dB</string>
+    <string name="dashboard_matches">%1$s 件の一致</string>
+    <string name="dashboard_search_a_city">都市を検索</string>
+    <string name="onboarding_finish_setup_without_more_changes">これ以上変更せずにセットアップを完了</string>
+    <string name="onboarding_finish_without_more_changes">これ以上の変更なしで完了</string>
+    <string name="ringtone_ready_to_apply">適用する準備ができました。</string>
+    <string name="ringtone_tap_to_preview_then_choose_use">タップしてプレビューし、気に入ったら [使用] を選択してください。</string>
+    <string name="ringtone_tap_tone_preview">タップしてプレビュー</string>
+    <string name="settings_backup_alarm_counts">アラーム %1$d 個、有効 %2$d 個</string>
+    <string name="settings_minutes_seconds_compact">%1$d分 %2$d秒</string>
+    <string name="settings_personalization">パーソナライズ</string>
+    <string name="settings_utilities">ユーティリティ</string>
+    <string name="stats_close_statistics">統計を閉じる</string>
+    <string name="stopwatch_close_stopwatch">ストップウォッチを閉じる</string>
+    <string name="stopwatch_high_contrast_display_built_quick">素早く確認できるように構築された高コントラスト表示。</string>
+    <string name="stopwatch_split">スプリット</string>
+    <string name="template_creates_draft_alarm">下書きアラームを作成</string>
+    <string name="template_early_bird_description">平日 午前5:30、ジェントルウェイク</string>
+    <string name="template_fully_editable">完全に編集可能</string>
+    <string name="template_heavy_sleeper_description">毎日 午前6:00、難しい計算、最大音量</string>
+    <string name="template_medication_reminder_description">毎日 午前8:00、穏やかな通知</string>
+    <string name="template_power_nap_description">20分後に鳴動、シェイクで停止</string>
+    <string name="template_weekend_sleep_in_description">週末 午前9:00、穏やか</string>
+    <string name="template_work_alarm_description">平日 午前7:00、計算チャレンジ</string>
+    <string name="templates_ready_made_setups">%1$s 個の既製セットアップ</string>
 </resources>

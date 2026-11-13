@@ -179,7 +179,7 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
             minute = alarmZdt.minute,
             label = buildString {
                 append("Before: ${firstEvent.title}")
-                if (commuteResolution.usedLearnedEstimate) append(" • learned commute")
+                if (commuteResolution.usedLearnedEstimate) append(" · learned commute")
             },
             isEnabled = true,
             group = GROUP,

@@ -47,6 +47,8 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
+    <string name="settings_back_to_settings">Back to Settings</string>
+    <string name="common_back">Back</string>
     <string name="format_24h">24-hour format</string>
     <string name="auto_silence">Auto-silence</string>
     <string name="vacation_mode">Vacation mode</string>
@@ -76,7 +78,7 @@
     <!-- Notification text (system surfaces, highest i18n priority) -->
     <string name="notif_channel_database_downgrade">Restore problems</string>
     <string name="notif_database_downgrade_title">Alarms could not be restored</string>
-    <string name="notif_database_downgrade_text">The restored data came from a newer version of the app, which this version cannot read. Your alarms were not kept and nothing is scheduled. Add them again, or install the newer version and restore once more.</string>
+    <string name="notif_database_downgrade_text">The restored data came from a newer version of the app, which this version can’t read. Your alarms weren’t kept and nothing is scheduled. Add them again, or install the newer version and restore once more.</string>
     <string name="notif_alarm_title">Alarm</string>
     <string name="notif_alarm_ringing">Alarm ringing</string>
     <string name="notif_snooze_action">Snooze %1$d min</string>
@@ -117,10 +119,10 @@
     <!-- Wake confirmation -->
     <string name="wake_confirm_title">Wake confirmation</string>
     <string name="wake_confirm_question">Are you actually up?</string>
-    <string name="wake_confirm_yes">Yes, I\’m up</string>
+    <string name="wake_confirm_yes">Yes, I’m up</string>
     <string name="wake_confirm_not_yet">Not yet. Keep checking</string>
     <string name="wake_confirm_confirm_label">Confirm to stop re-checks</string>
-    <string name="wake_confirm_final_label">Final check. No more re-fires</string>
+    <string name="wake_confirm_final_label">Final check. No more repeats</string>
 
     <!-- Alarm firing screen -->
     <string name="firing_controls_title">Alarm controls</string>
@@ -153,7 +155,7 @@
     <string name="firing_dismiss_locked">Dismiss locked</string>
     <string name="firing_bypass_in_seconds">Bypass in %1$ds</string>
     <string name="firing_weather_fallback">weather</string>
-    <string name="firing_weather_early">Fired early: %1$s</string>
+    <string name="firing_weather_early">Ringing early: %1$s</string>
     <string name="firing_weather_summary">%1$s %2$s</string>
     <string name="firing_left_saved_place">Left saved place</string>
     <string name="firing_distance_from_place">%1$d m from place</string>
@@ -190,7 +192,7 @@
     <string name="firing_choose_snooze">Choose preset or exact minutes</string>
     <string name="firing_choose_snooze_until">Snooze until a time</string>
     <string name="firing_snooze_until_title">Snooze until…</string>
-    <string name="firing_snooze_until_hint">The alarm will fire at the next occurrence of this time.</string>
+    <string name="firing_snooze_until_hint">The alarm will ring at the next occurrence of this time.</string>
     <string name="firing_snooze_until_save">Schedule snooze</string>
     <string name="firing_hold_accessibility">Hold Dismiss for %1$.1f seconds</string>
     <string name="firing_challenge_before_dismiss">Finish the wake-up challenge before dismissing</string>
@@ -244,7 +246,7 @@
     <string name="firing_challenge_shake_support">Physical movement helps stop sleepy autopilot.</string>
     <string name="firing_challenge_sequence_support">Tap in order without losing your place.</string>
     <string name="firing_challenge_memory_support">Watch the tiles, then repeat them exactly.</string>
-    <string name="firing_challenge_typing_support">Typing the phrase confirms you are alert enough to finish.</string>
+    <string name="firing_challenge_typing_support">Typing the phrase confirms you’re alert enough to finish.</string>
     <string name="firing_challenge_voice_support">Speaking the phrase adds a hands-free wake-up check.</string>
     <string name="firing_challenge_handwriting_support">Writing the word gives your brain and hands a wake-up check.</string>
     <string name="firing_challenge_walk_support">A few steps create enough movement to wake up properly.</string>
@@ -253,7 +255,7 @@
     <string name="firing_challenge_photo_support">Take a fresh photo that closely matches the saved reference.</string>
     <string name="firing_challenge_squat_support">A short movement challenge helps you actually get moving.</string>
     <string name="firing_challenge_pushup_support">Push-ups force upper-body engagement that resets sleepiness.</string>
-    <string name="firing_challenge_plank_support">A sustained hold proves you are awake and in control.</string>
+    <string name="firing_challenge_plank_support">A sustained hold proves you’re awake and in control.</string>
     <string name="firing_challenge_maze_support">Stay focused and reach the exit.</string>
     <string name="firing_challenge_wifi_support">This alarm clears once you reconnect where you planned.</string>
     <string name="firing_challenge_sheep_support">A light-focus wake-up. Tap only the sheep.</string>
@@ -275,7 +277,7 @@
     <string name="firing_challenge_typing_status">Type the full phrase exactly as shown.</string>
     <string name="firing_challenge_voice_status">Say the phrase shown below, or use the typed fallback.</string>
     <string name="firing_challenge_handwriting_status">Draw the displayed word, or use the typed fallback.</string>
-    <string name="firing_challenge_walk_status">Walk enough steps to prove you are up.</string>
+    <string name="firing_challenge_walk_status">Walk enough steps to prove you’re up.</string>
     <string name="firing_challenge_nfc_status">Tap the saved NFC tag to continue.</string>
     <string name="firing_challenge_barcode_status">Scan the saved barcode or QR code.</string>
     <string name="firing_challenge_photo_status">Take a matching photo to finish this wake-up step.</string>
@@ -284,9 +286,9 @@
     <string name="firing_challenge_plank_status">Hold the phone level for the full duration.</string>
     <string name="firing_challenge_maze_status">Find the exit without hitting walls.</string>
     <string name="firing_challenge_wifi_status">Reconnect to the required Wi-Fi network.</string>
-    <string name="firing_challenge_sheep_status">Tap every sheep; avoid the goats.</string>
+    <string name="firing_challenge_sheep_status">Tap every sheep and leave the goats alone.</string>
     <string name="firing_challenge_simon_status">Wait for playback, then tap the pads in order.</string>
-    <string name="firing_challenge_date_status">Type today\’s date reversed exactly.</string>
+    <string name="firing_challenge_date_status">Type today’s date reversed exactly.</string>
     <string name="firing_challenge_stroop_status">Tap the color the word is painted in.</string>
     <string name="firing_challenge_rps_status">Win 3 rounds to clear the alarm.</string>
     <string name="firing_challenge_emoji_status">Flip pairs of matching emoji until all are found.</string>
@@ -296,27 +298,27 @@
     <string name="firing_challenge_difference_status">Tap the changed tile in the right-hand grid.</string>
     <string name="firing_challenge_chess_status">Choose the mate-in-1 move.</string>
     <string name="firing_challenge_rsvp_status">Watch the words, then pick the remembered word.</string>
-    <string name="firing_challenge_none_status">Swipe or tap dismiss when you\’re ready.</string>
+    <string name="firing_challenge_none_status">Swipe or tap dismiss when you’re ready.</string>
 
     <!-- Alarm editor navigation and sections -->
     <string name="alarm_edit_page_overview">Alarm overview</string>
     <string name="alarm_edit_page_overview_subtitle">Time, recurrence, label, and current setting summaries.</string>
     <string name="alarm_edit_page_sound">Sound &amp; vibration</string>
-    <string name="alarm_edit_page_sound_subtitle">Ringtone, volume, fade-in, and vibration behavior.</string>
+    <string name="alarm_edit_page_sound_subtitle">Ringtone, volume, fade-in and vibration</string>
     <string name="alarm_edit_page_dismiss">Snooze &amp; dismiss</string>
-    <string name="alarm_edit_page_dismiss_subtitle">Snooze timing, challenges, and dismissal safeguards.</string>
+    <string name="alarm_edit_page_dismiss_subtitle">Snooze and how you turn it off</string>
     <string name="alarm_edit_page_schedule">Schedule &amp; smart wake</string>
-    <string name="alarm_edit_page_schedule_subtitle">Upcoming rings, holiday policy, and smart wake timing.</string>
+    <string name="alarm_edit_page_schedule_subtitle">Upcoming rings and holiday rules</string>
     <string name="alarm_edit_page_wake">Wake experience</string>
-    <string name="alarm_edit_page_wake_subtitle">Wake effects, announcements, confirmation, and morning routine.</string>
+    <string name="alarm_edit_page_wake_subtitle">Wake effects and your morning routine</string>
     <string name="alarm_edit_page_integrations">Integrations &amp; safety</string>
-    <string name="alarm_edit_page_integrations_subtitle">Hue, audio services, and guardian escalation.</string>
+    <string name="alarm_edit_page_integrations_subtitle">Smart lights, audio apps, Guardian Angel</string>
     <string name="alarm_edit_page_advanced">Advanced behavior</string>
-    <string name="alarm_edit_page_advanced_subtitle">Shift, solar, hardware, and power-user controls.</string>
+    <string name="alarm_edit_page_advanced_subtitle">Shift work, sun times and hardware</string>
     <string name="alarm_edit_group">Group</string>
     <string name="alarm_edit_sound">Sound</string>
     <string name="alarm_edit_snooze">Snooze</string>
-    <string name="alarm_edit_upcoming_dates">Upcoming fire dates</string>
+    <string name="alarm_edit_upcoming_dates">Upcoming rings</string>
     <string name="alarm_edit_location_lock">Location dismissal lock</string>
     <string name="alarm_edit_wake_effects">Wake effects</string>
     <string name="alarm_edit_announcement">Morning announcement</string>
@@ -331,7 +333,7 @@
     <string name="alarm_edit_guardian">Guardian Angel</string>
     <string name="alarm_edit_morning_routine">Morning routine</string>
     <string name="alarm_edit_advanced">Advanced</string>
-    <string name="alarm_edit_section_label_description">Give the alarm a name that is easy to recognize at a glance.</string>
+    <string name="alarm_edit_section_label_description">Give the alarm a name that’s easy to recognize at a glance.</string>
     <string name="alarm_edit_section_group_description">Organize alarms by context so related schedules stay easy to manage.</string>
     <string name="alarm_edit_section_sound_description">Shape the tone, volume, and ramp-up behavior of the alarm.</string>
     <string name="alarm_edit_section_vibration_description">Control how physical feedback supports the ring pattern.</string>
@@ -340,7 +342,7 @@
     <string name="alarm_edit_section_challenge_description">Add a wake-up task, or a chain of them, so dismissing the alarm takes real intent.</string>
     <string name="alarm_edit_section_location_description">Keep Dismiss locked until the phone leaves the saved area.</string>
     <string name="alarm_edit_section_wake_effects_description">Layer in extra visual or physical cues to make waking up harder to ignore.</string>
-    <string name="alarm_edit_section_announcement_description">Let the alarm speak useful context once you are up.</string>
+    <string name="alarm_edit_section_announcement_description">Let the alarm speak useful context once you’re up.</string>
     <string name="alarm_edit_section_wake_confirmation_description">Require a second check-in if this alarm needs extra accountability.</string>
     <string name="alarm_edit_section_smart_alarm_description">Allow the alarm to ring inside a window when the timing is more natural.</string>
     <string name="alarm_edit_section_holidays_description">Keep routine alarms quiet on public holidays or on days your calendar marks.</string>
@@ -370,18 +372,15 @@
     <string name="alarm_edit_discard_message">Your alarm edits have not been saved. Keep editing or discard them.</string>
     <string name="alarm_edit_discard_action">Discard changes</string>
     <string name="alarm_edit_keep_editing">Keep editing</string>
-    <string name="alarm_edit_existing_subtitle">Refine timing, sound, and wake-up behavior.</string>
-    <string name="alarm_edit_new_subtitle">Build an alarm that feels intentional from the first ring.</string>
+    <string name="alarm_edit_existing_subtitle">Change the time, sound or wake-up</string>
+    <string name="alarm_edit_new_subtitle">Pick a time, then tune the details</string>
     <string name="alarm_edit_cancel_accessibility">Cancel alarm editing</string>
     <string name="alarm_edit_back_overview_accessibility">Back to alarm overview</string>
     <string name="alarm_edit_saving">Saving alarm…</string>
     <string name="alarm_edit_save_changes">Save changes</string>
     <string name="alarm_edit_create">Create alarm</string>
     <string name="alarm_edit_preview_title">Alarm preview</string>
-    <string name="alarm_edit_preview_description">Tap the time or days below to shape when this alarm should ring.</string>
-    <string name="alarm_edit_existing_status">Editing existing alarm</string>
-    <string name="alarm_edit_new_status">New alarm</string>
-    <string name="alarm_edit_adjust_time_hint">Tap the time to adjust it precisely.</string>
+    <string name="alarm_edit_preview_description">Tap the time or the days to change when it rings.</string>
     <string name="alarm_edit_rings_in">Rings in %1$s</string>
     <string name="alarm_edit_default">Default</string>
     <string name="alarm_edit_none">None</string>
@@ -396,8 +395,8 @@
     <string name="alarm_edit_muted">Muted</string>
     <string name="alarm_edit_percent">%1$d%%</string>
     <string name="alarm_edit_minutes_short">%1$d min</string>
-    <string name="alarm_edit_seconds_short">%1$ds</string>
-    <string name="alarm_edit_minutes_seconds_short">%1$dm %2$ds</string>
+    <string name="alarm_edit_seconds_short">%1$d sec</string>
+    <string name="alarm_edit_minutes_seconds_short">%1$d min %2$d sec</string>
     <string name="alarm_edit_minutes_before_short">%1$d min before</string>
     <string name="alarm_edit_meters_short">%1$d m</string>
     <plurals name="alarm_edit_minutes"><item quantity="one">%1$d minute</item><item quantity="other">%1$d minutes</item></plurals>
@@ -421,7 +420,7 @@
     <string name="alarm_edit_group_custom">Custom…</string>
     <string name="alarm_edit_group_custom_name">Custom group name</string>
     <string name="alarm_edit_partner_mode">Don’t wake partner</string>
-    <string name="alarm_edit_partner_mode_hint">Sets this alarm to haptic-only: alarm audio is muted, fade-in is off, and a gentle repeating vibration stays active.</string>
+    <string name="alarm_edit_partner_mode_hint">Makes this alarm vibrate only. Its sound is muted, fade-in turns off and a gentle vibration keeps repeating.</string>
     <string name="alarm_edit_haptic_profile_active">Haptic-only profile active</string>
     <string name="alarm_edit_alarm_sound">Alarm sound</string>
     <string name="alarm_edit_override_volume">Override system volume</string>
@@ -439,13 +438,13 @@
     <string name="alarm_edit_vibration_escalating">Escalating (builds up)</string>
     <string name="alarm_edit_vibration_sos">SOS (urgent pattern)</string>
     <string name="alarm_edit_ramp_strength">Ramp strength</string>
-    <string name="alarm_edit_haptic_envelope_hint">Android 16 uses a smooth haptic envelope; older devices use the same gentle-to-strong pulse pattern.</string>
+    <string name="alarm_edit_haptic_envelope_hint">Android 16 uses a smooth haptic envelope. Older devices get the same gentle-to-strong pulse pattern.</string>
     <string name="alarm_edit_vibration_delay">Start vibration after</string>
     <string name="alarm_edit_immediately">Immediately</string>
     <string name="alarm_edit_immediately_default">Immediately (default)</string>
     <string name="alarm_edit_vacation_skip_date">%1$s %2$s (vacation skip)</string>
     <string name="alarm_edit_fire_date">%1$s %2$s</string>
-    <string name="alarm_edit_will_not_ring">This alarm will not ring with the current settings.</string>
+    <string name="alarm_edit_will_not_ring">This alarm won’t ring with the current settings.</string>
     <string name="alarm_edit_settings_title">Alarm settings</string>
     <string name="alarm_edit_settings_description">Open a category to adjust it. Your current choices stay visible here.</string>
     <string name="alarm_edit_feature_flash">Flash</string>
@@ -456,17 +455,17 @@
     <string name="alarm_edit_feature_shift">Shift pattern</string>
     <string name="alarm_edit_feature_solar">Solar timing</string>
     <string name="alarm_edit_feature_wifi">Wi-Fi rule</string>
-    <string name="alarm_edit_schedule_specific">%1$s • Specific date set</string>
-    <string name="alarm_edit_schedule_smart">%1$s • Smart %2$d min window</string>
-    <string name="alarm_edit_schedule_fixed">%1$s • Fixed wake time</string>
-    <string name="alarm_edit_schedule_zone">%1$s • %2$s</string>
-    <string name="alarm_edit_schedule_device_zone">%1$s • Follows device zone</string>
+    <string name="alarm_edit_schedule_specific">%1$s · Specific date set</string>
+    <string name="alarm_edit_schedule_smart">%1$s · Smart %2$d min window</string>
+    <string name="alarm_edit_schedule_fixed">%1$s · Fixed wake time</string>
+    <string name="alarm_edit_schedule_zone">%1$s · %2$s</string>
+    <string name="alarm_edit_schedule_device_zone">%1$s · Follows device zone</string>
     <string name="alarm_edit_invalid_fixed_zone">Invalid fixed zone</string>
-    <string name="alarm_edit_sound_category_summary">%1$s • %2$s</string>
+    <string name="alarm_edit_sound_category_summary">%1$s · %2$s</string>
     <string name="alarm_edit_vibration_on">Vibration on</string>
     <string name="alarm_edit_vibration_off">Vibration off</string>
-    <string name="alarm_edit_dismiss_category_summary">%1$s • %2$d min snooze</string>
-    <string name="alarm_edit_dismiss_category_summary_no_snooze">%1$s • snooze off</string>
+    <string name="alarm_edit_dismiss_category_summary">%1$s · %2$d min snooze</string>
+    <string name="alarm_edit_dismiss_category_summary_no_snooze">%1$s · snooze off</string>
     <string name="alarm_edit_standard_wake">Standard wake</string>
     <string name="alarm_edit_no_integrations">No optional integrations</string>
     <string name="alarm_edit_using_defaults">Using defaults</string>
@@ -488,10 +487,10 @@
     <string name="alarm_edit_steps_required">Steps required</string>
     <string name="alarm_edit_squats_required">Squats required</string>
     <string name="alarm_edit_nfc_id">NFC tag ID</string>
-    <string name="alarm_edit_nfc_missing">No NFC tag registered. This challenge will be skipped at fire time until a tag ID is set.</string>
+    <string name="alarm_edit_nfc_missing">No NFC tag registered. Until one is set, this challenge is skipped when the alarm rings.</string>
     <string name="alarm_edit_barcode_value">Barcode or QR value</string>
     <string name="alarm_edit_barcode_value_short">barcode value</string>
-    <string name="alarm_edit_barcode_missing">No barcode or QR code registered. This challenge will be skipped at fire time until a value is set.</string>
+    <string name="alarm_edit_barcode_missing">No barcode or QR code registered. Until one is set, this challenge is skipped when the alarm rings.</string>
     <string name="alarm_edit_wifi_name">Wi-Fi network name (SSID)</string>
     <string name="alarm_edit_wifi_ssid">Wi-Fi SSID</string>
     <string name="alarm_edit_wifi_missing">No Wi-Fi network specified. Set the SSID the alarm should require you to connect to.</string>
@@ -517,7 +516,7 @@
     <string name="alarm_edit_challenge_repeat_once">Once</string>
     <string name="alarm_edit_challenge_repeat_hint">The challenge, or the whole chain in order, runs this many times before Dismiss unlocks. Each run brings a fresh puzzle.</string>
     <plurals name="alarm_edit_challenge_repeat_times"><item quantity="one">%1$d time</item><item quantity="other">%1$d times</item></plurals>
-    <string name="alarm_edit_missing_references">Missing %1$s. These challenges will be skipped at fire time.</string>
+    <string name="alarm_edit_missing_references">Missing %1$s. These challenges are skipped when the alarm rings.</string>
     <string name="alarm_edit_chain_picker_description">Pick the wake-up tasks in the order they should happen. The first item appears first when the alarm rings.</string>
     <string name="alarm_edit_chain_picker_empty_hint">Start with two or more challenges when you want dismissal to feel more deliberate than a single math or shake task.</string>
     <string name="alarm_edit_move_earlier">Move %1$s earlier</string>
@@ -561,7 +560,7 @@
     <string name="alarm_edit_challenge_math_easy_description">Solve a simple math problem to dismiss.</string>
     <string name="alarm_edit_challenge_math_medium_description">Solve a two-operation problem before the alarm stops.</string>
     <string name="alarm_edit_challenge_math_hard_description">Use larger numbers and more focus when you need a stronger wake-up.</string>
-    <string name="alarm_edit_challenge_shake_description">Shake the phone repeatedly to prove you are actually moving.</string>
+    <string name="alarm_edit_challenge_shake_description">Shake the phone repeatedly to prove you’re actually moving.</string>
     <string name="alarm_edit_challenge_sequence_description">Tap numbers in ascending order without missing a step.</string>
     <string name="alarm_edit_challenge_memory_description">Memorize and recreate a short visual pattern.</string>
     <string name="alarm_edit_challenge_typing_description">Type a wake-up phrase accurately before dismissal.</string>
@@ -596,7 +595,7 @@
     <string name="alarm_edit_gentle_wake_hint">Sets 2-min volume fade, 1-min vibration delay, and sunrise simulation for a calm wake.</string>
     <string name="alarm_edit_flash_wake">Flash wake (brighten screen)</string>
     <string name="alarm_edit_flash_wake_hint">Gradually increases screen brightness alongside volume.</string>
-    <string name="alarm_edit_background_image">Firing background image</string>
+    <string name="alarm_edit_background_image">Ringing screen background</string>
     <string name="alarm_edit_background_optional_hint">Optional. The ringing screen keeps the standard gradient until you choose an image.</string>
     <string name="alarm_edit_show_ringing_image">Show image while ringing</string>
     <string name="alarm_edit_blur_image">Blur image on Android 12+</string>
@@ -607,10 +606,10 @@
     <string name="alarm_edit_speak_context_hint">Uses on-device text-to-speech to announce the time, date, and weather after dismissal.</string>
     <string name="alarm_edit_confirm_awake">Confirm you’re awake</string>
     <string name="alarm_edit_realarm_delay">Re-alarm delay if not confirmed</string>
-    <string name="alarm_edit_realarm_hint">A notification will appear after dismissal. If you don’t confirm within the delay, the alarm re-fires.</string>
+    <string name="alarm_edit_realarm_hint">A notification will appear after dismissal. If you don’t confirm within the delay, the alarm rings again.</string>
     <string name="alarm_edit_light_sleep">Wake during light sleep</string>
     <string name="alarm_edit_detection_window">Detection window</string>
-    <string name="alarm_edit_smart_alarm_hint">Uses conservative phone-motion scoring and waits for enough evidence before firing early.</string>
+    <string name="alarm_edit_smart_alarm_hint">Uses conservative phone-motion scoring and waits for enough evidence before ringing early.</string>
     <string name="alarm_edit_skip_holidays">Skip on public holidays</string>
     <string name="alarm_edit_holidays_hint">Requires holiday auto-skip and country code configured in Settings → Integrations.</string>
     <string name="alarm_edit_skip_calendar_tag">Skip when a calendar event contains</string>
@@ -620,7 +619,7 @@
     <string name="alarm_edit_skip_calendar_allow">Allow calendar access</string>
     <string name="alarm_edit_spotify_uri">Spotify URI (for example, spotify:track:…)</string>
     <string name="alarm_edit_default_ringtone_placeholder">Leave blank to use default ringtone</string>
-    <string name="alarm_edit_spotify_hint">Needs the Spotify app installed and signed in. Paste a track, album or playlist link. If Spotify has not started playing within a few seconds, your default alarm tone takes over.</string>
+    <string name="alarm_edit_spotify_hint">Needs the Spotify app installed and signed in. Paste a track, album or playlist link. If Spotify hasn’t started playing within a few seconds, your default alarm tone takes over.</string>
     <string name="alarm_edit_dismiss_action">Run when dismissed</string>
     <string name="alarm_edit_dismiss_action_none">Nothing</string>
     <string name="alarm_edit_dismiss_action_webhook">Call a webhook</string>
@@ -629,8 +628,8 @@
     <string name="alarm_edit_dismiss_action_payload_webhook">https://…</string>
     <string name="alarm_edit_dismiss_action_payload_hue_scene">Scene ID</string>
     <string name="alarm_edit_dismiss_action_payload_broadcast">Intent action</string>
-    <string name="alarm_edit_dismiss_action_hint">Fires once, right after you dismiss this alarm. Webhooks must be HTTPS. A Hue scene needs the bridge set up in Settings. A broadcast action is for automation apps such as Tasker.</string>
-    <string name="alarm_edit_dismiss_action_invalid">That value will not be accepted. Check the format for the action you picked.</string>
+    <string name="alarm_edit_dismiss_action_hint">Runs once, right after you dismiss this alarm. Webhooks must be HTTPS. A Hue scene needs the bridge set up in Settings. A broadcast action is for automation apps such as Tasker.</string>
+    <string name="alarm_edit_dismiss_action_invalid">That value won’t be accepted. Check the format for the action you picked.</string>
     <string name="alarm_edit_hue_sunrise">Sunrise lights</string>
     <string name="alarm_edit_hue_start">Start lights before alarm</string>
     <string name="alarm_edit_hue_hint">No light hub is set up yet. Add Philips Hue or IKEA DIRIGERA in Settings.</string>
@@ -653,17 +652,17 @@
     <string name="alarm_edit_sunrise_hint">Transitions the screen from deep red to warm yellow to simulate sunrise.</string>
     <string name="alarm_edit_stream_url">Stream URL (https://…)</string>
     <string name="alarm_edit_radio_https_required">Only https stream addresses can play. Android blocks plain http.</string>
-    <string name="alarm_edit_spotify_not_recognised">That is not a Spotify link, so it will be cleared when you save. Copy a track, album or playlist link from Spotify\'s share menu.</string>
+    <string name="alarm_edit_spotify_not_recognised">That isn’t a Spotify link, so it will be cleared when you save. Copy a track, album or playlist link from Spotify’s share menu.</string>
     <string name="alarm_edit_radio_hint">Streams internet radio as the alarm sound and falls back to the default ringtone on failure. The address has to be https.</string>
     <string name="alarm_edit_emergency_alert">Emergency contact alert</string>
     <string name="alarm_edit_emergency_phone">Emergency phone number</string>
     <string name="alarm_edit_alert_after">Alert after</string>
     <string name="alarm_edit_guardian_call_granted">Direct call permission is granted.</string>
-    <string name="alarm_edit_guardian_call_dialer">Call fallback opens the dialer because CALL_PHONE is not granted.</string>
+    <string name="alarm_edit_guardian_call_dialer">Call fallback opens the dialer because CALL_PHONE isn’t granted.</string>
     <string name="alarm_edit_guardian_inactive">Guardian Angel is off for this alarm.</string>
-    <string name="alarm_edit_guardian_direct_sms">Sends an emergency SMS automatically, then opens the call path if the alarm is not dismissed. %1$s</string>
+    <string name="alarm_edit_guardian_direct_sms">Sends an emergency SMS automatically, then opens the call path if the alarm isn’t dismissed. %1$s</string>
     <string name="alarm_edit_guardian_needs_sms">F-Droid can send automatic SMS after SEND_SMS is allowed. Until then, it opens a prefilled SMS composer. %1$s</string>
-    <string name="alarm_edit_guardian_composer">Opens a prefilled emergency SMS composer if the alarm is not dismissed, then falls back to call or dialer. %1$s</string>
+    <string name="alarm_edit_guardian_composer">Opens a prefilled emergency SMS composer if the alarm isn’t dismissed, then falls back to call or dialer. %1$s</string>
     <string name="alarm_edit_guardian_allow_sms">Allow automatic texts</string>
     <string name="alarm_edit_guardian_allow_calls">Allow direct calls</string>
     <string name="alarm_edit_checklist_label">Checklist items (one per line)</string>
@@ -673,7 +672,10 @@
     <!-- Alarm editor advanced behavior -->
     <string name="alarm_edit_profile">Alarm profile</string>
     <string name="alarm_edit_profile_placeholder">For example: Work, Travel, Weekend</string>
-    <string name="alarm_edit_specific_date">Specific date (YYYY-MM-DD, leave blank for repeat days)</string>
+    <string name="alarm_edit_specific_date">Specific date</string>
+    <string name="alarm_edit_specific_date_hint">YYYY-MM-DD, or pick it from the calendar. Leave blank to use the repeat days.</string>
+    <string name="alarm_edit_pick_date">Pick a date</string>
+    <string name="alarm_edit_date_placeholder" translatable="false">YYYY-MM-DD</string>
     <string name="alarm_edit_time_zone">Time zone</string>
     <string name="alarm_edit_fixed_zone">Fixed zone</string>
     <string name="alarm_edit_follow_device">Follow device</string>
@@ -681,18 +683,18 @@
     <string name="alarm_edit_keep_fixed_zone">Keep time in a fixed zone</string>
     <string name="alarm_edit_iana_zone">IANA time zone (for example, America/New_York)</string>
     <string name="alarm_edit_fixed_zone_hint">The alarm stays at %1$s:%2$s in this zone when you travel.</string>
-    <string name="alarm_edit_unknown_zone">Unknown zone; saving will safely fall back to following the device.</string>
+    <string name="alarm_edit_unknown_zone">Unknown zone. Saving falls back to following the device.</string>
     <string name="alarm_edit_shift_pattern">Shift pattern</string>
     <string name="alarm_edit_shift_start">Shift cycle start date (YYYY-MM-DD)</string>
-    <string name="alarm_edit_shift_hint">Day, night, and work entries ring; off days are skipped. Weekday picks still narrow the pattern.</string>
+    <string name="alarm_edit_shift_hint">Day, night, and work entries ring, and off days are skipped. Weekday picks still narrow the pattern.</string>
     <string name="alarm_edit_shift_ddnno_description">2 day shifts, 2 night shifts, 1 off day.</string>
     <string name="alarm_edit_shift_four_description">4 work days followed by 4 off days.</string>
     <string name="alarm_edit_shift_panama_description">2 on, 2 off, 3 on, then 2 off, 2 on, 3 off.</string>
     <string name="alarm_edit_shift_dupont_description">4 nights, 3 off, 3 days, 1 off, 3 nights, 3 off, 4 days, 7 off.</string>
     <string name="alarm_edit_shift_pitman_description">2 on, 2 off, 3 on, 2 off, 2 on, 3 off.</string>
     <string name="alarm_edit_shift_default_description">Custom shift pattern.</string>
-    <string name="alarm_edit_weather_early">Weather early fire</string>
-    <string name="alarm_edit_weather_early_hint">Fire this alarm earlier when snow, freezing rain, or ice is forecast. Uses cached weather data.</string>
+    <string name="alarm_edit_weather_early">Ring early for weather</string>
+    <string name="alarm_edit_weather_early_hint">Rings earlier when snow, freezing rain or ice is in the forecast. Uses cached weather data.</string>
     <string name="alarm_edit_early_dismiss">Early dismiss window</string>
     <string name="alarm_edit_early_dismiss_hint">Allows a deliberate early skip from the upcoming-alarm notification before the ring begins.</string>
     <string name="alarm_edit_wifi_dismiss_ssid">Wi-Fi dismiss SSID (connect to this network to dismiss)</string>
@@ -700,18 +702,18 @@
     <string name="alarm_edit_hardware_none">None (default)</string>
     <string name="alarm_edit_hardware_snooze">Snooze on any key</string>
     <string name="alarm_edit_hardware_dismiss">Dismiss on any key</string>
-    <string name="alarm_edit_hardware_hint">Volume, camera, or headset keys during the alarm trigger the chosen action. NONE leaves normal volume control intact.</string>
+    <string name="alarm_edit_hardware_hint">Volume, camera and headset keys do the chosen action while the alarm rings. With None, they work as usual.</string>
     <string name="alarm_edit_hold_to_dismiss">Hold to dismiss</string>
-    <string name="alarm_edit_hold_to_dismiss_hint">When enabled, the firing screen requires holding Dismiss for the configured duration. Swipe-left dismissal is replaced with a visible hold prompt.</string>
+    <string name="alarm_edit_hold_to_dismiss_hint">When enabled, the ringing screen requires holding Dismiss for the configured duration. Swipe-left dismissal is replaced with a visible hold prompt.</string>
     <string name="alarm_edit_dismiss_song_end">Dismiss when song finishes</string>
     <string name="alarm_edit_dismiss_song_end_hint">Turns off looping and auto-dismisses the alarm when the chosen ringtone or track finishes naturally. Internet radio ignores this setting.</string>
     <string name="alarm_edit_ringtone_pool">Ringtone pool</string>
     <string name="alarm_edit_remove_ringtone">Remove %1$s from ringtone pool</string>
     <string name="alarm_edit_add_ringtone">Add ringtone</string>
     <string name="alarm_edit_add_ringtone_accessibility">Add ringtone to pool</string>
-    <string name="alarm_edit_ringtone_pool_hint">When the pool is non-empty, a random entry is picked each fire and overrides the single Ringtone setting above. Tap a chip to remove it.</string>
+    <string name="alarm_edit_ringtone_pool_hint">With ringtones in the pool, each ring plays one at random instead of the Ringtone setting above. Tap a chip to remove it.</string>
     <string name="alarm_edit_add_ringtone_title">Add ringtone to pool</string>
-    <string name="alarm_edit_ringtone_uri_hint">Paste a link to a sound file on this device. One entry from the pool plays each time this alarm fires.</string>
+    <string name="alarm_edit_ringtone_uri_hint">Paste a link to a sound file on this device. One entry from the pool plays each time this alarm rings.</string>
     <string name="alarm_edit_ringtone_uri">Ringtone URI</string>
     <string name="alarm_edit_ringtone_uri_placeholder" translatable="false">content://… or file://…</string>
     <string name="alarm_edit_ringtone_duplicate">That ringtone is already in the pool.</string>
@@ -723,7 +725,7 @@
     <string name="alarm_edit_positive_minutes_short">+%1$d min</string>
     <string name="alarm_edit_solar_after">+%1$d min (after %2$s)</string>
     <string name="alarm_edit_solar_before">%1$d min (before %2$s)</string>
-    <string name="alarm_edit_solar_hint">When the offset is non-zero, the alarm fires relative to the selected sunrise or sunset event at your last known location.</string>
+    <string name="alarm_edit_solar_hint">With an offset set, the alarm rings that long before or after sunrise or sunset at your last known location.</string>
     <string name="alarm_edit_save_time">Save time</string>
     <string name="alarm_edit_keep_current">Keep current</string>
     <string name="alarm_edit_24_hour">24-hour time</string>
@@ -736,13 +738,13 @@
 
     <!-- Settings shell, defaults, dashboard, and utilities -->
     <string name="settings_pane_readiness">Readiness</string>
-    <string name="settings_pane_readiness_description">Permissions, diagnostics, battery, vacation, and pause controls.</string>
+    <string name="settings_pane_readiness_description">Pause, vacation, on-call, battery and alarm diagnostics.</string>
     <string name="settings_pane_defaults">Defaults</string>
     <string name="settings_pane_defaults_description">New-alarm behavior, dashboard content, and navigation tabs.</string>
     <string name="settings_pane_integrations">Integrations</string>
     <string name="settings_pane_integrations_description">Webhook, holidays, Hue, Health Connect, and connection status.</string>
     <string name="settings_pane_personalization">Personalization</string>
-    <string name="settings_pane_personalization_description">Theme, challenge difficulty, privacy, and firing-screen behavior.</string>
+    <string name="settings_pane_personalization_description">Theme, challenge difficulty, privacy, and ringing-screen behavior.</string>
     <string name="settings_pane_backup">Backup</string>
     <string name="settings_pane_backup_description">Encrypted export, restore preview, and conflict-safe import.</string>
     <string name="settings_pane_utilities">Utilities</string>
@@ -760,9 +762,9 @@
     <string name="settings_not_selected">Not selected</string>
     <string name="settings_alarm_defaults">Alarm defaults</string>
     <string name="settings_alarm_defaults_description">Set the behavior new alarms start with so setup feels faster and more predictable.</string>
-    <string name="settings_24h_description">Use military time everywhere in the app.</string>
+    <string name="settings_24h_description">Show times as 13:00 instead of 1:00 PM.</string>
     <string name="settings_alarm_status_icon">Show next-alarm status icon</string>
-    <string name="settings_alarm_status_icon_description">Keeps the next alarm visible in the status bar. Turn it off for a quieter status bar; exact idle scheduling remains enabled.</string>
+    <string name="settings_alarm_status_icon_description">Keeps the next alarm visible in the status bar. Turning it off doesn’t change how alarms are scheduled.</string>
     <string name="settings_hide_public_labels">Hide public alarm and timer labels</string>
     <string name="settings_hide_public_labels_description">Use neutral text on lock screen, timer notifications, widget, quick settings, and Wear surfaces.</string>
     <string name="settings_phone_speakers">Use phone speakers</string>
@@ -787,7 +789,7 @@
     <string name="settings_first_meeting_enabled_description">Keeps one Calendar alarm shifted to tomorrow’s first timed event.</string>
     <string name="settings_first_meeting_disabled_description">Create one reusable alarm before tomorrow’s first timed event.</string>
     <string name="settings_meeting_lead_time">Meeting lead time</string>
-    <string name="settings_meeting_lead_description">How early the Calendar alarm fires before the first meeting.</string>
+    <string name="settings_meeting_lead_description">How early the Calendar alarm rings before the first meeting.</string>
     <string name="settings_commute_aware">Commute-aware auto-alarm</string>
     <string name="settings_commute_aware_description">For first meetings with a location, add transit/weather buffer before the calendar lead time.</string>
     <string name="settings_normal_commute">Normal commute</string>
@@ -803,7 +805,7 @@
     <string name="settings_commute_fallback_description">After three successful route estimates, failures can use a conservative 45-day on-device history plus the weather buffer.</string>
     <string name="settings_commute_history">Learned commute history</string>
     <string name="settings_clear">Clear</string>
-    <string name="settings_commute_history_description">Stores only hashed route keys and up to eight recent durations per route on this device; locations are excluded from support bundles.</string>
+    <string name="settings_commute_history_description">Stores only hashed route keys and up to eight recent durations per route on this device. Locations are left out of support bundles.</string>
     <string name="settings_celsius">Celsius (°C)</string>
     <string name="settings_fahrenheit">Fahrenheit (°F)</string>
     <string name="settings_temperature_description">Applied across the dashboard and weather cards.</string>
@@ -822,14 +824,13 @@
     <string name="settings_show_news_description">Public RSS feeds: Google News, BBC, NPR and Hacker News.</string>
     <string name="settings_radar_tab">Live radar on Weather tab</string>
     <string name="settings_radar_description">Embed Windy.com’s animated precipitation radar below the conditions card.</string>
-    <string name="settings_utilities">Utilities</string>
     <string name="settings_utilities_description">Quick access to companion tools that round out the app.</string>
     <string name="settings_alarm_statistics">Alarm statistics</string>
     <string name="settings_alarm_statistics_description">Review streaks, response times, and habits over time.</string>
     <string name="settings_stopwatch_description">Track laps with best and worst splits highlighted.</string>
-    <string name="settings_bedtime_description">Set a sleep goal and keep your routine feeling intentional.</string>
+    <string name="settings_bedtime_description">Set a sleep goal and get a reminder when it’s time to wind down.</string>
     <string name="settings_night_clock">Night clock</string>
-    <string name="settings_night_clock_description">Full-screen bedside clock with a warm low-light glow for bedside use.</string>
+    <string name="settings_night_clock_description">Full-screen bedside clock with a dim, warm glow.</string>
     <string name="settings_language">App language</string>
     <string name="settings_language_description">Choose the app language. English and Japanese are bundled today.</string>
     <string name="settings_language_android_required">Per-app language choices are available on Android 13 and newer.</string>
@@ -860,20 +861,19 @@
     <string name="settings_diagnostics">Alarm diagnostics</string>
     <string name="settings_diagnostics_description">Recent redacted incident codes explain alarm delivery without storing labels, URLs, contacts, or locations.</string>
     <string name="settings_incident_history">Incident history</string>
-    <string name="settings_incident_empty">No incident events yet. New alarm fires will add compact local diagnostic codes here.</string>
-    <string name="settings_incident_retention">This history is separate from Statistics and is bounded to the newest 100 rows or 30 days.</string>
+    <string name="settings_incident_empty">No incident events yet. Each alarm that rings adds short local diagnostic codes here.</string>
+    <string name="settings_incident_retention">This history is separate from Statistics. It keeps only the newest 100 entries or 30 days.</string>
     <string name="settings_latest_degraded">Latest degraded event</string>
     <string name="settings_latest_incident">Latest incident event</string>
-    <plurals name="settings_recent_diagnostics"><item quantity="one">%1$d recent diagnostic event retained locally.</item><item quantity="other">%1$d recent diagnostic events retained locally.</item></plurals>
-    <string name="settings_unknown_code" translatable="false">UNKNOWN</string>
+    <plurals name="settings_recent_diagnostics"><item quantity="one">%1$d recent event, kept on this phone.</item><item quantity="other">%1$d recent events, kept on this phone.</item></plurals>
     <string name="settings_none_code" translatable="false">NONE</string>
     <string name="settings_reason_code">Reason code</string>
     <string name="settings_clear_diagnostics_hint">Clearing diagnostics removes only incident rows. Alarm statistics and support-export crash logs are kept separate.</string>
     <string name="settings_clear_diagnostics">Clear diagnostics</string>
     <string name="settings_clear_diagnostics_title">Clear alarm diagnostics?</string>
-    <string name="settings_clear_diagnostics_message">This deletes the redacted incident timeline only. Alarm statistics, alarms, backups, and crash logs are not changed.</string>
+    <string name="settings_clear_diagnostics_message">This deletes the redacted incident timeline only. Alarm statistics, alarms, backups, and crash logs aren’t changed.</string>
     <string name="settings_at_a_glance">At a glance</string>
-    <string name="settings_at_a_glance_description">The highest-impact preferences, without digging through every category.</string>
+    <string name="settings_at_a_glance_description">The settings that matter most for waking up on time.</string>
     <string name="settings_preferences">Preferences</string>
     <string name="settings_reliability">Reliability</string>
     <string name="settings_ready">Ready</string>
@@ -893,16 +893,17 @@
     <string name="settings_open_manufacturer_battery">Open %1$s reliability settings</string>
     <string name="settings_open_dnd">Open Do Not Disturb settings</string>
     <string name="settings_on_call_mode">On-call mode</string>
-    <string name="settings_on_call_mode_description">Use this with a rotating shift pattern when an on-call alarm must break total-silence Do Not Disturb.</string>
-    <string name="settings_on_call_mode_toggle_description">Temporarily changes total silence to Alarms-only while this device is ringing, then restores your previous DND choice.</string>
+    <string name="settings_on_call_mode_description">For shift work. Lets an on-call alarm ring even when Do Not Disturb is set to total silence.</string>
+    <string name="settings_on_call_mode_toggle_description">While an alarm rings, Do Not Disturb switches from total silence to alarms only, then goes back to how you had it.</string>
+    <string name="settings_on_call_ring_through">Ring through total silence</string>
     <string name="settings_on_call_access_needed">DND access needed</string>
-    <string name="settings_on_call_access_description">Grant notification policy access so the app can switch total silence to alarms only while you are on call.</string>
+    <string name="settings_on_call_access_description">Grant notification policy access so the app can switch total silence to alarms only while you’re on call.</string>
     <string name="settings_refresh">Refresh</string>
     <string name="settings_review">Review</string>
     <string name="settings_off">Off</string>
     <string name="settings_pause_alarms">Pause alarms</string>
-    <string name="settings_pause_until">All alarms suspended until end of %1$s.</string>
-    <string name="settings_pause_description">One-tap suspend for an unplanned interruption. Works for one-shot alarms too.</string>
+    <string name="settings_pause_until">Every alarm is paused through %1$s.</string>
+    <string name="settings_pause_description">Silence every alarm, one-time alarms too, until the time you pick is up.</string>
     <string name="settings_paused">Paused</string>
     <string name="settings_tonight">Tonight</string>
     <plurals name="settings_days"><item quantity="one">%1$d day</item><item quantity="other">%1$d days</item></plurals>
@@ -938,7 +939,7 @@
     <string name="settings_local_network_needed">Local network access needed</string>
     <string name="settings_local_network_allow">Allow access</string>
     <string name="permission_open_app_settings">Open app settings</string>
-    <string name="settings_webhook_network_description">Android 17+ requires local network access before this LAN webhook can be tested or fired.</string>
+    <string name="settings_webhook_network_description">Android 17+ requires local network access before this LAN webhook can be tested or sent.</string>
     <string name="settings_webhook_payload_description">Every payload carries a schema version, an event id, when it happened, when the alarm was due, the display time and whether the label was included.</string>
     <string name="settings_testing">Testing</string>
     <string name="settings_test">Test</string>
@@ -970,7 +971,7 @@
     <string name="settings_dirigera_description">Brighten IKEA smart lights through the DIRIGERA hub before the alarm, using the same sunrise switch as Philips Hue.</string>
     <string name="settings_dirigera_ip">Hub IP address</string>
     <string name="settings_dirigera_ip_placeholder" translatable="false">192.168.1.50</string>
-    <string name="settings_dirigera_ip_not_local">Enter the local address of the hub without a port, like 192.168.1.50. A public hostname is refused because the hub certificate cannot be verified.</string>
+    <string name="settings_dirigera_ip_not_local">Enter the local address of the hub without a port, like 192.168.1.50. A public hostname is refused because the hub certificate can’t be verified.</string>
     <string name="settings_dirigera_network_description">Android 17+ requires local network access before AlarmClockXtreme can reach this DIRIGERA hub.</string>
     <string name="settings_dirigera_pair_steps">Tap Pair, then press the action button on the bottom of the hub within 60 seconds.</string>
     <string name="settings_dirigera_pair">Pair</string>
@@ -989,7 +990,7 @@
     <string name="settings_dirigera_refresh">Refresh</string>
     <string name="settings_dirigera_unpair">Unpair</string>
     <string name="settings_health_connect">Health Connect</string>
-    <string name="settings_health_fdroid_description">This build does not include Health Connect. The setting is kept so backups from a build that does still restore.</string>
+    <string name="settings_health_fdroid_description">This build doesn’t include Health Connect. The setting is kept so backups from a build that does still restore.</string>
     <string name="settings_health_read_sleep">Read recent sleep sessions</string>
     <string name="settings_health_read_sleep_description">Reads your sleep sessions and nothing else. Summaries stay on the device and refresh while Bedtime, Stats or Settings is open.</string>
     <string name="settings_health_fdroid_permission">No Health Connect permissions are requested on F-Droid.</string>
@@ -1005,7 +1006,7 @@
     <string name="settings_health_review_access">Review access</string>
     <string name="settings_health_grant_access">Grant access</string>
     <string name="settings_health_update_description">Health Connect is installed but needs an update before sleep sessions can be read.</string>
-    <string name="settings_health_unavailable_description">Health Connect is not available on this device.</string>
+    <string name="settings_health_unavailable_description">Health Connect isn’t available on this device.</string>
     <string name="settings_health_opt_in_description">Opt in to read recent Health Connect sleep sessions on-device for Bedtime and Stats context.</string>
     <string name="settings_health_grant_description">Grant sleep data access in Health Connect before the app can show recent sleep summaries.</string>
     <string name="settings_health_available_description">Recent sleep summaries are available locally from Health Connect.</string>
@@ -1028,7 +1029,7 @@
     <string name="settings_connection_cached_forecast">Last cached forecast</string>
     <string name="settings_connection_hidden_unavailable">Hidden when unavailable</string>
     <string name="settings_connection_no_alerts">No alerts shown</string>
-    <string name="settings_connection_cached_holidays">Cached holidays; skip disabled</string>
+    <string name="settings_connection_cached_holidays">Last cached holidays, or no skipping</string>
     <string name="settings_connection_radar_hidden">Radar card hidden</string>
     <string name="settings_connection_user_configured">user-configured</string>
     <string name="settings_connection_feed_data">Feed URL fetch only</string>
@@ -1049,10 +1050,9 @@
     <string name="settings_connection_offline">Offline: %1$s</string>
 
     <!-- Settings personalization -->
-    <string name="settings_personalization">Personalization</string>
     <string name="settings_personalization_description">Pick the accent color, enable adaptive difficulty, and tune the wake-up screen.</string>
     <string name="settings_motivational_quotes">Motivational quotes on alarm</string>
-    <string name="settings_motivational_quotes_description">Shows a short quote on the firing screen alongside the time.</string>
+    <string name="settings_motivational_quotes_description">Shows a short quote on the ringing screen alongside the time.</string>
     <string name="settings_adaptive_difficulty">Adaptive challenge difficulty</string>
     <string name="settings_adaptive_difficulty_description">Auto-bumps math challenges (Easy → Medium → Hard) when your snooze rate climbs above 50%.</string>
     <string name="settings_dynamic_color">Material You dynamic color</string>
@@ -1060,19 +1060,19 @@
     <string name="settings_expressive_surfaces">Expressive surfaces</string>
     <string name="settings_expressive_surfaces_description">Adds bolder shape rhythm and clearer accent semantics across shared app surfaces.</string>
     <string name="settings_reduce_motion">Reduce motion and flashing</string>
-    <string name="settings_reduce_motion_description">Stops decorative loops and flashlight strobing. Android\’s Remove animations setting is also honored.</string>
+    <string name="settings_reduce_motion_description">Stops decorative loops and flashlight strobing. Android’s Remove animations setting is also honored.</string>
     <string name="settings_cover_to_snooze">Cover-to-snooze</string>
-    <string name="settings_cover_to_snooze_description">Hold a hand over the proximity sensor for ~1.5 s during an alarm to snooze.</string>
+    <string name="settings_cover_to_snooze_description">Hold a hand over the proximity sensor for about 1.5 seconds during an alarm to snooze it.</string>
     <string name="settings_repeat_missed">Repeat missed alarms</string>
-    <string name="settings_repeat_missed_description">If an alarm auto-silences, re-fire it briefly when you unlock or unplug within 10 minutes.</string>
+    <string name="settings_repeat_missed_description">If an alarm auto-silences, ring it again briefly when you unlock or unplug within 10 minutes.</string>
     <string name="settings_cancellation_lock">Cancellation lock</string>
-    <string name="settings_cancellation_lock_description">Prevent disabling alarms close to fire time</string>
+    <string name="settings_cancellation_lock_description">Prevent turning off alarms shortly before they ring.</string>
     <string name="settings_disabled">Disabled</string>
-    <string name="settings_lock_before_fire">Lock %1$d min before fire</string>
+    <string name="settings_lock_before_fire">Lock %1$d min before ringing</string>
     <string name="settings_long_press_threshold">Dismiss hold duration</string>
-    <string name="settings_long_press_threshold_description">Choose how long the firing-screen dismiss button must be held. 0.5–5 seconds.</string>
+    <string name="settings_long_press_threshold_description">Choose how long the dismiss button on the alarm screen has to be held, from 0.5 to 5 seconds.</string>
     <string name="settings_hold_duration_short">%1$.1f s</string>
-    <string name="settings_firing_controls">Firing controls</string>
+    <string name="settings_firing_controls">Ringing screen</string>
     <string name="settings_firing_controls_description">How you dismiss and snooze alarms. Buttons mode is recommended for screen readers.</string>
     <string name="settings_firing_buttons">Buttons</string>
     <string name="settings_firing_swipe">Swipe</string>
@@ -1084,16 +1084,16 @@
     <string name="settings_custom_typing_phrases_placeholder">One phrase per line, appended to the built-in list</string>
     <string name="settings_custom_typing_phrases_description">These are added after the built-in phrase library, so you can make typing challenges sound more like you.</string>
     <string name="settings_challenge_bypass">Challenge accessibility bypass</string>
-    <string name="settings_challenge_bypass_description">Allow dismissing after a timed delay without completing the challenge. Helps users who cannot perform physical challenges.</string>
+    <string name="settings_challenge_bypass_description">Allow dismissing after a timed delay without completing the challenge. Helps users who can’t perform physical challenges.</string>
     <string name="settings_bypass_delay">Bypass delay</string>
     <string name="settings_seconds_short">%1$ds</string>
     <string name="settings_challenge_audio_ducking">Quieter audio during challenges</string>
-    <string name="settings_challenge_audio_ducking_description">Reduces only this alarm\’s player volume while you solve a dismiss challenge; calls still mute it completely.</string>
+    <string name="settings_challenge_audio_ducking_description">Turns down only this alarm’s volume while you solve a dismiss challenge. Calls still mute it completely.</string>
     <string name="settings_challenge_volume">Challenge volume: %1$d%%</string>
     <string name="settings_percent">%1$d%%</string>
     <string name="settings_bedtime_checklist">Bedtime wind-down checklist</string>
     <string name="settings_bedtime_checklist_placeholder">One item per line (e.g. Dim lights, Phone on charger, Set alarm)</string>
-    <string name="settings_bedtime_checklist_description">This appears in Bedtime so your routine stays consistent even when the rest of the day feels busy.</string>
+    <string name="settings_bedtime_checklist_description">Shows in Bedtime as a short list to run through before sleep.</string>
     <string name="settings_accent_color">Accent color</string>
     <string name="settings_accent_color_description">Used for the primary alarm tint, dashboard chips, and switches.</string>
     <string name="settings_accent_default_blue">Default blue</string>
@@ -1114,14 +1114,14 @@
     <string name="settings_import">Import</string>
     <string name="settings_plain_backup_description">Plain backups include alarms and global settings in a readable JSON file. AlarmClockXtreme warns before exporting configured secrets or private references.</string>
     <string name="settings_import_fossify">Import Fossify Clock JSON</string>
-    <string name="settings_import_fossify_description">Previews a bounded Fossify export without changing alarms. Confirmed alarms are appended disabled so times, weekdays, vibration, and available sounds can be reviewed first.</string>
+    <string name="settings_import_fossify_description">Shows what’s in a Fossify Clock export before anything changes. Imported alarms arrive turned off so you can check times, days, vibration, and sounds first.</string>
     <string name="settings_encrypted_backup">Encrypted backup</string>
-    <string name="settings_encrypted_backup_description">Use a passphrase to create an AES-256 encrypted backup. Keep the passphrase somewhere safe; it cannot be recovered by the app.</string>
+    <string name="settings_encrypted_backup_description">Use a passphrase to create an AES-256 encrypted backup. Keep the passphrase somewhere safe. The app can’t recover it if you lose it.</string>
     <string name="settings_passphrase">Passphrase</string>
     <string name="settings_passphrase_required">Required for encrypted files</string>
     <string name="settings_confirm_passphrase">Confirm passphrase</string>
     <string name="settings_confirm_passphrase_required">Required before encrypted export</string>
-    <string name="settings_passphrase_mismatch">Passphrases do not match. Encrypted import uses only the first field.</string>
+    <string name="settings_passphrase_mismatch">Passphrases don’t match. Encrypted import uses only the first field.</string>
     <string name="settings_encrypt_export">Encrypt export</string>
     <string name="settings_decrypt_import">Decrypt import</string>
     <string name="settings_inspecting_backup">Inspecting backup</string>
@@ -1133,8 +1133,8 @@
     <string name="settings_review_fossify_alarms">Review Fossify alarms</string>
     <string name="settings_fossify_preview_counts">Valid alarms: %1$d. Invalid rows skipped: %2$d.</string>
     <string name="settings_fossify_import_disabled_summary">All imports will be disabled. Enabled in Fossify: %1$d.</string>
-    <plurals name="settings_fossify_unreadable_ringtones"><item quantity="one">%1$d ringtone URI is not readable on this device and will use the default alarm sound.</item><item quantity="other">%1$d ringtone URIs are not readable on this device and will use the default alarm sound.</item></plurals>
-    <string name="settings_fossify_days_suffix">" • %1$s"</string>
+    <plurals name="settings_fossify_unreadable_ringtones"><item quantity="one">%1$d ringtone URI isn’t readable on this device and will use the default alarm sound.</item><item quantity="other">%1$d ringtone URIs aren’t readable on this device and will use the default alarm sound.</item></plurals>
+    <string name="settings_fossify_days_suffix">" · %1$s"</string>
     <string name="settings_fossify_alarm_summary">"%1$s  %2$s%3$s"</string>
     <plurals name="settings_more_items"><item quantity="one">+ %1$d more</item><item quantity="other">+ %1$d more</item></plurals>
     <string name="settings_import_disabled">Import as disabled</string>
@@ -1143,10 +1143,13 @@
     <string name="settings_backup_version">Backup v%1$d from app %2$s</string>
     <string name="settings_unknown">unknown</string>
     <string name="settings_close">Close</string>
-    <string name="settings_backup_alarm_counts">%1$d alarms, %2$d enabled</string>
+    <plurals name="settings_backup_alarm_counts">
+        <item quantity="one">%1$d alarm, %2$d enabled</item>
+        <item quantity="other">%1$d alarms, %2$d enabled</item>
+    </plurals>
     <plurals name="settings_backup_invalid_rows"><item quantity="one">%1$d alarm row could not be read and will be skipped.</item><item quantity="other">%1$d alarm rows could not be read and will be skipped.</item></plurals>
     <string name="settings_global_settings_restored">Global settings will be restored.</string>
-    <string name="settings_global_settings_missing">This backup does not include global settings.</string>
+    <string name="settings_global_settings_missing">This backup doesn’t include global settings.</string>
     <string name="settings_private_values_detected">Private values detected:</string>
     <string name="settings_list_item">- %1$s</string>
     <string name="settings_keep_restored_disabled">Keep restored alarms disabled until I review them</string>
@@ -1168,17 +1171,36 @@
     <string name="settings_export_plain_backup">Export plain backup</string>
 
     <!-- Settings generated summaries and accessibility copy -->
-    <string name="settings_incident_timing">%1$s - %2$s</string>
+    <string name="settings_incident_timing">%1$s · %2$s</string>
     <string name="settings_dashboard_weather_calendar">Weather + calendar</string>
     <string name="settings_dashboard_weather_only">Weather only</string>
     <string name="settings_dashboard_calendar_only">Calendar only</string>
     <string name="settings_dashboard_minimal">Minimal</string>
     <string name="settings_dashboard_auto_alarm">%1$s + auto-alarm</string>
     <string name="settings_time_unknown">Time unknown</string>
-    <string name="settings_no_schedule_delta">No schedule delta</string>
-    <string name="settings_within_minute_schedule">within 1 min of schedule</string>
-    <plurals name="settings_minutes_before_schedule"><item quantity="one">%1$d min before schedule</item><item quantity="other">%1$d min before schedule</item></plurals>
-    <plurals name="settings_minutes_after_schedule_plural"><item quantity="one">%1$d min after schedule</item><item quantity="other">%1$d min after schedule</item></plurals>
+    <string name="settings_no_schedule_delta">No alarm time recorded</string>
+    <string name="settings_within_minute_schedule">within a minute of the alarm time</string>
+    <string name="settings_incident_before_alarm">%1$s before the alarm time</string>
+    <string name="settings_incident_after_alarm">%1$s after the alarm time</string>
+    <string name="settings_incident_duration_hours_minutes">%1$d hr %2$d min</string>
+    <string name="settings_incident_duration_hours">%1$d hr</string>
+    <string name="settings_incident_duration_minutes">%1$d min</string>
+    <string name="settings_incident_status_requested">Requested</string>
+    <string name="settings_incident_status_received">Received</string>
+    <string name="settings_incident_status_succeeded">Succeeded</string>
+    <string name="settings_incident_status_failed">Failed</string>
+    <string name="settings_incident_status_skipped">Skipped</string>
+    <string name="settings_incident_status_unknown">Unknown</string>
+    <string name="settings_incident_type_schedule">Alarm scheduled</string>
+    <string name="settings_incident_type_broadcast">Alarm triggered</string>
+    <string name="settings_incident_type_foreground_service">Ringing service</string>
+    <string name="settings_incident_type_foreground_promotion">Ringing service start</string>
+    <string name="settings_incident_type_notification">Alarm notification</string>
+    <string name="settings_incident_type_activity_launch">Ringing screen</string>
+    <string name="settings_incident_type_audio">Sound</string>
+    <string name="settings_incident_type_user_action">Your action</string>
+    <string name="settings_incident_type_auto_silence">Auto-silence</string>
+    <string name="settings_incident_type_wake_confirm">Wake check</string>
     <string name="settings_readiness_exact_alarms">exact alarms</string>
     <string name="settings_readiness_notifications">notifications</string>
     <string name="settings_readiness_fullscreen_alarm">full-screen alarm access</string>
@@ -1194,7 +1216,8 @@
     <string name="settings_last_delivery">Last delivery %1$s: %2$s</string>
     <string name="settings_change_date">Change %1$s date</string>
     <string name="settings_date_field_description">%1$s: %2$s</string>
-    <string name="settings_minutes_seconds_compact">%1$dm %2$ds</string>
+    <string name="settings_seconds_value">%1$d sec</string>
+    <string name="settings_minutes_seconds_value">%1$d min %2$d sec</string>
     <string name="settings_webhook_log_line">%1$s: %2$s</string>
     <string name="alarm_edit_empty_ringtone">(empty)</string>
     <string name="alarm_edit_clock_entry">Clock</string>
@@ -1211,10 +1234,8 @@
 
     <!-- Bedtime jet-lag planner -->
     <string name="bedtime_jetlag_title">Jet lag planner</string>
-    <string name="bedtime_jetlag_aligned_description">Target wake already matches the linked wake time; keep light cues steady.</string>
+    <string name="bedtime_jetlag_aligned_description">Target wake already matches the linked wake time. Keep light cues steady.</string>
     <string name="bedtime_jetlag_shift_description">Shift wake and bedtime gradually, then use bright-light and dim-light windows as timing cues.</string>
-    <string name="bedtime_jetlag_current_chip">Current %1$s</string>
-    <string name="bedtime_jetlag_target_chip">Target %1$s</string>
     <plurals name="bedtime_jetlag_days"><item quantity="one">%1$d day</item><item quantity="other">%1$d days</item></plurals>
     <string name="bedtime_jetlag_current_title">Current</string>
     <string name="bedtime_jetlag_target_title">Target</string>
@@ -1246,13 +1267,13 @@
 
     <!-- Fossify import feedback -->
     <plurals name="settings_fossify_import_success"><item quantity="one">Imported %1$d Fossify alarm as disabled for review.</item><item quantity="other">Imported %1$d Fossify alarms as disabled for review.</item></plurals>
-    <string name="settings_fossify_preview_not_export">Couldn\’t preview this file. It doesn\’t look like a Fossify Clock export. Choose the JSON file exported by Fossify Clock.</string>
-    <string name="settings_fossify_preview_unreadable">Couldn\’t preview this file. Check that it is still accessible on this device and try again.</string>
-    <string name="settings_fossify_import_failed_not_export">Couldn\’t import Fossify alarms. The file doesn\’t look like a Fossify Clock export.</string>
-    <string name="settings_fossify_import_failed_unreadable">Couldn\’t import Fossify alarms. Check that the file is still accessible and try again.</string>
-    <string name="settings_fossify_import_failed_changed">Couldn\’t import Fossify alarms. The file changed after preview, so choose it again to re-check.</string>
-    <string name="settings_fossify_import_failed_no_alarms">Couldn\’t import Fossify alarms. The file has no valid alarms.</string>
-    <string name="settings_fossify_import_failed_generic">Couldn\’t import Fossify alarms. Check the file and try again.</string>
+    <string name="settings_fossify_preview_not_export">Couldn’t preview this file. It doesn’t look like a Fossify Clock export. Choose the JSON file exported by Fossify Clock.</string>
+    <string name="settings_fossify_preview_unreadable">Couldn’t preview this file. Check that it’s still accessible on this device and try again.</string>
+    <string name="settings_fossify_import_failed_not_export">Couldn’t import Fossify alarms. The file doesn’t look like a Fossify Clock export.</string>
+    <string name="settings_fossify_import_failed_unreadable">Couldn’t import Fossify alarms. Check that the file is still accessible and try again.</string>
+    <string name="settings_fossify_import_failed_changed">Couldn’t import Fossify alarms. The file changed after preview, so choose it again to re-check.</string>
+    <string name="settings_fossify_import_failed_no_alarms">Couldn’t import Fossify alarms. The file has no valid alarms.</string>
+    <string name="settings_fossify_import_failed_generic">Couldn’t import Fossify alarms. Check the file and try again.</string>
 
     <!-- Backup status copy -->
     <plurals name="settings_backup_alarm_count"><item quantity="one">%1$d alarm</item><item quantity="other">%1$d alarms</item></plurals>
@@ -1276,15 +1297,15 @@
     <string name="notif_channel_missed_desc">Notifications for alarms that were auto-silenced</string>
     <string name="notif_channel_timer_finished">Timer finished</string>
     <string name="notif_channel_timer_finished_desc">Notifies when one of your countdown timers reaches zero.</string>
-    <string name="notif_channel_bedtime_desc">Reminds you when it\’s time to sleep</string>
+    <string name="notif_channel_bedtime_desc">Reminds you when it’s time to sleep</string>
     <string name="notif_channel_bedtime_countdown">Bedtime countdown</string>
     <string name="notif_channel_bedtime_countdown_desc">Shows the final-hour countdown before the bedtime reminder</string>
     <string name="notif_channel_snooze_countdown">Snooze countdown</string>
     <string name="notif_channel_snooze_countdown_desc">Shows the time until a snoozed alarm rings again</string>
     <!-- Alarms screen -->
     <string name="alarm_list_stats_window">Last 30 days</string>
-    <string name="alarm_list_stats_empty">This alarm hasn’t fired in the last 30 days yet.</string>
-    <string name="alarm_list_stats_avg_snoozes">Avg %1$s snoozes per fire</string>
+    <string name="alarm_list_stats_empty">This alarm hasn’t rung in the last 30 days.</string>
+    <string name="alarm_list_stats_avg_snoozes">Avg %1$s snoozes per ring</string>
     <string name="alarm_list_stats_avg_dismiss">Avg dismiss in %1$ds</string>
     <string name="alarm_list_stats_missed">%1$d missed</string>
     <string name="alarm_list_groups">Groups</string>
@@ -1295,12 +1316,12 @@
     <string name="alarm_list_no_matches_title">No alarms match that search</string>
     <string name="alarm_list_no_matches_description">Try a different label or clear your filters to bring everything back.</string>
     <string name="alarm_list_clear_filters">Clear filters</string>
-    <string name="alarm_list_duplicate_time_title">Duplicate fire time</string>
-    <string name="alarm_list_duplicate_time_message">Multiple enabled alarms are set for %1$s. Review them if that was not intentional.</string>
+    <string name="alarm_list_duplicate_time_title">Duplicate alarm time</string>
+    <string name="alarm_list_duplicate_time_message">More than one enabled alarm is set for %1$s. Check them if that wasn’t on purpose.</string>
     <string name="alarm_list_templates">Templates</string>
     <string name="alarm_list_browse_templates">Browse templates</string>
     <string name="alarm_list_detail_empty_title">Select an alarm</string>
-    <string name="alarm_list_detail_empty_description">Choose an alarm from the list to review its next fire time and actions.</string>
+    <string name="alarm_list_detail_empty_description">Choose an alarm from the list to review its next ring time and actions.</string>
     <string name="alarm_list_paused_by_vacation">Paused by vacation</string>
     <string name="alarm_list_alarm_state">Alarm state</string>
     <string name="alarm_list_duplicate">Duplicate</string>
@@ -1313,7 +1334,7 @@
     <string name="alarm_test_end">End test</string>
     <string name="alarm_test_notification_title">Test alarm</string>
     <string name="alarm_test_snoozed_title">Test alarm snoozed</string>
-    <string name="alarm_test_snoozed_text">Rings again at %1$s as a test. Your real alarm is not affected.</string>
+    <string name="alarm_test_snoozed_text">Rings again at %1$s as a test. Your real alarm isn’t affected.</string>
     <string name="alarm_test_refused_ringing">An alarm is ringing right now. Try the test once it stops.</string>
     <string name="alarm_test_failed">Could not start the test alarm.</string>
     <string name="alarm_test_save_first">Save your changes first. The test rings the saved alarm.</string>
@@ -1360,17 +1381,17 @@
     <string name="dashboard_day_clear">Your day is clear.</string>
     <string name="dashboard_choose_weather_location">Choose weather location</string>
     <string name="dashboard_optional">Optional</string>
-    <string name="dashboard_use_city_zip_code_device">Use a city, ZIP code, or device location so the dashboard can stay accurate without extra setup later.</string>
+    <string name="dashboard_use_city_zip_code_device">Today’s weather and air quality come from this place.</string>
     <string name="dashboard_searching_locations">Searching locations</string>
     <string name="dashboard_use">Use</string>
     <string name="dashboard_search_city">Search for a city</string>
-    <string name="dashboard_type_at_least_two_characters">Type at least two characters to find a location, or use your current device location.</string>
+    <string name="dashboard_type_at_least_two_characters">Type two or more letters to see matching places.</string>
     <string name="dashboard_no_matching_places">No matching places</string>
     <string name="dashboard_try_broader_city_name_postal">Try a broader city name, postal code, or nearby region.</string>
     <!-- Dismiss challenge screens -->
     <string name="challenge_choose_correct_answer_unlock_dismiss">Choose the correct answer to unlock dismiss.</string>
     <string name="challenge_strong_shake_helps_break_sleepy">A strong shake helps break sleepy autopilot before the alarm unlocks.</string>
-    <string name="challenge_type_same_words_punctuation_letter">Type the same words and punctuation. Letter case does not matter.</string>
+    <string name="challenge_type_same_words_punctuation_letter">Type the same words and punctuation. Letter case doesn’t matter.</string>
     <string name="challenge_type_phrase_above">Type the phrase above…</string>
     <string name="challenge_check_phrase">Check phrase</string>
     <string name="challenge_say_phrase_clearly_offline_recognition">Say the phrase clearly. Offline recognition is preferred when Android provides it.</string>
@@ -1380,7 +1401,7 @@
     <string name="challenge_draw_word_box_recognition_runs">Draw the word in the box. Recognition runs on-device after the handwriting model is available.</string>
     <string name="challenge_typed_fallback_word">Typed fallback word</string>
     <string name="challenge_check_typed_word">Check typed word</string>
-    <string name="challenge_walking_few_steps_helps_make">Walking a few steps helps make sure you are genuinely up.</string>
+    <string name="challenge_walking_few_steps_helps_make">Walking a few steps makes sure you’re really up.</string>
     <string name="challenge_continue_without_step_count">Continue without step count</string>
     <string name="challenge_tap_saved_tag_against_back">Tap the saved tag against the back of your phone to clear this step.</string>
     <string name="challenge_enter_saved_barcode_qr_payload">Enter the saved barcode or QR payload to unlock dismiss.</string>
@@ -1432,14 +1453,21 @@
     <string name="challenge_word_was_not_stream_pick">That word was not in this stream. Pick the word you remember seeing.</string>
     <!-- Stats screen -->
     <string name="stats_clear_alarm_history">Clear alarm history?</string>
-    <string name="stats_removes_recorded_alarm_outcomes_resets">This removes recorded alarm outcomes and resets the statistics shown on this screen. It does not delete your actual alarms.</string>
+    <string name="stats_removes_recorded_alarm_outcomes_resets">This removes recorded alarm outcomes and resets the statistics shown on this screen. It doesn’t delete your actual alarms.</string>
     <string name="stats_search_label_challenge_action_day">Search label, challenge, action, or day</string>
     <string name="stats_statistics">Statistics</string>
-    <string name="stats_close_statistics">Close statistics</string>
     <string name="stats_loading_alarm_statistics">Loading alarm statistics</string>
     <string name="stats_streak">Streak</string>
     <string name="stats_week">This week</string>
     <string name="stats_snoozed">Snoozed</string>
+    <string name="stats_dismissed">Dismissed</string>
+    <string name="stats_skipped">Skipped</string>
+    <string name="stats_missed">Missed</string>
+    <string name="stats_fastest_day">Quickest to get up: %1$s · %2$ds</string>
+    <string name="stats_legend_sleep">Sleep</string>
+    <string name="stats_legend_dismiss">Dismiss</string>
+    <string name="stats_legend_snooze">Snooze</string>
+    <string name="stats_legend_retry">Retry</string>
     <string name="stats_average_wake_up_time">Average wake-up time</string>
     <string name="stats_how_long_usually_takes_dismiss">How long it usually takes to dismiss an alarm after it starts.</string>
     <string name="stats_average_response">average response</string>
@@ -1459,6 +1487,9 @@
     <string name="stats_clear_search">Clear search</string>
     <string name="stats_outcome">Outcome</string>
     <string name="stats_day">Day</string>
+    <string name="stats_filter_hint">Search by label or challenge, or narrow it down by outcome and day.</string>
+    <string name="stats_filter_all">All</string>
+    <string name="stats_filter_all_days">All days</string>
     <string name="stats_wake_streak">Wake streak</string>
     <string name="stats_next_streak_badge">Next streak badge</string>
     <string name="stats_sleep_context">Sleep context</string>
@@ -1475,7 +1506,6 @@
     <string name="bedtime_grant_dnd_access">Grant DND access</string>
     <string name="bedtime_save_bedtime">Save bedtime</string>
     <string name="bedtime_choose_bedtime">Choose bedtime</string>
-    <string name="bedtime_close_bedtime">Close bedtime</string>
     <string name="bedtime_bedtime_reminder">Bedtime reminder</string>
     <string name="bedtime_alarms_only">Alarms only</string>
     <string name="bedtime_do_not_disturb_at_bedtime">Do Not Disturb at bedtime</string>
@@ -1487,7 +1517,7 @@
     <string name="bedtime_reminder">Reminder</string>
     <string name="bedtime_room">Room</string>
     <string name="bedtime_no_upcoming_alarm">No upcoming alarm</string>
-    <string name="bedtime_set_alarm_unlock_suggested_bedtimes">Set an alarm to unlock suggested bedtimes and cycle-friendly options.</string>
+    <string name="bedtime_set_alarm_unlock_suggested_bedtimes">Set an alarm to see suggested bedtimes and sleep-cycle options.</string>
     <string name="bedtime_suggestion">Suggestion</string>
     <string name="bedtime_suggested_bedtime">Suggested bedtime</string>
     <string name="bedtime_sleep_goal_reminder_timing">Sleep goal and reminder timing</string>
@@ -1505,7 +1535,7 @@
     <string name="onboarding_reliable_wake_ups">Reliable wake-ups</string>
     <string name="onboarding_alarmclockxtreme_built_stay_dependable_even">AlarmClockXtreme is built to stay dependable even when Android is trying to save power in the background.</string>
     <string name="onboarding_wake_up_real">Wake up for real</string>
-    <string name="onboarding_challenge_based_dismiss_flows_help">Challenge-based dismiss flows help make sure you are actually awake before the alarm stops.</string>
+    <string name="onboarding_challenge_based_dismiss_flows_help">Challenge-based dismiss flows help make sure you’re actually awake before the alarm stops.</string>
     <string name="onboarding_start_day_informed">Start the day informed</string>
     <string name="onboarding_see_weather_calendar_next_alarm">See weather, calendar, and your next alarm in one place so the morning feels calmer from the first glance.</string>
     <string name="onboarding_private_by_default">Private by default</string>
@@ -1515,9 +1545,7 @@
     <string name="onboarding_recommended_setup">Recommended setup</string>
     <string name="onboarding_test_alarm">Test alarm</string>
     <!-- Stopwatch -->
-    <string name="stopwatch_close_stopwatch">Close stopwatch</string>
     <string name="stopwatch_current_run">Current run</string>
-    <string name="stopwatch_high_contrast_display_built_quick">A high-contrast display built for quick glances.</string>
     <string name="stopwatch_no_laps_recorded_yet">No laps recorded yet</string>
     <string name="stopwatch_tap_lap_while_stopwatch_running">Tap Lap while the stopwatch is running to capture split times and compare pace.</string>
     <string name="stopwatch_lap_history">Lap history</string>
@@ -1533,8 +1561,8 @@
     <string name="world_remove_city">Remove city</string>
     <string name="world_keep_city">Keep city</string>
     <string name="world_add_city_2">Add a city</string>
-    <string name="world_search_by_city_country_time">Search by city, country, or time-zone region, then tap a result to add it.</string>
-    <string name="world_search_city_country_region">Search city, country, or region</string>
+    <string name="world_search_by_city_country_time">Tap a result to add it to your clocks.</string>
+    <string name="world_search_city_country_region">City, country or region</string>
     <string name="world_world_clock">World clock</string>
     <string name="world_no_world_clocks_yet">No world clocks yet</string>
     <string name="world_add_cities_check_most_often">Add the cities you check most often and keep them one tap away.</string>
@@ -1554,7 +1582,7 @@
     <string name="youtube_name_sound_optional">Name this sound (optional)</string>
     <string name="youtube_rooster_crow_alarm">rooster crow alarm</string>
     <string name="youtube_search">Search</string>
-    <string name="youtube_searching_youtube">Searching YouTube...</string>
+    <string name="youtube_searching_youtube">Searching YouTube…</string>
     <string name="youtube_search_again">Search again</string>
     <string name="youtube_loading_preview">Loading preview…</string>
     <string name="youtube_previewing">Previewing</string>
@@ -1568,10 +1596,9 @@
     <string name="ringtone_folder">From folder</string>
     <string name="ringtone_youtube">From YouTube</string>
     <string name="ringtone_search_alarm_sounds">Search alarm sounds</string>
-    <string name="ringtone_alarm_sound">Alarm Sound</string>
-    <string name="ringtone_preview_tones_before_applying_them">Preview tones before applying them. Default and silent options stay available at the top.</string>
+    <string name="ringtone_alarm_sound">Alarm sound</string>
+    <string name="ringtone_preview_tones_before_applying_them">Tap a tone to hear it before you pick it. Default and Silent stay at the top.</string>
     <string name="ringtone_folder_source">Folder source</string>
-    <string name="ringtone_tap_tone_preview">Tap a tone to preview</string>
     <string name="ringtone_preview_playing">Preview playing</string>
     <string name="ringtone_preview_unavailable">Preview unavailable</string>
     <string name="ringtone_sound_list_limited">Sound list limited</string>
@@ -1652,9 +1679,7 @@
     <string name="swipe_undo_available_right_after_removal">Undo is available right after removal</string>
     <!-- Template picker -->
     <string name="template_quick_start_templates">Quick-start templates</string>
-    <string name="template_start_thoughtful_preset_common_routines">Start with a thoughtful preset for common routines, then fine-tune the details afterward.</string>
-    <string name="template_creates_draft_alarm">Creates a draft alarm</string>
-    <string name="template_fully_editable">Fully editable</string>
+    <string name="template_start_thoughtful_preset_common_routines">Pick one to start a new alarm. You can change anything before you save.</string>
     <!-- Breathing exercise -->
     <string name="breathing_guided_breathing">Guided breathing</string>
     <!-- Wind-down checklist -->
@@ -1688,10 +1713,10 @@
     <string name="stats_sleep_score">Sleep score %1$s</string>
     <string name="stats_sleep_debt">Sleep debt %1$s</string>
     <!-- Templated text across the secondary screens -->
-    <string name="wake_confirm_keep_protection">Closing this screen keeps wake-check protection active. The alarm can ring up to %1$d more times if you do not confirm.</string>
+    <string name="wake_confirm_keep_protection">Closing this screen keeps wake-check protection active. The alarm can ring up to %1$d more times if you don’t confirm.</string>
     <string name="breathing_cycle_progress">Cycle %1$d/%2$d</string>
     <string name="bedtime_dnd_sync_error">Do Not Disturb sync needs attention: %1$s</string>
-    <string name="bedtime_battery_warning">Battery at %1$d%%. Plug in before sleep so the alarm cannot fail.</string>
+    <string name="bedtime_battery_warning">Battery at %1$d%%. Plug in before sleep so the alarm can’t fail.</string>
     <string name="bedtime_aim_for_bedtime">Aim for %1$s to protect %2$s before your next alarm.</string>
     <string name="bedtime_last_session">Last session: %1$s</string>
     <string name="app_dismiss">Dismiss</string>
@@ -1704,17 +1729,17 @@
     <string name="world_remove_city_message">This removes the saved world clock for %1$s. You can add it again later.</string>
     <!-- Onboarding test alarm -->
     <string name="test_alarm_alarmclockxtreme_wake_device_dismiss_test">AlarmClockXtreme can wake this device. Dismiss the test to finish setup.</string>
-    <string name="test_alarm_device_launch_alarm_screen_play">Your device can launch the alarm screen, play audio, and vibrate. This did not create or change any saved alarms.</string>
+    <string name="test_alarm_device_launch_alarm_screen_play">Your device can launch the alarm screen, play audio, and vibrate. This didn’t create or change any saved alarms.</string>
     <string name="test_alarm_dismiss_test_alarm">Dismiss test alarm</string>
-    <string name="test_alarm_if_did_not_hear_feel">If you did not hear or feel this test, review volume, Do Not Disturb, and battery settings before relying on an overnight alarm.</string>
+    <string name="test_alarm_if_did_not_hear_feel">If you didn’t hear or feel this test, review volume, Do Not Disturb, and battery settings before relying on an overnight alarm.</string>
     <!-- Remaining templated text -->
     <string name="youtube_search_hint">Try “rooster crow”, “piano bell”, or “forest birds”. Preview first, then save the result that feels right.</string>
     <string name="ringtone_nothing_matches">Nothing matches “%1$s”. Try a shorter or different term.</string>
     <string name="stats_response_avg">Response %1$s avg</string>
     <string name="world_add_city_action">Add %1$s, %2$s, %3$s</string>
-    <string name="firing_challenge_reference_missing">This alarm has no saved tag, code, photo or network to check against, so here is a maths problem instead. Edit the alarm to set one.</string>
-    <string name="firing_challenge_technical_failure">This challenge can\'t run on this phone right now, so here is a maths problem instead.</string>
-    <string name="settings_hue_ip_not_local">Enter the bridge’s local address, like 192.168.1.42 or philips-hue.local. A public hostname is refused because the bridge certificate cannot be verified.</string>
+    <string name="firing_challenge_reference_missing">This alarm has no saved tag, code, photo or network to check against, so here’s a math problem instead. Edit the alarm to set one.</string>
+    <string name="firing_challenge_technical_failure">This challenge can’t run on this phone right now, so here’s a math problem instead.</string>
+    <string name="settings_hue_ip_not_local">Enter the bridge’s local address, like 192.168.1.42 or philips-hue.local. A public hostname is refused because the bridge certificate can’t be verified.</string>
     <!-- Accessibility and per-screen labels that were reusing another screen’s string -->
     <string name="world_remove_city_action">Remove %1$s</string>
     <string name="challenge_rps_cpu">%1$d CPU</string>
@@ -1734,6 +1759,14 @@
         <item quantity="one">Best %1$d day</item>
         <item quantity="other">Best %1$d days</item>
     </plurals>
+    <plurals name="stats_filter_showing">
+        <item quantity="one">Showing %1$d of %2$d recent event</item>
+        <item quantity="other">Showing %1$d of %2$d recent events</item>
+    </plurals>
+    <plurals name="stats_streak_progress_days">
+        <item quantity="one">%1$d / %2$d day</item>
+        <item quantity="other">%1$d / %2$d days</item>
+    </plurals>
     <plurals name="stats_wake_streak_days">
         <item quantity="one">%1$d day wake streak</item>
         <item quantity="other">%1$d days wake streak</item>
@@ -1742,6 +1775,13 @@
     <string name="news_pick_a_different_source_or_try">Pick a different source, or try again.</string>
     <string name="permissions_recommended_permissions">Recommended permissions</string>
     <string name="permissions_context_permissions">Context permissions</string>
+    <string name="permissions_recommended_description">Optional. These let the app show weather and calendar details and post clearer alarm alerts.</string>
+    <string name="permissions_context_description">Optional context that makes the Today tab and morning briefing more useful.</string>
+    <string name="permissions_enable_final">Enable the last permission</string>
+    <plurals name="permissions_enable_count">
+        <item quantity="one">Enable %1$d permission</item>
+        <item quantity="other">Enable %1$d permissions</item>
+    </plurals>
     <string name="permissions_of_ready">%1$s of %2$s ready</string>
     <string name="permissions_final_step">Final step</string>
     <string name="permissions_missing">%1$s missing</string>
@@ -1751,6 +1791,7 @@
     <string name="timer_time_s_up">Time’s up</string>
     <string name="timer_finished">%1$s finished</string>
     <string name="timer_pause_timer">Pause timer</string>
+    <string name="timer_stop_timer">Stop timer</string>
     <string name="timer_resume_timer">Resume timer</string>
     <string name="timer_add_double_zero">Add double zero</string>
     <string name="timer_enter">Enter %1$s</string>
@@ -1785,26 +1826,21 @@
     <string name="onboarding_test_alarm_unavailable">Test alarm unavailable</string>
     <string name="onboarding_finish_setup">Finish setup</string>
     <string name="onboarding_enable_alarm_alerts">Enable alarm alerts</string>
-    <string name="onboarding_finish_without_more_changes">Finish without more changes</string>
     <string name="onboarding_skip_permissions">Skip permissions</string>
     <string name="ringtone_download_needs_attention">Download needs attention</string>
     <string name="ringtone_sound_saved">Sound saved</string>
-    <string name="ringtone_default_alarm">Default Alarm</string>
+    <string name="ringtone_default_alarm">Default alarm</string>
     <string name="stopwatch_stopwatch_reset">Stopwatch reset</string>
     <string name="stopwatch_start_a_precise_running_timer_and">Start a precise running timer and mark laps whenever you need a split.</string>
-    <string name="stopwatch_timing_live_mark_laps_as_the">Timing live. Mark laps as the session unfolds.</string>
-    <string name="stopwatch_paused_in_place_resume_when_you">Paused in place. Resume when you are ready or reset for a clean run.</string>
+    <string name="stopwatch_timing_live_mark_laps_as_the">Running. Tap Lap to mark a split.</string>
+    <string name="stopwatch_paused_in_place_resume_when_you">Paused. Resume when you’re ready, or reset to start over.</string>
     <string name="stopwatch_timing">Timing</string>
     <string name="stopwatch_running">Running</string>
     <string name="stopwatch_laps">%1$s laps</string>
     <string name="stopwatch_best_split">Best split</string>
     <string name="stopwatch_slowest_split">Slowest split</string>
-    <string name="stopwatch_split">Split</string>
-    <string name="templates_ready_made_setups">%1$s ready-made setups</string>
     <string name="templates_min_snooze">%1$s min snooze</string>
-    <string name="dashboard_open_meteo_does_not_report_pollen">Open-Meteo does not report pollen for this location yet.</string>
-    <string name="dashboard_search_a_city">Search a city</string>
-    <string name="dashboard_matches">%1$s matches</string>
+    <string name="dashboard_open_meteo_does_not_report_pollen">Open-Meteo doesn’t report pollen for this location yet.</string>
     <string name="dashboard_unknown_location">Unknown location</string>
     <string name="alarmlist_alarm_history">Alarm history</string>
     <string name="alarmlist_alarm_deleted">Alarm deleted</string>
@@ -1839,7 +1875,7 @@
     <string name="bedtime_min_early">%1$s min early</string>
     <string name="bedtime_linked_to_alarm">Linked to alarm</string>
     <string name="bedtime_needs_alarm">Needs alarm</string>
-    <string name="bedtime_grant_dnd_access_so_alarmclockxtreme_can">Grant DND access so AlarmClockXtreme can own an alarms-only sleep rule.</string>
+    <string name="bedtime_grant_dnd_access_so_alarmclockxtreme_can">Allow Do Not Disturb access so AlarmClockXtreme can silence everything but alarms while you sleep.</string>
     <string name="bedtime_alarms_only_mode_is_active_for">Alarms-only mode is active for your sleep window.</string>
     <string name="bedtime_silences_interruptions_from_bedtime_until_your">Silences interruptions from bedtime until your next alarm.</string>
     <string name="bedtime_create_an_app_owned_alarms_only">Create an app-owned alarms-only rule for your sleep window.</string>
@@ -1847,10 +1883,9 @@
     <string name="bedtime_stay_up_late_tonight">Stay up late tonight</string>
     <string name="bedtime_before_bedtime">Before bedtime</string>
     <string name="bedtime_turn_on_above">Turn on above</string>
-    <string name="bedtime_30_minute_steps">30-minute steps</string>
     <string name="bedtime_playing">Playing</string>
     <string name="bedtime_tap_to_preview">Tap to preview</string>
-    <string name="bedtime_tag_the_signals_that_may_shape">%1$s: tag the signals that may shape tomorrow\'s wake-up friction.</string>
+    <string name="bedtime_tag_the_signals_that_may_shape">%1$s: tag the signals that may shape tomorrow’s wake-up friction.</string>
     <string name="bedtime_no_sleep_data">No sleep data</string>
     <string name="bedtime_update_health_connect_before_recent_sleep">Update Health Connect before recent sleep sessions can appear here.</string>
     <string name="bedtime_grant_read_sleep_in_settings_to">Grant READ_SLEEP in Settings to fold recent sessions into bedtime planning.</string>
@@ -1880,9 +1915,9 @@
     <string name="alarmfiring_tap_the_same_tiles_in_the">Tap the same tiles in the same order.</string>
     <string name="alarmfiring_the_pattern_will_show_again_in">The pattern will show again in a moment.</string>
     <string name="alarmfiring_of_matched">%1$s of %2$s matched</string>
-    <string name="alarmfiring_listening">Listening...</string>
+    <string name="alarmfiring_listening">Listening…</string>
     <string name="alarmfiring_start_listening">Start listening</string>
-    <string name="alarmfiring_checking">Checking...</string>
+    <string name="alarmfiring_checking">Checking…</string>
     <string name="alarmfiring_check_drawing">Check drawing</string>
     <string name="alarmfiring_steps">%1$s / %2$s steps</string>
     <string name="alarmfiring_start_walking_to_build_progress">Start walking to build progress.</string>
@@ -1909,7 +1944,7 @@
     <string name="alarmfiring_5_letter_word">5-letter word</string>
     <string name="alarmfiring_too_slow_ntry_again">Too slow\nTry again</string>
     <string name="alarmfiring_tap">TAP!</string>
-    <string name="alarmfiring_wait">Wait...</string>
+    <string name="alarmfiring_wait">Wait…</string>
     <string name="alarmfiring_too_early">Too early!</string>
     <string name="alarmfiring_tap_to_start">Tap to start</string>
     <string name="alarmfiring_to_move">%1$s to move</string>
@@ -1924,12 +1959,12 @@
     <string name="stats_alarm_history_will_fill_this_in">Alarm history will fill this in.</string>
     <string name="stats_need_more_dismiss_history_for_day">Need more dismiss history for day-by-day response trends.</string>
     <string name="stats_update_health_connect_before_sleep_sessions">Update Health Connect before sleep sessions can be included.</string>
-    <string name="stats_grant_sleep_data_access_in_settings">Grant sleep data access in Settings to compare your wake behaviour with recent sleep.</string>
+    <string name="stats_grant_sleep_data_access_in_settings">Grant sleep data access in Settings to compare your wake behavior with recent sleep.</string>
     <string name="stats_recent_health_connect_sessions_stay_local">Recent Health Connect sessions stay local and are shown beside alarm history.</string>
     <string name="stats_sleep_data_access_is_granted_but">Sleep data access is granted, but no recent sleep sessions were found.</string>
     <string name="stats_retries">%1$s retries</string>
     <string name="stats_sonar_session">Sonar session</string>
-    <string name="stats_fired_early">Fired early</string>
+    <string name="stats_fired_early">Rang early</string>
     <string name="stats_reached_target">Reached target</string>
     <string name="stats_movement">Movement</string>
     <string name="stats_motion">Motion</string>
@@ -1953,7 +1988,7 @@
     <string name="bedtime_last_sonar_session_saved_locally">Last sonar session saved locally.</string>
     <string name="bedtime_ready_to_monitor_local_movement_during">Ready to monitor local movement during sleep.</string>
     <string name="bedtime_no_tagged_nights_yet">No tagged nights yet</string>
-    <string name="bedtime_tagged_waiting_for_sleep_sessions">%1$d tagged; waiting for sleep sessions</string>
+    <string name="bedtime_tagged_waiting_for_sleep_sessions">%1$d tagged, waiting for sleep sessions</string>
     <string name="bedtime_tagged_nights_with_local_sleep_data">%1$d/%2$d tagged nights with local sleep data</string>
     <string name="bedtime_start_sonar_or_smart_wake_to">Start Sonar or smart wake to compare restlessness</string>
     <string name="bedtime_m_restless_vs_baseline">+%1$dm restless vs baseline</string>
@@ -1963,7 +1998,7 @@
     <string name="bedtime_not_set">Not set</string>
     <string name="bedtime_local_estimate">Local estimate</string>
     <string name="bedtime_fits_sleep_target">Fits %1$s sleep target</string>
-    <string name="alarmfiring_no_saved_place_is_set_so">No saved place is set, so location dismissal is not locked.</string>
+    <string name="alarmfiring_no_saved_place_is_set_so">No saved place is set, so location dismissal isn’t locked.</string>
     <string name="alarmfiring_waiting_for_a_location_fix_leave">Waiting for a location fix. Leave the saved %1$d m area to unlock dismiss.</string>
     <string name="alarmfiring_handwriting_recognition_is_unavailable_type_the">Handwriting recognition is unavailable. Type the word instead.</string>
     <string name="alarmfiring_recognized_draw_again">Recognized "%1$s". Draw %2$s again.</string>
@@ -1979,14 +2014,14 @@
     <string name="dashboard_very_unhealthy">Very unhealthy</string>
     <string name="dashboard_hazardous">Hazardous</string>
     <string name="dashboard_very_high_2">Very high</string>
-    <string name="settings_checking_webhook_endpoint">Checking webhook endpoint...</string>
+    <string name="settings_checking_webhook_endpoint">Checking webhook endpoint…</string>
     <string name="settings_webhook_failed_add_an_https_url">Webhook failed. Add an HTTPS URL first.</string>
     <string name="settings_webhook_failed_use_https_cleartext_http">Webhook failed. Use HTTPS, because cleartext HTTP is blocked.</string>
     <string name="settings_webhook_failed_enter_a_valid_https">Webhook failed. Enter a valid HTTPS URL.</string>
     <string name="settings_webhook_failed_allow_local_network_access">Webhook failed. Allow local network access first.</string>
     <string name="settings_webhook_ok">Webhook OK</string>
-    <string name="settings_webhook_failed_endpoint_did_not_return">Webhook failed. The endpoint did not return 2xx.</string>
-    <string name="settings_checking_hue_bridge">Checking Hue bridge...</string>
+    <string name="settings_webhook_failed_endpoint_did_not_return">Webhook failed. The endpoint didn’t return 2xx.</string>
+    <string name="settings_checking_hue_bridge">Checking Hue bridge…</string>
     <string name="settings_hue_certificate_changed_verify_the_bridge">Hue certificate changed. Verify the bridge, then forget the saved certificate.</string>
     <string name="settings_hue_bridge_returned_an_invalid_certificate">Hue bridge returned an invalid certificate fingerprint</string>
     <string name="settings_hue_bridge_not_checked_enter_a">Hue bridge not checked. Enter a valid IP and API key.</string>
@@ -2021,17 +2056,11 @@
     <string name="stats_action_missed">Missed</string>
     <string name="ringtone_folder_item">%1$s (folder)</string>
     <string name="template_early_bird_name">Early Bird</string>
-    <string name="template_early_bird_description">5:30 AM weekdays, gentle wake</string>
     <string name="template_work_alarm_name">Work Alarm</string>
-    <string name="template_work_alarm_description">7:00 AM weekdays, math challenge</string>
     <string name="template_weekend_sleep_in_name">Weekend Sleep-In</string>
-    <string name="template_weekend_sleep_in_description">9:00 AM weekends, gentle</string>
     <string name="template_power_nap_name">Power Nap</string>
-    <string name="template_power_nap_description">Rings 20 minutes from now, shake to dismiss</string>
     <string name="template_heavy_sleeper_name">Heavy Sleeper</string>
-    <string name="template_heavy_sleeper_description">6:00 AM daily, hard math, max volume</string>
     <string name="template_medication_reminder_name">Medication Reminder</string>
-    <string name="template_medication_reminder_description">8:00 AM daily, gentle nudge</string>
     <plurals name="alarmlist_template_starts_in">
         <item quantity="one">%1$s starts in %2$d minute</item>
         <item quantity="other">%1$s starts in %2$d minutes</item>
@@ -2056,13 +2085,11 @@
     <string name="dashboard_m_ago">%1$sm ago</string>
     <string name="dashboard_h_ago">%1$sh ago</string>
     <string name="dashboard_d_ago">%1$sd ago</string>
-    <string name="ringtone_uses_your_device_s_current_default">Uses your device\'s current default alarm sound.</string>
+    <string name="ringtone_uses_your_device_s_current_default">Uses your device’s current default alarm sound.</string>
     <string name="ringtone_no_audio_best_paired_with_vibration">No audio. Best paired with vibration or other wake effects.</string>
-    <string name="ringtone_tap_to_preview_then_choose_use">Tap to preview, then choose Use when it feels right.</string>
-    <string name="ringtone_ready_to_apply">Ready to apply.</string>
     <string name="stats_dismiss_one_alarm_to_start_building">Dismiss one alarm to start building a visible morning streak.</string>
-    <string name="stats_today_s_wake_is_already_counted">Today\'s wake is already counted. Keep the chain going tomorrow.</string>
-    <string name="stats_still_alive_from_yesterday_dismiss_today">Still alive from yesterday. Dismiss today\'s alarm to protect it.</string>
+    <string name="stats_today_s_wake_is_already_counted">Today’s wake is already counted. Keep the chain going tomorrow.</string>
+    <string name="stats_still_alive_from_yesterday_dismiss_today">Still alive from yesterday. Dismiss today’s alarm to protect it.</string>
     <string name="stats_compares_recent_sleep_duration_with_dismiss">Compares recent sleep duration with dismiss speed, snoozes, and challenge retries on this device.</string>
     <string name="stats_enable_health_connect_to_layer_sleep">Enable Health Connect to layer sleep duration over local wake behavior.</string>
     <string name="stats_grant_read_sleep_to_add_sleep">Grant READ_SLEEP to add sleep duration; alarm response, snooze, and retry trends stay local.</string>
@@ -2070,12 +2097,12 @@
     <string name="stats_wake_behavior_bars_are_ready_sleep">Wake-behavior bars are ready. Sleep bars appear after Health Connect returns recent sessions.</string>
     <string name="stats_recent_sleep_sessions_and_alarm_outcomes">Recent sleep sessions and alarm outcomes will build this chart locally.</string>
     <string name="dashboard_stale_forecast_line">%1$s Last updated %2$s.</string>
-    <string name="youtube_error_unavailable_build">YouTube downloads are not available in this build.</string>
+    <string name="youtube_error_unavailable_build">YouTube downloads aren’t available in this build.</string>
     <string name="youtube_error_no_connection">Check your connection and try again.</string>
     <string name="youtube_error_timeout">YouTube took too long to respond. Try again later.</string>
     <string name="youtube_error_tls">Could not connect securely to YouTube. Try again later.</string>
     <string name="youtube_error_blocked">YouTube is blocking this request right now. Try updating the downloader engine or try again later.</string>
-    <string name="youtube_error_no_audio_stream">YouTube did not return a usable audio stream. Try another result or try again later.</string>
+    <string name="youtube_error_no_audio_stream">YouTube didn’t return a usable audio stream. Try another result or try again later.</string>
     <string name="youtube_error_extractor">YouTube changed how this video is served. Update the downloader engine and try again.</string>
     <string name="youtube_error_invalid_link">Enter a valid YouTube link.</string>
     <string name="youtube_error_io">The YouTube request could not be completed. Check your connection and try again.</string>
@@ -2130,9 +2157,9 @@
     <string name="news_error_no_connection">Check your connection and try again.</string>
     <string name="news_error_timeout">This feed took too long to respond. Try again later.</string>
     <string name="news_error_tls">This feed could not be loaded securely. Choose another source.</string>
-    <string name="news_error_invalid_url">This feed URL is not valid. Choose another source in Settings.</string>
-    <string name="news_error_forbidden">This feed requires access the app does not have. Choose another source.</string>
-    <string name="news_error_unresponsive">This feed source is not responding. Try another source or refresh later.</string>
+    <string name="news_error_invalid_url">This feed URL isn’t valid. Choose another source in Settings.</string>
+    <string name="news_error_forbidden">This feed requires access the app doesn’t have. Choose another source.</string>
+    <string name="news_error_unresponsive">This feed source isn’t responding. Try another source or refresh later.</string>
     <string name="news_error_empty">This source returned no feed content.</string>
     <string name="news_error_io">The feed could not be reached. Check your connection and try again.</string>
     <string name="news_error_unreadable">This feed could not be read. Try another source or refresh later.</string>
@@ -2176,7 +2203,7 @@
     <string name="readiness_no_handwriting">Handwriting recognition is unavailable in this build. The typed fallback still works.</string>
     <string name="readiness_no_nfc">This device has no NFC hardware for the tag challenge.</string>
     <string name="readiness_needs_nfc_tag">Register an NFC tag before saving.</string>
-    <string name="readiness_nfc_off">Turn on NFC before this alarm fires.</string>
+    <string name="readiness_nfc_off">Turn on NFC before this alarm rings.</string>
     <string name="readiness_no_camera_barcode">This device has no camera to scan the barcode.</string>
     <string name="readiness_needs_barcode">Register a barcode value before saving.</string>
     <string name="readiness_needs_camera_barcode">Grant camera permission to scan the barcode.</string>
@@ -2220,15 +2247,21 @@
     <string name="youtube_downloading">Downloading “%1$s”…</string>
     <string name="youtube_fallback_sound_name">alarm sound</string>
     <string name="youtube_updating_engine">Updating downloader engine…</string>
-    <string name="settings_unusable_media_warning">These sounds and images belong to apps this phone cannot read, so they will fall back to the default:</string>
+    <string name="settings_unusable_media_warning">These sounds and images belong to apps this phone can’t read, so they will fall back to the default:</string>
     <string name="ringtone_saved_to_alarms">Saved “%1$s” to your alarms.</string>
     <string name="alarm_list_all_alarms_paused_until">All alarms paused until %1$s</string>
     <string name="alarm_list_paused_until_reenabled">Paused until you re-enable this alarm</string>
-    <string name="alarm_list_next_occurrence">Next occurrence: %1$s</string>
+    <string name="alarm_list_next_occurrence">Rings %1$s</string>
+    <string name="alarm_list_day_today">today</string>
+    <string name="alarm_list_day_tomorrow">tomorrow</string>
     <string name="bedtime_delayed_until">Delayed until %1$s</string>
-    <string name="bedtime_sonar_last_session">Last session: %1$dm, %2$dm movement, %3$dm restless, %4$dm still</string>
-    <string name="bedtime_sonar_loud_bursts">; %1$d loud bursts, peak %2$d dB est.</string>
-    <string name="bedtime_sonar_no_loud_bursts">; no loud bursts</string>
+    <string name="bedtime_sonar_last_session">Last session: %1$dm, %2$dm movement, %3$dm restless, %4$dm still.</string>
+    <string name="bedtime_sonar_session_and_bursts">%1$s %2$s</string>
+    <plurals name="bedtime_sonar_loud_bursts">
+        <item quantity="one">%1$d loud burst, peaking around %2$d dB.</item>
+        <item quantity="other">%1$d loud bursts, peaking around %2$d dB.</item>
+    </plurals>
+    <string name="bedtime_sonar_no_loud_bursts">No loud bursts.</string>
     <string name="bedtime_noise_no_baseline">No baseline</string>
     <string name="bedtime_noise_checks_at_reminder">Measured when you open Bedtime</string>
     <string name="bedtime_noise_mic_permission_needed">Mic permission needed</string>
@@ -2273,7 +2306,7 @@
     <string name="bedtime_dnd_status_active_until">Active until %1$s</string>
     <string name="bedtime_dnd_status_ready_at">Ready at %1$s</string>
     <string name="notif_next_alarm_channel_name">Next Alarm</string>
-    <string name="notif_next_alarm_channel_description">Shows when the next alarm will fire</string>
+    <string name="notif_next_alarm_channel_description">Shows when the next alarm will ring</string>
     <string name="notif_next_alarm_body">%1$s · %2$s remaining</string>
     <string name="notif_next_alarm_subtext">Alarm countdown</string>
     <string name="tile_no_alarm">No alarm</string>
@@ -2290,9 +2323,9 @@
     <string name="notif_alarm_health_title">Alarm reliability warning</string>
     <string name="health_background_restricted">Android has restricted background activity. Review Alarm reliability in Settings.</string>
     <string name="health_battery_optimization_manufacturer">Battery optimization is active on %1$s. Review its alarm reliability steps.</string>
-    <string name="health_battery_optimization">Battery optimization is active, so alarms may not fire reliably.</string>
+    <string name="health_battery_optimization">Battery optimization is active, so alarms may not ring reliably.</string>
     <string name="health_notifications_denied">Notification permission is denied, so you may not hear alarms.</string>
-    <string name="health_exact_alarms_revoked">Exact alarm permission was revoked, so alarms cannot fire on time.</string>
+    <string name="health_exact_alarms_revoked">Exact alarm permission was revoked, so alarms can’t ring on time.</string>
     <string name="calendar_event_fallback_title">Calendar Event</string>
     <string name="guardian_default_alarm_label">Alarm</string>
     <string name="notif_hue_sunrise_title">Sunrise in progress</string>
@@ -2301,7 +2334,7 @@
     <string name="notif_hue_channel_name">Sunrise lights</string>
     <string name="notif_hue_channel_description">Shows progress while your lights brighten before an alarm</string>
     <string name="notif_wake_confirm_channel_name">Wake Confirmation</string>
-    <string name="notif_wake_confirm_channel_description">Asks you to confirm you are awake after dismissing an alarm</string>
+    <string name="notif_wake_confirm_channel_description">Asks you to confirm you’re awake after dismissing an alarm</string>
     <plurals name="alarm_edit_minutes_before">
         <item quantity="one">%1$d minute before</item>
         <item quantity="other">%1$d minutes before</item>
@@ -2315,8 +2348,8 @@
         <item quantity="other">%1$d minutes earlier</item>
     </plurals>
     <plurals name="alarm_list_stats_fired">
-        <item quantity="one">Fired %1$d time</item>
-        <item quantity="other">Fired %1$d times</item>
+        <item quantity="one">Rang %1$d time</item>
+        <item quantity="other">Rang %1$d times</item>
     </plurals>
     <plurals name="stats_from_recent_wakeups">
         <item quantity="one">from %1$d recent wake-up</item>
@@ -2342,11 +2375,15 @@
     <string name="alarmfiring_photo_no_match">Not a match, try again (%1$d%% similar)</string>
     <string name="alarmfiring_nfc_wrong_tag">Wrong tag. Try the registered tag.</string>
     <string name="alarmfiring_barcode_wrong_code">Wrong code. Scan the registered barcode.</string>
-    <string name="alarmfiring_location_not_locked">No saved place is set, so location dismissal is not locked.</string>
+    <string name="alarmfiring_location_not_locked">No saved place is set, so location dismissal isn’t locked.</string>
     <string name="alarm_list_quick_alarm_for">Set quick alarm for %1$s</string>
     <string name="alarm_list_share_default_title">Alarm %1$s</string>
     <string name="dashboard_your_area">your area</string>
     <string name="dashboard_weather_fallback_title">Weather</string>
+    <string name="dashboard_no_location_title">No location set</string>
+    <string name="dashboard_no_location_description">Add your location to see local conditions and forecasts.</string>
+    <string name="dashboard_set_location">Set location</string>
+    <string name="dashboard_weather_check_connection">Check your connection and try again.</string>
     <string name="dashboard_last_location">Last Location</string>
     <string name="bedtime_sonar_needs_mic">Grant microphone permission to use local sonar sleep tracking.</string>
     <string name="bedtime_sonar_starting">Starting sonar and confirming microphone monitoring.</string>
@@ -2357,8 +2394,8 @@
     <string name="bedtime_sonar_monitoring">Monitoring movement and loud sleep sounds. No raw audio is recorded.</string>
     <string name="bedtime_sonar_unconfirmed">Sonar could not confirm microphone monitoring. Try again.</string>
     <string name="bedtime_snore_peak_average">Peak %1$d dB est. / avg %2$d</string>
-    <string name="onboarding_test_alarm_completed_detail">Test alarm completed. Your device opened the alarm screen successfully.</string>
-    <string name="onboarding_test_alarm_scheduled_detail">Test alarm scheduled. It will ring in 10 seconds.</string>
+    <string name="onboarding_test_alarm_completed_detail">Your device opened the alarm screen, so real alarms can reach you.</string>
+    <string name="onboarding_test_alarm_scheduled_detail">It rings in 10 seconds. Leave this screen open or lock the phone.</string>
     <string name="onboarding_readiness_review">Review exact alarms, notifications, battery access, and the test alarm before relying on an overnight wake-up.</string>
     <string name="ringtone_folder_added">Folder added. Its audio files are now available below.</string>
     <string name="ringtone_folder_lost">Could not keep access to that folder. Choose it again if needed.</string>
@@ -2447,19 +2484,18 @@
     <string name="onboarding_highlight_no_clutter">Useful context without ads or noisy clutter</string>
     <string name="onboarding_highlight_optional_permissions">Permissions are optional and can be changed later</string>
     <string name="onboarding_highlight_data_stays_local">Data stays on your device unless you configure an integration</string>
-    <string name="onboarding_finish_setup_without_more_changes">Finish setup without more changes</string>
     <string name="onboarding_finish_setup_without_alarm_alerts">Finish setup without enabling alarm alerts</string>
     <string name="challenge_no_photo_captured">No photo captured. Try again.</string>
     <string name="challenge_camera_permission_photo_match">Camera permission is required for photo match.</string>
     <string name="challenge_activity_permission_steps">Activity recognition permission is required to count steps on this device.</string>
     <string name="challenge_location_permission_wifi_name">Location permission is required for Android to reveal the current Wi-Fi network name.</string>
     <string name="challenge_location_permission_dismiss">Location permission is required before dismiss can unlock.</string>
-    <string name="challenge_no_step_sensor">This device does not expose a step sensor.</string>
-    <string name="challenge_no_wifi_details">This device does not expose Wi-Fi connection details.</string>
+    <string name="challenge_no_step_sensor">This device doesn’t expose a step sensor.</string>
+    <string name="challenge_no_wifi_details">This device doesn’t expose Wi-Fi connection details.</string>
     <string name="challenge_wifi_name_blocked">Android blocked access to the current Wi-Fi network name.</string>
-    <string name="challenge_wifi_unreadable">Unable to read the current Wi-Fi network. Make sure location is enabled and you are connected to Wi-Fi.</string>
-    <string name="challenge_no_location_service">This device does not expose a location service.</string>
-    <string name="challenge_location_blocked">Android blocked location access during alarm firing.</string>
+    <string name="challenge_wifi_unreadable">Unable to read the current Wi-Fi network. Make sure location is enabled and you’re connected to Wi-Fi.</string>
+    <string name="challenge_no_location_service">This device doesn’t expose a location service.</string>
+    <string name="challenge_location_blocked">Android blocked location access while the alarm was ringing.</string>
     <string name="challenge_no_location_provider">No usable location provider is available.</string>
     <string name="challenge_turn_on_location">Turn on device Location to unlock dismissal after leaving the saved place.</string>
     <string name="challenge_continue_without_squat_count">Continue without squat count</string>
@@ -2467,4 +2503,39 @@
     <string name="alarmlist_alarm_options">Alarm options</string>
     <plurals name="alarmlist_hours"><item quantity="one">%1$d hour</item><item quantity="other">%1$d hours</item></plurals>
     <string name="timer_preset_minutes">%1$d min</string>
+    <plurals name="settings_minutes_after_schedule_plural"><item quantity="one">%1$d min after schedule</item><item quantity="other">%1$d min after schedule</item></plurals>
+    <plurals name="settings_minutes_before_schedule"><item quantity="one">%1$d min before schedule</item><item quantity="other">%1$d min before schedule</item></plurals>
+    <string name="alarm_edit_adjust_time_hint">Tap the time to adjust it precisely.</string>
+    <string name="alarm_edit_existing_status">Editing existing alarm</string>
+    <string name="alarm_edit_new_status">New alarm</string>
+    <string name="bedtime_30_minute_steps">30-minute steps</string>
+    <string name="bedtime_close_bedtime">Close bedtime</string>
+    <string name="bedtime_jetlag_current_chip">Current %1$s</string>
+    <string name="bedtime_jetlag_target_chip">Target %1$s</string>
+    <string name="bedtime_sonar_loud_bursts">; %1$d loud bursts, peak %2$d dB est.</string>
+    <string name="dashboard_matches">%1$s matches</string>
+    <string name="dashboard_search_a_city">Search a city</string>
+    <string name="onboarding_finish_setup_without_more_changes">Finish setup without more changes</string>
+    <string name="onboarding_finish_without_more_changes">Finish without more changes</string>
+    <string name="ringtone_ready_to_apply">Ready to apply.</string>
+    <string name="ringtone_tap_to_preview_then_choose_use">Tap to preview, then choose Use when it feels right.</string>
+    <string name="ringtone_tap_tone_preview">Tap a tone to preview</string>
+    <string name="settings_backup_alarm_counts">%1$d alarms, %2$d enabled</string>
+    <string name="settings_minutes_seconds_compact">%1$dm %2$ds</string>
+    <string name="settings_personalization">Personalization</string>
+    <string name="settings_unknown_code" translatable="false">UNKNOWN</string>
+    <string name="settings_utilities">Utilities</string>
+    <string name="stats_close_statistics">Close statistics</string>
+    <string name="stopwatch_close_stopwatch">Close stopwatch</string>
+    <string name="stopwatch_high_contrast_display_built_quick">A high-contrast display built for quick glances.</string>
+    <string name="stopwatch_split">Split</string>
+    <string name="template_creates_draft_alarm">Creates a draft alarm</string>
+    <string name="template_early_bird_description">5:30 AM weekdays, gentle wake</string>
+    <string name="template_fully_editable">Fully editable</string>
+    <string name="template_heavy_sleeper_description">6:00 AM daily, hard math, max volume</string>
+    <string name="template_medication_reminder_description">8:00 AM daily, gentle nudge</string>
+    <string name="template_power_nap_description">Rings 20 minutes from now, shake to dismiss</string>
+    <string name="template_weekend_sleep_in_description">9:00 AM weekends, gentle</string>
+    <string name="template_work_alarm_description">7:00 AM weekdays, math challenge</string>
+    <string name="templates_ready_made_setups">%1$s ready-made setups</string>
 </resources>

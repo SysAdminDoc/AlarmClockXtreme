@@ -303,7 +303,7 @@ class WakeConfirmWorker @AssistedInject constructor(
         val contentText = if (remainingAttempts > 0) {
             "Confirm within ${CONFIRM_WAIT_SECONDS}s or the alarm rings again ($remainingAttempts left)."
         } else {
-            "Final check — confirm within ${CONFIRM_WAIT_SECONDS}s."
+            "Final check. Confirm within ${CONFIRM_WAIT_SECONDS}s."
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_WAKE_CONFIRM)
             .setSmallIcon(R.drawable.ic_alarm)

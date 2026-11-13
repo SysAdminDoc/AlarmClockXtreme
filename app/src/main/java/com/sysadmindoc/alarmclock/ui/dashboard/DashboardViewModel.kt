@@ -359,7 +359,7 @@ class DashboardViewModel @Inject constructor(
                         weatherLastUpdatedMillis = snapshot.fetchedAtMillis,
                         weatherStale = snapshot.isStale,
                         weatherStaleMessage = if (snapshot.isStale) {
-                            "Refresh failed; showing the last saved forecast."
+                            "Refresh failed. Showing the last saved forecast."
                         } else {
                             null
                         },
