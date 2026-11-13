@@ -1,10 +1,10 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.bedtime
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lightbulb
@@ -48,9 +48,9 @@ internal fun ChronotypeSection(
             }
         )
 
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
                 label = state.chronotypeCategoryLabel,
@@ -62,11 +62,15 @@ internal fun ChronotypeSection(
                 icon = Icons.Default.Schedule,
                 color = if (state.chronotypeComplete) DismissGreen else SnoozeYellow
             )
-            AppStatusChip(
-                label = "${state.chronotypeAnsweredCount}/${ChronotypeEstimator.QUESTION_COUNT}",
-                icon = Icons.Default.CheckCircle,
-                color = if (state.chronotypeComplete) DismissGreen else TextMuted
-            )
+            // Until every prompt is answered the timing chip already shows
+            // the "n/5 answered" count.
+            if (state.chronotypeComplete) {
+                AppStatusChip(
+                    label = "${state.chronotypeAnsweredCount}/${ChronotypeEstimator.QUESTION_COUNT}",
+                    icon = Icons.Default.CheckCircle,
+                    color = DismissGreen
+                )
+            }
         }
 
         Text(
@@ -86,9 +90,9 @@ internal fun ChronotypeSection(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold
                 )
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     question.options.forEachIndexed { answerIndex, label ->
                         AppFilterChip(

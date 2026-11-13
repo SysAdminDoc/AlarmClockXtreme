@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 
 package com.sysadmindoc.alarmclock.ui.bedtime
 
@@ -11,10 +11,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,10 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -33,7 +30,6 @@ import androidx.compose.material.icons.filled.Air
 import androidx.compose.material.icons.filled.AlarmOff
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Remove
@@ -45,11 +41,9 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.Surface
@@ -88,18 +82,23 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.domain.BreathingPattern
 import com.sysadmindoc.alarmclock.domain.JetLagDirection
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppTileGrid
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.BlueLight
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceInset
+import com.sysadmindoc.alarmclock.ui.components.AppTileShape
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
@@ -205,11 +204,7 @@ fun BedtimeScreen(
                         color = if (state.wakeTimeFormatted.isNotBlank()) SnoozeYellow else TextMuted
                     )
                 },
-                actions = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.bedtime_close_bedtime), tint = TextMuted)
-                    }
-                }
+                onBack = onNavigateBack
             )
         }
 
@@ -360,7 +355,7 @@ fun BedtimeScreen(
                                 )
                             }
                             if (!state.bedtimeDndAccessGranted) {
-                                TextButton(
+                                AppTextButton(
                                     onClick = {
                                         context.startActivity(
                                             Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
@@ -464,7 +459,7 @@ fun BedtimeScreen(
                             }
                         }
                         if (state.stayUpLateActive) {
-                            TextButton(onClick = { viewModel.clearStayUpLate() }) {
+                            AppTextButton(onClick = { viewModel.clearStayUpLate() }) {
                                 Text(stringResource(R.string.cancel))
                             }
                         }
@@ -528,53 +523,53 @@ fun BedtimeScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp)
-                ) {
-                    item {
-                        BedtimeMetricCard(
-                            title = stringResource(R.string.bedtime_title),
-                            value = state.bedtimeFormatted,
-                            icon = Icons.Default.NightsStay,
-                            accent = BlueLight,
-                            modifier = Modifier.width(152.dp),
-                            helper = "Tap to edit",
-                            onClick = { showTimePicker = true }
-                        )
-                    }
-                    item {
-                        BedtimeMetricCard(
-                            title = stringResource(R.string.bedtime_wake),
-                            value = state.wakeTimeFormatted.ifBlank { "--:--" },
-                            icon = Icons.Default.WbSunny,
-                            accent = SnoozeYellow,
-                            modifier = Modifier.width(152.dp),
-                            helper = if (state.wakeTimeFormatted.isBlank()) stringResource(R.string.bedtime_no_alarm_linked) else stringResource(R.string.bedtime_jetlag_helper_next_alarm)
-                        )
-                    }
-                    item {
-                        BedtimeMetricCard(
-                            title = stringResource(R.string.bedtime_reminder),
-                            value = stringResource(R.string.bedtime_reminder_minutes_value, state.reminderMinutesBefore),
-                            icon = Icons.Default.Schedule,
-                            accent = DismissGreen,
-                            modifier = Modifier.width(152.dp),
-                            helper = if (state.isEnabled) stringResource(R.string.bedtime_before_bedtime) else stringResource(R.string.bedtime_turn_on_above)
-                        )
-                    }
-                    item {
-                        BedtimeMetricCard(
-                            title = stringResource(R.string.bedtime_room),
-                            value = state.noiseBaselineLabel,
-                            icon = Icons.Default.Air,
-                            accent = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.width(176.dp),
-                            helper = state.noiseBaselineHelper
-                        )
-                    }
-                }
+                // Two per row so all four show. In a sideways list the reminder
+                // card peeked at the edge and the room card was off screen.
+                AppTileGrid(
+                    tiles = listOf<@Composable (Modifier) -> Unit>(
+                        { tileModifier ->
+                            BedtimeMetricCard(
+                                title = stringResource(R.string.bedtime_title),
+                                value = state.bedtimeFormatted,
+                                icon = Icons.Default.NightsStay,
+                                accent = BlueLight,
+                                modifier = tileModifier,
+                                helper = stringResource(R.string.bedtime_jetlag_helper_tap_to_edit),
+                                onClick = { showTimePicker = true }
+                            )
+                        },
+                        { tileModifier ->
+                            BedtimeMetricCard(
+                                title = stringResource(R.string.bedtime_wake),
+                                value = state.wakeTimeFormatted.ifBlank { "--:--" },
+                                icon = Icons.Default.WbSunny,
+                                accent = SnoozeYellow,
+                                modifier = tileModifier,
+                                helper = if (state.wakeTimeFormatted.isBlank()) stringResource(R.string.bedtime_no_alarm_linked) else stringResource(R.string.bedtime_jetlag_helper_next_alarm)
+                            )
+                        },
+                        { tileModifier ->
+                            BedtimeMetricCard(
+                                title = stringResource(R.string.bedtime_reminder),
+                                value = stringResource(R.string.bedtime_reminder_minutes_value, state.reminderMinutesBefore),
+                                icon = Icons.Default.Schedule,
+                                accent = DismissGreen,
+                                modifier = tileModifier,
+                                helper = if (state.isEnabled) stringResource(R.string.bedtime_before_bedtime) else stringResource(R.string.bedtime_turn_on_above)
+                            )
+                        },
+                        { tileModifier ->
+                            BedtimeMetricCard(
+                                title = stringResource(R.string.bedtime_room),
+                                value = state.noiseBaselineLabel,
+                                icon = Icons.Default.Air,
+                                accent = MaterialTheme.colorScheme.primary,
+                                modifier = tileModifier,
+                                helper = state.noiseBaselineHelper
+                            )
+                        }
+                    )
+                )
 
                 if (state.wakeTimeFormatted.isBlank()) {
                     AppEmptyState(
@@ -738,11 +733,6 @@ fun BedtimeScreen(
                             color = TextMuted,
                             style = MaterialTheme.typography.bodySmall
                         )
-                        AppStatusChip(
-                            label = stringResource(R.string.bedtime_30_minute_steps),
-                            icon = Icons.Default.Schedule,
-                            color = MaterialTheme.colorScheme.primary
-                        )
                     }
                     BedtimeAdjusterButton(
                         label = stringResource(R.string.bedtime_more),
@@ -764,9 +754,9 @@ fun BedtimeScreen(
                     color = TextSecondary,
                     style = MaterialTheme.typography.labelLarge
                 )
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     listOf(15, 30, 45, 60).forEach { minutes ->
                         AppFilterChip(
@@ -848,7 +838,7 @@ fun BedtimeScreen(
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         viewModel.updateBedtime(timePickerState.hour, timePickerState.minute)
                         showTimePicker = false
@@ -858,7 +848,7 @@ fun BedtimeScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) {
+                AppTextButton(onClick = { showTimePicker = false }) {
                     Text(stringResource(R.string.bedtime_picker_keep_current), color = TextSecondary)
                 }
             },
@@ -893,7 +883,7 @@ fun BedtimeScreen(
         AlertDialog(
             onDismissRequest = { showJetLagWakePicker = false },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         viewModel.updateJetLagTargetWake(timePickerState.hour, timePickerState.minute)
                         showJetLagWakePicker = false
@@ -903,7 +893,7 @@ fun BedtimeScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showJetLagWakePicker = false }) {
+                AppTextButton(onClick = { showJetLagWakePicker = false }) {
                     Text(stringResource(R.string.bedtime_picker_keep_current), color = TextSecondary)
                 }
             },
@@ -943,13 +933,11 @@ internal fun BedtimeMetricCard(
     helper: String? = null,
     onClick: (() -> Unit)? = null
 ) {
-    Card(
-        modifier = modifier.then(
-            if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier
-        ),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceCard)
-    ) {
+    // These tiles always sit on an AppSurfaceCard, so they take the inset
+    // surface (a SurfaceCard fill vanished into the card) and the one-step
+    // smaller tile radius. The click goes to Card itself so the ripple is
+    // clipped to the tile.
+    val body = @Composable {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -959,7 +947,7 @@ internal fun BedtimeMetricCard(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = title,
+                contentDescription = null,
                 tint = accent,
                 modifier = Modifier.size(22.dp)
             )
@@ -984,6 +972,12 @@ internal fun BedtimeMetricCard(
             }
         }
     }
+    val colors = CardDefaults.cardColors(containerColor = SurfaceInset)
+    if (onClick != null) {
+        Card(onClick = onClick, modifier = modifier, shape = AppTileShape, colors = colors) { body() }
+    } else {
+        Card(modifier = modifier, shape = AppTileShape, colors = colors) { body() }
+    }
 }
 
 @Composable
@@ -1004,7 +998,7 @@ private fun SleepArc(
         val radius = size.minDimension / 2 - 20f
 
         drawCircle(
-            color = SurfaceCard.copy(alpha = 0.8f),
+            color = BorderSubtle,
             radius = radius,
             center = center,
             style = Stroke(width = 12f)
@@ -1072,8 +1066,8 @@ private fun BedtimeAdjusterButton(
     Surface(
         modifier = modifier
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = if (enabled) SurfaceCard.copy(alpha = 0.78f) else SurfaceCard.copy(alpha = 0.42f)
+        shape = AppTileShape,
+        color = if (enabled) SurfaceInset else SurfaceInset.copy(alpha = 0.4f)
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),

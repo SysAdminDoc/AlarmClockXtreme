@@ -1,20 +1,16 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 
 package com.sysadmindoc.alarmclock.ui.bedtime
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.sysadmindoc.alarmclock.ui.components.AppTileShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Schedule
@@ -37,16 +33,18 @@ import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppTileGrid
 import com.sysadmindoc.alarmclock.ui.theme.BlueLight
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
-import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceInset
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import kotlin.math.abs
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun JetLagPlannerSection(
     state: BedtimeUiState,
@@ -71,89 +69,65 @@ internal fun JetLagPlannerSection(
             )
         )
 
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            AppStatusChip(
-                label = stringResource(
-                    R.string.bedtime_jetlag_current_chip,
-                    formatClockMinute(plan.currentWakeMinutes, state.is24HourFormat)
-                ),
-                icon = Icons.Default.Schedule,
-                color = TextMuted
-            )
-            AppStatusChip(
-                label = stringResource(
-                    R.string.bedtime_jetlag_target_chip,
-                    formatClockMinute(plan.targetWakeMinutes, state.is24HourFormat)
-                ),
-                icon = Icons.Default.WbSunny,
-                color = MaterialTheme.colorScheme.primary
-            )
-            AppStatusChip(
-                label = pluralStringResource(
-                    R.plurals.bedtime_jetlag_days,
-                    plan.adjustmentDays,
-                    plan.adjustmentDays
-                ),
-                icon = Icons.Default.CheckCircle,
-                color = if (plan.alreadyAligned) TextMuted else DismissGreen
-            )
-        }
-
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 2.dp)
-        ) {
-            item {
-                BedtimeMetricCard(
-                    title = stringResource(R.string.bedtime_jetlag_current_title),
-                    value = formatClockMinute(plan.currentWakeMinutes, state.is24HourFormat),
-                    icon = Icons.Default.Schedule,
-                    accent = TextSecondary,
-                    modifier = Modifier.width(144.dp),
-                    helper = stringResource(
-                        if (state.wakeTimeFormatted.isNotBlank()) {
-                            R.string.bedtime_jetlag_helper_next_alarm
+        // The cards already show the current and target times, and the days
+        // selector below shows the length, so no chip row repeats them. Two
+        // per row: in a LazyRow the third card sat past the screen edge.
+        AppTileGrid(
+            tiles = listOf<@Composable (Modifier) -> Unit>(
+                { tileModifier ->
+                    BedtimeMetricCard(
+                        title = stringResource(R.string.bedtime_jetlag_current_title),
+                        value = formatClockMinute(plan.currentWakeMinutes, state.is24HourFormat),
+                        icon = Icons.Default.Schedule,
+                        accent = TextSecondary,
+                        modifier = tileModifier,
+                        helper = stringResource(
+                            if (state.wakeTimeFormatted.isNotBlank()) {
+                                R.string.bedtime_jetlag_helper_next_alarm
+                            } else {
+                                R.string.bedtime_jetlag_helper_sleep_target
+                            }
+                        )
+                    )
+                },
+                { tileModifier ->
+                    BedtimeMetricCard(
+                        title = stringResource(R.string.bedtime_jetlag_target_title),
+                        value = formatClockMinute(plan.targetWakeMinutes, state.is24HourFormat),
+                        icon = Icons.Default.WbSunny,
+                        accent = SnoozeYellow,
+                        modifier = tileModifier,
+                        helper = stringResource(R.string.bedtime_jetlag_helper_tap_to_edit),
+                        onClick = onTargetWakeClick
+                    )
+                },
+                { tileModifier ->
+                    BedtimeMetricCard(
+                        title = stringResource(R.string.bedtime_jetlag_daily_move_title),
+                        value = formatJetLagShift(plan.dailyShiftMinutes),
+                        icon = Icons.Default.Lightbulb,
+                        accent = DismissGreen,
+                        modifier = tileModifier,
+                        // The value already says earlier or later, so the
+                        // helper gives how many days the move repeats.
+                        helper = if (plan.alreadyAligned) {
+                            null
                         } else {
-                            R.string.bedtime_jetlag_helper_sleep_target
+                            pluralStringResource(R.plurals.bedtime_jetlag_days, plan.adjustmentDays, plan.adjustmentDays)
                         }
                     )
-                )
-            }
-            item {
-                BedtimeMetricCard(
-                    title = stringResource(R.string.bedtime_jetlag_target_title),
-                    value = formatClockMinute(plan.targetWakeMinutes, state.is24HourFormat),
-                    icon = Icons.Default.WbSunny,
-                    accent = SnoozeYellow,
-                    modifier = Modifier.width(144.dp),
-                    helper = stringResource(R.string.bedtime_jetlag_helper_tap_to_edit),
-                    onClick = onTargetWakeClick
-                )
-            }
-            item {
-                BedtimeMetricCard(
-                    title = stringResource(R.string.bedtime_jetlag_daily_move_title),
-                    value = formatJetLagShift(plan.dailyShiftMinutes),
-                    icon = Icons.Default.Lightbulb,
-                    accent = DismissGreen,
-                    modifier = Modifier.width(168.dp),
-                    helper = stringResource(plan.resolvedDirection.labelRes)
-                )
-            }
-        }
+                }
+            )
+        )
 
         Text(
             text = stringResource(R.string.bedtime_jetlag_direction),
             color = TextSecondary,
             style = MaterialTheme.typography.labelLarge
         )
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             JetLagDirection.entries.forEach { direction ->
                 AppFilterChip(
@@ -170,9 +144,9 @@ internal fun JetLagPlannerSection(
             color = TextSecondary,
             style = MaterialTheme.typography.labelLarge
         )
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Backup restore can persist any 1..14 value; surface non-preset
             // values as an extra selected chip so the state is always visible.
@@ -202,6 +176,7 @@ internal fun JetLagPlannerSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun JetLagDayRow(
     day: JetLagDayPlan,
@@ -209,8 +184,8 @@ private fun JetLagDayRow(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = SurfaceCard.copy(alpha = 0.72f)
+        shape = AppTileShape,
+        color = SurfaceInset
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -237,9 +212,12 @@ private fun JetLagDayRow(
                     fontWeight = FontWeight.SemiBold
                 )
             }
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Wraps instead of scrolling: the light ranges ran past the
+            // card edge and the dim chip was off screen with no hint.
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AppStatusChip(
                     label = stringResource(

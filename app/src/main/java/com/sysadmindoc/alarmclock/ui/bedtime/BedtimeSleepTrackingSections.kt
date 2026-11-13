@@ -1,17 +1,18 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.bedtime
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -40,7 +41,7 @@ import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
-import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
@@ -64,9 +65,9 @@ internal fun PreSleepTagSection(
             description = stringResource(R.string.bedtime_tag_the_signals_that_may_shape, state.preSleepTagDateLabel)
         )
 
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             state.preSleepTags.forEach { tag ->
                 AppFilterChip(
@@ -133,7 +134,7 @@ private fun PreSleepCorrelationChart(items: List<PreSleepCorrelationItem>) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp)
-                        .background(SurfaceCard.copy(alpha = 0.54f), RoundedCornerShape(8.dp)),
+                        .background(BorderSubtle, RoundedCornerShape(4.dp)),
                     contentAlignment = Alignment.CenterStart
                 ) {
                     val ratio = delta?.let { (abs(it).toFloat() / maxDelta).coerceIn(0.08f, 1f) } ?: 0f
@@ -142,12 +143,12 @@ private fun PreSleepCorrelationChart(items: List<PreSleepCorrelationItem>) {
                             modifier = Modifier
                                 .fillMaxWidth(ratio)
                                 .height(8.dp)
-                                .background(color, RoundedCornerShape(8.dp))
+                                .background(color, RoundedCornerShape(4.dp))
                         )
                     }
                 }
                 Text(
-                    text = "${item.deltaLabel} - ${item.nightsLabel}",
+                    text = "${item.deltaLabel} · ${item.nightsLabel}",
                     color = color.copy(alpha = if (delta == null) 0.78f else 1f),
                     style = MaterialTheme.typography.bodySmall
                 )
@@ -203,9 +204,9 @@ internal fun SonarSleepTrackingSection(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AppStatusChip(
                         label = if (state.sonarTrackingActive) stringResource(R.string.settings_active) else stringResource(R.string.alarm_edit_off),
@@ -339,9 +340,9 @@ internal fun HealthConnectSleepSection(
                 color = TextPrimary,
                 style = MaterialTheme.typography.headlineSmall
             )
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 SleepStageChip("Light", summary.lightStageMinutes)
                 SleepStageChip("Deep", summary.deepStageMinutes)

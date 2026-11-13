@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.sysadmindoc.alarmclock.ui.components.AppTileShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.CheckCircle
@@ -15,18 +15,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.unit.dp
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
-import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceInset
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
@@ -39,8 +39,8 @@ internal fun SleepCycleOptionRow(index: Int, option: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(12.dp),
-        color = SurfaceCard.copy(alpha = if (index == 0) 0.82f else 0.7f)
+        shape = AppTileShape,
+        color = SurfaceInset
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -92,8 +92,8 @@ internal fun WindDownChecklistSection(
                         role = Role.Checkbox,
                         onValueChange = { onToggle(index) }
                     ),
-                shape = RoundedCornerShape(12.dp),
-                color = if (done) DismissGreen.copy(alpha = 0.09f) else SurfaceCard.copy(alpha = 0.72f)
+                shape = AppTileShape,
+                color = if (done) DismissGreen.copy(alpha = 0.09f) else SurfaceInset
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
@@ -121,7 +121,7 @@ internal fun WindDownChecklistSection(
         }
 
         if (state.bedtimeChecklistDone.isNotEmpty()) {
-            TextButton(
+            AppTextButton(
                 onClick = onReset,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {

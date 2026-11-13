@@ -1,14 +1,14 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.bedtime
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -24,7 +24,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,6 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.sysadmindoc.alarmclock.domain.SleepNoisePreset
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -126,9 +126,9 @@ internal fun SleepSoundsSection(
             color = TextSecondary,
             style = MaterialTheme.typography.labelLarge
         )
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             listOf(0, 15, 30, 45, 60).forEach { minutes ->
                 AppFilterChip(
@@ -147,9 +147,9 @@ internal fun SleepSoundsSection(
             color = TextSecondary,
             style = MaterialTheme.typography.labelLarge
         )
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             val tapers = listOf(15, 30, 60, 120, 300, 600)
             tapers.forEach { seconds ->
@@ -167,7 +167,7 @@ internal fun SleepSoundsSection(
         }
 
         if (state.activeSoundKey.isNotBlank()) {
-            TextButton(
+            AppTextButton(
                 onClick = viewModel::stopSound,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {

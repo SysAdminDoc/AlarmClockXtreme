@@ -833,21 +833,23 @@ class BedtimeViewModel @Inject constructor(
     private fun sonarLastSessionLabel(snapshot: SonarSleepSnapshot): String {
         if (snapshot.lastEndedAt <= 0L || snapshot.lastTotalMinutes <= 0) return ""
         val snore = if (snapshot.lastSnoreEventCount > 0) {
-            context.getString(
-                R.string.bedtime_sonar_loud_bursts,
+            context.resources.getQuantityString(
+                R.plurals.bedtime_sonar_loud_bursts,
+                snapshot.lastSnoreEventCount,
                 snapshot.lastSnoreEventCount,
                 snapshot.lastSnorePeakDb.roundToInt()
             )
         } else {
             context.getString(R.string.bedtime_sonar_no_loud_bursts)
         }
-        return context.getString(
+        val session = context.getString(
             R.string.bedtime_sonar_last_session,
             snapshot.lastTotalMinutes,
             snapshot.lastAwakeMinutes,
             snapshot.lastLightMinutes,
             snapshot.lastDeepMinutes
-        ) + snore
+        )
+        return context.getString(R.string.bedtime_sonar_session_and_bursts, session, snore)
     }
 
     private fun snoreTimelineItem(event: SnoreEvent): SnoreTimelineItem {
