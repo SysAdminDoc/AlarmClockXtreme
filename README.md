@@ -1,6 +1,6 @@
 # AlarmClockXtreme
 
-[![Version](https://img.shields.io/badge/version-1.15.35-5CA6FF)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
+[![Version](https://img.shields.io/badge/version-1.16.0-5CA6FF)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-65DDB9)](LICENSE)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](https://github.com/SysAdminDoc/AlarmClockXtreme/releases/latest)
 [![Stars](https://img.shields.io/github/stars/SysAdminDoc/AlarmClockXtreme?style=flat&color=FFD166)](https://github.com/SysAdminDoc/AlarmClockXtreme/stargazers)

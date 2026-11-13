@@ -2,7 +2,7 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
-## Unreleased
+## [1.16.0] - 2026-11-12 (unreleased)
 
 ### Added
 
