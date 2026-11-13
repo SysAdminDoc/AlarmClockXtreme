@@ -37,6 +37,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -1403,17 +1404,24 @@ private fun AlarmCard(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
+                    // One line that shrinks to fit: "10:00 AM" beside the drag handle,
+                    // switch and menu wrapped "AM" onto its own line on a 1080px phone.
                     Text(
                         text = formatAlarmTime(alarm, is24Hour),
                         color = if (alarm.isEnabled) TextPrimary else TextMuted,
-                        style = ClockTimeSmall
+                        style = ClockTimeSmall,
+                        maxLines = 1,
+                        autoSize = TextAutoSize.StepBased(
+                            minFontSize = 24.sp,
+                            maxFontSize = ClockTimeSmall.fontSize
+                        )
                     )
                     Text(
                         text = alarm.label.ifBlank { alarm.repeatLabel(LocalContext.current) },
@@ -1697,7 +1705,9 @@ private fun SelectableAlarmCard(
                     text = formatAlarmTime(alarm, is24Hour),
                     color = if (alarm.isEnabled) TextPrimary else TextMuted,
                     fontSize = 34.sp,
-                    fontWeight = FontWeight.Light
+                    fontWeight = FontWeight.Light,
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 20.sp, maxFontSize = 34.sp)
                 )
                 Text(
                     text = alarm.label.ifBlank { alarm.repeatLabel(LocalContext.current) },

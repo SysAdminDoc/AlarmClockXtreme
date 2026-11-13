@@ -73,6 +73,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - A one-time alarm's editor listed seven upcoming rings, six of which would never happen. It lists the one.
 - Settings backup and the Statistics filter say "1 alarm" and "1 recent event" instead of "1 alarms" and "1 recent events".
 - The "What's new" card after an update listed changes from an older release, in English even with the app set to Japanese. It shows this release's changes now, translated.
+- An alarm time like 10:00 AM no longer breaks onto two lines in the alarm list once the drag handles show. It shrinks a little to stay on one line.
 
 ## [1.15.35] - 2026-09-05
 
