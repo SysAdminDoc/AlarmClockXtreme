@@ -15,9 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -27,7 +25,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SnackbarDuration
@@ -47,6 +44,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
@@ -56,14 +54,15 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
-import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
+import com.sysadmindoc.alarmclock.ui.components.AppChipShape
+import com.sysadmindoc.alarmclock.ui.components.AppIconSize
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
-import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
@@ -74,6 +73,7 @@ import kotlin.math.sin
 import com.sysadmindoc.alarmclock.R
 import androidx.compose.ui.res.stringResource
 import java.util.Locale
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 fun StopwatchScreen(
@@ -121,6 +121,7 @@ fun StopwatchScreen(
                 StopwatchState.PAUSED -> stringResource(R.string.stopwatch_paused_in_place_resume_when_you)
             },
             overline = stringResource(R.string.stopwatch_timing),
+            subtitleMinLines = 2,
             badge = {
                 AppStatusChip(
                     label = when (state.state) {
@@ -150,11 +151,7 @@ fun StopwatchScreen(
                     }
                 )
             },
-            actions = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.stopwatch_close_stopwatch), tint = TextMuted)
-                }
-            }
+            onBack = onNavigateBack
         )
 
         Column(
@@ -164,10 +161,7 @@ fun StopwatchScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
-                AppSectionTitle(
-                    title = stringResource(R.string.stopwatch_current_run),
-                    description = stringResource(R.string.stopwatch_high_contrast_display_built_quick)
-                )
+                AppSectionTitle(title = stringResource(R.string.stopwatch_current_run))
 
                 StopwatchDial(state = state)
 
@@ -175,12 +169,33 @@ fun StopwatchScreen(
             }
 
             if (state.laps.isEmpty()) {
+                // A one-row hint. The full empty state didn't fit under the
+                // dial on a phone and was cut down to its icon.
                 AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
-                    AppEmptyState(
-                        icon = Icons.Default.Flag,
-                        title = stringResource(R.string.stopwatch_no_laps_recorded_yet),
-                        description = stringResource(R.string.stopwatch_tap_lap_while_stopwatch_running)
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Flag,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(AppIconSize.md)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = stringResource(R.string.stopwatch_no_laps_recorded_yet),
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = stringResource(R.string.stopwatch_tap_lap_while_stopwatch_running),
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
                 }
             } else {
                 AppSurfaceCard(
@@ -240,8 +255,9 @@ private fun StopwatchDial(state: StopwatchUiState) {
                     (size.height - radius * 2) / 2
                 )
 
+                // The dial sits on a card, so a SurfaceCard track never showed.
                 drawArc(
-                    color = SurfaceCard,
+                    color = BorderSubtle,
                     startAngle = 0f,
                     sweepAngle = 360f,
                     useCenter = false,
@@ -319,17 +335,19 @@ private fun ControlsRow(
 ) {
     when (state.state) {
         StopwatchState.IDLE -> {
+            // Full width, matching the Lap/Pause and Reset/Resume rows that
+            // replace it, so the controls don't jump inward on start.
             Button(
                 onClick = viewModel::start,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 6.dp),
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppButtonShape,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
+                // The label beside it already says this; a description here
+                // made TalkBack read it twice.
                 Icon(
                     Icons.Default.PlayArrow,
-                    contentDescription = stringResource(R.string.stopwatch_start_stopwatch),
+                    contentDescription = null,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -397,11 +415,14 @@ private fun LapRow(lap: Lap) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp),
-        shape = RoundedCornerShape(12.dp),
+        // Nested in the 12dp lap card, so the tile steps down to the chip
+        // radius. Ordinary laps sit flat on the card; only best and slowest
+        // get a tint.
+        shape = AppChipShape,
         color = when {
             lap.isBest -> DismissGreen.copy(alpha = 0.1f)
             lap.isWorst -> AccentRed.copy(alpha = 0.09f)
-            else -> SurfaceCard.copy(alpha = 0.72f)
+            else -> Color.Transparent
         }
     ) {
         Row(
@@ -417,19 +438,17 @@ private fun LapRow(lap: Lap) {
                     color = TextPrimary,
                     style = MaterialTheme.typography.titleSmall
                 )
-                Text(
-                    text = when {
-                        lap.isBest -> stringResource(R.string.stopwatch_best_split)
-                        lap.isWorst -> stringResource(R.string.stopwatch_slowest_split)
-                        else -> stringResource(R.string.stopwatch_split)
-                    },
-                    color = when {
-                        lap.isBest -> DismissGreen
-                        lap.isWorst -> AccentRed
-                        else -> TextMuted
-                    },
-                    style = MaterialTheme.typography.bodySmall
-                )
+                // Only best and slowest get a tag. "Split" on every other row
+                // repeated the "Split time" label beside it.
+                if (lap.isBest || lap.isWorst) {
+                    Text(
+                        text = stringResource(
+                            if (lap.isBest) R.string.stopwatch_best_split else R.string.stopwatch_slowest_split
+                        ),
+                        color = if (lap.isBest) DismissGreen else AccentRed,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
 
             Column(
@@ -479,7 +498,7 @@ private fun StopwatchPrimaryButton(
     Button(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = AppButtonShape,
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
@@ -499,7 +518,7 @@ private fun StopwatchSecondaryButton(
     OutlinedButton(
         onClick = onClick,
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
+        shape = AppButtonShape,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = accent)
     ) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(18.dp))

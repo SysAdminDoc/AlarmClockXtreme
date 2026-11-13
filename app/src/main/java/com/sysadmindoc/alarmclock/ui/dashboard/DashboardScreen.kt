@@ -56,7 +56,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -69,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.sp
@@ -76,6 +76,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.remote.GeocodingResult
 import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
@@ -102,6 +103,7 @@ import java.time.LocalTime
 import java.util.concurrent.TimeUnit
 import com.sysadmindoc.alarmclock.R
 import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 fun DashboardScreen(
@@ -203,53 +205,56 @@ private fun NextAlarmSection(
     state: DashboardUiState,
     onOpenAlarms: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    // Heading inside the card, like Weather and Schedule above it. It used to
+    // float over the sky as the only heading outside a card.
+    AppSurfaceCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = onOpenAlarms
+    ) {
         AppSectionTitle(title = stringResource(R.string.bedtime_jetlag_helper_next_alarm))
-        AppSurfaceCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpenAlarms),
-            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Icon(
+                imageVector = Icons.Default.Alarm,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(DashboardRowIconSize)
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Alarm,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
-                )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    Text(
-                        text = state.nextAlarmTime,
-                        color = TextPrimary,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                    Text(
-                        text = listOf(
-                            state.nextAlarmLabel,
-                            state.nextAlarmSchedule
-                        ).filter { it.isNotBlank() }.joinToString(" · "),
-                        color = TextSecondary,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1
-                    )
-                }
                 Text(
-                    text = stringResource(R.string.dashboard_view),
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelLarge
+                    text = state.nextAlarmTime,
+                    color = TextPrimary,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                Text(
+                    text = listOf(
+                        state.nextAlarmLabel,
+                        state.nextAlarmSchedule
+                    ).filter { it.isNotBlank() }.joinToString(" · "),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
+            Text(
+                text = stringResource(R.string.dashboard_view),
+                color = MaterialTheme.colorScheme.primary,
+                style = MaterialTheme.typography.labelLarge
+            )
         }
     }
 }
+
+// One leading-icon size for the summary rows on Today, so the weather, schedule
+// and next-alarm icons share a column and their text starts on one line.
+private val DashboardRowIconSize = 28.dp
 
 @Composable
 private fun DashboardHeader(state: DashboardUiState) {
@@ -302,7 +307,7 @@ private fun WeatherSection(
                 // told to do something they had already done, and the actual
                 // error was never shown.
                 val hasLocation = state.hasLocation
-                AppSurfaceCard(contentPadding = PaddingValues(16.dp)) {
+                AppSurfaceCard {
                     AppSectionTitle(title = stringResource(R.string.dashboard_weather))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -313,7 +318,7 @@ private fun WeatherSection(
                             imageVector = Icons.Default.CloudOff,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(DashboardRowIconSize)
                         )
                         Column(
                             modifier = Modifier.weight(1f),
@@ -323,28 +328,27 @@ private fun WeatherSection(
                                 text = if (hasLocation) {
                                     state.weatherError
                                 } else {
-                                    "Set your location"
+                                    stringResource(R.string.dashboard_no_location_title)
                                 },
                                 color = TextPrimary,
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text(
-                                text = if (hasLocation) {
-                                    "Check your connection and try again."
-                                } else {
-                                    "Get local conditions and forecasts."
-                                },
+                                text = stringResource(
+                                    if (hasLocation) R.string.dashboard_weather_check_connection
+                                    else R.string.dashboard_no_location_description
+                                ),
                                 color = TextSecondary,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
                         if (hasLocation) {
-                            TextButton(onClick = onRetryWeather) {
+                            AppTextButton(onClick = onRetryWeather) {
                                 Text(stringResource(R.string.dashboard_retry))
                             }
                         } else {
-                            TextButton(onClick = onChangeLocation) {
-                                Text(stringResource(R.string.alarm_edit_choose))
+                            AppTextButton(onClick = onChangeLocation) {
+                                Text(stringResource(R.string.dashboard_set_location))
                             }
                         }
                     }
@@ -361,7 +365,7 @@ private fun WeatherSection(
                     )
                     OutlinedButton(
                         onClick = onRetryWeather,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = AppButtonShape,
                         colors = ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.primary
                         )
@@ -372,80 +376,77 @@ private fun WeatherSection(
                     }
                 }
 
-                // v1.7.4: Centered hero — location chip, big icon, big temp,
+                // v1.7.4: Centered hero — location line, big icon, big temp,
                 // condition description, all stacked and centered. ZeusWatch's
                 // CurrentConditionsHeader inspired the layout.
                 AppSurfaceCard {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        IconButton(
-                            onClick = onChangeLocation,
-                            modifier = Modifier.align(Alignment.TopEnd)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // The location reads as the card's header line, with the
+                        // pencil that changes it at the end of the same row.
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                Icons.Default.Edit,
-                                contentDescription = stringResource(R.string.dashboard_change_weather_location),
-                                tint = TextMuted
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = state.locationName.ifBlank { stringResource(R.string.dashboard_weather_fallback_title) },
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f)
+                            )
+                            IconButton(onClick = onChangeLocation) {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = stringResource(R.string.dashboard_change_weather_location),
+                                    tint = TextMuted
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = weatherIconFor(state.weatherIcon),
+                            contentDescription = state.weatherDescription,
+                            tint = weatherColorFor(state.weatherIcon),
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = state.temperature,
+                                style = ClockTimeDisplay,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = "\u00B0${state.tempUnit}",
+                                fontSize = 22.sp,
+                                color = TextSecondary,
+                                modifier = Modifier.padding(top = 10.dp, start = 2.dp)
                             )
                         }
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Text(
-                                    text = state.locationName.ifBlank { stringResource(R.string.dashboard_weather_fallback_title) },
-                                    color = TextSecondary,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                            Icon(
-                                imageVector = weatherIconFor(state.weatherIcon),
-                                contentDescription = state.weatherDescription,
-                                tint = weatherColorFor(state.weatherIcon),
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Row(
-                                verticalAlignment = Alignment.Top,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = state.temperature,
-                                    style = ClockTimeDisplay,
-                                    color = TextPrimary
-                                )
-                                Text(
-                                    text = "\u00B0${state.tempUnit}",
-                                    fontSize = 22.sp,
-                                    color = TextSecondary,
-                                    modifier = Modifier.padding(top = 10.dp, start = 2.dp)
-                                )
-                            }
+                        Text(
+                            text = state.weatherDescription,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center
+                        )
+                        if (state.feelsLike.isNotBlank()) {
                             Text(
-                                text = state.weatherDescription,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = TextSecondary,
+                                text = state.feelsLike,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextMuted,
                                 textAlign = TextAlign.Center
                             )
-                            if (state.feelsLike.isNotBlank()) {
-                                Text(
-                                    text = state.feelsLike,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextMuted,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
                         }
                     }
 
@@ -904,11 +905,7 @@ private fun CalendarSection(
     // "Next few hours" / "Next 3 days" weather sub-cards. Previously the
     // section title floated outside the card, looking like a stray label.
     AppSurfaceCard {
-        Text(stringResource(R.string.dashboard_schedule),
-            color = TextPrimary,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
+        AppSectionTitle(title = stringResource(R.string.dashboard_schedule))
         when {
             state.calendarPermissionNeeded -> {
                 // The row used to say "allow calendar access" and do nothing
@@ -969,7 +966,7 @@ private fun CompactDashboardRow(
             imageVector = icon,
             contentDescription = null,
             tint = accent,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(DashboardRowIconSize)
         )
         Column(
             modifier = Modifier.weight(1f),
@@ -1074,7 +1071,7 @@ private fun LocationPickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AppTextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.settings_close), color = TextSecondary)
             }
         },
@@ -1090,21 +1087,6 @@ private fun LocationPickerDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    AppStatusChip(
-                        label = if (results.isEmpty()) stringResource(R.string.dashboard_search_a_city) else stringResource(R.string.dashboard_matches, results.size.coerceAtMost(6)),
-                        icon = Icons.Default.LocationOn,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    AppStatusChip(
-                        label = stringResource(R.string.dashboard_optional),
-                        icon = Icons.Default.Cloud,
-                        color = TextMuted
-                    )
-                }
-
                 Text(
                     text = stringResource(R.string.dashboard_use_city_zip_code_device),
                     color = TextSecondary,
@@ -1130,7 +1112,7 @@ private fun LocationPickerDialog(
                 OutlinedButton(
                     onClick = onUseDevice,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.primary
                     )

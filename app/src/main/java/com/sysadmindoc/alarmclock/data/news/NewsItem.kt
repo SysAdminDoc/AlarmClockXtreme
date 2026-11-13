@@ -24,6 +24,28 @@ data class NewsItem(
 ) {
     /** Only open feed links that are plain web URLs — see [isSafeNewsLink]. */
     val hasOpenableLink: Boolean get() = isSafeNewsLink(link)
+
+    /**
+     * Google News and similar aggregators end every title with " - Publisher".
+     * The card already shows the source under the title, so the repeat only
+     * cost long headlines their last line.
+     */
+    val displayTitle: String get() {
+        val name = source.trim()
+        if (name.isEmpty()) return title
+        val trimmedTitle = title.trimEnd()
+        for (separator in TITLE_SOURCE_SEPARATORS) {
+            val suffix = separator + name
+            if (trimmedTitle.length > suffix.length && trimmedTitle.endsWith(suffix, ignoreCase = true)) {
+                return trimmedTitle.dropLast(suffix.length).trimEnd()
+            }
+        }
+        return title
+    }
+
+    private companion object {
+        val TITLE_SOURCE_SEPARATORS = listOf(" - ", " – ", " — ", " | ")
+    }
 }
 
 /**

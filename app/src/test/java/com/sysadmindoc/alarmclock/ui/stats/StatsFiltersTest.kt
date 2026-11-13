@@ -32,6 +32,19 @@ class StatsFiltersTest {
     }
 
     @Test
+    @Config(qualifiers = "ja")
+    fun dayTextMatchesThePhoneLanguage() {
+        val jaResources = ApplicationProvider.getApplicationContext<Context>().resources
+        val events = listOf(
+            event(label = "Gym", day = DayOfWeek.MONDAY),
+            event(label = "School", day = DayOfWeek.FRIDAY)
+        )
+
+        assertEquals(listOf(events[0]), filterAlarmEvents(events, StatsHistoryFilter(query = "月曜"), jaResources))
+        assertEquals(listOf(events[1]), filterAlarmEvents(events, StatsHistoryFilter(query = "金"), jaResources))
+    }
+
+    @Test
     fun combinesActionAndDayFilters() {
         val events = listOf(
             event(label = "Work", action = AlarmEvent.ACTION_SNOOZED, day = DayOfWeek.MONDAY),

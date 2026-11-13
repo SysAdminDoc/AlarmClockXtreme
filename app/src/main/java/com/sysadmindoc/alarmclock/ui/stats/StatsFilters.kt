@@ -4,6 +4,7 @@ import android.content.res.Resources
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import java.time.DayOfWeek
+import java.time.format.TextStyle
 import java.util.Locale
 
 data class StatsHistoryFilter(
@@ -21,12 +22,16 @@ fun filterAlarmEvents(
     resources: Resources
 ): List<AlarmEvent> {
     val normalizedQuery = filter.query.trim().lowercase(Locale.US)
+    val locale = resources.configuration.locales[0]
 
     return events.filter { event ->
         val matchesQuery = normalizedQuery.isBlank() ||
             event.alarmLabel.lowercase(Locale.US).contains(normalizedQuery) ||
             event.challengeType.lowercase(Locale.US).replace("_", " ").contains(normalizedQuery) ||
             dayLabel(event.dayOfWeek).lowercase(Locale.US).startsWith(normalizedQuery) ||
+            // The day chips show the phone's language, so a search typed in
+            // it ("月曜") has to match too, not only the English name.
+            localizedDayLabel(event.dayOfWeek, locale)?.lowercase(locale)?.startsWith(normalizedQuery) == true ||
             actionLabel(resources, event.action).lowercase(Locale.US).startsWith(normalizedQuery)
 
         val matchesAction = filter.action == null || event.action == filter.action
@@ -41,6 +46,9 @@ fun dayLabel(dayOfWeek: Int): String {
         DayOfWeek.of(dayOfWeek).name.lowercase(Locale.US).replaceFirstChar { it.uppercase(Locale.US) }
     }.getOrDefault("Unknown")
 }
+
+private fun localizedDayLabel(dayOfWeek: Int, locale: Locale): String? =
+    runCatching { DayOfWeek.of(dayOfWeek).getDisplayName(TextStyle.FULL, locale) }.getOrNull()
 
 private fun actionLabel(resources: Resources, action: String): String {
     val resource = when (action) {

@@ -3,7 +3,6 @@ package com.sysadmindoc.alarmclock.ui.worldclock
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,19 +37,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.unit.dp
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
@@ -65,8 +64,10 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.ui.theme.accentForeground
 import com.sysadmindoc.alarmclock.R
 import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 fun WorldClockScreen(
@@ -120,7 +121,7 @@ fun WorldClockScreen(
                                 footer = {
                                     Button(
                                         onClick = viewModel::showAddDialog,
-                                        shape = RoundedCornerShape(8.dp),
+                                        shape = AppButtonShape,
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = MaterialTheme.colorScheme.primary
                                         )
@@ -188,14 +189,14 @@ fun WorldClockScreen(
                         viewModel.removeZone(entry.zoneId)
                         pendingRemoval = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed, contentColor = accentForeground(AccentRed)),
+                    shape = AppButtonShape
                 ) {
                     Text(stringResource(R.string.world_remove_city))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRemoval = null }) {
+                AppTextButton(onClick = { pendingRemoval = null }) {
                     Text(stringResource(R.string.world_keep_city), color = TextSecondary)
                 }
             },
@@ -239,11 +240,15 @@ private fun WorldClockCard(
                 color = TextPrimary,
                 style = MaterialTheme.typography.titleLarge
             )
+            // The city is already the title, so this line names only the region
+            // ("America", "Indiana"). The full zone ID broke at its slash and
+            // the one-line cap showed just "America/".
             Text(
-                "${entry.date} · ${entry.zoneId}",
+                "${entry.date} · ${worldClockRegion(entry.zoneId)}",
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 worldClockOffsetLabel(entry),
@@ -283,7 +288,7 @@ private fun AddTimeZoneDialog(
         onDismissRequest = onDismiss,
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AppTextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.settings_close), color = TextSecondary)
             }
         },
@@ -301,7 +306,14 @@ private fun AddTimeZoneDialog(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = onQueryChange,
-                    placeholder = { Text(stringResource(R.string.world_search_city_country_region)) },
+                    // singleLine doesn't reach the placeholder: it wrapped to two lines.
+                    placeholder = {
+                        Text(
+                            stringResource(R.string.world_search_city_country_region),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextMuted) },
                     colors = appOutlinedTextFieldColors(),
                     shape = AppInputShape,
@@ -376,13 +388,15 @@ private fun AddTimeZoneDialog(
                             entry.time,
                             worldClockOffsetLabel(entry)
                         )
+                        // Surface's own onClick, so the ripple is clipped to the
+                        // rounded corners like the rest of the app's cards.
                         Surface(
+                            onClick = { onSelect(entry.zoneId) },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .semantics(mergeDescendants = true) {
                                     contentDescription = addCityLabel
-                                }
-                                .clickable(role = Role.Button) { onSelect(entry.zoneId) },
+                                },
                             shape = RoundedCornerShape(12.dp),
                             color = SurfaceCard.copy(alpha = 0.82f),
                             border = BorderStroke(1.dp, TextMuted.copy(alpha = 0.12f))
@@ -447,6 +461,13 @@ private fun worldClockOffsetLabel(entry: WorldClockEntry): String = when {
     )
     else -> stringResource(R.string.world_hours_behind, formatOffsetHours(entry.offsetHours))
 }
+
+/** "America/Argentina/Buenos_Aires" → "Argentina": the part just above the city. */
+internal fun worldClockRegion(zoneId: String): String =
+    zoneId.substringBeforeLast("/", missingDelimiterValue = "")
+        .substringAfterLast("/")
+        .replace("_", " ")
+        .ifEmpty { zoneId }
 
 private fun formatOffsetHours(hours: Double): String {
     val magnitude = kotlin.math.abs(hours)

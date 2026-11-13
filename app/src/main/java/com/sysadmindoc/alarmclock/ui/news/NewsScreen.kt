@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,11 +41,13 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.news.NewsItem
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppIconSize
@@ -204,7 +205,7 @@ fun NewsScreen(
                                             ?.takeIf { it.isNotBlank() }
                                             ?: stringResource(R.string.news_pick_a_different_source_or_try),
                                         footer = {
-                                            OutlinedButton(onClick = viewModel::refresh) {
+                                            OutlinedButton(onClick = viewModel::refresh, shape = AppButtonShape) {
                                                 Text(stringResource(R.string.dashboard_retry))
                                             }
                                         },
@@ -321,11 +322,12 @@ private fun NewsCard(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = item.title,
+            text = item.displayTitle,
             color = TextPrimary,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             maxLines = 3,
+            overflow = TextOverflow.Ellipsis
         )
 
         if (meaningfulDescription.isNotBlank()) {
@@ -333,7 +335,8 @@ private fun NewsCard(
                 text = meaningfulDescription,
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodyMedium,
-                maxLines = 2
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
         }
 
@@ -342,21 +345,25 @@ private fun NewsCard(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Weighted so a long publisher name wraps beside the icon. Unweighted,
+            // it took the whole row and squeezed the icon to nothing.
             Text(
                 text = buildList {
                     if (item.source.isNotBlank()) add(item.source)
                     item.publishedAtMillis?.let { add(formatRelativeShort(it)) }
                 }.joinToString(" · "),
                 color = TextMuted,
-                style = MaterialTheme.typography.bodySmall
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f)
             )
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.OpenInNew,
-                contentDescription = stringResource(R.string.news_open_article),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(AppIconSize.sm)
-            )
+            if (item.hasOpenableLink) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.OpenInNew,
+                    contentDescription = stringResource(R.string.news_open_article),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(AppIconSize.sm)
+                )
+            }
         }
     }
 }

@@ -1,12 +1,18 @@
+@file:OptIn(ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.stats
 
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -19,7 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,7 +33,6 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.LocalFireDepartment
@@ -46,7 +50,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
@@ -58,6 +61,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -70,6 +74,7 @@ import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
@@ -78,17 +83,19 @@ import com.sysadmindoc.alarmclock.ui.components.AppLoadingCard
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppIconSize
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
-import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.ui.theme.accentForeground
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.ZoneId
@@ -97,6 +104,7 @@ import com.sysadmindoc.alarmclock.R
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 fun StatsScreen(
@@ -169,11 +177,7 @@ fun StatsScreen(
                         )
                     }
                 },
-                actions = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.stats_close_statistics), tint = TextMuted)
-                    }
-                }
+                onBack = onNavigateBack
             )
         }
 
@@ -187,40 +191,39 @@ fun StatsScreen(
             }
         } else {
             item {
-                LazyRow(
+                // Three equal tiles that share the width. Fixed 138dp tiles
+                // overran a phone and cut the third one off mid-word.
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(IntrinsicSize.Min)
                         .padding(horizontal = 16.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    item {
-                        StatMiniCard(
-                            label = stringResource(R.string.stats_streak),
-                            value = compactDays(stats.currentStreak),
-                            color = if (stats.currentStreak > 0) SnoozeYellow else TextMuted,
-                            icon = Icons.Default.LocalFireDepartment,
-                            modifier = Modifier.width(138.dp)
-                        )
-                    }
-                    item {
-                        StatMiniCard(
-                            label = stringResource(R.string.stats_week),
-                            value = "${stats.alarmsThisWeek}",
-                            color = MaterialTheme.colorScheme.primary,
-                            icon = Icons.Default.CalendarMonth,
-                            modifier = Modifier.width(138.dp)
-                        )
-                    }
-                    item {
-                        StatMiniCard(
-                            label = stringResource(R.string.stats_snoozed),
-                            value = "${stats.snoozeRate}%",
-                            color = SnoozeYellow,
-                            icon = Icons.Default.Snooze,
-                            modifier = Modifier.width(138.dp)
-                        )
-                    }
+                    val tileModifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                    StatMiniCard(
+                        label = stringResource(R.string.stats_streak),
+                        value = compactDays(stats.currentStreak),
+                        color = if (stats.currentStreak > 0) SnoozeYellow else TextMuted,
+                        icon = Icons.Default.LocalFireDepartment,
+                        modifier = tileModifier
+                    )
+                    StatMiniCard(
+                        label = stringResource(R.string.stats_week),
+                        value = "${stats.alarmsThisWeek}",
+                        color = MaterialTheme.colorScheme.primary,
+                        icon = Icons.Default.CalendarMonth,
+                        modifier = tileModifier
+                    )
+                    StatMiniCard(
+                        label = stringResource(R.string.stats_snoozed),
+                        value = "${stats.snoozeRate}%",
+                        color = SnoozeYellow,
+                        icon = Icons.Default.Snooze,
+                        modifier = tileModifier
+                    )
                 }
             }
 
@@ -284,21 +287,36 @@ fun StatsScreen(
                         title = stringResource(R.string.stats_average_wake_up_time),
                         description = stringResource(R.string.stats_how_long_usually_takes_dismiss)
                     )
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        val mins = stats.averageDismissTimeSec / 60
-                        val secs = stats.averageDismissTimeSec % 60
+                    if (stats.totalDismissed == 0) {
+                        // Nothing dismissed yet, so there's no average. "0s
+                        // average response" read as an instant wake-up.
                         Text(
-                            text = if (mins > 0) "${mins}m ${secs}s" else "${secs}s",
+                            text = stringResource(R.string.stats_no_data),
                             color = TextPrimary,
-                            style = MaterialTheme.typography.headlineLarge
+                            style = MaterialTheme.typography.headlineSmall
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = stringResource(R.string.stats_average_response),
+                            text = stringResource(R.string.stats_alarm_history_will_fill_this_in),
                             color = TextSecondary,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(bottom = 8.dp)
+                            style = MaterialTheme.typography.bodyMedium
                         )
+                    } else {
+                        Row(verticalAlignment = Alignment.Bottom) {
+                            val mins = stats.averageDismissTimeSec / 60
+                            val secs = stats.averageDismissTimeSec % 60
+                            Text(
+                                text = if (mins > 0) "${mins}m ${secs}s" else "${secs}s",
+                                color = TextPrimary,
+                                style = MaterialTheme.typography.headlineLarge
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.stats_average_response),
+                                color = TextSecondary,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -315,10 +333,10 @@ fun StatsScreen(
                             title = stringResource(R.string.stats_outcome_mix),
                             description = stringResource(R.string.stats_how_alarms_usually_resolve)
                         )
-                        BreakdownRow("Dismissed", stats.totalDismissed, DismissGreen)
-                        BreakdownRow("Snoozed", stats.totalSnoozed, SnoozeYellow)
-                        BreakdownRow("Skipped", stats.totalSkipped, MaterialTheme.colorScheme.primary)
-                        BreakdownRow("Missed", stats.totalMissed, AccentRed)
+                        BreakdownRow(stringResource(R.string.stats_dismissed), stats.totalDismissed, DismissGreen)
+                        BreakdownRow(stringResource(R.string.stats_snoozed), stats.totalSnoozed, SnoozeYellow)
+                        BreakdownRow(stringResource(R.string.stats_skipped), stats.totalSkipped, MaterialTheme.colorScheme.primary)
+                        BreakdownRow(stringResource(R.string.stats_missed), stats.totalMissed, AccentRed)
                     }
 
                     AppSurfaceCard(modifier = Modifier.fillMaxWidth()) {
@@ -327,8 +345,9 @@ fun StatsScreen(
                             description = stringResource(R.string.stats_where_alarms_cluster_most_often)
                         )
                         val busiest = stats.dayOfWeekCounts.maxByOrNull { it.value }
+                        val dayLocale = LocalConfiguration.current.locales[0]
                         Text(
-                            text = busiest?.key?.name?.lowercase()?.replaceFirstChar { it.uppercase() } ?: stringResource(R.string.stats_no_data),
+                            text = busiest?.key?.getDisplayName(java.time.format.TextStyle.FULL, dayLocale) ?: stringResource(R.string.stats_no_data),
                             color = TextPrimary,
                             style = MaterialTheme.typography.headlineSmall
                         )
@@ -347,14 +366,22 @@ fun StatsScreen(
                         val calmest = stats.dayOfWeekAvgResponseSec
                             .filterValues { it > 0 }
                             .minByOrNull { it.value }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = calmest?.let {
-                                "Fastest responses: ${it.key.name.lowercase().replaceFirstChar { c -> c.uppercase() }} • ${it.value}s"
-                            } ?: stringResource(R.string.stats_need_more_dismiss_history_for_day),
-                            color = TextMuted,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        // With no history at all, the line above already says
+                        // so; a second "need more history" line just repeated it.
+                        if (busiest != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = calmest?.let {
+                                    stringResource(
+                                        R.string.stats_fastest_day,
+                                        it.key.getDisplayName(java.time.format.TextStyle.FULL, dayLocale),
+                                        it.value
+                                    )
+                                } ?: stringResource(R.string.stats_need_more_dismiss_history_for_day),
+                                color = TextMuted,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
             }
@@ -393,7 +420,7 @@ fun StatsScreen(
                     if (state.recentEvents.isNotEmpty()) {
                         OutlinedButton(
                             onClick = { showClearDialog = true },
-                            shape = RoundedCornerShape(12.dp),
+                            shape = AppButtonShape,
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
                         ) {
                             Icon(Icons.Default.DeleteSweep, null, modifier = Modifier.size(18.dp))
@@ -490,14 +517,14 @@ fun StatsScreen(
                         viewModel.clearHistory()
                         showClearDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed, contentColor = accentForeground(AccentRed)),
+                    shape = AppButtonShape
                 ) {
                     Text(stringResource(R.string.settings_clear_history))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
+                AppTextButton(onClick = { showClearDialog = false }) {
                     Text(stringResource(R.string.cancel), color = TextSecondary)
                 }
             },
@@ -546,13 +573,13 @@ private fun StatsFilterCard(
         AppSectionTitle(
             title = stringResource(R.string.stats_find_patterns),
             description = if (isFiltered) {
-                "$resultCount of $totalCount recent events match"
+                pluralStringResource(R.plurals.stats_filter_showing, totalCount, resultCount, totalCount)
             } else {
-                "Filter by alarm label, challenge, action, or weekday."
+                stringResource(R.string.stats_filter_hint)
             },
             action = {
                 if (isFiltered) {
-                    TextButton(onClick = onClearFilters) {
+                    AppTextButton(onClick = onClearFilters) {
                         Text(stringResource(R.string.alarm_edit_clear_short), color = MaterialTheme.colorScheme.primary)
                     }
                 }
@@ -580,19 +607,21 @@ private fun StatsFilterCard(
         FilterChipRow(
             label = stringResource(R.string.stats_outcome),
             chips = listOf(
-                null to "All",
-                AlarmEvent.ACTION_DISMISSED to "Dismissed",
-                AlarmEvent.ACTION_SNOOZED to "Snoozed",
-                AlarmEvent.ACTION_SKIPPED to "Skipped",
-                AlarmEvent.ACTION_MISSED to "Missed"
+                null to stringResource(R.string.stats_filter_all),
+                AlarmEvent.ACTION_DISMISSED to stringResource(R.string.stats_action_dismissed),
+                AlarmEvent.ACTION_SNOOZED to stringResource(R.string.stats_action_snoozed),
+                AlarmEvent.ACTION_SKIPPED to stringResource(R.string.stats_action_skipped),
+                AlarmEvent.ACTION_MISSED to stringResource(R.string.stats_action_missed)
             ),
             selected = selectedAction,
             onSelect = onActionChange
         )
 
+        val dayLocale = LocalConfiguration.current.locales[0]
         FilterChipRow(
             label = stringResource(R.string.stats_day),
-            chips = listOf(null to "All days") + DayOfWeek.entries.map { it to it.name.take(3) },
+            chips = listOf(null to stringResource(R.string.stats_filter_all_days)) +
+                DayOfWeek.entries.map { it to it.getDisplayName(java.time.format.TextStyle.SHORT, dayLocale) },
             selected = selectedDay,
             onSelect = onDayChange
         )
@@ -638,9 +667,15 @@ private fun StatMiniCard(
     icon: ImageVector,
     modifier: Modifier = Modifier
 ) {
-    AppSurfaceCard(modifier = modifier, highlighted = true) {
-        Icon(icon, contentDescription = label, tint = color, modifier = Modifier.size(20.dp))
-        Text(value, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+    // Padding trimmed from the card's 18dp so three tiles fit side by side.
+    AppSurfaceCard(
+        modifier = modifier,
+        highlighted = true,
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 16.dp)
+    ) {
+        // The label under the value names it, so the icon stays silent.
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(AppIconSize.md))
+        Text(value, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary, maxLines = 1)
         Text(label, fontSize = 12.sp, color = TextSecondary)
     }
 }
@@ -668,7 +703,7 @@ private fun WakeStreakBadge(stats: AlarmStats, modifier: Modifier = Modifier) {
                 ) {
                     Icon(
                         imageVector = Icons.Default.LocalFireDepartment,
-                        contentDescription = stringResource(R.string.stats_wake_streak),
+                        contentDescription = null,
                         tint = if (current > 0) SnoozeYellow else TextMuted,
                         modifier = Modifier.size(34.dp)
                     )
@@ -693,10 +728,9 @@ private fun WakeStreakBadge(stats: AlarmStats, modifier: Modifier = Modifier) {
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AppStatusChip(
                         label = pluralStringResource(R.plurals.stats_streak_best_days, best, best),
@@ -724,23 +758,25 @@ private fun WakeStreakBadge(stats: AlarmStats, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.labelLarge
                 )
                 Text(
-                    text = "$current / $goal days",
+                    text = pluralStringResource(R.plurals.stats_streak_progress_days, goal, current, goal),
                     color = TextMuted,
                     style = MaterialTheme.typography.labelLarge
                 )
             }
+            // BorderSubtle, not a SurfaceCard tint: the bar sits on a card, so
+            // at zero progress it used to vanish and leave a blank gap.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
-                    .background(SurfaceCard.copy(alpha = 0.58f), RoundedCornerShape(8.dp))
+                    .background(BorderSubtle, RoundedCornerShape(4.dp))
             ) {
                 if (progress > 0f) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(progress)
                             .height(8.dp)
-                            .background(SnoozeYellow, RoundedCornerShape(8.dp))
+                            .background(SnoozeYellow, RoundedCornerShape(4.dp))
                     )
                 }
             }
@@ -769,9 +805,9 @@ private fun HealthConnectStatsCard(
                     stringResource(R.string.stats_sleep_data_access_is_granted_but)
             }
         )
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
                 label = if (summary.permissionGranted) stringResource(R.string.settings_health_permission_granted) else stringResource(R.string.settings_health_permission_needed),
@@ -831,7 +867,6 @@ private fun WakeConsistencyCard(
             title = stringResource(R.string.stats_wake_consistency),
             description = stringResource(R.string.stats_how_steady_wake_up_times)
         )
-        Spacer(modifier = Modifier.height(12.dp))
         if (result == null) {
             Text(
                 text = stringResource(R.string.stats_dismiss_few_more_alarms_see),
@@ -902,9 +937,9 @@ private fun SleepWakeAnalyticsCard(
             return@AppSurfaceCard
         }
 
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
                 label = stringResource(
@@ -994,8 +1029,8 @@ private fun SleepWakeTrendChart(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ChartLegend("Sleep", MaterialTheme.colorScheme.primary)
-            ChartLegend("Dismiss", DismissGreen)
+            ChartLegend(stringResource(R.string.stats_legend_sleep), MaterialTheme.colorScheme.primary)
+            ChartLegend(stringResource(R.string.stats_legend_dismiss), DismissGreen)
         }
         Row(
             modifier = modifier.horizontalScroll(rememberScrollState()),
@@ -1056,8 +1091,8 @@ private fun SleepWakeFrictionChart(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ChartLegend("Snooze", SnoozeYellow)
-            ChartLegend("Retry", AccentRed)
+            ChartLegend(stringResource(R.string.stats_legend_snooze), SnoozeYellow)
+            ChartLegend(stringResource(R.string.stats_legend_retry), AccentRed)
         }
         Row(
             modifier = modifier.horizontalScroll(rememberScrollState()),
@@ -1114,7 +1149,9 @@ private fun ChartBar(
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .background(SurfaceCard.copy(alpha = 0.54f), RoundedCornerShape(8.dp)),
+            // 4dp on an 11dp bar; 8dp rounded it into a capsule. The track
+            // was also a SurfaceCard tint on a card, so it never showed.
+            .background(BorderSubtle, RoundedCornerShape(4.dp)),
         contentAlignment = Alignment.BottomCenter
     ) {
         ratio?.let {
@@ -1122,7 +1159,7 @@ private fun ChartBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(it)
-                    .background(color, RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                    .background(color, RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
             )
         }
     }
@@ -1176,9 +1213,9 @@ private fun ActigraphyBucketsCard(
             return@AppSurfaceCard
         }
 
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
                 label = stringResource(R.string.alarmlist_min, latest.totalMinutes),
@@ -1234,15 +1271,18 @@ private fun StageDistributionBar(session: ActigraphySession) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(14.dp)
-                .background(SurfaceCard.copy(alpha = 0.52f), RoundedCornerShape(10.dp))
+                // Clipped so the colored segments keep the corners; 4dp because
+                // 10dp on a 14dp bar read as a capsule.
+                .clip(RoundedCornerShape(4.dp))
+                .background(BorderSubtle)
         ) {
             StageSegment(session.awakeMinutes, total, AccentRed)
             StageSegment(session.lightMinutes, total, SnoozeYellow)
             StageSegment(session.deepMinutes, total, DismissGreen)
         }
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             ChartLegend("${if (sonar) stringResource(R.string.stats_movement) else stringResource(R.string.stats_awake_motion)} ${session.awakeMinutes}m", AccentRed)
             ChartLegend("${if (sonar) stringResource(R.string.stats_restless) else stringResource(R.string.stats_light_motion)} ${session.lightMinutes}m", SnoozeYellow)
@@ -1370,6 +1410,7 @@ private fun BreakdownRow(label: String, count: Int, color: Color) {
 @Composable
 private fun DayOfWeekChart(counts: Map<DayOfWeek, Int>, modifier: Modifier = Modifier) {
     val maxCount = counts.values.maxOrNull()?.coerceAtLeast(1) ?: 1
+    val dayLocale = LocalConfiguration.current.locales[0]
 
     Row(modifier = modifier, verticalAlignment = Alignment.Bottom) {
         DayOfWeek.entries.forEach { day ->
@@ -1392,13 +1433,15 @@ private fun DayOfWeekChart(counts: Map<DayOfWeek, Int>, modifier: Modifier = Mod
                         .width(24.dp)
                         .fillMaxHeight(heightRatio)
                         .background(
-                            color = if (count > 0) MaterialTheme.colorScheme.primary else SurfaceCard,
-                            shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
+                            color = if (count > 0) MaterialTheme.colorScheme.primary else BorderSubtle,
+                            // 4dp, not 10: an empty day's short stub rounded
+                            // into a dome at 10.
+                            shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
                         )
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = day.name.take(3),
+                    text = day.getDisplayName(java.time.format.TextStyle.SHORT, dayLocale),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodySmall
                 )

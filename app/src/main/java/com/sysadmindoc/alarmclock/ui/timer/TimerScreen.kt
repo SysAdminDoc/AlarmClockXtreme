@@ -53,7 +53,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -77,12 +76,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.horizontalBleed
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
 import com.sysadmindoc.alarmclock.ui.theme.ClockTimeLarge
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
@@ -92,8 +94,10 @@ import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.LocalMotionEnabled
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.ui.theme.accentForeground
 import com.sysadmindoc.alarmclock.R
 import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 fun TimerScreen(
@@ -161,7 +165,7 @@ fun TimerScreen(
                 "${state.activeTimers.size} timer${if (state.activeTimers.size == 1) "" else "s"} active"
             },
             actions = {
-                TextButton(onClick = onOpenStopwatch) {
+                AppTextButton(onClick = onOpenStopwatch) {
                     Text(stringResource(R.string.nav_stopwatch))
                 }
             }
@@ -288,15 +292,15 @@ private fun ActiveTimerCard(
             if (isFinished) {
                 Button(
                     onClick = onDismiss,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
+                    shape = AppButtonShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed, contentColor = accentForeground(AccentRed))
                 ) {
                     Text(stringResource(R.string.timer_dismiss))
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onStop) {
-                        Icon(Icons.Default.Stop, "Stop timer", tint = AccentRed)
+                        Icon(Icons.Default.Stop, stringResource(R.string.timer_stop_timer), tint = AccentRed)
                     }
                     IconButton(onClick = { if (timer.state == TimerState.RUNNING) onPause() else onResume() }) {
                         Icon(
@@ -328,8 +332,9 @@ private fun TimerProgressRing(timer: TimerInstance, pulseAlpha: Float) {
                 (size.width - radius * 2) / 2,
                 (size.height - radius * 2) / 2
             )
+            // The track sits on a card, so it can't be the card's own color.
             drawArc(
-                color = SurfaceCard,
+                color = BorderSubtle,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -382,15 +387,19 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
         )
 
         if (state.inputDigits.isNotBlank()) {
-            TextButton(onClick = viewModel::clearInput) {
+            AppTextButton(onClick = viewModel::clearInput) {
                 Text(stringResource(R.string.timer_screen_clear_entry), color = TextMuted)
             }
         }
 
+        // Scrolls edge to edge so the last chip slides off the screen, not off
+        // a cut line at the gutter.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
+                .horizontalBleed(16.dp)
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             defaultPresets.forEach { preset ->
@@ -414,7 +423,7 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = RoundedCornerShape(10.dp),
+            shape = AppButtonShape,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
