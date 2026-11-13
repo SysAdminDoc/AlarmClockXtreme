@@ -10,6 +10,11 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
 
 ### P1
 
+- [ ] P1: Material You hides the accent picker's effect, and its description says it blends
+  Why: Seen on the S25 (2026-11-12) with Material You on. `Theme.kt` replaces the accent outright (`accent = if (supportsDynamic) baseColorScheme.primary`), yet `settings_dynamic_color_description` says "Blends the app accent with your wallpaper palette", and the six swatches above stay tappable with no visible effect.
+  Fix: reword the description (en and ja) to say the wallpaper colors take the place of the accent; in `AccentColorPicker` (`SettingsPersonalizationSection.kt`), while `dynamicColorEnabled` and SDK 31+, swap the accent description for a line saying the wallpaper sets the accent for now and the picked color comes back when Material You is off. On Android 8 to 11 (minSdk 26) the switch does nothing; say so or hide it. Also translate the ja accent names still in English: Coral, Amber, Mint, Mono (`values-ja/strings.xml` ~1053-1056).
+  Then finish the theme-mode check: with Material You and Expressive surfaces both on, walk the alarm list, editor, Today, Timer and Settings home on the S25 (only Personalization was captured so far), uninstall `.debug` after, since its seeded 6:00 alarm rings.
+
 - [ ] P1: Capture `ApplicationExitInfo` and surface a user-facing reliability report
   Why: The app records a detailed incident stream but has no access to the OS's own reason for killing the process, which is exactly the "unknown reason" failure the whole category is complaining about. Android 17 adds a memory limiter that kills apps over a RAM threshold regardless of targetSdk, discoverable only through `ApplicationExitInfo.getDescription()` containing `MemoryLimiter:AnonSwap`.
   Evidence: zero matches for `ApplicationExitInfo` across `app/src` and `wear/src`; existing incident infrastructure in `data/repository/AlarmIncidentRepository.kt` and `data/support/SupportDiagnosticsFormatter.kt`; Android 17 behaviour changes for all apps; the recurring Pixel "Missed alarm: Alarm did not fire due to an unknown reason" reports.
