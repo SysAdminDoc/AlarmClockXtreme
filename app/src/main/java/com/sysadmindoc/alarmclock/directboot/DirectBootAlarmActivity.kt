@@ -10,7 +10,11 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.compose.ui.graphics.toArgb
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 
 class DirectBootAlarmActivity : Activity() {
     private var alarmId: Long = -1L
@@ -54,13 +58,13 @@ class DirectBootAlarmActivity : Activity() {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
                 setPadding(48, 48, 48, 48)
-                setBackgroundColor(0xFF080B12.toInt())
+                setBackgroundColor(SurfaceDark.toArgb())
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
 
                 addView(
                     TextView(context).apply {
                         text = title
-                        setTextColor(0xFFFFFFFF.toInt())
+                        setTextColor(TextPrimary.toArgb())
                         textSize = 44f
                         gravity = Gravity.CENTER
                     },
@@ -73,7 +77,7 @@ class DirectBootAlarmActivity : Activity() {
                 addView(
                     TextView(context).apply {
                         text = getString(R.string.direct_boot_alarm_message)
-                        setTextColor(0xFFD4D8E5.toInt())
+                        setTextColor(TextSecondary.toArgb())
                         textSize = 18f
                         gravity = Gravity.CENTER
                     },

@@ -90,7 +90,8 @@ private val DarkColorScheme = darkColorScheme(
     surfaceVariant = SurfaceCard,
     onSurfaceVariant = TextSecondary,
     error = AccentRed,
-    onError = TextPrimary,
+    // Near-white on the light coral measured about 2.3:1; the dark label clears AA.
+    onError = accentForeground(AccentRed),
     outline = TextMuted,
     outlineVariant = SurfaceLight,
     surfaceTint = BluePrimary,

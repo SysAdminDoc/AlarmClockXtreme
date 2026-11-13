@@ -20,7 +20,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +52,7 @@ fun WhatsNewDialog(
             Button(
                 onClick = onDismiss,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(12.dp)
+                shape = AppButtonShape
             ) {
                 Text(stringResource(R.string.whats_new_continue))
             }
@@ -79,7 +78,7 @@ fun WhatsNewDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onOpenRoadmap) {
+            AppTextButton(onClick = onOpenRoadmap) {
                 Text(stringResource(R.string.whats_new_what_s_next), color = MaterialTheme.colorScheme.primary)
             }
         },

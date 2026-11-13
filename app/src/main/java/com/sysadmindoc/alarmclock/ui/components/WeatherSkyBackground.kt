@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.sysadmindoc.alarmclock.ui.theme.SevereAlertRed
 import com.sysadmindoc.alarmclock.ui.theme.SkyGradient
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
@@ -259,7 +260,7 @@ private fun TornadoOverlay(modifier: Modifier = Modifier) {
         ) {
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = Color(0xFFB7271A),
+                color = SevereAlertRed,
             ) {
                 androidx.compose.foundation.layout.Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),

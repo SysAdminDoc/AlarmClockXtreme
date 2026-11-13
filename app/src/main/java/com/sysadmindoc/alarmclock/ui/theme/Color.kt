@@ -18,6 +18,9 @@ val SurfaceDark = Color(0xFF070B11)    // App background — deepest
 val SurfaceMedium = Color(0xFF0F1721)  // Sheets / sticky regions
 val SurfaceCard = Color(0xFF15202E)    // Card surfaces
 val SurfaceLight = Color(0xFF1B2737)   // Elevated chips / hover wash
+// Tiles nested inside a card. Any SurfaceCard fill there, at any alpha,
+// paints the card's own color and the tile vanishes.
+val SurfaceInset = SurfaceLight
 
 // ─── Hero accents ───────────────────────────────────────────────────────────
 // Subtler hero gradient. The previous mix had three transitions in one band
@@ -44,6 +47,9 @@ val AccentBlue = BluePrimary
 val AccentRed = Color(0xFFFF7E7A)
 val SnoozeYellow = Color(0xFFF5C96B)
 val DismissGreen = Color(0xFF63D7AE)
+// Severe weather banner fill (tornado warnings). Deep enough that TextPrimary
+// reads on it at about 5.8:1.
+val SevereAlertRed = Color(0xFFB7271A)
 
 // ─── Toggle colors ──────────────────────────────────────────────────────────
 val ToggleOn = AccentBlue

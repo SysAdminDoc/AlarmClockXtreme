@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.components
 
 import androidx.compose.animation.animateContentSize
@@ -14,10 +16,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,13 +31,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.offset
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwitchDefaults
@@ -48,6 +67,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -83,6 +104,21 @@ val AppCardShape = RoundedCornerShape(12.dp)
 val AppTileShape = RoundedCornerShape(10.dp)
 val AppChipShape = RoundedCornerShape(8.dp)
 val AppInputShape = RoundedCornerShape(8.dp)
+val AppButtonShape = RoundedCornerShape(10.dp)
+
+/**
+ * Widens a child by [bleed] on both sides, past its parent's padding. Settings
+ * rows use it so the press highlight reaches the card edge, and scrolling chip
+ * rows use it so chips slide off the screen edge instead of being cut at the
+ * gutter (pad the scrolling content by the same amount to keep it aligned).
+ */
+fun Modifier.horizontalBleed(bleed: Dp): Modifier =
+    if (bleed == 0.dp) this else layout { measurable, constraints ->
+        val extra = bleed.roundToPx()
+        val placeable = measurable.measure(constraints.offset(horizontal = extra * 2))
+        val width = (placeable.width - extra * 2).coerceIn(constraints.minWidth, constraints.maxWidth)
+        layout(width, placeable.height) { placeable.place(-extra, 0) }
+    }
 
 // ─── Icon size scale ───────────────────────────────────────────────────────
 // One scale, four steps. Replaces the 13 / 15 / 18 / 20 / 22 dp drift that
@@ -110,6 +146,17 @@ fun AlarmClockHeroHeader(
      * through. Other tabs keep the default blue header gradient.
      */
     transparent: Boolean = false,
+    /**
+     * Pushed pages (Settings categories, Stopwatch, Bedtime, Statistics) get a
+     * leading back arrow here, so every page you can leave is left the same way.
+     */
+    onBack: (() -> Unit)? = null,
+    backContentDescription: String? = null,
+    /**
+     * 2 for a subtitle that changes with state (Stopwatch), so a one-line
+     * state doesn't pull the page up under the finger that just tapped.
+     */
+    subtitleMinLines: Int = 1,
 ) {
     Box(
         modifier = if (transparent) {
@@ -139,8 +186,23 @@ fun AlarmClockHeroHeader(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                if (onBack != null) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.offset(x = (-12).dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = backContentDescription
+                                ?: stringResource(R.string.common_back),
+                            tint = TextPrimary
+                        )
+                    }
+                }
                 Column(
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .then(if (onBack != null) Modifier.offset(x = (-12).dp) else Modifier),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     if (!overline.isNullOrBlank()) {
@@ -160,11 +222,14 @@ fun AlarmClockHeroHeader(
                         overflow = TextOverflow.Ellipsis
                     )
                     if (subtitle.isNotBlank()) {
+                        // Two lines: one cut sentences off mid-word
+                        // ("Start a precise running timer and mark la…").
                         Text(
                             text = subtitle,
                             color = TextSecondary,
                             style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 1,
+                            minLines = subtitleMinLines,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
                     }
@@ -179,10 +244,10 @@ fun AlarmClockHeroHeader(
             }
 
             if (badge != null) {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    itemVerticalAlignment = Alignment.CenterVertically,
                     content = badge
                 )
             }
@@ -203,6 +268,9 @@ fun AppSurfaceCard(
     modifier: Modifier = Modifier,
     highlighted: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(18.dp),
+    // Pass the click here rather than as a clickable modifier: the modifier
+    // sits outside the card's clip, so its ripple drew square corners.
+    onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val shapeTokens = LocalAppShapeTokens.current
@@ -211,15 +279,10 @@ fun AppSurfaceCard(
     } else {
         SurfaceCard
     }
-
-    Card(
-        modifier = modifier.animateContentSize(
-            animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
-        ),
-        shape = shapeTokens.card,
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.cardColors(containerColor = containerColor)
-    ) {
+    val cardModifier = modifier.animateContentSize(
+        animationSpec = tween(durationMillis = 220, easing = FastOutSlowInEasing)
+    )
+    val body: @Composable ColumnScope.() -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -227,6 +290,56 @@ fun AppSurfaceCard(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             content = content
         )
+    }
+
+    if (onClick != null) {
+        Card(
+            onClick = onClick,
+            modifier = cardModifier,
+            shape = shapeTokens.card,
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            colors = CardDefaults.cardColors(containerColor = containerColor),
+            content = body
+        )
+    } else {
+        Card(
+            modifier = cardModifier,
+            shape = shapeTokens.card,
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+            colors = CardDefaults.cardColors(containerColor = containerColor),
+            content = body
+        )
+    }
+}
+
+/**
+ * Equal-width tiles, [columns] to a row, every tile in a row as tall as the
+ * tallest. A lone last tile takes the whole row. FlowRow with
+ * fillMaxRowHeight made each row taller than its content because the row
+ * height came from a measurement taken before the weights were applied;
+ * Row's intrinsic height accounts for them.
+ */
+@Composable
+fun AppTileGrid(
+    tiles: List<@Composable (Modifier) -> Unit>,
+    modifier: Modifier = Modifier,
+    columns: Int = 2,
+    spacing: Dp = 12.dp
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(spacing)
+    ) {
+        tiles.chunked(columns).forEach { row ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(spacing)
+            ) {
+                row.forEach { tile -> tile(Modifier.weight(1f).fillMaxHeight()) }
+            }
+        }
     }
 }
 
@@ -284,43 +397,87 @@ fun AppSectionTitle(
     // The action used to sit on its own row under the title. On a card with no
     // description that left a visible empty band between the heading and the
     // content, which read as broken layout.
-    Row(
+    //
+    // The action is measured first, capped at half the width so a wide one
+    // (two buttons, a pair of chips) can't squeeze the heading to nothing, and
+    // pinned to the end. A Row with two weights split the width 50/50 instead,
+    // which parked a short action like "Review" in the middle of the card.
+    val gap = 12.dp
+    Layout(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Text(
-                text = title,
-                color = TextPrimary,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            if (!description.isNullOrBlank()) {
-                Text(
-                    text = description,
-                    color = TextSecondary,
-                    style = MaterialTheme.typography.bodySmall
+        content = {
+            AppSectionTitleText(title, description)
+            if (action != null) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    content = action
                 )
             }
         }
-        if (action != null) {
-            // Weighted, so a wide action (two buttons, a pair of chips) cannot
-            // measure first and squeeze the heading down to nothing. It gets at
-            // most half the row and scrolls inside that.
-            Row(
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                content = action
+    ) { measurables, constraints ->
+        val width = constraints.maxWidth
+        val gapPx = gap.roundToPx()
+        val actionPlaceable = measurables.getOrNull(1)?.measure(
+            Constraints(maxWidth = ((width - gapPx) / 2).coerceAtLeast(0))
+        )
+        val titleWidth = if (actionPlaceable == null) width else width - actionPlaceable.width - gapPx
+        val titlePlaceable = measurables[0].measure(
+            Constraints(minWidth = 0, maxWidth = titleWidth.coerceAtLeast(0))
+        )
+        val height = maxOf(titlePlaceable.height, actionPlaceable?.height ?: 0)
+        layout(width, height) {
+            titlePlaceable.placeRelative(0, (height - titlePlaceable.height) / 2)
+            actionPlaceable?.placeRelative(
+                width - actionPlaceable.width,
+                (height - actionPlaceable.height) / 2
             )
         }
     }
+}
+
+@Composable
+private fun AppSectionTitleText(title: String, description: String?) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = title,
+            color = TextPrimary,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+        if (!description.isNullOrBlank()) {
+            Text(
+                text = description,
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+
+/**
+ * Material 3's text buttons default to a fully rounded shape, which shows up as
+ * a pill on press and focus. Same parameters as [TextButton], app shape.
+ */
+@Composable
+fun AppTextButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    colors: ButtonColors = ButtonDefaults.textButtonColors(),
+    contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
+    content: @Composable RowScope.() -> Unit
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = modifier,
+        enabled = enabled,
+        shape = AppButtonShape,
+        colors = colors,
+        contentPadding = contentPadding,
+        content = content
+    )
 }
 
 @Composable
@@ -783,6 +940,46 @@ fun appOutlinedTextFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedPlaceholderColor = TextMuted
 )
 
+/**
+ * Square-ended 4dp progress bar. M3's round caps and end dot turn a bar this
+ * thin into a capsule, so both are switched off here. A null [progress] runs
+ * the indeterminate animation.
+ */
+@Composable
+fun AppProgressBar(
+    progress: (() -> Float)?,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.primary,
+    trackColor: Color = BorderSubtle,
+) {
+    if (progress == null) {
+        LinearProgressIndicator(
+            modifier = modifier.height(4.dp),
+            color = color,
+            trackColor = trackColor,
+            strokeCap = StrokeCap.Butt,
+            gapSize = 0.dp
+        )
+    } else {
+        LinearProgressIndicator(
+            progress = progress,
+            modifier = modifier.height(4.dp),
+            color = color,
+            trackColor = trackColor,
+            strokeCap = StrokeCap.Butt,
+            gapSize = 0.dp,
+            drawStopIndicator = {}
+        )
+    }
+}
+
+/** Sheet grab bar. The default rounds a 4dp bar with the theme's 8-12dp radius, which is a capsule. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppSheetDragHandle() {
+    BottomSheetDefaults.DragHandle(shape = RectangleShape, color = TextMuted)
+}
+
 @Composable
 fun appSwitchColors() = SwitchDefaults.colors(
     // Rides on the accent track, so it has to follow the accent's contrast.
@@ -791,7 +988,16 @@ fun appSwitchColors() = SwitchDefaults.colors(
     checkedBorderColor = MaterialTheme.colorScheme.primary,
     uncheckedThumbColor = ToggleOff,
     uncheckedTrackColor = ToggleTrackOff,
-    uncheckedBorderColor = BorderSubtle
+    uncheckedBorderColor = BorderSubtle,
+    // M3's disabled defaults paint a dark surface-colored thumb that reads as
+    // a broken control on these cards; a dimmed copy of the live state reads
+    // as "locked" instead.
+    disabledCheckedThumbColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.6f),
+    disabledCheckedTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+    disabledCheckedBorderColor = Color.Transparent,
+    disabledUncheckedThumbColor = ToggleOff.copy(alpha = 0.38f),
+    disabledUncheckedTrackColor = ToggleTrackOff.copy(alpha = 0.38f),
+    disabledUncheckedBorderColor = BorderSubtle
 )
 
 /**

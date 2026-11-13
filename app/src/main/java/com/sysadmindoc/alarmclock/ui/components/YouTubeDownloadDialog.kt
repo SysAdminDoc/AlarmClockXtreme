@@ -36,7 +36,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
@@ -44,7 +43,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
@@ -457,14 +455,14 @@ fun YouTubeDownloadDialog(
                         downloadViewModel.download(url.trim(), labelGuess)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = AppButtonShape
                 ) {
                     Text(stringResource(R.string.youtube_download))
                 }
             }
         },
         dismissButton = {
-            TextButton(
+            AppTextButton(
                 onClick = {
                     stopPreview()
                     onDismiss()
@@ -513,7 +511,7 @@ private fun EngineUpdatePanel(
                 style = MaterialTheme.typography.bodySmall
             )
         }
-        TextButton(
+        AppTextButton(
             onClick = onUpdate,
             enabled = enabled && !updating
         ) {
@@ -603,7 +601,7 @@ private fun SearchBody(
         enabled = controlsEnabled && !searching,
         leadingIcon = { Icon(Icons.Default.Search, null, tint = TextMuted) },
         trailingIcon = {
-            TextButton(onClick = onSearch, enabled = canSearch) {
+            AppTextButton(onClick = onSearch, enabled = canSearch) {
                 Text(stringResource(R.string.youtube_search), fontWeight = FontWeight.SemiBold)
             }
         },
@@ -664,7 +662,8 @@ private fun SearchBody(
                 footer = {
                     OutlinedButton(
                         onClick = onSearch,
-                        enabled = canSubmit && query.isNotBlank()
+                        enabled = canSubmit && query.isNotBlank(),
+                        shape = AppButtonShape
                     ) {
                         Icon(
                             imageVector = Icons.Default.Search,
@@ -877,11 +876,11 @@ internal fun youTubeDialogErrorMessage(
 private fun DownloadingHint() {
     val phases = remember {
         listOf(
-            "Resolving audio stream...",
-            "Connecting to YouTube...",
-            "Downloading audio...",
-            "Almost there...",
-            "Saving to your alarms..."
+            "Finding the audio…",
+            "Connecting to YouTube…",
+            "Downloading audio…",
+            "Almost there…",
+            "Saving to your alarms…"
         )
     }
     var progress by remember { mutableStateOf(0f) }
@@ -929,13 +928,9 @@ private fun DownloadingHint() {
                 style = MaterialTheme.typography.labelMedium
             )
         }
-        LinearProgressIndicator(
+        AppProgressBar(
             progress = { animatedProgress },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp)),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = SurfaceLight
+            modifier = Modifier.fillMaxWidth()
         )
         Text(
             text = stringResource(R.string.youtube_take_10_60_seconds_depending),

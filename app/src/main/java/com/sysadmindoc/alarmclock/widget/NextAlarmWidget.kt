@@ -3,7 +3,6 @@ package com.sysadmindoc.alarmclock.widget
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.*
@@ -23,6 +22,13 @@ import com.sysadmindoc.alarmclock.AlarmClockApp
 import com.sysadmindoc.alarmclock.MainActivity
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.ui.theme.BluePrimary
+import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.TextMuted
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
+import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import com.sysadmindoc.alarmclock.util.AlarmPublicText
 import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import dagger.hilt.android.EntryPointAccessors
@@ -130,16 +136,16 @@ class AdjustAlarmAction : ActionCallback {
     }
 }
 
-// Glance has its own color system, so the app's theme tokens are mirrored here
-// by value. They had drifted to an older palette, and WidgetTextMuted measured
-// about 2.3:1 on the background, well under the 4.5:1 body-text bar.
-private val WidgetBg = Color(0xFF070B11)        // SurfaceDark
-private val WidgetCardBg = Color(0xFF15202E)    // SurfaceCard
-private val WidgetAccent = Color(0xFF6FB7FF)    // BluePrimary
-private val WidgetTextPrimary = Color(0xFFF1F5FB)   // TextPrimary
-private val WidgetTextSecondary = Color(0xFFA9BED8) // TextSecondary
-private val WidgetTextMuted = Color(0xFF7E93AE)     // TextMuted
-private val WidgetWarning = Color(0xFFF5C96B)       // SnoozeYellow
+// Glance wraps colors in ColorProvider, but the values come straight from the
+// app's theme tokens. Copies by value had drifted to an older palette once
+// (muted text measured about 2.3:1), so nothing is redeclared here.
+private val WidgetBg = SurfaceDark
+private val WidgetCardBg = SurfaceCard
+private val WidgetAccent = BluePrimary
+private val WidgetTextPrimary = TextPrimary
+private val WidgetTextSecondary = TextSecondary
+private val WidgetTextMuted = TextMuted
+private val WidgetWarning = SnoozeYellow
 
 @Composable
 private fun NextAlarmWidgetContent(data: WidgetAlarmData?, failedToLoad: Boolean = false) {
@@ -147,7 +153,7 @@ private fun NextAlarmWidgetContent(data: WidgetAlarmData?, failedToLoad: Boolean
         modifier = GlanceModifier
             .fillMaxSize()
             .background(WidgetBg)
-            .cornerRadius(16.dp)
+            .cornerRadius(12.dp)
             .padding(16.dp)
             .clickable(actionStartActivity(
                 Intent(LocalContext.current, MainActivity::class.java)
