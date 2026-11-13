@@ -2503,4 +2503,11 @@
     <string name="alarmlist_alarm_options">Alarm options</string>
     <plurals name="alarmlist_hours"><item quantity="one">%1$d hour</item><item quantity="other">%1$d hours</item></plurals>
     <string name="timer_preset_minutes">%1$d min</string>
+    <!-- What’s new dialog: four short highlights, refreshed for every release -->
+    <string-array name="whats_new_highlights">
+        <item>Test now rings an alarm right away with its own sound and challenges, and leaves the schedule alone.</item>
+        <item>Snooze can be turned off for a single alarm, and a challenge can repeat up to ten times with a fresh puzzle each round.</item>
+        <item>An alarm can skip any day with a calendar event whose title has a word you pick, like #holiday.</item>
+        <item>Japanese translation, plus sunrise lighting for IKEA lights on a DIRIGERA hub.</item>
+    </string-array>
 </resources>

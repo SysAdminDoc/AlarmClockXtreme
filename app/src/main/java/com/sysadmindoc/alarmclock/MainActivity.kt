@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringArrayResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
@@ -69,7 +70,7 @@ class MainActivity : ComponentActivity() {
                 if (dialogVisible) {
                     WhatsNewDialog(
                         version = BuildConfig.VERSION_NAME,
-                        highlights = WHATS_NEW_HIGHLIGHTS,
+                        highlights = stringArrayResource(R.array.whats_new_highlights).toList(),
                         onOpenRoadmap = {
                             dialogVisible = false
                             WhatsNewTracker.markShown(this@MainActivity, BuildConfig.VERSION_CODE)
@@ -172,19 +173,5 @@ class MainActivity : ComponentActivity() {
         private const val KEY_LAST_HANDLED_SHARE_TOKEN_KEY = "last_handled_share_token_key"
         private const val KEY_PENDING_SHARE_TOKEN = "pending_share_token"
         private const val ROADMAP_URL = "https://github.com/SysAdminDoc/AlarmClockXtreme#roadmap"
-
-        /**
-         * Terse highlights for the "What's new" dialog — four concise
-         * bullets max, written for users (not devs). Full release notes
-         * live in CHANGELOG.md. Refresh on every shipping release so a
-         * returning user sees the actual changes since they last opened
-         * the app, not stale text from two versions ago.
-         */
-        private val WHATS_NEW_HIGHLIGHTS = listOf(
-            "New reliability net: if an alarm is silently suppressed by the system, it now re-fires a couple of minutes later.",
-            "Wake readiness warns you when total-silence Do Not Disturb would mute even your alarms.",
-            "Fixed a small background resource leak in the Quick Settings skip-alarm tile.",
-            "No new permissions."
-        )
     }
 }

@@ -72,6 +72,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The stopwatch's empty state got cut down to a lone icon on phones. It's a one-line hint now.
 - A one-time alarm's editor listed seven upcoming rings, six of which would never happen. It lists the one.
 - Settings backup and the Statistics filter say "1 alarm" and "1 recent event" instead of "1 alarms" and "1 recent events".
+- The "What's new" card after an update listed changes from an older release, in English even with the app set to Japanese. It shows this release's changes now, translated.
 
 ## [1.15.35] - 2026-09-05
 

@@ -2401,4 +2401,11 @@
     <string name="alarmlist_alarm_options">アラームのオプション</string>
     <plurals name="alarmlist_hours"><item quantity="other">%1$d 時間</item></plurals>
     <string name="timer_preset_minutes">%1$d 分</string>
+    <!-- What’s new dialog: four short highlights, refreshed for every release -->
+    <string-array name="whats_new_highlights">
+        <item>今すぐテストでアラームをすぐに鳴らせます。サウンドとチャレンジはそのままで、スケジュールは変わりません。</item>
+        <item>アラームごとにスヌーズをオフにでき、チャレンジは毎回新しい問題で最大10回まで繰り返せます。</item>
+        <item>カレンダーの予定のタイトルに指定した言葉（#holiday など）が入っている日は、アラームをスキップできます。</item>
+        <item>日本語に対応しました。DIRIGERA ハブにつないだ IKEA のライトでもサンライズが使えます。</item>
+    </string-array>
 </resources>
