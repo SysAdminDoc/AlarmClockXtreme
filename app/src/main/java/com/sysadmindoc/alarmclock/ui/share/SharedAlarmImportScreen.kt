@@ -1,11 +1,13 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.share
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -48,7 +50,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.ui.alarmedit.toAlarmChallengeSummary
 import com.sysadmindoc.alarmclock.data.model.Alarm
-import com.sysadmindoc.alarmclock.ui.components.AppChipShape
 import com.sysadmindoc.alarmclock.ui.components.AppFeedbackCard
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -66,6 +67,7 @@ import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.ui.alarmlist.repeatLabel
 import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 fun SharedAlarmImportScreen(
@@ -164,11 +166,10 @@ fun SharedAlarmImportScreen(
                     style = MaterialTheme.typography.bodyMedium
                 )
             } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     riskyFields.forEach { label ->
                         AppStatusChip(
@@ -207,7 +208,7 @@ fun SharedAlarmImportScreen(
                 onClick = onCancel,
                 modifier = Modifier.weight(1f),
                 enabled = !uiState.isSaving,
-                shape = AppChipShape
+                shape = AppButtonShape
             ) {
                 Text(stringResource(R.string.share_import_discard))
             }
@@ -221,7 +222,7 @@ fun SharedAlarmImportScreen(
                 },
                 modifier = Modifier.weight(1f),
                 enabled = !uiState.isSaving,
-                shape = AppChipShape
+                shape = AppButtonShape
             ) {
                 if (uiState.isSaving) {
                     CircularProgressIndicator(

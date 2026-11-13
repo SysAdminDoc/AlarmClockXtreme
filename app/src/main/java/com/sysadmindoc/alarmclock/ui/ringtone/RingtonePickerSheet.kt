@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.ringtone
 
 import androidx.compose.ui.res.pluralStringResource
@@ -9,21 +11,18 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
@@ -37,7 +36,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -46,7 +44,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.DisposableEffect
@@ -60,12 +57,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppSheetDragHandle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
@@ -81,6 +79,7 @@ import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 data class RingtoneItem(
     val title: String,
@@ -267,7 +266,7 @@ fun RingtonePickerSheet(
             onDismiss()
         },
         containerColor = SurfaceMedium,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = TextMuted) }
+        dragHandle = { AppSheetDragHandle() }
     ) {
         Column(
             modifier = Modifier
@@ -277,44 +276,49 @@ fun RingtonePickerSheet(
         ) {
             AppSectionTitle(
                 title = stringResource(R.string.ringtone_alarm_sound),
-                description = stringResource(R.string.ringtone_preview_tones_before_applying_them),
-                action = {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(
-                                onClick = { folderLauncher.launch(null) },
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    contentColor = MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Icon(
-                                    Icons.Default.FolderOpen,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.size(6.dp))
-                                Text(stringResource(R.string.ringtone_folder), fontWeight = FontWeight.SemiBold)
-                            }
-                            if (youTubeAvailable) {
-                                OutlinedButton(
-                                    onClick = { showYouTubeDialog = true },
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        contentColor = MaterialTheme.colorScheme.primary
-                                    )
-                                ) {
-                                    Icon(
-                                        Icons.Default.CloudDownload,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.size(6.dp))
-                                    Text(stringResource(R.string.ringtone_youtube), fontWeight = FontWeight.SemiBold)
-                                }
-                            }
+                description = stringResource(R.string.ringtone_preview_tones_before_applying_them)
+            )
+            // Own row under the title: as the title's action they squeezed the
+            // description to half width and pushed From YouTube off screen.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { folderLauncher.launch(null) },
+                    modifier = Modifier.weight(1f),
+                    shape = AppButtonShape,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.FolderOpen,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.size(6.dp))
+                    Text(stringResource(R.string.ringtone_folder), fontWeight = FontWeight.SemiBold)
+                }
+                if (youTubeAvailable) {
+                    OutlinedButton(
+                        onClick = { showYouTubeDialog = true },
+                        modifier = Modifier.weight(1f),
+                        shape = AppButtonShape,
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.CloudDownload,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.size(6.dp))
+                        Text(stringResource(R.string.ringtone_youtube), fontWeight = FontWeight.SemiBold)
                     }
                 }
-            )
+            }
 
             if (youTubeStatus.isNotBlank()) {
                 AppInlineNotice(
@@ -334,12 +338,12 @@ fun RingtonePickerSheet(
                 )
             }
 
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AppStatusChip(
-                    label = currentSelection?.title ?: stringResource(R.string.ringtone_default_alarm),
+                    label = currentSelection?.let { ringtoneTitle(it) } ?: stringResource(R.string.ringtone_default_alarm),
                     color = MaterialTheme.colorScheme.primary
                 )
                 AppStatusChip(
@@ -349,10 +353,6 @@ fun RingtonePickerSheet(
                         filteredRingtones.size
                     ),
                     color = DismissGreen
-                )
-                AppStatusChip(
-                    label = stringResource(R.string.ringtone_tap_tone_preview),
-                    color = TextMuted
                 )
                 if (playingUri != null) {
                     AppStatusChip(
@@ -476,13 +476,10 @@ private fun RingtoneRow(
     val supportsPreview = !ringtone.isDefault && !ringtone.isSilent
 
     AppSurfaceCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button) {
-                if (supportsPreview) onPreview() else onConfirm()
-            },
+        modifier = Modifier.fillMaxWidth(),
         highlighted = isSelected || isPlaying,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
+        onClick = { if (supportsPreview) onPreview() else onConfirm() }
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -513,55 +510,42 @@ private fun RingtoneRow(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = ringtone.title,
+                    text = ringtoneTitle(ringtone),
                     color = if (isSelected) MaterialTheme.colorScheme.primary else TextPrimary,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold
                 )
-                Text(
-                    text = ringtoneSubtitle(ringtone, supportsPreview),
-                    color = TextSecondary,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    when {
-                        isSelected -> AppStatusChip(
-                            label = stringResource(R.string.settings_selected),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        isPlaying -> AppStatusChip(
-                            label = stringResource(R.string.youtube_previewing),
-                            color = AccentBlue
-                        )
-                        ringtone.isDefault -> AppStatusChip(
-                            label = stringResource(R.string.ringtone_recommended),
-                            color = DismissGreen
-                        )
-                        ringtone.isSilent -> AppStatusChip(
-                            label = stringResource(R.string.ringtone_quiet_mode),
-                            color = SnoozeYellow
-                        )
-                    }
+                // Ordinary tones get no subtitle: the same "tap to preview" line
+                // on every one of 160+ rows doubled their height and said
+                // what the header chip already says.
+                ringtoneSubtitle(ringtone)?.let { subtitle ->
+                    Text(
+                        text = subtitle,
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                when {
+                    isSelected -> AppStatusChip(
+                        label = stringResource(R.string.settings_selected),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    isPlaying -> AppStatusChip(
+                        label = stringResource(R.string.youtube_previewing),
+                        color = AccentBlue
+                    )
+                    ringtone.isDefault -> AppStatusChip(
+                        label = stringResource(R.string.ringtone_recommended),
+                        color = DismissGreen
+                    )
+                    ringtone.isSilent -> AppStatusChip(
+                        label = stringResource(R.string.ringtone_quiet_mode),
+                        color = SnoozeYellow
+                    )
                 }
             }
 
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                if (isSelected) {
-                    Icon(
-                        imageVector = Icons.Default.CheckCircle,
-                        contentDescription = stringResource(R.string.ringtone_current_alarm_sound),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    TextButton(onClick = onConfirm) {
-                        Text(stringResource(R.string.dashboard_use), fontWeight = FontWeight.SemiBold)
-                    }
-                }
-
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 if (supportsPreview) {
                     IconButton(onClick = onPreview) {
                         Icon(
@@ -570,20 +554,38 @@ private fun RingtoneRow(
                             tint = if (isPlaying) MaterialTheme.colorScheme.primary else TextMuted
                         )
                     }
+                }
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = stringResource(R.string.ringtone_current_alarm_sound),
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
                 } else {
-                    Spacer(modifier = Modifier.height(40.dp))
+                    AppTextButton(onClick = onConfirm) {
+                        Text(stringResource(R.string.dashboard_use), fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
     }
 }
 
+// The loader names the two built-in rows in English for search; show them
+// through resources so they follow the app language.
 @Composable
-private fun ringtoneSubtitle(ringtone: RingtoneItem, supportsPreview: Boolean): String = when {
+private fun ringtoneTitle(ringtone: RingtoneItem): String = when {
+    ringtone.isDefault -> stringResource(R.string.ringtone_default_alarm)
+    ringtone.isSilent -> stringResource(R.string.alarm_edit_silent)
+    else -> ringtone.title
+}
+
+@Composable
+private fun ringtoneSubtitle(ringtone: RingtoneItem): String? = when {
     ringtone.isDefault -> stringResource(R.string.ringtone_uses_your_device_s_current_default)
     ringtone.isSilent -> stringResource(R.string.ringtone_no_audio_best_paired_with_vibration)
-    supportsPreview -> stringResource(R.string.ringtone_tap_to_preview_then_choose_use)
-    else -> stringResource(R.string.ringtone_ready_to_apply)
+    else -> null
 }
 
 private fun ringtoneSearchText(ringtone: RingtoneItem): String = buildString {

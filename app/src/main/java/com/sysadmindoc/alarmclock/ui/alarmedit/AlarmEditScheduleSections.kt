@@ -59,6 +59,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -93,13 +94,32 @@ internal fun LazyListScope.alarmEditScheduleSections(
                     java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)
                 )
                 val timeStr = dt.format(AlarmTimeFormatter.formatter(state.is24HourFormat))
-                val label = if (entry.skippedByVacation) {
-                    stringResource(R.string.alarm_edit_vacation_skip_date, dateStr, timeStr)
+                if (entry.skippedByVacation) {
+                    SettingsHint(
+                        stringResource(R.string.alarm_edit_vacation_skip_date, dateStr, timeStr),
+                        tone = HintTone.Warning
+                    )
                 } else {
-                    stringResource(R.string.alarm_edit_fire_date, dateStr, timeStr)
+                    // A plain line per date. A hint box each stacked seven
+                    // bordered cards whose info icon had nothing to explain.
+                    Row(
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Event,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.alarm_edit_fire_date, dateStr, timeStr),
+                            color = TextPrimary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
-                val tone = if (entry.skippedByVacation) HintTone.Warning else HintTone.Neutral
-                SettingsHint(label, tone = tone)
             }
         } else {
             SettingsHint(stringResource(R.string.alarm_edit_will_not_ring), tone = HintTone.Warning)
@@ -191,7 +211,7 @@ private fun CalendarTagSkipField(state: AlarmEditUiState, viewModel: AlarmEditVi
         placeholder = { Text(stringResource(R.string.alarm_edit_skip_calendar_tag_placeholder)) },
         colors = appOutlinedTextFieldColors(),
         shape = AppInputShape,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         singleLine = true
     )
     SettingsHint(
@@ -203,7 +223,7 @@ private fun CalendarTagSkipField(state: AlarmEditUiState, viewModel: AlarmEditVi
             stringResource(R.string.alarm_edit_skip_calendar_no_permission),
             tone = HintTone.Warning
         )
-        TextButton(
+        AppTextButton(
             onClick = { calendarPermissionLauncher.launch(Manifest.permission.READ_CALENDAR) },
             modifier = Modifier.padding(horizontal = 8.dp)
         ) {

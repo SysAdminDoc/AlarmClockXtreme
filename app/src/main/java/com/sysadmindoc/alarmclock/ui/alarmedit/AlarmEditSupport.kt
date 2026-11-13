@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import android.Manifest
@@ -11,7 +13,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
@@ -55,8 +56,10 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppSheetDragHandle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
@@ -72,6 +75,7 @@ import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.DayOfWeek
 import java.util.Locale
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 internal fun AlarmTimeNumpad(
@@ -161,7 +165,7 @@ internal fun AlarmTimeNumpad(
                         modifier = Modifier
                             .weight(1f)
                             .height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = AppButtonShape,
                         contentPadding = PaddingValues(0.dp)
                     ) {
                         when (key) {
@@ -323,7 +327,7 @@ internal fun AlarmEditorCategoryOverview(
         AlarmEditorCategory(
             page = AlarmEditorPage.WAKE,
             title = stringResource(R.string.alarm_edit_page_wake),
-            summary = wakeFeatures.takeIf { it.isNotEmpty() }?.joinToString(" • ")
+            summary = wakeFeatures.takeIf { it.isNotEmpty() }?.joinToString(" · ")
                 ?: stringResource(R.string.alarm_edit_standard_wake),
             icon = Icons.Default.WbSunny
         ),
@@ -340,7 +344,7 @@ internal fun AlarmEditorCategoryOverview(
         AlarmEditorCategory(
             page = AlarmEditorPage.ADVANCED,
             title = stringResource(R.string.alarm_edit_page_advanced),
-            summary = advancedFeatures.takeIf { it.isNotEmpty() }?.joinToString(" • ")
+            summary = advancedFeatures.takeIf { it.isNotEmpty() }?.joinToString(" · ")
                 ?: stringResource(R.string.alarm_edit_using_defaults),
             icon = Icons.Default.Tune
         )
@@ -475,32 +479,27 @@ internal fun SettingsRow(
     label: String,
     trailing: @Composable (() -> Unit)? = null
 ) {
-    Surface(
+    // A plain row: the section card is already the container, and a bordered
+    // tile per row stacked a second frame inside it.
+    Row(
         modifier = Modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = SurfaceLight.copy(alpha = 0.58f),
-        border = BorderStroke(1.dp, BorderSubtle)
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = label,
-                color = TextPrimary,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-            if (trailing != null) {
-                Spacer(modifier = Modifier.width(12.dp))
-                trailing()
-            }
+        Text(
+            text = label,
+            color = TextPrimary,
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        if (trailing != null) {
+            Spacer(modifier = Modifier.width(12.dp))
+            trailing()
         }
     }
 }
@@ -564,7 +563,7 @@ internal fun SettingsHint(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .padding(vertical = 2.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(accentColor.copy(alpha = 0.10f))
             .border(
@@ -611,7 +610,7 @@ internal fun ChallengeChainPickerSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = SurfaceMedium,
-        dragHandle = { BottomSheetDefaults.DragHandle(color = TextMuted) }
+        dragHandle = { AppSheetDragHandle() }
     ) {
         Column(
             modifier = Modifier
@@ -631,11 +630,10 @@ internal fun ChallengeChainPickerSheet(
                     tone = HintTone.Neutral
                 )
             } else {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     draftChain.forEachIndexed { index, challenge ->
                         AppStatusChip(
@@ -719,7 +717,7 @@ internal fun ChallengeChainPickerSheet(
                                     }
                                 }
                             } else {
-                                TextButton(onClick = { draftChain = draftChain + type }) {
+                                AppTextButton(onClick = { draftChain = draftChain + type }) {
                                     Text(stringResource(R.string.alarm_edit_add), color = MaterialTheme.colorScheme.primary)
                                 }
                             }
@@ -732,7 +730,7 @@ internal fun ChallengeChainPickerSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(
+                AppTextButton(
                     onClick = { draftChain = emptyList() },
                     enabled = draftChain.isNotEmpty()
                 ) {
@@ -742,12 +740,12 @@ internal fun ChallengeChainPickerSheet(
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = onDismiss) {
+                    AppTextButton(onClick = onDismiss) {
                         Text(stringResource(R.string.cancel), color = TextSecondary)
                     }
                     Button(
                         onClick = { onApply(draftChain) },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = AppButtonShape,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text(
@@ -972,4 +970,86 @@ internal fun ringtoneShortName(uri: String, emptyLabel: String): String {
         .ifBlank { trimmed }
     val safe = fileName.take(28)
     return if (fileName.length > 28) "$safe…" else safe
+}
+
+// "30 sec", "1 min", "1 min 30 sec" for the editor's value buttons. The old
+// "1m 0s" read like a typo next to the "10 min" buttons around it.
+@Composable
+internal fun editorDuration(totalSeconds: Int): String {
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return when {
+        minutes == 0 -> stringResource(R.string.alarm_edit_seconds_short, seconds)
+        seconds == 0 -> stringResource(R.string.alarm_edit_minutes_short, minutes)
+        else -> stringResource(R.string.alarm_edit_minutes_seconds_short, minutes, seconds)
+    }
+}
+
+// A typed ISO date field with a calendar button. Typing still works for
+// pasting, but nobody should have to know the YYYY-MM-DD format by heart.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun EditorDateField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    supportingText: String? = null
+) {
+    var showPicker by remember { mutableStateOf(false) }
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label, color = TextMuted) },
+        placeholder = { Text(stringResource(R.string.alarm_edit_date_placeholder), color = TextMuted) },
+        supportingText = supportingText?.let { { Text(it) } },
+        trailingIcon = {
+            IconButton(onClick = { showPicker = true }) {
+                Icon(
+                    Icons.Default.CalendarMonth,
+                    contentDescription = stringResource(R.string.alarm_edit_pick_date),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        colors = appOutlinedTextFieldColors(),
+        shape = AppInputShape,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        singleLine = true
+    )
+    if (showPicker) {
+        // The picker speaks UTC midnight millis; the field stores a plain
+        // LocalDate, so convert through UTC both ways to avoid an off-by-one.
+        val initial = runCatching {
+            java.time.LocalDate.parse(value.trim())
+        }.getOrNull() ?: java.time.LocalDate.now()
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = initial.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showPicker = false },
+            confirmButton = {
+                AppTextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { millis ->
+                        onValueChange(
+                            java.time.Instant.ofEpochMilli(millis)
+                                .atZone(java.time.ZoneOffset.UTC)
+                                .toLocalDate()
+                                .toString()
+                        )
+                    }
+                    showPicker = false
+                }) {
+                    Text(stringResource(R.string.save), color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            dismissButton = {
+                AppTextButton(onClick = { showPicker = false }) {
+                    Text(stringResource(R.string.cancel), color = TextSecondary)
+                }
+            },
+            colors = DatePickerDefaults.colors(containerColor = SurfaceDark)
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
 }

@@ -11,7 +11,6 @@ import java.time.DayOfWeek
 data class AlarmTemplate(
     val key: String,
     @StringRes val nameRes: Int,
-    @StringRes val descriptionRes: Int,
     val hour: Int,
     val minute: Int,
     val repeatDays: Set<DayOfWeek>,
@@ -26,7 +25,6 @@ val defaultTemplates = listOf(
     AlarmTemplate(
         key = "early_bird",
         nameRes = R.string.template_early_bird_name,
-        descriptionRes = R.string.template_early_bird_description,
         hour = 5, minute = 30,
         repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
             DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
@@ -36,7 +34,6 @@ val defaultTemplates = listOf(
     AlarmTemplate(
         key = "work_alarm",
         nameRes = R.string.template_work_alarm_name,
-        descriptionRes = R.string.template_work_alarm_description,
         hour = 7, minute = 0,
         repeatDays = setOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
             DayOfWeek.THURSDAY, DayOfWeek.FRIDAY),
@@ -45,7 +42,6 @@ val defaultTemplates = listOf(
     AlarmTemplate(
         key = "weekend_sleep_in",
         nameRes = R.string.template_weekend_sleep_in_name,
-        descriptionRes = R.string.template_weekend_sleep_in_description,
         hour = 9, minute = 0,
         repeatDays = setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY),
         gradualVolumeSeconds = 180,
@@ -55,7 +51,6 @@ val defaultTemplates = listOf(
     AlarmTemplate(
         key = "power_nap",
         nameRes = R.string.template_power_nap_name,
-        descriptionRes = R.string.template_power_nap_description,
         hour = 0, minute = 20, // Interpreted as +20 mins from now
         repeatDays = emptySet(),
         gradualVolumeSeconds = 0,
@@ -66,7 +61,6 @@ val defaultTemplates = listOf(
     AlarmTemplate(
         key = "heavy_sleeper",
         nameRes = R.string.template_heavy_sleeper_name,
-        descriptionRes = R.string.template_heavy_sleeper_description,
         hour = 6, minute = 0,
         repeatDays = DayOfWeek.entries.toSet(),
         gradualVolumeSeconds = 0,
@@ -77,7 +71,6 @@ val defaultTemplates = listOf(
     AlarmTemplate(
         key = "medication_reminder",
         nameRes = R.string.template_medication_reminder_name,
-        descriptionRes = R.string.template_medication_reminder_description,
         hour = 8, minute = 0,
         repeatDays = DayOfWeek.entries.toSet(),
         gradualVolumeSeconds = 90,

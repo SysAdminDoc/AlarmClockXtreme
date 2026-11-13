@@ -92,6 +92,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
@@ -103,6 +104,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
+import com.sysadmindoc.alarmclock.ui.theme.accentForeground
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import kotlinx.coroutines.delay
@@ -172,7 +174,7 @@ fun MathChallengeView(
                                 .weight(1f)
                                 .height(68.dp)
                                 .semantics { contentDescription = answerLabel },
-                            shape = RoundedCornerShape(10.dp),
+                            shape = AppButtonShape,
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = SurfaceCard.copy(alpha = 0.82f),
                                 contentColor = TextPrimary
@@ -514,8 +516,8 @@ fun TypingChallengeView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-            shape = RoundedCornerShape(10.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = accentForeground(AccentBlue)),
+            shape = AppButtonShape
         ) {
             Text(stringResource(R.string.challenge_check_phrase), fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
@@ -684,8 +686,8 @@ fun VoicePhraseChallengeView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-            shape = RoundedCornerShape(10.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = accentForeground(AccentBlue)),
+            shape = AppButtonShape
         ) {
             Text(
                 text = if (isListening) stringResource(R.string.alarmfiring_listening) else stringResource(R.string.alarmfiring_start_listening),
@@ -702,7 +704,7 @@ fun VoicePhraseChallengeView(
                     localStatus = resources.getString(R.string.alarmfiring_voice_stopped)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp)
+                shape = AppButtonShape
             ) {
                 Text(stringResource(R.string.challenge_stop_listening))
             }
@@ -740,7 +742,7 @@ fun VoicePhraseChallengeView(
             onClick = { onRecognized(typedFallback) },
             enabled = typedFallback.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp)
+            shape = AppButtonShape
         ) {
             Text(stringResource(R.string.challenge_check_typed_phrase))
         }
@@ -821,7 +823,7 @@ fun HandwritingChallengeView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(SurfaceDark.copy(alpha = 0.78f))
                 .semantics { contentDescription = padLabel }
         ) {
@@ -902,7 +904,7 @@ fun HandwritingChallengeView(
                 },
                 enabled = !busy && (strokes.isNotEmpty() || currentStroke.isNotEmpty()),
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(10.dp)
+                shape = AppButtonShape
             ) {
                 Text(stringResource(R.string.alarm_edit_clear_short))
             }
@@ -916,8 +918,8 @@ fun HandwritingChallengeView(
                 },
                 enabled = !busy && strokes.isNotEmpty() && canvasSize != IntSize.Zero,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-                shape = RoundedCornerShape(10.dp)
+                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = accentForeground(AccentBlue)),
+                shape = AppButtonShape
             ) {
                 Text(if (busy) stringResource(R.string.alarmfiring_checking) else stringResource(R.string.alarmfiring_check_drawing))
             }
@@ -952,7 +954,7 @@ fun HandwritingChallengeView(
             onClick = { onTypedFallback(typedFallback) },
             enabled = typedFallback.isNotBlank() && !busy,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp)
+            shape = AppButtonShape
         ) {
             Text(stringResource(R.string.challenge_check_typed_word))
         }
@@ -1001,7 +1003,7 @@ fun WalkChallengeView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(10.dp)
+                shape = AppButtonShape
             ) {
                 Text(stringResource(R.string.challenge_continue_without_step_count))
             }
@@ -1133,11 +1135,11 @@ fun BarcodeScanChallengeView(
             )
             Button(
                 onClick = { onCodeEntered("") },
-                colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = DismissGreen, contentColor = accentForeground(DismissGreen)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(10.dp)
+                shape = AppButtonShape
             ) {
                 Text(stringResource(R.string.challenge_continue_without_saved_code))
             }
@@ -1161,11 +1163,11 @@ fun BarcodeScanChallengeView(
             Button(
                 onClick = { onCodeEntered(codeInput.trim()) },
                 enabled = codeInput.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
+                colors = ButtonDefaults.buttonColors(containerColor = DismissGreen, contentColor = accentForeground(DismissGreen)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(10.dp)
+                shape = AppButtonShape
             ) {
                 Text(stringResource(R.string.challenge_submit_code))
             }
@@ -1218,8 +1220,8 @@ fun PhotoMatchChallengeView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue),
-            shape = RoundedCornerShape(10.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = accentForeground(AccentBlue)),
+            shape = AppButtonShape
         ) {
             Icon(imageVector = Icons.Default.CameraAlt, contentDescription = stringResource(R.string.challenge_open_camera), modifier = Modifier.size(20.dp))
             Text(
@@ -1317,7 +1319,7 @@ private fun ExerciseSensorFallback(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            shape = RoundedCornerShape(10.dp)
+            shape = AppButtonShape
         ) {
             Text(buttonLabel)
         }
@@ -1355,14 +1357,16 @@ fun PlankHoldChallengeView(
         if (!isActive) {
             Button(
                 onClick = onStart,
-                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = accentForeground(AccentBlue)),
+                shape = AppButtonShape
             ) {
                 Text(stringResource(R.string.challenge_start_plank))
             }
         } else {
             OutlinedButton(
                 onClick = onBreak,
-                border = BorderStroke(1.dp, AccentRed)
+                border = BorderStroke(1.dp, AccentRed),
+                shape = AppButtonShape
             ) {
                 Text(stringResource(R.string.challenge_i_broke_form), color = AccentRed)
             }
@@ -1904,7 +1908,7 @@ fun DateBackwardsChallengeView(
             onClick = onSubmit,
             enabled = input.length == challenge.expectedInput.length,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp)
+            shape = AppButtonShape
         ) {
             Text(stringResource(R.string.challenge_check_date))
         }
@@ -1993,7 +1997,7 @@ fun RockPaperScissorsChallengeView(
                 color = DismissGreen
             )
             Text(
-                text = "  —  ",
+                text = "  ·  ",
                 style = MaterialTheme.typography.headlineSmall,
                 color = TextMuted
             )
@@ -2040,7 +2044,7 @@ fun RockPaperScissorsChallengeView(
                 OutlinedButton(
                     onClick = { onPick(choice) },
                     modifier = Modifier.weight(1f).height(72.dp),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.outlinedButtonColors(containerColor = SurfaceCard)
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -2246,8 +2250,8 @@ fun TypingSpeedChallengeView(
             onClick = onSubmit,
             modifier = Modifier.fillMaxWidth(),
             enabled = currentInput.isNotBlank(),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
+            shape = AppButtonShape,
+            colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = accentForeground(AccentBlue))
         ) {
             Text(stringResource(R.string.challenge_check_speed), color = TextPrimary, fontWeight = FontWeight.Bold)
         }
@@ -2364,8 +2368,8 @@ fun WordleChallengeView(
                 onClick = onSubmit,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = currentInput.length == 5,
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue)
+                shape = AppButtonShape,
+                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = accentForeground(AccentBlue))
             ) {
                 Text(stringResource(R.string.challenge_submit_guess), color = TextPrimary, fontWeight = FontWeight.Bold)
             }
@@ -2448,9 +2452,10 @@ fun PvtChallengeView(
                     else -> stringResource(R.string.alarmfiring_tap_to_start)
                 },
                 style = MaterialTheme.typography.headlineMedium,
+                // White on the light green and coral fills measured 1.7:1 and 2.3:1.
                 color = when {
-                    stimulusShown -> Color.White
-                    failed -> Color.White
+                    stimulusShown -> accentForeground(DismissGreen)
+                    failed -> accentForeground(AccentRed)
                     else -> TextPrimary
                 },
                 textAlign = TextAlign.Center,
@@ -2551,7 +2556,7 @@ private fun DifferenceGrid(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(34.dp)
-                                .clip(RoundedCornerShape(7.dp))
+                                .clip(RoundedCornerShape(8.dp))
                                 .background(palette[tile % palette.size].copy(alpha = 0.9f))
                                 .clickable(enabled = enabled) { onPick(index) }
                                 .semantics {
@@ -2609,7 +2614,7 @@ fun ChessMateChallengeView(
                             modifier = Modifier
                                 .weight(1f)
                                 .height(52.dp),
-                            shape = RoundedCornerShape(10.dp),
+                            shape = AppButtonShape,
                             colors = ButtonDefaults.outlinedButtonColors(
                                 containerColor = SurfaceCard.copy(alpha = 0.84f),
                                 contentColor = TextPrimary
@@ -2706,7 +2711,7 @@ fun RsvpReadingChallengeView(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(112.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(SurfaceCard),
             contentAlignment = Alignment.Center
         ) {
@@ -2739,7 +2744,7 @@ fun RsvpReadingChallengeView(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(54.dp),
-                                shape = RoundedCornerShape(10.dp),
+                                shape = AppButtonShape,
                                 colors = ButtonDefaults.outlinedButtonColors(
                                     containerColor = SurfaceCard.copy(alpha = 0.84f),
                                     contentColor = TextPrimary

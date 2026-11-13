@@ -59,6 +59,7 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -84,25 +85,23 @@ internal fun LazyListScope.alarmEditAdvancedSection(
 ) {
     // v1.2.0: Advanced
     SettingsSection(editorPage, AlarmEditorSection.ADVANCED) {
-        SettingsRow(label = stringResource(R.string.alarm_edit_profile)) {
-            OutlinedTextField(
-                value = state.profileName,
-                onValueChange = viewModel::updateProfileName,
-                placeholder = { Text(stringResource(R.string.alarm_edit_profile_placeholder), color = TextMuted) },
-                colors = appOutlinedTextFieldColors(),
-                shape = AppInputShape,
-                modifier = Modifier.width(180.dp),
-                singleLine = true
-            )
-        }
+        // Full width with a floating label, like every other field here. In a
+        // row's trailing slot it was 180dp wide and the placeholder wrapped.
         OutlinedTextField(
-            value = state.specificDate,
-            onValueChange = viewModel::updateSpecificDate,
-            label = { Text(stringResource(R.string.alarm_edit_specific_date), color = TextMuted) },
+            value = state.profileName,
+            onValueChange = viewModel::updateProfileName,
+            label = { Text(stringResource(R.string.alarm_edit_profile), color = TextMuted) },
+            placeholder = { Text(stringResource(R.string.alarm_edit_profile_placeholder), color = TextMuted) },
             colors = appOutlinedTextFieldColors(),
             shape = AppInputShape,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
             singleLine = true
+        )
+        EditorDateField(
+            value = state.specificDate,
+            onValueChange = viewModel::updateSpecificDate,
+            label = stringResource(R.string.alarm_edit_specific_date),
+            supportingText = stringResource(R.string.alarm_edit_specific_date_hint)
         )
         var showTimezonePolicyMenu by remember { mutableStateOf(false) }
         SettingsRow(label = stringResource(R.string.alarm_edit_time_zone)) {
@@ -160,7 +159,7 @@ internal fun LazyListScope.alarmEditAdvancedSection(
                 isError = !zoneIsValid,
                 colors = appOutlinedTextFieldColors(),
                 shape = AppInputShape,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 singleLine = true
             )
         }
@@ -208,14 +207,10 @@ internal fun LazyListScope.alarmEditAdvancedSection(
         }
         AnimatedVisibility(visible = selectedShiftPattern != null) {
             Column {
-                OutlinedTextField(
+                EditorDateField(
                     value = state.shiftPatternStartDate,
                     onValueChange = viewModel::updateShiftPatternStartDate,
-                    label = { Text(stringResource(R.string.alarm_edit_shift_start), color = TextMuted) },
-                    colors = appOutlinedTextFieldColors(),
-                    shape = AppInputShape,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                    singleLine = true
+                    label = stringResource(R.string.alarm_edit_shift_start)
                 )
                 SettingsHint(
                     stringResource(R.string.alarm_edit_shift_hint),
@@ -297,7 +292,7 @@ internal fun LazyListScope.alarmEditAdvancedSection(
             label = { Text(stringResource(R.string.alarm_edit_wifi_dismiss_ssid), color = TextMuted) },
             colors = appOutlinedTextFieldColors(),
             shape = AppInputShape,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
             singleLine = true
         )
 
@@ -372,7 +367,7 @@ internal fun LazyListScope.alarmEditAdvancedSection(
                 .filter { it.isNotEmpty() }
         }
         var showAddRingtoneDialog by remember { mutableStateOf(false) }
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             Text(
                 text = stringResource(R.string.alarm_edit_ringtone_pool),
                 color = TextSecondary,
@@ -447,7 +442,7 @@ internal fun LazyListScope.alarmEditAdvancedSection(
                     }
                 },
                 confirmButton = {
-                    TextButton(
+                    AppTextButton(
                         enabled = canAddRingtone,
                         onClick = {
                             val next = (ringtonePoolEntries + trimmedUri).joinToString(",")
@@ -457,7 +452,7 @@ internal fun LazyListScope.alarmEditAdvancedSection(
                     ) { Text(stringResource(R.string.alarm_edit_add_ringtone)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showAddRingtoneDialog = false }) {
+                    AppTextButton(onClick = { showAddRingtoneDialog = false }) {
                         Text(stringResource(R.string.cancel))
                     }
                 }

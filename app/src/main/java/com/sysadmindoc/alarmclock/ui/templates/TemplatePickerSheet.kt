@@ -2,11 +2,11 @@ package com.sysadmindoc.alarmclock.ui.templates
 
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
@@ -26,7 +25,6 @@ import androidx.compose.material.icons.filled.Snooze
 import androidx.compose.material.icons.filled.WbTwilight
 import androidx.compose.material.icons.filled.Weekend
 import androidx.compose.material.icons.filled.Work
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,12 +36,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.DayOfWeek
 import com.sysadmindoc.alarmclock.ui.alarmedit.toAlarmChallengeSummary
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
+import com.sysadmindoc.alarmclock.ui.components.AppSheetDragHandle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
@@ -52,7 +50,6 @@ import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
-import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
 import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
@@ -67,9 +64,7 @@ fun TemplatePickerSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = SurfaceMedium,
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(color = TextMuted)
-        }
+        dragHandle = { AppSheetDragHandle() }
     ) {
         Column(
             modifier = Modifier
@@ -81,24 +76,6 @@ fun TemplatePickerSheet(
                 title = stringResource(R.string.template_quick_start_templates),
                 description = stringResource(R.string.template_start_thoughtful_preset_common_routines)
             )
-
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                AppStatusChip(
-                    label = stringResource(R.string.templates_ready_made_setups, defaultTemplates.size),
-                    color = MaterialTheme.colorScheme.primary
-                )
-                AppStatusChip(
-                    label = stringResource(R.string.template_creates_draft_alarm),
-                    color = DismissGreen
-                )
-                AppStatusChip(
-                    label = stringResource(R.string.template_fully_editable),
-                    color = TextMuted
-                )
-            }
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -116,6 +93,7 @@ fun TemplatePickerSheet(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TemplateCard(
     template: AlarmTemplate,
@@ -125,11 +103,10 @@ private fun TemplateCard(
     val accent = templateAccent(template)
 
     AppSurfaceCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         highlighted = template.challengeType != "NONE" || template.gradualVolumeSeconds >= 120,
-        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp)
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+        onClick = onClick
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -166,15 +143,12 @@ private fun TemplateCard(
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Light
                 )
-                Text(
-                    text = stringResource(template.descriptionRes),
-                    color = TextSecondary,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                // Chips wrap instead of scrolling: the snooze chip was cut off at
+                // the card edge. A description line repeating the time and these
+                // chips is gone too.
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AppStatusChip(
                         label = templateRepeatLabel(template.repeatDays),

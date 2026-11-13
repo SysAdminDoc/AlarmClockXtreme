@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
+import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
 
@@ -63,6 +64,12 @@ fun SwipeableAlarmCard(
                 if (willDelete) AccentRed.copy(alpha = 0.86f) else Color.Transparent,
                 label = stringResource(R.string.swipe_swipe_bg)
             )
+            // Mid-swipe the label sits on the dark app background; once the
+            // coral fill shows it switches to the theme's onError label.
+            val labelColor by animateColorAsState(
+                if (willDelete) MaterialTheme.colorScheme.onError else TextPrimary,
+                label = "label_color"
+            )
             val scale by animateFloatAsState(
                 if (willDelete) 1.05f else 0.86f,
                 label = "icon_scale"
@@ -92,23 +99,23 @@ fun SwipeableAlarmCard(
                         ) {
                             Text(
                                 text = if (willDelete) stringResource(R.string.alarmlist_release_to_delete) else stringResource(R.string.alarmlist_swipe_to_delete),
-                                color = Color.White,
+                                color = labelColor,
                                 style = MaterialTheme.typography.titleSmall
                             )
                             Text(
                                 text = stringResource(R.string.swipe_undo_available_right_after_removal),
-                                color = Color.White.copy(alpha = 0.82f),
+                                color = labelColor.copy(alpha = 0.82f),
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
                         Surface(
-                            color = Color.White.copy(alpha = 0.14f),
+                            color = labelColor.copy(alpha = 0.14f),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Icon(
                                 Icons.Default.Delete,
                                 contentDescription = stringResource(R.string.alarm_list_delete),
-                                tint = Color.White,
+                                tint = labelColor,
                                 modifier = Modifier
                                     .padding(12.dp)
                                     .scale(scale)

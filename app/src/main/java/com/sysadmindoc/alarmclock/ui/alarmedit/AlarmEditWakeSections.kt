@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -75,6 +74,7 @@ import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.DayOfWeek
 import java.util.Locale
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 internal fun LazyListScope.alarmEditWakeSections(
@@ -103,11 +103,11 @@ internal fun LazyListScope.alarmEditWakeSections(
                     viewModel.updateFlashWake(false)
                 }
             },
-            shape = RoundedCornerShape(12.dp),
+            shape = AppButtonShape,
             colors = ButtonDefaults.outlinedButtonColors(
                 contentColor = if (isGentleWake) DismissGreen else MaterialTheme.colorScheme.primary
             ),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
         ) {
             Text(
                 stringResource(
@@ -177,9 +177,9 @@ internal fun LazyListScope.alarmEditWakeSections(
             )
             OutlinedButton(
                 onClick = viewModel::clearFiringBackgroundImage,
-                shape = RoundedCornerShape(12.dp),
+                shape = AppButtonShape,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
             ) {
                 Text(stringResource(R.string.alarm_edit_clear_background))
             }
@@ -306,7 +306,7 @@ internal fun LazyListScope.alarmEditWakeSections(
             placeholder = { Text(stringResource(R.string.alarm_edit_checklist_placeholder), color = TextMuted) },
             colors = appOutlinedTextFieldColors(),
             shape = AppInputShape,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             minLines = 3, maxLines = 6
         )
         SettingsHint(

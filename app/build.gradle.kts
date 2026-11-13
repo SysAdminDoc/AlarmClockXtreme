@@ -306,7 +306,7 @@ val verifyLocalizedPrimaryScreens by tasks.registering {
             "loading-alpha", "skeleton-block", "skeleton-alpha", "funnel", "funnel-rotation",
             "funnel-drift", "glowAlpha", "burnInDrift", "driftX", "driftY", "timer-pulse",
             "key-press-scale", "barcodeScan", "scanLine", "dotWidth\$index",
-            "driftPhaseX", "driftPhaseY"
+            "driftPhaseX", "driftPhaseY", "label_color"
         )
         val animationLabelPattern = Regex("""\blabel\s*=\s*"([^"\r\n]*)"""")
         // What is left once every `$x` and `${...}` is removed: only that part

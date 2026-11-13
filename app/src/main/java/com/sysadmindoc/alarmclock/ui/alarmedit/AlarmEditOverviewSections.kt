@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import android.Manifest
@@ -15,12 +17,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -99,14 +99,6 @@ internal fun LazyListScope.alarmEditOverviewSections(
             description = stringResource(R.string.alarm_edit_preview_description)
         )
 
-        AppStatusChip(
-            label = stringResource(
-                if (state.isEditing) R.string.alarm_edit_existing_status else R.string.alarm_edit_new_status
-            ),
-            icon = if (state.isEditing) Icons.Default.Edit else Icons.Default.AddAlarm,
-            color = MaterialTheme.colorScheme.primary
-        )
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -141,13 +133,6 @@ internal fun LazyListScope.alarmEditOverviewSections(
             }
         }
 
-        Text(
-            text = stringResource(R.string.alarm_edit_adjust_time_hint),
-            color = TextMuted,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
-        )
-
         // Live "rings in …" affordance so the user doesn't have to do the
         // mental math when picking a time. Sourced from the same forecast
         // the "Upcoming fire dates" section computes.
@@ -180,11 +165,10 @@ internal fun LazyListScope.alarmEditOverviewSections(
             onToggleDay = viewModel::toggleDay
         )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
                 label = state.repeatDays.toAlarmRepeatSummary(),
@@ -211,9 +195,7 @@ internal fun LazyListScope.alarmEditOverviewSections(
             placeholder = { Text(stringResource(R.string.alarm_edit_label_placeholder), color = TextMuted) },
             colors = appOutlinedTextFieldColors(),
             shape = AppInputShape,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
     }
@@ -287,7 +269,7 @@ internal fun LazyListScope.alarmEditOverviewSections(
                 shape = AppInputShape,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .padding(vertical = 4.dp),
                 singleLine = true
             )
         }

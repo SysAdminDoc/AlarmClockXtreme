@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.alarmfiring
 
 import android.content.Context
@@ -6,20 +8,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Snooze
@@ -65,10 +65,12 @@ import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.ui.theme.accentForeground
 import com.sysadmindoc.alarmclock.worker.WakeConfirmWorker
 import com.sysadmindoc.alarmclock.service.AlarmTestRun
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.delay
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 class WakeConfirmActivity : ComponentActivity() {
 
@@ -273,7 +275,7 @@ private fun WakeConfirmScreen(
                         text = if (secondsLeft > 0) {
                             "Confirm within ${secondsLeft}s or the alarm will ring again."
                         } else {
-                            "Time's up — the alarm is ringing again."
+                            "Time's up. The alarm is ringing again."
                         },
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodyMedium,
@@ -310,9 +312,9 @@ private fun WakeConfirmScreen(
                     description = stringResource(R.string.wake_confirm_ui_quick_second_check_alarms_need)
                 )
 
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AppStatusChip(
                         label = stringResource(R.string.wake_confirm_confirm_label),
@@ -341,8 +343,8 @@ private fun WakeConfirmScreen(
                 Button(
                     onClick = onConfirmAwake,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = DismissGreen),
-                    shape = MaterialTheme.shapes.large
+                    colors = ButtonDefaults.buttonColors(containerColor = DismissGreen, contentColor = accentForeground(DismissGreen)),
+                    shape = AppButtonShape
                 ) {
                     Text(
                         text = stringResource(R.string.wake_confirm_yes),
@@ -354,7 +356,7 @@ private fun WakeConfirmScreen(
                     onClick = onKeepChecking,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary),
-                    shape = MaterialTheme.shapes.large
+                    shape = AppButtonShape
                 ) {
                     Icon(
                         imageVector = Icons.Default.Snooze,

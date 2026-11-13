@@ -59,6 +59,7 @@ import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.service.AlarmTestRun
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
@@ -77,6 +78,7 @@ import java.time.DayOfWeek
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 internal enum class AlarmEditorPage(
     @StringRes val titleRes: Int,
@@ -401,7 +403,7 @@ fun AlarmEditScreen(
             title = { Text(stringResource(R.string.alarm_edit_discard_title)) },
             text = { Text(stringResource(R.string.alarm_edit_discard_message)) },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         showDiscardConfirmation = false
                         onNavigateBack()
@@ -411,7 +413,7 @@ fun AlarmEditScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDiscardConfirmation = false }) {
+                AppTextButton(onClick = { showDiscardConfirmation = false }) {
                     Text(stringResource(R.string.alarm_edit_keep_editing))
                 }
             }
@@ -437,12 +439,18 @@ fun AlarmEditScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(
                             text = editorTitle,
-                            color = TextPrimary
+                            color = TextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        // One line: the bar has a fixed height, so a second
+                        // line spilled over the content below it.
                         Text(
                             text = editorSubtitle,
                             color = TextMuted,
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 },
@@ -498,7 +506,7 @@ fun AlarmEditScreen(
                             .fillMaxWidth()
                             .height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = AppButtonShape
                     ) {
                         if (state.isSaving) {
                             CircularProgressIndicator(
@@ -636,7 +644,7 @@ fun AlarmEditScreen(
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     val selectedTime = if (useTimeNumpad) {
                         numpadTime
                     } else {
@@ -649,7 +657,7 @@ fun AlarmEditScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) {
+                AppTextButton(onClick = { showTimePicker = false }) {
                     Text(stringResource(R.string.alarm_edit_keep_current), color = TextSecondary)
                 }
             },

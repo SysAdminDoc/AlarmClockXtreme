@@ -105,7 +105,7 @@ internal fun LazyListScope.alarmEditIntegrationSections(
             isError = spotifyRejected,
             colors = appOutlinedTextFieldColors(),
             shape = AppInputShape,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             singleLine = true
         )
         if (spotifyRejected) {
@@ -184,7 +184,7 @@ internal fun LazyListScope.alarmEditIntegrationSections(
                     ),
                 colors = appOutlinedTextFieldColors(),
                 shape = AppInputShape,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 singleLine = true
             )
             if (state.dismissActionPayload.isNotBlank() &&
@@ -284,7 +284,7 @@ internal fun LazyListScope.alarmEditIntegrationSections(
             isError = radioNeedsHttps,
             colors = appOutlinedTextFieldColors(),
             shape = AppInputShape,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             singleLine = true
         )
         if (radioNeedsHttps) {
@@ -318,7 +318,7 @@ internal fun LazyListScope.alarmEditIntegrationSections(
                 label = { Text(stringResource(R.string.alarm_edit_emergency_phone), color = TextMuted) },
                 colors = appOutlinedTextFieldColors(),
                 shape = AppInputShape,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 singleLine = true
             )
             var showDelayMenu by remember { mutableStateOf(false) }
@@ -387,7 +387,7 @@ internal fun LazyListScope.alarmEditIntegrationSections(
                         }
                     ),
                     onResult = { guardianPermissionCheck++ },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
         }

@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import android.Manifest
@@ -15,14 +17,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -75,6 +74,7 @@ import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.DayOfWeek
 import java.util.Locale
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 internal fun LazyListScope.alarmEditDismissSections(
@@ -206,7 +206,7 @@ internal fun LazyListScope.alarmEditDismissSections(
             SettingsRow(label = stringResource(R.string.alarm_edit_escalate_after)) {
                 Box {
                     SettingsValueButton(
-                        label = stringResource(R.string.alarm_edit_seconds_short, state.backupSoundDelaySec),
+                        label = editorDuration(state.backupSoundDelaySec),
                         onClick = { showDelayMenu = true }
                     )
                     DropdownMenu(expanded = showDelayMenu, onDismissRequest = { showDelayMenu = false }) {
@@ -385,7 +385,7 @@ internal fun LazyListScope.alarmEditDismissSections(
                 label = { Text(stringResource(R.string.alarm_edit_nfc_id), color = TextMuted) },
                 colors = appOutlinedTextFieldColors(),
                 shape = AppInputShape,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 singleLine = true
             )
             if (state.nfcTagId.isBlank()) {
@@ -404,7 +404,7 @@ internal fun LazyListScope.alarmEditDismissSections(
                 label = { Text(stringResource(R.string.alarm_edit_barcode_value), color = TextMuted) },
                 colors = appOutlinedTextFieldColors(),
                 shape = AppInputShape,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 singleLine = true
             )
             if (state.barcodeValue.isBlank()) {
@@ -423,7 +423,7 @@ internal fun LazyListScope.alarmEditDismissSections(
                 label = { Text(stringResource(R.string.alarm_edit_wifi_name), color = TextMuted) },
                 colors = appOutlinedTextFieldColors(),
                 shape = AppInputShape,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 singleLine = true
             )
             if (state.wifiDismissSsid.isBlank()) {
@@ -439,7 +439,7 @@ internal fun LazyListScope.alarmEditDismissSections(
             SettingsRow(label = stringResource(R.string.alarm_edit_reference_photo)) {
                 OutlinedButton(
                     onClick = onCaptureReferencePhoto,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(
@@ -489,12 +489,10 @@ internal fun LazyListScope.alarmEditDismissSections(
             }
         )
         if (chainItems.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 chainItems.forEachIndexed { index, challenge ->
                     AppStatusChip(
@@ -511,7 +509,7 @@ internal fun LazyListScope.alarmEditDismissSections(
             placeholder = { Text(stringResource(R.string.alarm_edit_chain_placeholder), color = TextMuted) },
             colors = appOutlinedTextFieldColors(),
             shape = AppInputShape,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
             singleLine = true
         )
         SettingsHint(
@@ -634,9 +632,9 @@ internal fun LazyListScope.alarmEditDismissSections(
             }
             OutlinedButton(
                 onClick = requestLocationDismissTarget,
-                shape = RoundedCornerShape(12.dp),
+                shape = AppButtonShape,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.LocationOn,

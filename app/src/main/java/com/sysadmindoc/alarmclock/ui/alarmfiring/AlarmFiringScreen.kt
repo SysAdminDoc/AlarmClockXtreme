@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 
 package com.sysadmindoc.alarmclock.ui.alarmfiring
 
@@ -23,10 +23,10 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -67,7 +67,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberTimePickerState
@@ -134,6 +133,7 @@ import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.PvtChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.SpotDifferenceChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.ChessMateChallengeView
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.RsvpReadingChallengeView
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
@@ -158,6 +158,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlin.math.roundToInt
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 fun AlarmFiringScreen(
@@ -443,7 +444,7 @@ fun AlarmFiringScreen(
                         icon = Icons.Default.Science,
                         color = AccentBlue
                     )
-                    TextButton(onClick = onEndTest) {
+                    AppTextButton(onClick = onEndTest) {
                         Text(
                             text = stringResource(R.string.alarm_test_end),
                             color = TextSecondary
@@ -537,9 +538,9 @@ fun AlarmFiringScreen(
                     }
                 }
 
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     if (state.firedEarlyForWeather) {
                         AppStatusChip(
@@ -1057,11 +1058,10 @@ fun AlarmFiringScreen(
                     }
                 )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     AppStatusChip(
                         label = when {
@@ -1111,7 +1111,7 @@ fun AlarmFiringScreen(
                                 disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
                                 disabledContentColor = TextMuted
                             ),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = AppButtonShape
                         ) {
                             Text(
                                 text = when {
@@ -1160,7 +1160,7 @@ fun AlarmFiringScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
 
-                        TextButton(
+                        AppTextButton(
                             onClick = { showSnoozeOptions = !showSnoozeOptions },
                             enabled = state.snoozeAllowed,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -1176,9 +1176,9 @@ fun AlarmFiringScreen(
                         }
 
                         if (showSnoozeOptions) {
-                            Row(
-                                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 listOf(1, 3, 5, 15, 30).forEach { minutes ->
                                     QuickSnoozeButton(
@@ -1203,7 +1203,7 @@ fun AlarmFiringScreen(
                             OutlinedButton(
                                 onClick = { showSnoozeUntilPicker = true },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                shape = AppButtonShape,
                                 border = BorderStroke(1.2.dp, SnoozeYellow.copy(alpha = 0.74f)),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = SnoozeYellow)
                             ) {
@@ -1234,7 +1234,7 @@ fun AlarmFiringScreen(
         AlertDialog(
             onDismissRequest = { showSnoozeUntilPicker = false },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         onSnoozeUntil(
                             nextSnoozeAtMillis(
@@ -1250,7 +1250,7 @@ fun AlarmFiringScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showSnoozeUntilPicker = false }) {
+                AppTextButton(onClick = { showSnoozeUntilPicker = false }) {
                     Text(stringResource(R.string.alarm_edit_keep_current), color = TextSecondary)
                 }
             },
@@ -1675,7 +1675,7 @@ private fun SnoozeMinutePicker(
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
+                shape = AppButtonShape,
                 border = BorderStroke(1.2.dp, SnoozeYellow.copy(alpha = 0.74f)),
                 colors = ButtonDefaults.outlinedButtonColors(
                     contentColor = SnoozeYellow
@@ -1710,7 +1710,7 @@ private fun QuickSnoozeButton(
         onClick = onClick,
         modifier = Modifier
             .height(44.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = AppButtonShape,
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = if (isDefault) SnoozeYellow.copy(alpha = 0.12f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
             contentColor = if (isDefault) SnoozeYellow else TextSecondary

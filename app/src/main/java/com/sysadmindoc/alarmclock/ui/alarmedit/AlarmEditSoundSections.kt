@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -75,6 +74,7 @@ import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import java.time.DayOfWeek
 import java.util.Locale
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 internal fun LazyListScope.alarmEditSoundSections(
@@ -90,7 +90,7 @@ internal fun LazyListScope.alarmEditSoundSections(
         SettingsRow(label = stringResource(R.string.alarm_edit_partner_mode)) {
             OutlinedButton(
                 onClick = viewModel::applyDontWakePartnerProfile,
-                shape = RoundedCornerShape(12.dp),
+                shape = AppButtonShape,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.42f)),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
@@ -111,8 +111,7 @@ internal fun LazyListScope.alarmEditSoundSections(
             AppStatusChip(
                 label = stringResource(R.string.alarm_edit_haptic_profile_active),
                 icon = Icons.AutoMirrored.Filled.VolumeOff,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                color = MaterialTheme.colorScheme.primary
             )
         }
 
@@ -156,7 +155,6 @@ internal fun LazyListScope.alarmEditSoundSections(
                 value = state.volume.toFloat(),
                 onValueChange = { viewModel.updateVolume(it.toInt()) },
                 valueRange = 0f..100f,
-                modifier = Modifier.padding(horizontal = 16.dp),
                 colors = SliderDefaults.colors(
                     thumbColor = MaterialTheme.colorScheme.primary,
                     activeTrackColor = MaterialTheme.colorScheme.primary
@@ -171,11 +169,7 @@ internal fun LazyListScope.alarmEditSoundSections(
                 SettingsValueButton(
                     label = when (state.gradualVolumeSeconds) {
                         0 -> stringResource(R.string.alarm_edit_off)
-                        else -> stringResource(
-                            R.string.alarm_edit_minutes_seconds_short,
-                            state.gradualVolumeSeconds / 60,
-                            state.gradualVolumeSeconds % 60
-                        )
+                        else -> editorDuration(state.gradualVolumeSeconds)
                     },
                     onClick = { showGradualMenu = true }
                 )
@@ -189,11 +183,7 @@ internal fun LazyListScope.alarmEditSoundSections(
                                 Text(
                                     when (secs) {
                                         0 -> stringResource(R.string.alarm_edit_off_full_volume)
-                                        else -> stringResource(
-                                            R.string.alarm_edit_minutes_seconds_short,
-                                            secs / 60,
-                                            secs % 60
-                                        )
+                                        else -> editorDuration(secs)
                                     }
                                 )
                             },
@@ -312,12 +302,7 @@ internal fun LazyListScope.alarmEditSoundSections(
                     SettingsValueButton(
                         label = when (state.vibrationDelaySeconds) {
                             0 -> stringResource(R.string.alarm_edit_immediately)
-                            in 1..59 -> stringResource(R.string.alarm_edit_seconds_short, state.vibrationDelaySeconds)
-                            else -> stringResource(
-                                R.string.alarm_edit_minutes_seconds_short,
-                                state.vibrationDelaySeconds / 60,
-                                state.vibrationDelaySeconds % 60
-                            )
+                            else -> editorDuration(state.vibrationDelaySeconds)
                         },
                         onClick = { showVibDelayMenu = true }
                     )

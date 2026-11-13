@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.alarmlist
 
 import com.sysadmindoc.alarmclock.ui.alarmedit.toAlarmChallengeSummary
@@ -16,6 +18,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -95,7 +99,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -123,6 +126,8 @@ import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.data.share.AlarmShareCodec
 import com.sysadmindoc.alarmclock.ui.adaptive.shouldUseTwoPaneLayout
 import com.sysadmindoc.alarmclock.ui.alarmlist.components.SwipeableAlarmCard
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.ui.components.AppEmptyState
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
@@ -145,8 +150,10 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceMedium
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.ui.theme.accentForeground
 import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
@@ -179,7 +186,7 @@ fun AlarmListScreen(
         AlertDialog(
             onDismissRequest = { statsAlarmLabel = null; viewModel.clearAlarmStats() },
             confirmButton = {
-                TextButton(onClick = { statsAlarmLabel = null; viewModel.clearAlarmStats() }) {
+                AppTextButton(onClick = { statsAlarmLabel = null; viewModel.clearAlarmStats() }) {
                     Text(stringResource(R.string.settings_close))
                 }
             },
@@ -340,8 +347,8 @@ fun AlarmListScreen(
                         showBulkDeleteConfirmation = false
                         viewModel.deleteSelected()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed, contentColor = accentForeground(AccentRed)),
+                    shape = AppButtonShape
                 ) {
                     Text(
                         if (state.selectedIds.size == 1) stringResource(R.string.alarmlist_delete_alarm) else stringResource(R.string.alarmlist_delete_alarms, state.selectedIds.size)
@@ -349,7 +356,7 @@ fun AlarmListScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showBulkDeleteConfirmation = false }) {
+                AppTextButton(onClick = { showBulkDeleteConfirmation = false }) {
                     Text(stringResource(R.string.cancel), color = TextSecondary)
                 }
             },
@@ -368,9 +375,9 @@ fun AlarmListScreen(
             text = {
                 Text(
                     text = if (state.selectedIds.size == filteredAlarms.size && filteredAlarms.isNotEmpty()) {
-                        "This will remove every alarm currently visible in the list. Use this only if you are sure."
+                        "This removes every alarm shown in the list."
                     } else {
-                        "This removes only the alarms currently selected. This bulk action does not offer per-alarm undo."
+                        "This removes only the selected alarms. There's no undo for each one."
                     },
                     color = TextSecondary
                 )
@@ -532,7 +539,7 @@ fun AlarmListScreen(
                                         title = stringResource(R.string.alarm_list_no_matches_title),
                                         description = stringResource(R.string.alarm_list_no_matches_description),
                                         footer = {
-                                            TextButton(
+                                            AppTextButton(
                                                 onClick = {
                                                     searchQuery = ""
                                                     viewModel.selectGroup(null)
@@ -724,7 +731,7 @@ fun AlarmListScreen(
                                     .padding(horizontal = 16.dp, vertical = 4.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                TextButton(
+                                AppTextButton(
                                     onClick = { showTemplates = true },
                                     modifier = Modifier.weight(1f)
                                 ) {
@@ -732,9 +739,11 @@ fun AlarmListScreen(
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(stringResource(R.string.alarm_list_templates))
                                 }
-                                TextButton(
+                                // New alarm is the main action here, so it gets the filled style.
+                                Button(
                                     onClick = onAddAlarm,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f),
+                                    shape = AppButtonShape
                                 ) {
                                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
@@ -839,7 +848,7 @@ private fun AlarmListEmptyActions(
                 Button(
                     onClick = onAddAlarm,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text(stringResource(R.string.alarm_edit_create))
@@ -847,7 +856,7 @@ private fun AlarmListEmptyActions(
                 OutlinedButton(
                     onClick = onBrowseTemplates,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text(stringResource(R.string.alarm_list_browse_templates))
@@ -860,14 +869,14 @@ private fun AlarmListEmptyActions(
             ) {
                 Button(
                     onClick = onAddAlarm,
-                    shape = RoundedCornerShape(8.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text(stringResource(R.string.alarm_edit_create))
                 }
                 OutlinedButton(
                     onClick = onBrowseTemplates,
-                    shape = RoundedCornerShape(8.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text(stringResource(R.string.alarm_list_browse_templates))
@@ -948,11 +957,10 @@ private fun AlarmDetailPane(
                 style = ClockTimeSmall
             )
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (suppressedByVacation) {
                     AppStatusChip(
@@ -1051,7 +1059,7 @@ private fun AlarmDetailPane(
                 Button(
                     onClick = { onEdit(alarm) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text(stringResource(R.string.edit_alarm))
@@ -1062,7 +1070,7 @@ private fun AlarmDetailPane(
                     OutlinedButton(
                         onClick = { onDuplicate(alarm) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = AppButtonShape
                     ) {
                         Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -1071,7 +1079,7 @@ private fun AlarmDetailPane(
                     OutlinedButton(
                         onClick = { onShare(alarm) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = AppButtonShape
                     ) {
                         Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -1082,7 +1090,7 @@ private fun AlarmDetailPane(
                     OutlinedButton(
                         onClick = { onShowHistory(alarm) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = AppButtonShape
                     ) {
                         Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -1091,7 +1099,7 @@ private fun AlarmDetailPane(
                     OutlinedButton(
                         onClick = { onDelete(alarm) },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = AppButtonShape,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1103,7 +1111,7 @@ private fun AlarmDetailPane(
                     OutlinedButton(
                         onClick = { onSkipNext(alarm) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = AppButtonShape
                     ) {
                         Icon(Icons.Default.SkipNext, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
@@ -1113,7 +1121,7 @@ private fun AlarmDetailPane(
                 OutlinedButton(
                     onClick = { onTestNow(alarm) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = AppButtonShape
                 ) {
                     Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -1273,6 +1281,9 @@ private fun AlarmReorderHandle(
     }
 }
 
+// Chips wrap instead of scrolling: a scrolled row cut the last chip in half
+// at the card edge, which read as clipped rather than scrollable.
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun QuickAlarmRow(
     onQuickAlarm: (Int) -> Unit,
@@ -1282,11 +1293,10 @@ private fun QuickAlarmRow(
         AppSectionTitle(
             title = stringResource(R.string.alarm_list_quick_alarms)
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             listOf(10, 30, 60, 120).forEach { minutes ->
                 val label = if (minutes < 60) {
@@ -1313,11 +1323,10 @@ private fun QuickAlarmRow(
             style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(bottom = 4.dp)
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // Always include the user's default nap length, even if it's not
             // one of the standard chip values, so the setting is honored here.
@@ -1586,7 +1595,7 @@ private fun SelectionActionBar(
                 }
 
                 if (selectedCount < totalCount) {
-                    TextButton(onClick = onSelectAll) {
+                    AppTextButton(onClick = onSelectAll) {
                         Text(stringResource(R.string.alarm_list_select_visible), color = MaterialTheme.colorScheme.primary)
                     }
                 }
@@ -1599,7 +1608,7 @@ private fun SelectionActionBar(
                 OutlinedButton(
                     onClick = onEnableSelected,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = DismissGreen)
                 ) {
                     Icon(Icons.Default.NotificationsActive, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1609,7 +1618,7 @@ private fun SelectionActionBar(
                 OutlinedButton(
                     onClick = onDisableSelected,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = TextSecondary)
                 ) {
                     Icon(Icons.Default.NotificationsOff, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1619,8 +1628,8 @@ private fun SelectionActionBar(
                 Button(
                     onClick = onDeleteSelected,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed)
+                    shape = AppButtonShape,
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed, contentColor = accentForeground(AccentRed))
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -1819,10 +1828,21 @@ private fun nextOccurrenceLabel(
     if (!alarm.isEnabled || alarm.nextTriggerTime <= 0) {
         return stringResource(R.string.alarm_list_paused_until_reenabled)
     }
-    val pattern = "EEE, MMM d • " + AlarmTimeFormatter.pattern(is24Hour)
-    val formatted = Instant.ofEpochMilli(alarm.nextTriggerTime)
-        .atZone(ZoneId.systemDefault())
-        .format(DateTimeFormatter.ofPattern(pattern))
+    val zone = ZoneId.systemDefault()
+    val next = Instant.ofEpochMilli(alarm.nextTriggerTime).atZone(zone)
+    val today = LocalDate.now(zone)
+    val day = when (next.toLocalDate()) {
+        today -> stringResource(R.string.alarm_list_day_today)
+        today.plusDays(1) -> stringResource(R.string.alarm_list_day_tomorrow)
+        else -> next.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
+    }
+    // The card already shows the alarm time in large type, so the time is
+    // repeated only when the next ring lands somewhere else (snooze, shifts).
+    val formatted = if (next.hour == alarm.hour && next.minute == alarm.minute) {
+        day
+    } else {
+        day + " · " + next.format(DateTimeFormatter.ofPattern(AlarmTimeFormatter.pattern(is24Hour)))
+    }
     return stringResource(R.string.alarm_list_next_occurrence, formatted)
 }
 
