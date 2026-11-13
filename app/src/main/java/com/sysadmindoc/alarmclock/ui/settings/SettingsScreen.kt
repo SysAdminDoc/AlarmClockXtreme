@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.settings
 
 import androidx.activity.compose.BackHandler
@@ -15,12 +17,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -43,9 +45,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.BeachAccess
@@ -54,15 +54,20 @@ import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Cloud
-import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Restore
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Alarm
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -84,7 +89,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -122,6 +126,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.ui.components.AppFeedbackCard
@@ -130,11 +135,14 @@ import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppTileShape
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
+import com.sysadmindoc.alarmclock.ui.components.horizontalBleed
 import com.sysadmindoc.alarmclock.ui.adaptive.shouldUseTwoPaneLayout
 import com.sysadmindoc.alarmclock.data.backup.BackupExportWarning
+import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.backup.BackupImportMode
 import com.sysadmindoc.alarmclock.data.backup.BackupImportOptions
 import com.sysadmindoc.alarmclock.data.backup.BackupImportPreview
@@ -154,6 +162,7 @@ import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
 import com.sysadmindoc.alarmclock.ui.theme.SnoozeYellow
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceCard
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
+import com.sysadmindoc.alarmclock.ui.theme.SurfaceInset
 import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
@@ -181,41 +190,43 @@ private data class SettingsPaneCategory(
 )
 
 private val settingsPaneCategories = listOf(
+    // One outlined family: filled glyphs like the shield and cloud
+    // read heavier than the line icons next to them.
     SettingsPaneCategory(
         id = "readiness",
         titleRes = R.string.settings_pane_readiness,
         descriptionRes = R.string.settings_pane_readiness_description,
-        icon = Icons.Default.Security
+        icon = Icons.Outlined.Security
     ),
     SettingsPaneCategory(
         id = "defaults",
         titleRes = R.string.settings_pane_defaults,
         descriptionRes = R.string.settings_pane_defaults_description,
-        icon = Icons.Default.Alarm
+        icon = Icons.Outlined.Alarm
     ),
     SettingsPaneCategory(
         id = "integrations",
         titleRes = R.string.settings_pane_integrations,
         descriptionRes = R.string.settings_pane_integrations_description,
-        icon = Icons.Default.Link
+        icon = Icons.Outlined.Link
     ),
     SettingsPaneCategory(
         id = "personalization",
         titleRes = R.string.settings_pane_personalization,
         descriptionRes = R.string.settings_pane_personalization_description,
-        icon = Icons.Default.AutoAwesome
+        icon = Icons.Outlined.AutoAwesome
     ),
     SettingsPaneCategory(
         id = "backup",
         titleRes = R.string.settings_pane_backup,
         descriptionRes = R.string.settings_pane_backup_description,
-        icon = Icons.Default.Backup
+        icon = Icons.Outlined.Backup
     ),
     SettingsPaneCategory(
         id = "utilities",
         titleRes = R.string.settings_pane_utilities,
         descriptionRes = R.string.settings_pane_utilities_description,
-        icon = Icons.Default.Speed
+        icon = Icons.Outlined.Widgets
     )
 )
 
@@ -374,7 +385,8 @@ fun SettingsScreen(
                     settingsItem("settings-home-readiness") {
                         WakeReadinessSection(
                             state = state,
-                            onOpenOnboardingChecklist = onOpenOnboardingChecklist
+                            onOpenOnboardingChecklist = onOpenOnboardingChecklist,
+                            onOpenReadiness = { selectedPaneId = "readiness" }
                         )
                     }
                     settingsItem("settings-home-categories") {
@@ -388,11 +400,8 @@ fun SettingsScreen(
                         AlarmClockHeroHeader(
                             title = stringResource(selectedPane.titleRes),
                             subtitle = "",
-                            actions = {
-                                TextButton(onClick = { selectedPaneId = null }) {
-                                    Text(stringResource(R.string.settings_title))
-                                }
-                            }
+                            onBack = { selectedPaneId = null },
+                            backContentDescription = stringResource(R.string.settings_back_to_settings)
                         )
                     }
                 }
@@ -772,13 +781,13 @@ fun SettingsScreen(
                         title = { Text(stringResource(R.string.settings_clear_commute_title)) },
                         text = { Text(stringResource(R.string.settings_clear_commute_message)) },
                         confirmButton = {
-                            TextButton(onClick = {
+                            AppTextButton(onClick = {
                                 viewModel.clearLearnedCommuteHistory()
                                 showClearCommuteHistoryDialog = false
                             }) { Text(stringResource(R.string.settings_clear_history)) }
                         },
                         dismissButton = {
-                            TextButton(onClick = { showClearCommuteHistoryDialog = false }) {
+                            AppTextButton(onClick = { showClearCommuteHistoryDialog = false }) {
                                 Text(stringResource(R.string.cancel))
                             }
                         }
@@ -864,7 +873,7 @@ fun SettingsScreen(
             if (!showSettingsHome && selectedPane.id == "utilities") {
             settingsItem("utilities-shortcuts") {
             SettingsGroup(
-                title = stringResource(R.string.settings_utilities),
+                title = null,
                 description = stringResource(R.string.settings_utilities_description)
             ) {
                 SettingsActionRow(
@@ -889,7 +898,7 @@ fun SettingsScreen(
                 )
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
                 UtilityShortcutCard(
-                    icon = Icons.Default.Speed,
+                    icon = Icons.Default.Timer,
                     title = stringResource(R.string.nav_stopwatch),
                     description = stringResource(R.string.settings_stopwatch_description),
                     onClick = onNavigateToStopwatch
@@ -903,7 +912,7 @@ fun SettingsScreen(
                 )
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
                 UtilityShortcutCard(
-                    icon = Icons.Default.DarkMode,
+                    icon = Icons.Default.NightsStay,
                     title = stringResource(R.string.settings_night_clock),
                     description = stringResource(R.string.settings_night_clock_description),
                     onClick = {
@@ -916,7 +925,7 @@ fun SettingsScreen(
                 )
                 HorizontalDivider(color = TextMuted.copy(alpha = 0.14f))
                 UtilityShortcutCard(
-                    icon = Icons.Default.BugReport,
+                    icon = Icons.Default.Inventory2,
                     title = stringResource(R.string.settings_export_support_bundle),
                     description = if (supportExportBusy) {
                         stringResource(R.string.settings_packaging_diagnostics)
@@ -966,7 +975,7 @@ fun SettingsScreen(
                         if (failed) R.string.settings_support_export_failed else R.string.settings_export_ready
                     ),
                     message = status.text,
-                    icon = if (failed) Icons.Default.Warning else Icons.Default.BugReport,
+                    icon = if (failed) Icons.Default.Warning else Icons.Default.Inventory2,
                     color = if (failed) AccentRed else DismissGreen,
                     onDismiss = viewModel::clearSupportExportResult
                 )
@@ -1067,7 +1076,7 @@ fun SettingsScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showLanguageDialog = false }) {
+                AppTextButton(onClick = { showLanguageDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -1148,11 +1157,10 @@ private fun SettingsPaneHeader(
                 )
             }
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             AppStatusChip(
                 label = stringResource(
@@ -1208,11 +1216,10 @@ private fun SettingsPaneRail(
                 color = TextSecondary,
                 style = MaterialTheme.typography.bodySmall
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 AppStatusChip(
                     label = stringResource(
@@ -1293,22 +1300,30 @@ private fun SettingsPaneRail(
 
 @Composable
 internal fun SettingsGroup(
-    title: String,
+    // Null when the pane header already says it; a repeat right under it is noise.
+    title: String?,
     description: String? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        AppSectionTitle(title = title)
+        if (title != null) AppSectionTitle(title = title)
         AppSurfaceCard(
             contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                horizontal = 4.dp,
-                vertical = 4.dp
+                horizontal = SettingsGroupInset,
+                vertical = 8.dp
             )
         ) {
             content()
         }
     }
 }
+
+// Bare content (text, fields, notices, filled boxes) sits at the card's
+// inset. Transparent rows reach back out by exactly their own inset, so the
+// press highlight nearly fills the card and the label and switch line up with
+// the bare content. Every card that holds rows pads more than the bleed.
+private val SettingsGroupInset = 16.dp
+private val SettingsRowInset = 12.dp
 
 @Composable
 internal fun SettingsToggle(
@@ -1320,6 +1335,7 @@ internal fun SettingsToggle(
 ) {
     Surface(
         modifier = Modifier
+            .horizontalBleed(SettingsRowInset)
             .fillMaxWidth()
             .heightIn(min = 58.dp)
             .toggleable(
@@ -1334,7 +1350,7 @@ internal fun SettingsToggle(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = SettingsRowInset, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1383,6 +1399,7 @@ internal fun SettingsActionRow(
 ) {
     Surface(
         modifier = Modifier
+            .horizontalBleed(SettingsRowInset)
             .fillMaxWidth()
             .heightIn(min = 58.dp)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
@@ -1390,7 +1407,7 @@ internal fun SettingsActionRow(
         color = androidx.compose.ui.graphics.Color.Transparent
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = SettingsRowInset, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Row(
@@ -1482,14 +1499,16 @@ private fun AppLanguageOptionRow(
 
 @Composable
 internal fun SettingsInfo(label: String, description: String) {
+    // Filled with SurfaceInset so the box shows on the card; a SurfaceCard
+    // tint disappeared and left the label looking oddly indented.
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = SurfaceCard.copy(alpha = 0.24f)
+        shape = AppTileShape,
+        color = SurfaceInset
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(label, color = TextPrimary, style = MaterialTheme.typography.titleSmall)
@@ -1505,19 +1524,21 @@ private fun UtilityShortcutCard(
     description: String,
     onClick: () -> Unit
 ) {
+    // A row like SettingsActionRow, not a bordered card: it already sits in
+    // the group's card, and a card inside a card read as two levels of nesting.
     Surface(
         modifier = Modifier
+            .horizontalBleed(SettingsRowInset)
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .clickable(role = Role.Button, onClick = onClick),
         shape = RoundedCornerShape(10.dp),
-        color = SurfaceLight.copy(alpha = 0.58f),
-        border = BorderStroke(1.dp, BorderSubtle)
+        color = androidx.compose.ui.graphics.Color.Transparent
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = SettingsRowInset, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1565,13 +1586,39 @@ internal fun dashboardSummary(state: SettingsUiState): String {
 
 @Composable
 internal fun incidentLabel(type: String?): String {
-    val unknown = stringResource(R.string.settings_unknown_code)
-    val token = type.orEmpty().ifBlank { unknown }
-    return token
+    val res = when (type) {
+        AlarmIncidentEvent.TYPE_SCHEDULE -> R.string.settings_incident_type_schedule
+        AlarmIncidentEvent.TYPE_BROADCAST -> R.string.settings_incident_type_broadcast
+        AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE -> R.string.settings_incident_type_foreground_service
+        AlarmIncidentEvent.TYPE_FOREGROUND_PROMOTION -> R.string.settings_incident_type_foreground_promotion
+        AlarmIncidentEvent.TYPE_NOTIFICATION -> R.string.settings_incident_type_notification
+        AlarmIncidentEvent.TYPE_ACTIVITY_LAUNCH -> R.string.settings_incident_type_activity_launch
+        AlarmIncidentEvent.TYPE_AUDIO -> R.string.settings_incident_type_audio
+        AlarmIncidentEvent.TYPE_USER_ACTION -> R.string.settings_incident_type_user_action
+        AlarmIncidentEvent.TYPE_AUTO_SILENCE -> R.string.settings_incident_type_auto_silence
+        AlarmIncidentEvent.TYPE_WAKE_CONFIRM -> R.string.settings_incident_type_wake_confirm
+        else -> null
+    }
+    if (res != null) return stringResource(res)
+    if (type.isNullOrBlank()) return stringResource(R.string.settings_incident_status_unknown)
+    // A type added later without a string still reads as words.
+    return type
         .replace('_', ' ')
         .lowercase(Locale.US)
         .replaceFirstChar { it.titlecase(Locale.US) }
 }
+
+@Composable
+internal fun incidentStatusLabel(status: String?): String = stringResource(
+    when (status) {
+        AlarmIncidentEvent.STATUS_REQUESTED -> R.string.settings_incident_status_requested
+        AlarmIncidentEvent.STATUS_RECEIVED -> R.string.settings_incident_status_received
+        AlarmIncidentEvent.STATUS_SUCCEEDED -> R.string.settings_incident_status_succeeded
+        AlarmIncidentEvent.STATUS_FAILED -> R.string.settings_incident_status_failed
+        AlarmIncidentEvent.STATUS_SKIPPED -> R.string.settings_incident_status_skipped
+        else -> R.string.settings_incident_status_unknown
+    }
+)
 
 @Composable
 internal fun formatIncidentTimestamp(eventAt: Long?, use24Hour: Boolean): String {
@@ -1588,12 +1635,19 @@ internal fun formatIncidentElapsed(elapsedMs: Long?): String {
     if (elapsedMs == null) return stringResource(R.string.settings_no_schedule_delta)
     val absoluteSeconds = kotlin.math.abs(elapsedMs) / 1000L
     if (absoluteSeconds < 60L) return stringResource(R.string.settings_within_minute_schedule)
-    val minutes = (absoluteSeconds / 60L).toInt()
-    return pluralStringResource(
-        if (elapsedMs < 0L) R.plurals.settings_minutes_before_schedule
-        else R.plurals.settings_minutes_after_schedule_plural,
-        minutes,
-        minutes
+    val totalMinutes = absoluteSeconds / 60L
+    val hours = (totalMinutes / 60L).toInt()
+    val minutes = (totalMinutes % 60L).toInt()
+    // "12 hr 15 min" instead of "735 min": a scheduling event usually lands
+    // hours before the alarm time.
+    val duration = when {
+        hours > 0 && minutes > 0 -> stringResource(R.string.settings_incident_duration_hours_minutes, hours, minutes)
+        hours > 0 -> stringResource(R.string.settings_incident_duration_hours, hours)
+        else -> stringResource(R.string.settings_incident_duration_minutes, minutes)
+    }
+    return stringResource(
+        if (elapsedMs < 0L) R.string.settings_incident_before_alarm else R.string.settings_incident_after_alarm,
+        duration
     )
 }
 
@@ -1764,6 +1818,7 @@ internal fun DateField(
                 shape = RoundedCornerShape(10.dp)
             )
             .border(1.dp, TextMuted.copy(alpha = 0.16f), RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(10.dp))
             .clickable(
                 onClickLabel = onClickDescription,
                 role = Role.Button,
@@ -1787,8 +1842,8 @@ internal fun formatSeconds(totalSeconds: Int): String {
     val m = totalSeconds / 60
     val s = totalSeconds % 60
     return when {
-        m == 0 -> stringResource(R.string.settings_seconds_short, s)
-        s == 0 -> stringResource(R.string.settings_minutes_compact, m)
-        else -> stringResource(R.string.settings_minutes_seconds_compact, m, s)
+        m == 0 -> stringResource(R.string.settings_seconds_value, s)
+        s == 0 -> stringResource(R.string.settings_minutes_short, m)
+        else -> stringResource(R.string.settings_minutes_seconds_value, m, s)
     }
 }

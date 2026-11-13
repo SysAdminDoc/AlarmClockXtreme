@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -12,13 +14,12 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,7 +33,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -80,7 +80,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -143,7 +142,6 @@ import com.sysadmindoc.alarmclock.data.preferences.AppSettings
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
-import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.BorderSubtle
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
@@ -169,7 +167,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsViewModel) {
     SettingsGroup(
-        title = stringResource(R.string.settings_personalization),
+        title = null,
         description = stringResource(R.string.settings_personalization_description)
     ) {
         AccentColorPicker(
@@ -229,32 +227,16 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
         )
 
         var showLockMenu by remember { mutableStateOf(false) }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.settings_cancellation_lock), color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    stringResource(R.string.settings_cancellation_lock_description),
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            Box {
-                TextButton(onClick = { showLockMenu = true }) {
-                    Text(
-                        if (state.settings.cancellationLockMinutes == 0) {
-                            stringResource(R.string.settings_disabled)
-                        } else {
-                            stringResource(R.string.settings_minutes_short, state.settings.cancellationLockMinutes)
-                        },
-                        color = AccentBlue
-                    )
-                }
+        SettingsActionRow(
+            label = stringResource(R.string.settings_cancellation_lock),
+            value = if (state.settings.cancellationLockMinutes == 0) {
+                stringResource(R.string.settings_disabled)
+            } else {
+                stringResource(R.string.settings_minutes_short, state.settings.cancellationLockMinutes)
+            },
+            supportingText = stringResource(R.string.settings_cancellation_lock_description),
+            onClick = { showLockMenu = true },
+            dropdownMenu = {
                 DropdownMenu(expanded = showLockMenu, onDismissRequest = { showLockMenu = false }) {
                     listOf(0, 15, 30, 60).forEach { mins ->
                         DropdownMenuItem(
@@ -272,34 +254,18 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
                     }
                 }
             }
-        }
+        )
 
         var showHoldThresholdMenu by remember { mutableStateOf(false) }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.settings_long_press_threshold), color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    stringResource(R.string.settings_long_press_threshold_description),
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            Box {
-                TextButton(onClick = { showHoldThresholdMenu = true }) {
-                    Text(
-                        stringResource(
-                            R.string.settings_hold_duration_short,
-                            state.settings.holdToDismissMillis / 1000f
-                        ),
-                        color = AccentBlue
-                    )
-                }
+        SettingsActionRow(
+            label = stringResource(R.string.settings_long_press_threshold),
+            value = stringResource(
+                R.string.settings_hold_duration_short,
+                state.settings.holdToDismissMillis / 1000f
+            ),
+            supportingText = stringResource(R.string.settings_long_press_threshold_description),
+            onClick = { showHoldThresholdMenu = true },
+            dropdownMenu = {
                 DropdownMenu(
                     expanded = showHoldThresholdMenu,
                     onDismissRequest = { showHoldThresholdMenu = false }
@@ -322,35 +288,19 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
                     }
                 }
             }
-        }
+        )
 
         var showFiringModeMenu by remember { mutableStateOf(false) }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.settings_firing_controls), color = TextPrimary, style = MaterialTheme.typography.bodyLarge)
-                Text(
-                    stringResource(R.string.settings_firing_controls_description),
-                    color = TextMuted,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            Box {
-                TextButton(onClick = { showFiringModeMenu = true }) {
-                    Text(
-                        when (state.settings.firingControlMode) {
-                            "buttons" -> stringResource(R.string.settings_firing_buttons)
-                            "swipe" -> stringResource(R.string.settings_firing_swipe)
-                            else -> stringResource(R.string.settings_firing_hybrid)
-                        },
-                        color = AccentBlue
-                    )
-                }
+        SettingsActionRow(
+            label = stringResource(R.string.settings_firing_controls),
+            value = when (state.settings.firingControlMode) {
+                "buttons" -> stringResource(R.string.settings_firing_buttons)
+                "swipe" -> stringResource(R.string.settings_firing_swipe)
+                else -> stringResource(R.string.settings_firing_hybrid)
+            },
+            supportingText = stringResource(R.string.settings_firing_controls_description),
+            onClick = { showFiringModeMenu = true },
+            dropdownMenu = {
                 DropdownMenu(expanded = showFiringModeMenu, onDismissRequest = { showFiringModeMenu = false }) {
                     DropdownMenuItem(
                         text = { Text(stringResource(R.string.settings_firing_hybrid_description)) },
@@ -366,7 +316,7 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
                     )
                 }
             }
-        }
+        )
 
         BufferedSettingsTextField(
             value = state.settings.customTypingPhrases,
@@ -397,15 +347,12 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
             onToggle = { viewModel.updateChallengeBypassEnabled(it) }
         )
         if (state.settings.challengeBypassEnabled) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.settings_bypass_delay), color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     listOf(10, 30, 60, 120).forEach { secs ->
                         val selected = state.settings.challengeBypassDelaySeconds == secs
                         AppFilterChip(
@@ -431,9 +378,9 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
                     color = TextPrimary,
                     style = MaterialTheme.typography.bodyMedium
                 )
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     listOf(20, 35, 50, 65).forEach { percent ->
                         AppFilterChip(
@@ -488,9 +435,9 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
             color = TextSecondary,
             style = MaterialTheme.typography.bodySmall
         )
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             palette.forEach { (hex, labelRes) ->
                 val isSelected = hex.equals(currentHex, ignoreCase = true)
@@ -500,7 +447,7 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
                     if (isSelected) R.string.settings_selected else R.string.settings_not_selected
                 )
                 val color = runCatching { androidx.compose.ui.graphics.Color(android.graphics.Color.parseColor(hex)) }
-                    .getOrDefault(androidx.compose.ui.graphics.Color.Gray)
+                    .getOrDefault(TextMuted)
                 val swatchShape = RoundedCornerShape(8.dp)
                 val selectedIconTint = accentForeground(color)
                 Box(

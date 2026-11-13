@@ -2401,42 +2401,4 @@
     <string name="alarmlist_alarm_options">アラームのオプション</string>
     <plurals name="alarmlist_hours"><item quantity="other">%1$d 時間</item></plurals>
     <string name="timer_preset_minutes">%1$d 分</string>
-    <plurals name="settings_minutes_after_schedule_plural">
-        <item quantity="other">スケジュールの %1$d 分後</item>
-    </plurals>
-    <plurals name="settings_minutes_before_schedule">
-        <item quantity="other">スケジュールの %1$d 分前</item>
-    </plurals>
-    <string name="alarm_edit_adjust_time_hint">時間をタップして調整します。</string>
-    <string name="alarm_edit_existing_status">既存のアラームを編集内容</string>
-    <string name="alarm_edit_new_status">新しいアラーム</string>
-    <string name="bedtime_30_minute_steps">30分刻み</string>
-    <string name="bedtime_close_bedtime">就寝時刻を閉じる</string>
-    <string name="bedtime_jetlag_current_chip">現在 %1$s</string>
-    <string name="bedtime_jetlag_target_chip">目標 %1$s</string>
-    <string name="bedtime_sonar_loud_bursts">; %1$d 回の大きな音、推定ピーク %2$d dB</string>
-    <string name="dashboard_matches">%1$s 件の一致</string>
-    <string name="dashboard_search_a_city">都市を検索</string>
-    <string name="onboarding_finish_setup_without_more_changes">これ以上変更せずにセットアップを完了</string>
-    <string name="onboarding_finish_without_more_changes">これ以上の変更なしで完了</string>
-    <string name="ringtone_ready_to_apply">適用する準備ができました。</string>
-    <string name="ringtone_tap_to_preview_then_choose_use">タップしてプレビューし、気に入ったら [使用] を選択してください。</string>
-    <string name="ringtone_tap_tone_preview">タップしてプレビュー</string>
-    <string name="settings_backup_alarm_counts">アラーム %1$d 個、有効 %2$d 個</string>
-    <string name="settings_minutes_seconds_compact">%1$d分 %2$d秒</string>
-    <string name="settings_personalization">パーソナライズ</string>
-    <string name="settings_utilities">ユーティリティ</string>
-    <string name="stats_close_statistics">統計を閉じる</string>
-    <string name="stopwatch_close_stopwatch">ストップウォッチを閉じる</string>
-    <string name="stopwatch_high_contrast_display_built_quick">素早く確認できるように構築された高コントラスト表示。</string>
-    <string name="stopwatch_split">スプリット</string>
-    <string name="template_creates_draft_alarm">下書きアラームを作成</string>
-    <string name="template_early_bird_description">平日 午前5:30、ジェントルウェイク</string>
-    <string name="template_fully_editable">完全に編集可能</string>
-    <string name="template_heavy_sleeper_description">毎日 午前6:00、難しい計算、最大音量</string>
-    <string name="template_medication_reminder_description">毎日 午前8:00、穏やかな通知</string>
-    <string name="template_power_nap_description">20分後に鳴動、シェイクで停止</string>
-    <string name="template_weekend_sleep_in_description">週末 午前9:00、穏やか</string>
-    <string name="template_work_alarm_description">平日 午前7:00、計算チャレンジ</string>
-    <string name="templates_ready_made_setups">%1$s 個の既製セットアップ</string>
 </resources>

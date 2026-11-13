@@ -33,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Shield
@@ -43,7 +44,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -73,6 +73,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
@@ -82,11 +83,13 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.ui.theme.accentForeground
 import com.sysadmindoc.alarmclock.util.ManufacturerCompat
 import kotlinx.coroutines.launch
 import com.sysadmindoc.alarmclock.R
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 data class OnboardingPage(
     val icon: ImageVector,
@@ -133,7 +136,9 @@ internal val onboardingPages = listOf(
         icon = Icons.Default.Shield,
         titleRes = R.string.onboarding_private_by_default,
         descriptionRes = R.string.onboarding_no_ads_no_tracking_no,
-        accentColor = AccentRed,
+        // Brand blue, not AccentRed: red is the error color, and this page
+        // carries the "Finish setup" button and the readiness checklist.
+        accentColor = AccentBlue,
         highlightRes = listOf(
             R.string.onboarding_highlight_optional_permissions,
             R.string.onboarding_highlight_data_stays_local
@@ -243,7 +248,7 @@ fun OnboardingScreen(
                     )
                 }
                 if (!isLastPage) {
-                    TextButton(onClick = onComplete) {
+                    AppTextButton(onClick = onComplete) {
                         Text(stringResource(R.string.onboarding_set_up_later), color = TextMuted)
                     }
                 }
@@ -266,34 +271,6 @@ fun OnboardingScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(if (isLastPage) 10.dp else 16.dp)
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    repeat(onboardingPages.size) { index ->
-                        val isActive = index == pagerState.currentPage
-                        val dotWidth by animateDpAsState(
-                            targetValue = if (isActive) 20.dp else 8.dp,
-                            animationSpec = tween(durationMillis = 250),
-                            label = "dotWidth$index"
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(dotWidth, 8.dp)
-                                .clip(RoundedCornerShape(if (isActive) 0.dp else 4.dp))
-                                .background(
-                                    if (isActive) onboardingPages[pagerState.currentPage].accentColor
-                                    else onboardingPages[pagerState.currentPage].accentColor.copy(alpha = 0.22f)
-                                )
-                        )
-                    }
-                }
-
-                AppStatusChip(
-                    label = stringResource(onboardingPages[pagerState.currentPage].titleRes),
-                    icon = onboardingPages[pagerState.currentPage].icon,
-                    color = onboardingPages[pagerState.currentPage].accentColor
-                )
-
                 if (isLastPage) {
                     AppSurfaceCard(
                         modifier = Modifier.fillMaxWidth(),
@@ -338,7 +315,7 @@ fun OnboardingScreen(
                         )
                         if (readiness.fullScreenRelevant) {
                             ReadinessMiniRow(
-                                icon = Icons.Default.NotificationsActive,
+                                icon = Icons.Default.Fullscreen,
                                 title = stringResource(R.string.settings_fullscreen_access),
                                 ready = readiness.fullScreenReady == true,
                                 actionLabel = stringResource(R.string.onboarding_open),
@@ -397,6 +374,31 @@ fun OnboardingScreen(
                     }
                 }
 
+                // After the readiness card, so the dots sit just above the
+                // button on every page instead of jumping above the card.
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    repeat(onboardingPages.size) { index ->
+                        val isActive = index == pagerState.currentPage
+                        val dotWidth by animateDpAsState(
+                            targetValue = if (isActive) 20.dp else 8.dp,
+                            animationSpec = tween(durationMillis = 250),
+                            label = "dotWidth$index"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(dotWidth, 8.dp)
+                                // Square like the active bar: a 4dp radius on
+                                // an 8dp dot is a circle.
+                                .background(
+                                    if (isActive) onboardingPages[pagerState.currentPage].accentColor
+                                    else onboardingPages[pagerState.currentPage].accentColor.copy(alpha = 0.22f)
+                                )
+                        )
+                    }
+                }
+
                 Button(
                     onClick = {
                         if (isLastPage) {
@@ -415,8 +417,8 @@ fun OnboardingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(if (isLastPage) 54.dp else 58.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = onboardingPages[pagerState.currentPage].accentColor),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = onboardingPages[pagerState.currentPage].accentColor, contentColor = accentForeground(onboardingPages[pagerState.currentPage].accentColor)),
+                    shape = AppButtonShape
                 ) {
                     Text(
                         text = when {
@@ -429,13 +431,11 @@ fun OnboardingScreen(
                     )
                 }
 
-                if (isLastPage) {
-                    val finishDescription = if (readiness.notificationsReady) {
-                        stringResource(R.string.onboarding_finish_setup_without_more_changes)
-                    } else {
-                        stringResource(R.string.onboarding_finish_setup_without_alarm_alerts)
-                    }
-                    TextButton(
+                // Once alerts are on, "Finish setup" already completes, so a
+                // second finish button only repeated it.
+                if (isLastPage && !readiness.notificationsReady) {
+                    val finishDescription = stringResource(R.string.onboarding_finish_setup_without_alarm_alerts)
+                    AppTextButton(
                         onClick = onComplete,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -445,10 +445,7 @@ fun OnboardingScreen(
                                 role = Role.Button
                             }
                     ) {
-                        Text(
-                            if (readiness.notificationsReady) stringResource(R.string.onboarding_finish_without_more_changes) else stringResource(R.string.onboarding_skip_permissions),
-                            color = TextMuted
-                        )
+                        Text(stringResource(R.string.onboarding_skip_permissions), color = TextMuted)
                     }
                 }
 
@@ -500,10 +497,12 @@ private fun OnboardingPageContent(
             OnboardingIconTile(
                 page = page,
                 size = 112.dp,
-                iconSize = 52.dp
+                iconSize = 52.dp,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
             Column(
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -540,10 +539,11 @@ private fun OnboardingPageContent(
 private fun OnboardingIconTile(
     page: OnboardingPage,
     size: androidx.compose.ui.unit.Dp,
-    iconSize: androidx.compose.ui.unit.Dp
+    iconSize: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(size)
             .clip(RoundedCornerShape(12.dp))
             .background(
@@ -601,8 +601,10 @@ private fun ReadinessMiniRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // A check once ready, like the Settings readiness rows, so the state
+        // doesn't rest on green versus yellow alone.
         Icon(
-            imageVector = icon,
+            imageVector = if (ready) Icons.Default.CheckCircle else icon,
             contentDescription = null,
             tint = if (ready) DismissGreen else SnoozeYellow,
             modifier = Modifier.size(20.dp)
@@ -613,7 +615,7 @@ private fun ReadinessMiniRow(
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f)
         )
-        TextButton(onClick = onAction, enabled = !ready) {
+        AppTextButton(onClick = onAction, enabled = !ready) {
             Text(if (ready) stringResource(R.string.settings_ready) else actionLabel)
         }
     }

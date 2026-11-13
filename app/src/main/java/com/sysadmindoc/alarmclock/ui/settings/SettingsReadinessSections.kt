@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package com.sysadmindoc.alarmclock.ui.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -13,26 +15,23 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -54,7 +53,6 @@ import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
@@ -73,14 +71,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -115,14 +111,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.ui.components.AppFeedbackCard
+import com.sysadmindoc.alarmclock.ui.components.AppProgressBar
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppTileGrid
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
@@ -160,6 +159,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 internal fun IncidentTimelineSection(
@@ -194,9 +194,7 @@ internal fun IncidentTimelineSection(
                 ),
                 action = {
                     AppStatusChip(
-                        label = timeline.latestStatus.orEmpty().ifBlank {
-                            stringResource(R.string.settings_unknown_code)
-                        },
+                        label = incidentStatusLabel(timeline.latestStatus),
                         icon = if (timeline.latestIsDegraded) Icons.Default.Warning else Icons.Default.CheckCircle,
                         color = if (timeline.latestIsDegraded) SnoozeYellow else DismissGreen
                     )
@@ -225,7 +223,7 @@ internal fun IncidentTimelineSection(
             )
             OutlinedButton(
                 onClick = { showClearDialog = true },
-                shape = RoundedCornerShape(12.dp),
+                shape = AppButtonShape,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = AccentRed)
             ) {
                 Text(stringResource(R.string.settings_clear_diagnostics))
@@ -248,7 +246,7 @@ internal fun IncidentTimelineSection(
                 )
             },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         showClearDialog = false
                         onClearIncidentHistory()
@@ -258,7 +256,7 @@ internal fun IncidentTimelineSection(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) {
+                AppTextButton(onClick = { showClearDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -288,44 +286,49 @@ internal fun SettingsOverviewRow(state: SettingsUiState) {
             title = stringResource(R.string.settings_at_a_glance),
             description = stringResource(R.string.settings_at_a_glance_description)
         )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            SettingsOverviewTile(
-                title = stringResource(R.string.settings_reliability),
-                value = stringResource(
-                    if (reliabilityReady) R.string.settings_ready else R.string.settings_needs_review
-                ),
-                supporting = wakeReadinessSummary(state),
-                icon = if (reliabilityReady) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
-                accent = if (reliabilityReady) DismissGreen else SnoozeYellow,
-                modifier = Modifier.width(190.dp)
+        // Two per row: three fixed-width tiles in a sideways list left the
+        // last one off screen on every phone.
+        AppTileGrid(
+            tiles = listOf<@Composable (Modifier) -> Unit>(
+                { tileModifier ->
+                    SettingsOverviewTile(
+                        title = stringResource(R.string.settings_reliability),
+                        value = stringResource(
+                            if (reliabilityReady) R.string.settings_ready else R.string.settings_needs_review
+                        ),
+                        supporting = wakeReadinessSummary(state),
+                        icon = if (reliabilityReady) Icons.Default.CheckCircle else Icons.Default.BatteryAlert,
+                        accent = if (reliabilityReady) DismissGreen else SnoozeYellow,
+                        modifier = tileModifier
+                    )
+                },
+                { tileModifier ->
+                    SettingsOverviewTile(
+                        title = stringResource(R.string.settings_dashboard),
+                        value = dashboardSummary(state),
+                        supporting = stringResource(R.string.settings_dashboard_overview_description),
+                        icon = Icons.Default.Cloud,
+                        accent = MaterialTheme.colorScheme.primary,
+                        modifier = tileModifier
+                    )
+                },
+                { tileModifier ->
+                    SettingsOverviewTile(
+                        title = stringResource(R.string.settings_wake_style),
+                        value = stringResource(
+                            if (state.settings.is24HourFormat) R.string.settings_24_hour else R.string.settings_12_hour
+                        ),
+                        supporting = stringResource(
+                            R.string.settings_default_snooze_summary,
+                            state.settings.defaultSnoozeDuration
+                        ),
+                        icon = Icons.Default.AutoAwesome,
+                        accent = MaterialTheme.colorScheme.primary,
+                        modifier = tileModifier
+                    )
+                }
             )
-            SettingsOverviewTile(
-                title = stringResource(R.string.settings_dashboard),
-                value = dashboardSummary(state),
-                supporting = stringResource(R.string.settings_dashboard_overview_description),
-                icon = Icons.Default.Cloud,
-                accent = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.width(190.dp)
-            )
-            SettingsOverviewTile(
-                title = stringResource(R.string.settings_wake_style),
-                value = stringResource(
-                    if (state.settings.is24HourFormat) R.string.settings_24_hour else R.string.settings_12_hour
-                ),
-                supporting = stringResource(
-                    R.string.settings_default_snooze_summary,
-                    state.settings.defaultSnoozeDuration
-                ),
-                icon = Icons.Default.AutoAwesome,
-                accent = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.width(190.dp)
-            )
-        }
+        )
     }
 }
 
@@ -376,7 +379,10 @@ internal fun SettingsOverviewTile(
 @Composable
 internal fun WakeReadinessSection(
     state: SettingsUiState,
-    onOpenOnboardingChecklist: () -> Unit
+    onOpenOnboardingChecklist: () -> Unit,
+    // Set on the phone Settings home, where this card is the only way into
+    // the Readiness pane (pause, vacation, on-call, battery, incidents).
+    onOpenReadiness: (() -> Unit)? = null
 ) {
     // v1.11.3 (roadmap N3): Standby bucket is only surfaced when the API is
     // available (API 28+) AND the bucket is actually concerning. ACTIVE /
@@ -411,11 +417,11 @@ internal fun WakeReadinessSection(
     val total = checks.size
     val allReady = readyCount == total
 
-    AppSurfaceCard(highlighted = false) {
+    AppSurfaceCard(highlighted = false, onClick = onOpenReadiness) {
         AppSectionTitle(
             title = stringResource(R.string.settings_wake_readiness),
             action = {
-                TextButton(onClick = onOpenOnboardingChecklist) {
+                AppTextButton(onClick = onOpenOnboardingChecklist) {
                     Text(stringResource(R.string.settings_review))
                 }
             }
@@ -425,14 +431,31 @@ internal fun WakeReadinessSection(
             color = if (allReady) DismissGreen else SnoozeYellow,
             style = MaterialTheme.typography.bodyMedium
         )
-        LinearProgressIndicator(
+        AppProgressBar(
             progress = { if (total == 0) 1f else readyCount.toFloat() / total.toFloat() },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp),
-            color = if (allReady) DismissGreen else SnoozeYellow,
-            trackColor = TextMuted.copy(alpha = 0.18f)
+            modifier = Modifier.fillMaxWidth(),
+            color = if (allReady) DismissGreen else SnoozeYellow
         )
+        if (onOpenReadiness != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.settings_pane_readiness_description),
+                    color = TextSecondary,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = TextMuted,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
     }
 }
 
@@ -443,22 +466,15 @@ internal fun OnCallModeSection(
 ) {
     val context = LocalContext.current
     val policyAccessGranted = OnCallDndOverride.isPolicyAccessGranted(context)
+    // The switch shows on or off and the card highlights when on, so the
+    // title carries no status chip, and the switch row doesn't repeat it.
     AppSurfaceCard(highlighted = state.settings.onCallModeEnabled) {
         AppSectionTitle(
             title = stringResource(R.string.settings_on_call_mode),
-            description = stringResource(R.string.settings_on_call_mode_description),
-            action = {
-                AppStatusChip(
-                    label = stringResource(
-                        if (state.settings.onCallModeEnabled) R.string.settings_active else R.string.settings_off
-                    ),
-                    icon = Icons.Default.NotificationsActive,
-                    color = if (state.settings.onCallModeEnabled) SnoozeYellow else TextMuted
-                )
-            }
+            description = stringResource(R.string.settings_on_call_mode_description)
         )
         SettingsToggle(
-            label = stringResource(R.string.settings_on_call_mode),
+            label = stringResource(R.string.settings_on_call_ring_through),
             supportingText = stringResource(R.string.settings_on_call_mode_toggle_description),
             checked = state.settings.onCallModeEnabled,
             onToggle = viewModel::toggleOnCallMode
@@ -478,7 +494,7 @@ internal fun OnCallModeSection(
                         )
                     }
                 },
-                shape = RoundedCornerShape(12.dp)
+                shape = AppButtonShape
             ) {
                 Text(stringResource(R.string.settings_open_dnd))
             }
@@ -523,11 +539,10 @@ internal fun PauseAlarmsSection(state: SettingsUiState, viewModel: SettingsViewM
             }
         )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             listOf(1, 3, 7, 14).forEach { days ->
                 AppFilterChip(
@@ -576,19 +591,11 @@ internal fun VacationModeSection(state: SettingsUiState, viewModel: SettingsView
         stringResource(R.string.settings_choose_end_date)
     }
 
+    // Same as on-call: the switch below already shows the state.
     AppSurfaceCard(highlighted = settings.vacationModeEnabled) {
         AppSectionTitle(
             title = stringResource(R.string.vacation_mode),
-            description = stringResource(R.string.settings_vacation_description),
-            action = {
-                AppStatusChip(
-                    label = stringResource(
-                        if (settings.vacationModeEnabled) R.string.settings_active else R.string.settings_off
-                    ),
-                    icon = Icons.Default.BeachAccess,
-                    color = if (settings.vacationModeEnabled) SnoozeYellow else TextMuted
-                )
-            }
+            description = stringResource(R.string.settings_vacation_description)
         )
 
         SettingsToggle(
@@ -639,7 +646,7 @@ internal fun VacationModeSection(state: SettingsUiState, viewModel: SettingsView
         DatePickerDialog(
             onDismissRequest = { showStartPicker = false },
             confirmButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
                         viewModel.setVacationMode(
                             settings.vacationModeEnabled,
@@ -653,7 +660,7 @@ internal fun VacationModeSection(state: SettingsUiState, viewModel: SettingsView
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showStartPicker = false }) {
+                AppTextButton(onClick = { showStartPicker = false }) {
                     Text(stringResource(R.string.cancel), color = TextSecondary)
                 }
             },
@@ -674,7 +681,7 @@ internal fun VacationModeSection(state: SettingsUiState, viewModel: SettingsView
         DatePickerDialog(
             onDismissRequest = { showEndPicker = false },
             confirmButton = {
-                TextButton(onClick = {
+                AppTextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
                         viewModel.setVacationMode(
                             settings.vacationModeEnabled,
@@ -688,7 +695,7 @@ internal fun VacationModeSection(state: SettingsUiState, viewModel: SettingsView
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showEndPicker = false }) {
+                AppTextButton(onClick = { showEndPicker = false }) {
                     Text(stringResource(R.string.cancel), color = TextSecondary)
                 }
             },
@@ -727,7 +734,7 @@ internal fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Setti
             Button(
                 onClick = viewModel::requestBatteryExemption,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                shape = RoundedCornerShape(12.dp)
+                shape = AppButtonShape
             ) {
                 Text(
                     if (state.needsBatteryGuidance) {
@@ -767,7 +774,7 @@ internal fun BatteryOptimizationSection(state: SettingsUiState, viewModel: Setti
             }
             if (state.batteryGuidanceUrl.isNotBlank()) {
                 val uriHandler = LocalUriHandler.current
-                TextButton(
+                AppTextButton(
                     onClick = { runCatching { uriHandler.openUri(state.batteryGuidanceUrl) } }
                 ) {
                     Text(stringResource(R.string.settings_battery_guide_link, state.manufacturerName))

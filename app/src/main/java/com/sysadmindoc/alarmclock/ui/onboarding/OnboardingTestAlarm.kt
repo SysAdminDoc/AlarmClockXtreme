@@ -29,6 +29,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceDark
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.ui.theme.accentForeground
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,7 +37,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CheckCircle
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProofStore
 import androidx.compose.ui.res.stringResource
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 object OnboardingTestAlarm {
     const val ACTION_RING = "com.sysadmindoc.alarmclock.ONBOARDING_TEST_ALARM"
@@ -276,7 +278,9 @@ private fun TestAlarmContent(onDismiss: () -> Unit) {
             imageVector = Icons.Default.Alarm,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 20.dp)
+            modifier = Modifier
+                .padding(bottom = 20.dp)
+                .size(56.dp)
         )
         Text(
             text = stringResource(R.string.onboarding_test_alarm),
@@ -295,9 +299,9 @@ private fun TestAlarmContent(onDismiss: () -> Unit) {
         Button(
             onClick = onDismiss,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = AppButtonShape,
             contentPadding = PaddingValues(vertical = 16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = DismissGreen)
+            colors = ButtonDefaults.buttonColors(containerColor = DismissGreen, contentColor = accentForeground(DismissGreen))
         ) {
             Icon(Icons.Default.CheckCircle, contentDescription = null)
             Text(

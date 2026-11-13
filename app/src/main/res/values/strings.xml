@@ -2503,39 +2503,4 @@
     <string name="alarmlist_alarm_options">Alarm options</string>
     <plurals name="alarmlist_hours"><item quantity="one">%1$d hour</item><item quantity="other">%1$d hours</item></plurals>
     <string name="timer_preset_minutes">%1$d min</string>
-    <plurals name="settings_minutes_after_schedule_plural"><item quantity="one">%1$d min after schedule</item><item quantity="other">%1$d min after schedule</item></plurals>
-    <plurals name="settings_minutes_before_schedule"><item quantity="one">%1$d min before schedule</item><item quantity="other">%1$d min before schedule</item></plurals>
-    <string name="alarm_edit_adjust_time_hint">Tap the time to adjust it precisely.</string>
-    <string name="alarm_edit_existing_status">Editing existing alarm</string>
-    <string name="alarm_edit_new_status">New alarm</string>
-    <string name="bedtime_30_minute_steps">30-minute steps</string>
-    <string name="bedtime_close_bedtime">Close bedtime</string>
-    <string name="bedtime_jetlag_current_chip">Current %1$s</string>
-    <string name="bedtime_jetlag_target_chip">Target %1$s</string>
-    <string name="bedtime_sonar_loud_bursts">; %1$d loud bursts, peak %2$d dB est.</string>
-    <string name="dashboard_matches">%1$s matches</string>
-    <string name="dashboard_search_a_city">Search a city</string>
-    <string name="onboarding_finish_setup_without_more_changes">Finish setup without more changes</string>
-    <string name="onboarding_finish_without_more_changes">Finish without more changes</string>
-    <string name="ringtone_ready_to_apply">Ready to apply.</string>
-    <string name="ringtone_tap_to_preview_then_choose_use">Tap to preview, then choose Use when it feels right.</string>
-    <string name="ringtone_tap_tone_preview">Tap a tone to preview</string>
-    <string name="settings_backup_alarm_counts">%1$d alarms, %2$d enabled</string>
-    <string name="settings_minutes_seconds_compact">%1$dm %2$ds</string>
-    <string name="settings_personalization">Personalization</string>
-    <string name="settings_unknown_code" translatable="false">UNKNOWN</string>
-    <string name="settings_utilities">Utilities</string>
-    <string name="stats_close_statistics">Close statistics</string>
-    <string name="stopwatch_close_stopwatch">Close stopwatch</string>
-    <string name="stopwatch_high_contrast_display_built_quick">A high-contrast display built for quick glances.</string>
-    <string name="stopwatch_split">Split</string>
-    <string name="template_creates_draft_alarm">Creates a draft alarm</string>
-    <string name="template_early_bird_description">5:30 AM weekdays, gentle wake</string>
-    <string name="template_fully_editable">Fully editable</string>
-    <string name="template_heavy_sleeper_description">6:00 AM daily, hard math, max volume</string>
-    <string name="template_medication_reminder_description">8:00 AM daily, gentle nudge</string>
-    <string name="template_power_nap_description">Rings 20 minutes from now, shake to dismiss</string>
-    <string name="template_weekend_sleep_in_description">9:00 AM weekends, gentle</string>
-    <string name="template_work_alarm_description">7:00 AM weekdays, math challenge</string>
-    <string name="templates_ready_made_setups">%1$s ready-made setups</string>
 </resources>

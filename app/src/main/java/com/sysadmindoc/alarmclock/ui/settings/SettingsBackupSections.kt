@@ -36,7 +36,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
@@ -80,7 +79,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -118,6 +116,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.ui.components.AppFeedbackCard
@@ -166,6 +165,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: Boolean) {
@@ -339,7 +339,7 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
                 onClick = { requestBackupExport(BackupExportKind.Plain) },
                 enabled = !operationBusy,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
+                shape = AppButtonShape,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
@@ -350,7 +350,7 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
                 onClick = { importLauncher.launch(arrayOf("application/json")) },
                 enabled = !operationBusy,
                 modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
+                shape = AppButtonShape,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
@@ -371,7 +371,7 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
             onClick = { fossifyImportLauncher.launch(arrayOf("application/json", "text/plain")) },
             enabled = !operationBusy,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
+            shape = AppButtonShape,
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
         ) {
             Icon(Icons.Default.Restore, null, modifier = Modifier.size(18.dp))
@@ -438,29 +438,28 @@ internal fun BackupRestoreSection(viewModel: SettingsViewModel, is24HourFormat: 
                 colors = appOutlinedTextFieldColors(),
                 shape = AppInputShape
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedButton(
-                    onClick = { requestBackupExport(BackupExportKind.Encrypted) },
-                    enabled = encryptedExportEnabled && !operationBusy,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Text(stringResource(R.string.settings_encrypt_export))
-                }
-                OutlinedButton(
-                    onClick = { encryptedImportLauncher.launch(arrayOf("application/json", "*/*")) },
-                    enabled = encryptedImportEnabled && !operationBusy,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.size(6.dp))
-                    Text(stringResource(R.string.settings_decrypt_import))
-                }
+            // Stacked full width. Side by side, each label wrapped onto two lines.
+            OutlinedButton(
+                onClick = { requestBackupExport(BackupExportKind.Encrypted) },
+                enabled = encryptedExportEnabled && !operationBusy,
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppButtonShape,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Upload, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.size(6.dp))
+                Text(stringResource(R.string.settings_encrypt_export))
+            }
+            OutlinedButton(
+                onClick = { encryptedImportLauncher.launch(arrayOf("application/json", "*/*")) },
+                enabled = encryptedImportEnabled && !operationBusy,
+                modifier = Modifier.fillMaxWidth(),
+                shape = AppButtonShape,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(Icons.Default.Download, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.size(6.dp))
+                Text(stringResource(R.string.settings_decrypt_import))
             }
         }
     }
@@ -668,10 +667,10 @@ private fun FossifyImportPreviewDialog(
         },
         confirmButton = {
             if (preview.canImport) {
-                TextButton(onClick = onImport) { Text(stringResource(R.string.settings_import_disabled)) }
+                AppTextButton(onClick = onImport) { Text(stringResource(R.string.settings_import_disabled)) }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
+        dismissButton = { AppTextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } }
     )
 }
 
@@ -726,8 +725,9 @@ private fun BackupImportPreviewDialog(
                     color = TextSecondary
                 )
                 Text(
-                    text = stringResource(
-                        R.string.settings_backup_alarm_counts,
+                    text = pluralStringResource(
+                        R.plurals.settings_backup_alarm_counts,
+                        preview.alarmCount,
                         preview.alarmCount,
                         preview.enabledAlarmCount
                     ),
@@ -828,17 +828,17 @@ private fun BackupImportPreviewDialog(
         confirmButton = {
             if (preview.canImport) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = { onImport(BackupImportMode.Append) }) {
+                    AppTextButton(onClick = { onImport(BackupImportMode.Append) }) {
                         Text(stringResource(R.string.settings_append_alarms))
                     }
-                    TextButton(onClick = { onImport(BackupImportMode.Replace) }) {
+                    AppTextButton(onClick = { onImport(BackupImportMode.Replace) }) {
                         Text(stringResource(R.string.settings_replace_alarms))
                     }
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AppTextButton(onClick = onDismiss) {
                 Text(
                     stringResource(if (preview.canImport) R.string.cancel else R.string.settings_close)
                 )
@@ -946,7 +946,7 @@ private fun BackupExportWarningDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onContinue) {
+            AppTextButton(onClick = onContinue) {
                 Text(
                     stringResource(
                         if (encrypted) R.string.settings_export_encrypted_backup
@@ -956,7 +956,7 @@ private fun BackupExportWarningDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AppTextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))
             }
         }

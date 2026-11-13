@@ -6,7 +6,6 @@ import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 /**
  * A button that asks for one runtime permission. After a second "Don't allow"
@@ -55,7 +55,7 @@ internal fun PermissionRequestButton(
                 launcher.launch(permission)
             }
         },
-        shape = RoundedCornerShape(12.dp),
+        shape = AppButtonShape,
         modifier = modifier
     ) {
         Text(if (openSettingsInstead) stringResource(R.string.permission_open_app_settings) else label)

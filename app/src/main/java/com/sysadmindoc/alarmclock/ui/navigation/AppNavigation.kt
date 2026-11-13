@@ -8,12 +8,19 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
+import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Alarm
+import androidx.compose.material.icons.outlined.Language
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -66,6 +73,8 @@ sealed class Screen(val route: String) {
     data object Bedtime : Screen("bedtime")
     data object Stats : Screen("stats")
     data object Onboarding : Screen("onboarding")
+    // The onboarding readiness page opened from Settings; finishing pops back.
+    data object ReadinessChecklist : Screen("readiness_checklist")
     data object WorldClock : Screen("world_clock")
     data object SharedAlarmImport : Screen("shared_alarm_import")
     // v1.8.0
@@ -75,7 +84,10 @@ sealed class Screen(val route: String) {
 data class BottomNavItem(
     val screen: Screen,
     @StringRes val labelRes: Int,
-    val icon: ImageVector
+    // Outlined at rest and filled when selected, so the current tab doesn't
+    // rely on color alone.
+    val icon: ImageVector,
+    val selectedIcon: ImageVector
 )
 
 /**
@@ -94,12 +106,12 @@ val bottomNavItems = listOf(
     // hero still reads "Weather", so we shorten just the *nav label* to
     // "Today" (which is also accurate — it's a daily-overview hub with
     // weather + radar + calendar). "Settings" fits at default fontWeight.
-    BottomNavItem(Screen.Dashboard, R.string.nav_today, Icons.Default.WbSunny),
-    BottomNavItem(Screen.AlarmList, R.string.nav_alarms, Icons.Default.Alarm),
-    BottomNavItem(Screen.Timer, R.string.nav_timer, Icons.Default.Timer),
-    BottomNavItem(Screen.WorldClock, R.string.nav_world, Icons.Default.Language),
-    BottomNavItem(Screen.News, R.string.nav_news, Icons.AutoMirrored.Filled.Article),
-    BottomNavItem(Screen.Settings, R.string.nav_settings, Icons.Default.Settings),
+    BottomNavItem(Screen.Dashboard, R.string.nav_today, Icons.Outlined.WbSunny, Icons.Default.WbSunny),
+    BottomNavItem(Screen.AlarmList, R.string.nav_alarms, Icons.Outlined.Alarm, Icons.Default.Alarm),
+    BottomNavItem(Screen.Timer, R.string.nav_timer, Icons.Outlined.Timer, Icons.Default.Timer),
+    BottomNavItem(Screen.WorldClock, R.string.nav_world, Icons.Outlined.Language, Icons.Default.Language),
+    BottomNavItem(Screen.News, R.string.nav_news, Icons.AutoMirrored.Outlined.Article, Icons.AutoMirrored.Filled.Article),
+    BottomNavItem(Screen.Settings, R.string.nav_settings, Icons.Outlined.Settings, Icons.Default.Settings),
 )
 
 private fun visibleBottomNavItems(
@@ -275,23 +287,17 @@ fun AppNavigation(
 
                             NavigationBarItem(
                                 icon = {
+                                    // The label below is always shown, so a
+                                    // description here made TalkBack read it twice.
                                     Icon(
-                                        imageVector = item.icon,
-                                        contentDescription = label,
+                                        imageVector = if (selected) item.selectedIcon else item.icon,
+                                        contentDescription = null,
                                         modifier = Modifier.size(22.dp)
                                     )
                                 },
                                 label = {
-                                    // v1.8.1: with 6 tabs in 1080px, showing
-                                    // every label forced ellipsis ("Weath…"/
-                                    // "Setti…") which read as broken layout.
-                                    // The Material 3 idiom for crowded bars
-                                    // is `alwaysShowLabel = false`: only the
-                                    // selected tab carries its label, others
-                                    // sit as confident icons. We use Material
-                                    // 3's default `labelMedium` (no fontWeight
-                                    // override) so the label has the most
-                                    // breathing room inside the pill.
+                                    // Short labels in labelSmall so all six
+                                    // fit at 1080px without an ellipsis.
                                     Text(
                                         text = label,
                                         maxLines = 1,
@@ -315,13 +321,17 @@ fun AppNavigation(
             }
         }
     ) { padding ->
+        // The padding already covers the status bar and the bottom bar, so it
+        // is consumed here. Without that, every screen's own statusBarsPadding,
+        // TopAppBar and inner Scaffold added the same insets a second time.
+        //
         // v1.13.0 (roadmap N11): On MEDIUM/EXPANDED width classes, place a
         // NavigationRail on the leading edge and let the NavHost fill the
         // rest of the row. The bottom bar is hidden in that case (see slot
         // above). Compact widths skip the rail entirely and the original
         // NavHost-only layout is preserved.
         if (useNavigationRail && showBottomBar) {
-            Row(modifier = Modifier.padding(padding).fillMaxSize()) {
+            Row(modifier = Modifier.padding(padding).consumeWindowInsets(padding).fillMaxSize()) {
                 NavigationRail(
                     containerColor = SurfaceDark,
                     contentColor = TextPrimary
@@ -334,8 +344,8 @@ fun AppNavigation(
                         NavigationRailItem(
                             icon = {
                                 Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = label,
+                                    imageVector = if (selected) item.selectedIcon else item.icon,
+                                    contentDescription = null,
                                     modifier = Modifier.size(22.dp)
                                 )
                             },
@@ -376,7 +386,7 @@ fun AppNavigation(
         openReadinessChecklist = reliabilityChecklistDue,
         sharedAlarmDraft = sharedAlarmDraft,
         onSharedAlarmConsumed = onSharedAlarmConsumed,
-        modifier = Modifier.padding(padding)
+        modifier = Modifier.padding(padding).consumeWindowInsets(padding)
     )
 }
 }
@@ -436,6 +446,16 @@ private fun AppNavHost(
                     navController.navigate(Screen.AlarmList.route) {
                         popUpTo(Screen.Onboarding.route) { inclusive = true }
                     }
+                }
+            )
+        }
+
+        composable(Screen.ReadinessChecklist.route) {
+            OnboardingScreen(
+                openReadinessChecklist = true,
+                onComplete = {
+                    ReliabilityDoctor.markChecklistReviewed(context)
+                    navController.popBackStack()
                 }
             )
         }
@@ -533,7 +553,7 @@ private fun AppNavHost(
                     navController.navigate(Screen.Bedtime.route)
                 },
                 onOpenOnboardingChecklist = {
-                    navController.navigate(Screen.Onboarding.route) {
+                    navController.navigate(Screen.ReadinessChecklist.route) {
                         launchSingleTop = true
                     }
                 }

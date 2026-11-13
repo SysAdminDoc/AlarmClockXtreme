@@ -25,9 +25,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppTileShape
 import com.sysadmindoc.alarmclock.ui.theme.*
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.sysadmindoc.alarmclock.R
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 /**
  * Tracks which optional permissions have been granted.
@@ -141,9 +144,9 @@ fun PermissionRequestCard(
         AppSectionTitle(
             title = if (includeNotifications) stringResource(R.string.permissions_recommended_permissions) else stringResource(R.string.permissions_context_permissions),
             description = if (includeNotifications) {
-                "A few optional permissions unlock weather, calendar, and clearer alarm alerts."
+                stringResource(R.string.permissions_recommended_description)
             } else {
-                "Optional context that makes the Today tab and morning briefing more useful."
+                stringResource(R.string.permissions_context_description)
             },
             action = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -190,14 +193,14 @@ fun PermissionRequestCard(
                 }
             },
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-            shape = RoundedCornerShape(12.dp),
+            shape = AppButtonShape,
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
                 if (missingCount == 1) {
-                    "Enable final permission"
+                    stringResource(R.string.permissions_enable_final)
                 } else {
-                    "Enable $missingCount permissions"
+                    pluralStringResource(R.plurals.permissions_enable_count, missingCount, missingCount)
                 }
             )
         }
@@ -220,8 +223,8 @@ private fun PermissionItem(icon: ImageVector, title: String, description: String
     ) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            color = SurfaceCard.copy(alpha = 0.78f)
+            shape = AppTileShape,
+            color = SurfaceInset
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),

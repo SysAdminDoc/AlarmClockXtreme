@@ -12,12 +12,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -32,7 +33,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -48,7 +48,6 @@ import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.BatteryAlert
 import androidx.compose.material.icons.filled.BeachAccess
-import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
@@ -57,6 +56,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Speed
@@ -76,14 +76,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -121,9 +119,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
 import com.sysadmindoc.alarmclock.ui.components.AlarmClockHeroHeader
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.ui.components.AppFeedbackCard
+import com.sysadmindoc.alarmclock.ui.components.AppProgressBar
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppInlineNotice
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
@@ -169,6 +169,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 
 @Composable
 internal fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsViewModel) {
@@ -267,7 +268,7 @@ internal fun IntegrationsSection(state: SettingsUiState, viewModel: SettingsView
                     state.settings.webhookUrl.isNotBlank() &&
                     !localWebhookPermissionMissing &&
                     !state.isWebhookTesting,
-                shape = RoundedCornerShape(12.dp),
+                shape = AppButtonShape,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (state.isWebhookTesting) {
@@ -481,7 +482,7 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
                         color = TextMuted
                     )
                 }
-                TextButton(onClick = { showForgetCertificateDialog = true }) {
+                AppTextButton(onClick = { showForgetCertificateDialog = true }) {
                     Text(stringResource(R.string.settings_forget))
                 }
             }
@@ -515,7 +516,7 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
                     state.settings.hueApiKey.isNotBlank() &&
                     !localNetworkPermissionMissing &&
                     !state.isHueTesting,
-                shape = RoundedCornerShape(12.dp),
+                shape = AppButtonShape,
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
             ) {
                 if (state.isHueTesting) {
@@ -546,7 +547,7 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
                 )
             },
             confirmButton = {
-                TextButton(
+                AppTextButton(
                     onClick = {
                         showForgetCertificateDialog = false
                         viewModel.clearHueCertificatePin()
@@ -556,7 +557,7 @@ internal fun PhilipsHueSection(state: SettingsUiState, viewModel: SettingsViewMo
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showForgetCertificateDialog = false }) {
+                AppTextButton(onClick = { showForgetCertificateDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
@@ -616,7 +617,7 @@ internal fun IkeaDirigeraSection(state: SettingsUiState, viewModel: SettingsView
                 color = TextSecondary
             )
             if (dirigera.isBusy && dirigera.lights.isEmpty()) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                AppProgressBar(progress = null, modifier = Modifier.fillMaxWidth())
             }
             val selectedIds = remember(settings.dirigeraLightIds) {
                 DirigeraClient.parseLightIds(settings.dirigeraLightIds).toSet()
@@ -669,13 +670,13 @@ internal fun IkeaDirigeraSection(state: SettingsUiState, viewModel: SettingsView
             )
             Spacer(modifier = Modifier.size(12.dp))
             if (paired) {
-                TextButton(
+                AppTextButton(
                     onClick = viewModel::loadDirigeraLights,
                     enabled = !dirigera.isBusy && !localNetworkPermissionMissing
                 ) {
                     Text(stringResource(R.string.settings_dirigera_refresh))
                 }
-                TextButton(onClick = viewModel::unpairDirigera, enabled = !dirigera.isBusy) {
+                AppTextButton(onClick = viewModel::unpairDirigera, enabled = !dirigera.isBusy) {
                     Text(stringResource(R.string.settings_dirigera_unpair))
                 }
             } else {
@@ -685,7 +686,7 @@ internal fun IkeaDirigeraSection(state: SettingsUiState, viewModel: SettingsView
                         !hostRejected &&
                         !localNetworkPermissionMissing &&
                         !dirigera.isBusy,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     if (dirigera.isBusy) {
@@ -711,6 +712,7 @@ internal fun IkeaDirigeraSection(state: SettingsUiState, viewModel: SettingsView
  * F-Droid keeps the preference for backup compatibility without shipping the
  * SDK or permission request path.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun HealthConnectSection(
     state: SettingsUiState,
@@ -745,7 +747,11 @@ internal fun HealthConnectSection(
             }
         )
         if (isPlayFlavor) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Chips wrap whole: in a Row the second label broke over two lines.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 AppStatusChip(
                     label = when (summary.availability) {
                         HealthConnectAvailability.AVAILABLE -> stringResource(R.string.settings_health_sdk_available)
@@ -765,7 +771,9 @@ internal fun HealthConnectSection(
                     color = if (summary.permissionGranted) DismissGreen else SnoozeYellow
                 )
             }
-            if (summary.permissionGranted) {
+            // With the switch off nothing is read, so "nothing was recorded"
+            // would be a guess.
+            if (summary.permissionGranted && state.settings.healthConnectEnabled) {
                 Text(
                     text = if (summary.hasRecentSession) {
                         stringResource(
@@ -792,7 +800,7 @@ internal fun HealthConnectSection(
                 OutlinedButton(
                     onClick = { onRequestPermissions?.invoke() },
                     enabled = onRequestPermissions != null && summary.isAvailable,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
@@ -807,10 +815,10 @@ internal fun HealthConnectSection(
                 OutlinedButton(
                     onClick = viewModel::refreshHealthConnectSleep,
                     enabled = summary.isAvailable,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = AppButtonShape,
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Icon(Icons.Default.Bedtime, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Refresh, null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.size(6.dp))
                     Text(stringResource(R.string.settings_refresh))
                 }
@@ -957,7 +965,7 @@ internal fun ConnectionsSection(state: SettingsUiState) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 4.dp, horizontal = 4.dp),
+                    .padding(vertical = 4.dp),
                 shape = RoundedCornerShape(10.dp),
                 color = if (conn.enabled) SurfaceLight.copy(alpha = 0.58f)
                     else SurfaceLight.copy(alpha = 0.28f)
