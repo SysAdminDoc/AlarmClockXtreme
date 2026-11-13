@@ -24,6 +24,31 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - A wrong answer to a math challenge brings up a new problem instead of leaving the same one with three choices left, so tapping through the answers no longer gets you past it. The "not quite" message stays up a little longer too.
 - Progressive snooze sits right under the snooze length it shortens, and the challenge chain moved into the Dismiss challenge card (#49).
 - Alarm cards name every step of a challenge chain instead of a bare count, and add the number of rounds when it repeats (#49).
+- Buttons share one corner size everywhere. On bright fills like green, yellow and coral the label turns dark so it stays readable.
+- Tab icons are outlined until you pick one and filled once it's selected, so the current tab doesn't depend on color alone. All six labels fit without being cut off.
+- Settings, Stopwatch, Bedtime and Statistics have a back arrow at the top. In Settings, pressing a row highlights it all the way to the card's edge.
+- Today puts its News heading and the set-your-location prompt inside cards like everything else on the screen, and the weather, schedule and next-alarm icons line up in one column. Choosing a weather location no longer opens with two chips that repeated the search box, and its help text is one short line. The weather card's place name now reads as its header line, with the pencil that changes it on the same row instead of hanging just below.
+- News headlines drop the outlet's name from the end, since the source already shows under each one.
+- World clock cities show their region under the name ("Argentina", "North Dakota") instead of a time zone ID that got cut off at the slash.
+- Statistics fits its three summary tiles across a phone, and its filters, legend and day search work in Japanese.
+- Progress bars, sheet handles and the welcome page dots have square ends like the rest of the app, and a switch you can't change looks grayed out.
+- Text across the app reads more plainly, with contractions, American spelling ("math", "behavior") and fewer semicolons.
+- The home screen widget and the screen that rings before you unlock after a restart use the app's own colors.
+- Durations read the same way everywhere. The alarm editor and Settings say "30 sec", "1 min" or "1 min 30 sec" where some spots showed "1m 0s".
+- The alarm editor's text fields line up with the hints and buttons in each card instead of sitting indented past them. Alarm profile is a full-width field like the rest, and the specific date and shift start fields have a calendar button, so you don't have to type the date out.
+- Upcoming rings in the alarm editor is a plain list of dates instead of a stack of boxed cards.
+- The ringtone sheet puts From folder and From YouTube on their own row under the title, and each sound's row is shorter, with the play button next to Use. Its description says to tap a tone to hear it, so the extra "Tap a tone to preview" chip is gone, and the Default alarm and Silent rows follow the app language. The "Don't wake partner" note says plainly that the alarm will only vibrate.
+- The templates sheet shows just the templates. Its header chips and the line under each name that repeated the time are gone, and each card's chips wrap instead of getting cut off at the edge.
+- Bedtime's jet lag plan wraps its light and dim chips onto a second line instead of running off the card, and the sleep goal lost a "30-minute steps" chip that repeated the line above it. The chronotype quiz shows its "2/5 answered" count once instead of twice.
+- The app says an alarm rings, not that it "fires", in the editor, Settings, Statistics and notifications. The firing screen is the ringing screen everywhere too. Alarm cards say "Rings tomorrow" or "Rings today" where they used to say "Next occurrence: Fri, Nov 13".
+- The welcome pages keep their dots just above the button on every page, mark a finished step with a check, and no longer show a second Finish button that did the same thing as the first. After you run the test alarm, its note stops repeating its own heading and says what to expect instead.
+- Settings sticks to one outlined icon style, Health Connect's sync button has a refresh icon instead of a moon, and the backup buttons stack full width so their labels fit on one line.
+- Statistics holds off on the "0s average response" line until an alarm has actually been dismissed, and drops a second "need more history" line that repeated the first.
+- The stopwatch's subtitle shows in full and keeps its height, so the screen doesn't jump when you start or stop it.
+- The World clock search box fits its hint on one line, and the Add a city dialog no longer explains the search box twice. Its one line says to tap a result to add it.
+- Switches and buttons in Settings line up with the text fields and notes in the same card, and pressing one still highlights the row out to the card's edge.
+- Rows of chips wrap onto a second line instead of running off the edge. Every Bedtime quiz answer, sleep tag and timer choice stays in view, and so do the status chips on alarms, the ringing screen and Statistics, and the warnings on a shared alarm.
+- The cards on Bedtime, the jet lag planner and the Wake readiness page sit two to a row, so the room reading, the daily move and the last readiness tile aren't hidden past the edge of the screen. Cards in a row match the tallest one without a band of empty space at the bottom, and the Bedtime and jet lag cards stand out from the panel behind them instead of blending in. The planner also drops a chip row that repeated what its cards say, and its daily move card shows how many days the move lasts instead of saying "Later" under "38m later".
 
 ### Fixed
 
@@ -35,9 +60,18 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The welcome pages' feature lines, the quick alarm and timer preset chips, and the ringing screen's sensor and permission messages are translated now. A first run in Japanese showed English lines under every Japanese title.
 - Tapping Alarms from Settings opens Alarms again. It used to bring Settings straight back, and after the first-run setup the tabs stacked up, so Back walked through every tab you'd visited.
 - Back from a Settings page like Utilities returns to the Settings list instead of leaving Settings.
+- On a phone, Settings had no way into Readiness, so Pause alarms, vacation mode, On-call mode, the battery tips and Alarm diagnostics only showed up on a tablet. Tap the Wake readiness card at the top of Settings to open it. Review still opens the setup checklist. The page itself got cleaned up too. On-call mode no longer shows its name twice, and neither it nor vacation mode puts an "Off" chip next to a switch that already says so. Alarm diagnostics reads "Succeeded" and "Alarm scheduled" instead of raw codes, gives "12 hr 15 min before the alarm time" instead of "735 min before schedule", and its detail boxes show against the card again. The About details in Utilities use the same boxes, and Export support bundle gets its own icon instead of sharing the bug with Share crash log.
 - After a snooze, opening the app no longer brings back the ringing screen for the snoozed alarm. Until the app was restarted it also blocked Test now, which said an alarm was still ringing.
 - On Android 17 the "Local network access needed" notice under Philips Hue, IKEA DIRIGERA and LAN webhooks has an Allow access button now. Nothing in the app asked for that permission, so those integrations couldn't connect unless you found the switch in Android's settings yourself.
 - Guardian Angel can ask for its permissions from the alarm editor. "Allow direct calls" lets it call your emergency contact instead of only opening the dialer, and the F-Droid build also gets "Allow automatic texts" so the alert text goes out on its own. The app never asked for either one before, so Settings kept counting Guardian Angel as not ready with no way to fix it short of Android's app settings.
+- Tiles and tracks that sat on a card in the card's own color were invisible. That hit the Bedtime breathing, sleep cycle, checklist and jet lag tiles, the Bedtime arc and sleep chart, the stopwatch dial, the timer ring and the Statistics bars, and they all show now.
+- TalkBack read every tab name, some stopwatch controls and the titles on Bedtime's number cards twice.
+- Health Connect said no sleep session had been recorded even while reading from it was switched off. It only says so now when it has actually looked.
+- The permissions card on the welcome pages and in Settings was always in English.
+- The widget's gray text and the white labels on the green and coral challenge buttons were hard to read against their backgrounds.
+- The stopwatch's empty state got cut down to a lone icon on phones. It's a one-line hint now.
+- A one-time alarm's editor listed seven upcoming rings, six of which would never happen. It lists the one.
+- Settings backup and the Statistics filter say "1 alarm" and "1 recent event" instead of "1 alarms" and "1 recent events".
 
 ## [1.15.35] - 2026-09-05
 

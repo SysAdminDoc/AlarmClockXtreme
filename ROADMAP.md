@@ -112,6 +112,20 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
   Acceptance: both unit suites pass, the play and fdroid release builds shrink cleanly under R8, and a manual ring of a local tone, an internet radio stream and a Spotify alarm all behave as before.
   Complexity: S
 
+- [ ] P2: Move the remaining hardcoded English in view models and dialogs into strings.xml
+  Why: With the app in Japanese, toasts, status lines and some screen-reader labels still come out in English. `verifyLocalizedPrimaryScreens` only scans composable text arguments, so strings built in view models, workers and `contentDescription` positional arguments slip past it.
+  Evidence: about 90 hits for an English sentence literal under `ui/`, among them the `emitFeedback(...)` toasts in `ui/alarmlist/AlarmListViewModel.kt`, the Bedtime defaults and sonar status in `ui/bedtime/BedtimeViewModel.kt:89-108` and `ui/bedtime/BedtimeSleepTrackingSections.kt:191-251`, the weather and calendar errors in `ui/dashboard/DashboardViewModel.kt:293-524`, the YouTube dialog status lines in `ui/components/YouTubeDownloadDialog.kt:288-296` and `:879-883`, the wake check countdown in `ui/alarmfiring/WakeConfirmActivity.kt:276-290` and `worker/WakeConfirmWorker.kt:306`, the location-challenge status in `ui/alarmfiring/AlarmFiringViewModel.kt:880-882`, the sequence and grid challenge labels in `ui/alarmfiring/challenges/ChallengeViews.kt:278-280` and `:2564-2566`, and the bulk-delete dialog and search labels in `ui/alarmlist/AlarmListScreen.kt:363-482`.
+  Touches: those files, `res/values/strings.xml`, `res/values-ja/strings.xml`; view models take an `@ApplicationContext` or return string resource IDs.
+  Acceptance: none of those lines holds an English literal; the Japanese locale shows Japanese for each toast and status; `verifyLocalizedPrimaryScreens` also flags `emitFeedback("...")` and `contentDescription` literals so new ones can't land.
+  Complexity: M
+
+- [ ] P3: Stop the Bedtime screen from opening the microphone on every visit
+  Why: Each time Bedtime comes to the foreground, `refreshNoiseBaselineStatus()` records 700 ms of room audio, so Android's green microphone dot flashes whenever someone just looks at their bedtime. That reads as the app listening without being asked.
+  Evidence: `ui/bedtime/BedtimeViewModel.kt:600-611` calls `BedtimeNoiseBaselineSampler.sampleAndPersist(context)` from the ON_RESUME refresh.
+  Touches: `ui/bedtime/BedtimeViewModel.kt`, `ui/bedtime/BedtimeScreen.kt` (noise baseline card).
+  Acceptance: opening Bedtime records nothing; the baseline is taken when the user taps a "Measure room" action or when the bedtime reminder fires with the app in the foreground; the card says when the last sample was taken.
+  Complexity: S
+
 ## Toolchain
 
 Moved from Roadmap_Blocked.md on 2026-11-12. Nothing outside the repo blocks these; they are one coordinated upgrade, and the Android 17 items still in Roadmap_Blocked.md (compileSdk 37) wait on the first one.
