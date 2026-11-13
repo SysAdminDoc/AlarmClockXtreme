@@ -145,6 +145,13 @@ internal fun AlarmEditUiState.hasDraftChangesFrom(original: AlarmEditUiState): B
     return comparableDraft() != original.comparableDraft()
 }
 
+/**
+ * How many upcoming rings the editor lists. A one-time alarm rings once: the
+ * calculator always answers "the next day" for it, so a week-long loop listed
+ * six rings that would never happen.
+ */
+internal fun forecastRingCount(alarm: Alarm): Int = if (alarm.isRecurringSchedule) 7 else 1
+
 data class ForecastEntry(
     val timeMillis: Long,
     val skippedByVacation: Boolean = false
@@ -605,7 +612,7 @@ class AlarmEditViewModel @Inject constructor(
             val zone = java.time.ZoneId.systemDefault()
             val entries = mutableListOf<ForecastEntry>()
             var cursor = java.time.ZonedDateTime.now()
-            repeat(7) {
+            repeat(forecastRingCount(probe)) {
                 val raw = calculator.calculate(probe, cursor)
                 if (raw <= 0L) return@repeat
                 val adj = com.sysadmindoc.alarmclock.domain.VacationAlarmPolicy
