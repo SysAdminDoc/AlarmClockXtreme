@@ -74,6 +74,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Settings backup and the Statistics filter say "1 alarm" and "1 recent event" instead of "1 alarms" and "1 recent events".
 - The "What's new" card after an update listed changes from an older release, in English even with the app set to Japanese. It shows this release's changes now, translated.
 - An alarm time like 10:00 AM no longer breaks onto two lines in the alarm list once the drag handles show. It shrinks a little to stay on one line.
+- The timer restart unit test failed now and then on a busy machine, because the 6:00 default alarm the app adds on first launch landed in the middle of it. That test runs without the app's startup work now.
 
 ## [1.15.35] - 2026-09-05
 

@@ -24,8 +24,14 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ServiceController
 import org.robolectric.annotation.Config
 
+// A plain Application, not AlarmClockApp: the real app seeds a 6:00 weekday
+// alarm from Dispatchers.IO on first launch, and under a loaded machine that
+// ALARM_FIRE landed after setUp's drain and inside the restart assertion.
+// TimerAlarmService needs nothing the app's startup provides, and the label
+// policy fails closed without AlarmClockApp exactly as it does before
+// preferences load.
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [30])
+@Config(sdk = [30], application = Application::class)
 class TimerAlarmServiceTest {
     private lateinit var context: Context
     private lateinit var controller: ServiceController<TimerAlarmService>
@@ -195,10 +201,10 @@ class TimerAlarmServiceTest {
         assertEquals("Pasta", running.label)
         assertEquals(60L, running.totalSeconds)
         assertEquals(TimerState.RUNNING, running.state)
-        // Asserting the whole summary rather than the timer ids alone: the
-        // suspect for this case's one recorded flake is an alarm leaking in
-        // from a neighbouring class, and filtering to timer alarms would let
-        // exactly that pass unnoticed while still calling itself a diagnosis.
+        // Asserting the whole summary rather than the timer ids alone: an
+        // uninvited alarm (the app's seeded 6:00 default, before this class
+        // stopped booting AlarmClockApp) must fail here by name, not slip past
+        // a filter on timer alarms.
         assertEquals("[timer#4]", scheduledAlarmSummary())
         val notifications = shadowOf(context.getSystemService(NotificationManager::class.java))
         assertNull(notifications.getNotification(TimerNotifications.notificationId(3)))
