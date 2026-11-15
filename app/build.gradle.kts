@@ -402,6 +402,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.activity:activity-compose:1.13.0")
 
+    // Barcode challenge camera scan (#51). zxing-cpp stays on 3.0.2: 3.1.x
+    // is built against Kotlin stdlib 2.3.20 and this build resolves 2.2.21.
+    implementation("androidx.camera:camera-camera2:1.6.2")
+    implementation("androidx.camera:camera-lifecycle:1.6.2")
+    implementation("androidx.camera:camera-view:1.6.2")
+    implementation("io.github.zxing-cpp:android:3.0.2")
+
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.5")
 

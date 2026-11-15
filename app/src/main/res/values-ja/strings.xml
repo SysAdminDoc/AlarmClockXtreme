@@ -456,6 +456,11 @@
     <string name="alarm_edit_barcode_value">バーコードまたはQRの値</string>
     <string name="alarm_edit_barcode_value_short">バーコードの値</string>
     <string name="alarm_edit_barcode_missing">バーコード/QRコード未登録。登録されるまでこのチャレンジをスキップします。</string>
+    <string name="alarm_edit_barcode_scan_to_register">カメラでコードを読み取る</string>
+    <string name="alarm_edit_barcode_scan_title">コードを読み取る</string>
+    <string name="alarm_edit_barcode_scan_hint">バーコードまたはQRコードを枠内に収めてください。読み取るとすぐに保存されます。</string>
+    <string name="alarm_edit_barcode_camera_denied">カメラへのアクセスが拒否されました。上の欄にコードを入力することもできます。</string>
+    <string name="alarm_edit_barcode_camera_failed">カメラを起動できませんでした。上の欄にコードを入力することもできます。</string>
     <string name="alarm_edit_wifi_name">Wi-Fiネットワーク名 (SSID)</string>
     <string name="alarm_edit_wifi_ssid">Wi-Fi SSID</string>
     <string name="alarm_edit_wifi_missing">Wi-Fiネットワーク未指定。停止に必要なSSIDを設定してください。</string>
@@ -1399,9 +1404,10 @@
     <string name="challenge_walking_few_steps_helps_make">数歩歩くことで、本当に起きていることを確認するのに役立ちます。</string>
     <string name="challenge_continue_without_step_count">歩数カウントなしで続行</string>
     <string name="challenge_tap_saved_tag_against_back">このステップをクリアするには、保存済みのタグをスマホの背面にタップしてください。</string>
-    <string name="challenge_enter_saved_barcode_qr_payload">停止を解除するには、保存済みのバーコードまたはQRのペイロードを入力してください。</string>
+    <string name="challenge_point_camera_at_saved_code">保存済みのバーコードまたはQRコードにカメラを向けてください。</string>
     <string name="challenge_continue_without_saved_code">保存済みのコードなしで続行</string>
-    <string name="challenge_submit_code">コードを送信</string>
+    <string name="barcode_allow_camera">カメラを許可</string>
+    <string name="challenge_camera_permission_barcode">カメラへのアクセスが拒否されたため、コードを読み取れません。下のボタンから許可するか、設定で「チャレンジのアクセシビリティバイパス」がオンならバイパスボタンが表示されるまでお待ちください。</string>
     <string name="challenge_take_fresh_photo_saved_location">そこにたどり着いたことを証明するため、保存済みの場所または角度から新しい写真を撮影してください。</string>
     <string name="challenge_short_movement_burst_makes_harder">短い運動のバーストにより、ベッドに戻るのが難しくなります。</string>
     <string name="challenge_place_phone_face_down_floor">スマホを床に下向きに置き、その上で腕立て伏せをしてください。</string>

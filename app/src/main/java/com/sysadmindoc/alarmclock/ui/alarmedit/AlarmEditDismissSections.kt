@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.annotation.StringRes
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -22,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -51,6 +53,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sysadmindoc.alarmclock.BuildConfig
 import com.sysadmindoc.alarmclock.R
@@ -58,10 +63,14 @@ import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.model.ShiftPattern
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
+import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.BarcodeCameraView
 import com.sysadmindoc.alarmclock.ui.components.AppFilterChip
 import com.sysadmindoc.alarmclock.ui.components.AppSectionTitle
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
+import com.sysadmindoc.alarmclock.ui.components.AppTextButton
+import com.sysadmindoc.alarmclock.ui.permissions.openAppSettings
+import com.sysadmindoc.alarmclock.ui.permissions.permissionDialogBlocked
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
@@ -407,6 +416,7 @@ internal fun LazyListScope.alarmEditDismissSections(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 singleLine = true
             )
+            BarcodeRegisterButton(onCodeRead = viewModel::updateBarcodeValue)
             if (state.barcodeValue.isBlank()) {
                 SettingsHint(
                     stringResource(R.string.alarm_edit_barcode_missing),
@@ -694,3 +704,102 @@ private fun challengeRepeatLabel(count: Int): String =
     } else {
         pluralStringResource(R.plurals.alarm_edit_challenge_repeat_times, count, count)
     }
+
+/**
+ * Registers the barcode challenge's code by scanning it. The typed field above
+ * stays for codes the camera won't read.
+ */
+@Composable
+private fun BarcodeRegisterButton(onCodeRead: (String) -> Unit) {
+    val context = LocalContext.current
+    val activity = LocalActivity.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    fun cameraAllowed() = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+        PackageManager.PERMISSION_GRANTED
+    var showScanner by remember { mutableStateOf(false) }
+    var problem by remember { mutableStateOf<Int?>(null) }
+    var openSettingsInstead by remember { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            problem = null
+            showScanner = true
+        } else {
+            problem = R.string.alarm_edit_barcode_camera_denied
+            openSettingsInstead = permissionDialogBlocked(activity, Manifest.permission.CAMERA)
+        }
+    }
+    // Back from the app's settings page with the camera turned on there.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && openSettingsInstead && cameraAllowed()) {
+                openSettingsInstead = false
+                problem = null
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    OutlinedButton(
+        onClick = {
+            when {
+                cameraAllowed() -> {
+                    problem = null
+                    showScanner = true
+                }
+                openSettingsInstead -> openAppSettings(context)
+                else -> permissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        },
+        shape = AppButtonShape,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+    ) {
+        Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+        Spacer(Modifier.width(8.dp))
+        Text(
+            stringResource(
+                if (openSettingsInstead) R.string.permission_open_app_settings else R.string.alarm_edit_barcode_scan_to_register
+            )
+        )
+    }
+    problem?.let { SettingsHint(stringResource(it), tone = HintTone.Warning) }
+    if (showScanner) {
+        AlertDialog(
+            onDismissRequest = { showScanner = false },
+            title = { Text(stringResource(R.string.alarm_edit_barcode_scan_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        stringResource(R.string.alarm_edit_barcode_scan_hint),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    BarcodeCameraView(
+                        onCodeRead = { code ->
+                            // Two codes in one frame both arrive before the
+                            // dialog closes, and the first one read is kept.
+                            if (showScanner) {
+                                onCodeRead(code)
+                                showScanner = false
+                            }
+                        },
+                        onCameraError = {
+                            showScanner = false
+                            problem = R.string.alarm_edit_barcode_camera_failed
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(16.dp))
+                    )
+                }
+            },
+            confirmButton = {
+                AppTextButton(onClick = { showScanner = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+}

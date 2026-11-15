@@ -216,7 +216,7 @@ Moved from Roadmap_Blocked.md on 2026-11-14. Each was parked as "needs a device 
 
 ## Research-Driven Additions, 2026-11-14
 
-Added from the 2026-11-14 research pass in RESEARCH.md. Reported problems come first: the first two items answer Discussions #51 and #52, which have been waiting since 2026-08-30.
+Added from the 2026-11-14 research pass in RESEARCH.md. Reported problems come first: the first item answers Discussion #52, which has been waiting since 2026-08-30.
 
 Cross-references, not new items:
 
@@ -229,13 +229,6 @@ Cross-references, not new items:
 - Bundled fallback tone (P3 above): McFarlane et al. 2020 (PLOS ONE, a self-report survey of 50 people) linked melodic alarm sounds with less morning grogginess. That's weak evidence, but it's a fair tiebreaker for picking a melodic tone over a beep.
 
 ### P1
-
-- [ ] P1: Scan barcodes and QR codes with the camera (Discussion #51)
-  Why: The barcode challenge asks you to type the code. The editor stores a typed `barcodeValue` and the ringing screen shows a text field under a scanning animation, so anyone who remembers the code can pass it from bed. No barcode library is on either classpath, yet the README's permission table lists barcode among the camera uses. QRAlarm, WakeNudge, Alarmy and Sleep as Android all scan with the camera. ML Kit and Google's code scanner are out because they need Play services or proprietary code, and the fdroid APK is the most downloaded build (750 downloads of v1.15.35 against 487 for the Play APK).
-  Evidence: `ui/alarmedit/AlarmEditDismissSections.kt:399-415`; `ui/alarmfiring/challenges/ChallengeViews.kt:1066-1130` (`BarcodeScanChallengeView`); `ui/alarmfiring/AlarmFiringViewModel.kt:788-799` (`onBarcodeDetected`); `README.md:154`; no `camera` or `zxing` match in `app/build.gradle.kts`; https://github.com/SysAdminDoc/AlarmClockXtreme/discussions/51; https://repo1.maven.org/maven2/io/github/zxing-cpp/android/maven-metadata.xml (3.1.1); https://developer.android.com/jetpack/androidx/releases/camera (1.6.2).
-  Touches: `app/build.gradle.kts` (`androidx.camera:camera-camera2`, `camera-lifecycle` and `camera-view` 1.6.2 plus `io.github.zxing-cpp:android` 3.1.1 as plain `implementation`, so both flavors get them), both lockfiles, `gradle/verification-metadata.xml`; a new `ui/alarmfiring/challenges/BarcodeScanner.kt` composable (preview plus analyzer) rather than more code in `ChallengeViews.kt`; a "Scan to register" button beside the typed field in `AlarmEditDismissSections.kt`; `BarcodeScanChallengeView`; the camera permission flow `AlarmFiringActivity` already runs for Photo Match; strings in en and ja.
-  Acceptance: scanning in the editor stores the decoded text in `barcodeValue`, and typing stays available there for codes that won't scan. At the ringing screen the alarm moves on only when the camera reads that exact value, with no text entry for the code (the accessibility bypass remains the way out). Existing alarms with a typed value keep working because the comparison is the same text. Frames stay in memory and are never written to disk. A denied camera permission shows a clear message and points at the bypass. `verifyFdroidReleaseSize` still passes. A unit test covers the match rule (trimmed, exact), and a headless emulator run proves the decode path with a test image fed to the analyzer.
-  Complexity: M
 
 - [ ] P1: Let Photo Match take its reference from the gallery (Discussion #52)
   Why: The reference photo can only come from `TakePicturePreview()`, so you have to be standing at the spot when you set the alarm up. The Photo Picker needs no storage permission (activity 1.7.0 or newer, and the app is on 1.13.0), and the editor already has an `OpenDocument` launcher for the ringing-screen background to copy from.
@@ -331,4 +324,11 @@ Cross-references, not new items:
   Evidence: `domain/AlarmScheduler.kt` `scheduleSnoozeAt()`, `scheduleAt()` and `handleAlarmFired()`; the snooze path in `service/AlarmService.kt`; `worker/CalendarAutoAlarmWorker.kt` re-arms a switched-off row on its next pass unless the day reads as done. Found while verifying the calendar midnight fix.
   Touches: `AlarmScheduler` (a snooze of a re-ring keeps the row's newer time, or puts it back when the snooze ends), the `AlarmService` snooze path, tests for both. Fixing the snoozed-ring history item closes the no-alarm case on its own.
   Acceptance: with the calendar row moved on to tomorrow 8:30, snoozing a re-ring of today's ring (from the wake-up check or a missed-alarm replay) and then dismissing the snooze leaves the row on and armed for tomorrow 8:30 with no calendar pass in between.
+  Complexity: S
+
+- [ ] P3: Chain-only NFC, barcode, photo and Wi-Fi steps have no field for their saved value
+  Why: the NFC tag, barcode value, reference photo and Wi-Fi name fields only show when that challenge is the alarm's main type. Adding one of them only as a chain step shows a warning that its value is missing, but there's nowhere to set it, short of switching the main type over and back. Barcode's new scan button sits in the same gated block.
+  Evidence: `ui/alarmedit/AlarmEditDismissSections.kt` (each field is gated on `state.challengeType == ...`, and the chain's `missingRefs` hint names the missing values). Found while verifying the barcode scanner (#51).
+  Touches: `ui/alarmedit/AlarmEditDismissSections.kt` (show each reference field when the main type or any chain step needs it), editor tests if any cover the section.
+  Acceptance: an alarm with Math as the main type and a Barcode scan chain step shows the barcode field and its scan button. The missing-value warning goes away once the code is scanned. The same holds for NFC, photo and Wi-Fi steps.
   Complexity: S

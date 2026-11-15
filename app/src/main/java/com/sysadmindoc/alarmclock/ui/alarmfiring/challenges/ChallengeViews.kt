@@ -1,9 +1,13 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring.challenges
 
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.annotation.StringRes
 import android.Manifest
+import android.app.Activity
+import android.app.KeyguardManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -11,6 +15,7 @@ import android.os.SystemClock
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
@@ -28,6 +33,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
@@ -92,10 +99,15 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
+import com.sysadmindoc.alarmclock.ui.permissions.openAppSettings
+import com.sysadmindoc.alarmclock.ui.permissions.permissionDialogBlocked
 import com.sysadmindoc.alarmclock.ui.theme.AccentBlue
 import com.sysadmindoc.alarmclock.ui.theme.AccentRed
 import com.sysadmindoc.alarmclock.ui.theme.DismissGreen
@@ -1067,9 +1079,35 @@ fun NfcScanChallengeView(
 fun BarcodeScanChallengeView(
     challenge: Challenge.BarcodeChallenge,
     scanStatus: String,
-    onCodeEntered: (String) -> Unit
+    onCodeEntered: (String) -> Unit,
+    onCameraFailed: () -> Unit
 ) {
-    var codeInput by remember(challenge.registeredValue) { mutableStateOf("") }
+    val context = LocalContext.current
+    val activity = LocalActivity.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    fun cameraAllowed() = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+        PackageManager.PERMISSION_GRANTED
+    var cameraGranted by remember { mutableStateOf(cameraAllowed()) }
+    var cameraDenied by remember { mutableStateOf(false) }
+    var openSettingsInstead by remember { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        cameraGranted = granted
+        cameraDenied = !granted
+        openSettingsInstead = !granted && permissionDialogBlocked(activity, Manifest.permission.CAMERA)
+    }
+    // Back from the app's settings page with the camera turned on there.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && !cameraGranted && cameraAllowed()) {
+                cameraGranted = true
+                cameraDenied = false
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val lineProgress = if (LocalMotionEnabled.current) {
         rememberInfiniteTransition(label = "barcodeScan").animateFloat(
             initialValue = 0.25f,
@@ -1088,45 +1126,6 @@ fun BarcodeScanChallengeView(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 12.dp)
     ) {
-        ChallengeSupportText(stringResource(R.string.challenge_enter_saved_barcode_qr_payload))
-
-        ChallengeIconPanel(accent = AccentBlue.copy(alpha = 0.12f)) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.QrCodeScanner,
-                    contentDescription = stringResource(R.string.alarm_edit_challenge_barcode),
-                    tint = AccentBlue,
-                    modifier = Modifier.size(72.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .width(84.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(AccentBlue.copy(alpha = 0.18f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(lineProgress.coerceIn(0.18f, 1f))
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(AccentBlue)
-                    )
-                }
-            }
-        }
-
-        if (scanStatus.isNotBlank()) {
-            ChallengeNotice(
-                text = scanStatus,
-                accent = AccentRed,
-                icon = Icons.Default.WarningAmber
-            )
-        }
-
         if (challenge.registeredValue.isBlank()) {
             ChallengeNotice(
                 text = stringResource(R.string.challenge_no_code_registered_yet_continue),
@@ -1144,34 +1143,86 @@ fun BarcodeScanChallengeView(
                 Text(stringResource(R.string.challenge_continue_without_saved_code))
             }
         } else {
-            OutlinedTextField(
-                value = codeInput,
-                onValueChange = { codeInput = it },
-                label = { Text(stringResource(R.string.alarm_edit_barcode_value)) },
-                singleLine = true,
-                colors = appOutlinedTextFieldColors(),
-                shape = AppInputShape,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = {
-                        val trimmed = codeInput.trim()
-                        if (trimmed.isNotEmpty()) onCodeEntered(trimmed)
+            ChallengeSupportText(stringResource(R.string.challenge_point_camera_at_saved_code))
+
+            if (scanStatus.isNotBlank()) {
+                ChallengeNotice(
+                    text = scanStatus,
+                    accent = AccentRed,
+                    icon = Icons.Default.WarningAmber
+                )
+            }
+
+            when {
+                cameraGranted -> Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(SurfaceDark)
+                ) {
+                    BarcodeCameraView(
+                        onCodeRead = onCodeEntered,
+                        onCameraError = { onCameraFailed() },
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .fillMaxWidth(0.7f * lineProgress.coerceIn(0.18f, 1f))
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(AccentBlue)
+                    )
+                }
+                else -> {
+                    if (cameraDenied) {
+                        ChallengeNotice(
+                            text = stringResource(R.string.challenge_camera_permission_barcode),
+                            accent = AccentRed,
+                            icon = Icons.Default.WarningAmber
+                        )
                     }
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-            Button(
-                onClick = { onCodeEntered(codeInput.trim()) },
-                enabled = codeInput.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = DismissGreen, contentColor = accentForeground(DismissGreen)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                shape = AppButtonShape
-            ) {
-                Text(stringResource(R.string.challenge_submit_code))
+                    Button(
+                        onClick = {
+                            if (openSettingsInstead) {
+                                openAppSettingsPastLockScreen(context, activity)
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = accentForeground(AccentBlue)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        shape = AppButtonShape
+                    ) {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            stringResource(
+                                if (openSettingsInstead) R.string.permission_open_app_settings else R.string.barcode_allow_camera
+                            )
+                        )
+                    }
+                }
             }
         }
+    }
+}
+
+/**
+ * The ringing screen shows over the lock screen but system settings don't,
+ * so a locked phone asks for the unlock first and opens settings after it.
+ */
+private fun openAppSettingsPastLockScreen(context: Context, activity: Activity?) {
+    val keyguard = context.getSystemService(KeyguardManager::class.java)
+    if (activity != null && keyguard?.isKeyguardLocked == true) {
+        keyguard.requestDismissKeyguard(activity, object : KeyguardManager.KeyguardDismissCallback() {
+            override fun onDismissSucceeded() = openAppSettings(context)
+        })
+    } else {
+        openAppSettings(context)
     }
 }
 

@@ -73,6 +73,7 @@ import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -812,11 +813,17 @@ fun AlarmFiringScreen(
                         }
 
                         challenge is Challenge.BarcodeChallenge -> {
-                            BarcodeScanChallengeView(
-                                challenge = challenge,
-                                scanStatus = state.barcodeScanStatus,
-                                onCodeEntered = viewModel::onBarcodeDetected
-                            )
+                            // A fresh camera per step: the scanner reports each code
+                            // once, so a second barcode step in a row would otherwise
+                            // never see the code it was just shown.
+                            key(state.currentChallengeIndex) {
+                                BarcodeScanChallengeView(
+                                    challenge = challenge,
+                                    scanStatus = state.barcodeScanStatus,
+                                    onCodeEntered = { code -> viewModel.onBarcodeDetected(code, challenge) },
+                                    onCameraFailed = { viewModel.onBarcodeCameraFailed(challenge) }
+                                )
+                            }
                         }
 
                         challenge is Challenge.PhotoMatchChallenge -> {

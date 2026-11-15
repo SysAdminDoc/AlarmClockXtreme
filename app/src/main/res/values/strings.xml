@@ -492,6 +492,11 @@
     <string name="alarm_edit_barcode_value">Barcode or QR value</string>
     <string name="alarm_edit_barcode_value_short">barcode value</string>
     <string name="alarm_edit_barcode_missing">No barcode or QR code registered. Until one is set, this challenge is skipped when the alarm rings.</string>
+    <string name="alarm_edit_barcode_scan_to_register">Scan code with camera</string>
+    <string name="alarm_edit_barcode_scan_title">Scan your code</string>
+    <string name="alarm_edit_barcode_scan_hint">Hold the barcode or QR code inside the frame. It’s saved as soon as it’s read.</string>
+    <string name="alarm_edit_barcode_camera_denied">Camera access was denied. You can still type the code above.</string>
+    <string name="alarm_edit_barcode_camera_failed">The camera couldn’t start. You can still type the code above.</string>
     <string name="alarm_edit_wifi_name">Wi-Fi network name (SSID)</string>
     <string name="alarm_edit_wifi_ssid">Wi-Fi SSID</string>
     <string name="alarm_edit_wifi_missing">No Wi-Fi network specified. Set the SSID the alarm should require you to connect to.</string>
@@ -1457,9 +1462,10 @@
     <string name="challenge_walking_few_steps_helps_make">Walking a few steps makes sure you’re really up.</string>
     <string name="challenge_continue_without_step_count">Continue without step count</string>
     <string name="challenge_tap_saved_tag_against_back">Tap the saved tag against the back of your phone to clear this step.</string>
-    <string name="challenge_enter_saved_barcode_qr_payload">Enter the saved barcode or QR payload to unlock dismiss.</string>
+    <string name="challenge_point_camera_at_saved_code">Point the camera at your saved barcode or QR code.</string>
     <string name="challenge_continue_without_saved_code">Continue without saved code</string>
-    <string name="challenge_submit_code">Submit code</string>
+    <string name="barcode_allow_camera">Allow camera</string>
+    <string name="challenge_camera_permission_barcode">Camera access was denied, so the code can’t be scanned. Allow it below, or wait for the bypass button if Challenge accessibility bypass is on in Settings.</string>
     <string name="challenge_take_fresh_photo_saved_location">Take a fresh photo from the saved location or angle to prove you made it there.</string>
     <string name="challenge_short_movement_burst_makes_harder">A short movement burst makes it harder to crawl back into bed.</string>
     <string name="challenge_place_phone_face_down_floor">Place the phone face-down on the floor and do push-ups over it.</string>

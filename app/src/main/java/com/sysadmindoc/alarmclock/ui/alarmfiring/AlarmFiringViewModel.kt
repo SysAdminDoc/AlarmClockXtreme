@@ -784,10 +784,17 @@ class AlarmFiringViewModel @Inject constructor(
         }
     }
 
-    // F1: Barcode/QR scan challenge
-    fun onBarcodeDetected(value: String) {
-        val challenge = _uiState.value.challenge as? Challenge.BarcodeChallenge ?: return
-        if (value == challenge.registeredValue) {
+    // F1: Barcode/QR scan challenge. The scanner's callbacks carry the step
+    // they were made for. Codes and camera errors already queued when a step
+    // ends still arrive, and they must not count against the next step or
+    // reopen a solved one. Each step builds a new challenge, so a repeat
+    // round with the same code is still a different step here.
+    private fun isCurrentBarcodeStep(from: Challenge.BarcodeChallenge): Boolean =
+        _uiState.value.challenge === from && !_uiState.value.challengeSolved
+
+    fun onBarcodeDetected(value: String, from: Challenge.BarcodeChallenge) {
+        if (!isCurrentBarcodeStep(from)) return
+        if (BarcodeChallengeMatcher.matches(value, from.registeredValue)) {
             proceedToNextChallenge()
         } else {
             _uiState.value = _uiState.value.copy(
@@ -796,6 +803,11 @@ class AlarmFiringViewModel @Inject constructor(
                 totalWrongAttempts = _uiState.value.totalWrongAttempts + 1
             )
         }
+    }
+
+    fun onBarcodeCameraFailed(from: Challenge.BarcodeChallenge) {
+        if (!isCurrentBarcodeStep(from)) return
+        handleTechnicalFailure("BARCODE_CAMERA_FAILED")
     }
 
     // v1.2.0: Maze challenge - move to adjacent cell

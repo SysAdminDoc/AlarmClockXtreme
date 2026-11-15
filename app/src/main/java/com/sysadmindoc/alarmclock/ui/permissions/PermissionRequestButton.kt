@@ -1,5 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.permissions
 
+import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -38,19 +40,13 @@ internal fun PermissionRequestButton(
     val context = LocalContext.current
     var openSettingsInstead by rememberSaveable(permission) { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        openSettingsInstead = !granted && activity != null &&
-            !ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)
+        openSettingsInstead = !granted && permissionDialogBlocked(activity, permission)
         onResult()
     }
     OutlinedButton(
         onClick = {
             if (openSettingsInstead) {
-                context.startActivity(
-                    Intent(
-                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                        Uri.parse("package:${context.packageName}")
-                    )
-                )
+                openAppSettings(context)
             } else {
                 launcher.launch(permission)
             }
@@ -60,4 +56,18 @@ internal fun PermissionRequestButton(
     ) {
         Text(if (openSettingsInstead) stringResource(R.string.permission_open_app_settings) else label)
     }
+}
+
+/**
+ * Read after a "Don't allow": whether Android has stopped showing the
+ * permission dialog for [permission], so asking again does nothing.
+ */
+internal fun permissionDialogBlocked(activity: Activity?, permission: String): Boolean =
+    activity != null && !ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)
+
+/** Opens this app's page in system settings, where a blocked permission can still be turned on. */
+internal fun openAppSettings(context: Context) {
+    context.startActivity(
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))
+    )
 }

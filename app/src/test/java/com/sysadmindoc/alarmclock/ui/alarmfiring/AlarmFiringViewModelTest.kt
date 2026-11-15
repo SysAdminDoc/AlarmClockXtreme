@@ -276,6 +276,57 @@ class AlarmFiringViewModelTest {
     }
 
     @Test
+    fun `a code still queued from a finished barcode step doesn't count against the next one`() = runTest(dispatcher) {
+        val viewModel = barcodeViewModel(rounds = 2)
+        advanceUntilIdle()
+        val first = viewModel.uiState.value.challenge as Challenge.BarcodeChallenge
+
+        // Two codes in one frame: the saved one ends the step, the other one
+        // was already on its way.
+        viewModel.onBarcodeDetected("KITCHEN-1", first)
+        viewModel.onBarcodeDetected("OTHER", first)
+
+        val second = viewModel.uiState.value.challenge as Challenge.BarcodeChallenge
+        assertTrue("each round is its own step", second !== first)
+        assertEquals(1, viewModel.uiState.value.currentChallengeIndex)
+        assertEquals(0, viewModel.uiState.value.totalWrongAttempts)
+        assertEquals("", viewModel.uiState.value.barcodeScanStatus)
+
+        viewModel.onBarcodeDetected("OTHER", second)
+
+        assertEquals(1, viewModel.uiState.value.wrongAttempts)
+        assertFalse(viewModel.uiState.value.barcodeScanStatus.isBlank())
+    }
+
+    @Test
+    fun `a camera error after the last barcode step is solved leaves it solved`() = runTest(dispatcher) {
+        val viewModel = barcodeViewModel(rounds = 1)
+        advanceUntilIdle()
+        val step = viewModel.uiState.value.challenge as Challenge.BarcodeChallenge
+
+        viewModel.onBarcodeDetected("KITCHEN-1", step)
+        viewModel.onBarcodeCameraFailed(step)
+        viewModel.onBarcodeDetected("OTHER", step)
+
+        val state = viewModel.uiState.value
+        assertTrue(state.challengeSolved)
+        assertTrue(state.challenge === step)
+        assertEquals(0, state.totalWrongAttempts)
+    }
+
+    @Test
+    fun `a camera error on the barcode step being solved swaps it for math`() = runTest(dispatcher) {
+        val viewModel = barcodeViewModel(rounds = 1)
+        advanceUntilIdle()
+        val step = viewModel.uiState.value.challenge as Challenge.BarcodeChallenge
+
+        viewModel.onBarcodeCameraFailed(step)
+
+        assertEquals("MATH_MEDIUM", viewModel.uiState.value.challenge?.type?.name)
+        assertFalse(viewModel.uiState.value.challengeSolved)
+    }
+
+    @Test
     fun `a wrong math answer brings a new problem`() = runTest(dispatcher) {
         val viewModel = viewModelFor(challengeType = "MATH_HARD")
         advanceUntilIdle()
@@ -455,6 +506,20 @@ class AlarmFiringViewModelTest {
             nfcTagId = nfcTagId
         )
         return viewModel(testRun = testRun)
+    }
+
+    private fun barcodeViewModel(rounds: Int): AlarmFiringViewModel {
+        coEvery { repository.getById(any()) } returns Alarm(
+            id = 5L,
+            hour = 7,
+            minute = 0,
+            label = "Wake",
+            isEnabled = true,
+            challengeType = "BARCODE_SCAN",
+            barcodeValue = "KITCHEN-1",
+            challengeRepeatCount = rounds
+        )
+        return viewModel()
     }
 
     private fun viewModel(settings: AppSettings = AppSettings(), testRun: Boolean = false): AlarmFiringViewModel {
