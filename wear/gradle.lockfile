@@ -1,6 +1,7 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
+# To regenerate this file, run: ./gradlew :wear:dependencies --write-locks
 androidx.activity:activity:1.0.0=releaseRuntimeClasspath
 androidx.annotation:annotation-experimental:1.4.1=releaseRuntimeClasspath
 androidx.annotation:annotation-jvm:1.8.1=releaseRuntimeClasspath
@@ -64,7 +65,7 @@ com.google.android.gms:play-services-basement:18.9.0=releaseRuntimeClasspath
 com.google.android.gms:play-services-tasks:18.2.0=releaseRuntimeClasspath
 com.google.android.gms:play-services-wearable:20.0.1=releaseRuntimeClasspath
 com.google.guava:listenablefuture:1.0=releaseRuntimeClasspath
-org.jetbrains.kotlin:kotlin-stdlib:2.2.20=releaseRuntimeClasspath
+org.jetbrains.kotlin:kotlin-stdlib:2.4.21=releaseRuntimeClasspath
 org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0=releaseRuntimeClasspath
 org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.11.0=releaseRuntimeClasspath
 org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.11.0=releaseRuntimeClasspath

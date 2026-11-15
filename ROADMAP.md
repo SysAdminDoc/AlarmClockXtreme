@@ -6,7 +6,7 @@ Actionable work only. Historical and completed roadmap material is archived in C
 
 Added 2026-09-04 from the research pass recorded in RESEARCH.md.
 
-Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is still the keystone for Room 2.8, WorkManager 2.11 and Hilt 2.59, and this pass adds one more reason to do it (CVE-2026-53914 affects `kotlin-gradle-plugin` before 2.4.20-Beta1; the repo is on 2.1.0, build-time only, no runtime exposure). The Android 17 sleep-audio check in `Roadmap_Blocked.md` ("Confirm non-alarm (sleep) audio") gains a concrete target: `service/SleepSoundPlayer.kt` drives an `AudioTrack` with `USAGE_MEDIA` from a plain coroutine scope with no foreground service behind it, so it is the path Android 17 background-audio hardening will silence first.
+Cross-reference, not a new item: the Android 17 sleep-audio check in `Roadmap_Blocked.md` ("Confirm non-alarm (sleep) audio") gains a concrete target: `service/SleepSoundPlayer.kt` drives an `AudioTrack` with `USAGE_MEDIA` from a plain coroutine scope with no foreground service behind it, so it is the path Android 17 background-audio hardening will silence first.
 
 ### P2
 
@@ -123,24 +123,29 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
 
 ## Toolchain
 
-Moved from Roadmap_Blocked.md on 2026-11-12. Nothing outside the repo blocks these; they are one coordinated upgrade, and the Android 17 follow-ons below (compileSdk 37) wait on the first one.
+Moved from Roadmap_Blocked.md on 2026-11-12. Nothing outside the repo blocks these. The Android 17 follow-ons below wait on the compileSdk 37 item.
 
-- [ ] P1: AGP 8 to 9 migration
-  Why: AGP 8.11.1 is end of life and can't compile against SDK 37 (platforms `android-37.0` and `android-37.1` are installed). AGP 9 needs Hilt 2.56.2 to 2.59.2+, KSP1 to KSP2 (Room 2.8 needs it) and a Gradle wrapper check, all in one pass. Kotlin 2.1.0 also carries CVE-2026-53914 in `kotlin-gradle-plugin` (build time only).
-  Touches: `build.gradle.kts` plugin versions, `app/build.gradle.kts`, `wear/build.gradle.kts`, both lockfiles, `gradle/verification-metadata.xml`.
-  Acceptance: clean build, both unit suites green, play and fdroid release builds shrink under R8, `verifyDependencyIntegrity` passes.
+- [ ] P2: Move to compileSdk 37
+  Why: The Android 17 follow-ons below need SDK 37 APIs, and androidx.hilt 1.4.0 and lifecycle 2.11.0 fail `checkAarMetadata` below compileSdk 37, so the repo holds androidx.hilt at 1.3.0. AGP 9.3.3 is in, and the `android-37.0` and `android-37.1` platforms are installed.
+  Touches: `compileSdk` in `app/build.gradle.kts` and `wear/build.gradle.kts`, androidx.hilt 1.3.0 to 1.4.0, lifecycle to 2.11.0, both lockfiles, `gradle/verification-metadata.xml`.
+  Acceptance: both modules compile against 37 with targetSdk left at 36, all three unit suites green, both release builds shrink under R8, `verifyDependencyIntegrity` passes.
+  Complexity: S
+
+- [ ] P2: WorkManager 2.11 or newer
+  Why: WorkManager 2.11 broke the test mocks on the old toolchain. Kotlin 2.4 and KSP2 are in now, so what's left is the mocks. 2.12.0 is current, so check its minCompileSdk against the compileSdk 37 item first.
   Complexity: M
 
-- [ ] P2: Room 2.8 and WorkManager 2.11 (after AGP 9)
-  Why: Room 2.8.4 fails KSP1 codegen and WorkManager 2.11 breaks the test mocks, so both wait on KSP2.
+- [ ] P3: AGP 9.5 and KSP 2.3.14
+  Why: The repo is on AGP 9.3.3 and KSP 2.3.12. AGP 9.5.1 (needs Gradle 9.6.0 or newer) is current, but Kotlin 2.4.21's compatibility table only lists AGP up to 9.3.1. KSP 2.3.13 has a concurrent-execution regression (google/ksp#3286), and 2.3.14 came out on 2026-11-13.
+  Acceptance: move once a Kotlin release lists AGP 9.5 and KSP 2.3.14 is at least two weeks old, with all three unit suites green and both release builds shrinking under R8.
+  Complexity: S
+
+- [ ] P3: Room 3 SQLiteDriver migration runway
   Complexity: M
 
-- [ ] P3: Room 3 SQLiteDriver migration runway (after Room 2.8)
-  Complexity: M
+### Android 17 follow-ons (after compileSdk 37)
 
-### Android 17 follow-ons (after AGP 9 and compileSdk 37)
-
-Moved from Roadmap_Blocked.md on 2026-11-14. Its "needs an API 37 emulator" blocker no longer holds (android-37.0 and android-37.1 images are installed); what they really wait on is the AGP 9 item above.
+Moved from Roadmap_Blocked.md on 2026-11-14. Its "needs an API 37 emulator" blocker no longer holds (android-37.0 and android-37.1 images are installed). What they really wait on is the compileSdk 37 item above.
 
 - [ ] P3: AdvancedProtectionManager awareness (privacy hardening)
   Why: when the device is in Advanced Protection Mode, ACX should tighten up. Gate webhook egress and unknown-source ringtone imports, to match its privacy-first stance.
@@ -159,7 +164,7 @@ Moved from Roadmap_Blocked.md on 2026-11-14. Its "needs an API 37 emulator" bloc
 - [ ] P2: Android 17 semantic notification colors for alarm urgency
   Why: `SEMANTIC_STYLE_SAFE/CAUTION/DANGER` notification spans need compileSdk 37.
   Evidence: https://developer.android.com/about/versions/17/features
-  Needs: the AGP 9 and compileSdk 37 migration.
+  Needs: the compileSdk 37 item.
   Complexity: S
 
 - [ ] P2: Android 17 Metric Style notification for timer countdown
@@ -227,7 +232,6 @@ Added from the 2026-11-14 research pass in RESEARCH.md. Reported problems come f
 Cross-references, not new items:
 
 - Media3 (P3 "Bump Media3 to 1.11.0" above): aim for 1.11.1 now.
-- AGP 8 to 9 (Toolchain): concrete targets as of 2026-11-14 are AGP 9.5.1 with Gradle 9.6.0, Kotlin 2.4.21, KSP 2.3.14, Dagger and Hilt 2.60.1, Room 2.8.5 and WorkManager 2.12.0. androidx.hilt 1.4.0 belongs in the same batch, since it needs KGP 2.2.0 or newer and AGP 9.2.0 or newer with Compose, and 1.3.0 moved `hiltViewModel()` into `androidx.hilt:hilt-lifecycle-viewmodel-compose`. AGP 9 also brings built-in Kotlin (https://developer.android.com/build/migrate-to-built-in-kotlin).
 - The two P2 hardcoded-English items above ("Move the remaining hardcoded English into string resources" and "Move the remaining hardcoded English in view models and dialogs into strings.xml") cover the same sweep. Do them as one.
 - "Confirm non-alarm (sleep) audio survives Android 17 background-audio rules" says `SleepSoundPlayer` runs under a `mediaPlayback` foreground service. It doesn't: `service/SleepSoundPlayer.kt` sets `USAGE_MEDIA`, never calls `startForeground`, and is only started from `ui/bedtime/BedtimeViewModel.kt`. The note at the top of the 2026-09-04 section has it right. The test switch is `adb shell cmd audio set-enable-hardening enable` on an API 37 emulator. `enable` also drops the waiver for alarm streams, so alarm audio failing under it is expected and not a bug (https://developer.android.com/about/versions/17/changes/bg-audio).
 - Audio focus (P2 "Request and monitor audio focus" above) should land before the targetSdk 37 bump, not after it. On an API 37 emulator (2026-11-06, AOSP `android-17.0.0_r1`), alarm-stream sound from a `MediaPlayer` in a service started in the background was muted even though the documentation says the exact alarm permission waives the rule. The waiver reads a cached permission that's refreshed by focus and volume calls, and a `MediaPlayer` plays from mediaserver, so the cache never refreshes on its own. Requesting audio focus with alarm attributes before playing fixed it. This app plays alarm audio through `MediaPlayer` at `service/AlarmService.kt:1515`, `:1606` and `:1691`, `directboot/DirectBootAlarmService.kt:140` and `ui/timer/TimerAlarmService.kt:232`, and never requests focus. Add to that item's acceptance: with a targetSdk 37 build on an API 37 emulator, an alarm fired while the app hasn't been opened since boot logs no `mutedState:opControlAudio` line (Needs live validation for this app's own paths).
@@ -243,11 +247,11 @@ Cross-references, not new items:
   Acceptance: fixture tests show a match for one scene under two light levels and a small shift, and no match for a different scene with a similar color mix. The threshold comes from a handful of real morning photos and is recorded in the test (Needs live validation). The score still reaches the UI as 0 to 100 so the "no match" message keeps working.
   Complexity: M
 
-- [ ] P2: Dependency refresh that doesn't wait for AGP 9
-  Why: A few libraries are behind and don't depend on the Kotlin or KSP upgrade: OkHttp 5.4.0 (5.5.1 is out), NewPipeExtractor v0.26.3 (v0.26.4 fixed YouTube playlist continuations, and v0.26.5 is the last 0.26), Robolectric 4.14.1 (4.18, released 2026-11-13) and DataStore 1.1.1 (1.3.0).
+- [ ] P2: Dependency refresh
+  Why: A few libraries are behind: OkHttp 5.4.0 (5.5.1 is out), NewPipeExtractor v0.26.3 (v0.26.4 fixed YouTube playlist continuations, and v0.26.5 is the last 0.26), Robolectric 4.14.1 (4.18, released 2026-11-13), DataStore 1.1.1 (1.3.0) and zxing-cpp 3.0.2 (3.1.1, which needed the Kotlin 2.3.20 stdlib the AGP 9 build now resolves).
   Evidence: versions pinned in `app/build.gradle.kts`; https://repo1.maven.org/maven2/com/squareup/okhttp3/okhttp/maven-metadata.xml; https://github.com/TeamNewPipe/NewPipeExtractor/releases; https://github.com/robolectric/robolectric/releases; https://developer.android.com/jetpack/androidx/releases/datastore
   Touches: `app/build.gradle.kts`, both lockfiles, `gradle/verification-metadata.xml`.
-  Acceptance: each bump is its own commit with both unit suites green. A library built with a Kotlin version the 2.1.0 compiler can't read (the error names the metadata version) moves into the AGP 9 item instead of being forced. NewPipe stays on 0.26.x here, since 0.27.0 raised the Java target to 17 and turned `Description` into a record, so 0.27.x needs its own API pass. A live YouTube search and an internet radio stream still play.
+  Acceptance: each bump is its own commit with both unit suites green. A library that fails `checkAarMetadata` below compileSdk 37 moves into the compileSdk 37 item instead of being forced. NewPipe stays on 0.26.x here, since 0.27.0 raised the Java target to 17 and turned `Description` into a record, so 0.27.x needs its own API pass. A live YouTube search and an internet radio stream still play.
   Complexity: S
 
 ### P3

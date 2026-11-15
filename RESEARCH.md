@@ -165,18 +165,18 @@ Dependency currency, checked against official release pages on 2026-11-14:
 
 | Dependency | In the repo | Latest stable | Blocked on AGP 9? |
 |---|---|---|---|
-| Android Gradle Plugin | 8.11.1 | 9.5.1 (9.5 needs Gradle 9.6.0) | it is the AGP 9 item |
-| Kotlin | 2.1.0 | 2.4.21 | yes |
-| KSP | 2.1.0-1.0.29 | 2.3.14 (2026-11-13) | yes |
-| Dagger and Hilt | 2.56.2 | 2.60.1 (2026-07-06) | yes |
-| androidx.hilt | 1.2.0 | 1.4.0 | yes |
-| Room | 2.6.1 | 2.8.5 | yes (KSP2) |
+| Android Gradle Plugin | 9.3.3 (was 8.11.1) | 9.5.1 (9.5 needs Gradle 9.6.0) | it is the AGP 9 item |
+| Kotlin | 2.4.21 (was 2.1.0) | 2.4.21 | yes |
+| KSP | 2.3.12 (was 2.1.0-1.0.29) | 2.3.14 (2026-11-13) | yes |
+| Dagger and Hilt | 2.60.1 (was 2.56.2) | 2.60.1 (2026-07-06) | yes |
+| androidx.hilt | 1.3.0 (was 1.2.0) | 1.4.0 | 1.4.0 needs compileSdk 37 |
+| Room | 2.8.5 (was 2.6.1) | 2.8.5 | yes (KSP2) |
 | WorkManager | 2.9.1 | 2.12.0 | yes (existing note) |
 | Media3 | 1.10.1 | 1.11.1 | no |
 | DataStore | 1.1.1 | 1.3.0 (2026-10-21) | unknown (Assumption: no) |
 | Glance | 1.1.1 | 1.2.0 | no |
 | core | 1.15.0 | 1.19.1 | unknown |
-| lifecycle | 2.8.7 | 2.11.0 | unknown |
+| lifecycle | 2.8.7 | 2.11.0 | 2.11.0 needs compileSdk 37 |
 | OkHttp | 5.4.0 | 5.5.1 | no |
 | NewPipeExtractor | v0.26.3 | v0.27.1 (2026-11-10). v0.26.5 is the last before 0.27.0 raised the Java target to 17 and changed `Description` to a record | no |
 | Robolectric | 4.14.1 | 4.18 (2026-11-13) | no |
@@ -184,6 +184,8 @@ Dependency currency, checked against official release pages on 2026-11-14:
 | zxing-cpp Android (new) | none | 3.1.1 | no |
 
 `activity-compose` 1.13.0 is current. youtubedl-android 0.18.1 is the newest tag, though GitHub marks it a prerelease.
+
+The AGP 9 migration landed on 2026-11-15 with Gradle 9.7.1 and AGP's built-in Kotlin, and it stopped short of the newest versions on purpose. Kotlin 2.4.21's compatibility table lists AGP up to 9.3.1, so AGP 9.5 waits for a Kotlin release that lists it. KSP 2.3.13 has a concurrent-execution regression (google/ksp#3286), and 2.3.14 was two days old. androidx.hilt 1.4.0 and lifecycle 2.11.0 fail AGP's `checkAarMetadata` below compileSdk 37, so androidx.hilt went to 1.3.0, which also moved `hiltViewModel()` into `hilt-lifecycle-viewmodel-compose`.
 
 ## Rejected Ideas
 

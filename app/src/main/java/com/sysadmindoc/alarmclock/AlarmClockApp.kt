@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -12,6 +13,7 @@ import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.impl.WorkManagerImpl
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
 import com.sysadmindoc.alarmclock.receiver.MissedAlarmUnlockReceiver
 import com.sysadmindoc.alarmclock.service.AlarmService
@@ -73,6 +75,7 @@ class AlarmClockApp : Application(), Configuration.Provider {
         fun alarmIncidentRepository(): com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
         fun webhookService(): com.sysadmindoc.alarmclock.service.WebhookService
         fun preferencesManager(): PreferencesManager
+        fun alarmDatabase(): com.sysadmindoc.alarmclock.data.local.AlarmDatabase
     }
 
     override fun onCreate() {
@@ -183,6 +186,19 @@ class AlarmClockApp : Application(), Configuration.Provider {
         }
         runBlocking {
             appScope.coroutineContext[Job]?.cancelAndJoin()
+        }
+        // Room 2.8 refreshes table invalidation on its own scope after writes.
+        // Closing through Room lets a running refresh finish and turns later
+        // ones into no-ops, before Robolectric closes the connections under
+        // them (a refresh failing there fails the next test's runTest).
+        EntryPointAccessors.fromApplication(this, AppEntryPoint::class.java).alarmDatabase().close()
+        // WorkManager's own Room database runs the same refresh on its task
+        // executor after the enqueues in onCreate. work-testing's
+        // WorkManagerTestInitHelper.closeWorkDatabase() closes it the same way.
+        if (WorkManager.isInitialized()) {
+            @SuppressLint("RestrictedApi")
+            val workDatabase = WorkManagerImpl.getInstance(this).workDatabase
+            workDatabase.close()
         }
         super.onTerminate()
     }

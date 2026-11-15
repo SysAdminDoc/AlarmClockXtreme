@@ -1,7 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.components
 
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.compose.ui.platform.LocalResources
 import androidx.annotation.StringRes
 import android.media.AudioAttributes

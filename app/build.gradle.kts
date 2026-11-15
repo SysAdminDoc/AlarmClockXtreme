@@ -5,7 +5,6 @@ import org.gradle.api.GradleException
 // AlarmClockXtreme v1.16.0
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
@@ -96,10 +95,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         buildConfig = true
@@ -129,7 +124,7 @@ android {
     }
 
     sourceSets {
-        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+        getByName("androidTest").assets.directories.add("$projectDir/schemas")
     }
 }
 
@@ -148,7 +143,7 @@ tasks.matching { it.name in releaseArtifactTasks }.configureEach {
 }
 
 val fdroidReleaseApk = layout.buildDirectory.file("outputs/apk/fdroid/release/app-fdroid-release.apk")
-val verifyFdroidReleaseSize by tasks.registering {
+val verifyFdroidReleaseSize = tasks.register("verifyFdroidReleaseSize") {
     group = "verification"
     description = "Keep the F-Droid release APK below the documented 40 MiB budget."
     dependsOn("assembleFdroidRelease")
@@ -166,7 +161,7 @@ val verifyFdroidReleaseSize by tasks.registering {
     }
 }
 
-val verifyRoomSchemaExports by tasks.registering {
+val verifyRoomSchemaExports = tasks.register("verifyRoomSchemaExports") {
     group = "verification"
     description = "Reject Room schema exports changed by a debug build until they are reviewed and committed."
     dependsOn("kspFdroidDebugKotlin", "kspPlayDebugKotlin")
@@ -228,7 +223,7 @@ val primaryComposeScreenFiles: List<File> = fileTree("src/main/java/com/sysadmin
         }
     }
 
-val verifyLocalizedPrimaryScreens by tasks.registering {
+val verifyLocalizedPrimaryScreens = tasks.register("verifyLocalizedPrimaryScreens") {
     group = "verification"
     // Deliberately narrow: this rejects literals in the shapes listed below, not
     // "all hardcoded text". It cannot tell a `when` arm feeding a Text from one
@@ -402,8 +397,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.activity:activity-compose:1.13.0")
 
-    // Barcode challenge camera scan (#51). zxing-cpp stays on 3.0.2: 3.1.x
-    // is built against Kotlin stdlib 2.3.20 and this build resolves 2.2.21.
+    // Barcode challenge camera scan (#51). zxing-cpp 3.1.x needs Kotlin
+    // stdlib 2.3.20 or newer, which the Kotlin 2.4 build now resolves. The
+    // move off 3.0.2 is part of the dependency refresh in ROADMAP.md.
     implementation("androidx.camera:camera-camera2:1.6.2")
     implementation("androidx.camera:camera-lifecycle:1.6.2")
     implementation("androidx.camera:camera-view:1.6.2")
@@ -414,22 +410,21 @@ dependencies {
 
     // Quarterly freshness review 2026-07-15: NewPipe 0.26.3,
     // youtubedl-android 0.18.1, and OkHttp 5.4.0 are current stable; Moshi was
-    // updated to 1.15.2. Room 2.8.4 fails this KSP1 schema processor and
-    // WorkManager 2.11.2 pulls Room 2.7 into the runtime graph, so both remain
-    // coupled to the tracked AGP 9 / KSP2 migration in Roadmap_Blocked.md.
+    // updated to 1.15.2. Room moved to 2.8.5 with the AGP 9 / KSP2 migration
+    // (2026-11-15). WorkManager 2.11 waits on compileSdk 37 (ROADMAP.md).
 
     // Room
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-    ksp("androidx.room:room-compiler:2.6.1")
+    implementation("androidx.room:room-runtime:2.8.5")
+    implementation("androidx.room:room-ktx:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.56.2")
-    ksp("com.google.dagger:hilt-compiler:2.56.2")
-    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation("com.google.dagger:hilt-android:2.60.1")
+    ksp("com.google.dagger:hilt-compiler:2.60.1")
+    implementation("androidx.hilt:hilt-lifecycle-viewmodel-compose:1.3.0")
     // Hilt WorkManager integration (F5, F13, F15 workers)
-    implementation("androidx.hilt:hilt-work:1.2.0")
-    ksp("androidx.hilt:hilt-compiler:1.2.0")
+    implementation("androidx.hilt:hilt-work:1.3.0")
+    ksp("androidx.hilt:hilt-compiler:1.3.0")
 
     // WorkManager (F5, F6, F13, F15)
     implementation("androidx.work:work-runtime-ktx:2.9.1")
@@ -535,7 +530,7 @@ dependencies {
     // SettingsBackup constructor parameters so a new settings field can't ship
     // without a backup round-trip again.
     testImplementation(kotlin("reflect"))
-    androidTestImplementation("androidx.room:room-testing:2.6.1")
+    androidTestImplementation("androidx.room:room-testing:2.8.5")
     androidTestImplementation("androidx.test:core:1.6.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

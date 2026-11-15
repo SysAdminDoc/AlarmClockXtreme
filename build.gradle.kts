@@ -1,14 +1,26 @@
 import java.io.File
 import java.util.Properties
+import javax.inject.Inject
+import org.gradle.process.ExecOperations
 
 // AlarmClockXtreme v1.16.0
 // Top-level build file
+// AGP 9 compiles Kotlin itself and brings KGP 2.2.10 along. This pins the
+// newer compiler, and the Compose compiler plugin below has to match it.
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.4.21")
+    }
+}
+
 plugins {
-    id("com.android.application") version "8.11.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.1.0" apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.0" apply false
-    id("com.google.devtools.ksp") version "2.1.0-1.0.29" apply false
-    id("com.google.dagger.hilt.android") version "2.56.2" apply false
+    id("com.android.application") version "9.3.3" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.21" apply false
+    id("com.google.devtools.ksp") version "2.3.12" apply false
+    id("com.google.dagger.hilt.android") version "2.60.1" apply false
 }
 
 val verifyReleaseSigning = tasks.register("verifyReleaseSigning") {
@@ -47,9 +59,16 @@ val verifyReleaseSigning = tasks.register("verifyReleaseSigning") {
     }
 }
 
+// Gradle 9 dropped Project.exec, so the task gets ExecOperations injected.
+interface InjectedExecOperations {
+    @get:Inject
+    val exec: ExecOperations
+}
+
 val verifyReleaseMetadata = tasks.register("verifyReleaseMetadata") {
     group = "verification"
     description = "Verify the release version across manifests, metadata, README, and changelog."
+    val execOperations = objects.newInstance<InjectedExecOperations>().exec
 
     doLast {
         val pythonCommand = if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) {
@@ -57,7 +76,7 @@ val verifyReleaseMetadata = tasks.register("verifyReleaseMetadata") {
         } else {
             "python3"
         }
-        exec {
+        execOperations.exec {
             commandLine(pythonCommand, rootProject.file("scripts/verify_release_metadata.py").absolutePath)
             workingDir(rootProject.rootDir)
         }
