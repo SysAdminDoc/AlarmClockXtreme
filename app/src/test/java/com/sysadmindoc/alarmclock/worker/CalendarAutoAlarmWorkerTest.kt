@@ -151,7 +151,8 @@ class CalendarAutoAlarmWorkerTest {
         val title = "Before: " + "quarterly planning ".repeat(10)
         // The repository saves rows sanitized, which trims the label to 120 characters.
         val stored = auto(id = 1L).copy(label = title, nextTriggerTime = now + 3_600_000L).sanitized()
-        val rebuilt = auto(id = 1L).copy(label = title)
+        // Rebuilt from the stored row the way the worker does it, so createdAt matches.
+        val rebuilt = stored.copy(label = title, nextTriggerTime = 0L)
 
         assertEquals(true, CalendarAutoAlarmWorker.alreadyArmed(stored, rebuilt, now, registered = true))
     }
