@@ -65,6 +65,11 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isDebuggable = true
+            // en-XA (accented, longer text) and ar-XB (mirrored, right to left)
+            // show clipping and leftover English before a translator does.
+            // Set one per app: adb shell cmd locale set-app-locales
+            // com.sysadmindoc.alarmclock.debug --locales en-XA
+            isPseudoLocalesEnabled = true
         }
     }
 

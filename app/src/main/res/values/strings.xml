@@ -1884,6 +1884,7 @@
     <string name="ringtone_sound_saved">Sound saved</string>
     <string name="ringtone_default_alarm">Default alarm</string>
     <string name="stopwatch_stopwatch_reset">Stopwatch reset</string>
+    <string name="stopwatch_undo">Undo</string>
     <string name="stopwatch_start_a_precise_running_timer_and">Start a precise running timer and mark laps whenever you need a split.</string>
     <string name="stopwatch_timing_live_mark_laps_as_the">Running. Tap Lap to mark a split.</string>
     <string name="stopwatch_paused_in_place_resume_when_you">Paused. Resume when you’re ready, or reset to start over.</string>
@@ -1897,6 +1898,7 @@
     <string name="dashboard_unknown_location">Unknown location</string>
     <string name="alarmlist_alarm_history">Alarm history</string>
     <string name="alarmlist_alarm_deleted">Alarm deleted</string>
+    <string name="alarmlist_undo">Undo</string>
     <plurals name="alarmlist_alarms_deleted">
         <item quantity="one">%1$d alarm deleted</item>
         <item quantity="other">%1$d alarms deleted</item>

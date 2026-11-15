@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -45,6 +46,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -148,33 +150,37 @@ internal fun AlarmTimeNumpad(
                 )
             }
         }
-        keys.chunked(3).forEach { rowKeys ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                rowKeys.forEach { key ->
-                    OutlinedButton(
-                        onClick = {
+        // Digit pads stay 1 2 3 left to right in RTL languages, as the
+        // dialer and calculator do. The AM/PM chips above still mirror.
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            keys.chunked(3).forEach { rowKeys ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    rowKeys.forEach { key ->
+                        OutlinedButton(
+                            onClick = {
+                                when (key) {
+                                    'C' -> onClear()
+                                    '⌫' -> onDelete()
+                                    else -> onDigit(key)
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(52.dp),
+                            shape = AppButtonShape,
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
                             when (key) {
-                                'C' -> onClear()
-                                '⌫' -> onDelete()
-                                else -> onDigit(key)
+                                'C' -> Text(stringResource(R.string.alarm_edit_clear_short))
+                                '⌫' -> Icon(
+                                    Icons.AutoMirrored.Filled.Backspace,
+                                    contentDescription = stringResource(R.string.alarm_edit_delete_digit)
+                                )
+                                else -> Text(key.toString(), fontSize = 22.sp)
                             }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(52.dp),
-                        shape = AppButtonShape,
-                        contentPadding = PaddingValues(0.dp)
-                    ) {
-                        when (key) {
-                            'C' -> Text(stringResource(R.string.alarm_edit_clear_short))
-                            '⌫' -> Icon(
-                                Icons.AutoMirrored.Filled.Backspace,
-                                contentDescription = stringResource(R.string.alarm_edit_delete_digit)
-                            )
-                            else -> Text(key.toString(), fontSize = 22.sp)
                         }
                     }
                 }

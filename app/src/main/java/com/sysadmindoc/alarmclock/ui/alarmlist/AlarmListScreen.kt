@@ -300,7 +300,7 @@ fun AlarmListScreen(
     } else {
         stringResource(R.string.alarmlist_alarm_deleted)
     }
-    val undoLabel = stringResource(R.string.timer_undo)
+    val undoLabel = stringResource(R.string.alarmlist_undo)
     LaunchedEffect(state.undoAlarms) {
         if (state.undoAlarms.isEmpty()) return@LaunchedEffect
         val result = snackbarHostState.showSnackbar(

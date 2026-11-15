@@ -8,15 +8,6 @@ Added 2026-09-04 from the research pass recorded in RESEARCH.md.
 
 Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is still the keystone for Room 2.8, WorkManager 2.11 and Hilt 2.59, and this pass adds one more reason to do it (CVE-2026-53914 affects `kotlin-gradle-plugin` before 2.4.20-Beta1; the repo is on 2.1.0, build-time only, no runtime exposure). The Android 17 sleep-audio check in `Roadmap_Blocked.md` ("Confirm non-alarm (sleep) audio") gains a concrete target: `service/SleepSoundPlayer.kt` drives an `AudioTrack` with `USAGE_MEDIA` from a plain coroutine scope with no foreground service behind it, so it is the path Android 17 background-audio hardening will silence first.
 
-### P1
-
-- [ ] P1: Add a pseudolocale gate and stop sharing the timer's Undo key
-  Why: Japanese landed (#55), so a second layout now has to fit translated text, but nothing checks for clipping or hardcoded English before a translator finds it. The alarm list and stopwatch undo actions still read `R.string.timer_undo`, so a translator sees one key for three features.
-  Evidence: `app/build.gradle.kts` has no `pseudoLocalesEnabled`; `ui/alarmlist/AlarmListScreen.kt:274` and `ui/stopwatch/StopwatchScreen.kt:91` read `R.string.timer_undo`.
-  Touches: `app/build.gradle.kts` (debug `pseudoLocalesEnabled`), new undo keys in `values/strings.xml` and `values-ja/strings.xml`, the two screens above.
-  Acceptance: a debug build run under `en-XA` and `ar-XB` shows no clipped or untranslated primary screen; `verifyLocalizedPrimaryScreens` still passes; no string key is shared across two unrelated features.
-  Complexity: M
-
 ### P2
 
 - [ ] P2: Request and monitor audio focus, and check the alarm stream is audible
@@ -69,6 +60,13 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
   Touches: `ProcessExitRepository.kt` (new outcome), `SettingsReadinessSections.kt`, strings en and ja, `ProcessExitReportsTest.kt`.
   Acceptance: an exit between a service start and that fire's dismiss, snooze or auto-silence reads "The %s alarm was ringing", and a unit test covers a ring that ended before the exit.
   Also: `directboot/DirectBootAlarmService` writes no incident rows, so a ring before first unlock reads "no ring recorded"; and an arm the app moved itself (weather or commute lead) reads "changed" rather than owed. Log a start row from the direct-boot service, and treat an app-made re-arm for the same occurrence as the same arm.
+  Complexity: S
+
+- [ ] P3: Give generic words their own keys instead of borrowing another feature's
+  Why: a translator reads the key's prefix as its context, and fourteen generic words are read by features the prefix doesn't name. Japanese got away with it, but a language that inflects "Paused" or "Ready" by what it describes won't.
+  Evidence: a scan of `R.string` reads under `ui/<feature>/` on 2026-11-15 found `settings_paused` (alarm list, stopwatch, timer), `settings_ready` (alarm list, onboarding, stopwatch), `settings_selected` and `settings_not_selected` (alarm list, components, radio, ringtone), `settings_close` (alarm list, dashboard, world clock), `dashboard_retry` (alarm firing, news, radio), `dashboard_use` (radio, ringtone), `dashboard_optional` (bedtime, onboarding), `alarmlist_min` (bedtime, stats), `stopwatch_reset` and `timer_restart` (bedtime), `settings_active`, `settings_never` and `settings_tonight` (bedtime). Keys read by a second folder for the same feature (radio picker in alarm edit, health keys in stats, permission rows in onboarding) are fine.
+  Touches: `values/strings.xml`, `values-ja/strings.xml`, the call sites above.
+  Acceptance: each of those words is either a `common_` key for a true verb or label used the same way everywhere, or a per-feature key; the same scan finds no feature-prefixed key read from an unrelated feature.
   Complexity: S
 
 - [ ] P3: Per-alarm "pause until a date"

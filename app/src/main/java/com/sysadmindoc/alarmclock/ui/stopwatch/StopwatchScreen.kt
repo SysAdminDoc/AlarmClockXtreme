@@ -88,7 +88,7 @@ fun StopwatchScreen(
     // the safety net is an undo rather than a prompt.
     // Read inside the coroutine would be outside composition.
     val resetMessage = stringResource(R.string.stopwatch_stopwatch_reset)
-    val undoLabel = stringResource(R.string.timer_undo)
+    val undoLabel = stringResource(R.string.stopwatch_undo)
     val onReset: () -> Unit = {
         viewModel.reset()
         if (viewModel.canUndoReset) {

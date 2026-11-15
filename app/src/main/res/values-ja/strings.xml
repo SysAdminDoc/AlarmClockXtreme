@@ -1789,6 +1789,7 @@
     <string name="ringtone_sound_saved">サウンドを保存しました</string>
     <string name="ringtone_default_alarm">デフォルトアラーム</string>
     <string name="stopwatch_stopwatch_reset">ストップウォッチをリセットしました</string>
+    <string name="stopwatch_undo">元に戻す</string>
     <string name="stopwatch_start_a_precise_running_timer_and">精密なタイマーを開始し、スプリットが必要なときはいつでもラップをマークします。</string>
     <string name="stopwatch_timing_live_mark_laps_as_the">計測中。ラップで区間を記録できます。</string>
     <string name="stopwatch_paused_in_place_resume_when_you">一時停止中。再開するか、リセットしてやり直します。</string>
@@ -1802,6 +1803,7 @@
     <string name="dashboard_unknown_location">不明な場所</string>
     <string name="alarmlist_alarm_history">アラーム履歴</string>
     <string name="alarmlist_alarm_deleted">アラームを削除しました</string>
+    <string name="alarmlist_undo">元に戻す</string>
     <plurals name="alarmlist_alarms_deleted">
         <item quantity="other">%1$d 個のアラームを削除しました</item>
     </plurals>

@@ -54,6 +54,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -67,11 +68,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -411,11 +414,15 @@ private fun TimerInputView(state: TimerUiState, viewModel: TimerViewModel, modif
             }
         }
 
-        NumPad(
-            onDigit = viewModel::appendDigit,
-            onDoubleZero = viewModel::appendDoubleZero,
-            onDelete = viewModel::deleteDigit
-        )
+        // Digit pads stay 1 2 3 left to right in RTL languages, as the
+        // dialer and calculator do. Mirrored, the keys read 3 2 1.
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            NumPad(
+                onDigit = viewModel::appendDigit,
+                onDoubleZero = viewModel::appendDoubleZero,
+                onDelete = viewModel::deleteDigit
+            )
+        }
 
         Button(
             onClick = viewModel::start,

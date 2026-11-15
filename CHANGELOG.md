@@ -55,6 +55,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The cards on Bedtime, the jet lag planner and the Wake readiness page sit two to a row, so the room reading, the daily move and the last readiness tile aren't hidden past the edge of the screen. Cards in a row match the tallest one without a band of empty space at the bottom, and the Bedtime and jet lag cards stand out from the panel behind them instead of blending in. The planner also drops a chip row that repeated what its cards say, and its daily move card shows how many days the move lasts instead of saying "Later" under "38m later".
 - Two bundled libraries, Jackson and Guava, moved to releases that fix known security problems. The F-Droid build now gets the newer Guava too.
 - With Material You on, the accent color picker says your wallpaper is setting the accent for now and dims its swatches. A color you pick there still comes back once Material You is off. Phones older than Android 12 don't show the Material You switch anymore, since it did nothing on them, and the accent names read in Japanese.
+- The Undo button after deleting an alarm or resetting the stopwatch has its own text to translate now, instead of borrowing the timer's. Debug builds also carry Android's two test languages, one with stretched accented text and one that reads right to left, so a cut-off label or a leftover English line shows up before a translator finds it.
 
 ### Fixed
 
@@ -89,6 +90,8 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - An alarm time like 10:00 AM no longer breaks onto two lines in the alarm list once the drag handles show. It shrinks a little to stay on one line.
 - The timer restart unit test failed now and then on a busy machine, because the 6:00 default alarm the app adds on first launch landed in the middle of it. That test runs without the app's startup work now.
 - If Android refused an alarm's new time while the old one was still set, the old one rang as if it were the new one, and dismissing it skipped the new one. Dismissing it no longer skips the new one.
+- Tab names in the bottom bar end in … when a translation runs long, instead of being cut off mid-letter. The two badges at the top of the setup checklist move onto separate lines when they don't fit side by side, so neither one breaks in the middle of a word.
+- In a right-to-left language, the timer's number pad and the alarm editor's keypad keep 1 2 3 in the usual order, the way the phone's dialer does. They used to read 3 2 1. The rest of each screen still mirrors.
 
 ## [1.15.35] - 2026-09-05
 

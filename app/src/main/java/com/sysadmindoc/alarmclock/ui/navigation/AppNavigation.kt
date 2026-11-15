@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -297,10 +298,13 @@ fun AppNavigation(
                                 },
                                 label = {
                                     // Short labels in labelSmall so all six
-                                    // fit at 1080px without an ellipsis.
+                                    // fit at 1080px without an ellipsis. A
+                                    // longer translation gets one instead of
+                                    // being cut off mid-letter at the slot edge.
                                     Text(
                                         text = label,
                                         maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
                                         style = MaterialTheme.typography.labelSmall,
                                     )
                                 },

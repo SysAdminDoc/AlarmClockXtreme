@@ -17,6 +17,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -153,6 +155,7 @@ private enum class TestAlarmNoticeTone {
     Error
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OnboardingScreen(
     onComplete: () -> Unit,
@@ -277,9 +280,12 @@ fun OnboardingScreen(
                         highlighted = true,
                         contentPadding = PaddingValues(10.dp)
                     ) {
-                        Row(
+                        // Wraps, so a long translation of the first chip
+                        // moves "Optional" to its own line instead of
+                        // squeezing it until it breaks mid-word.
+                        FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             AppStatusChip(
                                 label = stringResource(R.string.onboarding_recommended_setup),
