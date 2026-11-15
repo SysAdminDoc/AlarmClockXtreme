@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import androidx.annotation.StringRes
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -231,8 +232,14 @@ fun AlarmEditScreen(
     }
     val snackbarHostState = remember { SnackbarHostState() }
     val noReferencePhotoMessage = stringResource(R.string.alarm_edit_photo_none_captured)
+    val noPickedPhotoMessage = stringResource(R.string.alarm_edit_photo_none_picked)
     val referencePhotoSavedMessage = stringResource(R.string.alarm_edit_photo_saved)
     val referencePhotoSaveFailedMessage = stringResource(R.string.alarm_edit_photo_save_failed)
+    val referencePhotoReplaceFailedMessage = stringResource(R.string.alarm_edit_photo_replace_failed)
+    // A failed replace leaves the alarm's photo in place, so say that instead of a bare failure.
+    val photoSaveFailedStatus = {
+        if (state.photoMatchUri.isBlank()) referencePhotoSaveFailedMessage else referencePhotoReplaceFailedMessage
+    }
     val cameraPermissionMessage = stringResource(R.string.alarm_edit_camera_permission_required)
     val noBackgroundMessage = stringResource(R.string.alarm_edit_background_none_selected)
     val backgroundSelectedMessage = stringResource(R.string.alarm_edit_background_selected)
@@ -288,26 +295,30 @@ fun AlarmEditScreen(
         }
     }
 
-    val photoReferenceLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        if (bitmap == null) {
-            photoReferenceStatus = noReferencePhotoMessage
-            return@rememberLauncherForActivityResult
-        }
-
-        val referenceKey = if (state.isEditing && state.createdAt > 0) {
+    val photoReferenceKey = {
+        if (state.isEditing && state.createdAt > 0) {
             state.createdAt
         } else {
             System.currentTimeMillis()
         }
+    }
+    val photoReferenceLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap == null) {
+            // Backing out keeps the photo the alarm already has, so only a first capture reports it.
+            photoReferenceStatus = if (state.photoMatchUri.isBlank()) noReferencePhotoMessage else ""
+            return@rememberLauncherForActivityResult
+        }
+
+        val referenceKey = photoReferenceKey()
         runCatching {
             PhotoMatcher.saveReference(context, referenceKey, bitmap)
         }.onSuccess { uri ->
             viewModel.updatePhotoMatchUri(uri)
             photoReferenceStatus = referencePhotoSavedMessage
         }.onFailure {
-            photoReferenceStatus = referencePhotoSaveFailedMessage
+            photoReferenceStatus = photoSaveFailedStatus()
         }
         if (!bitmap.isRecycled) bitmap.recycle()
     }
@@ -328,6 +339,20 @@ fun AlarmEditScreen(
         } else {
             photoPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
+    }
+    val pickedPhotoLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri == null) {
+            photoReferenceStatus = if (state.photoMatchUri.isBlank()) noPickedPhotoMessage else ""
+            return@rememberLauncherForActivityResult
+        }
+        viewModel.savePickedReferencePhoto(uri, photoReferenceKey()) { saved ->
+            photoReferenceStatus = if (saved) referencePhotoSavedMessage else photoSaveFailedStatus()
+        }
+    }
+    val pickReferencePhoto = {
+        pickedPhotoLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
     val firingBackgroundImageLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -604,6 +629,7 @@ fun AlarmEditScreen(
                     viewModel = viewModel,
                     context = context,
                     onCaptureReferencePhoto = captureReferencePhoto,
+                    onPickReferencePhoto = pickReferencePhoto,
                     photoReferenceStatus = photoReferenceStatus,
                     requestLocationDismissTarget = requestLocationDismissTarget,
                     locationDismissStatus = locationDismissStatus,

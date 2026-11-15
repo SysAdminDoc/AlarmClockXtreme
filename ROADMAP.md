@@ -230,13 +230,6 @@ Cross-references, not new items:
 
 ### P1
 
-- [ ] P1: Let Photo Match take its reference from the gallery (Discussion #52)
-  Why: The reference photo can only come from `TakePicturePreview()`, so you have to be standing at the spot when you set the alarm up. The Photo Picker needs no storage permission (activity 1.7.0 or newer, and the app is on 1.13.0), and the editor already has an `OpenDocument` launcher for the ringing-screen background to copy from.
-  Evidence: `ui/alarmedit/AlarmEditScreen.kt:290-292` (camera only) and `:330-340` (background image launcher); `util/PhotoMatcher.kt:52` (`saveReference` copies a bitmap into app storage); https://github.com/SysAdminDoc/AlarmClockXtreme/discussions/52; https://developer.android.com/training/data-storage/shared/photopicker
-  Touches: `ui/alarmedit/AlarmEditScreen.kt` (a `PickVisualMedia` launcher with `ImageOnly`), `util/PhotoMatcher.kt` (decode the picked URI with downsampling and EXIF orientation, then `saveReference`), the Photo Match editor buttons and their en and ja strings.
-  Acceptance: a picked image is copied through `saveReference`, so the alarm keeps working after the original is deleted. A very large image decodes without running out of memory. A phone photo saved with an EXIF rotation matches the same scene shot upright at dismiss time. The manifest gains no storage permission. Unit tests cover the decode and save path.
-  Complexity: S
-
 - [ ] P1: Confirm the ringing screen really came back after the Spotify fallback
   Why: When Spotify never plays, `bringFiringScreenBack` relaunches the ringing screen over it. Android doesn't throw when it blocks a background launch, it only logs "Background activity launch blocked!", so the `catch` never runs and nothing records that the user has a fallback tone and no Dismiss button. The launch works today only because it lands inside the grace period of about 10 seconds after the screen was last visible (the comment at `service/AlarmService.kt:111-115`), and Android 17 is extending background launch hardening to `IntentSender`.
   Evidence: `service/AlarmService.kt:1342` and `:1353-1371`; `ui/alarmfiring/AlarmFiringActivity.kt:345` (`onResume` reports nothing back to the service); https://developer.android.com/guide/components/activities/background-starts; https://developer.android.com/about/versions/17/behavior-changes-17

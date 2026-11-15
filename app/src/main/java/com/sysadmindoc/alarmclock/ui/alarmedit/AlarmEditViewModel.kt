@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.ui.alarmedit
 
 import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,9 +13,11 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.domain.LocationDismissPolicy
 import com.sysadmindoc.alarmclock.domain.NextAlarmCalculator
 import com.sysadmindoc.alarmclock.service.AlarmTestRun
+import com.sysadmindoc.alarmclock.util.PhotoMatcher
 import com.sysadmindoc.alarmclock.worker.SunriseLightHub
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +25,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -464,6 +468,28 @@ class AlarmEditViewModel @Inject constructor(
 
     fun updatePhotoMatchUri(uri: String) {
         _uiState.value = _uiState.value.copy(photoMatchUri = uri)
+    }
+
+    /**
+     * Copies a gallery photo into app storage as the alarm's reference, so it
+     * keeps working if the original is deleted or the picker's access runs
+     * out. Runs in viewModelScope (off the main thread, since a gallery photo
+     * can be big) so turning the phone mid-save doesn't lose it.
+     */
+    fun savePickedReferencePhoto(uri: Uri, referenceKey: Long, onDone: (saved: Boolean) -> Unit) {
+        viewModelScope.launch {
+            val saved = withContext(Dispatchers.IO) {
+                PhotoMatcher.decodePicked(context, uri)?.let { bitmap ->
+                    try {
+                        runCatching { PhotoMatcher.saveReference(context, referenceKey, bitmap) }.getOrNull()
+                    } finally {
+                        bitmap.recycle()
+                    }
+                }
+            }
+            if (saved != null) updatePhotoMatchUri(saved)
+            onDone(saved != null)
+        }
     }
 
     fun updateChallengeChain(chain: String) { _uiState.value = _uiState.value.copy(challengeChain = chain) }

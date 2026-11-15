@@ -503,8 +503,11 @@
     <string name="alarm_edit_reference_photo">Reference photo</string>
     <string name="alarm_edit_reference_photo_lower">reference photo</string>
     <string name="alarm_edit_capture">Capture</string>
-    <string name="alarm_edit_capture_photo_hint">Capture a reference photo from the place or angle the alarm should require.</string>
+    <string name="alarm_edit_capture_photo_hint">Take a photo of the place or angle the alarm should require, or pick one from your gallery.</string>
+    <string name="alarm_edit_photo_from_gallery">From gallery</string>
+    <string name="alarm_edit_photo_none_picked">No photo picked.</string>
     <string name="alarm_edit_photo_saved_for_alarm">Reference photo saved for this alarm.</string>
+    <string name="alarm_edit_photo_replace_failed">Couldn\'t save that photo, so the alarm keeps the one it has.</string>
     <string name="alarm_edit_require_leaving">Require leaving saved place</string>
     <string name="alarm_edit_saved_place">Saved place</string>
     <string name="alarm_edit_not_saved">Not saved</string>
@@ -2271,7 +2274,7 @@
     <string name="readiness_needs_barcode">Register a barcode value before saving.</string>
     <string name="readiness_needs_camera_barcode">Grant camera permission to scan the barcode.</string>
     <string name="readiness_no_camera_photo">This device has no camera for the photo-match challenge.</string>
-    <string name="readiness_needs_photo">Capture a reference photo before saving.</string>
+    <string name="readiness_needs_photo">Take or pick a reference photo before saving.</string>
     <string name="readiness_needs_camera_photo">Grant camera permission to match the photo.</string>
     <string name="readiness_no_wifi">This device has no Wi-Fi for the network challenge.</string>
     <string name="readiness_needs_ssid">Enter the Wi-Fi network name before saving.</string>

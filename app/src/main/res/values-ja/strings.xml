@@ -467,8 +467,11 @@
     <string name="alarm_edit_reference_photo">参照写真</string>
     <string name="alarm_edit_reference_photo_lower">参照写真</string>
     <string name="alarm_edit_capture">撮影</string>
-    <string name="alarm_edit_capture_photo_hint">停止時に照合する場所・角度の参照写真を撮影します。</string>
+    <string name="alarm_edit_capture_photo_hint">停止時に照合する場所・角度の参照写真を撮影するか、ギャラリーから選びます。</string>
+    <string name="alarm_edit_photo_from_gallery">ギャラリーから</string>
+    <string name="alarm_edit_photo_none_picked">写真が選ばれていません。</string>
     <string name="alarm_edit_photo_saved_for_alarm">このアラーム用の参照写真が保存されました。</string>
+    <string name="alarm_edit_photo_replace_failed">その写真は保存できなかったため、アラームは今の写真のままです。</string>
     <string name="alarm_edit_require_leaving">保存済みの場所からの離脱を要求</string>
     <string name="alarm_edit_saved_place">保存済みの場所</string>
     <string name="alarm_edit_not_saved">保存されていません</string>
@@ -2155,7 +2158,7 @@
     <string name="readiness_needs_barcode">保存する前にバーコード値を登録してください。</string>
     <string name="readiness_needs_camera_barcode">バーコードをスキャンできるよう、カメラの権限を許可してください。</string>
     <string name="readiness_no_camera_photo">このデバイスには写真照合チャレンジ用のカメラがありません。</string>
-    <string name="readiness_needs_photo">保存する前に参照写真を撮影してください。</string>
+    <string name="readiness_needs_photo">保存する前に参照写真を撮影するか、ギャラリーから選んでください。</string>
     <string name="readiness_needs_camera_photo">写真を照合できるよう、カメラの権限を許可してください。</string>
     <string name="readiness_no_wifi">このデバイスにはネットワークチャレンジ用のWi-Fiがありません。</string>
     <string name="readiness_needs_ssid">保存する前にWi-Fiネットワーク名を入力してください。</string>

@@ -3,8 +3,13 @@ package com.sysadmindoc.alarmclock.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.net.Uri
 import java.io.File
+import java.io.FileOutputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 
 /**
  * F16: Simple photo similarity comparison using pixel histogram matching.
@@ -17,6 +22,12 @@ object PhotoMatcher {
 
     private const val THUMB_SIZE = 64
     private const val HISTOGRAM_BINS = 16
+
+    /**
+     * A picked photo's long side is decoded between this and twice this, or
+     * at its own size when it's smaller.
+     */
+    private const val PICKED_TARGET_SIDE = 1024
 
     /**
      * Compare [captured] bitmap against the reference photo stored at [referenceUri].
@@ -46,15 +57,74 @@ object PhotoMatcher {
     }
 
     /**
-     * Save a reference bitmap to filesDir for later retrieval.
+     * Save a reference bitmap to filesDir for later retrieval. It's written
+     * to its own temp file, synced, and moved over the old one in one step,
+     * so a failed or interrupted replace keeps the alarm's previous reference
+     * intact and two saves at once can't write into the same file.
      * @return absolute file path (URI) of the saved file
      */
     fun saveReference(context: Context, alarmId: Long, bitmap: Bitmap): String {
         val file = File(context.filesDir, "photo_match_$alarmId.jpg")
-        file.outputStream().use { out ->
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
+        val temp = File.createTempFile("photo_match_$alarmId", ".tmp", context.filesDir)
+        try {
+            val written = FileOutputStream(temp).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out).also { if (it) out.fd.sync() }
+            }
+            check(written) { "JPEG compress failed" }
+            Files.move(
+                temp.toPath(), file.toPath(),
+                StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE
+            )
+        } finally {
+            temp.delete()
         }
         return file.absolutePath
+    }
+
+    /**
+     * Reads a picked image for use as a reference: decoded at a fraction of
+     * its size, so a huge photo can't run the app out of memory, and turned
+     * upright from its EXIF orientation. Null when it can't be read.
+     */
+    fun decodePicked(context: Context, uri: Uri, targetSide: Int = PICKED_TARGET_SIDE): Bitmap? = try {
+        val resolver = context.contentResolver
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+        val longSide = maxOf(bounds.outWidth, bounds.outHeight)
+        if (longSide <= 0) {
+            null
+        } else {
+            var sample = 1
+            while (longSide / (sample * 2) >= targetSide) sample *= 2
+            val decoded = resolver.openInputStream(uri)?.use {
+                BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
+            }
+            val orientation = runCatching {
+                resolver.openInputStream(uri)?.use {
+                    ExifInterface(it).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+                }
+            }.getOrNull() ?: ExifInterface.ORIENTATION_NORMAL
+            decoded?.let { upright(it, orientation) }
+        }
+    } catch (_: Exception) {
+        null
+    }
+
+    private fun upright(bitmap: Bitmap, orientation: Int): Bitmap {
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> matrix.apply { postRotate(90f); postScale(-1f, 1f) }
+            ExifInterface.ORIENTATION_TRANSVERSE -> matrix.apply { postRotate(270f); postScale(-1f, 1f) }
+            else -> return bitmap
+        }
+        val turned = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        if (turned !== bitmap) bitmap.recycle()
+        return turned
     }
 
     private fun loadReference(context: Context, referenceUri: String): Bitmap? {

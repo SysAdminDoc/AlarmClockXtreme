@@ -92,6 +92,7 @@ internal fun LazyListScope.alarmEditDismissSections(
     viewModel: AlarmEditViewModel,
     context: Context,
     onCaptureReferencePhoto: () -> Unit,
+    onPickReferencePhoto: () -> Unit,
     photoReferenceStatus: String,
     requestLocationDismissTarget: () -> Unit,
     locationDismissStatus: String,
@@ -446,7 +447,14 @@ internal fun LazyListScope.alarmEditDismissSections(
 
         // PHOTO_MATCH: reference photo URI field
         if (state.challengeType == "PHOTO_MATCH") {
-            SettingsRow(label = stringResource(R.string.alarm_edit_reference_photo)) {
+            SettingsRow(label = stringResource(R.string.alarm_edit_reference_photo))
+            // FlowRow so the gallery button drops to its own line on a
+            // narrow screen or a large font instead of cutting either label.
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 OutlinedButton(
                     onClick = onCaptureReferencePhoto,
                     shape = AppButtonShape,
@@ -464,21 +472,34 @@ internal fun LazyListScope.alarmEditDismissSections(
                         )
                     )
                 }
+                OutlinedButton(
+                    onClick = onPickReferencePhoto,
+                    shape = AppButtonShape,
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PhotoLibrary,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.alarm_edit_photo_from_gallery))
+                }
             }
+            // The last capture or pick result stands in for the standing hint, so a fresh
+            // save doesn't show "saved" twice. Anything but a save (a failed replace, the
+            // camera permission) is a warning even when the alarm keeps its photo.
+            val photoSavedMessage = stringResource(R.string.alarm_edit_photo_saved)
+            val photoHintIsCalm = state.photoMatchUri.isNotBlank() &&
+                (photoReferenceStatus.isBlank() || photoReferenceStatus == photoSavedMessage)
             SettingsHint(
-                if (state.photoMatchUri.isBlank()) {
-                    stringResource(R.string.alarm_edit_capture_photo_hint)
-                } else {
-                    stringResource(R.string.alarm_edit_photo_saved_for_alarm)
+                when {
+                    photoReferenceStatus.isNotBlank() -> photoReferenceStatus
+                    state.photoMatchUri.isBlank() -> stringResource(R.string.alarm_edit_capture_photo_hint)
+                    else -> stringResource(R.string.alarm_edit_photo_saved_for_alarm)
                 },
-                tone = if (state.photoMatchUri.isBlank()) HintTone.Warning else HintTone.Neutral
+                tone = if (photoHintIsCalm) HintTone.Neutral else HintTone.Warning
             )
-            if (photoReferenceStatus.isNotBlank()) {
-                SettingsHint(
-                    photoReferenceStatus,
-                    tone = if (state.photoMatchUri.isBlank()) HintTone.Warning else HintTone.Neutral
-                )
-            }
         }
 
         // A chain replaces the single challenge above, so it lives in the

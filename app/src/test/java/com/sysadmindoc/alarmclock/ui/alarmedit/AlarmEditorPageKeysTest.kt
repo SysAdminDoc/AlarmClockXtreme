@@ -54,7 +54,7 @@ class AlarmEditorPageKeysTest {
                 AlarmEditorPage.OVERVIEW -> alarmEditOverviewSections(page, state, viewModel, {}, {})
                 AlarmEditorPage.SOUND -> alarmEditSoundSections(page, state, viewModel, radioViewModel, {}, {})
                 AlarmEditorPage.DISMISS ->
-                    alarmEditDismissSections(page, state, viewModel, context, {}, "", {}, "", {})
+                    alarmEditDismissSections(page, state, viewModel, context, {}, {}, "", {}, "", {})
                 AlarmEditorPage.SCHEDULE -> alarmEditScheduleSections(page, state, viewModel)
                 AlarmEditorPage.WAKE -> alarmEditWakeSections(page, state, viewModel, {}, "")
                 AlarmEditorPage.INTEGRATIONS -> alarmEditIntegrationSections(page, state, viewModel, context)
