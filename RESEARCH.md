@@ -1,436 +1,326 @@
 # Research: AlarmClockXtreme
-Date: 2026-09-04. Delivery status updated 2026-09-05. Replaces all prior research (previous pass: 2026-07-22).
+Date: 2026-11-14. Replaces all prior research (previous pass: 2026-09-04).
 
 ## Executive Summary
 
-AlarmClockXtreme is a local-first Android alarm, bedtime, and timer suite at
-v1.15.35 (versionCode 137, DB v24, backup v19, 675 JVM tests across 125 test
-files). The engine is mature: `setAlarmClock()` + Direct Boot fallback, a
-post-fire watchdog (`worker/FireWatchdogWorker.kt`), an 8-second in-ring stall
-watchdog, a redacted incident stream (`alarm_incident_events`), 30 dismiss
-challenges, Android 16 Live Updates already wired into three notification
-surfaces, and 860 components pinned in `gradle/verification-metadata.xml`. There
-are zero TODO/FIXME markers in 113k lines of Kotlin. The technical debt is not
-in the code.
+AlarmClockXtreme is a local-first Android alarm, bedtime and timer app. `main` is at v1.16.0 (versionCode 138, Room schema 25, backup format 20) and that version hasn't shipped. The last release is v1.15.35 from 2026-09-05, and 70 commits have landed since. The app module is 68,127 lines of Kotlin in 266 files, with 825 `@Test` methods across 149 JVM test files, 3 instrumented test files and no TODO or FIXME markers.
 
-The immediate delivery gap was resolved in v1.15.35. Signed Play, F-Droid, and
-Wear APKs now carry the fixes that had been sitting on `main`, with checksums
-and certificate fingerprints. The README names a real release asset and shows
-current app screens. The app still has **no in-app update check** (grep for
-`api.github.com` / `releases/latest` across `app/src/main` returns nothing), so
-sideloaded installs have no built-in way to learn that a newer release exists.
+The most important fact about the project right now isn't a missing feature. Every open issue on the tracker (#49, #53, #59, #60, #62, #63, #65) has a fix on `main`, and none of those fixes has reached a user yet. The F-Droid APK is the most downloaded v1.15.35 asset (750 downloads, against 487 for the Play APK and 118 for the AAB), so whatever ships next has to work without Google Play services.
 
-Top opportunities in priority order:
+Two user reports have neither a fix nor a reply. Discussion #51 (2026-08-30) points out that the barcode challenge asks you to type the code instead of scanning it. Discussion #52 (same day, same person) asks why Photo Match can't use a picture from the gallery. Both are right about the code. `BarcodeScanChallengeView` (`ui/alarmfiring/challenges/ChallengeViews.kt:1066`) is a text field with a scanning animation drawn above it, and the editor takes a typed value (`ui/alarmedit/AlarmEditDismissSections.kt:399-415`). No barcode library is on either classpath. The README permission table says the camera is used for barcode challenges (`README.md:154`), which isn't true today. Photo Match registers its reference only through `ActivityResultContracts.TakePicturePreview()` (`ui/alarmedit/AlarmEditScreen.kt:290-292`).
 
-1. Ship an in-app GitHub-Releases update check. Sideload distribution without
-   one guarantees a permanently fragmented install base.
-2. Normalise pasted Spotify web links to `spotify:` URIs. A pasted
-   `https://open.spotify.com/playlist/...?si=...` is handed to Spotify verbatim
-   (`service/AlarmService.kt:893-908`), which is the most likely reason #50/#53
-   saw Spotify open and play nothing.
-3. Fix the Spotify playback watchdog's detection predicate
-   (`AlarmService.kt:1179-1186`) so the fallback tone does not fire over working
-   playback.
-4. Make backup-sound escalation audible when the service owns no player
-   (`AlarmService.kt:575` promises a behaviour `:580-592` does not implement).
-5. Give users a real "no snooze" option. Issue #49 asked for it; today
-   `maxSnoozeCount = 0` means *unlimited*, the exact inverse
-   (`domain/SnoozeCapPolicy.kt:41`).
-6. Capture `ApplicationExitInfo` and surface a user-facing reliability report.
-   The app records rich incidents but can never say *why* the OS killed it,
-   which is precisely the "unknown reason" failure the whole Android ecosystem
-   is complaining about.
-7. Land the first translation locale. 2136 strings and 43 plurals are extracted,
-   the build guard is in place, and `values-*` contains **zero** locales.
-8. Add undo to bulk alarm delete. It is the one irreversible data action left
-    (`ui/alarmlist/AlarmListScreen.kt:356` states the gap explicitly).
+Top opportunities, in order:
 
-Confidence is **Verified** unless marked otherwise.
+1. Scan barcodes and QR codes with the camera, both when you register one and when the alarm rings (#51). CameraX 1.6.2 with zxing-cpp 3.1.1 runs offline in both flavors with no Play services.
+2. Let Photo Match take its reference from the gallery through the Photo Picker (#52). The picker needs no permission, and the editor already has an `OpenDocument` launcher for the ringing-screen background to copy (`ui/alarmedit/AlarmEditScreen.kt:330-340`).
+3. Move the Jackson pin from 2.18.9 to 2.18.11 and Guava to 33.7.2-android. An OSV query over the lockfiles found seven Jackson advisories in the Play build and one HIGH Guava advisory in both builds.
+4. Check that the ringing screen really came back after the Spotify fallback. A background launch the system blocks doesn't throw, so the `catch` in `bringFiringScreenBack` (`service/AlarmService.kt:1353-1371`) never sees that failure.
+5. Make Photo Match compare shapes as well as colors. `util/PhotoMatcher.kt` scales both images to 64x64 and compares color histograms, nothing else.
+
+One finding changes the order of work already planned. On Android 17, alarm sound played through `MediaPlayer` without an audio focus request was measured muted despite the documented exact alarm waiver, and this app does exactly that in four places. The audio focus item already on ROADMAP.md (P2) now has to land before the targetSdk 37 bump.
+
+Plan by tier (each item is written out in ROADMAP.md under "Research-Driven Additions, 2026-11-14"):
+
+- Now: items 1 to 4 above.
+- Next: item 5, and a dependency refresh that doesn't wait on AGP 9.
+- Later: honest wording for the smart alarm notification.
+- Under consideration: weather on the ringing screen, awesome-list entries, NSD picker discovery for smart-home bridges (see Rejected Ideas).
+- Rejected: listed with reasons under Rejected Ideas.
+
+Confidence is Verified unless a line says otherwise. Verified means a tool returned it during this pass (a file read, an API response or a fetched page).
 
 ## Product Map
 
-- **Core workflows:** create / schedule / skip / snooze / dismiss / recover
-  alarms; timers, stopwatch, world clocks; bedtime planning and local sleep and
-  wake statistics; auto-created alarms from calendar, commute, holiday, shift,
-  weather and solar inputs; backup, restore, share, and local diagnostics.
-- **Personas:** heavy sleepers and challenge users; shift and on-call workers;
-  privacy-focused users who refuse accounts and telemetry; travellers;
-  accessibility users; power users wiring Hue, Spotify, webhooks, calendars,
-  Health Connect and custom audio.
-- **Platforms and distribution:** Android 8+ phone / tablet / foldable
-  (`minSdk 26`, `targetSdk 36`, `compileSdk 36`) in `play` and `fdroid` flavors,
-  plus a `:wear` companion module. Distribution is GitHub Releases and direct
-  sideload only. No store listing, by standing policy.
-- **Key integrations and data flow:** `AlarmManager`, Direct Boot storage,
-  full-screen intents, Room DB v24, DataStore, Media3 1.10.1, Open-Meteo,
-  Nager.Date, Google Routes (optional key), Health Connect (play), Hue
-  (TOFU-pinned), yt-dlp and NewPipeExtractor (play), ML Kit Digital Ink (play),
-  SAF backup, HMAC-signed webhooks, Glance widgets, Quick Settings tiles. Room
-  owns records, DataStore owns preferences, device-protected storage carries the
-  locked-boot snapshot, and backup/share codecs sanitise before user-confirmed
-  import.
+| Area | What's there today | Where |
+|---|---|---|
+| Scheduling | `setAlarmClock()`, a Direct Boot cache, `USE_EXACT_ALARM` and `SCHEDULE_EXACT_ALARM` both declared, holidays, shift patterns, solar offsets, calendar-tag skip, skip next, global pause and vacation | `domain/AlarmScheduler.kt`, `domain/NextAlarmCalculator.kt`, `domain/VacationAlarmPolicy.kt`, `directboot/` |
+| Ringing | `mediaPlayback` foreground service on Media3 1.10.1, gradual volume, backup sound, Spotify with an 8 second watchdog and fallback tone, internet radio with HLS and station search, YouTube audio in the Play build, ringtone pools, TTS, flash and strobe | `service/AlarmService.kt` (2,628 lines) |
+| Dismissal | 30 challenge types plus NONE, chains, repeat counts, hold to dismiss, an accessibility bypass after a delay, wake confirmation | `ui/alarmfiring/challenges/`, `worker/WakeConfirmWorker.kt` |
+| Integrations | Philips Hue and IKEA DIRIGERA sunrise, webhooks with HMAC, Tasker, Guardian Angel calls and texts, Health Connect in the Play build | `integration/hue/`, `integration/dirigera/`, `worker/` |
+| Bedtime | reminders, sleep sounds, Sonar, a smart alarm window driven by phone motion, a chronotype estimate | `ui/bedtime/`, `domain/ChronotypeEstimator.kt` |
+| Other tools | concurrent timers with promoted ongoing notifications, stopwatch, world clock, a Today dashboard, Glance widgets | `ui/timer/`, `service/PromotedOngoingNotification.kt`, `widget/` |
+| Data | Room schema 25, DataStore, backup format 20 with an encrypted codec | `data/` |
+| Languages | English and Japanese. All 2,265 translatable keys have a Japanese entry (2,276 English strings, the rest marked untranslatable) | `res/values/`, `res/values-ja/` |
+| Distribution | GitHub Releases only: play, fdroid and wear APKs plus a Play AAB, with `SHA256SUMS.txt` and certificate fingerprints | |
 
 ## Competitive Landscape
 
-- **FossifyOrg/Clock** (691 stars, pushed 2026-09-01, 92 open issues). Best at
-  clean AOSP-derived clock UX with a maintained widget set. Learn from its open
-  tracker, which reads as a to-do list ACX has half-solved: undo a just-deleted
-  alarm (#491), name the specific alarm in a missed-alarm notification (#465),
-  "alarm randomly fails with custom sound" (#447, the same dead-content-URI
-  class ACX now handles through `escalateMedia3PlaybackFailure`). Avoid its
-  widget-configuration sprawl.
-- **BlackyHawky/Clock** (1083 stars, pushed 2026-07-28, 34 open issues).
-  Strongest at narrow OEM-regression fixes and per-timer behaviour. Learn:
-  distinct notification icons per notification type (#691) is a direct hit on
-  ACX, where all 27 `setSmallIcon` call sites use `R.drawable.ic_alarm` and
-  `res/drawable/` contains exactly one non-launcher icon; disabling touch on the
-  full-screen alert while the proximity sensor is covered (#687) prevents
-  in-pocket dismissal. Avoid its habit of shipping format changes that break
-  older exports.
-- **you-apps/ClockYou** (648 stars, pushed 2026-09-03). Learn: gradual volume
-  ramping over a much longer window (#392) and "new alarm inherits the last-used
-  values" (#396). Nothing else is net-new against ACX.
-- **yuriykulikov/AlarmClock** (618 stars, 84 open issues). Signature gentle
-  pre-alarm, already tracked as L-A10. Its #774 ("Full-screen alarm and alarm
-  banner not working since Android 16") is the platform regression worth
-  watching; ACX verified full-screen firing on a physical Galaxy S22 Ultra at
-  API 36 in July 2026, so it is likely unaffected, but it is a live risk class.
-  Its #741 (alarm skip does not persist through reboot) is a bug ACX already
-  fixed in v1.15.29.
-- **sweakpl/qralarm-android** (346 stars, pushed 2026-08-26). Learn two feature
-  shapes ACX lacks: "disable this alarm until a given date" (#95) and "delay the
-  next occurrence once" (#98). ACX has a global `pauseUntilMillis` setting
-  (`data/preferences/PreferencesManager.kt:156`) and per-alarm skip-next, but no
-  per-alarm pause-until-date. Avoid its paid-tier gating of core dismissal
-  behaviour.
-- **vicolo-dev/chrono** (1759 stars, last pushed 2025-01-13, 191 open issues).
-  Effectively unmaintained. Its ringtone-shuffle and reduce-volume-during-task
-  ideas remain interesting; ACX already ships a random ringtone pool. Avoid
-  treating its star count as a signal of current health.
-- **WrichikBasu/ShakeAlarmClock** (51 stars, pushed 2026-08-15). Small, but its
-  stated design principle is the right one to copy in marketing terms: the alarm
-  is a service with almost no dependency on the UI, so a frozen UI cannot lose
-  the alarm. ACX's architecture already matches this; nothing says so anywhere a
-  user reads.
-- **Alarmy (commercial).** Ad-gated snooze extension drew visible backlash in
-  March 2025 (Futurism). Reviewers also report missions becoming repetitive.
-  Learn: ACX's free equivalents are a genuine differentiator, and mission
-  *variety* matters more than mission count. Avoid the subscription model and
-  the ad-gated snooze pattern outright.
-- **Sleep as Android (commercial).** Deepest sleep-tracking feature set,
-  characterised by reviewers as "feature hungry". Learn its integration breadth;
-  avoid letting bedtime and sleep features crowd out the alarm.
-- **Google Clock / Pixel.** The single largest acquisition opportunity in the
-  category, and it is a reliability story, not a feature story. The "Missed
-  alarm: Alarm did not fire due to an unknown reason" bug has recurred in waves
-  since at least 2021, with fresh coverage in March 2025, July 2025 and
-  December 2025, and Google reportedly cannot reproduce it. Its Spotify alarm
-  integration has also broken repeatedly with a "You are not logged into
-  Spotify" error, and the official workaround was to stop using Spotify as the
-  alarm source (Confidence: Likely, source thread is undated).
+### Open source
+
+Checked through the GitHub API on 2026-11-14.
+
+| Project | Stars | Last push | Latest release | What matters here |
+|---|---|---|---|---|
+| BlackyHawky/Clock | 1,191 | 2026-11-14 | 2.34 (2026-10-16) | Most active rival. #202 "Add ability to Pause Alarms (for vacations)" (18 thumbs up) is closed |
+| vicolo-dev/chrono | 1,830 | 2025-01-13 | v0.6.0 (2025-01-05) | Dormant. #505 "PLEASE DON'T ABANDONED THIS APP!!!" (9 thumbs up, 2026-02-01) |
+| FossifyOrg/Clock | 731 | 2026-11-09 | 1.6.0 (2026-01-30) | Top request #13 "Disable an alarm once" (17 thumbs up, open since 2024-01-12) |
+| you-apps/ClockYou | 705 | 2026-11-14 | v12.1 (2026-10-08) | #405 "Pause alarm for some days" still open |
+| yuriykulikov/AlarmClock | 622 | 2026-06-03 | no GitHub release | #319 "[Feature-request] Challenge/Puzzle to dismiss the alarm" open since 2020-02-12 |
+| sweakpl/qralarm-android | 356 | 2026-11-14 | 2.11.5 (2026-11-09) | The whole app is "scan a QR or barcode to dismiss". #95 "Disable alarm until a given date" is open |
+| WrichikBasu/ShakeAlarmClock | 54 | 2026-08-15 | v5.0.0 (2026-08-15) | Shake to dismiss |
+| ahudson20/whakaara | 51 | 2026-07-27 | no GitHub release | Plain Compose alarm |
+| DarkAspect1/Lucid-Alarm | 29 | 2026-11-11 | 1.5.1 (2026-11-11) | New since the last pass. README lists a Wake Check |
+| izumisagirii/silent-alarm | 27 | 2026-10-05 | v2.1 (2026-10-05) | Earphone-only alarm |
+| riyadmondol2006/WakeNudge | 10 | 2026-11-09 | v1.0.85 (2026-11-07) | New since the last pass. QR and NFC missions plus a still-awake check |
+| RapidAppCoder/mighty-alarm-clock | 7 | 2026-10-12 | 2026.08.001 (2026-08-03) | #1 "QR/barcode alarm dismissal and interval reminders with spoken time" (2026-10-16) |
+
+What this says:
+
+- The most upvoted theme across the field is pausing or skipping alarms: Fossify #13 and #75 "One-time alarm", BlackyHawky #202, ClockYou #405 and qralarm #95. AlarmClockXtreme already has skip next and a global pause. A per-alarm pause is already on ROADMAP.md (P3), and these issues strengthen the case for it.
+- Every app that offers a barcode challenge scans it with the camera: qralarm, WakeNudge, Alarmy and Sleep as Android. A typed barcode is the outlier, which is exactly what #51 noticed.
+- Both newcomers since 2026-09 (WakeNudge and Lucid-Alarm) lead with a wake check, which AlarmClockXtreme already ships. Nothing in the newer projects is missing here except camera scanning.
+- offa/android-foss (11,705 stars) and Psyhackological/AAA (3,159 stars) both list Fossify Clock, Clock You and Chrono. Neither mentions AlarmClockXtreme.
+
+### Commercial
+
+- Alarmy's missions include a QR/Barcode mission, and it sells "Prevent Falling Back Asleep" as a premium feature. Its barcode mission works off something you register in advance, such as a toothpaste barcode or a book's QR code. Its watch-an-ad-to-snooze prompt drew press backlash on 2025-03-23.
+- Sleep as Android makes you prove you're up with a QR code, an NFC tag, shaking the phone or morning math. It also has an online radio alarm.
+- Sleep Cycle sells a Smart Alarm built on phone sleep tracking.
+- Samsung's One UI 8 Clock adds a home screen widget for an alarm group, and SamMobile (2025-05-30) notes the widget "makes it easier to turn it on or off". The One UI 8.5 beta adds weather backgrounds to alarms (Android Authority, 2025-12-08).
+- Google Clock on Pixels keeps drawing missed-alarm coverage. Android Police reported the "unknown reason" missed-alarm notification coming back. Android Authority (2026-10-27) covered alarms being "automatically silenced".
+- Name collision: Google Play lists "Alarm Clock Xtreme & Timer" by AVG Labs with 50M+ downloads (fetched 2026-11-14). Anyone searching for this project's name lands there first, and reviews or forum posts that mention "Alarm Clock Xtreme" are almost always about AVG's app (Likely). See Open Questions.
+
+### Research on waking
+
+- Snoozing: Sundelin et al. (J Sleep Res, 2024) found 30 minutes of snoozing cost about 6 minutes of sleep and improved or didn't affect cognitive tests on rising, in 31 habitual snoozers. Ogawa et al. (J Physiol Anthropol, 2022) found a snooze alarm prolonged sleep inertia compared with a single alarm, in 10 students. Mattingly et al. (Sleep, 2022) found 57% of participants snoozed, and snoozers didn't feel sleepier or sleep less. The evidence is mixed, which is why the app should keep snooze as a per-alarm choice rather than push either way.
+- Sleep inertia can be a real performance hit right after waking (Hilditch and McHill, Nat Sci Sleep, 2019). That supports the wake-confirmation feature the app already has.
+- Dawn simulation: Thompson et al. (Eur J Appl Physiol, 2014) found light during the last 30 minutes of sleep raised alertness ratings and performance after waking. Gabel et al. (Sleep, 2020) found no significant effect on subjective or objective alertness in middle-aged and older adults, and the dawn light cut the sleep before waking by 33%. The sunrise features are fine as comfort features. Don't claim they make you sharper.
+- Phone sleep tracking: Fino et al. (J Sleep Res, 2020) tested four phone sleep app modes against polysomnography in 21 people. Three of them weren't reliable enough at telling sleep from wake, and the best one still underestimated time awake. This backs the README's "no sleep-stage claims" stance and is why the smart alarm notification shouldn't say it monitors sleep quality.
+- Alarm sound: McFarlane et al. (PLOS ONE, 2020) linked melodic alarm sounds with less self-reported grogginess (questionnaire, 50 people). It's weak evidence, but it's a reasonable tiebreaker when picking the bundled fallback tone already on ROADMAP.md.
 
 ## Reported Issues
 
-The repo tracker holds **one open issue** and six closed ones. Discussions are
-enabled and empty. All 42 PRs are closed Dependabot bumps from June 2026; nine
-stale `dependabot/*` branches still exist on the remote.
+Tracker state on 2026-11-14: 49 stars, 10 forks.
 
-**Open**
+Open issues, all fixed on `main` and waiting for a release:
 
-- **#53 "Spotify not ringing" (bug, Android 11, v1.15.32, filed 2026-08-30).**
-  Spotify playlist set as the alarm sound, alarm screen appears, no audio, no
-  backup alarm. **Almost certainly already fixed on `main`.** On 1.15.32 the
-  Spotify branch fired an `ACTION_VIEW` intent, recorded
-  `SPOTIFY_DELEGATED / STATUS_SUCCEEDED` purely because the intent was sent,
-  and returned without creating a player. `2c17a85` (2026-08-22, "Fixes #50")
-  added `armSpotifyPlaybackWatchdog` (`AlarmService.kt:1188-1212`), which falls
-  back to the default tone after `PLAYBACK_START_TIMEOUT_MS = 8_000`
-  (`AlarmService.kt:111`). The reporter cannot have that fix because it was
-  never released. Resolving #53 is a release action, not a code action, plus the
-  three residual Spotify defects below.
+- #65 "Can you please add radio alarm" (2026-11-13). Station search, playlist links and HLS landed on `main`.
+- #63 "Connect app with ikea automation" (2026-11-02). DIRIGERA sunrise landed, and the reply asked the reporter to try it on their Kajplats lamp once it's out. No real DIRIGERA hub has run it yet (Needs live validation).
+- #62 "Feature request: test an existing alarm without changing its schedule" (2026-10-19).
+- #60 "Feature request: skip an alarm on days with a calendar event containing a tag (e.g. #holiday)" (2026-10-12).
+- #59 "App crashes when accessing integrations and safety section" (2026-10-05).
+- #53 "Spotify not ringing" (2026-08-30). Shared web links are normalized, the fallback tone plays after 8 seconds of silence, and the ringing screen comes back over Spotify. This was checked on a headless emulator, not yet on a phone.
+- #49 "Should be able to turn off Snooze, and other comments" (2026-08-10). Reopened, answered and fixed.
 
-**Closed, correctly**
+Discussions without an answer:
 
-- **#50 "Spotify integration" (2026-08-14).** Same symptom as #53, from the same
-  reporter. Fixed by `2c17a85`, unreleased.
-- **#47 "'Edit' icon missing".** Fixed by `4cc5580`; the row now carries
-  `Icons.Default.Edit` at `ui/alarmlist/AlarmListScreen.kt:1411`.
-- **#48 "Menu boxes have extra blank space on the bottom".** Fixed by `12738b5`;
-  the `.heightIn(min = 104.dp)` floor at `ui/alarmedit/AlarmEditSupport.kt:390`
-  became `.fillMaxHeight()` with an `IntrinsicSize.Min` row.
-- **#43 "Custom dismiss phrase … challenge not blocking dismiss".** Both parts
-  fixed in v1.15.32 and released.
+- #51 "[Question] For the barcode scan challenge , is the barcode scanner not being available intentional?" (2026-08-30). The reporter followed up the same day with "A response would be appreciated." The code confirms the report (see Executive Summary).
+- #52 "[Question] Is picture not being allowed from gallery for Photo Scan challenge intentional?" (2026-08-30). Also confirmed in code.
 
-**Closed, but the request is still open in the code**
+Closed: #64, #61 ("[Withdrawn]"), #50, #48, #47, #44 (a German translation offer that asked for Weblate or Crowdin) and #43.
 
-- **#49 "Should be able to turn off Snooze, and other comments" (5 items).**
-  Items 3, 4 and 5 shipped in v1.15.34 (editor keeps scroll position, snooze
-  settings grouped, alarm card shows the whole mission chain). **Item 1 did
-  not.** There is no snooze-off toggle anywhere: `Alarm.snoozeDurationMinutes`
-  is clamped to `1..180` (`data/model/Alarm.kt:321`), the picker offers
-  `1, 3, 5, 10, 15, 20, 30` (`ui/alarmedit/AlarmEditDismissSections.kt:104`),
-  the limit picker offers `0, 1, 2, 3, 5, 10`
-  (`AlarmEditDismissSections.kt:133`), and `0` is rendered "Unlimited" because
-  `SnoozeCapPolicy.isCapped` is `maxSnoozeCount > 0`
-  (`domain/SnoozeCapPolicy.kt:41`). A user reaching for "off" gets infinite
-  snoozes. The Snooze button is only ever disabled, never hidden
-  (`ui/alarmfiring/AlarmFiringScreen.kt:1091`), and with a minimum cap of 1 it
-  is always live on the first ring.
-- **#43 follow-up.** The maintainer publicly promised a "use only my phrases"
-  toggle in the closing comment. It was never built. `ChallengeGenerator.kt:368-381`
-  still unions custom phrases onto `TYPING_PHRASES` with no exclusive branch,
-  and no `customPhrasesOnly` symbol exists anywhere in the repo.
-- **#44 "Translations".** A contributor offered German and the maintainer laid
-  out the exact path (a plain `values-de/strings.xml` PR). Nothing landed, and
-  there are still zero locale directories.
-
-**Not acted on**
-
-- Nothing in the tracker was judged stale or unreproducible. The tracker is
-  small, high signal, and every report maps to real code.
+Patterns in the history: of the 70 commit subjects since v1.15.35, translation and string work shows up in 11, the ringing screen in 7, DIRIGERA in 5, and Spotify and calendar skips in 4 each. Two of the seven open issues (#53 and #63) depend on another app or device, and that's where the remaining live checks are owed.
 
 ## Security, Privacy, and Reliability
 
-- **Verified, actionable: `org.jsoup:jsoup:1.22.2` carries CVE-2026-71497**
-  (GHSA-pmhh-3w7g-xqp8, moderate, CVSS 4.7, published 2026-07-30, affects
-  1.14.3 through 1.23.0, fixed in 1.23.1). An OSV `querybatch` over all 269
-  components in `app/gradle.lockfile` and `wear/gradle.lockfile` on 2026-09-04
-  returned this as the **only** hit. It arrives transitively through
-  NewPipeExtractor and resolves in `playReleaseRuntimeClasspath` only
-  (`app/gradle.lockfile:228`). **Not exploitable here**: the advisory requires
-  custom jsoup Safelists permitting raw-text elements, no app code imports jsoup
-  (zero `Jsoup` references under `app/src`), and the only WebView
-  (`ui/components/WindyRadarCard.kt:153`) loads Windy's own URL, not parsed
-  markup. It still belongs in the constraint block beside the eight existing
-  CVE-driven pins (`app/build.gradle.kts:468-497`), which is this repo's
-  established pattern.
-- **Verified: no audio focus handling anywhere.** `requestAudioFocus`,
-  `AudioFocusRequest`, `OnAudioFocusChange` and `AUDIOFOCUS_` return zero
-  matches across `app/src/main/java`. The service cannot pause a media app that
-  is playing, cannot learn it lost focus, and cannot detect being ducked.
-  Android 17's background-audio hardening makes focus requests fail with
-  `AUDIOFOCUS_REQUEST_FAILED` outside a valid lifecycle, so any adoption has to
-  be written defensively.
-- **Verified: no audibility check.** `getStreamVolume` appears twice
-  (`AlarmService.kt:583`, `:1226`) and only to save a value for later restore.
-  Nothing ever asks whether `STREAM_ALARM` is at zero, and `isVolumeFixed` is
-  never called. An alarm can be reported as playing while producing no sound.
-- **Verified: the Spotify success predicate is probably unreachable.**
-  `mediaStreamsBefore()` (`AlarmService.kt:1179-1186`) filters
-  `activePlaybackConfigurations` on `audioAttributes.usage == USAGE_MEDIA`.
-  AOSP's `AudioPlaybackConfiguration.anonymizedCopy()` sanitises configurations
-  belonging to other apps for callers without `MODIFY_AUDIO_ROUTING`, preserving
-  system usages conditionally. If `USAGE_MEDIA` does not survive anonymisation,
-  the watchdog always concludes Spotify failed and layers the fallback tone over
-  working playback. Confidence: **Likely, needs device validation.** A second,
-  independent defect in the same function: the baseline is sampled *after*
-  `startActivity` (`:926`), so a warm Spotify that starts inside the sampling
-  window is counted into the baseline and reads as a failure.
-- **Verified: backup-sound escalation cannot rescue a delegated alarm.** The
-  comment at `AlarmService.kt:575` says the job will switch to the system alarm
-  tone. The body (`:580-592`) raises `STREAM_ALARM` (Spotify plays on
-  `STREAM_MUSIC`), records an incident, and calls `applyPlaybackGain()`, which is
-  `alarmPlayback?.setVolume(...)` at `:2385` and a no-op when the Spotify branch
-  returned at `:927` without a player. Compounding this,
-  `Alarm.backupSoundEnabled` defaults to `false` (`data/model/Alarm.kt:70`), so
-  the safety net is off for every alarm nobody configured.
-- **Verified: no `ApplicationExitInfo` usage.** The app records a detailed
-  incident stream but has no access to the OS's own reason for killing the
-  process. Android 17 adds a memory limiter that kills apps over a RAM threshold
-  **regardless of targetSdk**, discoverable through
-  `ApplicationExitInfo.getDescription()` containing `MemoryLimiter:AnonSwap`.
-  For an alarm app, an OS kill is a missed alarm, and this is the one signal
-  that turns "unknown reason" into a specific, reportable cause.
-- **Verified: bulk delete is irreversible.** Single-alarm delete offers undo
-  (`ui/alarmlist/AlarmListViewModel.kt:115`, `undoDelete()`), but the
-  multi-select path says so in its own confirmation copy: "This bulk action does
-  not offer per-alarm undo" (`ui/alarmlist/AlarmListScreen.kt:356`).
-- **Verified: the last silent-alarm path with no escalation.** If
-  `RingtoneManager` returns null for both ALARM and NOTIFICATION defaults
-  (stripped AOSP builds, some managed profiles), `AlarmService.kt:1432-1443`
-  records `NO_DEFAULT_TONE` and returns. The alarm rings nothing, by design,
-  with no fallback tone bundled in the APK. `res/raw/` is empty.
-- **Verified, low: CVE-2026-53914 (GHSA-r937-wjx7-w2jp)** affects
-  `org.jetbrains.kotlin:kotlin-gradle-plugin` before 2.4.20-Beta1; the repo is on
-  2.1.0. Moderate (6.7), local, build-time only, no runtime exposure in shipped
-  APKs. It is one more reason to unblock the AGP 9 chain, not a standalone item.
-- **Verified: `verification-metadata.xml` is current.** 860 pinned components,
-  `verify-metadata = true`, `verify-signatures = false`, last touched `80127d8`
-  with the v1.15.35 audit adding jsoup 1.23.2. Dependency locking is
-  `LockMode.STRICT` over all three release runtime classpaths, and
-  `verifyStableReleaseDependencies` rejects any alpha, beta or rc.
-- **Verified: signing material sits in the working tree.** `keystore.properties`
-  and `alarmclock-release.jks` are at the repo root and are covered by
-  `.gitignore` (`*.jks`, `keystore.properties`). No leak, but any tooling that
-  copies the tree (the documented `robocopy` to `C:\ab` build workaround) carries
-  the release key with it.
+### Dependency advisories
+
+An OSV batch query over the 270 release coordinates in `app/gradle.lockfile` and `wear/gradle.lockfile` (2026-11-14) returned 9 hits.
+
+| Package | Locked | Flavor | Advisories | Fixed in |
+|---|---|---|---|---|
+| jackson-databind | 2.18.9 | play | GHSA-cxp5-3px4-pw24, GHSA-gx83-3vf8-gh7j, GHSA-q4xh-88c3-wmh7, GHSA-wjgm-6hv5-3cvf, GHSA-wv8q-qhhj-9h54 | 2.18.11 |
+| jackson-core | 2.18.9 | play | GHSA-7hhh-6rmp-j9qf, GHSA-p6pp-m3f8-5c89 | 2.18.11 |
+| guava | 33.6.0-android | play | GHSA-xxph-c9ww-hj94 (HIGH, published 2026-10-27) | 33.7.2-android |
+| guava | 33.3.1-android | fdroid | GHSA-xxph-c9ww-hj94 | 33.7.2-android |
+
+Jackson only reaches the Play build, through the youtubedl-android and NewPipeExtractor graph that the constraint block in `app/build.gradle.kts:473-505` already pins. The Guava advisory is about Java deserialization of `CompactHashMap`, `CompactHashSet` and `MapMakerInternalMap`. The app doesn't appear to deserialize Java objects from outside input, so real exposure is probably low (Assumption), but the fix costs a version number. The fdroid flavor has no Guava constraint at all, because the existing one is `playImplementation` only. Jackson 2.18.11 and Guava 33.7.2-android are both on Maven Central.
+
+### Reliability
+
+- Blocked background launches are silent. The platform logs "Background activity launch blocked!" and doesn't throw. `bringFiringScreenBack` calls `startActivity` and only records an incident from its `catch`, so a blocked launch over Spotify leaves the fallback tone ringing with nothing on screen to dismiss it, and no incident row. In the #53 emulator checks the screen did come back, and the comment at `service/AlarmService.kt:111-115` says why: the launch lands inside Android's grace period of about 10 seconds after the ringing screen was last visible, which is why the watchdog is held at 8 seconds. Anything that pushes the launch past that window, or an OEM build that shortens it, turns it into a silent no-op, and Android 17 already extends background launch hardening to `IntentSender`.
+- Android 17 background audio hardening applies to apps targeting API 37. The requirement is waived for an app that holds the exact alarm permission and changes streams with `USAGE_ALARM`, and the app declares both `USE_EXACT_ALARM` and `SCHEDULE_EXACT_ALARM`. When a call is refused, playback and volume APIs "fail silently without throwing an exception". The page documents a test switch, `adb shell cmd audio set-enable-hardening <enable|disable|throw>`. Note that `enable` and `throw` apply the rule to every app and drop the alarm waiver, so a failure under them is expected and doesn't by itself prove a bug. That makes the existing Android 17 audio checks on ROADMAP.md concrete.
+- The waiver isn't as dependable as the page makes it sound. On an API 37 emulator (2026-11-06, AOSP `android-17.0.0_r1`), alarm-stream sound from a `MediaPlayer` in a service started in the background was muted (`mutedState:opControlAudio`) despite the exact alarm permission. The waiver checks a cached permission that only focus and volume calls refresh, and a `MediaPlayer` plays from mediaserver rather than the app's own uid. Requesting audio focus with alarm attributes first fixed it. This app rings through `MediaPlayer` in four places (`service/AlarmService.kt:1515`, `:1606` and `:1691`, `directboot/DirectBootAlarmService.kt:140`, `ui/timer/TimerAlarmService.kt:232`) and never requests audio focus, so the audio focus item already on ROADMAP.md has to land before the targetSdk 37 bump (Likely. This app's own paths still need live validation.).
+- Only `dataSync` and `mediaProcessing` foreground services have the 6 hour timeout, so the `mediaPlayback` ringing service isn't affected. Since Android 15, though, a `BOOT_COMPLETED` receiver can't start a `mediaPlayback` service. The ringing service has to keep starting from the alarm delivery itself.
+- `USE_EXACT_ALARM` is granted at install and can't be revoked, and alarm clock apps are explicitly allowed to use it. The app already declares it, so the revocation path matters only on Android 12 and 12L (API 31 and 32), where the emulator audit on ROADMAP.md is still owed.
+- The Android 17 memory limiter (`MemoryLimiter:AnonSwap` in `ApplicationExitInfo`) is real and documented. The `ApplicationExitInfo` item already on ROADMAP.md (P1) covers it.
+- Missed alarms are still the category's top complaint: the Pixel coverage above, a Samsung community thread from 2026-01-04 ("sometimes it rings and sometimes it doesn't"), and dontkillmyapp's Samsung page, which says an app not started in 3 days is put to sleep and "background tasks including alarms will stop working".
+
+### Privacy
+
+- The smart alarm's ongoing notification says "Monitoring sleep quality…" (`res/values/strings.xml:97`), while its own hint says it "Uses conservative phone-motion scoring" (`:612`) and the README FAQ says Smart wake and Sonar are not sleep-stage measurements. The notification promises more than the feature does.
+- A camera barcode scanner means a live camera preview at dismiss time. `CAMERA` is already declared for Photo Match. Frames should stay in memory and never be written to disk, and zxing-cpp decodes offline.
+- The Photo Picker hands back a single URI with no storage permission, which is the least access possible for #52.
 
 ## Architecture Assessment
 
-- **God files, still the top refactor candidates:**
-  `ui/alarmfiring/challenges/ChallengeViews.kt` (2766),
-  `service/AlarmService.kt` (2400), `ui/alarmlist/AlarmListScreen.kt` (1810),
-  `ui/settings/SettingsScreen.kt` (1744), `ui/alarmfiring/AlarmFiringScreen.kt`
-  (1693), `ui/stats/StatsScreen.kt` (1561). `SettingsScreen.kt` came down from
-  4129 and `AlarmService.kt` from 2164 was already the target of seam
-  extraction, so the pattern works. `AlarmService.kt` is where every residual
-  audio defect in this report lives, and the audio start / watchdog / escalation
-  cluster (`:841-1310`) is the natural next seam: a `AlarmAudioDirector` that
-  owns source selection, watchdogs and escalation, testable without the service.
-- **The play/fdroid split now costs more than it buys.** The `play` flavor is
-  the feature-rich one (YouTube downloader, Health Connect, ML Kit handwriting,
-  Wear bridge) and is what the README tells users to install. Yet
-  `app/src/fdroid/AndroidManifest.xml` holds `SEND_SMS` and the comment states
-  the Play flavor degrades Guardian Angel to a prefilled SMS composer "to comply
-  with Google Play restricted SMS permission policy". This project is never
-  listed on Play. The recommended build ships a weaker emergency-escalation
-  feature to satisfy a constraint that does not apply to it.
-- **`androidx.core:core-ktx` is split-brained:** `:app` on 1.15.0
-  (`app/build.gradle.kts:392`) against `:wear` on 1.18.0
-  (`wear/build.gradle.kts:69`), in two modules sharing one `applicationId`.
-  Coroutines were deliberately unified at 1.11.0; core-ktx was missed.
-- **The dependency chain is the keystone blocker.** AGP 8.11.1, Gradle 8.13,
-  Kotlin 2.1.0, KSP 2.1.0-1.0.29, Room 2.6.1, WorkManager 2.9.1, Hilt 2.56.2,
-  Retrofit 2.11.0, Media3 1.10.1. Room and WorkManager are pinned back on
-  purpose (`app/build.gradle.kts:401-405`). Everything downstream, including the
-  Kotlin plugin advisory above, waits on the AGP 8 to 9 migration already
-  tracked in `Roadmap_Blocked.md`. There is no version catalog, so roughly sixty
-  hard-coded versions are bumped by hand.
-- **Test posture is strong but flat.** 125 test files, 675 `@Test` functions,
-  3 androidTest files. The JVM discipline (Robolectric, drift guards, pure
-  policy objects like `SnoozeCapPolicy`, `FireWatchdogPolicy`,
-  `LocationDismissPolicy`) is genuinely good. The uncovered surface is exactly
-  the audio cluster: nothing tests the Spotify branch's watchdog outcome, the
-  backup-sound job against a null player, or a stream-volume-zero alarm.
-- **i18n groundwork is complete and unspent.** 2136 strings, 43 plurals, a
-  build-time guard (`verifyLocalizedPrimaryScreens`) covering the whole app
-  package with a two-file exemption list, and **zero** `values-*` locales. One
-  latent correctness bug in the extraction: `ui/alarmlist/AlarmListScreen.kt:274`
-  renders alarm-delete undo using `R.string.timer_undo`, so a translator giving
-  that key a timer-specific wording produces wrong text on the alarm screen.
-- **README drift was resolved in v1.15.35.** The download example now matches
-  a published asset, package differences are explicit, and the feature claims
-  reflect the current code. Five current phone captures and a real-screen hero
-  replaced the single old screenshot.
-- **`Roadmap_Blocked.md` holds items that standing policy forbids ever doing:**
-  F-Droid submission (`:292`), developer verification readiness (`:298`),
-  reproducible-build badge (`:307`). They should be deleted, not left blocking.
+Largest source files in `app/src/main`:
 
-**Coverage disposition.** The roadmap items below cover security, reliability,
-observability, offline resilience, i18n, docs, distribution, packaging, data
-safety, migration and upgrade strategy. Three categories are deliberately not
-carried forward, with reasons. *Accessibility*: the 2026-08-22 pass swept the
-secondary screens (named Bedtime switches, checklist state announcements,
-breathing-phase and timer-expiry announcements, News tab selection, a Night
-Clock exit action, filter-chip selection state, decorative icons no longer read
-twice) and what remains needs a physical device with TalkBack, which is already
-tracked at `Roadmap_Blocked.md:488`. *Wear OS*: excluded by standing policy; the
-existing `:wear` module is maintained as-is. *Multi-user and cloud sync*: the
-app is deliberately account-free and local-first, and the two sync shapes that
-would fit that stance (paired-phone LAN sync, encrypted paired-phone sync)
-already sit at `Roadmap_Blocked.md:67` awaiting a human design decision.
+| File | Lines |
+|---|---|
+| `ui/alarmfiring/challenges/ChallengeViews.kt` | 2,771 |
+| `service/AlarmService.kt` | 2,628 |
+| `ui/alarmlist/AlarmListScreen.kt` | 1,916 |
+| `ui/settings/SettingsScreen.kt` | 1,849 |
+| `ui/alarmfiring/AlarmFiringScreen.kt` | 1,743 |
+| `ui/stats/StatsScreen.kt` | 1,604 |
+| `ui/alarmfiring/AlarmFiringViewModel.kt` | 1,395 |
+
+- `AlarmService.kt` was 2,400 lines when the audio extraction item went onto ROADMAP.md on 2026-09-04 and is 2,628 now. Seven commits have touched it since then (375 lines in, 147 out), two of them Spotify fixes for #53 in the very region that item wants to move out. The extraction gets more valuable with every Spotify fix.
+- `ChallengeViews.kt` holds every challenge's UI in one file. The camera scanner should go in its own file with a small shared camera composable that Photo Match can reuse, instead of adding another few hundred lines here.
+- Field drift between preferences and backups is the bug class this repo keeps hitting, and `BackupManagerSettingsDriftTest` plus the ChallengeType whitelist test guard it. Any new alarm field (a gallery reference, a scanned code format) has to go through `Alarm.VALID_CHALLENGE_TYPES`, the Room migration and the backup format together.
+- Supply chain: 874 components are pinned in `gradle/verification-metadata.xml`, and both modules have lockfiles. An OSV batch query straight against the lockfiles takes seconds and needs no Gradle run, which is how this pass found the Jackson and Guava advisories.
+
+Dependency currency, checked against official release pages on 2026-11-14:
+
+| Dependency | In the repo | Latest stable | Blocked on AGP 9? |
+|---|---|---|---|
+| Android Gradle Plugin | 8.11.1 | 9.5.1 (9.5 needs Gradle 9.6.0) | it is the AGP 9 item |
+| Kotlin | 2.1.0 | 2.4.21 | yes |
+| KSP | 2.1.0-1.0.29 | 2.3.14 (2026-11-13) | yes |
+| Dagger and Hilt | 2.56.2 | 2.60.1 (2026-07-06) | yes |
+| androidx.hilt | 1.2.0 | 1.4.0 | yes |
+| Room | 2.6.1 | 2.8.5 | yes (KSP2) |
+| WorkManager | 2.9.1 | 2.12.0 | yes (existing note) |
+| Media3 | 1.10.1 | 1.11.1 | no |
+| DataStore | 1.1.1 | 1.3.0 (2026-10-21) | unknown (Assumption: no) |
+| Glance | 1.1.1 | 1.2.0 | no |
+| core | 1.15.0 | 1.19.1 | unknown |
+| lifecycle | 2.8.7 | 2.11.0 | unknown |
+| OkHttp | 5.4.0 | 5.5.1 | no |
+| NewPipeExtractor | v0.26.3 | v0.27.1 (2026-11-10). v0.26.5 is the last before 0.27.0 raised the Java target to 17 and changed `Description` to a record | no |
+| Robolectric | 4.14.1 | 4.18 (2026-11-13) | no |
+| CameraX (new) | none | 1.6.2 | no |
+| zxing-cpp Android (new) | none | 3.1.1 | no |
+
+`activity-compose` 1.13.0 is current. youtubedl-android 0.18.1 is the newest tag, though GitHub marks it a prerelease.
 
 ## Rejected Ideas
 
-- **Adopt the Spotify App Remote SDK instead of the intent.** Requires a
-  registered Spotify developer app with a client ID and redirect URI baked into
-  the build, plus Spotify Premium for playback control. An OSS app cannot ship
-  usable credentials, and the current Spotify Developer Policy (effective
-  2025-05-15) is tightening third-party access. Fixing the URI form and the
-  watchdog gets most of the value at none of the cost. Source: spotify.github.io
-  android-sdk, developer.spotify.com/policy.
-- **TFLite REM-stage classification from phone accelerometer** (already L-S1 in
-  the blocked list; this pass reinforces the rejection). 2025 validation work
-  shows phone accelerometry identifies bed and rise times well (86.6% true
-  positive, 4.0% false positive) but that even wrist wearables score wake epochs
-  at roughly 48-52% specificity against polysomnography. Promising sleep-stage
-  accuracy from a phone on a mattress would be a claim the data does not
-  support. Source: JMIR Formative Research 2025;9:e67455, SLEEP Advances
-  6(2):zpaf021.
-- **Ring only when headphones are connected** (BlackyHawky #631). Directly
-  contradicts `service/AlarmAudioRouting.shouldForceBuiltInSpeaker`, which exists
-  so a headset cannot silently swallow the alarm. Previously rejected, still
-  rejected.
-- **Power-off guard or accessibility-service uninstall lock.** Coercive and
-  contrary to user control. Source: qralarm-android.
-- **Ad-gated or subscription-gated snooze extension.** The single clearest
-  negative signal in the commercial category. Source: Futurism, 2025-03-23.
-- **A plugin SDK / third-party mission API.** No demand signal found in any
-  competitor tracker; webhooks plus the `SET_ALARM` / `DISMISS_ALARM` /
-  `SNOOZE_ALARM` intent contract already cover the automation cases people
-  actually ask for.
-- **Anything store-shaped:** F-Droid submission, reproducible-build badges,
-  developer verification, listing metadata, Play permission eligibility. Out of
-  bounds by standing policy; distribution is GitHub Releases and sideload only.
-- **Wear OS feature work.** Same standing policy. The existing `:wear` module is
-  maintained as-is; no new Wear items are proposed.
-- **Replacing `AlarmManager` with a WorkManager scheduler.** `setAlarmClock()`
-  is the correct wake-critical primitive. The watchdog shape already shipped.
+- ML Kit barcode scanning or Google's code scanner. The code scanner needs Play services, and ML Kit is a proprietary Google library that the fdroid flavor keeps out (ML Kit digital ink is `playImplementation` only, `app/build.gradle.kts:468`). The F-Droid APK is the most downloaded build, and one scanner in both flavors keeps the challenge identical. zxing-cpp is Apache-2.0 and offline.
+- Keeping typed entry at dismiss time. If you can type the code at the ringing screen, the barcode is just a password you can recite in bed. Typing stays useful when registering a code you can't scan, and the existing accessibility bypass already covers people who can't do a physical challenge.
+- Sleep-stage smart wake. In Fino et al. 2020, three of four phone app modes weren't reliable at telling sleep from wake, and the README already promises no stage claims.
+- Making snooze punitive or removing it by default. The snooze studies point in different directions, and the app already lets each alarm turn snooze off or cap it.
+- Ad-gated snooze or any monetized wake-up step. Alarmy's version drew press backlash, and the app has no ads by design.
+- Store listings of any kind, including the main F-Droid repository, IzzyOnDroid and Google Play. The project ships through GitHub Releases only.
+- Wear OS feature work. The `:wear` module stays as it is.
+- Headphones-only alarms (yuriykulikov #678, silent-alarm). An alarm that only plays through earbuds fails silently when they disconnect or run flat, and the 2026-09-04 pass rejected it for the same reason.
+- Downsampling widget bitmaps for the Android 17 RemoteViews budget. The `widget/` package doesn't use bitmaps, so there's nothing to fix.
+- Live Updates for timers. Already shipped through `service/PromotedOngoingNotification.kt`.
+- Timer sound in silent or vibrate mode (Fossify #253, 16 thumbs up). The timer already plays with alarm attributes (`ui/timer/TimerAlarmService.kt:234`).
+- A one-tap switch for a whole alarm group, as in Samsung's group widget. The list already does it in three taps: pick the group chip, Select all, then Disable (`ui/alarmlist/AlarmListScreen.kt:409-413`), and nobody has asked for less.
+
+### Under consideration (not planned)
+
+- Live weather behind the ringing screen, as in One UI 8.5. The app already has a weather dashboard and custom ringing backgrounds, so it's possible, but nobody has asked for it.
+- Proposing AlarmClockXtreme to offa/android-foss and Psyhackological/AAA. These are public pull requests to other people's repos, so it's Matt's call.
+- Using the `NsdManager` picker to find a Hue or DIRIGERA bridge without the local network permission. Control still needs the permission, so this only saves a step during setup (Likely).
 
 ## Sources
 
-### Platform, standards, security
+### Open-source competitors
+- https://github.com/BlackyHawky/Clock
+- https://github.com/vicolo-dev/chrono
+- https://github.com/FossifyOrg/Clock
+- https://github.com/you-apps/ClockYou
+- https://github.com/yuriykulikov/AlarmClock
+- https://github.com/sweakpl/qralarm-android
+- https://github.com/WrichikBasu/ShakeAlarmClock
+- https://github.com/ahudson20/whakaara
+- https://github.com/DarkAspect1/Lucid-Alarm
+- https://github.com/izumisagirii/silent-alarm
+- https://github.com/riyadmondol2006/WakeNudge
+- https://github.com/RapidAppCoder/mighty-alarm-clock/issues/1
+
+### Commercial products
+- https://alar.my/en
+- https://alar.my/en/blog/alarmy-wake-up-mission
+- https://futurism.com/alarm-app-advertisement-snooze
+- https://sleep.urbandroid.org/
+- https://www.sleepcycle.com/
+- https://www.sammobile.com/news/samsung-one-ui-8-clock-app-alarm-group-improvements/
+- https://www.androidauthority.com/samsung-one-ui-8-5-beta-clock-changes-3623198/
+- https://play.google.com/store/apps/details?id=com.alarmclock.xtreme.free&hl=en_US
+
+### Adjacent tools and libraries
+- https://github.com/zxing-cpp/zxing-cpp/releases
+- https://repo1.maven.org/maven2/io/github/zxing-cpp/android/maven-metadata.xml
+- https://developers.google.com/ml-kit/vision/barcode-scanning/android
+- https://developers.google.com/ml-kit/vision/barcode-scanning/code-scanner
+- https://dontkillmyapp.com/samsung
+
+### Curated lists
+- https://github.com/offa/android-foss
+- https://github.com/Psyhackological/AAA
+
+### Community and press
+- https://github.com/SysAdminDoc/AlarmClockXtreme/discussions/51
+- https://github.com/SysAdminDoc/AlarmClockXtreme/discussions/52
+- https://github.com/FossifyOrg/Clock/issues/13
+- https://www.androidauthority.com/google-pixel-alarm-bug-3728689/
+- https://www.androidpolice.com/pixel-alarm-bug-is-back/
+- https://www.howtogeek.com/google-pixel-phone-alarm-app-not-working-again/
+- https://piunikaweb.com/2025/12/02/poll-have-you-ever-experienced-the-missing-alarm-bug-on-a-google-pixel/
+- https://community.samsung.com/in/conversations/Galaxy-M/Alarm-not-ringing-consistently-on-my-Samsung-phone/r2_21341516
+- https://forum.f-droid.org/t/clocks-timers-and-sound/34973
+
+### Platform and standards
+- https://developer.android.com/about/versions/15/behavior-changes-15
+- https://developer.android.com/about/versions/16/behavior-changes-all
+- https://developer.android.com/about/versions/16/behavior-changes-16
 - https://developer.android.com/about/versions/17/behavior-changes-all
 - https://developer.android.com/about/versions/17/behavior-changes-17
 - https://developer.android.com/about/versions/17/changes/bg-audio
-- https://developer.android.com/about/versions/16/features/progress-centric-notifications
-- https://source.android.com/docs/core/permissions/fsi-limits
-- https://developer.android.com/reference/android/app/ApplicationExitInfo
-- https://github.com/aosp-mirror/platform_frameworks_base/blob/master/media/java/android/media/AudioPlaybackConfiguration.java
+- https://developer.android.com/about/versions/17/features
+- https://developer.android.com/about/versions/17/release-notes
+- https://developer.android.com/develop/background-work/services/alarms
+- https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start
+- https://developer.android.com/develop/background-work/services/fgs/timeout
+- https://developer.android.com/develop/background-work/services/fgs/service-types
+- https://developer.android.com/guide/components/activities/background-starts
+- https://developer.android.com/develop/ui/views/notifications/time-sensitive
+- https://developer.android.com/develop/ui/views/notifications/live-update
+- https://developer.android.com/privacy-and-security/local-network-permission
+- https://developer.android.com/training/data-storage/shared/photopicker
+
+### Academic
+- https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=37849039&rettype=abstract&retmode=text
+- https://research.monash.edu/en/publications/is-snoozing-losing-why-intermittent-morning-alarms-are-used-and-h/
+- https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=36587230&rettype=abstract&retmode=text
+- https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=35951011&rettype=abstract&retmode=text
+- https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=31692489&rettype=abstract&retmode=text
+- https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=24509892&rettype=abstract&retmode=text
+- https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=32307533&rettype=abstract&retmode=text
+- https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=31674096&rettype=abstract&retmode=text
+- https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0215788
+
+### Dependency changelogs
 - https://developer.android.com/jetpack/androidx/releases/media3
-- https://github.com/advisories/GHSA-pmhh-3w7g-xqp8
-- https://github.com/advisories/GHSA-r937-wjx7-w2jp
-- https://github.com/advisories/GHSA-7gcm-g887-7qv7
-- https://api.osv.dev/v1/querybatch
-- https://spotify.github.io/android-sdk/app-remote-lib/
-- https://developer.spotify.com/policy/
+- https://developer.android.com/jetpack/androidx/releases/room
+- https://developer.android.com/jetpack/androidx/releases/work
+- https://developer.android.com/jetpack/androidx/releases/datastore
+- https://developer.android.com/jetpack/androidx/releases/glance
+- https://developer.android.com/jetpack/androidx/releases/core
+- https://developer.android.com/jetpack/androidx/releases/lifecycle
+- https://developer.android.com/jetpack/androidx/releases/hilt
+- https://developer.android.com/jetpack/androidx/releases/camera
+- https://developer.android.com/jetpack/androidx/releases/activity
+- https://developer.android.com/build/releases/gradle-plugin
+- https://developer.android.com/build/migrate-to-built-in-kotlin
+- https://dl.google.com/dl/android/maven2/com/android/tools/build/gradle/maven-metadata.xml
+- https://kotlinlang.org/docs/releases.html
+- https://github.com/google/ksp/releases
+- https://github.com/google/dagger/releases
+- https://github.com/TeamNewPipe/NewPipeExtractor/releases
+- https://github.com/robolectric/robolectric/releases
+- https://repo1.maven.org/maven2/com/squareup/okhttp3/okhttp/maven-metadata.xml
 
-### Competitors
-- https://github.com/FossifyOrg/Clock/issues
-- https://github.com/BlackyHawky/Clock/issues/691
-- https://github.com/BlackyHawky/Clock/issues/687
-- https://github.com/you-apps/ClockYou/issues
-- https://github.com/yuriykulikov/AlarmClock/issues/774
-- https://github.com/sweakpl/qralarm-android/issues
-- https://github.com/vicolo-dev/chrono
-- https://github.com/WrichikBasu/ShakeAlarmClock
-- https://sleep.urbandroid.org/docs/general/release_notes.html
-- https://alternativeto.net/software/free-alarm-clock/?license=opensource&platform=android
-
-### Community and press
-- https://www.howtogeek.com/pixel-alarms-not-going-off-problem/
-- https://www.androidpolice.com/pixel-alarm-bug-is-back/
-- https://piunikaweb.com/2025/12/02/poll-have-you-ever-experienced-the-missing-alarm-bug-on-a-google-pixel/
-- https://www.androidauthority.com/google-pixel-missing-alarms-poll-3575639/
-- https://www.bgr.com/tech/alarms-arent-working-on-some-pixel-phones-and-nobody-knows-why/
-- https://support.google.com/pixelphone/thread/318525822/missed-alarm-alarm-did-not-fire-due-to-an-unknown-reason
-- https://www.reddit.com/r/GooglePixel/comments/1jg2nz3/my_alarm_did_not_go_off_today/
-- https://www.reddit.com/r/GooglePixel/comments/1jir4tz/all_of_my_alarms_turned_themselves_off_over_the/
-- https://futurism.com/alarm-app-advertisement-snooze
-- https://www.phonearena.com/news/Past-Pixel-problem-resurfaces-again-creating-chaos-in-users-lives_id172087
-- https://dontkillmyapp.com/
-
-### Research
-- https://formative.jmir.org/2025/1/e67455
-- https://academic.oup.com/sleepadvances/article/6/2/zpaf021/8090472
-- https://www.nature.com/articles/s41746-024-01016-9
-- https://aasm.org/staying-current-with-actigraphy-devices-for-sleep-wake-monitoring/
-
-### This repo's tracker
-- https://github.com/SysAdminDoc/AlarmClockXtreme/issues/53
-- https://github.com/SysAdminDoc/AlarmClockXtreme/issues/50
-- https://github.com/SysAdminDoc/AlarmClockXtreme/issues/49
-- https://github.com/SysAdminDoc/AlarmClockXtreme/issues/44
-- https://github.com/SysAdminDoc/AlarmClockXtreme/issues/43
+### Security advisories
+- https://osv.dev/vulnerability/GHSA-7hhh-6rmp-j9qf
+- https://osv.dev/vulnerability/GHSA-p6pp-m3f8-5c89
+- https://osv.dev/vulnerability/GHSA-cxp5-3px4-pw24
+- https://osv.dev/vulnerability/GHSA-gx83-3vf8-gh7j
+- https://osv.dev/vulnerability/GHSA-q4xh-88c3-wmh7
+- https://osv.dev/vulnerability/GHSA-wjgm-6hv5-3cvf
+- https://osv.dev/vulnerability/GHSA-wv8q-qhhj-9h54
+- https://osv.dev/vulnerability/GHSA-xxph-c9ww-hj94
+- https://github.com/advisories/GHSA-xxph-c9ww-hj94
+- https://repo1.maven.org/maven2/com/fasterxml/jackson/core/jackson-databind/maven-metadata.xml
+- https://repo1.maven.org/maven2/com/google/guava/guava/maven-metadata.xml
 
 ## Open Questions
 
-1. **Should the recommended download stop being the `play` flavor, or should
-   `SEND_SMS` move out of the fdroid-only manifest?** Both fix the degraded
-   Guardian Angel, and the choice is a product call, not a technical one. The
-   roadmap item below assumes moving the permission, which keeps one recommended
-   build.
-2. **Does `USAGE_MEDIA` survive `AudioPlaybackConfiguration` anonymisation on
-   the target devices?** This decides whether the Spotify watchdog needs a new
-   predicate or only a baseline-ordering fix. Answerable only on a device with
-   Spotify installed; the roadmap item specifies a device check first.
+1. When does v1.16.0 ship? Every open issue's fix is sitting on `main`, and reporters can't see any of it until a release. Releases happen on Matt's word only.
+2. What to do about the name collision with AVG Labs' "Alarm Clock Xtreme & Timer" (50M+ downloads on Google Play)? Options run from a one-line "not affiliated" note in the README to a rename. It's a product and identity call, parked in Roadmap_Blocked.md.
+3. Should Discussions #51 and #52 get an answer now, or when the scanner and gallery work lands? Both have waited since 2026-08-30, and a short "you're right, it's coming" would close the gap without promising a version.
+4. How strict should Photo Match be? A shape-aware comparison needs a threshold, and only real photos taken in morning light versus the reference can set it (Needs live validation).
