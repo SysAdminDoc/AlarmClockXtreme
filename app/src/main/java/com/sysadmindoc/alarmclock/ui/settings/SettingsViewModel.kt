@@ -56,6 +56,7 @@ import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
 import com.sysadmindoc.alarmclock.worker.GuardianEscalationPolicy
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
+import com.sysadmindoc.alarmclock.worker.UpdateCheckWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -766,6 +767,14 @@ class SettingsViewModel @Inject constructor(
                 CalendarAutoAlarmWorker.cancelPeriodic(context)
             }
             CalendarAutoAlarmWorker.enqueueRefresh(context, "settings")
+        }
+    }
+
+    fun toggleUpdateCheck(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesManager.update { it.copy(updateCheckEnabled = enabled) }
+            val context = getApplication<Application>()
+            if (enabled) UpdateCheckWorker.schedule(context) else UpdateCheckWorker.cancel(context)
         }
     }
 

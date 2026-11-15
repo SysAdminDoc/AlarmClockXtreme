@@ -10,13 +10,6 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
 
 ### P1
 
-- [ ] P1: In-app update check against the GitHub Releases API
-  Why: Distribution is GitHub Releases and sideload only, and the app never tells a user a newer build exists. That is how a reporter ended up filing #53 on 2026-08-30 against a version whose bug was fixed on main on 2026-08-22.
-  Evidence: grep for `api.github.com`, `releases/latest`, `checkForUpdate` across `app/src/main` returns nothing; issue #53 filed against 1.15.32.
-  Touches: new `data/remote/ReleaseApi.kt` (Retrofit, existing shared OkHttp client from `di/NetworkModule.kt`), a settings toggle in `data/preferences/PreferencesManager.kt` plus its `SettingsBackup` counterpart, `ui/settings/`, a low-priority notification.
-  Acceptance: the check is opt-in and off by default, runs no more than daily, compares `versionCode` against the latest release tag, links to the release page rather than downloading anything, and degrades silently offline; a unit test covers newer, same and malformed tag responses; the backup drift-guard test passes with the new settings field.
-  Complexity: M
-
 - [ ] P1: Add a pseudolocale gate and stop sharing the timer's Undo key
   Why: Japanese landed (#55), so a second layout now has to fit translated text, but nothing checks for clipping or hardcoded English before a translator finds it. The alarm list and stopwatch undo actions still read `R.string.timer_undo`, so a translator sees one key for three features.
   Evidence: `app/build.gradle.kts` has no `pseudoLocalesEnabled`; `ui/alarmlist/AlarmListScreen.kt:274` and `ui/stopwatch/StopwatchScreen.kt:91` read `R.string.timer_undo`.

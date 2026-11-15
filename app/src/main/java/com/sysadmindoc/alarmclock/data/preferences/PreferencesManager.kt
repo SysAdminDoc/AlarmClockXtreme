@@ -185,7 +185,11 @@ data class AppSettings(
     val ytEngineLastUpdateMs: Long = 0,
     val ytEngineLastUpdateStatus: String = "",
     val ytEngineLastUpdateSource: String = "",
-    val ytEngineLastFailureReason: String = ""
+    val ytEngineLastFailureReason: String = "",
+    /** Opt-in daily check of GitHub Releases. Off by default: the app makes no call until asked. */
+    val updateCheckEnabled: Boolean = false,
+    /** The last release tag a notice was posted for, so each release notifies once. */
+    val updateCheckLastNotifiedTag: String = ""
 )
 
 private const val LEGACY_VIOLET_ACCENT = "#7C5CFF"
@@ -401,6 +405,8 @@ class PreferencesManager @Inject constructor(
         val YT_ENGINE_LAST_UPDATE_STATUS = stringPreferencesKey("yt_engine_last_update_status")
         val YT_ENGINE_LAST_UPDATE_SOURCE = stringPreferencesKey("yt_engine_last_update_source")
         val YT_ENGINE_LAST_FAILURE_REASON = stringPreferencesKey("yt_engine_last_failure_reason")
+        val UPDATE_CHECK_ENABLED = booleanPreferencesKey("update_check_enabled")
+        val UPDATE_CHECK_LAST_NOTIFIED_TAG = stringPreferencesKey("update_check_last_notified_tag")
     }
 
     val settings: Flow<AppSettings> = context.dataStore.data
@@ -549,6 +555,8 @@ class PreferencesManager @Inject constructor(
         ytEngineLastUpdateStatus = this[Keys.YT_ENGINE_LAST_UPDATE_STATUS] ?: "",
         ytEngineLastUpdateSource = this[Keys.YT_ENGINE_LAST_UPDATE_SOURCE] ?: "",
         ytEngineLastFailureReason = this[Keys.YT_ENGINE_LAST_FAILURE_REASON] ?: "",
+        updateCheckEnabled = this[Keys.UPDATE_CHECK_ENABLED] ?: false,
+        updateCheckLastNotifiedTag = this[Keys.UPDATE_CHECK_LAST_NOTIFIED_TAG] ?: "",
     )
 
     private fun MutablePreferences.applySettings(s: AppSettings) {
@@ -643,5 +651,7 @@ class PreferencesManager @Inject constructor(
         this[Keys.YT_ENGINE_LAST_UPDATE_STATUS] = s.ytEngineLastUpdateStatus
         this[Keys.YT_ENGINE_LAST_UPDATE_SOURCE] = s.ytEngineLastUpdateSource
         this[Keys.YT_ENGINE_LAST_FAILURE_REASON] = s.ytEngineLastFailureReason
+        this[Keys.UPDATE_CHECK_ENABLED] = s.updateCheckEnabled
+        this[Keys.UPDATE_CHECK_LAST_NOTIFIED_TAG] = s.updateCheckLastNotifiedTag
     }
 }

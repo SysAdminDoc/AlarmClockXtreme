@@ -834,6 +834,8 @@
     <string name="settings_crash_log_subject">AlarmClockXtreme クラッシュログ</string>
     <string name="settings_about_description">このデバイスで何が実行されているかのクイックリファレンス。</string>
     <string name="settings_version">バージョン</string>
+    <string name="settings_update_check">アップデートを確認</string>
+    <string name="settings_update_check_description">1日に1回、新しいリリースが出ていないか GitHub に確認し、通知でお知らせします。自動でダウンロードはしません。</string>
     <string name="settings_device">デバイス</string>
     <string name="settings_android">Android</string>
     <string name="settings_license">ライセンス</string>
@@ -1291,6 +1293,9 @@
     <string name="notif_channel_timer_finished">タイマー終了</string>
     <string name="notif_channel_timer_finished_desc">カウントダウンタイマーがゼロになったときに通知します。</string>
     <string name="notif_channel_bedtime_desc">就寝時刻になったことを通知</string>
+    <string name="notif_channel_app_updates">アプリのアップデート</string>
+    <string name="notif_update_title">バージョン %1$s が公開されました</string>
+    <string name="notif_update_text">タップするとリリースページを開きます。</string>
     <string name="notif_channel_bedtime_countdown">就寝カウントダウン</string>
     <string name="notif_channel_bedtime_countdown_desc">就寝時刻リマインダーの1時間前のファイナルカウントダウンを表示</string>
     <string name="notif_channel_snooze_countdown">スヌーズカウントダウン</string>

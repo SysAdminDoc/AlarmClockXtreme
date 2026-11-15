@@ -874,6 +874,8 @@
     <string name="settings_crash_log_subject">AlarmClockXtreme crash log</string>
     <string name="settings_about_description">A quick reference for what’s running on this device.</string>
     <string name="settings_version">Version</string>
+    <string name="settings_update_check">Check for updates</string>
+    <string name="settings_update_check_description">Once a day, asks GitHub whether a newer release is out and lets you know with a notification. Nothing downloads on its own.</string>
     <string name="settings_device">Device</string>
     <string name="settings_android">Android</string>
     <string name="settings_license">License</string>
@@ -1346,6 +1348,9 @@
     <string name="notif_channel_timer_finished">Timer finished</string>
     <string name="notif_channel_timer_finished_desc">Notifies when one of your countdown timers reaches zero.</string>
     <string name="notif_channel_bedtime_desc">Reminds you when it’s time to sleep</string>
+    <string name="notif_channel_app_updates">App updates</string>
+    <string name="notif_update_title">Version %1$s is out</string>
+    <string name="notif_update_text">Tap to open its release page.</string>
     <string name="notif_channel_bedtime_countdown">Bedtime countdown</string>
     <string name="notif_channel_bedtime_countdown_desc">Shows the final-hour countdown before the bedtime reminder</string>
     <string name="notif_channel_snooze_countdown">Snooze countdown</string>

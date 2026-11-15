@@ -6,6 +6,7 @@ import com.sysadmindoc.alarmclock.data.remote.GeocodingApi
 import com.sysadmindoc.alarmclock.data.remote.GoogleRoutesApi
 import com.sysadmindoc.alarmclock.data.remote.HolidayApi
 import com.sysadmindoc.alarmclock.data.remote.RadioBrowserApi
+import com.sysadmindoc.alarmclock.data.remote.ReleaseApi
 import com.sysadmindoc.alarmclock.data.remote.WeatherAlertsApi
 import com.sysadmindoc.alarmclock.data.remote.WeatherApi
 import com.sysadmindoc.alarmclock.data.repository.RadioStationRepository
@@ -105,6 +106,30 @@ object NetworkModule {
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()
             .create(WeatherAlertsApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReleaseApi(moshi: Moshi, client: OkHttpClient): ReleaseApi {
+        // GitHub's API turns away requests that carry no User-Agent, and asks
+        // for one that names the app.
+        val userAgent = "AlarmClockXtreme/${BuildConfig.VERSION_NAME} (Android)"
+        val githubClient = client.newBuilder()
+            .addInterceptor { chain ->
+                chain.proceed(
+                    chain.request().newBuilder()
+                        .header("User-Agent", userAgent)
+                        .header("Accept", "application/vnd.github+json")
+                        .build()
+                )
+            }
+            .build()
+        return Retrofit.Builder()
+            .baseUrl("https://api.github.com/")
+            .client(githubClient)
+            .addConverterFactory(MoshiConverterFactory.create(moshi))
+            .build()
+            .create(ReleaseApi::class.java)
     }
 
     @Provides

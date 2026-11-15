@@ -232,7 +232,8 @@ data class SettingsBackup(
     val hueBridgeCertFingerprint: String = "",
     val firingControlMode: String = "hybrid",
     val challengeBypassEnabled: Boolean = false,
-    val challengeBypassDelaySeconds: Int = 30
+    val challengeBypassDelaySeconds: Int = 30,
+    val updateCheckEnabled: Boolean = false
 )
 
 data class BackupExportWarning(
@@ -628,7 +629,8 @@ class BackupManager @Inject constructor(
                 hueBridgeCertFingerprint = settings.hueBridgeCertFingerprint,
                 firingControlMode = settings.firingControlMode,
                 challengeBypassEnabled = settings.challengeBypassEnabled,
-                challengeBypassDelaySeconds = settings.challengeBypassDelaySeconds
+                challengeBypassDelaySeconds = settings.challengeBypassDelaySeconds,
+                updateCheckEnabled = settings.updateCheckEnabled
             )
         )
 
@@ -873,7 +875,8 @@ class BackupManager @Inject constructor(
         hueBridgeCertFingerprint = s.hueBridgeCertFingerprint,
         firingControlMode = s.firingControlMode,
         challengeBypassEnabled = s.challengeBypassEnabled,
-        challengeBypassDelaySeconds = s.challengeBypassDelaySeconds
+        challengeBypassDelaySeconds = s.challengeBypassDelaySeconds,
+        updateCheckEnabled = s.updateCheckEnabled
     )
 
     private suspend fun importFromJson(

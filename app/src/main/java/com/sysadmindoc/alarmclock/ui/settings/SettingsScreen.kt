@@ -997,6 +997,12 @@ fun SettingsScreen(
                 description = stringResource(R.string.settings_about_description)
             ) {
                 SettingsInfo(stringResource(R.string.settings_version), state.appVersion)
+                SettingsToggle(
+                    label = stringResource(R.string.settings_update_check),
+                    checked = state.settings.updateCheckEnabled,
+                    supportingText = stringResource(R.string.settings_update_check_description),
+                    onToggle = viewModel::toggleUpdateCheck
+                )
                 SettingsInfo(stringResource(R.string.settings_device), state.deviceModel)
                 SettingsInfo(stringResource(R.string.settings_android), state.androidVersion)
                 SettingsInfo(stringResource(R.string.settings_license), stringResource(R.string.settings_license_value))

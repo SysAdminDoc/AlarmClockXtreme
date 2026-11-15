@@ -89,7 +89,7 @@ The Today tab combines local weather with air quality and sunrise timing. You al
 
 The alarm engine, challenge state, schedules, statistics, and settings stay on your device. No analytics SDK or ad network is included, and the app has no account system.
 
-Network access is optional and tied to features you choose. Weather uses Open-Meteo. Public-holiday skips use Nager.Date, US alerts use the National Weather Service, and the radar card loads Windy. RSS feeds, internet radio, webhooks, Philips Hue, IKEA DIRIGERA, and the Play-only YouTube downloader contact the service or hub you configure.
+Network access is optional and tied to features you choose. Weather uses Open-Meteo. Public-holiday skips use Nager.Date, US alerts use the National Weather Service, and the radar card loads Windy. RSS feeds, internet radio, webhooks, Philips Hue, IKEA DIRIGERA, and the Play-only YouTube downloader contact the service or hub you configure. The update check stays off until you turn it on, and then asks GitHub once a day whether a newer release is out.
 
 Sonar tracking keeps compact movement and loud-sound summaries for 30 days. It does not save raw audio. Crash logs are capped, app-private files. They are never uploaded automatically and only leave the phone when you export a support bundle.
 

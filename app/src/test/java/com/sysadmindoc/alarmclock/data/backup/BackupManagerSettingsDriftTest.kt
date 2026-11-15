@@ -48,6 +48,9 @@ class BackupManagerSettingsDriftTest {
         // that pairing. A restore pairs again instead of carrying either.
         "dirigeraAccessToken",
         "dirigeraCertFingerprint",
+        // Which release this install already announced. A restore onto a new
+        // phone should announce the current release again, not stay quiet.
+        "updateCheckLastNotifiedTag",
     )
 
     @Test

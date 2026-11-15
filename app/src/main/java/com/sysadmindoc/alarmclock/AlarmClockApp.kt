@@ -22,6 +22,7 @@ import com.sysadmindoc.alarmclock.wear.WearNextAlarmBridge
 import com.sysadmindoc.alarmclock.worker.AlarmHealthWorker
 import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
 import com.sysadmindoc.alarmclock.worker.HolidaySyncWorker
+import com.sysadmindoc.alarmclock.worker.UpdateCheckWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -127,6 +128,13 @@ class AlarmClockApp : Application(), Configuration.Provider {
                 CalendarAutoAlarmWorker.cancelPeriodic(this@AlarmClockApp)
             }
             CalendarAutoAlarmWorker.enqueueRefresh(this@AlarmClockApp, "app_start")
+            // Off by default. Syncing here also picks the setting up after a
+            // backup restore, which writes it without touching WorkManager.
+            if (settings.updateCheckEnabled) {
+                UpdateCheckWorker.schedule(this@AlarmClockApp)
+            } else {
+                UpdateCheckWorker.cancel(this@AlarmClockApp)
+            }
         }
 
         // Start persistent next-alarm notification observer
