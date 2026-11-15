@@ -228,15 +228,6 @@ Cross-references, not new items:
 - Per-alarm pause (P3 above): FossifyOrg/Clock #13 "Disable an alarm once" has 17 thumbs up and has been open since 2024-01-12. That's more support than any other open request on the rival trackers checked.
 - Bundled fallback tone (P3 above): McFarlane et al. 2020 (PLOS ONE, a self-report survey of 50 people) linked melodic alarm sounds with less morning grogginess. That's weak evidence, but it's a fair tiebreaker for picking a melodic tone over a beep.
 
-### P1
-
-- [ ] P1: Confirm the ringing screen really came back after the Spotify fallback
-  Why: When Spotify never plays, `bringFiringScreenBack` relaunches the ringing screen over it. Android doesn't throw when it blocks a background launch, it only logs "Background activity launch blocked!", so the `catch` never runs and nothing records that the user has a fallback tone and no Dismiss button. The launch works today only because it lands inside the grace period of about 10 seconds after the screen was last visible (the comment at `service/AlarmService.kt:111-115`), and Android 17 is extending background launch hardening to `IntentSender`.
-  Evidence: `service/AlarmService.kt:1342` and `:1353-1371`; `ui/alarmfiring/AlarmFiringActivity.kt:345` (`onResume` reports nothing back to the service); https://developer.android.com/guide/components/activities/background-starts; https://developer.android.com/about/versions/17/behavior-changes-17
-  Touches: `service/AlarmService.kt` (`bringFiringScreenBack` plus a short follow-up check), `ui/alarmfiring/AlarmFiringActivity.kt` (`onResume` and `onStop` publish whether the ringing screen is showing, for example through a small `StateFlow` next to `ActiveAlarmSnapshot`), the incident reason codes.
-  Acceptance: about 2 seconds after the relaunch the service checks that the ringing screen is resumed. If it isn't, it re-posts the ringing notification so it alerts again (the full-screen intent is built at `:774-837`) and records `SPOTIFY_FALLBACK_SCREEN_BLOCKED`. A Robolectric test covers both outcomes. A headless `-no-audio` emulator run with Spotify signed out shows the screen on top, and a run with the launch forced to fail shows the notification and the incident row (Needs live validation on how the heads-up looks over Spotify).
-  Complexity: S
-
 ### P2
 
 - [ ] P2: Make Photo Match compare layout as well as color
@@ -339,3 +330,17 @@ Cross-references, not new items:
   Touches: `service/AlarmService.kt` (`startForegroundWithPlaceholder`, the notify in `startAlarm`, `buildAlarmNotification`), possibly a screen-on wake lock while ringing. First-ring and re-ring paths both.
   Acceptance: on an API 34+ emulator with a PIN and the screen asleep, both a first ring and a snoozed re-ring open the ringing screen over the lock screen without any touch, and logcat shows an FSI launch or an allowed activity start for each. A regression test pins that the first alarm-channel post for a ring carries the full-screen intent.
   Complexity: M
+
+- [ ] P2: A Spotify alarm never plays Spotify when it rings on a locked or sleeping phone
+  Why: the service opens Spotify at the start of the ring, before the ringing screen is up. Android refuses that launch without an error, so Spotify never starts and the backup tone takes over 8 seconds later. A Spotify alarm only gets to Spotify when the phone is already in use, which is the least common way an alarm rings.
+  Evidence: `service/AlarmService.kt:1084` (`startActivity(spotifyIntent)` from `startAudioInternal`). Headless API 36 emulator, swipe lock, screen asleep, a real 6:00 ring: "Background activity launch blocked!" for the `spotify:` VIEW at 06:00:00.228, the full-screen intent opened the ringing screen at 06:00:00.433, and the incident log has `SPOTIFY_DELEGATED` and then `SPOTIFY_FALLBACK` 8 seconds later. Spotify was signed out there, so playback itself wasn't tested. Found while closing the Spotify fallback screen check.
+  Touches: `service/AlarmService.kt` (hold the Spotify launch until `FiringScreenPresence` reports the ringing screen up, with a short cap, so the launch counts as coming from a visible app), the watchdog's start time. On a PIN-locked phone Spotify's own screen opens under the lock screen, so check it starts playing from there or keep the ringing screen on top.
+  Acceptance: on an API 36 emulator with a swipe lock and the screen asleep, a real Spotify alarm logs a START for `com.spotify.music` and no "Background activity launch blocked!" line for it. The same with a PIN either starts Spotify or rings the backup tone within 8 seconds with the ringing screen on top (Needs live validation with a signed-in Spotify).
+  Complexity: M
+
+- [ ] P3: The incident log says the ringing screen opened when Android blocked it
+  Why: `FIRING_ACTIVITY_LAUNCHED` is recorded as succeeded straight after `startActivity`, which doesn't throw when Android refuses a background launch. With another app on screen the launch is always refused and the heads-up notification is what rings, yet the log says the screen opened. `SPOTIFY_DELEGATED` has the same problem. Anyone reading a reliability report gets the wrong story.
+  Evidence: `service/AlarmService.kt:584` and `:1086-1091`. On a headless API 36 emulator, real rings at 6:00 on two days logged `FIRING_ACTIVITY_LAUNCHED` as succeeded while logcat had "Background activity launch blocked!" for the same start. `FIRING_ACTIVITY_CREATED` (`ui/alarmfiring/AlarmFiringActivity.kt:168`) and `SPOTIFY_PLAYBACK_CONFIRMED` are the real proof.
+  Touches: `service/AlarmService.kt` (record those two as requested, not succeeded), anything that counts them in diagnostics or the report export.
+  Acceptance: a ring on an emulator with another app on screen logs the launch as requested, and the diagnostics don't count it as a screen that opened. A unit test covers the status.
+  Complexity: S
