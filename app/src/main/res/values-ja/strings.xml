@@ -1032,7 +1032,7 @@
     <string name="settings_adaptive_difficulty">アダプティブ・チャレンジ難易度</string>
     <string name="settings_adaptive_difficulty_description">スヌーズ率が50%を超えると、計算チャレンジを自動的に引き上げます (初級 → 中級 → 上級)。</string>
     <string name="settings_dynamic_color">Material You ダイナミックカラー</string>
-    <string name="settings_dynamic_color_description">アプリのアクセントカラーを壁紙のパレットとブレンドします (Android 12+)。</string>
+    <string name="settings_dynamic_color_description">上のアクセントカラーの代わりに壁紙の色を使います。</string>
     <string name="settings_expressive_surfaces">表現力豊かなデザイン</string>
     <string name="settings_expressive_surfaces_description">アプリ全体のデザインに、より大胆な形状と明確なアクセントを取り入れます。</string>
     <string name="settings_reduce_motion">動きと点滅を抑える</string>
@@ -1072,12 +1072,13 @@
     <string name="settings_bedtime_checklist_description">1日の残りが忙しく感じるときでもルーティンを一定に保てるよう、就寝時刻画面に表示されます。</string>
     <string name="settings_accent_color">アクセントカラー</string>
     <string name="settings_accent_color_description">主要なアラームの色付け、ダッシュボードのチップ、スイッチに使用されます。</string>
+    <string name="settings_accent_color_wallpaper">Material You がオンのため、今は壁紙の色がアクセントになります。オフにすると、ここで選んだ色に戻ります。</string>
     <string name="settings_accent_default_blue">デフォルトブルー</string>
     <string name="settings_accent_violet">バイオレット</string>
-    <string name="settings_accent_coral">Coral</string>
-    <string name="settings_accent_amber">Amber</string>
-    <string name="settings_accent_mint">Mint</string>
-    <string name="settings_accent_mono">Mono</string>
+    <string name="settings_accent_coral">コーラル</string>
+    <string name="settings_accent_amber">アンバー</string>
+    <string name="settings_accent_mint">ミント</string>
+    <string name="settings_accent_mono">モノクロ</string>
     <string name="settings_use_accent">%1$s アクセントを使用</string>
     <string name="settings_accent_semantics">%1$s アクセントカラー</string>
     <string name="settings_unexpected_error">予期しないエラー</string>

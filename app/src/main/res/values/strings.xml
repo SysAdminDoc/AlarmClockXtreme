@@ -1080,7 +1080,7 @@
     <string name="settings_adaptive_difficulty">Adaptive challenge difficulty</string>
     <string name="settings_adaptive_difficulty_description">Auto-bumps math challenges (Easy → Medium → Hard) when your snooze rate climbs above 50%.</string>
     <string name="settings_dynamic_color">Material You dynamic color</string>
-    <string name="settings_dynamic_color_description">Blends the app accent with your wallpaper palette (Android 12+).</string>
+    <string name="settings_dynamic_color_description">Uses your wallpaper colors in place of the accent color above.</string>
     <string name="settings_expressive_surfaces">Expressive surfaces</string>
     <string name="settings_expressive_surfaces_description">Adds bolder shape rhythm and clearer accent semantics across shared app surfaces.</string>
     <string name="settings_reduce_motion">Reduce motion and flashing</string>
@@ -1120,6 +1120,7 @@
     <string name="settings_bedtime_checklist_description">Shows in Bedtime as a short list to run through before sleep.</string>
     <string name="settings_accent_color">Accent color</string>
     <string name="settings_accent_color_description">Used for the primary alarm tint, dashboard chips, and switches.</string>
+    <string name="settings_accent_color_wallpaper">Material You is on, so your wallpaper sets the accent for now. The color you pick here comes back when you turn it off.</string>
     <string name="settings_accent_default_blue">Default blue</string>
     <string name="settings_accent_violet">Violet</string>
     <string name="settings_accent_coral">Coral</string>

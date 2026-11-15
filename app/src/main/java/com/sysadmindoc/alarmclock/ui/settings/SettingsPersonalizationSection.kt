@@ -38,6 +38,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Alarm
@@ -170,9 +171,11 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
         title = null,
         description = stringResource(R.string.settings_personalization_description)
     ) {
+        val dynamicColorAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
         AccentColorPicker(
             currentHex = state.settings.accentColor,
-            onPick = viewModel::updateAccentColor
+            onPick = viewModel::updateAccentColor,
+            wallpaperAccentActive = dynamicColorAvailable && state.settings.dynamicColorEnabled
         )
 
         SettingsToggle(
@@ -188,15 +191,16 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
             onToggle = viewModel::toggleAdaptiveDifficulty
         )
 
-        // v1.4.0: Material You — respects the user's wallpaper palette on Android 12+.
-        // On older devices the toggle is still persisted but has no visual effect,
-        // so the help copy names the requirement rather than silently no-op'ing.
-        SettingsToggle(
-            label = stringResource(R.string.settings_dynamic_color),
-            checked = state.settings.dynamicColorEnabled,
-            supportingText = stringResource(R.string.settings_dynamic_color_description),
-            onToggle = viewModel::toggleDynamicColor
-        )
+        // Material You replaces the accent with the wallpaper palette (Theme.kt), and
+        // only Android 12+ has one, so older devices don't get a switch that does nothing.
+        if (dynamicColorAvailable) {
+            SettingsToggle(
+                label = stringResource(R.string.settings_dynamic_color),
+                checked = state.settings.dynamicColorEnabled,
+                supportingText = stringResource(R.string.settings_dynamic_color_description),
+                onToggle = viewModel::toggleDynamicColor
+            )
+        }
 
         SettingsToggle(
             label = stringResource(R.string.settings_expressive_surfaces),
@@ -412,7 +416,11 @@ internal fun PersonalizationSection(state: SettingsUiState, viewModel: SettingsV
 }
 
 @Composable
-private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
+private fun AccentColorPicker(
+    currentHex: String,
+    onPick: (String) -> Unit,
+    wallpaperAccentActive: Boolean
+) {
     // Six-swatch palette covers the most common requests (cool/warm/mono).
     // Listed in the order users tend to reach for them; the first one is
     // the historical default so users always have an obvious "reset" path.
@@ -431,11 +439,17 @@ private fun AccentColorPicker(currentHex: String, onPick: (String) -> Unit) {
             style = MaterialTheme.typography.titleSmall
         )
         Text(
-            text = stringResource(R.string.settings_accent_color_description),
+            text = stringResource(
+                if (wallpaperAccentActive) R.string.settings_accent_color_wallpaper
+                else R.string.settings_accent_color_description
+            ),
             color = TextSecondary,
             style = MaterialTheme.typography.bodySmall
         )
+        // Swatches stay tappable under Material You: the pick is saved and returns
+        // when the wallpaper palette is turned off.
         FlowRow(
+            modifier = if (wallpaperAccentActive) Modifier.alpha(0.5f) else Modifier,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
