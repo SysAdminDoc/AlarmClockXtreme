@@ -131,9 +131,13 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
   Acceptance: opening Bedtime records nothing; the baseline is taken when the user taps a "Measure room" action or when the bedtime reminder fires with the app in the foreground; the card says when the last sample was taken.
   Complexity: S
 
+- [ ] P3: Restart a ringing alarm quickly after a background kill
+  Why: AlarmService returns `START_REDELIVER_INTENT` while an alarm rings. With the ringing screen on top Android restarts it within a few seconds, but when the app is in the background the restart waits about twice as long as the service had been running (seen on the API 36 emulator, 2026-11-14). `START_STICKY` plus a persisted "currently ringing" alarm id read in `onStartCommand(null)` would bring it back without that backoff.
+  Complexity: M
+
 ## Toolchain
 
-Moved from Roadmap_Blocked.md on 2026-11-12. Nothing outside the repo blocks these; they are one coordinated upgrade, and the Android 17 items still in Roadmap_Blocked.md (compileSdk 37) wait on the first one.
+Moved from Roadmap_Blocked.md on 2026-11-12. Nothing outside the repo blocks these; they are one coordinated upgrade, and the Android 17 follow-ons below (compileSdk 37) wait on the first one.
 
 - [ ] P1: AGP 8 to 9 migration
   Why: AGP 8.11.1 is end of life and can't compile against SDK 37 (platforms `android-37.0` and `android-37.1` are installed). AGP 9 needs Hilt 2.56.2 to 2.59.2+, KSP1 to KSP2 (Room 2.8 needs it) and a Gradle wrapper check, all in one pass. Kotlin 2.1.0 also carries CVE-2026-53914 in `kotlin-gradle-plugin` (build time only).
@@ -147,3 +151,85 @@ Moved from Roadmap_Blocked.md on 2026-11-12. Nothing outside the repo blocks the
 
 - [ ] P3: Room 3 SQLiteDriver migration runway (after Room 2.8)
   Complexity: M
+
+### Android 17 follow-ons (after AGP 9 and compileSdk 37)
+
+Moved from Roadmap_Blocked.md on 2026-11-14. Its "needs an API 37 emulator" blocker no longer holds (android-37.0 and android-37.1 images are installed); what they really wait on is the AGP 9 item above.
+
+- [ ] P3: AdvancedProtectionManager awareness (privacy hardening)
+  Why: when the device is in Advanced Protection Mode, ACX should tighten up. Gate webhook egress and unknown-source ringtone imports, to match its privacy-first stance.
+  Needs: compileSdk 37 to build against (`AdvancedProtectionManager` is an Android 17 API), then an API 37 emulator to verify. Implement as a reflective/no-op capability check when the compile SDK reaches 37.
+  Where: `service/WebhookService.kt`, ringtone import path
+  Complexity: S
+
+- [ ] P1: Android 17 local-network runtime permission migration (smoke only)
+  Status: v1.14.11 declared `ACCESS_LOCAL_NETWORK`, added Settings request/recovery UI, gates local webhook/Hue tests. Keep open for targetSdk 37 / API 37 device smoke.
+  Complexity: S (verification only)
+
+- [ ] P2: Android 17 native-loading smoke for Play YouTube engine
+  Why: Android 17 hardens native dynamic loading. Needs API 37 smoke test before targetSdk bump.
+  Complexity: S
+
+- [ ] P2: Android 17 semantic notification colors for alarm urgency
+  Why: `SEMANTIC_STYLE_SAFE/CAUTION/DANGER` notification spans need compileSdk 37.
+  Evidence: https://developer.android.com/about/versions/17/features
+  Needs: the AGP 9 and compileSdk 37 migration.
+  Complexity: S
+
+- [ ] P2: Android 17 Metric Style notification for timer countdown
+  Why: `Notification.MetricStyle` needs compileSdk 37.
+  Complexity: M
+
+- [ ] P3: Confirm non-alarm (sleep) audio survives Android 17 background-audio rules
+  Why: `SleepSoundPlayer` uses `USAGE_MEDIA` under a `mediaPlayback` FGS. Likely fine, but verify it before the targetSdk 37 bump.
+  Complexity: S
+
+## Emulator-run work
+
+Moved from Roadmap_Blocked.md on 2026-11-14. Each was parked as "needs a device or emulator", and that doesn't hold: this machine has API 32, 36 and 37 images, tablet and foldable AVDs, and google_apis images with Play services and built-in Health Connect. Run them on a headless `-no-audio` emulator.
+
+- [ ] Audit: Health Connect, YouTube engine update and NewPipe search against a live network
+  Why: all three are code-traced. Each depends on a remote service answering, and two of them are play-flavor only.
+  Needs: a google_apis emulator with Play services and network (Health Connect is built in from API 34).
+  Complexity: M
+
+- [ ] Audit: Tablet and foldable layouts (NavigationRail, the 840 dp list/detail split)
+  Why: `ui/adaptive/AdaptiveLayoutPolicy.kt` was read and its threshold is unit tested, but no wide window has ever rendered the two-pane arrangement.
+  Needs: a run on the tablet or foldable AVD.
+  Complexity: S
+
+- [ ] Audit: Android 12 / 12L behaviour
+  Why: the exact-alarm permission work is reasoned from code and platform semantics, not observed. API 31 and 32 changed exactly that area.
+  Needs: a run on an API 32 AVD (one is installed).
+  Complexity: S
+
+- [ ] P3: Room schema exports for versions 1, 2, 3 and 7
+  Why: `app/schemas/` holds 4-6 and 8-25, so `AlarmDatabaseMigrationTest` starts at 4 and the three oldest upgrade paths plus 7 have never been validated.
+  Needs two things, not one. The obvious one is that `runMigrationsAndValidate` is an instrumented test and needs a device or emulator. The one that actually stops the work is that a Room schema JSON carries an `identityHash` the annotation processor derives from the entity definition, and `runMigrationsAndValidate` compares against it. Hand-writing those four files from the migration SQL cannot produce a correct hash, and a file with a wrong one fails in a way that looks like a broken migration. The only sound route is to check out the commit where the database was at each of those versions and let KSP emit the export, which means building a 2026-03-era source tree with the current toolchain.
+  Note: the item's original acceptance said "to 23"; the database is at 25 now.
+  Acceptance: `runMigrationsAndValidate` from 1 and from 7 to the current version passes.
+  Complexity: M
+
+- [ ] P1: Alarm fire reliability smoke matrix
+  Why: No automated on-device proof that exact alarm reaches receiver, FGS, FSI/notification fallback. Needs emulator.
+  Complexity: L
+
+- [ ] P2: Critical edge-case regression test expansion (instrumented paths)
+  Why: Permission-denied alarm flows, reboot/timezone/date reschedule behavior, Guardian flavor behavior and timer/process-death recovery all need an emulator.
+  Complexity: M
+
+- [ ] P2: Baseline Profile for app startup
+  Why: No Baseline Profile exists. Needs `connectedBenchmarkAndroidTest` on device.
+  Complexity: M
+
+- [ ] P2: Compose UI and accessibility regression smoke suite
+  Why: No rendered UI test suite. Needs instrumentation + emulator.
+  Complexity: M
+
+- [ ] P3: Glance 1.2.0 widget picker preview (`providePreview()`)
+  Why: Needs Glance 1.2.0 dep bump + device verification.
+  Complexity: S
+
+- [ ] P3: Geofence "don't fire here" alarm suppression (opt-in, risk-gated)
+  Why: L effort, complex risk gating, needs device testing.
+  Complexity: L
