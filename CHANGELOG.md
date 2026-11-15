@@ -16,7 +16,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The sunrise light feature works with IKEA lights on a DIRIGERA hub. Pair the hub in Settings with a press of its button and pick your lights, and they fade up from warm white before the alarm rings (#63).
 - Internet radio has a station search. Type a name or a genre, tap a station to hear it, and tap Use to put it on the alarm. Paste a .pls or .m3u playlist link and the app swaps in the stream inside it, and HLS stations (the .m3u8 kind a lot of broadcasters use now) play as well (#65).
 - Deleting several alarms at once can be undone. Tap Undo on the message that pops up and every one of them comes back, set to ring like before, so the confirmation dialog is gone.
-- Settings > Readiness has an App closures card on Android 11 and newer. It reads Android's own record of when it closed the app and why (a force stop, low memory, a crash, Android 17's new memory limit) and says whether the next alarm still rang afterward. Support exports carry the same list. Deleting, turning off or editing an alarm now leaves a line in the alarm log too, so an alarm you removed is never reported as missed. That holds for alarms removed before this update as well.
+- Settings > Readiness has an App closures card on Android 11 and newer. It reads Android's own record of when it closed the app and why (a force stop, low memory, a crash, Android 17's new memory limit) and says whether the next alarm still rang afterward. If you moved, skipped or paused that alarm before it came up, the card says it was changed instead of calling it missed. Support exports carry the same list. Deleting, turning off, pausing or editing an alarm now leaves a line in the alarm log too, so an alarm you removed is never reported as missed. That holds for alarms removed before this update as well.
 
 ### Changed
 
@@ -87,6 +87,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The "What's new" card after an update listed changes from an older release, in English even with the app set to Japanese. It shows this release's changes now, translated.
 - An alarm time like 10:00 AM no longer breaks onto two lines in the alarm list once the drag handles show. It shrinks a little to stay on one line.
 - The timer restart unit test failed now and then on a busy machine, because the 6:00 default alarm the app adds on first launch landed in the middle of it. That test runs without the app's startup work now.
+- If Android refused an alarm's new time while the old one was still set, the old one rang as if it were the new one, and dismissing it skipped the new one. Dismissing it no longer skips the new one.
 
 ## [1.15.35] - 2026-09-05
 

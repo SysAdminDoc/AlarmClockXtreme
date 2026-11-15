@@ -99,6 +99,115 @@ class AlarmIncidentRepositoryTest {
         assertFalse(dao.deleteOlderThanCalled)
     }
 
+    @Test
+    fun onlyDeliveryStartAndDismissRowsCountAsFired() = runBlocking {
+        val dao = FakeAlarmIncidentEventDao()
+        val repository = AlarmIncidentRepository(dao, MinimalContext())
+        fun row(
+            type: String,
+            status: String,
+            reason: String,
+            scheduledAt: Long = 1_000L,
+            alarmId: Long = 7L
+        ) = AlarmIncidentEvent(
+            fireId = "alarm-$alarmId-test",
+            alarmId = alarmId,
+            scheduledAt = scheduledAt,
+            eventAt = 1_500L,
+            elapsedMs = 500L,
+            type = type,
+            status = status,
+            reasonCode = reason,
+            source = "test",
+            sdkInt = 35,
+            standbyBucket = "ACTIVE_10",
+            exactAlarmAllowed = "TRUE",
+            notificationPermissionGranted = "TRUE",
+            fullScreenIntentAllowed = "TRUE",
+            batteryOptimizationsIgnored = "TRUE",
+            algorithmVersion = AlarmIncidentEvent.VALUE_NONE
+        )
+        // Rows that don't count. The requested and failed starts and the
+        // full-screen fallbacks leave AlarmManager's late delivery as the ring
+        // still to come. The replay keys its rows by the time it missed, the
+        // same here only to test the reason. The notification action rows are
+        // left to AlarmService's own dismiss row.
+        val notCounted = listOf(
+            AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE to "START_FOREGROUND_SERVICE",
+            AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE to "FIRE_WATCHDOG_REFIRE",
+            AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE to "WAKE_CONFIRM_REFIRE_REQUESTED",
+            AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE to "FIRE_WATCHDOG_REFIRE_START_FAILED",
+            AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE to "FIRE_WATCHDOG_FSI_FALLBACK",
+            AlarmIncidentEvent.TYPE_BROADCAST to "MISSED_REPLAY_REQUESTED",
+            AlarmIncidentEvent.TYPE_BROADCAST to "MISSED_REPLAY_FSI_FALLBACK",
+            AlarmIncidentEvent.TYPE_BROADCAST to "DISMISS_ACTION_RECEIVED",
+            AlarmIncidentEvent.TYPE_BROADCAST to "SNOOZE_ACTION_RECEIVED",
+            AlarmIncidentEvent.TYPE_USER_ACTION to "SNOOZED"
+        )
+        for ((type, reason) in notCounted) {
+            dao.insert(row(type, AlarmIncidentEvent.STATUS_REQUESTED, reason))
+        }
+        // Counted rows for another occurrence, and for another alarm at this time.
+        val others = listOf(
+            row(AlarmIncidentEvent.TYPE_BROADCAST, AlarmIncidentEvent.STATUS_RECEIVED, "", scheduledAt = 2_000L),
+            row(AlarmIncidentEvent.TYPE_BROADCAST, AlarmIncidentEvent.STATUS_RECEIVED, "", alarmId = 8L)
+        )
+        for (other in others) {
+            dao.insert(other.copy(reasonCode = AlarmIncidentEvent.REASON_ALARM_MANAGER_DELIVERED))
+            dao.insert(other.copy(type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE, reasonCode = AlarmIncidentEvent.REASON_START_COMMAND_RECEIVED))
+            dao.insert(other.copy(type = AlarmIncidentEvent.TYPE_USER_ACTION, reasonCode = AlarmIncidentEvent.REASON_DISMISSED))
+            dao.insert(other.copy(type = AlarmIncidentEvent.TYPE_USER_ACTION, reasonCode = AlarmIncidentEvent.REASON_MAX_SNOOZE_DISMISSED))
+        }
+
+        assertEquals(0, repository.firedCount(7L, 1_000L))
+
+        // The only trace a ring through the watchdog's full-screen fallback
+        // leaves is AlarmService's dismiss, or its snooze-cap dismiss.
+        dao.insert(
+            row(
+                AlarmIncidentEvent.TYPE_USER_ACTION,
+                AlarmIncidentEvent.STATUS_SUCCEEDED,
+                AlarmIncidentEvent.REASON_DISMISSED
+            )
+        )
+        assertEquals(1, repository.firedCount(7L, 1_000L))
+        dao.insert(
+            row(
+                AlarmIncidentEvent.TYPE_USER_ACTION,
+                AlarmIncidentEvent.STATUS_SUCCEEDED,
+                AlarmIncidentEvent.REASON_MAX_SNOOZE_DISMISSED
+            )
+        )
+        assertEquals(2, repository.firedCount(7L, 1_000L))
+
+        // A watchdog re-fire reaches AlarmService without AlarmReceiver.
+        dao.insert(
+            row(
+                AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
+                AlarmIncidentEvent.STATUS_RECEIVED,
+                AlarmIncidentEvent.REASON_START_COMMAND_RECEIVED
+            )
+        )
+        assertEquals(3, repository.firedCount(7L, 1_000L))
+
+        dao.insert(
+            row(
+                AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
+                AlarmIncidentEvent.STATUS_RECEIVED,
+                AlarmIncidentEvent.REASON_START_COMMAND_REDELIVERED
+            )
+        )
+        dao.insert(
+            row(
+                AlarmIncidentEvent.TYPE_BROADCAST,
+                AlarmIncidentEvent.STATUS_RECEIVED,
+                AlarmIncidentEvent.REASON_ALARM_MANAGER_DELIVERED
+            )
+        )
+
+        assertEquals(5, repository.firedCount(7L, 1_000L))
+    }
+
     private class MinimalContext : ContextWrapper(null) {
         override fun getPackageName(): String = "com.sysadmindoc.alarmclock"
 
@@ -140,6 +249,14 @@ class AlarmIncidentRepositoryTest {
             type: String
         ): Int = inserted.count {
             it.alarmId == alarmId && it.scheduledAt == scheduledAt && it.type == type
+        }
+
+        override suspend fun countByOccurrenceAndReasons(
+            alarmId: Long,
+            scheduledAt: Long,
+            reasonCodes: List<String>
+        ): Int = inserted.count {
+            it.alarmId == alarmId && it.scheduledAt == scheduledAt && it.reasonCode in reasonCodes
         }
 
         override suspend fun deleteOlderThan(beforeMs: Long) {

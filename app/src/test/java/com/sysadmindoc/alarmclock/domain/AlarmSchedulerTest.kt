@@ -2,7 +2,10 @@ package com.sysadmindoc.alarmclock.domain
 
 import android.app.AlarmManager
 import android.app.Application
+import android.app.PendingIntent
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.Operation
 import androidx.work.WorkManager
@@ -16,6 +19,7 @@ import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
 import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
 import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
+import com.sysadmindoc.alarmclock.receiver.AlarmReceiver
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -33,6 +37,7 @@ import java.time.ZonedDateTime
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -167,9 +172,17 @@ class AlarmSchedulerTest {
     }
 
     @Test
-    fun cancelLeavesADisarmedRowInTheIncidentLog() {
+    fun cancelLeavesADisarmedRowInTheIncidentLog() = runTest {
+        every { calculator.calculate(any<Alarm>(), any()) } returns
+            System.currentTimeMillis() + 15 * 60_000L
+        scheduler.schedule(enabledAlarm(id = 42L), requestWidgetUpdate = false)
+        assertTrue(scheduler.isArmed(42L))
+
+        scheduler.cancel(42L)
+        // Deleting it again, or turning off an alarm already off, adds nothing.
         scheduler.cancel(42L)
 
+        assertFalse(scheduler.isArmed(42L))
         verify(exactly = 1) {
             incidentRepository.recordAsync(
                 alarmId = 42L,
@@ -180,6 +193,76 @@ class AlarmSchedulerTest {
                 status = AlarmIncidentEvent.STATUS_SUCCEEDED,
                 reasonCode = AlarmIncidentEvent.REASON_CANCELLED,
                 source = "AlarmScheduler"
+            )
+        }
+    }
+
+    @Test
+    fun cancellingAnAlarmThatWasNeverArmedLogsNothing() {
+        scheduler.cancel(48L)
+
+        verify(exactly = 0) {
+            incidentRepository.recordAsync(
+                alarmId = 48L,
+                fireId = any(),
+                scheduledAt = any(),
+                eventAt = any(),
+                type = any(),
+                status = any(),
+                reasonCode = AlarmIncidentEvent.REASON_CANCELLED,
+                source = any()
+            )
+        }
+    }
+
+    @Test
+    fun pausingAnArmedAlarmLogsTheDisarmOnce() = runTest {
+        val alarm = enabledAlarm(id = 46L)
+        every { calculator.calculate(any<Alarm>(), any()) } returns
+            System.currentTimeMillis() + 15 * 60_000L
+        scheduler.schedule(alarm, requestWidgetUpdate = false)
+
+        coEvery { preferencesManager.getCurrentSettings() } returns
+            AppSettings(pauseUntilMillis = System.currentTimeMillis() + 86_400_000L)
+        scheduler.schedule(alarm, requestWidgetUpdate = false)
+        // Every later reschedule pass during the pause finds it already off.
+        scheduler.schedule(alarm, requestWidgetUpdate = false)
+
+        assertEquals(
+            0,
+            shadowOf(context.getSystemService(AlarmManager::class.java)).scheduledAlarms.size
+        )
+        verify(exactly = 1) {
+            incidentRepository.recordAsync(
+                alarmId = 46L,
+                fireId = any(),
+                scheduledAt = 0L,
+                eventAt = any(),
+                type = AlarmIncidentEvent.TYPE_SCHEDULE,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = AlarmIncidentEvent.REASON_CANCELLED,
+                source = "AlarmScheduler"
+            )
+        }
+    }
+
+    @Test
+    fun aPauseOverAnAlarmThatWasNeverArmedLogsNothing() = runTest {
+        coEvery { preferencesManager.getCurrentSettings() } returns
+            AppSettings(pauseUntilMillis = System.currentTimeMillis() + 86_400_000L)
+
+        scheduler.schedule(enabledAlarm(id = 47L), requestWidgetUpdate = false)
+
+        verify(exactly = 0) {
+            incidentRepository.recordAsync(
+                alarmId = 47L,
+                fireId = any(),
+                scheduledAt = any(),
+                eventAt = any(),
+                type = any(),
+                status = any(),
+                reasonCode = AlarmIncidentEvent.REASON_CANCELLED,
+                source = any()
             )
         }
     }
@@ -527,6 +610,176 @@ class AlarmSchedulerTest {
 
         assertEquals(73L, DirectBootAlarmCache.read(context)?.alarmId)
     }
+
+    @Test
+    fun aFailedArmLeavesNothingThatReadsAsArmed() = runTest {
+        every { calculator.calculate(any<Alarm>(), any()) } returns
+            System.currentTimeMillis() + 15 * 60_000L
+
+        for ((id, denied) in listOf(50L to false, 52L to true)) {
+            val failing = schedulerOver(failingAlarmManager(denied))
+
+            failing.schedule(enabledAlarm(id), requestWidgetUpdate = false)
+
+            assertFalse(failing.isArmed(id))
+            verify {
+                incidentRepository.recordAsync(
+                    alarmId = id,
+                    fireId = any(),
+                    scheduledAt = any(),
+                    eventAt = any(),
+                    type = AlarmIncidentEvent.TYPE_SCHEDULE,
+                    status = AlarmIncidentEvent.STATUS_FAILED,
+                    reasonCode = if (denied) {
+                        "SET_AND_ALLOW_WHILE_IDLE_FAILED_IllegalStateException"
+                    } else {
+                        "SET_ALARM_CLOCK_FAILED_IllegalStateException"
+                    },
+                    source = "AlarmScheduler"
+                )
+            }
+        }
+    }
+
+    @Test
+    fun failedReArmsKeepTheLiveArmAsItWas() = runTest {
+        val first = System.currentTimeMillis() + 15 * 60_000L
+        val day = 24 * 3_600_000L
+
+        for ((id, denied, viaScheduleAt) in listOf(
+            Triple(51L, false, false),
+            Triple(53L, true, false),
+            Triple(55L, false, true),
+            Triple(57L, true, true)
+        )) {
+            // The row holds whatever the scheduler last stored, as Room would.
+            var stored = 0L
+            coEvery { repository.updateNextTrigger(id, any()) } answers { stored = secondArg() }
+            coEvery { repository.getById(id) } answers { enabledAlarm(id).copy(nextTriggerTime = stored) }
+            val alarmManager = failingAlarmManager(denied, armsThatWork = 1)
+            val flaky = schedulerOver(alarmManager)
+
+            for (trigger in listOf(first, first + day, first + 2 * day)) {
+                if (viaScheduleAt) {
+                    flaky.scheduleAt(enabledAlarm(id), trigger, requestWidgetUpdate = false)
+                } else {
+                    every { calculator.calculate(any<Alarm>(), any()) } returns trigger
+                    flaky.schedule(enabledAlarm(id), requestWidgetUpdate = false)
+                }
+            }
+
+            // Each failed call got back the PendingIntent AlarmManager still
+            // holds from the first and wrote its own time into it. Cancelling
+            // it would silence the first arm, and leaving a later time in it
+            // would make the first arm ring as that occurrence.
+            verify(exactly = 3) { alarmManager.setAlarmClock(any(), any()) }
+            assertTrue(flaky.isArmed(id))
+            val armed = shadowOf(armedPendingIntent(id)).savedIntent
+            assertEquals(first, armed.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, -1L))
+            assertEquals(
+                AlarmIncidentEvent.fireIdFor(id, first),
+                armed.getStringExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID)
+            )
+            assertEquals(first, stored)
+        }
+    }
+
+    @Test
+    fun aFailedReArmKeepsAPastArmOnlyUntilItRings() = runTest {
+        val due = System.currentTimeMillis() - 60_000L
+        val next = System.currentTimeMillis() + 24 * 3_600_000L
+        every { calculator.calculate(any<Alarm>(), any()) } returns next
+
+        for ((id, denied, fired) in listOf(
+            Triple(54L, false, true),
+            Triple(56L, true, true),
+            Triple(58L, false, false),
+            Triple(60L, true, false)
+        )) {
+            var stored = 0L
+            coEvery { repository.updateNextTrigger(id, any()) } answers { stored = secondArg() }
+            coEvery { repository.getById(id) } answers { enabledAlarm(id).copy(nextTriggerTime = stored) }
+            coEvery { incidentRepository.firedCount(id, due) } returns if (fired) 1 else 0
+            val flaky = schedulerOver(failingAlarmManager(denied, armsThatWork = 1))
+            // An arm whose time has passed. Its PendingIntent stays registered
+            // either way: after it rang, or while an inexact delivery runs late.
+            flaky.scheduleAt(enabledAlarm(id), due, requestWidgetUpdate = false)
+            assertTrue(flaky.isArmed(id))
+
+            flaky.schedule(enabledAlarm(id), requestWidgetUpdate = false)
+
+            if (fired) {
+                assertFalse(flaky.isArmed(id))
+                assertEquals(next, stored)
+            } else {
+                assertTrue(flaky.isArmed(id))
+                val armed = shadowOf(armedPendingIntent(id)).savedIntent
+                assertEquals(due, armed.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, -1L))
+                assertEquals(due, stored)
+            }
+        }
+    }
+
+    @Test
+    fun aFailedReArmAfterAnEditorSaveKeepsTheArmAsUnknown() = runTest {
+        val first = System.currentTimeMillis() + 15 * 60_000L
+        for ((id, denied) in listOf(62L to false, 64L to true)) {
+            var stored = 0L
+            coEvery { repository.updateNextTrigger(id, any()) } answers { stored = secondArg() }
+            coEvery { repository.getById(id) } answers { enabledAlarm(id).copy(nextTriggerTime = stored) }
+            val flaky = schedulerOver(failingAlarmManager(denied, armsThatWork = 1))
+            flaky.scheduleAt(enabledAlarm(id), first, requestWidgetUpdate = false)
+            stored = 0L // the editor saved the alarm, which writes no time
+
+            flaky.scheduleAt(enabledAlarm(id), first + 60 * 60_000L, requestWidgetUpdate = false)
+
+            assertTrue(flaky.isArmed(id))
+            val armed = shadowOf(armedPendingIntent(id)).savedIntent
+            assertEquals(0L, armed.getLongExtra(AlarmScheduler.EXTRA_SCHEDULED_AT, -1L))
+            assertEquals(0L, stored)
+        }
+    }
+
+    /**
+     * Lets the first [armsThatWork] arms through, then setAlarmClock throws.
+     * A policy clamp lands in the generic catch. A denial goes to the inexact
+     * fallback, which throws as well.
+     */
+    private fun failingAlarmManager(denied: Boolean, armsThatWork: Int = 0): AlarmManager {
+        val alarmManager = mockk<AlarmManager>(relaxed = true)
+        var calls = 0
+        every { alarmManager.setAlarmClock(any(), any()) } answers {
+            if (++calls > armsThatWork) {
+                throw if (denied) SecurityException("exact alarms denied") else IllegalStateException("policy clamp")
+            }
+        }
+        every { alarmManager.setAndAllowWhileIdle(any(), any(), any<PendingIntent>()) } throws
+            IllegalStateException("fallback refused")
+        return alarmManager
+    }
+
+    private fun armedPendingIntent(alarmId: Long): PendingIntent = requireNotNull(
+        PendingIntent.getBroadcast(
+            context,
+            alarmId.toInt(),
+            Intent(context, AlarmReceiver::class.java).setAction("com.sysadmindoc.alarmclock.ALARM_FIRE"),
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+    )
+
+    private fun schedulerOver(alarmManager: AlarmManager) = AlarmScheduler(
+        context = object : ContextWrapper(context) {
+            override fun getSystemService(name: String): Any? =
+                if (name == Context.ALARM_SERVICE) alarmManager else super.getSystemService(name)
+        },
+        repository = repository,
+        calculator = calculator,
+        preferencesManager = preferencesManager,
+        holidayRepository = holidayRepository,
+        alarmIncidentRepository = incidentRepository,
+        weatherRepository = weatherRepository,
+        calendarRepository = calendarRepository
+    )
 
     private fun timedEvent(title: String, around: Long) = CalendarEvent(
         id = 1L,

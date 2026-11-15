@@ -191,6 +191,7 @@ internal fun ProcessExitSection(exits: List<ProcessExit>, use24Hour: Boolean) {
                     ExitAlarmOutcome.NOT_DUE_YET -> stringResource(R.string.settings_process_exit_not_due, alarmTime)
                     ExitAlarmOutcome.RANG -> stringResource(R.string.settings_process_exit_rang, alarmTime)
                     ExitAlarmOutcome.NO_RING_RECORDED -> stringResource(R.string.settings_process_exit_no_ring, alarmTime)
+                    ExitAlarmOutcome.CHANGED -> stringResource(R.string.settings_process_exit_changed, alarmTime)
                 }
                 SettingsInfo(
                     label = stringResource(processExitCauseLabel(exit.cause)),

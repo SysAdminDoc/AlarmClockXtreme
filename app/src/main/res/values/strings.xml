@@ -909,6 +909,7 @@
     <string name="settings_process_exit_not_due">The %1$s alarm hasn’t come up yet.</string>
     <string name="settings_process_exit_rang">The %1$s alarm still rang.</string>
     <string name="settings_process_exit_no_ring">No ring on record for the %1$s alarm.</string>
+    <string name="settings_process_exit_changed">The %1$s alarm was changed before it came up.</string>
     <string name="settings_latest_degraded">Latest degraded event</string>
     <string name="settings_latest_incident">Latest incident event</string>
     <plurals name="settings_recent_diagnostics"><item quantity="one">%1$d recent event, kept on this phone.</item><item quantity="other">%1$d recent events, kept on this phone.</item></plurals>

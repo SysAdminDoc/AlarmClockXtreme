@@ -370,9 +370,9 @@ class AlarmService : Service() {
                         type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
                         status = AlarmIncidentEvent.STATUS_RECEIVED,
                         reasonCode = if (flags and START_FLAG_REDELIVERY != 0) {
-                            "START_COMMAND_REDELIVERED"
+                            AlarmIncidentEvent.REASON_START_COMMAND_REDELIVERED
                         } else {
-                            "START_COMMAND_RECEIVED"
+                            AlarmIncidentEvent.REASON_START_COMMAND_RECEIVED
                         },
                         source = "AlarmService"
                     )
@@ -1940,7 +1940,7 @@ class AlarmService : Service() {
                 recordIncident(
                     type = AlarmIncidentEvent.TYPE_USER_ACTION,
                     status = AlarmIncidentEvent.STATUS_SUCCEEDED,
-                    reasonCode = "MAX_SNOOZE_DISMISSED",
+                    reasonCode = AlarmIncidentEvent.REASON_MAX_SNOOZE_DISMISSED,
                     source = "AlarmService",
                     alarmId = alarm.id,
                     testRun = testRun
@@ -2065,7 +2065,7 @@ class AlarmService : Service() {
             recordIncident(
                 type = AlarmIncidentEvent.TYPE_USER_ACTION,
                 status = AlarmIncidentEvent.STATUS_SUCCEEDED,
-                reasonCode = "DISMISSED",
+                reasonCode = AlarmIncidentEvent.REASON_DISMISSED,
                 source = "AlarmService",
                 alarmId = alarm.id,
                 testRun = testRun

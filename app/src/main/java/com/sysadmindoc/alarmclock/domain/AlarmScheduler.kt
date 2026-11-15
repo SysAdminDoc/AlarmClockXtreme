@@ -75,6 +75,7 @@ class AlarmScheduler @Inject constructor(
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_ALARM_FIRE_ID = "alarm_fire_id"
         const val EXTRA_SCHEDULED_AT = "scheduled_at"
+        private const val ACTION_ALARM_FIRE = "com.sysadmindoc.alarmclock.ALARM_FIRE"
 
         private val SNOW_ICE_CODES = setOf(56, 57, 66, 67, 71, 73, 75, 77, 85, 86)
         fun isSnowOrIceCode(code: Int): Boolean = code in SNOW_ICE_CODES
@@ -104,7 +105,7 @@ class AlarmScheduler @Inject constructor(
         }
 
         if (!canScheduleExactAlarms()) {
-            cancelScheduledEntries(sanitizedAlarm.id)
+            disarm(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
             requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return
@@ -117,7 +118,7 @@ class AlarmScheduler @Inject constructor(
         // after the timestamp will re-arm the alarm.
         val currentSettings = preferencesManager.getCurrentSettings()
         if (currentSettings.isPaused()) {
-            cancelScheduledEntries(sanitizedAlarm.id)
+            disarm(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
             requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return
@@ -132,7 +133,7 @@ class AlarmScheduler @Inject constructor(
             calculator.calculate(sanitizedAlarm)
         }
         if (triggerTime <= System.currentTimeMillis()) {
-            cancelScheduledEntries(sanitizedAlarm.id)
+            disarm(sanitizedAlarm.id)
             if (sanitizedAlarm.isRecurringSchedule) {
                 repository.updateNextTrigger(sanitizedAlarm.id, 0)
             } else {
@@ -167,7 +168,7 @@ class AlarmScheduler @Inject constructor(
                 val triggerDate = Instant.ofEpochMilli(triggerTime)
                     .atZone(holidayZone).toLocalDate()
                 if (holidayRepository.isHoliday(triggerDate)) {
-                    cancelScheduledEntries(sanitizedAlarm.id)
+                    disarm(sanitizedAlarm.id)
                     repository.updateNextTrigger(sanitizedAlarm.id, 0)
                     requestWidgetUpdateIfNeeded(requestWidgetUpdate)
                     return
@@ -195,7 +196,7 @@ class AlarmScheduler @Inject constructor(
                     // long public-holiday run): suppress this occurrence rather
                     // than fire on a holiday. The alarm stays enabled; it
                     // reschedules once holiday data refreshes or the user re-saves.
-                    cancelScheduledEntries(sanitizedAlarm.id)
+                    disarm(sanitizedAlarm.id)
                     repository.updateNextTrigger(sanitizedAlarm.id, 0)
                     requestWidgetUpdateIfNeeded(requestWidgetUpdate)
                     return
@@ -217,7 +218,7 @@ class AlarmScheduler @Inject constructor(
                 val triggerDate = Instant.ofEpochMilli(triggerTime)
                     .atZone(calendarZone).toLocalDate()
                 if (isCalendarSkipDay(triggerDate, calendarTag, calendarZone)) {
-                    cancelScheduledEntries(sanitizedAlarm.id)
+                    disarm(sanitizedAlarm.id)
                     CalendarSkipMarks.set(context, sanitizedAlarm.id, calendarOrigin)
                     repository.updateNextTrigger(sanitizedAlarm.id, 0)
                     requestWidgetUpdateIfNeeded(requestWidgetUpdate)
@@ -253,7 +254,7 @@ class AlarmScheduler @Inject constructor(
                 if (advanced == null) {
                     // A month of tagged days (or holidays) in a row: suppress
                     // rather than ring on one. A calendar change reschedules it.
-                    cancelScheduledEntries(sanitizedAlarm.id)
+                    disarm(sanitizedAlarm.id)
                     CalendarSkipMarks.set(context, sanitizedAlarm.id, calendarOrigin)
                     repository.updateNextTrigger(sanitizedAlarm.id, 0)
                     requestWidgetUpdateIfNeeded(requestWidgetUpdate)
@@ -300,8 +301,11 @@ class AlarmScheduler @Inject constructor(
             }
         }
 
+        val liveTrigger = liveArmTrigger(sanitizedAlarm.id)
         repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
-        scheduleAlarmClock(sanitizedAlarm.id, triggerTime)
+        scheduleAlarmClock(sanitizedAlarm.id, triggerTime, liveTrigger)?.let { kept ->
+            repository.updateNextTrigger(sanitizedAlarm.id, kept)
+        }
         cacheForDirectBoot(sanitizedAlarm, triggerTime)
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
         requestWidgetUpdateIfNeeded(requestWidgetUpdate)
@@ -312,6 +316,7 @@ class AlarmScheduler @Inject constructor(
      * Cancel a scheduled alarm and any associated workers/services.
      */
     fun cancel(alarmId: Long) {
+        val wasArmed = isArmed(alarmId)
         cancelScheduledEntries(alarmId, includeFollowUpWorkers = true)
         // The occurrence is over, so its snooze tally must not carry into the
         // next one. A leftover count at or past the cap would otherwise make a
@@ -320,15 +325,47 @@ class AlarmScheduler @Inject constructor(
         CalendarSkipMarks.clear(context, alarmId)
         WidgetUpdater.requestUpdate(context)
         // Without this row the incident log only ever says "armed", so an app
-        // closure report would count a deleted alarm as still due.
-        recordScheduleIncident(
-            alarmId = alarmId,
-            fireId = "",
-            triggerTime = 0L,
-            status = AlarmIncidentEvent.STATUS_SUCCEEDED,
-            reasonCode = AlarmIncidentEvent.REASON_CANCELLED
-        )
+        // closure report would count a deleted alarm as still due. Only a live
+        // arm gets one, or every pass that cancels an alarm already off would
+        // push real rings out of the 100-row log.
+        if (wasArmed) recordCancelled(alarmId)
     }
+
+    /**
+     * Takes an alarm off AlarmManager without turning it off (a pause, a
+     * skipped or suppressed occurrence, exact alarms revoked) and logs the
+     * disarm the way [cancel] does. Only an alarm whose PendingIntent was
+     * still registered gets the row, so the passes that keep finding it
+     * disarmed don't fill the 100-row incident log.
+     */
+    private fun disarm(alarmId: Long) {
+        val wasArmed = isArmed(alarmId)
+        cancelScheduledEntries(alarmId)
+        if (wasArmed) recordCancelled(alarmId)
+    }
+
+    /**
+     * True while the alarm's fire PendingIntent is registered. A cancel or a
+     * failed first arm drops it, and so does a failed schedule() or
+     * scheduleAt() (an exact snooze arm included) once the occurrence it held
+     * is on record as gone off. A ring doesn't, and neither does a failed
+     * re-arm that keeps one that may still fire or a failed inexact snooze
+     * arm, so true doesn't mean AlarmManager still holds it.
+     */
+    fun isArmed(alarmId: Long): Boolean = PendingIntent.getBroadcast(
+        context,
+        alarmId.toInt(),
+        Intent(context, AlarmReceiver::class.java).setAction(ACTION_ALARM_FIRE),
+        PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+    ) != null
+
+    private fun recordCancelled(alarmId: Long) = recordScheduleIncident(
+        alarmId = alarmId,
+        fireId = "",
+        triggerTime = 0L,
+        status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+        reasonCode = AlarmIncidentEvent.REASON_CANCELLED
+    )
 
     /**
      * Schedule a snoozed alarm to fire after the snooze duration.
@@ -424,7 +461,7 @@ class AlarmScheduler @Inject constructor(
     ): Boolean {
         val sanitizedAlarm = alarm.sanitized()
         if (!canScheduleExactAlarms()) {
-            cancelScheduledEntries(sanitizedAlarm.id)
+            disarm(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
             requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return false
@@ -432,14 +469,17 @@ class AlarmScheduler @Inject constructor(
         // v1.11.6 (roadmap N6): respect "Pause alarms" for snooze + quick-add
         // paths too — snoozing inside a pause window shouldn't sneak past it.
         if (preferencesManager.getCurrentSettings().isPaused()) {
-            cancelScheduledEntries(sanitizedAlarm.id)
+            disarm(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
             requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return false
         }
 
+        val liveTrigger = liveArmTrigger(sanitizedAlarm.id)
         repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
-        scheduleAlarmClock(sanitizedAlarm.id, triggerTime)
+        scheduleAlarmClock(sanitizedAlarm.id, triggerTime, liveTrigger)?.let { kept ->
+            repository.updateNextTrigger(sanitizedAlarm.id, kept)
+        }
         cacheForDirectBoot(sanitizedAlarm, triggerTime)
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
         requestWidgetUpdateIfNeeded(requestWidgetUpdate)
@@ -475,7 +515,7 @@ class AlarmScheduler @Inject constructor(
             batch.forEach { alarm ->
                 if (DirectBootAlarmCache.consumeFiredOneShotMarker(context, alarm, now)) {
                     repository.setEnabled(alarm.id, enabled = false, nextTrigger = 0)
-                    cancelScheduledEntries(alarm.id)
+                    disarm(alarm.id)
                     return@forEach
                 }
                 if (!forceRecalculate && alarm.nextTriggerTime > now) {
@@ -521,7 +561,7 @@ class AlarmScheduler @Inject constructor(
     ) {
         val sanitizedAlarm = alarm.sanitized()
         if (!canScheduleExactAlarms()) {
-            cancelScheduledEntries(sanitizedAlarm.id)
+            disarm(sanitizedAlarm.id)
             repository.updateNextTrigger(sanitizedAlarm.id, 0)
             requestWidgetUpdateIfNeeded(requestWidgetUpdate)
             return
@@ -716,7 +756,43 @@ class AlarmScheduler @Inject constructor(
             ?.let { DirectBootAlarmCache.offerIfEarlier(context, it.sanitized(), it.nextTriggerTime, now) }
     }
 
-    private fun scheduleAlarmClock(alarmId: Long, triggerTime: Long) {
+    /**
+     * The time [alarmId]'s registered PendingIntent carries, or null when
+     * there's nothing to keep. Every arm stores its trigger just before it is
+     * set, and a failed re-arm stores the kept time back. isArmed() only sees
+     * that the PendingIntent exists, and nothing cancels it when it fires, so
+     * a stored time already behind us counts as spent once the log shows that
+     * occurrence went off ([AlarmIncidentRepository.firedCount]). Until then
+     * it may still be coming, since the inexact fallback can arrive late. A row saved over since (the editor writes 0)
+     * gives 0, which marks a ring as an unknown occurrence.
+     */
+    private suspend fun liveArmTrigger(alarmId: Long): Long? {
+        if (!isArmed(alarmId)) return null
+        val stored = repository.getById(alarmId)?.nextTriggerTime ?: 0L
+        val spent = stored in 1..System.currentTimeMillis() &&
+            alarmIncidentRepository.firedCount(alarmId, stored) > 0
+        return stored.takeUnless { spent }
+    }
+
+    /**
+     * FLAG_UPDATE_CURRENT hands back the PendingIntent a live arm holds and
+     * writes this attempt's time into it. Left there, the old arm would ring
+     * as the new occurrence and the dismiss would skip that one, so a failed
+     * re-arm puts [kept] back. With nothing to keep, the PendingIntent is
+     * dropped, whether this attempt created it or a ring left it behind, or
+     * isArmed() would read it as armed.
+     */
+    private fun undoFailedArm(pendingIntent: PendingIntent, alarmId: Long, kept: Long?) {
+        if (kept == null) pendingIntent.cancel() else createPendingIntent(alarmId, kept)
+    }
+
+    /**
+     * Returns the time of the arm a failed re-arm kept, which the caller
+     * stores back, or null when this arm was set or there was nothing to keep.
+     * This assumes one call per alarm at a time. Two that overlap can still
+     * restore one's time onto the other's arm.
+     */
+    private fun scheduleAlarmClock(alarmId: Long, triggerTime: Long, liveTrigger: Long?): Long? {
         DirectBootAlarmCache.cancelScheduledFallback(context, alarmId)
         val fireId = AlarmIncidentEvent.fireIdFor(alarmId, triggerTime)
         val showAlarmClockIcon = preferencesManager.getCachedSettings().showAlarmClockIcon
@@ -727,6 +803,9 @@ class AlarmScheduler @Inject constructor(
             status = AlarmIncidentEvent.STATUS_REQUESTED,
             reasonCode = if (showAlarmClockIcon) "SET_ALARM_CLOCK" else "SET_EXACT_ALLOW_WHILE_IDLE"
         )
+        // Checked again just before createPendingIntent registers one: a cancel
+        // since liveArmTrigger leaves no arm to keep.
+        val kept = liveTrigger?.takeIf { isArmed(alarmId) }
         val pendingIntent = createPendingIntent(alarmId, triggerTime, fireId)
         // v1.6.3: `canScheduleExactAlarms()` is checked upstream, but the
         // permission can be revoked between the check and this call (rare but
@@ -781,6 +860,7 @@ class AlarmScheduler @Inject constructor(
                     "Inexact fallback also failed for alarm $alarmId",
                     e2
                 )
+                undoFailedArm(pendingIntent, alarmId, kept)
                 recordScheduleIncident(
                     alarmId = alarmId,
                     fireId = fireId,
@@ -788,6 +868,7 @@ class AlarmScheduler @Inject constructor(
                     status = AlarmIncidentEvent.STATUS_FAILED,
                     reasonCode = "SET_AND_ALLOW_WHILE_IDLE_FAILED_${e2.javaClass.simpleName}"
                 )
+                return kept
             }
         } catch (e: Exception) {
             // Defensive: AlarmManager has been seen to throw RuntimeException on
@@ -798,6 +879,7 @@ class AlarmScheduler @Inject constructor(
                 "Unexpected error scheduling alarm $alarmId",
                 e
             )
+            undoFailedArm(pendingIntent, alarmId, kept)
             recordScheduleIncident(
                 alarmId = alarmId,
                 fireId = fireId,
@@ -805,7 +887,9 @@ class AlarmScheduler @Inject constructor(
                 status = AlarmIncidentEvent.STATUS_FAILED,
                 reasonCode = "SET_ALARM_CLOCK_FAILED_${e.javaClass.simpleName}"
             )
+            return kept
         }
+        return null
     }
 
     private fun recordScheduleIncident(
@@ -992,7 +1076,7 @@ class AlarmScheduler @Inject constructor(
         fireId: String = ""
     ): PendingIntent {
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            action = "com.sysadmindoc.alarmclock.ALARM_FIRE"
+            action = ACTION_ALARM_FIRE
             putExtra(EXTRA_ALARM_ID, alarmId)
             putExtra(EXTRA_SCHEDULED_AT, triggerTime)
             putExtra(EXTRA_ALARM_FIRE_ID, fireId.ifBlank { AlarmIncidentEvent.fireIdFor(alarmId, triggerTime) })

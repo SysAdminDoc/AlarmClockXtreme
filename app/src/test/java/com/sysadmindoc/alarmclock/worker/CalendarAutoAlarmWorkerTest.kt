@@ -128,6 +128,34 @@ class CalendarAutoAlarmWorkerTest {
             AppSettings(calendarAutoAlarmEnabled = enabled)
     }
 
+    @Test
+    fun `a pass that finds the same event leaves the armed alarm alone`() {
+        val now = 1_000_000L
+        val stored = auto(id = 1L).copy(specificDate = "2026-11-16", nextTriggerTime = now + 3_600_000L)
+        // What the pass builds from tomorrow's event: same row, trigger not yet computed.
+        val rebuilt = stored.copy(nextTriggerTime = 0L)
+
+        assertEquals(true, CalendarAutoAlarmWorker.alreadyArmed(stored, rebuilt, now, registered = true))
+        // A moved event, a disarmed row, a trigger already past and a first run all re-arm.
+        assertEquals(false, CalendarAutoAlarmWorker.alreadyArmed(stored, rebuilt.copy(minute = 30), now, registered = true))
+        assertEquals(false, CalendarAutoAlarmWorker.alreadyArmed(stored.copy(nextTriggerTime = 0L), rebuilt, now, registered = true))
+        assertEquals(false, CalendarAutoAlarmWorker.alreadyArmed(stored, rebuilt, now + 3_600_000L, registered = true))
+        assertEquals(false, CalendarAutoAlarmWorker.alreadyArmed(null, rebuilt, now, registered = false))
+        // A failed arm still wrote the trigger to the row, so only the scheduler can say it took.
+        assertEquals(false, CalendarAutoAlarmWorker.alreadyArmed(stored, rebuilt, now, registered = false))
+    }
+
+    @Test
+    fun `an event title past the label limit still counts as the same alarm`() {
+        val now = 1_000_000L
+        val title = "Before: " + "quarterly planning ".repeat(10)
+        // The repository saves rows sanitized, which trims the label to 120 characters.
+        val stored = auto(id = 1L).copy(label = title, nextTriggerTime = now + 3_600_000L).sanitized()
+        val rebuilt = auto(id = 1L).copy(label = title)
+
+        assertEquals(true, CalendarAutoAlarmWorker.alreadyArmed(stored, rebuilt, now, registered = true))
+    }
+
     private fun auto(id: Long) = Alarm(
         id = id,
         hour = 6,

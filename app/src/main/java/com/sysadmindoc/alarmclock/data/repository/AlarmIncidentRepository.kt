@@ -45,9 +45,9 @@ class AlarmIncidentRepository @Inject constructor(
 
     /**
      * Number of `BROADCAST` incidents recorded for a specific alarm occurrence.
-     * `AlarmReceiver` is the only writer of that type, and only on actual
-     * AlarmManager delivery, so a zero here means the fire never reached the
-     * receiver — the signal the fire watchdog acts on.
+     * AlarmReceiver writes one on each AlarmManager delivery, and the dismiss
+     * and snooze actions and the missed-alarm replay write their own, so a
+     * zero here means none of those reached the occurrence.
      */
     suspend fun broadcastDeliveryCount(alarmId: Long, scheduledAt: Long): Int {
         return dao.countByOccurrenceAndType(
@@ -56,6 +56,29 @@ class AlarmIncidentRepository @Inject constructor(
             type = AlarmIncidentEvent.TYPE_BROADCAST
         )
     }
+
+    /**
+     * Rows proving this occurrence already went off: AlarmReceiver's
+     * AlarmManager delivery, AlarmService's start (a watchdog re-fire writes
+     * one too) and the dismiss or snooze-cap dismiss AlarmService writes as
+     * the occurrence ends. A ring through the watchdog's full-screen fallback
+     * that ends there leaves only that last row. A requested or failed start,
+     * a full-screen fallback row or an ordinary snooze on its own doesn't
+     * count, since after any of those AlarmManager's own late delivery may
+     * still be the ring that reaches the user.
+     */
+    suspend fun firedCount(alarmId: Long, scheduledAt: Long): Int =
+        dao.countByOccurrenceAndReasons(
+            alarmId = alarmId,
+            scheduledAt = scheduledAt,
+            reasonCodes = listOf(
+                AlarmIncidentEvent.REASON_ALARM_MANAGER_DELIVERED,
+                AlarmIncidentEvent.REASON_START_COMMAND_RECEIVED,
+                AlarmIncidentEvent.REASON_START_COMMAND_REDELIVERED,
+                AlarmIncidentEvent.REASON_DISMISSED,
+                AlarmIncidentEvent.REASON_MAX_SNOOZE_DISMISSED
+            )
+        )
 
     /**
      * How many times this occurrence actually reached the alarm, counting both

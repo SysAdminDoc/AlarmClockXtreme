@@ -866,6 +866,7 @@
     <string name="settings_process_exit_not_due">%1$s のアラームはまだ時刻になっていません。</string>
     <string name="settings_process_exit_rang">%1$s のアラームは鳴りました。</string>
     <string name="settings_process_exit_no_ring">%1$s のアラームが鳴った記録はありません。</string>
+    <string name="settings_process_exit_changed">%1$s のアラームは時刻になる前に変更されました。</string>
     <string name="settings_latest_degraded">最新の低下イベント</string>
     <string name="settings_latest_incident">最新の不具合イベント</string>
     <plurals name="settings_recent_diagnostics">

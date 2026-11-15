@@ -70,6 +70,14 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
 
 ### P3
 
+- [ ] P3: App closures: say when the app was closed mid-ring
+  Why: a process death while an alarm is ringing is the worst closure there is, but the card reports "No alarm was set" for it, because the alarm's armed time is already before the exit and it isn't re-armed until it's dismissed.
+  Evidence: `data/repository/ProcessExitRepository.kt` `alarmOutcome` keeps only arms with `scheduledAt > exitAt`. AlarmService's START_COMMAND row before the exit with no dismiss, snooze or auto-silence row between it and the exit marks the ringing case.
+  Touches: `ProcessExitRepository.kt` (new outcome), `SettingsReadinessSections.kt`, strings en and ja, `ProcessExitReportsTest.kt`.
+  Acceptance: an exit between a service start and that fire's dismiss, snooze or auto-silence reads "The %s alarm was ringing", and a unit test covers a ring that ended before the exit.
+  Also: `directboot/DirectBootAlarmService` writes no incident rows, so a ring before first unlock reads "no ring recorded"; and an arm the app moved itself (weather or commute lead) reads "changed" rather than owed. Log a start row from the direct-boot service, and treat an app-made re-arm for the same occurrence as the same arm.
+  Complexity: S
+
 - [ ] P3: Per-alarm "pause until a date"
   Why: `pauseUntilMillis` is a single global setting, so pausing one alarm for a fortnight means either disabling it and remembering to re-enable it, or pausing everything. Two competitor trackers carry the same request.
   Evidence: `data/preferences/PreferencesManager.kt:156` (global `pauseUntilMillis`), `domain/VacationAlarmPolicy.kt` (also global and recurring-only); sweakpl/qralarm-android #95, you-apps/ClockYou #405.

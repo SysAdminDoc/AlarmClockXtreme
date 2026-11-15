@@ -73,6 +73,15 @@ data class AlarmIncidentEvent(
         const val REASON_NONE = "NONE"
         /** A SCHEDULE row with this reason means the alarm was disarmed (deleted, turned off or replaced). */
         const val REASON_CANCELLED = "CANCELLED"
+        /** AlarmReceiver's BROADCAST row: AlarmManager itself delivered the fire. */
+        const val REASON_ALARM_MANAGER_DELIVERED = "ALARM_MANAGER_DELIVERED"
+        /** AlarmService's FOREGROUND_SERVICE rows, one for each start command it takes for a real ring (a test run writes none). REDELIVERED marks a redelivered one. */
+        const val REASON_START_COMMAND_RECEIVED = "START_COMMAND_RECEIVED"
+        const val REASON_START_COMMAND_REDELIVERED = "START_COMMAND_REDELIVERED"
+        /** AlarmService's USER_ACTION row for a dismissed occurrence. */
+        const val REASON_DISMISSED = "DISMISSED"
+        /** AlarmService's USER_ACTION row for an occurrence a snooze past the snooze cap ended. */
+        const val REASON_MAX_SNOOZE_DISMISSED = "MAX_SNOOZE_DISMISSED"
         const val VALUE_UNKNOWN = "UNKNOWN"
         const val VALUE_NOT_APPLICABLE = "NOT_APPLICABLE"
         const val VALUE_NONE = "NONE"

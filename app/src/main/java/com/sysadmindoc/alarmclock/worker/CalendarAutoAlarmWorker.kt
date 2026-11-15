@@ -93,6 +93,16 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
         /** Beyond this a calendar read is failing for a reason a retry cannot fix. */
         private const val MAX_RETRY_ATTEMPTS = 5
 
+        /**
+         * The stored auto-alarm already matches this pass's and is armed for a
+         * time still ahead. [registered] is the scheduler's own word that the
+         * arm took, since a failed arm still wrote the trigger to the row. The
+         * row was saved sanitized, so the rebuilt one is compared the same way.
+         */
+        internal fun alreadyArmed(existing: Alarm?, updated: Alarm, now: Long, registered: Boolean): Boolean =
+            existing != null && registered && existing.nextTriggerTime > now &&
+                updated.sanitized().copy(nextTriggerTime = existing.nextTriggerTime) == existing
+
         fun schedulePeriodic(context: Context) {
             val request = PeriodicWorkRequestBuilder<CalendarAutoAlarmWorker>(
                 PERIODIC_INTERVAL_MINUTES,
@@ -189,6 +199,12 @@ class CalendarAutoAlarmWorker @AssistedInject constructor(
             repeatDays = emptySet(),
             nextTriggerTime = 0
         )
+
+        // Most passes find tomorrow's first event where it was. Re-arming the
+        // same alarm every 15 minutes would push real history out of the
+        // 100-row incident log the app closure report reads.
+        val registered = existing != null && scheduler.isArmed(existing.id)
+        if (alreadyArmed(existing, updated, System.currentTimeMillis(), registered)) return Result.success()
 
         // Cancel any previous schedule before re-arming with the new time/date.
         if (existing != null) scheduler.cancel(existing.id)

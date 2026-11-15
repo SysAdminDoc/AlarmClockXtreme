@@ -28,7 +28,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 scheduledAt = scheduledAt,
                 type = AlarmIncidentEvent.TYPE_BROADCAST,
                 status = AlarmIncidentEvent.STATUS_RECEIVED,
-                reasonCode = "ALARM_MANAGER_DELIVERED",
+                reasonCode = AlarmIncidentEvent.REASON_ALARM_MANAGER_DELIVERED,
                 source = "AlarmReceiver"
             )
         )

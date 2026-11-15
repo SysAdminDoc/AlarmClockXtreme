@@ -19,15 +19,26 @@ interface AlarmIncidentEventDao {
 
     /**
      * Count incidents of a given [type] for a specific alarm occurrence. The
-     * fire watchdog uses this with [AlarmIncidentEvent.TYPE_BROADCAST] to detect
-     * whether AlarmManager ever delivered the fire for `(alarmId, scheduledAt)`:
-     * zero broadcast rows means the alarm was silently suppressed.
+     * fire watchdog adds the `BROADCAST` and `FOREGROUND_SERVICE` counts for
+     * `(alarmId, scheduledAt)`, and zero of both means the fire never reached
+     * the alarm.
      */
     @Query(
         "SELECT COUNT(*) FROM alarm_incident_events " +
             "WHERE alarmId = :alarmId AND scheduledAt = :scheduledAt AND type = :type"
     )
     suspend fun countByOccurrenceAndType(alarmId: Long, scheduledAt: Long, type: String): Int
+
+    /** Count incidents for one alarm occurrence whose reason is one of [reasonCodes]. */
+    @Query(
+        "SELECT COUNT(*) FROM alarm_incident_events " +
+            "WHERE alarmId = :alarmId AND scheduledAt = :scheduledAt AND reasonCode IN (:reasonCodes)"
+    )
+    suspend fun countByOccurrenceAndReasons(
+        alarmId: Long,
+        scheduledAt: Long,
+        reasonCodes: List<String>
+    ): Int
 
     @Query("DELETE FROM alarm_incident_events WHERE eventAt < :beforeMs")
     suspend fun deleteOlderThan(beforeMs: Long)
