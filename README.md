@@ -45,7 +45,7 @@ Download the signed APKs and matching checksums from the [latest release](https:
 Install the Play build over ADB:
 
 ```bash
-adb install AlarmClockXtreme-v1.15.35-play-release.apk
+adb install AlarmClockXtreme-v1.16.0-play-release.apk
 ```
 
 Each release includes `SHA256SUMS.txt` and certificate fingerprints so you can verify the file before installing it.
@@ -132,7 +132,7 @@ python scripts/osv_gradle_audit.py
 Verify an APK against the certificate fingerprint published with the release:
 
 ```bash
-apksigner verify --print-certs AlarmClockXtreme-v1.15.35-play-release.apk
+apksigner verify --print-certs AlarmClockXtreme-v1.16.0-play-release.apk
 ```
 
 For Android 17 and 16 KB page-size testing, run:

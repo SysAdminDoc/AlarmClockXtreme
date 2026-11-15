@@ -48,6 +48,12 @@ Builds:
     subdir: app
     gradle:
       - fdroid
+  - versionName: 1.16.0
+    versionCode: 138
+    commit: v1.16.0
+    subdir: app
+    gradle:
+      - fdroid
 
 AntiFeatures:
   NonFreeNet:
@@ -55,9 +61,11 @@ AntiFeatures:
       Optional features can contact third-party network services, including
       Open-Meteo weather and air quality, Nager.Date public holidays,
       api.weather.gov alerts, Windy radar, public RSS feeds, user-configured
-      webhooks, internet radio streams, and a local Philips Hue bridge.
+      webhooks, internet radio streams, the Radio Browser station directory,
+      Google Routes with your own API key, a local Philips Hue bridge or
+      IKEA DIRIGERA hub, and an opt-in GitHub release check.
       Local crash logs do not use network access and are never uploaded by
       the app.
 
-CurrentVersion: 1.15.35
-CurrentVersionCode: 137
+CurrentVersion: 1.16.0
+CurrentVersionCode: 138

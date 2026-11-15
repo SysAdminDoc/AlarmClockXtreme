@@ -2,7 +2,7 @@
 
 All notable changes to AlarmClockXtreme will be documented in this file.
 
-## [1.16.0] - 2026-11-12 (unreleased)
+## [1.16.0] - 2026-11-15
 
 ### Added
 
@@ -13,11 +13,11 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Snooze can be switched off for a single alarm. The Snooze button and its notification action go away, and flipping or covering the phone or pressing a volume key won't snooze it (#49).
 - A dismiss challenge, or a whole chain of them, can repeat up to ten times with a fresh puzzle each round. The ringing screen shows which round you're on.
 - Test now rings an alarm right away with its own sound, challenges, snooze and wake check. It's in the alarm's menu and in the editor, and it leaves the schedule, your history, webhooks and Guardian Angel alone (#62).
-- The sunrise light feature works with IKEA lights on a DIRIGERA hub. Pair the hub in Settings with a press of its button and pick your lights, and they fade up from warm white before the alarm rings (#63).
+- The sunrise light feature can use IKEA lights on a DIRIGERA hub. Pair the hub in Settings with a press of its button and pick your lights, and they fade up from warm white before the alarm rings (#63).
 - Internet radio has a station search. Type a name or a genre, tap a station to hear it, and tap Use to put it on the alarm. Paste a .pls or .m3u playlist link and the app swaps in the stream inside it, and HLS stations (the .m3u8 kind a lot of broadcasters use now) play as well (#65).
 - Deleting several alarms at once can be undone. Tap Undo on the message that pops up and every one of them comes back, set to ring like before, so the confirmation dialog is gone.
 - Settings > Readiness has an App closures card on Android 11 and newer. It reads Android's own record of when it closed the app and why (a force stop, low memory, a crash, Android 17's new memory limit) and says whether the next alarm still rang afterward. If you moved, skipped or paused that alarm before it came up, the card says it was changed instead of calling it missed. Support exports carry the same list. Deleting, turning off, pausing or editing an alarm now leaves a line in the alarm log too, so an alarm you removed is never reported as missed. That holds for alarms removed before this update as well.
-- You can have the app tell you when a new version is out. Turn on Check for updates under Settings > Utilities > About and once a day it asks GitHub for the newest release. If it's newer than yours, you get one quiet notification that opens the release page. It's off until you switch it on, it never downloads anything, and it says nothing when you're offline. If its notifications are switched off, it waits and tells you once they're back on.
+- You can have the app tell you when a new version is out. Turn on Check for updates under Settings > Utilities > About and once a day it asks GitHub for the newest release. If it's newer than yours, you get one quiet notification that opens the release page. It's off until you switch it on and never downloads anything. When you're offline it stays silent. If its notifications are switched off, it waits and tells you once they're back on.
 - Photo Match can take its reference photo from your gallery, so you don't have to be standing in the spot when you set the alarm up. Tap From gallery next to Capture in the alarm editor. The app keeps its own copy, turned upright, so deleting or editing the original later won't affect the alarm (#52).
 
 ### Changed
@@ -48,7 +48,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The app says an alarm rings, not that it "fires", in the editor, Settings, Statistics and notifications. The firing screen is the ringing screen everywhere too. Alarm cards say "Rings tomorrow" or "Rings today" where they used to say "Next occurrence: Fri, Nov 13".
 - The welcome pages keep their dots just above the button on every page, mark a finished step with a check, and no longer show a second Finish button that did the same thing as the first. After you run the test alarm, its note stops repeating its own heading and says what to expect instead.
 - Settings sticks to one outlined icon style, Health Connect's sync button has a refresh icon instead of a moon, and the backup buttons stack full width so their labels fit on one line.
-- Statistics holds off on the "0s average response" line until an alarm has actually been dismissed, and drops a second "need more history" line that repeated the first.
+- Statistics holds off on the "0s average response" line until an alarm has been dismissed, and drops a second "need more history" line that repeated the first.
 - The stopwatch's subtitle shows in full and keeps its height, so the screen doesn't jump when you start or stop it.
 - The World clock search box fits its hint on one line, and the Add a city dialog no longer explains the search box twice. Its one line says to tap a result to add it.
 - Switches and buttons in Settings line up with the text fields and notes in the same card, and pressing one still highlights the row out to the card's edge.
@@ -68,7 +68,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - An alarm that rings on a locked phone with the screen off turns the screen on and opens the ringing screen by itself. A snoozed alarm coming back could ring with the screen dark until you woke the phone and tapped its notification. A finished timer wakes the screen too.
 - On a phone with a PIN, pattern or password, the unlock pad no longer pops up over a ringing alarm, so Snooze and Dismiss work without unlocking. An NFC challenge asks you to unlock before it scans, and Photo Match asks when you tap to take the picture.
 - On a phone with no camera app, tapping to take the Photo Match picture used to close the ringing screen. Now it tells you there's no camera app.
-- A Spotify alarm no longer goes quiet when Spotify doesn't start playing. Pasted open.spotify.com links (locale prefixes and old /user/ playlist links included) are turned into the spotify: form Spotify actually opens, the watchdog ignores the alarm's own stream when it checks for playback, and if nothing is playing when the backup sound is due, the default tone starts. Backup sound is now on for new alarms. A link that isn't Spotify gets a warning in the editor and is cleared on save (#53).
+- A Spotify alarm no longer goes quiet when Spotify doesn't start playing. Pasted open.spotify.com links (locale prefixes and old /user/ playlist links included) are turned into the spotify: form the Spotify app opens, the watchdog ignores the alarm's own stream when it checks for playback, and if nothing is playing when the backup sound is due, the default tone starts. Backup sound is now on for new alarms. A link that isn't Spotify gets a warning in the editor and is cleared on save (#53).
 - When a Spotify alarm falls back to the alarm sound, the ringing screen comes back on top. It used to stay behind Spotify (often its sign-in page), so you had to go looking for Dismiss and Snooze (#53).
 - If Android still keeps the ringing screen behind Spotify, the alarm notification pops up again saying the backup tone is ringing, and tapping it opens the alarm. Android blocks that kind of screen switch without any error, so the app now checks two seconds later whether the screen really came back.
 - A snoozed alarm that rang again while its old ringing screen was still open in the background reused that screen, which kept pointing at the earlier ring. It now opens a fresh screen for the new ring.
@@ -89,7 +89,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Guardian Angel can ask for its permissions from the alarm editor. "Allow direct calls" lets it call your emergency contact instead of only opening the dialer, and the F-Droid build also gets "Allow automatic texts" so the alert text goes out on its own. The app never asked for either one before, so Settings kept counting Guardian Angel as not ready with no way to fix it short of Android's app settings.
 - Tiles and tracks that sat on a card in the card's own color were invisible. That hit the Bedtime breathing, sleep cycle, checklist and jet lag tiles, the Bedtime arc and sleep chart, the stopwatch dial, the timer ring and the Statistics bars, and they all show now.
 - TalkBack read every tab name, some stopwatch controls and the titles on Bedtime's number cards twice.
-- Health Connect said no sleep session had been recorded even while reading from it was switched off. It only says so now when it has actually looked.
+- Health Connect said no sleep session had been recorded even while reading from it was switched off. Now it only says that after it has checked.
 - The permissions card on the welcome pages and in Settings was always in English.
 - The widget's gray text and the white labels on the green and coral challenge buttons were hard to read against their backgrounds.
 - The stopwatch's empty state got cut down to a lone icon on phones. It's a one-line hint now.
