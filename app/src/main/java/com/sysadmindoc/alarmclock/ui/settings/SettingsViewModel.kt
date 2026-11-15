@@ -33,6 +33,8 @@ import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProofStore
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
+import com.sysadmindoc.alarmclock.data.repository.ProcessExit
+import com.sysadmindoc.alarmclock.data.repository.ProcessExitRepository
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.data.support.SupportExportManager
 import com.sysadmindoc.alarmclock.domain.AlarmMuteRiskPolicy
@@ -105,7 +107,9 @@ data class SettingsUiState(
     val appStandbyBucket: Int = AppStandbyBucket.UNKNOWN,
     val testAlarmProof: TestAlarmProof = TestAlarmProof(),
     val healthConnectSleepSummary: HealthConnectSleepSummary = HealthConnectSleepSummary(),
-    val incidentTimeline: SettingsIncidentTimelineState = SettingsIncidentTimelineState()
+    val incidentTimeline: SettingsIncidentTimelineState = SettingsIncidentTimelineState(),
+    /** Android's own record of why the process ended, newest first (Android 11+). */
+    val processExits: List<ProcessExit> = emptyList()
 )
 
 object AppStandbyBucket {
@@ -178,6 +182,7 @@ class SettingsViewModel @Inject constructor(
     private val supportExportManager: SupportExportManager,
     private val alarmRepository: AlarmRepository,
     private val alarmIncidentRepository: AlarmIncidentRepository,
+    private val processExitRepository: ProcessExitRepository,
     private val hueBridgeClient: HueBridgeClient,
     private val hueTrustStore: HueTrustStore,
     private val dirigeraClient: DirigeraClient,
@@ -211,13 +216,20 @@ class SettingsViewModel @Inject constructor(
         .distinctUntilChanged()
         .catch { emit(0) }
 
+    // Android's exit record can't change while this process is alive, so only the
+    // incident log it's matched against can move the outcomes (Clear history included).
+    private val processExitState = alarmIncidentRepository.observeRecent(limit = 1)
+        .map { processExitRepository.recentExits() }
+        .catch { emit(emptyList()) }
+
     private val auxiliaryState = combine(
         _wakeReadinessState,
         _healthConnectSleepState,
         incidentTimelineState,
-        guardianAlarmCountState
-    ) { wakeReadiness, healthConnectSleep, incidentTimeline, guardianAlarmCount ->
-        SettingsAuxiliaryState(wakeReadiness, healthConnectSleep, incidentTimeline, guardianAlarmCount)
+        guardianAlarmCountState,
+        processExitState
+    ) { wakeReadiness, healthConnectSleep, incidentTimeline, guardianAlarmCount, processExits ->
+        SettingsAuxiliaryState(wakeReadiness, healthConnectSleep, incidentTimeline, guardianAlarmCount, processExits)
     }
 
     val uiState: StateFlow<SettingsUiState> = combine(
@@ -260,7 +272,8 @@ class SettingsViewModel @Inject constructor(
             appStandbyBucket = wakeReadiness.appStandbyBucket,
             testAlarmProof = wakeReadiness.testAlarmProof,
             healthConnectSleepSummary = auxiliary.healthConnectSleep,
-            incidentTimeline = auxiliary.incidentTimeline
+            incidentTimeline = auxiliary.incidentTimeline,
+            processExits = auxiliary.processExits
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsUiState())
 
@@ -1011,7 +1024,8 @@ class SettingsViewModel @Inject constructor(
         val wakeReadiness: WakeReadinessState,
         val healthConnectSleep: HealthConnectSleepSummary,
         val incidentTimeline: SettingsIncidentTimelineState,
-        val guardianAlarmCount: Int
+        val guardianAlarmCount: Int,
+        val processExits: List<ProcessExit>
     )
 
     private data class WakeReadinessState(

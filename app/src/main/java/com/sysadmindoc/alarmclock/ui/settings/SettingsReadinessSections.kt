@@ -90,6 +90,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
@@ -136,6 +137,9 @@ import com.sysadmindoc.alarmclock.data.backup.FossifyImportPreview
 import com.sysadmindoc.alarmclock.data.health.HealthConnectAvailability
 import com.sysadmindoc.alarmclock.data.health.HealthConnectSleepSummary
 import com.sysadmindoc.alarmclock.data.preferences.AppSettings
+import com.sysadmindoc.alarmclock.data.repository.ExitAlarmOutcome
+import com.sysadmindoc.alarmclock.data.repository.ProcessExit
+import com.sysadmindoc.alarmclock.data.repository.ProcessExitCause
 import com.sysadmindoc.alarmclock.data.support.SupportExportFile
 import com.sysadmindoc.alarmclock.domain.OnCallDndOverride
 import com.sysadmindoc.alarmclock.ui.permissions.PermissionRequestCard
@@ -150,6 +154,7 @@ import com.sysadmindoc.alarmclock.ui.theme.SurfaceLight
 import com.sysadmindoc.alarmclock.ui.theme.TextMuted
 import com.sysadmindoc.alarmclock.ui.theme.TextPrimary
 import com.sysadmindoc.alarmclock.ui.theme.TextSecondary
+import com.sysadmindoc.alarmclock.util.AlarmTimeFormatter
 import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
 import java.time.DayOfWeek
 import java.time.Instant
@@ -160,6 +165,59 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
+
+private const val PROCESS_EXITS_SHOWN = 5
+
+/** Android's own record of when and why it closed the app, next to the alarm it put at risk. */
+@Composable
+internal fun ProcessExitSection(exits: List<ProcessExit>, use24Hour: Boolean) {
+    SettingsGroup(
+        title = stringResource(R.string.settings_process_exits),
+        description = stringResource(R.string.settings_process_exits_description)
+    ) {
+        if (exits.isEmpty()) {
+            Text(
+                text = stringResource(R.string.settings_process_exits_empty),
+                color = TextSecondary,
+                style = MaterialTheme.typography.bodySmall
+            )
+        } else {
+            val locale = LocalConfiguration.current.locales[0]
+            exits.take(PROCESS_EXITS_SHOWN).forEach { exit ->
+                val alarmTime = AlarmTimeFormatter.format(exit.armedAlarmAt, use24Hour, locale = locale)
+                val outcome = when (exit.alarmOutcome) {
+                    ExitAlarmOutcome.UNKNOWN -> stringResource(R.string.settings_process_exit_alarm_unknown)
+                    ExitAlarmOutcome.NO_ALARM_SET -> stringResource(R.string.settings_process_exit_no_alarm)
+                    ExitAlarmOutcome.NOT_DUE_YET -> stringResource(R.string.settings_process_exit_not_due, alarmTime)
+                    ExitAlarmOutcome.RANG -> stringResource(R.string.settings_process_exit_rang, alarmTime)
+                    ExitAlarmOutcome.NO_RING_RECORDED -> stringResource(R.string.settings_process_exit_no_ring, alarmTime)
+                }
+                SettingsInfo(
+                    label = stringResource(processExitCauseLabel(exit.cause)),
+                    description = formatIncidentTimestamp(exit.timestamp, use24Hour) + "\n" + outcome
+                )
+            }
+        }
+    }
+}
+
+@StringRes
+private fun processExitCauseLabel(cause: ProcessExitCause): Int = when (cause) {
+    ProcessExitCause.MEMORY_LIMIT -> R.string.settings_process_exit_memory_limit
+    ProcessExitCause.LOW_MEMORY -> R.string.settings_process_exit_low_memory
+    ProcessExitCause.FORCE_STOPPED -> R.string.settings_process_exit_force_stopped
+    ProcessExitCause.TASK_MANAGER -> R.string.settings_process_exit_task_manager
+    ProcessExitCause.CRASH -> R.string.settings_process_exit_crash
+    ProcessExitCause.NOT_RESPONDING -> R.string.settings_process_exit_not_responding
+    ProcessExitCause.APP_UPDATED -> R.string.settings_process_exit_app_updated
+    ProcessExitCause.PERMISSION_CHANGED -> R.string.settings_process_exit_permission_changed
+    ProcessExitCause.RESOURCE_USE -> R.string.settings_process_exit_resource_use
+    ProcessExitCause.FROZEN -> R.string.settings_process_exit_frozen
+    ProcessExitCause.SELF_EXIT -> R.string.settings_process_exit_self_exit
+    ProcessExitCause.START_FAILED -> R.string.settings_process_exit_start_failed
+    ProcessExitCause.SYSTEM_KILLED -> R.string.settings_process_exit_system_killed
+    ProcessExitCause.UNKNOWN -> R.string.settings_process_exit_unknown
+}
 
 @Composable
 internal fun IncidentTimelineSection(

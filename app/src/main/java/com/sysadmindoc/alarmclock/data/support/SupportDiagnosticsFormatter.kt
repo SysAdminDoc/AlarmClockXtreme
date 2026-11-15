@@ -4,6 +4,7 @@ import com.sysadmindoc.alarmclock.data.local.entity.ActigraphySession
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
+import com.sysadmindoc.alarmclock.data.repository.ProcessExit
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import java.time.DayOfWeek
@@ -256,6 +257,25 @@ object SupportDiagnosticsFormatter {
                         csv(incident.fullScreenIntentAllowed),
                         csv(incident.batteryOptimizationsIgnored),
                         csv(incident.algorithmVersion)
+                    ).joinToString(",")
+                )
+            }
+        }
+    }
+
+    /** Android's exit record as the readiness screen shows it; the OS description is scrubbed like a crash log. */
+    fun processExitCsv(exits: List<ProcessExit>): String {
+        return buildString {
+            appendLine("timestamp,reasonCode,cause,description,alarmOutcome,armedAlarmAt")
+            exits.forEach { exit ->
+                appendLine(
+                    listOf(
+                        exit.timestamp.toString(),
+                        exit.reasonCode.toString(),
+                        csv(exit.cause.name),
+                        csv(CrashLogScrubber.scrub(exit.description)),
+                        csv(exit.alarmOutcome.name),
+                        exit.armedAlarmAt.toString()
                     ).joinToString(",")
                 )
             }

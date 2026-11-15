@@ -5,6 +5,9 @@ import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.data.readiness.TestAlarmProof
 import com.sysadmindoc.alarmclock.data.repository.AlarmStats
+import com.sysadmindoc.alarmclock.data.repository.ExitAlarmOutcome
+import com.sysadmindoc.alarmclock.data.repository.ProcessExit
+import com.sysadmindoc.alarmclock.data.repository.ProcessExitCause
 import com.sysadmindoc.alarmclock.worker.GuardianReadiness
 import com.sysadmindoc.alarmclock.worker.GuardianSmsPath
 import org.junit.Assert.assertEquals
@@ -298,6 +301,30 @@ class SupportDiagnosticsFormatterTest {
         assertTrue(json.contains("\"totalRuntimeMinutes\": 0"))
         assertTrue(json.contains("\"latestDecisionReason\": null"))
         assertTrue(json.contains("\"latestObservedMinutes\": null"))
+    }
+
+    @Test
+    fun `process exit csv scrubs the OS description and escapes quotes`() {
+        val csv = SupportDiagnosticsFormatter.processExitCsv(
+            listOf(
+                ProcessExit(
+                    reasonCode = 10,
+                    timestamp = 1_700_000_000_000L,
+                    description = "stop \"app\" via https://secret.example.com/x",
+                    cause = ProcessExitCause.FORCE_STOPPED,
+                    alarmOutcome = ExitAlarmOutcome.NO_RING_RECORDED,
+                    armedAlarmAt = 1_700_000_060_000L
+                )
+            )
+        )
+        val lines = csv.trimEnd().lines()
+        assertEquals("timestamp,reasonCode,cause,description,alarmOutcome,armedAlarmAt", lines[0])
+        assertEquals(2, lines.size)
+        assertTrue(lines[1].startsWith("1700000000000,10,\"FORCE_STOPPED\","))
+        assertTrue(lines[1].endsWith(",\"NO_RING_RECORDED\",1700000060000"))
+        assertTrue(lines[1].contains("\"\"app\"\""))
+        assertTrue(lines[1].contains("[URL_REDACTED]"))
+        assertFalse(lines[1].contains("secret.example.com"))
     }
 
     // --- A12: Crash Log Scrubber ---

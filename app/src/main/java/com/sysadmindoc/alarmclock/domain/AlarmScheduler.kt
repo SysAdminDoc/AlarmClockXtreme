@@ -319,6 +319,15 @@ class AlarmScheduler @Inject constructor(
         AlarmRuntimeState.clear(context, alarmId)
         CalendarSkipMarks.clear(context, alarmId)
         WidgetUpdater.requestUpdate(context)
+        // Without this row the incident log only ever says "armed", so an app
+        // closure report would count a deleted alarm as still due.
+        recordScheduleIncident(
+            alarmId = alarmId,
+            fireId = "",
+            triggerTime = 0L,
+            status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+            reasonCode = AlarmIncidentEvent.REASON_CANCELLED
+        )
     }
 
     /**

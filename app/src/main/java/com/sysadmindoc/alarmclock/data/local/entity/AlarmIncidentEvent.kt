@@ -71,6 +71,8 @@ data class AlarmIncidentEvent(
         const val STATUS_SKIPPED = "SKIPPED"
 
         const val REASON_NONE = "NONE"
+        /** A SCHEDULE row with this reason means the alarm was disarmed (deleted, turned off or replaced). */
+        const val REASON_CANCELLED = "CANCELLED"
         const val VALUE_UNKNOWN = "UNKNOWN"
         const val VALUE_NOT_APPLICABLE = "NOT_APPLICABLE"
         const val VALUE_NONE = "NONE"

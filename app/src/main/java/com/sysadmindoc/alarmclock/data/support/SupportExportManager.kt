@@ -17,6 +17,7 @@ import com.sysadmindoc.alarmclock.data.local.CommuteHistoryStore
 import com.sysadmindoc.alarmclock.data.repository.AlarmEventRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
 import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
+import com.sysadmindoc.alarmclock.data.repository.ProcessExitRepository
 import com.sysadmindoc.alarmclock.data.repository.ActigraphyRepository
 import com.sysadmindoc.alarmclock.util.CrashLogger
 import com.sysadmindoc.alarmclock.util.LocalNetworkPermission
@@ -64,6 +65,7 @@ class SupportExportManager @Inject constructor(
     private val alarmEventRepository: AlarmEventRepository,
     private val actigraphyRepository: ActigraphyRepository,
     private val alarmIncidentRepository: AlarmIncidentRepository,
+    private val processExitRepository: ProcessExitRepository,
     private val preferencesManager: com.sysadmindoc.alarmclock.data.preferences.PreferencesManager,
     private val commuteHistoryStore: CommuteHistoryStore
 ) {
@@ -86,6 +88,7 @@ class SupportExportManager @Inject constructor(
         val latestSmartWakeSession = smartWakeSessions.firstOrNull()
         val incidents = alarmIncidentRepository.getRecent(limit = MAX_INCIDENTS)
         val latestIncident = incidents.firstOrNull()
+        val processExits = processExitRepository.recentExits()
         val crashLogs = CrashLogger.getLogFiles(context).take(MAX_CRASH_LOGS)
         val guardianReadiness = GuardianEscalationPolicy.readiness(
             flavor = BuildConfig.FLAVOR,
@@ -111,7 +114,8 @@ class SupportExportManager @Inject constructor(
             "smart_wake_summary.json",
             "diagnostics.txt",
             "alarms_redacted.csv",
-            "incident_timeline.csv"
+            "incident_timeline.csv",
+            "process_exits.csv"
         )
         if (crashLogs.isNotEmpty()) {
             crashLogs.forEach { includedFiles.add("crash_logs/${it.name}") }
@@ -205,6 +209,7 @@ class SupportExportManager @Inject constructor(
             )
             zip.writeTextEntry("alarms_redacted.csv", SupportDiagnosticsFormatter.alarmCsv(alarms))
             zip.writeTextEntry("incident_timeline.csv", SupportDiagnosticsFormatter.alarmIncidentCsv(incidents))
+            zip.writeTextEntry("process_exits.csv", SupportDiagnosticsFormatter.processExitCsv(processExits))
             if (crashLogs.isEmpty()) {
                 zip.writeTextEntry("crash_logs/README.txt", "No local crash logs were present.\n")
             } else {

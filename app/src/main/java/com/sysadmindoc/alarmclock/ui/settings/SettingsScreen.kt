@@ -422,6 +422,15 @@ fun SettingsScreen(
                 onClearIncidentHistory = viewModel::clearIncidentHistory
             )
             }
+            // Android keeps the exit record from 11 on; older versions have nothing to show.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                settingsItem("readiness-exits") {
+                    ProcessExitSection(
+                        exits = state.processExits,
+                        use24Hour = state.settings.is24HourFormat
+                    )
+                }
+            }
             settingsItem("readiness-permissions") {
                 PermissionRequestCard(includeNotifications = false)
             }

@@ -16,6 +16,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - The sunrise light feature works with IKEA lights on a DIRIGERA hub. Pair the hub in Settings with a press of its button and pick your lights, and they fade up from warm white before the alarm rings (#63).
 - Internet radio has a station search. Type a name or a genre, tap a station to hear it, and tap Use to put it on the alarm. Paste a .pls or .m3u playlist link and the app swaps in the stream inside it, and HLS stations (the .m3u8 kind a lot of broadcasters use now) play as well (#65).
 - Deleting several alarms at once can be undone. Tap Undo on the message that pops up and every one of them comes back, set to ring like before, so the confirmation dialog is gone.
+- Settings > Readiness has an App closures card on Android 11 and newer. It reads Android's own record of when it closed the app and why (a force stop, low memory, a crash, Android 17's new memory limit) and says whether the next alarm still rang afterward. Support exports carry the same list. Deleting, turning off or editing an alarm now leaves a line in the alarm log too, so an alarm you removed is never reported as missed. That holds for alarms removed before this update as well.
 
 ### Changed
 

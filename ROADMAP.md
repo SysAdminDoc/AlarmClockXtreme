@@ -10,13 +10,6 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
 
 ### P1
 
-- [ ] P1: Capture `ApplicationExitInfo` and surface a user-facing reliability report
-  Why: The app records a detailed incident stream but has no access to the OS's own reason for killing the process, which is exactly the "unknown reason" failure the whole category is complaining about. Android 17 adds a memory limiter that kills apps over a RAM threshold regardless of targetSdk, discoverable only through `ApplicationExitInfo.getDescription()` containing `MemoryLimiter:AnonSwap`.
-  Evidence: zero matches for `ApplicationExitInfo` across `app/src` and `wear/src`; existing incident infrastructure in `data/repository/AlarmIncidentRepository.kt` and `data/support/SupportDiagnosticsFormatter.kt`; Android 17 behaviour changes for all apps; the recurring Pixel "Missed alarm: Alarm did not fire due to an unknown reason" reports.
-  Touches: new `data/repository/ProcessExitRepository.kt` reading `ActivityManager.getHistoricalProcessExitReasons()`, `data/local/entity/AlarmIncidentEvent.kt` (correlate an exit against the surrounding fire window), `data/support/SupportDiagnosticsFormatter.kt`, a new reliability screen under `ui/settings/`.
-  Acceptance: after a forced stop or a low-memory kill, the reliability screen names the exit reason, its timestamp, and whether an alarm was scheduled across it, in plain language; the support export carries the same rows; nothing new is stored beyond reason code, timestamp and description.
-  Complexity: L
-
 - [ ] P1: In-app update check against the GitHub Releases API
   Why: Distribution is GitHub Releases and sideload only, and the app never tells a user a newer build exists. That is how a reporter ended up filing #53 on 2026-08-30 against a version whose bug was fixed on main on 2026-08-22.
   Evidence: grep for `api.github.com`, `releases/latest`, `checkForUpdate` across `app/src/main` returns nothing; issue #53 filed against 1.15.32.

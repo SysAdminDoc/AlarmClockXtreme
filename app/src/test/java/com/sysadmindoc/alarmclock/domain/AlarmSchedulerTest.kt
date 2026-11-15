@@ -167,6 +167,24 @@ class AlarmSchedulerTest {
     }
 
     @Test
+    fun cancelLeavesADisarmedRowInTheIncidentLog() {
+        scheduler.cancel(42L)
+
+        verify(exactly = 1) {
+            incidentRepository.recordAsync(
+                alarmId = 42L,
+                fireId = any(),
+                scheduledAt = 0L,
+                eventAt = any(),
+                type = AlarmIncidentEvent.TYPE_SCHEDULE,
+                status = AlarmIncidentEvent.STATUS_SUCCEEDED,
+                reasonCode = AlarmIncidentEvent.REASON_CANCELLED,
+                source = "AlarmScheduler"
+            )
+        }
+    }
+
+    @Test
     fun handleAlarmFiredTearsDownStaleExactAlarmForOneShot() = runTest {
         // A smart-wake early fire starts AlarmService directly without consuming
         // the original exact-alarm PendingIntent, so handleAlarmFired() must cancel
