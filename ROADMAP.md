@@ -282,3 +282,24 @@ Cross-references, not new items:
   Touches: `ui/alarmlist/AlarmListViewModel.kt` (capture each deleted alarm's mark origin before `cancel`, restore it in `undoDelete`), or `AlarmScheduler` if the restore belongs there.
   Acceptance: WHEN an alarm whose next ring a calendar tag moved is deleted and then restored with Undo, the system SHALL show the same calendar-skip badge as before the delete, and removing the tagged event SHALL bring back the original ring. A unit test covers the round trip.
   Complexity: XS
+
+- [ ] P3: The next-alarm queries accept a time that has already passed
+  Why: `getNextAlarm()` and `observeNextAlarm()` take the enabled alarm with the smallest `nextTriggerTime > 0`, with no check against now. A stored time stays behind us while an alarm rings, while an inexact fallback delivery runs late, and after a failed re-arm whose delivery row is gone (Clear history, or the 100-row incident trim during a ring). While it does, that alarm wins over the real next one. The upcoming-alarm notification for the real next alarm never shows, the Skip tile offers to skip the stale one, widget nudges do nothing, and the Bedtime Do Not Disturb rule is built around a past time. It lasts until that alarm is rescheduled.
+  Evidence: `data/local/AlarmDao.kt:28-32`; `data/repository/AlarmRepository.kt:15` and `:19`; `ui/alarmlist/AlarmListViewModel.kt:167`; found while verifying the failed re-arm fix in `domain/AlarmScheduler.kt` (`liveArmTrigger`).
+  Touches: `AlarmDao` (a `now` argument or a Kotlin-side filter, keeping in mind a Flow query with a bound `now` doesn't move on by itself), the callers of both queries, and the ringing case, where the alarm on screen may be meant to stay "next".
+  Acceptance: with one alarm's stored time in the past and another's ahead, every next-alarm surface (upcoming notification, Skip tile, widget, Bedtime rule, list header) picks the one ahead. A ringing alarm's own screens are unchanged. A unit test covers the query choice.
+  Complexity: S
+
+- [ ] P3: Two schedule calls for one alarm can cross
+  Why: `AlarmScheduler.schedule()` and `scheduleAt()` read the live arm's time, store the new one, then arm. Nothing serializes them per alarm. If an editor save and a `rescheduleAll` pass run together and the second arm fails, it can restore its stale time onto the arm the first one just set. That alarm then rings as the wrong occurrence, and the dismiss can skip one. Separately, after a failed re-arm that keeps the old arm, `cacheForDirectBoot` and `scheduleSupportingWork` still use the attempted time, so the kept ring loses its smart-wake window and Hue sunrise, and its fire watchdog moves to the attempted time.
+  Evidence: `domain/AlarmScheduler.kt` `schedule()`, `scheduleAt()`, `scheduleAlarmClock()` and `scheduleSupportingWork()`; both found while verifying the failed re-arm fix. HEAD had the same race with the attempted time in place of the kept one.
+  Touches: `domain/AlarmScheduler.kt` (a per-alarm `Mutex` around the read, store and arm, plus a decision on whether supporting work follows the kept time; the watchdog at the attempted time is what can still ring that occurrence when the arm keeps failing), `AlarmSchedulerTest`.
+  Acceptance: two overlapping schedule calls for one alarm leave the PendingIntent's extras and the stored row matching the arm AlarmManager holds. A failed re-arm leaves the smart window and Hue sunrise on the kept time and a watchdog that still covers the attempted time. Unit tests cover both.
+  Complexity: S
+
+- [ ] P3: A dismiss for one alarm stops a different alarm that is ringing
+  Why: `ACTION_DISMISS` takes the alarm id from the intent but only adopts the intent's time when nothing is ringing. If alarm Y's dismiss arrives while alarm X rings (Y's fire watchdog posted its full-screen fallback, then X started ringing, then the user dismissed Y from that screen or its notification), `dismissAlarm(Y)` stops X's sound and clears the service's state. X goes quiet with nothing on record for it. Y's dismiss row and `finishOccurrence(Y, ...)` both use X's scheduled time, so the post-ring work runs for Y against the wrong occurrence and X's never runs.
+  Evidence: `service/AlarmService.kt` `ACTION_DISMISS` branch (`currentAlarmId == -1L` guard) and `dismissAlarm()` (`recordIncident` defaults to `currentScheduledAt`, then `outcomes.finishOccurrence(testRun, alarmId, currentScheduledAt)`); found while verifying the ring-evidence rows for the failed re-arm fix.
+  Touches: `service/AlarmService.kt` (a dismiss for an alarm that isn't the one ringing finishes that alarm's own occurrence from the intent's time and leaves the ringing one alone), an `AlarmService` Robolectric test.
+  Acceptance: with X ringing, a dismiss for Y leaves X ringing, writes Y's dismiss row at Y's own scheduled time and finishes only Y's occurrence. A dismiss for X still ends X as before.
+  Complexity: S
