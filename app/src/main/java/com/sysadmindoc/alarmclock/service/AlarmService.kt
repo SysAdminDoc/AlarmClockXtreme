@@ -232,6 +232,7 @@ class AlarmService : Service() {
     }
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val redeliveredStart = RedeliveredStart { stopSelfResult(it) }
+    private val duckingOnlyStart = DuckingOnlyStart { stopSelfResult(it) }
     private var wakeLock: PowerManager.WakeLock? = null
     // v1.9.1: AtomicBoolean (was @Volatile Boolean). Multiple coroutines on
     // serviceScope's IO dispatcher can race the foreground stop path — e.g.
@@ -301,6 +302,7 @@ class AlarmService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        duckingOnlyStart.onCommand(intent?.action == ACTION_SET_CHALLENGE_DUCKING)
         when (intent?.action) {
             ACTION_START_ALARM -> {
                 val alarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1)
@@ -421,6 +423,8 @@ class AlarmService : Service() {
                         35
                     ).coerceIn(10, 80)
                     applyPlaybackGain()
+                } else {
+                    duckingOnlyStart.stopIfOrphaned(startId)
                 }
             }
             ACTION_END_TEST -> {
