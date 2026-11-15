@@ -301,7 +301,9 @@ class AlarmListViewModel @Inject constructor(
                 repository.getById(id)?.also { repository.delete(it) }
             }
             scheduler.syncBedtimeDndRule()
-            if (deleted.isNotEmpty()) _undoAlarms.update { it + deleted }
+            if (deleted.isNotEmpty()) {
+                _undoAlarms.update { pending -> pending + deleted.filter { a -> pending.none { it.id == a.id } } }
+            }
         }
     }
 
@@ -401,8 +403,9 @@ class AlarmListViewModel @Inject constructor(
             repository.delete(alarm)
             scheduler.syncBedtimeDndRule()
             // Added to a still-pending undo rather than replacing it, so an
-            // earlier delete whose snackbar was cut short stays restorable.
-            _undoAlarms.update { it + alarm }
+            // earlier delete whose snackbar was cut short stays restorable. A
+            // repeated delete of the same alarm (a double swipe) adds it once.
+            _undoAlarms.update { pending -> if (pending.any { it.id == alarm.id }) pending else pending + alarm }
         }
     }
 

@@ -86,7 +86,7 @@ class BulkDeleteUndoTest {
         vm.undoDelete()
         advanceUntilIdle()
 
-        assertEquals(deleted.toSet(), saves.toSet())
+        assertEquals(deleted, saves)
         assertEquals(deleted.associateBy { it.id } + (untouched.id to untouched), store.toMap())
         coVerify(exactly = 1) { scheduler.scheduleAt(upcoming, future, any()) }
         coVerify(exactly = 1) { scheduler.schedule(overdue, any(), any()) }
@@ -121,13 +121,32 @@ class BulkDeleteUndoTest {
         vm.selectMany(deleted.map { it.id }.toSet())
 
         vm.deleteSelected()
+        // The second tap comes before the first delete's coroutine has run at all.
+        vm.deleteSelected()
         advanceTimeBy(15)
         vm.deleteSelected()
         advanceUntilIdle()
         vm.undoDelete()
         advanceUntilIdle()
 
-        assertEquals(deleted.toSet(), saves.toSet())
+        // Exact list, not a set: a set would hide an alarm restored twice.
+        assertEquals(deleted, saves)
+        deleted.forEach { verify(exactly = 1) { scheduler.cancel(it.id) } }
+        assertEquals(4, store.size)
+    }
+
+    @Test
+    fun `swiping the same alarm away twice restores it once`() = runTest(dispatcher) {
+        val vm = viewModel()
+        vm.deleteAlarm(upcoming)
+        vm.deleteAlarm(upcoming)
+        advanceUntilIdle()
+
+        vm.undoDelete()
+        advanceUntilIdle()
+
+        assertEquals(listOf(upcoming), saves)
+        coVerify(exactly = 1) { scheduler.scheduleAt(upcoming, future, any()) }
         assertEquals(4, store.size)
     }
 
@@ -143,7 +162,7 @@ class BulkDeleteUndoTest {
         vm.undoDelete()
         advanceUntilIdle()
 
-        assertEquals(setOf(untouched, upcoming, off), saves.toSet())
+        assertEquals(listOf(untouched, upcoming, off), saves)
         assertEquals(4, store.size)
     }
 
