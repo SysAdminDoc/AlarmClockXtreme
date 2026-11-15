@@ -458,10 +458,15 @@ fun AlarmFiringScreen(
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.Top
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // Weighted so a long status line wraps instead of
+                    // squeezing the chips into a one-letter-wide column.
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
                             text = alarmLabel,
                             color = TextPrimary,
@@ -473,30 +478,35 @@ fun AlarmFiringScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
-                    AppStatusChip(
-                        label = when {
-                            state.canDismiss && holdToDismissEnabled -> stringResource(R.string.firing_hold_required)
-                            state.canDismiss -> stringResource(R.string.firing_dismiss_ready)
-                            locationDismissActive && state.wakeChallengeReady ->
-                                stringResource(R.string.firing_location_locked)
-                            else -> stringResource(R.string.firing_dismiss_locked)
-                        },
-                        icon = when {
-                            state.canDismiss -> Icons.Default.CheckCircle
-                            locationDismissActive && state.wakeChallengeReady -> Icons.Default.LocationOn
-                            else -> Icons.Default.WarningAmber
-                        },
-                        color = if (state.canDismiss) DismissGreen else SnoozeYellow
-                    )
-                    if (state.challengeBypassRemainingSeconds > 0 && !state.canDismiss) {
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         AppStatusChip(
-                            label = stringResource(
-                                R.string.firing_bypass_in_seconds,
-                                state.challengeBypassRemainingSeconds
-                            ),
-                            icon = Icons.Default.AccessTime,
-                            color = TextMuted
+                            label = when {
+                                state.canDismiss && holdToDismissEnabled -> stringResource(R.string.firing_hold_required)
+                                state.canDismiss -> stringResource(R.string.firing_dismiss_ready)
+                                locationDismissActive && state.wakeChallengeReady ->
+                                    stringResource(R.string.firing_location_locked)
+                                else -> stringResource(R.string.firing_dismiss_locked)
+                            },
+                            icon = when {
+                                state.canDismiss -> Icons.Default.CheckCircle
+                                locationDismissActive && state.wakeChallengeReady -> Icons.Default.LocationOn
+                                else -> Icons.Default.WarningAmber
+                            },
+                            color = if (state.canDismiss) DismissGreen else SnoozeYellow
                         )
+                        if (state.challengeBypassRemainingSeconds > 0 && !state.canDismiss) {
+                            AppStatusChip(
+                                label = stringResource(
+                                    R.string.firing_bypass_in_seconds,
+                                    state.challengeBypassRemainingSeconds
+                                ),
+                                icon = Icons.Default.AccessTime,
+                                color = TextMuted
+                            )
+                        }
                     }
                 }
 
@@ -522,20 +532,18 @@ fun AlarmFiringScreen(
                         }
                     }
 
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = dateText,
-                            color = TextSecondary,
-                            style = MaterialTheme.typography.titleSmall
-                        )
-                        if (stepLabel.isNotBlank()) {
-                            Text(
-                                text = stepLabel,
-                                color = TextMuted,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
+                    // Takes what the clock leaves and right-aligns every line,
+                    // so a wrapped date never lands against the AM/PM marker.
+                    // The step ("Step 2 of 3") lives in the chip row below.
+                    Text(
+                        text = dateText,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 12.dp),
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.titleSmall,
+                        textAlign = TextAlign.End
+                    )
                 }
 
                 FlowRow(

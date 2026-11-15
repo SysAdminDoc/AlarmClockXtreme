@@ -58,6 +58,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - If Android shuts the app down while an alarm is ringing, the alarm starts ringing again by itself. It used to go quiet and stay quiet. With the ringing screen open it's back within a few seconds.
 - Turning off, deleting or moving later the alarm that's next to ring no longer leaves your other alarms unprotected after a restart. The next one in line takes its place, so it still rings before you unlock the phone for the first time.
 - Dismissing, snoozing or ending a test no longer leaves the alarm service running in the background, holding the phone awake until Android stopped it.
+- The ringing screen's "Dismiss locked" label stays on one line. Next to a long status message it used to stack one letter per line. A date that wraps no longer runs into AM/PM, and a challenge chain shows which step you're on once instead of twice.
 - Opening "Integrations & safety" in the alarm editor no longer crashes the app. The "After you dismiss" card had reused the Spotify card's slot, and two cards in one slot crashed the page. It has its own heading now (#59).
 - Setting descriptions wrap in full. They used to stop after three lines, which cut some of them off on narrow phones and at larger font sizes.
 - The bedtime reminder countdown in the notification is translated now. It was always in English, even with the app set to Japanese.
