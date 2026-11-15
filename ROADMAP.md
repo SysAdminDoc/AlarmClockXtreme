@@ -332,3 +332,17 @@ Cross-references, not new items:
   Touches: `ui/alarmedit/AlarmEditDismissSections.kt` (show each reference field when the main type or any chain step needs it), editor tests if any cover the section.
   Acceptance: an alarm with Math as the main type and a Barcode scan chain step shows the barcode field and its scan button. The missing-value warning goes away once the code is scanned. The same holds for NFC, photo and Wi-Fi steps.
   Complexity: S
+
+- [ ] P2: The math problem's lines draw on top of each other when it wraps
+  Why: on a narrow screen (or with a larger font size) a longer expression like "47 + (8 x 4) = ?" wraps to two lines, and the second line ("= ?") is drawn over the first, so the problem is hard to read while the alarm is ringing. The barcode camera fallback hands out exactly this kind of problem.
+  Evidence: `ui/alarmfiring/challenges/ChallengeViews.kt` MathChallengeView sets `fontSize = 36.sp` on the expression with no `lineHeight`, so it keeps the smaller line height of the inherited body text style. Seen on a 720x1600 320 dpi emulator during the barcode check (#51). Other large single-size texts in the same file (30.sp, 48.sp) may share it once they wrap.
+  Touches: `ui/alarmfiring/challenges/ChallengeViews.kt` (give the large texts a matching `lineHeight`, or a typography style that has one).
+  Acceptance: on a 720 px wide screen at 320 dpi, and at the largest system font size, a wrapped math expression shows each line clear of the other. No large challenge text overlaps itself when it wraps.
+  Complexity: S
+
+- [ ] P1: A snoozed alarm that comes back while the screen is off rings without showing the ringing screen
+  Why: on API 36 the re-ring after a snooze played (notification posted, service running) but the screen stayed off and the ringing screen never opened. You had to wake the phone, unlock and tap the notification to turn it off. For an alarm clock the screen has to come up on its own.
+  Evidence: seen on a headless API 36 emulator during the barcode check (#51), screen asleep with a PIN set. `AlarmService` starts the ringing activity directly (`startActivity(firingIntent)`), and logcat showed that start BAL_BLOCKed. The full-screen intent never fired either. SystemUI's NotifInterruptLog had no FSI decision for our notification, only "PEEK suppressed: device not in use", and the entry was autogrouped under Aggregate_AlertingSection and flagged SILENT. The service first posts `startForegroundWithPlaceholder()`'s notification with no full-screen intent, then replaces it on the same id 1001 with the one that has `setFullScreenIntent`, so the post SystemUI weighs for interruption may be the placeholder. Control on the same emulator: Google Clock's alarm at 07:36 with the screen asleep woke the device (`WAKE_REASON_APPLICATION`, a wake lock that turns the screen on) and its AlarmActivity started from SystemUI (`BAL_ALLOW_NON_APP_VISIBLE_WINDOW [realCaller]`), so the platform does launch it.
+  Touches: `service/AlarmService.kt` (`startForegroundWithPlaceholder`, the notify in `startAlarm`, `buildAlarmNotification`), possibly a screen-on wake lock while ringing. First-ring and re-ring paths both.
+  Acceptance: on an API 34+ emulator with a PIN and the screen asleep, both a first ring and a snoozed re-ring open the ringing screen over the lock screen without any touch, and logcat shows an FSI launch or an allowed activity start for each. A regression test pins that the first alarm-channel post for a ring carries the full-screen intent.
+  Complexity: M
