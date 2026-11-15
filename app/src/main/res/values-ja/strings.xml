@@ -1773,8 +1773,9 @@
     <string name="dashboard_unknown_location">不明な場所</string>
     <string name="alarmlist_alarm_history">アラーム履歴</string>
     <string name="alarmlist_alarm_deleted">アラームを削除しました</string>
-    <string name="alarmlist_delete_alarm">アラームを削除</string>
-    <string name="alarmlist_delete_alarms">%1$s 個のアラームを削除</string>
+    <plurals name="alarmlist_alarms_deleted">
+        <item quantity="other">%1$d 個のアラームを削除しました</item>
+    </plurals>
     <string name="alarmlist_sort_by_time">時刻順</string>
     <string name="alarmlist_manual_order">手動順</string>
     <string name="alarmlist_newest_first">新しい順</string>

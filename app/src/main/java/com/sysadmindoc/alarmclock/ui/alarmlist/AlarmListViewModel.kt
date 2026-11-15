@@ -62,7 +62,7 @@ internal fun reorderAlarmIds(
 private data class SelectionSnapshot(
     val selectedIds: Set<Long>,
     val isSelectionMode: Boolean,
-    val undoAlarm: Alarm?,
+    val undoAlarms: List<Alarm>,
     val selectedGroup: String?,
     val selectedProfile: String?
 )
@@ -78,7 +78,8 @@ data class AlarmListUiState(
     val selectedGroup: String? = null,
     val profiles: List<String> = emptyList(),
     val selectedProfile: String? = null,
-    val undoAlarm: Alarm? = null,
+    /** What the last delete removed, single or bulk; one Undo restores all of it. */
+    val undoAlarms: List<Alarm> = emptyList(),
     val selectedIds: Set<Long> = emptySet(),
     val isSelectionMode: Boolean = false,
     val napDefaultMinutes: Int = 20,
@@ -116,7 +117,7 @@ class AlarmListViewModel @Inject constructor(
     private val _sortOrder = MutableStateFlow(AlarmSortOrder.TIME)
     private val _selectedGroup = MutableStateFlow<String?>(null)
     private val _selectedProfile = MutableStateFlow<String?>(null)
-    private val _undoAlarm = MutableStateFlow<Alarm?>(null)
+    private val _undoAlarms = MutableStateFlow<List<Alarm>>(emptyList())
     private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
     private val _isSelectionMode = MutableStateFlow(false)
     private var lastSortCycleMillis = 0L
@@ -134,7 +135,7 @@ class AlarmListViewModel @Inject constructor(
         repository.observeNextAlarm(),
         preferencesManager.settings,
         _sortOrder,
-        combine(ticker, _selectedIds, _isSelectionMode, _undoAlarm, combine(_selectedGroup, _selectedProfile) { g, p -> g to p }) { _, sel, mode, undo, gp ->
+        combine(ticker, _selectedIds, _isSelectionMode, _undoAlarms, combine(_selectedGroup, _selectedProfile) { g, p -> g to p }) { _, sel, mode, undo, gp ->
             SelectionSnapshot(sel, mode, undo, gp.first, gp.second)
         }
     ) { alarms, nextAlarm, settings, sort, snap ->
@@ -173,7 +174,7 @@ class AlarmListViewModel @Inject constructor(
             selectedGroup = snap.selectedGroup,
             profiles = profiles,
             selectedProfile = snap.selectedProfile,
-            undoAlarm = snap.undoAlarm,
+            undoAlarms = snap.undoAlarms,
             selectedIds = snap.selectedIds,
             isSelectionMode = snap.isSelectionMode,
             napDefaultMinutes = settings.napDefaultMinutes,
@@ -290,22 +291,13 @@ class AlarmListViewModel @Inject constructor(
 
     fun deleteSelected() {
         viewModelScope.launch {
-            val ids = _selectedIds.value.toList()
-            ids.forEach { id ->
+            val deleted = _selectedIds.value.toList().mapNotNull { id ->
                 scheduler.cancel(id)
-                repository.getById(id)?.let { repository.delete(it) }
+                repository.getById(id)?.also { repository.delete(it) }
             }
             scheduler.syncBedtimeDndRule()
             clearSelection()
-            if (ids.isNotEmpty()) {
-                emitFeedback(
-                    if (ids.size == 1) {
-                        "1 alarm deleted"
-                    } else {
-                        "${ids.size} alarms deleted"
-                    }
-                )
-            }
+            if (deleted.isNotEmpty()) _undoAlarms.value = deleted
         }
     }
 
@@ -404,28 +396,33 @@ class AlarmListViewModel @Inject constructor(
             scheduler.cancel(alarm.id)
             repository.delete(alarm)
             scheduler.syncBedtimeDndRule()
-            _undoAlarm.value = alarm
+            _undoAlarms.value = listOf(alarm)
         }
     }
 
+    /** Restores everything the last delete removed. A second call finds nothing to restore. */
     fun undoDelete() {
-        val alarm = _undoAlarm.value ?: return
-        _undoAlarm.value = null
+        val alarms = _undoAlarms.value
+        if (alarms.isEmpty()) return
+        _undoAlarms.value = emptyList()
         viewModelScope.launch {
-            val id = repository.save(alarm)
-            val restored = alarm.copy(id = id)
-            if (restored.isEnabled) {
-                if (restored.nextTriggerTime > System.currentTimeMillis()) {
-                    scheduler.scheduleAt(restored, restored.nextTriggerTime)
-                } else {
-                    scheduler.schedule(restored)
+            alarms.forEach { alarm ->
+                // The ids are still set, so the REPLACE insert brings each alarm back under its old id.
+                val restored = alarm.copy(id = repository.save(alarm))
+                if (restored.isEnabled) {
+                    if (restored.nextTriggerTime > System.currentTimeMillis()) {
+                        scheduler.scheduleAt(restored, restored.nextTriggerTime)
+                    } else {
+                        scheduler.schedule(restored)
+                    }
                 }
             }
+            scheduler.syncBedtimeDndRule()
         }
     }
 
     fun confirmDelete() {
-        _undoAlarm.value = null
+        _undoAlarms.value = emptyList()
     }
 
     /**

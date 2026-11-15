@@ -1868,8 +1868,10 @@
     <string name="dashboard_unknown_location">Unknown location</string>
     <string name="alarmlist_alarm_history">Alarm history</string>
     <string name="alarmlist_alarm_deleted">Alarm deleted</string>
-    <string name="alarmlist_delete_alarm">Delete alarm</string>
-    <string name="alarmlist_delete_alarms">Delete %1$s alarms</string>
+    <plurals name="alarmlist_alarms_deleted">
+        <item quantity="one">%1$d alarm deleted</item>
+        <item quantity="other">%1$d alarms deleted</item>
+    </plurals>
     <string name="alarmlist_sort_by_time">Sort by time</string>
     <string name="alarmlist_manual_order">Manual order</string>
     <string name="alarmlist_newest_first">Newest first</string>

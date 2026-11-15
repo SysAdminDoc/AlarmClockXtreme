@@ -29,13 +29,6 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
   Acceptance: the check is opt-in and off by default, runs no more than daily, compares `versionCode` against the latest release tag, links to the release page rather than downloading anything, and degrades silently offline; a unit test covers newer, same and malformed tag responses; the backup drift-guard test passes with the new settings field.
   Complexity: M
 
-- [ ] P1: Undo for bulk alarm delete
-  Why: Multi-select delete is the last irreversible data action in the app, and the confirmation dialog admits it. Single-alarm delete already has undo, so the pattern and the snackbar host exist.
-  Evidence: `ui/alarmlist/AlarmListScreen.kt:356` ("This bulk action does not offer per-alarm undo"); working single-delete undo at `ui/alarmlist/AlarmListViewModel.kt:115` and `undoDelete()`; FossifyOrg/Clock #491 shows the same demand elsewhere.
-  Touches: `ui/alarmlist/AlarmListViewModel.kt`, `ui/alarmlist/AlarmListScreen.kt`.
-  Acceptance: deleting a multi-select set offers one Undo that restores every deleted alarm with its original id and re-arms each one through `AlarmScheduler`; a unit test asserts the restored set matches the deleted set and that a second Undo is a no-op.
-  Complexity: S
-
 - [ ] P1: Add a pseudolocale gate and stop sharing the timer's Undo key
   Why: Japanese landed (#55), so a second layout now has to fit translated text, but nothing checks for clipping or hardcoded English before a translator finds it. The alarm list and stopwatch undo actions still read `R.string.timer_undo`, so a translator sees one key for three features.
   Evidence: `app/build.gradle.kts` has no `pseudoLocalesEnabled`; `ui/alarmlist/AlarmListScreen.kt:274` and `ui/stopwatch/StopwatchScreen.kt:91` read `R.string.timer_undo`.

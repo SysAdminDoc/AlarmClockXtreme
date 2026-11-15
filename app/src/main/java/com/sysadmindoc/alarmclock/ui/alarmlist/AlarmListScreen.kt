@@ -171,7 +171,6 @@ fun AlarmListScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTemplates by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
-    var showBulkDeleteConfirmation by remember { mutableStateOf(false) }
 
     // v1.7.1: Prominent (non-tucked) YouTube download entry. The user can
     // build up an alarm-sound library without first creating an alarm.
@@ -295,20 +294,25 @@ fun AlarmListScreen(
         }
     }
 
-    val alarmDeletedMessage = stringResource(R.string.alarmlist_alarm_deleted)
+    val deletedCount = state.undoAlarms.size
+    val alarmDeletedMessage = if (deletedCount > 1) {
+        pluralStringResource(R.plurals.alarmlist_alarms_deleted, deletedCount, deletedCount)
+    } else {
+        stringResource(R.string.alarmlist_alarm_deleted)
+    }
     val undoLabel = stringResource(R.string.timer_undo)
-    LaunchedEffect(state.undoAlarm) {
-        state.undoAlarm?.let {
-            val result = snackbarHostState.showSnackbar(
-                message = alarmDeletedMessage,
-                actionLabel = undoLabel,
-                duration = SnackbarDuration.Short
-            )
-            if (result == SnackbarResult.ActionPerformed) {
-                viewModel.undoDelete()
-            } else {
-                viewModel.confirmDelete()
-            }
+    LaunchedEffect(state.undoAlarms) {
+        if (state.undoAlarms.isEmpty()) return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = alarmDeletedMessage,
+            actionLabel = undoLabel,
+            // A bulk delete gets the longer window, it has more to lose.
+            duration = if (deletedCount > 1) SnackbarDuration.Long else SnackbarDuration.Short
+        )
+        if (result == SnackbarResult.ActionPerformed) {
+            viewModel.undoDelete()
+        } else {
+            viewModel.confirmDelete()
         }
     }
 
@@ -332,62 +336,6 @@ fun AlarmListScreen(
     val currentVisibleAlarmIds by rememberUpdatedState(visibleAlarmIds)
     val canReorderAlarms = !state.isSelectionMode && filteredAlarms.size > 1
 
-    if (showBulkDeleteConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showBulkDeleteConfirmation = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = AccentRed
-                )
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showBulkDeleteConfirmation = false
-                        viewModel.deleteSelected()
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentRed, contentColor = accentForeground(AccentRed)),
-                    shape = AppButtonShape
-                ) {
-                    Text(
-                        if (state.selectedIds.size == 1) stringResource(R.string.alarmlist_delete_alarm) else stringResource(R.string.alarmlist_delete_alarms, state.selectedIds.size)
-                    )
-                }
-            },
-            dismissButton = {
-                AppTextButton(onClick = { showBulkDeleteConfirmation = false }) {
-                    Text(stringResource(R.string.cancel), color = TextSecondary)
-                }
-            },
-            title = {
-                Text(
-                    text = if (state.selectedIds.size == 1) {
-                        "Delete selected alarm?"
-                    } else {
-                        "Delete ${state.selectedIds.size} selected alarms?"
-                    },
-                    color = TextPrimary,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold
-                )
-            },
-            text = {
-                Text(
-                    text = if (state.selectedIds.size == filteredAlarms.size && filteredAlarms.isNotEmpty()) {
-                        "This removes every alarm shown in the list."
-                    } else {
-                        "This removes only the selected alarms. There's no undo for each one."
-                    },
-                    color = TextSecondary
-                )
-            },
-            containerColor = SurfaceMedium,
-            shape = RoundedCornerShape(12.dp)
-        )
-    }
-
     Scaffold(
         containerColor = SurfaceDark,
         // v1.7.1: Skip the inner Scaffold's default system insets — the outer
@@ -408,7 +356,7 @@ fun AlarmListScreen(
                     totalCount = filteredAlarms.size,
                     onSelectAll = { viewModel.selectMany(filteredAlarms.map { it.id }.toSet()) },
                     onClearSelection = viewModel::clearSelection,
-                    onDeleteSelected = { showBulkDeleteConfirmation = true },
+                    onDeleteSelected = viewModel::deleteSelected,
                     onEnableSelected = viewModel::enableSelected,
                     onDisableSelected = viewModel::disableSelected
                 )
