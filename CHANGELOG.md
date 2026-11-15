@@ -56,6 +56,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Two bundled libraries, Jackson and Guava, moved to releases that fix known security problems. The F-Droid build now gets the newer Guava too.
 - With Material You on, the accent color picker says your wallpaper is setting the accent for now and dims its swatches. A color you pick there still comes back once Material You is off. Phones older than Android 12 don't show the Material You switch anymore, since it did nothing on them, and the accent names read in Japanese.
 - The Undo button after deleting an alarm or resetting the stopwatch has its own text to translate now, instead of borrowing the timer's. Debug builds also carry Android's two test languages, one with stretched accented text and one that reads right to left, so a cut-off label or a leftover English line shows up before a translator finds it.
+- The privacy policy now names every outside service the app can reach. It used to say calendar data never leaves the phone, but with commute-aware timing on, the first meeting's location goes to Open-Meteo to be looked up and then to Google Routes on your own key. The Radio Browser station directory and the IKEA DIRIGERA hub are listed now too.
 
 ### Fixed
 
