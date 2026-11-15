@@ -72,5 +72,62 @@ class FiringScreenPresenceTest {
         FiringScreenPresence.shown("")
 
         assertFalse(FiringScreenPresence.isShowing(""))
+        assertFalse(FiringScreenPresence.hasShown(""))
+    }
+
+    @Test
+    fun `a first launch that came up and was left counts as shown`() {
+        val fireId = newFireId()
+        FiringScreenPresence.shown(fireId)
+        FiringScreenPresence.hidden(fireId)
+
+        assertEquals(
+            RelaunchOutcome.RETURNED,
+            FiringScreenPresence.firstLaunchOutcome(stillRinging = true, fireId = fireId)
+        )
+    }
+
+    @Test
+    fun `a first launch that never came up is blocked`() {
+        val older = newFireId()
+        FiringScreenPresence.shown(older)
+        FiringScreenPresence.hidden(older)
+
+        assertEquals(
+            RelaunchOutcome.BLOCKED,
+            FiringScreenPresence.firstLaunchOutcome(stillRinging = true, fireId = newFireId())
+        )
+        assertEquals(
+            RelaunchOutcome.MOOT,
+            FiringScreenPresence.firstLaunchOutcome(stillRinging = false, fireId = newFireId())
+        )
+    }
+
+    @Test
+    fun `a re-ring under the same fire id has to come up again`() {
+        val fireId = newFireId()
+        FiringScreenPresence.shown(fireId)
+        FiringScreenPresence.hidden(fireId)
+
+        FiringScreenPresence.ringStarted(fireId)
+
+        assertEquals(
+            RelaunchOutcome.BLOCKED,
+            FiringScreenPresence.firstLaunchOutcome(stillRinging = true, fireId = fireId)
+        )
+    }
+
+    @Test
+    fun `a screen still up when its start is redelivered counts as shown`() {
+        val fireId = newFireId()
+        FiringScreenPresence.shown(fireId)
+
+        FiringScreenPresence.ringStarted(fireId)
+
+        assertEquals(
+            RelaunchOutcome.RETURNED,
+            FiringScreenPresence.firstLaunchOutcome(stillRinging = true, fireId = fireId)
+        )
+        FiringScreenPresence.hidden(fireId)
     }
 }

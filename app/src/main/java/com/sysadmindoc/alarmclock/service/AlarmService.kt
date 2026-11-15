@@ -1,6 +1,7 @@
 package com.sysadmindoc.alarmclock.service
 
 import android.annotation.SuppressLint
+import android.app.ActivityManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -131,10 +132,15 @@ class AlarmService : Service() {
         /**
          * The service's first post for a ring. SystemUI decides on a
          * full-screen launch only when a notification is added, never when
-         * it's updated, so this one has to carry the ringing screen. The
-         * labelled notification that replaces it later can't launch it.
+         * it's updated, so this one has to carry the ringing screen unless
+         * the app is open ([setRingingScreen]). The labelled notification
+         * that replaces it later can't launch it.
          */
-        internal fun placeholderNotification(context: Context, firing: PendingIntent): Notification =
+        internal fun placeholderNotification(
+            context: Context,
+            firing: PendingIntent,
+            appOpen: Boolean
+        ): Notification =
             NotificationCompat.Builder(context, CHANNEL_ALARM)
                 .setSmallIcon(R.drawable.ic_alarm)
                 .setContentTitle(context.getString(R.string.notif_alarm_title))
@@ -144,11 +150,32 @@ class AlarmService : Service() {
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setColor(ALARM_NOTIFICATION_COLOR)
                 .setColorized(true)
-                .setFullScreenIntent(firing, true)
-                .setContentIntent(firing)
+                .setRingingScreen(firing, appOpen)
                 .setOngoing(true)
                 .setAutoCancel(false)
                 .build()
+
+        /**
+         * Points a ringing post at the ringing screen. SystemUI keeps a
+         * heads-up card that has a full-screen intent up until it's swiped
+         * away (HeadsUpManagerImpl isSticky), and with the app open that card
+         * sat over the ringing screen and hid its top. The service opens the
+         * screen itself then, so the post goes without one and its card
+         * times out.
+         */
+        internal fun NotificationCompat.Builder.setRingingScreen(
+            firing: PendingIntent,
+            appOpen: Boolean
+        ): NotificationCompat.Builder = apply {
+            setContentIntent(firing)
+            if (!appOpen) setFullScreenIntent(firing, true)
+        }
+
+        /** Whether one of the app's screens is in the foreground right now. */
+        internal fun appOnScreen(): Boolean =
+            ActivityManager.RunningAppProcessInfo()
+                .also { ActivityManager.getMyMemoryState(it) }
+                .importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND
 
         data class ActiveAlarmSnapshot(
             val alarmId: Long,
@@ -240,16 +267,27 @@ class AlarmService : Service() {
     // Fires the guaranteed default tone if the Media3 player never actually
     // starts (stuck buffering with no onPlayerError) so the alarm can't ring silently.
     private var playbackWatchdogJob: Job? = null
-    // Looks, shortly after the Spotify fallback relaunched the ringing screen,
-    // whether it really came back. Separate from the watchdog, which the
-    // fallback cancels.
+    // Looks, shortly after the ringing screen was launched with the app open
+    // or relaunched by the Spotify fallback, whether it really showed.
+    // Separate from the watchdog, which the fallback cancels.
     private var firingScreenCheckJob: Job? = null
     // The fire whose ringing screen Android kept behind another app. Its
     // notification says so and tapping it opens the screen.
     private var screenBlockedFireId: String? = null
+    // The latest ringing post went without a full-screen intent because the
+    // app was on screen ([appOpenForRingingPost]).
+    @Volatile
+    private var postedWithoutFullScreen = false
+    // Spotify was opened over the ringing screen while the app was open, and
+    // the post went out again with the full-screen intent so its card stays
+    // up over Spotify with Snooze and Dismiss on it.
+    @Volatile
+    private var spotifyForcedFullScreen = false
     @Volatile
     private var forceBuiltInSpeakerForFallback: Boolean = false
     private var currentAlarmId: Long = -1
+    // Written on the main thread, read by the ringing checks on IO.
+    @Volatile
     private var currentFireId: String = ""
     private var currentScheduledAt: Long = 0L
     private var alarmFiredAt: Long = 0
@@ -396,6 +434,8 @@ class AlarmService : Service() {
                     currentScheduledAt = scheduledAt
                     currentFireId = fireId
                     currentIsTest = testRun
+                    spotifyForcedFullScreen = false
+                    FiringScreenPresence.ringStarted(fireId)
                     activeAlarm.set(ActiveAlarmSnapshot(alarmId, scheduledAt, fireId, testRun))
                     currentSnoozeCount = readPersistedSnoozeCount(alarmId, testRun)
                     currentWakeConfirmRefireCount = intent.getIntExtra(
@@ -422,7 +462,7 @@ class AlarmService : Service() {
                     // coroutine using a placeholder; startAlarm() later replaces
                     // the notification via nm.notify() with the labelled version.
                     startForegroundWithPlaceholder()
-                    serviceScope.launch { startAlarm(alarmId, testRun) }
+                    serviceScope.launch { startAlarm(alarmId, testRun, fireId) }
                     if (!testRun) {
                         redeliveredStart.hold(startId)
                         return START_REDELIVER_INTENT
@@ -514,7 +554,7 @@ class AlarmService : Service() {
         return START_NOT_STICKY
     }
 
-    private suspend fun startAlarm(alarmId: Long, testRun: Boolean) {
+    private suspend fun startAlarm(alarmId: Long, testRun: Boolean, fireId: String) {
         // The countdown belongs to a real snooze, which a test leaves running.
         if (!testRun) SnoozeCountdownReceiver.cancel(this)
         // v1.5.1: Sanitise before any downstream logic touches the row. This
@@ -592,8 +632,15 @@ class AlarmService : Service() {
                 source = "AlarmService"
             )
         }
+        // Without a full-screen intent on the post, nothing else puts the
+        // screen up if the app left the screen before this launch and Android
+        // refused it. A newer ring that took over in the meantime runs its own,
+        // even one for the same alarm (a real ring replacing a test).
+        if (postedWithoutFullScreen && currentFireId == fireId) {
+            confirmFiringScreenShown(alarm, fireId, afterSpotify = false)
+        }
 
-        startAudio(alarm)
+        startAudio(alarm, fireId)
 
         AlarmHapticController.vibrationDelayMillis(alarm)?.let { delayMillis ->
             // v1.12.0 (roadmap N7): optional pre-vibration delay. Defers haptic
@@ -782,7 +829,8 @@ class AlarmService : Service() {
                 this,
                 AlarmFireDismissContract.firingPendingIntent(
                     this, currentAlarmId, currentScheduledAt, currentFireId, currentIsTest
-                )
+                ),
+                appOpen = appOpenForRingingPost()
             )
             startForeground(NOTIFICATION_ID, placeholder)
             recordIncidentAsync(
@@ -808,7 +856,7 @@ class AlarmService : Service() {
         }
     }
 
-    private fun buildAlarmNotification(alarm: Alarm): Notification {
+    private fun buildAlarmNotification(alarm: Alarm, forceFullScreen: Boolean = false): Notification {
         val testRun = currentIsTest
         val fullScreenPi = AlarmFireDismissContract.firingPendingIntent(
             this, alarm.id, currentScheduledAt, currentFireId, testRun
@@ -871,8 +919,7 @@ class AlarmService : Service() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setColor(ALARM_NOTIFICATION_COLOR)
             .setColorized(true)
-            .setFullScreenIntent(fullScreenPi, true)
-            .setContentIntent(fullScreenPi)
+            .setRingingScreen(fullScreenPi, appOpen = appOpenForRingingPost(forceFullScreen))
             .setOngoing(true)
             .setAutoCancel(false)
             .apply {
@@ -916,13 +963,21 @@ class AlarmService : Service() {
     }
 
     /**
+     * Whether a ringing post goes without the full-screen intent, remembered
+     * for the checks that follow it. Another app on top, Spotify included,
+     * means the app isn't open.
+     */
+    private fun appOpenForRingingPost(forceFullScreen: Boolean = false): Boolean =
+        (!forceFullScreen && appOnScreen()).also { postedWithoutFullScreen = it }
+
+    /**
      * Re-posts the ongoing alarm notification so its actions match the current
      * snooze state. The alarm keeps ringing throughout.
      */
-    private fun refreshFiringNotification(alarm: Alarm) {
+    private fun refreshFiringNotification(alarm: Alarm, forceFullScreen: Boolean = false) {
         runCatching {
             getSystemService(NotificationManager::class.java)
-                .notify(NOTIFICATION_ID, buildAlarmNotification(alarm))
+                .notify(NOTIFICATION_ID, buildAlarmNotification(alarm, forceFullScreen))
         }
     }
 
@@ -1005,7 +1060,7 @@ class AlarmService : Service() {
         }
     }
 
-    private fun startAudio(alarm: Alarm) {
+    private fun startAudio(alarm: Alarm, fireId: String = currentFireId) {
         // Silent mode - skip audio entirely
         if (alarm.ringtoneUri == "silent" || AlarmHapticController.usesMutedAlarmAudio(alarm)) {
             recordIncidentAsync(
@@ -1045,13 +1100,13 @@ class AlarmService : Service() {
                 ?.let { pool -> alarm.copy(ringtoneUri = pool.random()) }
                 ?: alarm
 
-            startAudioInternal(pooledAlarm)
+            startAudioInternal(pooledAlarm, fireId)
         } finally {
             audioStarting.set(false)
         }
     }
 
-    private fun startAudioInternal(alarm: Alarm) {
+    private fun startAudioInternal(alarm: Alarm, fireId: String) {
 
         // F14: Spotify ringtone — open Spotify URI and skip in-app playback.
         // The normalizer rewrites a pasted share link to the spotify: scheme,
@@ -1082,6 +1137,16 @@ class AlarmService : Service() {
                     // failure and the fallback tone would land on top of it.
                     val streamsAtLaunch = otherAppPlaybackStreams()
                     startActivity(spotifyIntent)
+                    if (postedWithoutFullScreen && currentFireId == fireId) {
+                        // Spotify now covers the ringing screen, which is
+                        // expected, so drop the first-launch check and keep
+                        // the card up over Spotify. The app is still in front
+                        // for a moment, hence the forced full-screen intent.
+                        // Later posts get one anyway while Spotify is on top.
+                        spotifyForcedFullScreen = true
+                        firingScreenCheckJob?.cancel()
+                        refreshFiringNotification(alarm, forceFullScreen = true)
+                    }
                     updateAlarmMediaSessionState(PlaybackState.STATE_PLAYING)
                     recordIncidentAsync(
                         type = AlarmIncidentEvent.TYPE_AUDIO,
@@ -1377,29 +1442,49 @@ class AlarmService : Service() {
             )
             startMedia3DefaultFallback(alarm)
             bringFiringScreenBack(alarm)
-            confirmFiringScreenReturned(alarm, currentFireId)
+            confirmFiringScreenShown(alarm, currentFireId, afterSpotify = true)
         }
     }
 
     /**
      * A blocked background launch doesn't throw, so look a moment later. If
-     * the ringing screen still isn't up, re-post the notification with a line
-     * that says so: the changed text makes it alert again, and tapping it
-     * opens the screen.
+     * the ringing screen still isn't up, re-post the notification so its card
+     * alerts again and tapping it opens the screen. After the Spotify fallback
+     * the post also says why. A screen that came back over Spotify lets its
+     * card time out again.
      */
-    private fun confirmFiringScreenReturned(alarm: Alarm, fireId: String) {
+    private fun confirmFiringScreenShown(alarm: Alarm, fireId: String, afterSpotify: Boolean) {
+        // A ring that was taken over must not cancel the newer ring's check.
+        if (currentFireId != fireId) return
         firingScreenCheckJob?.cancel()
         firingScreenCheckJob = serviceScope.launch {
             delay(FiringScreenPresence.RELAUNCH_CHECK_DELAY_MS)
-            val outcome = FiringScreenPresence.relaunchOutcome(
-                stillRinging = currentAlarmId == alarm.id && currentFireId == fireId,
-                fireId = fireId
-            )
-            val reasonCode = outcome.reasonCode ?: return@launch
-            if (outcome == FiringScreenPresence.RelaunchOutcome.BLOCKED) {
-                screenBlockedFireId = fireId
-                refreshFiringNotification(alarm)
+            val stillRinging = currentAlarmId == alarm.id && currentFireId == fireId
+            // The first launch only needs the screen to have come up. Leaving
+            // it a second later is the user's choice, not a refused launch.
+            val outcome = if (afterSpotify) {
+                FiringScreenPresence.relaunchOutcome(stillRinging, fireId)
+            } else {
+                FiringScreenPresence.firstLaunchOutcome(stillRinging, fireId)
             }
+            when (outcome) {
+                FiringScreenPresence.RelaunchOutcome.BLOCKED -> {
+                    if (afterSpotify) screenBlockedFireId = fireId
+                    refreshFiringNotification(alarm)
+                }
+                FiringScreenPresence.RelaunchOutcome.RETURNED -> if (afterSpotify && spotifyForcedFullScreen) {
+                    spotifyForcedFullScreen = false
+                    refreshFiringNotification(alarm)
+                }
+                FiringScreenPresence.RelaunchOutcome.MOOT -> Unit
+            }
+            // The ringing screen logs its own start, so the first launch only
+            // logs a screen that never showed.
+            val reasonCode = when {
+                afterSpotify -> outcome.reasonCode
+                outcome == FiringScreenPresence.RelaunchOutcome.BLOCKED -> "FIRING_SCREEN_NOT_SHOWN"
+                else -> null
+            } ?: return@launch
             recordIncidentAsync(
                 type = AlarmIncidentEvent.TYPE_ACTIVITY_LAUNCH,
                 status = if (outcome == FiringScreenPresence.RelaunchOutcome.RETURNED) {

@@ -372,13 +372,6 @@ Cross-references, not new items:
   Acceptance: a ring on an emulator with another app on screen logs the launch as requested, and the diagnostics don't count it as a screen that opened. A unit test covers the status.
   Complexity: S
 
-- [ ] P1: The ringing notification's heads-up card stays over the ringing screen
-  Why: when an alarm rings while the app is on screen (every Test now run, and a real ring with the app open), the ringing screen opens and the notification's heads-up card stays pinned over its top. It hides the alarm's name, the Test marker and End test until it's swiped away. Android 14 and later keep a heads-up card that has a full-screen intent up until it's dismissed. Since f3c5ff9 the first post carries the full-screen intent, so this probably started there and must not ship. Before it the first post had none, and the card would have timed out.
-  Evidence: headless API 36 emulator, Test now from the editor. The card was still over the ringing screen a minute after the ring started, and a tap on End test landed on the card. Not yet compared with v1.15.35. Found while checking #65.
-  Touches: `service/AlarmService.kt` (the placeholder and ringing posts), maybe `FiringScreenPresence`. Read SystemUI's NotifInterruptLog for the post first. Candidates: leave the full-screen intent off the first post when the app has a screen showing (its own `startActivity` is allowed then), or re-post without it once the ringing screen is up, if that clears a sticky card.
-  Acceptance: on an API 36 emulator, Test now leaves no heads-up card over the ringing screen after about 5 seconds, and a snoozed alarm coming back with the screen off and a PIN still opens the ringing screen by itself (the f3c5ff9 case).
-  Complexity: S
-
 - [ ] P2: Calls never mute a ringing alarm on Android 12 and later
   Why: the call-state listener that mutes the alarm during a phone call needs `READ_PHONE_STATE` on Android 12 and later, and the app doesn't hold it. Registration throws, the catch logs a warning, and the alarm keeps playing over the call. The KDoc on `registerCallObserver` says no permission is needed, which was only true before Android 12.
   Evidence: `service/AlarmService.kt:2606-2638`. Headless API 36 emulator, Test now: "Call-state observer registration failed; alarm will not auto-mute on calls" with `SecurityException: listen` from `TelephonyPermissions.checkReadPhoneState`. Found while checking #65.
