@@ -81,6 +81,41 @@ class DirectBootAlarmCacheTest {
     }
 
     @Test
+    fun saveIfEarlierReportsOnlyWhenTheCachedAlarmMovesLater() {
+        assertFalse(DirectBootAlarmCache.saveIfEarlier(context, alarm(1L), now + 600_000L, now))
+        assertFalse("an earlier time for itself", DirectBootAlarmCache.saveIfEarlier(context, alarm(1L), now + 300_000L, now))
+        assertFalse("a later, different alarm", DirectBootAlarmCache.saveIfEarlier(context, alarm(2L), now + 900_000L, now))
+        assertTrue(DirectBootAlarmCache.saveIfEarlier(context, alarm(1L), now + 1_800_000L, now))
+    }
+
+    @Test
+    fun offerIfEarlierNeverMovesTheCachedAlarmLater() {
+        DirectBootAlarmCache.saveIfEarlier(context, alarm(1L), now + 600_000L, now)
+
+        // A refill holding a stale, later read of the same alarm leaves it alone.
+        DirectBootAlarmCache.offerIfEarlier(context, alarm(1L), now + 1_800_000L, now)
+        assertEquals(now + 600_000L, DirectBootAlarmCache.read(context)?.triggerTime)
+        DirectBootAlarmCache.offerIfEarlier(context, alarm(2L), now + 900_000L, now)
+        assertEquals(1L, DirectBootAlarmCache.read(context)?.alarmId)
+
+        DirectBootAlarmCache.offerIfEarlier(context, alarm(2L), now + 300_000L, now)
+        assertEquals(2L, DirectBootAlarmCache.read(context)?.alarmId)
+
+        DirectBootAlarmCache.clear(context)
+        DirectBootAlarmCache.offerIfEarlier(context, alarm(3L), now + 900_000L, now)
+        assertEquals(3L, DirectBootAlarmCache.read(context)?.alarmId)
+    }
+
+    @Test
+    fun removeIfMatchesSaysWhetherItEmptiedTheCache() {
+        DirectBootAlarmCache.saveIfEarlier(context, alarm(1L), now + 600_000L, now)
+        assertFalse(DirectBootAlarmCache.removeIfMatches(context, 2L))
+        assertEquals(1L, DirectBootAlarmCache.read(context)?.alarmId)
+        assertTrue(DirectBootAlarmCache.removeIfMatches(context, 1L))
+        assertNull(DirectBootAlarmCache.read(context))
+    }
+
+    @Test
     fun fixedTimezoneMetadataSurvivesDeviceProtectedCacheRoundTrip() {
         val fixed = alarm(4L).copy(
             timezonePolicy = Alarm.TIMEZONE_POLICY_FIXED,

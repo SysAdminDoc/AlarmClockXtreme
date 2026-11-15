@@ -28,7 +28,14 @@ import com.sysadmindoc.alarmclock.worker.FireWatchdogWorker
 import com.sysadmindoc.alarmclock.worker.HueSunriseNotifications
 import com.sysadmindoc.alarmclock.worker.HueSunriseWorker
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import java.time.Instant
@@ -50,6 +57,19 @@ class AlarmScheduler @Inject constructor(
     private val calendarRepository: CalendarRepository
 ) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+    // Refills run one at a time so an older database read can't land after a newer one.
+    private val directBootRefillLock = Mutex()
+    private val directBootRefillScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, e ->
+            // Best effort: the next full reschedule rebuilds the cache anyway.
+            android.util.Log.e("AlarmScheduler", "Direct Boot cache refill failed", e)
+        }
+    )
+
+    /** The refill started by the last cancel, so tests can wait for it. */
+    @androidx.annotation.VisibleForTesting
+    internal var pendingDirectBootRefill: Job? = null
 
     companion object {
         const val EXTRA_ALARM_ID = "alarm_id"
@@ -282,7 +302,7 @@ class AlarmScheduler @Inject constructor(
 
         repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
         scheduleAlarmClock(sanitizedAlarm.id, triggerTime)
-        DirectBootAlarmCache.saveIfEarlier(context, sanitizedAlarm, triggerTime)
+        cacheForDirectBoot(sanitizedAlarm, triggerTime)
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
         requestWidgetUpdateIfNeeded(requestWidgetUpdate)
         syncBedtimeDndRule()
@@ -411,7 +431,7 @@ class AlarmScheduler @Inject constructor(
 
         repository.updateNextTrigger(sanitizedAlarm.id, triggerTime)
         scheduleAlarmClock(sanitizedAlarm.id, triggerTime)
-        DirectBootAlarmCache.saveIfEarlier(context, sanitizedAlarm, triggerTime)
+        cacheForDirectBoot(sanitizedAlarm, triggerTime)
         scheduleSupportingWork(sanitizedAlarm, triggerTime)
         requestWidgetUpdateIfNeeded(requestWidgetUpdate)
         syncBedtimeDndRule()
@@ -667,6 +687,26 @@ class AlarmScheduler @Inject constructor(
         }
     }
 
+    private suspend fun cacheForDirectBoot(alarm: Alarm, triggerTime: Long) {
+        if (DirectBootAlarmCache.saveIfEarlier(context, alarm, triggerTime)) {
+            refillDirectBootCache(excludingId = alarm.id)
+        }
+    }
+
+    /**
+     * The Direct Boot cache holds one alarm, the next to ring. When that alarm
+     * moves later (a repeating alarm rolling to next week after it rings, or an
+     * edit) or goes away, a different enabled alarm may be next now. Without
+     * this it has no pre-unlock fallback until the next full reschedule.
+     */
+    private suspend fun refillDirectBootCache(excludingId: Long) = directBootRefillLock.withLock {
+        val now = System.currentTimeMillis()
+        repository.getEnabled()
+            .filter { it.id != excludingId && it.nextTriggerTime > now }
+            .minByOrNull { it.nextTriggerTime }
+            ?.let { DirectBootAlarmCache.offerIfEarlier(context, it.sanitized(), it.nextTriggerTime, now) }
+    }
+
     private fun scheduleAlarmClock(alarmId: Long, triggerTime: Long) {
         DirectBootAlarmCache.cancelScheduledFallback(context, alarmId)
         val fireId = AlarmIncidentEvent.fireIdFor(alarmId, triggerTime)
@@ -901,7 +941,11 @@ class AlarmScheduler @Inject constructor(
         val pendingIntent = createPendingIntent(alarmId)
         alarmManager.cancel(pendingIntent)
         pendingIntent.cancel()
-        DirectBootAlarmCache.removeIfMatches(context, alarmId)
+        if (DirectBootAlarmCache.removeIfMatches(context, alarmId)) {
+            pendingDirectBootRefill = directBootRefillScope.launch {
+                refillDirectBootCache(excludingId = alarmId)
+            }
+        }
 
         cancelSmartAlarmStart(alarmId)
 

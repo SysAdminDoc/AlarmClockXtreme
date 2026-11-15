@@ -26,29 +26,60 @@ object DirectBootAlarmCache {
     private const val KEY_FIRED_AT = "fired_at"
     private const val DIRECT_BOOT_SHOW_REQUEST_CODE = 91_700
 
+    /**
+     * Keeps [alarm] when it rings before whatever the cache holds, or when the
+     * cache already holds this alarm (its new time replaces the old one).
+     *
+     * @return true when this alarm held the cache and moved later. A different
+     * enabled alarm may ring first now, and the caller should offer it with
+     * [offerIfEarlier], or it stays unprotected before first unlock.
+     */
     fun saveIfEarlier(
+        context: Context,
+        alarm: Alarm,
+        triggerTime: Long,
+        now: Long = System.currentTimeMillis()
+    ): Boolean {
+        if (triggerTime <= now || alarm.id <= 0L) return false
+
+        val snapshot = snapshotOf(context, alarm, triggerTime, now)
+        val current = read(context)?.takeIf { it.isSchedulable(now) }
+        if (current == null ||
+            current.alarmId == snapshot.alarmId ||
+            snapshot.triggerTime < current.triggerTime
+        ) {
+            write(context, snapshot)
+        }
+        return current != null &&
+            current.alarmId == snapshot.alarmId &&
+            snapshot.triggerTime > current.triggerTime
+    }
+
+    /**
+     * Writes [alarm] only when the cache is empty or holds a later trigger.
+     * Unlike [saveIfEarlier] it never moves the cached alarm later, so a refill
+     * that read the database before an edit can't undo that edit.
+     */
+    fun offerIfEarlier(
         context: Context,
         alarm: Alarm,
         triggerTime: Long,
         now: Long = System.currentTimeMillis()
     ) {
         if (triggerTime <= now || alarm.id <= 0L) return
+        val current = read(context)?.takeIf { it.isSchedulable(now) }
+        if (current == null || triggerTime < current.triggerTime) {
+            write(context, snapshotOf(context, alarm, triggerTime, now))
+        }
+    }
 
-        val snapshot = DirectBootAlarmSnapshot.fromAlarm(
+    private fun snapshotOf(context: Context, alarm: Alarm, triggerTime: Long, now: Long) =
+        DirectBootAlarmSnapshot.fromAlarm(
             alarm = alarm,
             triggerTime = triggerTime,
             timeLabel = formatTriggerTime(context, triggerTime),
             now = now
         )
-        val current = read(context)
-        if (current == null ||
-            !current.isSchedulable(now) ||
-            current.alarmId == snapshot.alarmId ||
-            snapshot.triggerTime < current.triggerTime
-        ) {
-            write(context, snapshot)
-        }
-    }
 
     fun clear(context: Context) {
         prefs(context).edit()
@@ -65,12 +96,13 @@ object DirectBootAlarmCache {
             .apply()
     }
 
-    fun removeIfMatches(context: Context, alarmId: Long) {
+    /** @return true when [alarmId] was the cached alarm and the cache is now empty. */
+    fun removeIfMatches(context: Context, alarmId: Long): Boolean {
         val current = read(context)
-        if (current?.alarmId == alarmId) {
-            cancelScheduledFallback(context, alarmId)
-            clear(context)
-        }
+        if (current?.alarmId != alarmId) return false
+        cancelScheduledFallback(context, alarmId)
+        clear(context)
+        return true
     }
 
     fun scheduleCachedAlarm(context: Context, now: Long = System.currentTimeMillis()): Boolean {

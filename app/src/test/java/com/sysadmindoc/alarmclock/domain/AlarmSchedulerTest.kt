@@ -15,6 +15,7 @@ import com.sysadmindoc.alarmclock.data.repository.AlarmRepository
 import com.sysadmindoc.alarmclock.data.repository.CalendarEvent
 import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
+import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -467,6 +468,46 @@ class AlarmSchedulerTest {
 
         coVerify { repository.updateNextTrigger(63L, nextWeek) }
         coVerify(exactly = 0) { repository.updateNextTrigger(63L, skippedDay) }
+    }
+
+    @Test
+    fun theCachedAlarmMovingLaterPutsTheNextEnabledAlarmInTheDirectBootCache() = runTest {
+        // A weekly alarm rings and rolls to next week while a daily one rings
+        // tomorrow. The pre-unlock fallback has to cover the daily one.
+        val now = System.currentTimeMillis()
+        val tomorrow = now + 86_400_000L
+        val nextWeek = now + 7 * 86_400_000L
+        DirectBootAlarmCache.clear(context)
+        DirectBootAlarmCache.saveIfEarlier(context, enabledAlarm(id = 70L), now + 3_600_000L)
+        coEvery { repository.getEnabled() } returns listOf(
+            enabledAlarm(id = 70L).copy(nextTriggerTime = nextWeek),
+            enabledAlarm(id = 71L).copy(nextTriggerTime = tomorrow)
+        )
+        every { calculator.calculate(any<Alarm>(), any()) } returns nextWeek
+
+        scheduler.schedule(enabledAlarm(id = 70L), requestWidgetUpdate = false)
+
+        val cached = DirectBootAlarmCache.read(context)
+        assertEquals(71L, cached?.alarmId)
+        assertEquals(tomorrow, cached?.triggerTime)
+    }
+
+    @Test
+    fun cancellingTheCachedAlarmRefillsTheDirectBootCache() = runTest {
+        val now = System.currentTimeMillis()
+        val later = now + 2 * 3_600_000L
+        DirectBootAlarmCache.clear(context)
+        DirectBootAlarmCache.saveIfEarlier(context, enabledAlarm(id = 72L), now + 3_600_000L)
+        coEvery { repository.getEnabled() } returns listOf(
+            // The database can still show the cancelled alarm for a moment.
+            enabledAlarm(id = 72L).copy(nextTriggerTime = now + 3_600_000L),
+            enabledAlarm(id = 73L).copy(nextTriggerTime = later)
+        )
+
+        scheduler.cancel(72L)
+        scheduler.pendingDirectBootRefill?.join()
+
+        assertEquals(73L, DirectBootAlarmCache.read(context)?.alarmId)
     }
 
     private fun timedEvent(title: String, around: Long) = CalendarEvent(
