@@ -8,7 +8,7 @@ package com.sysadmindoc.alarmclock.ui.alarmfiring
  * else (Home, then the notification).
  *
  * Every call comes while the ringing screen is showing: a tap whose unlock
- * answers while it's hidden waits for it ([runWhenShown]), and a permission
+ * answers while it's hidden waits for it ([unlockThenWhenShown]), and a permission
  * answer arrives as the screen starts.
  */
 internal class PhotoCaptureGate {

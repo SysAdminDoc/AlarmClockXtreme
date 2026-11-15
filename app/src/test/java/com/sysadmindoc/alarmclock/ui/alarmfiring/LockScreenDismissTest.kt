@@ -285,21 +285,23 @@ class LockScreenDismissTest {
         // Lock timer, fingerprint, lock timer again: each lock is read once
         // before SystemUI says it needs a PIN. Two such reads, with a PIN
         // read between them, aren't two reads in a row.
-        val needsPinReads = ArrayDeque(listOf(false, true, false, true))
+        var needsPin = false
         val keyguard = mockk<KeyguardManager>(relaxed = true).also {
             every { it.isKeyguardLocked } returns true
-            every { it.isDeviceLocked } answers { needsPinReads.removeFirst() }
+            every { it.isDeviceLocked } answers { needsPin }
         }
+        val seen = mutableListOf<Boolean>()
 
-        val watch = launch { watchPinLock(activity, keyguard) { } }
+        val watch = launch { watchPinLock(activity, keyguard) { seen += it } }
         runCurrent()
-        repeat(3) {
+        for (next in listOf(true, false, true)) {
+            needsPin = next
             advanceTimeBy(PIN_LOCK_RECHECK_MS)
             runCurrent()
         }
         watch.cancel()
 
-        assertEquals(0, needsPinReads.size)
+        assertEquals(listOf(false, true, false, true), seen)
         verify(exactly = 0) { keyguard.requestDismissKeyguard(any(), any()) }
     }
 }

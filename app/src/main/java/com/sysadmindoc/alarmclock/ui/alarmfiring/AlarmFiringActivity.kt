@@ -22,11 +22,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.withStarted
+import androidx.lifecycle.withResumed
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
@@ -377,10 +378,8 @@ class AlarmFiringActivity : ComponentActivity() {
 
     private fun launchPhotoCapture() {
         // The camera app can't open over a locked phone, so unlock first.
-        unlockThen(this, getSystemService(KeyguardManager::class.java)) {
-            // The unlock can answer while the ringing screen is hidden. A
-            // camera opened then would race the screen coming back.
-            runWhenShown(this) { startPhotoCapture() }
+        unlockThenWhenShown(this, this, getSystemService(KeyguardManager::class.java)) {
+            startPhotoCapture()
         }
     }
 
@@ -984,11 +983,32 @@ internal fun unlockThen(activity: Activity, keyguard: KeyguardManager?, action: 
 }
 
 /**
- * Runs [step] now while the ringing screen is showing, or as soon as it shows
- * again. Nothing runs if the screen is destroyed first.
+ * [unlockThen] for a step that opens another app over the ringing screen.
+ * The unlock can answer while the ringing screen is hidden, and a camera
+ * opened then would race the screen coming back. Such a step waits until the
+ * screen is back, and is dropped if the screen is closing by then or the phone
+ * locked again in the meantime, since the other app would open behind the
+ * lock. Nothing runs if the screen is destroyed first.
  */
-internal fun runWhenShown(owner: LifecycleOwner, step: () -> Unit) {
-    owner.lifecycleScope.launch { owner.withStarted { step() } }
+internal fun unlockThenWhenShown(
+    activity: Activity,
+    owner: LifecycleOwner,
+    keyguard: KeyguardManager?,
+    step: () -> Unit
+) {
+    unlockThen(activity, keyguard) {
+        if (owner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            step()
+        } else {
+            owner.lifecycleScope.launch {
+                // Resumed, not started: a ringing screen that a newer alarm
+                // brings forward only to close it starts but never resumes.
+                owner.withResumed {
+                    if (!activity.isFinishing && keyguard?.isKeyguardLocked != true) step()
+                }
+            }
+        }
+    }
 }
 
 internal fun shouldDuckAlarmForChallenge(
