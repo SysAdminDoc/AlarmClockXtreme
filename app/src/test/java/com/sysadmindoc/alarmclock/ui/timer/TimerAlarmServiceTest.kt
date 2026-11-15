@@ -9,6 +9,7 @@ import android.content.Intent
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import com.sysadmindoc.alarmclock.data.preferences.PreferencesManager
+import com.sysadmindoc.alarmclock.service.AlarmService
 import java.time.Duration
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -89,6 +90,18 @@ class TimerAlarmServiceTest {
             notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
         )
         assertEquals(TimerAlarmService.NOTIFICATION_ID, shadowOf(service).lastForegroundNotificationId)
+    }
+
+    @Test
+    fun `the finished-timer alert is colorized`() {
+        // Colorized foreground-service posts stay out of Android 16's auto-grouping,
+        // which marks grouped posts silent and drops their full-screen intent.
+        service.onStartCommand(fireIntent(1, "Tea"), 0, 1)
+
+        val notification = requireNotNull(shadowOf(service).lastForegroundNotification)
+
+        assertTrue(notification.extras.getBoolean(Notification.EXTRA_COLORIZED))
+        assertEquals(AlarmService.ALARM_NOTIFICATION_COLOR, notification.color)
     }
 
     @Test

@@ -1,7 +1,9 @@
 package com.sysadmindoc.alarmclock.ui.alarmfiring
 
 import android.Manifest
+import android.app.Activity
 import android.app.KeyguardManager
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
@@ -20,9 +22,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.withStarted
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.repository.AlarmIncidentRepository
@@ -81,9 +85,11 @@ class AlarmFiringActivity : ComponentActivity() {
     private var wifiPermissionRequestInFlight = false
     private var locationDismissPermissionRequestInFlight = false
     private var locationDismissListener: LocationListener? = null
+    private val photoCapture = PhotoCaptureGate()
 
     // F16: Camera launcher for photo-match challenge
     private val photoLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        photoCapture.finished()
         if (bitmap != null) {
             val challenge = viewModel.uiState.value.challenge as? Challenge.PhotoMatchChallenge ?: return@registerForActivityResult
             lifecycleScope.launch(Dispatchers.Default) {
@@ -99,8 +105,9 @@ class AlarmFiringActivity : ComponentActivity() {
 
     private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
-            photoLauncher.launch(null)
+            openCamera()
         } else {
+            photoCapture.finished()
             viewModel.onPhotoCaptureUnavailable(getString(R.string.challenge_camera_permission_photo_match))
         }
     }
@@ -187,8 +194,6 @@ class AlarmFiringActivity : ComponentActivity() {
                         WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
             )
         }
-        val km = getSystemService(KeyguardManager::class.java)
-        km?.requestDismissKeyguard(this, null)
 
         // Prevent accidental dismiss via back button
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -345,6 +350,12 @@ class AlarmFiringActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Every time, not only on the first ring: a press of the power key
+        // brings a swipe lock back over the ringing screen.
+        dismissLockScreenIfUnlocked(this, getSystemService(KeyguardManager::class.java))
+        // Back on the ringing screen with the camera left open somewhere else
+        // (Home, then the notification): Take photo has to work again.
+        photoCapture.onResume()
         FiringScreenPresence.shown(fireId)
         // Enable NFC foreground dispatch for NFC_SCAN challenge
         val challenge = viewModel.uiState.value.challenge
@@ -360,16 +371,41 @@ class AlarmFiringActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        photoCapture.onStop()
         FiringScreenPresence.hidden(fireId)
     }
 
     private fun launchPhotoCapture() {
+        // The camera app can't open over a locked phone, so unlock first.
+        unlockThen(this, getSystemService(KeyguardManager::class.java)) {
+            // The unlock can answer while the ringing screen is hidden. A
+            // camera opened then would race the screen coming back.
+            runWhenShown(this) { startPhotoCapture() }
+        }
+    }
+
+    private fun startPhotoCapture() {
+        // Two quick taps queue two unlock requests, and both run once the
+        // PIN is in.
+        if (!photoCapture.start()) return
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED
         ) {
-            photoLauncher.launch(null)
+            openCamera()
         } else {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun openCamera() {
+        photoCapture.cameraOpening()
+        try {
+            photoLauncher.launch(null)
+        } catch (_: ActivityNotFoundException) {
+            // No camera app, for example one switched off by a work policy.
+            // Say so instead of closing the ringing screen.
+            photoCapture.finished()
+            viewModel.onPhotoCaptureUnavailable(getString(R.string.challenge_no_camera_app))
         }
     }
 
@@ -905,6 +941,55 @@ internal data class ChallengeAudioDuckingCommand(
     val active: Boolean,
     val volumePercent: Int
 )
+
+/**
+ * Clears a lock screen that needs no PIN (swipe-only, or a secure lock that
+ * Smart Lock is holding open) so the ringing screen opens straight in. A
+ * locked PIN, pattern or password lock is left alone: asking to dismiss it
+ * puts the PIN pad on top of the ringing screen, hiding Snooze and Dismiss
+ * while the alarm rings. The screen already shows over that lock
+ * (showWhenLocked). A step that needs the phone unlocked asks through
+ * [unlockThen] when the user starts it.
+ */
+internal fun dismissLockScreenIfUnlocked(activity: Activity, keyguard: KeyguardManager?) {
+    if (keyguard != null && keyguard.isKeyguardLocked && !keyguard.isDeviceLocked) {
+        keyguard.requestDismissKeyguard(activity, null)
+    }
+}
+
+/**
+ * Runs [action] once the lock screen is out of the way, asking for the PIN
+ * first when it needs one (a lock that needs none goes away without asking).
+ * For steps that can't happen over the lock screen: another app's camera, or
+ * an NFC tag (Android only reads tags on an unlocked phone).
+ */
+internal fun unlockThen(activity: Activity, keyguard: KeyguardManager?, action: () -> Unit) {
+    if (keyguard?.isKeyguardLocked == true) {
+        // The answer can arrive after the alarm closed the ringing screen.
+        val screenOpen = { !activity.isFinishing && !activity.isDestroyed }
+        keyguard.requestDismissKeyguard(activity, object : KeyguardManager.KeyguardDismissCallback() {
+            override fun onDismissSucceeded() {
+                if (screenOpen()) action()
+            }
+
+            // A tap while a swipe lock is already on its way out (cleared on
+            // resume) can get an error even though the lock is gone.
+            override fun onDismissError() {
+                if (screenOpen() && !keyguard.isKeyguardLocked) action()
+            }
+        })
+    } else {
+        action()
+    }
+}
+
+/**
+ * Runs [step] now while the ringing screen is showing, or as soon as it shows
+ * again. Nothing runs if the screen is destroyed first.
+ */
+internal fun runWhenShown(owner: LifecycleOwner, step: () -> Unit) {
+    owner.lifecycleScope.launch { owner.withStarted { step() } }
+}
 
 internal fun shouldDuckAlarmForChallenge(
     enabled: Boolean,

@@ -168,6 +168,10 @@ class TimerAlarmService : Service() {
             .setContentText(alerts.notificationText(this))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
+            // Colorized for the same reason as the alarm's: keeps Android 16
+            // from auto-grouping it silent, which drops the full-screen intent.
+            .setColor(AlarmService.ALARM_NOTIFICATION_COLOR)
+            .setColorized(true)
             .setOngoing(true)
             .setAutoCancel(false)
             .setFullScreenIntent(fullScreen, true)

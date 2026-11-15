@@ -1465,6 +1465,8 @@
     <string name="challenge_walking_few_steps_helps_make">Walking a few steps makes sure you’re really up.</string>
     <string name="challenge_continue_without_step_count">Continue without step count</string>
     <string name="challenge_tap_saved_tag_against_back">Tap the saved tag against the back of your phone to clear this step.</string>
+    <string name="challenge_nfc_unlock_first">Your phone only reads NFC tags once it\'s unlocked.</string>
+    <string name="challenge_nfc_unlock_button">Unlock to scan</string>
     <string name="challenge_point_camera_at_saved_code">Point the camera at your saved barcode or QR code.</string>
     <string name="challenge_continue_without_saved_code">Continue without saved code</string>
     <string name="barcode_allow_camera">Allow camera</string>
@@ -2553,6 +2555,7 @@
     <string name="onboarding_finish_setup_without_alarm_alerts">Finish setup without enabling alarm alerts</string>
     <string name="challenge_no_photo_captured">No photo captured. Try again.</string>
     <string name="challenge_camera_permission_photo_match">Camera permission is required for photo match.</string>
+    <string name="challenge_no_camera_app">There\'s no camera app on this phone to take the photo with.</string>
     <string name="challenge_activity_permission_steps">Activity recognition permission is required to count steps on this device.</string>
     <string name="challenge_location_permission_wifi_name">Location permission is required for Android to reveal the current Wi-Fi network name.</string>
     <string name="challenge_location_permission_dismiss">Location permission is required before dismiss can unlock.</string>

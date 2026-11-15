@@ -116,6 +116,40 @@ class AlarmService : Service() {
         internal const val PLAYBACK_START_TIMEOUT_MS = 8_000L
         private const val TAG = "AlarmService"
 
+        /**
+         * Ringing notifications posted by a foreground service (this one, the
+         * timer and the direct-boot ring) are colorized. Android 16 (first
+         * release) auto-groups an app's notifications once it has several and
+         * marks each grouped one silent, and SystemUI never launches a silent
+         * notification's full-screen intent. A colorized foreground-service
+         * notification is exempt from that grouping (GroupHelper
+         * isNotificationGroupable), so the ringing screen still opens on its
+         * own. Colour can't exempt a post that isn't a foreground service's.
+         */
+        internal const val ALARM_NOTIFICATION_COLOR = 0xFF1F5FA0.toInt()
+
+        /**
+         * The service's first post for a ring. SystemUI decides on a
+         * full-screen launch only when a notification is added, never when
+         * it's updated, so this one has to carry the ringing screen. The
+         * labelled notification that replaces it later can't launch it.
+         */
+        internal fun placeholderNotification(context: Context, firing: PendingIntent): Notification =
+            NotificationCompat.Builder(context, CHANNEL_ALARM)
+                .setSmallIcon(R.drawable.ic_alarm)
+                .setContentTitle(context.getString(R.string.notif_alarm_title))
+                .setContentText(context.getString(R.string.notif_alarm_ringing))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setColor(ALARM_NOTIFICATION_COLOR)
+                .setColorized(true)
+                .setFullScreenIntent(firing, true)
+                .setContentIntent(firing)
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .build()
+
         data class ActiveAlarmSnapshot(
             val alarmId: Long,
             val scheduledAt: Long,
@@ -744,16 +778,12 @@ class AlarmService : Service() {
         // re-fires while we're still tearing down) won't double-start.
         if (!isForeground.compareAndSet(false, true)) return
         try {
-            val placeholder = NotificationCompat.Builder(this, CHANNEL_ALARM)
-                .setSmallIcon(R.drawable.ic_alarm)
-                .setContentTitle(getString(R.string.notif_alarm_title))
-                .setContentText(getString(R.string.notif_alarm_ringing))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setOngoing(true)
-                .setAutoCancel(false)
-                .build()
+            val placeholder = placeholderNotification(
+                this,
+                AlarmFireDismissContract.firingPendingIntent(
+                    this, currentAlarmId, currentScheduledAt, currentFireId, currentIsTest
+                )
+            )
             startForeground(NOTIFICATION_ID, placeholder)
             recordIncidentAsync(
                 type = AlarmIncidentEvent.TYPE_FOREGROUND_PROMOTION,
@@ -780,16 +810,8 @@ class AlarmService : Service() {
 
     private fun buildAlarmNotification(alarm: Alarm): Notification {
         val testRun = currentIsTest
-        val fullScreenIntent = AlarmFireDismissContract.firingActivityIntent(
-            context = this,
-            alarmId = alarm.id,
-            scheduledAt = currentScheduledAt,
-            fireId = currentFireId,
-            testRun = testRun
-        )
-        val fullScreenPi = PendingIntent.getActivity(
-            this, alarm.id.toInt(), fullScreenIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        val fullScreenPi = AlarmFireDismissContract.firingPendingIntent(
+            this, alarm.id, currentScheduledAt, currentFireId, testRun
         )
 
         // A test's buttons go to the test receiver, which records nothing.
@@ -847,6 +869,8 @@ class AlarmService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setColor(ALARM_NOTIFICATION_COLOR)
+            .setColorized(true)
             .setFullScreenIntent(fullScreenPi, true)
             .setContentIntent(fullScreenPi)
             .setOngoing(true)

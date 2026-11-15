@@ -1407,6 +1407,8 @@
     <string name="challenge_walking_few_steps_helps_make">数歩歩くことで、本当に起きていることを確認するのに役立ちます。</string>
     <string name="challenge_continue_without_step_count">歩数カウントなしで続行</string>
     <string name="challenge_tap_saved_tag_against_back">このステップをクリアするには、保存済みのタグをスマホの背面にタップしてください。</string>
+    <string name="challenge_nfc_unlock_first">NFCタグはスマホのロックを解除してから読み取れます。</string>
+    <string name="challenge_nfc_unlock_button">ロックを解除してスキャン</string>
     <string name="challenge_point_camera_at_saved_code">保存済みのバーコードまたはQRコードにカメラを向けてください。</string>
     <string name="challenge_continue_without_saved_code">保存済みのコードなしで続行</string>
     <string name="barcode_allow_camera">カメラを許可</string>
@@ -2450,6 +2452,7 @@
     <string name="onboarding_finish_setup_without_alarm_alerts">アラーム通知を有効にせずにセットアップを完了</string>
     <string name="challenge_no_photo_captured">写真が撮影されませんでした。もう一度お試しください。</string>
     <string name="challenge_camera_permission_photo_match">写真照合にはカメラの権限が必要です。</string>
+    <string name="challenge_no_camera_app">写真を撮れるカメラアプリがこのスマートフォンにありません。</string>
     <string name="challenge_activity_permission_steps">この端末で歩数を数えるには身体活動の権限が必要です。</string>
     <string name="challenge_location_permission_wifi_name">Androidで現在のWi-Fiネットワーク名を読み取るには位置情報の権限が必要です。</string>
     <string name="challenge_location_permission_dismiss">停止できるようにするには位置情報の権限が必要です。</string>

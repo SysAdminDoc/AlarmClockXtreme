@@ -21,6 +21,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.sysadmindoc.alarmclock.R
 import com.sysadmindoc.alarmclock.service.AlarmAudioRouting
+import com.sysadmindoc.alarmclock.service.AlarmService
 
 class DirectBootAlarmService : Service() {
     private val handler = Handler(Looper.getMainLooper())
@@ -124,6 +125,10 @@ class DirectBootAlarmService : Service() {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            // Colorized for the same reason as the alarm's: keeps Android 16
+            // from auto-grouping it silent, which drops the full-screen intent.
+            .setColor(AlarmService.ALARM_NOTIFICATION_COLOR)
+            .setColorized(true)
             .setOngoing(true)
             .setAutoCancel(false)
             .setContentIntent(fullScreenIntent)

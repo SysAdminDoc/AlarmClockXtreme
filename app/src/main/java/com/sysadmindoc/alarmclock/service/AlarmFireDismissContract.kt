@@ -1,5 +1,6 @@
 package com.sysadmindoc.alarmclock.service
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import com.sysadmindoc.alarmclock.data.local.entity.AlarmEvent
@@ -86,6 +87,26 @@ object AlarmFireDismissContract {
         putExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID, fireId)
         markTestRun(testRun)
     }
+
+    /**
+     * The ringing screen as a full-screen intent. The service's placeholder
+     * and its labelled notification both use this one (request code = alarm
+     * id), so the labelled post updates it in place. The full-screen
+     * fallback posted when the service can't start (AlarmFullScreenFallback)
+     * uses its own request code.
+     */
+    fun firingPendingIntent(
+        context: Context,
+        alarmId: Long,
+        scheduledAt: Long,
+        fireId: String = fireId(alarmId, scheduledAt),
+        testRun: Boolean = false
+    ): PendingIntent = PendingIntent.getActivity(
+        context,
+        alarmId.toInt(),
+        firingActivityIntent(context, alarmId, scheduledAt, fireId, testRun),
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
 
     /** Only a test carries the extra, so every real intent stays exactly as it was. */
     private fun Intent.markTestRun(testRun: Boolean) {

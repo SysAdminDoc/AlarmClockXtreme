@@ -115,6 +115,12 @@ Cross-references, not new items: the AGP 8 to 9 migration (Toolchain, below) is 
   Why: AlarmService returns `START_REDELIVER_INTENT` while an alarm rings. With the ringing screen on top Android restarts it within a few seconds, but when the app is in the background the restart waits about twice as long as the service had been running (seen on the API 36 emulator, 2026-11-14). `START_STICKY` plus a persisted "currently ringing" alarm id read in `onStartCommand(null)` would bring it back without that backoff.
   Complexity: M
 
+- [ ] P3: Clear the swipe lock on resume only after two reads
+  Why: `AlarmFiringActivity.onResume` clears a lock that needs no PIN on one read of `isKeyguardLocked` and `isDeviceLocked`. SystemUI sets the first a moment before the second, so a quick double press of the power key (the keyguard shows at wake) could read a PIN lock as one that needs none and put the PIN pad over the ringing screen. The NFC poll in `challenges/ChallengeViews.kt` already waits for two reads in a row.
+  Touches: `ui/alarmfiring/AlarmFiringActivity.kt` (`onResume`), `LockScreenDismissTest`.
+  Acceptance: on resume, a lock is cleared only when a second read about 250 ms later still sees no PIN and the screen is still resumed; a test where `isDeviceLocked` turns true between the reads sees no dismiss.
+  Complexity: S
+
 ## Toolchain
 
 Moved from Roadmap_Blocked.md on 2026-11-12. Nothing outside the repo blocks these; they are one coordinated upgrade, and the Android 17 follow-ons below (compileSdk 37) wait on the first one.
@@ -324,11 +330,32 @@ Cross-references, not new items:
   Acceptance: on a 720 px wide screen at 320 dpi, and at the largest system font size, a wrapped math expression shows each line clear of the other. No large challenge text overlaps itself when it wraps.
   Complexity: S
 
-- [ ] P1: A snoozed alarm that comes back while the screen is off rings without showing the ringing screen
-  Why: on API 36 the re-ring after a snooze played (notification posted, service running) but the screen stayed off and the ringing screen never opened. You had to wake the phone, unlock and tap the notification to turn it off. For an alarm clock the screen has to come up on its own.
-  Evidence: seen on a headless API 36 emulator during the barcode check (#51), screen asleep with a PIN set. `AlarmService` starts the ringing activity directly (`startActivity(firingIntent)`), and logcat showed that start BAL_BLOCKed. The full-screen intent never fired either. SystemUI's NotifInterruptLog had no FSI decision for our notification, only "PEEK suppressed: device not in use", and the entry was autogrouped under Aggregate_AlertingSection and flagged SILENT. The service first posts `startForegroundWithPlaceholder()`'s notification with no full-screen intent, then replaces it on the same id 1001 with the one that has `setFullScreenIntent`, so the post SystemUI weighs for interruption may be the placeholder. Control on the same emulator: Google Clock's alarm at 07:36 with the screen asleep woke the device (`WAKE_REASON_APPLICATION`, a wake lock that turns the screen on) and its AlarmActivity started from SystemUI (`BAL_ALLOW_NON_APP_VISIBLE_WINDOW [realCaller]`), so the platform does launch it.
-  Touches: `service/AlarmService.kt` (`startForegroundWithPlaceholder`, the notify in `startAlarm`, `buildAlarmNotification`), possibly a screen-on wake lock while ringing. First-ring and re-ring paths both.
-  Acceptance: on an API 34+ emulator with a PIN and the screen asleep, both a first ring and a snoozed re-ring open the ringing screen over the lock screen without any touch, and logcat shows an FSI launch or an allowed activity start for each. A regression test pins that the first alarm-channel post for a ring carries the full-screen intent.
+- [ ] P2: A finished timer on a locked phone opens the app behind the lock screen
+  Why: the timer's full-screen intent opens `MainActivity`, which has no `showWhenLocked`. On a PIN-locked phone the screen wakes and the lock screen shows the "Timer finished" notification (its Stop action works), but there's no timer screen over the lock like the alarm's ringing screen.
+  Evidence: `ui/timer/TimerAlarmService.kt:146-153` (`fullScreen` targets `MainActivity`). Headless API 36 emulator, PIN set, screen asleep: "FSI allowed: device is not interactive" for id 6501, `MainActivity` started with `BAL_ALLOW_NON_APP_VISIBLE_WINDOW`, focus stayed on `NotificationShade` with `isKeyguardShowing=true`. Found while checking the ringing-screen fix.
+  Touches: `ui/timer/TimerAlarmService.kt` (point the full-screen intent at a small show-when-locked finished-timer screen with Stop and Restart), the manifest, en and ja strings.
+  Acceptance: on an API 34+ emulator with a PIN and the screen asleep, a finished timer opens a screen over the lock screen with Stop and Restart, and Stop works without unlocking.
+  Complexity: S
+
+- [ ] P2: The full-screen fallback and the wake-up check prompt can still be grouped silent on Android 16
+  Why: Android 16 (first release) auto-groups an app's notifications once it has several and marks each grouped one silent, and SystemUI never launches a silent notification's full-screen intent. The ringing notifications avoid it as colorized foreground-service posts, but `AlarmFullScreenFallback` (used when the service can't start) and the wake-up check prompt post with plain `notify()`, so colour can't exempt them.
+  Evidence: `service/AlarmFullScreenFallback.kt:92`, `worker/WakeConfirmWorker.kt:308-332`. Raised by the review of the ringing-screen fix. Not yet seen failing on a device.
+  Touches: those two posts. Find what keeps a plain post out of the auto-group on Android 16 (an explicit group of its own, or a short-lived foreground service), and check it on an API 36 emulator with several of the app's notifications showing.
+  Acceptance: with at least four of the app's notifications showing and the screen asleep on a PIN-locked API 36 emulator, each of the two posts gets an "FSI allowed" decision in SystemUI's NotifInterruptLog and opens its screen.
+  Complexity: M
+
+- [ ] P3: Editor row labels are cut off at the largest font size
+  Why: at font scale 2.0 the "Challenge type" row in Snooze & dismiss shows only part of its label, because `SettingsRow` gives the label two lines and the value button takes most of the width.
+  Evidence: `ui/alarmedit/AlarmEditSupport.kt:483-509` (`maxLines = 2`, `TextOverflow.Ellipsis`, trailing button at full size). Seen on a 720x1600 320 dpi emulator while checking the Photo Match buttons (#52).
+  Touches: `ui/alarmedit/AlarmEditSupport.kt` (`SettingsRow`: drop the line cap, or put the value under the label when the label can't fit).
+  Acceptance: at font scale 2.0 on a 720 px wide screen, every `SettingsRow` label in the editor reads in full.
+  Complexity: S
+
+- [ ] P2: The alarm editor forgets unsaved edits and a new photo when Android closes the app behind the camera
+  Why: the editor's draft lives only in the view model. If Android closes the app while the camera or the photo picker is open (common on phones short of memory), the editor comes back with the alarm as saved and every unsaved change gone. The photo result is worse: it arrives before the alarm has loaded, so the reference is saved under a new file name, the screen says "saved", and the load then puts the old photo (or none) back. A cancel in that window says the alarm has no photo even when it has one. The background image picker and the location picker share the same gap.
+  Evidence: `ui/alarmedit/AlarmEditViewModel.kt:198-303` (`init` replaces the whole state after an async Room load), `ui/alarmedit/AlarmEditScreen.kt:298-353` (`photoReferenceKey` falls back to the current time while `isEditing` is still false, and the result callbacks read `state` before the load). Raised by the review of the Photo Match gallery pick (#52). Not yet seen on a device.
+  Touches: `ui/alarmedit/AlarmEditViewModel.kt` (keep the draft in the `SavedStateHandle`, or hold results that arrive before the load and apply them after it), `ui/alarmedit/AlarmEditScreen.kt` (the result callbacks).
+  Acceptance: on an emulator, edit an alarm's time, open the camera from Photo Match, kill the app process with `am kill`, take the photo and return. The editor shows the edited time and the new photo, and saving keeps both. A cancel in the same flow leaves the existing photo and says nothing about a missing one. A Robolectric view model test covers a result that arrives before the load finishes.
   Complexity: M
 
 - [ ] P2: A Spotify alarm never plays Spotify when it rings on a locked or sleeping phone

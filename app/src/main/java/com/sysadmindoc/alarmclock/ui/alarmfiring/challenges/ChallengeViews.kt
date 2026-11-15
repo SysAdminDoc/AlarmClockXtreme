@@ -50,6 +50,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Nfc
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PhoneAndroid
@@ -102,6 +103,9 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import com.sysadmindoc.alarmclock.ui.alarmfiring.dismissLockScreenIfUnlocked
+import com.sysadmindoc.alarmclock.ui.alarmfiring.unlockThen
 import com.sysadmindoc.alarmclock.ui.components.AppButtonShape
 import com.sysadmindoc.alarmclock.ui.components.AppStatusChip
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
@@ -1023,11 +1027,57 @@ fun WalkChallengeView(
     }
 }
 
+/**
+ * Reports whether the phone needs its PIN right away, then once a second for
+ * as long as it runs. Android stops reading NFC tags while the phone is
+ * locked, and the lock can come back with no lifecycle event at all: the lock
+ * timer runs out while the ringing screen keeps the display on, and a
+ * fingerprint unlock gives none either. A lock that needs no PIN doesn't
+ * count. It's cleared here, since the lock timer also locks a phone that
+ * Smart Lock keeps unlocked, and NFC stops reading under that lock too.
+ *
+ * Only once two reads in a row see it. SystemUI marks the lock screen as up a
+ * moment before it says whether that lock needs a PIN, and a power press puts
+ * the lock up just before the ringing screen pauses. Clearing on one read
+ * could bring up the PIN pad, or turn the screen straight back on.
+ */
+internal suspend fun watchPinLock(
+    activity: Activity?,
+    keyguard: KeyguardManager?,
+    onChange: (Boolean) -> Unit
+): Nothing {
+    var noPinLockSeen = false
+    while (true) {
+        val needsPin = keyguard?.isDeviceLocked == true
+        val noPinLock = !needsPin && keyguard?.isKeyguardLocked == true
+        if (noPinLock && noPinLockSeen && activity != null) {
+            dismissLockScreenIfUnlocked(activity, keyguard)
+        }
+        noPinLockSeen = noPinLock
+        onChange(needsPin)
+        delay(PIN_LOCK_RECHECK_MS)
+    }
+}
+
+internal const val PIN_LOCK_RECHECK_MS = 1_000L
+
 @Composable
 fun NfcScanChallengeView(
     challenge: Challenge.NfcChallenge,
     scanStatus: String
 ) {
+    val context = LocalContext.current
+    val activity = LocalActivity.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val keyguard = remember(context) { context.getSystemService(KeyguardManager::class.java) }
+    var locked by remember { mutableStateOf(keyguard?.isDeviceLocked == true) }
+    // Starts over on every return to the ringing screen (a power press mid-ring
+    // locks the phone again) and stops while it's hidden.
+    LaunchedEffect(lifecycleOwner, keyguard) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            watchPinLock(activity, keyguard) { locked = it }
+        }
+    }
     val pulseAlpha = if (LocalMotionEnabled.current) {
         rememberInfiniteTransition(label = "nfcPulse").animateFloat(
             initialValue = 0.4f,
@@ -1063,6 +1113,28 @@ fun NfcScanChallengeView(
                 accent = AccentRed,
                 icon = Icons.Default.WarningAmber
             )
+        }
+
+        // Android only reads NFC tags on an unlocked phone, and the ringing
+        // screen no longer brings up the PIN pad by itself.
+        if (locked && activity != null) {
+            ChallengeNotice(
+                text = stringResource(R.string.challenge_nfc_unlock_first),
+                accent = SnoozeYellow,
+                icon = Icons.Default.Lock
+            )
+            Button(
+                onClick = { unlockThen(activity, keyguard) { locked = false } },
+                colors = ButtonDefaults.buttonColors(containerColor = AccentBlue, contentColor = accentForeground(AccentBlue)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = AppButtonShape
+            ) {
+                Icon(Icons.Default.Lock, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.challenge_nfc_unlock_button))
+            }
         }
 
         if (challenge.registeredTagId.isBlank()) {
