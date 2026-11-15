@@ -182,7 +182,7 @@ Moved from Roadmap_Blocked.md on 2026-11-14. Its "needs an API 37 emulator" bloc
 Moved from Roadmap_Blocked.md on 2026-11-14. Each was parked as "needs a device or emulator", and that doesn't hold: this machine has API 32, 36 and 37 images, tablet and foldable AVDs, and google_apis images with Play services and built-in Health Connect. Run them on a headless `-no-audio` emulator.
 
 - [ ] Audit: Health Connect, YouTube engine update and NewPipe search against a live network
-  Why: all three are code-traced. Each depends on a remote service answering, and two of them are play-flavor only.
+  Why: all three are code-traced. Each depends on a remote service answering, and two of them are play-flavor only. Jackson 2.18.11 and Guava 33.7.2-android (moved 2026-11-15, OSV clean, both releases shrink under R8) ride the YouTube and NewPipe paths, so this run is also that bump's live check.
   Needs: a google_apis emulator with Play services and network (Health Connect is built in from API 34).
   Complexity: M
 
@@ -255,13 +255,6 @@ Cross-references, not new items:
   Evidence: `ui/alarmedit/AlarmEditScreen.kt:290-292` (camera only) and `:330-340` (background image launcher); `util/PhotoMatcher.kt:52` (`saveReference` copies a bitmap into app storage); https://github.com/SysAdminDoc/AlarmClockXtreme/discussions/52; https://developer.android.com/training/data-storage/shared/photopicker
   Touches: `ui/alarmedit/AlarmEditScreen.kt` (a `PickVisualMedia` launcher with `ImageOnly`), `util/PhotoMatcher.kt` (decode the picked URI with downsampling and EXIF orientation, then `saveReference`), the Photo Match editor buttons and their en and ja strings.
   Acceptance: a picked image is copied through `saveReference`, so the alarm keeps working after the original is deleted. A very large image decodes without running out of memory. A phone photo saved with an EXIF rotation matches the same scene shot upright at dismiss time. The manifest gains no storage permission. Unit tests cover the decode and save path.
-  Complexity: S
-
-- [ ] P1: Move Jackson to 2.18.11 and Guava to 33.7.2-android
-  Why: An OSV query over both lockfiles on 2026-11-14 found seven advisories against the pinned Jackson 2.18.9 (Play build only) and one high severity Guava advisory, GHSA-xxph-c9ww-hj94 (published 2026-10-27), against both builds. The Guava constraint is `playImplementation`, so the fdroid build still resolves 33.3.1-android.
-  Evidence: `app/build.gradle.kts:473-505` (constraints, Jackson at 478-486, Guava at 502-504); `app/gradle.lockfile:190-191`; GHSA-7hhh-6rmp-j9qf, GHSA-p6pp-m3f8-5c89, GHSA-cxp5-3px4-pw24, GHSA-gx83-3vf8-gh7j, GHSA-q4xh-88c3-wmh7, GHSA-wjgm-6hv5-3cvf, GHSA-wv8q-qhhj-9h54 and GHSA-xxph-c9ww-hj94 on https://osv.dev; 2.18.11 is on Maven Central for jackson-core, jackson-databind and jackson-annotations.
-  Touches: the three Jackson constraints (2.18.9 to 2.18.11, with `because` text naming the new IDs), the Guava constraint (33.7.2-android, moved from `playImplementation` to `implementation` so it covers fdroid too), both lockfiles, `gradle/verification-metadata.xml`.
-  Acceptance: the OSV lockfile query returns no hits. `verifyDependencyIntegrity` passes. Both release builds shrink under R8. YouTube download and NewPipe search in the Play build still work against a live network.
   Complexity: S
 
 - [ ] P1: Confirm the ringing screen really came back after the Spotify fallback

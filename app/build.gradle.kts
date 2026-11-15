@@ -475,13 +475,16 @@ dependencies {
         // still resolve stale parser/archive transitives. Keep these as
         // constraints, not direct feature dependencies, so F-Droid remains free
         // of the Play-only downloader graph.
-        "playImplementation"("com.fasterxml.jackson.core:jackson-databind:2.18.9") {
-            because("CVE-2026-54512/54513 bypasses, CVE-2026-54514 SSRF, CVE-2026-54515 DoS")
+        "playImplementation"("com.fasterxml.jackson.core:jackson-databind:2.18.11") {
+            because(
+                "OSV GHSA-7hhh-6rmp-j9qf, GHSA-p6pp-m3f8-5c89, GHSA-cxp5-3px4-pw24, GHSA-gx83-3vf8-gh7j, " +
+                    "GHSA-q4xh-88c3-wmh7, GHSA-wjgm-6hv5-3cvf and GHSA-wv8q-qhhj-9h54 hit 2.18.9; 2.18.11 is clean"
+            )
         }
-        "playImplementation"("com.fasterxml.jackson.core:jackson-core:2.18.9") {
+        "playImplementation"("com.fasterxml.jackson.core:jackson-core:2.18.11") {
             because("Keep Jackson modules aligned with constrained jackson-databind")
         }
-        "playImplementation"("com.fasterxml.jackson.core:jackson-annotations:2.18.9") {
+        "playImplementation"("com.fasterxml.jackson.core:jackson-annotations:2.18.11") {
             because("Keep Jackson modules aligned with constrained jackson-databind")
         }
         "playImplementation"("org.apache.commons:commons-compress:1.28.0") {
@@ -499,8 +502,9 @@ dependencies {
         "playImplementation"("org.jsoup:jsoup:1.23.2") {
             because("OSV GHSA-pmhh-3w7g-xqp8 is fixed in jsoup 1.23.1 and later")
         }
-        "playImplementation"("com.google.guava:guava:33.6.0-android") {
-            because("OSV reports advisories against the Health Connect transitive 31.1-android")
+        // Both flavors: fdroid resolves Guava transitively too, not just the Play-only Health Connect graph.
+        implementation("com.google.guava:guava:33.7.2-android") {
+            because("OSV GHSA-xxph-c9ww-hj94 hits 33.6.0-android and the fdroid transitive 33.3.1-android")
         }
     }
 

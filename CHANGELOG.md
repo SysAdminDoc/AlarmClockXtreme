@@ -51,6 +51,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 - Switches and buttons in Settings line up with the text fields and notes in the same card, and pressing one still highlights the row out to the card's edge.
 - Rows of chips wrap onto a second line instead of running off the edge. Every Bedtime quiz answer, sleep tag and timer choice stays in view, and so do the status chips on alarms, the ringing screen and Statistics, and the warnings on a shared alarm.
 - The cards on Bedtime, the jet lag planner and the Wake readiness page sit two to a row, so the room reading, the daily move and the last readiness tile aren't hidden past the edge of the screen. Cards in a row match the tallest one without a band of empty space at the bottom, and the Bedtime and jet lag cards stand out from the panel behind them instead of blending in. The planner also drops a chip row that repeated what its cards say, and its daily move card shows how many days the move lasts instead of saying "Later" under "38m later".
+- Two bundled libraries, Jackson and Guava, moved to releases that fix known security problems. The F-Droid build now gets the newer Guava too.
 
 ### Fixed
 
