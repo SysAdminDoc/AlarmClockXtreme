@@ -290,14 +290,18 @@ class AlarmListViewModel @Inject constructor(
     }
 
     fun deleteSelected() {
+        // Taken and cleared before anything suspends, so a second tap on the
+        // still-visible Delete finds nothing left to delete.
+        val ids = _selectedIds.value.toList()
+        if (ids.isEmpty()) return
+        clearSelection()
         viewModelScope.launch {
-            val deleted = _selectedIds.value.toList().mapNotNull { id ->
+            val deleted = ids.mapNotNull { id ->
                 scheduler.cancel(id)
                 repository.getById(id)?.also { repository.delete(it) }
             }
             scheduler.syncBedtimeDndRule()
-            clearSelection()
-            if (deleted.isNotEmpty()) _undoAlarms.value = deleted
+            if (deleted.isNotEmpty()) _undoAlarms.update { it + deleted }
         }
     }
 
@@ -396,7 +400,9 @@ class AlarmListViewModel @Inject constructor(
             scheduler.cancel(alarm.id)
             repository.delete(alarm)
             scheduler.syncBedtimeDndRule()
-            _undoAlarms.value = listOf(alarm)
+            // Added to a still-pending undo rather than replacing it, so an
+            // earlier delete whose snackbar was cut short stays restorable.
+            _undoAlarms.update { it + alarm }
         }
     }
 

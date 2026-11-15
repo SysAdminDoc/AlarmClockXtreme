@@ -12,7 +12,9 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -34,7 +36,8 @@ class BulkDeleteUndoTest {
     private val repository = mockk<AlarmRepository>(relaxed = true).also { repo ->
         coEvery { repo.getById(any()) } answers { store[firstArg()] }
         coEvery { repo.getAll() } answers { store.values.toList() }
-        coEvery { repo.delete(any()) } answers { store.remove(firstArg<Alarm>().id); Unit }
+        // Suspends after removing, the way Room's DAO hops threads, so two deletes can interleave.
+        coEvery { repo.delete(any()) } coAnswers { store.remove(firstArg<Alarm>().id); delay(10); Unit }
         coEvery { repo.save(any()) } answers {
             val alarm = firstArg<Alarm>()
             saves += alarm
@@ -109,6 +112,39 @@ class BulkDeleteUndoTest {
         assertEquals(2, saves.size)
         coVerify(exactly = 1) { scheduler.scheduleAt(upcoming, future, any()) }
         coVerify(exactly = 1) { scheduler.schedule(overdue, any(), any()) }
+    }
+
+    @Test
+    fun `a second tap on Delete while the first is running keeps the whole set restorable`() = runTest(dispatcher) {
+        val vm = viewModel()
+        val deleted = listOf(upcoming, overdue, off)
+        vm.selectMany(deleted.map { it.id }.toSet())
+
+        vm.deleteSelected()
+        advanceTimeBy(15)
+        vm.deleteSelected()
+        advanceUntilIdle()
+        vm.undoDelete()
+        advanceUntilIdle()
+
+        assertEquals(deleted.toSet(), saves.toSet())
+        assertEquals(4, store.size)
+    }
+
+    @Test
+    fun `a bulk delete keeps an earlier swipe delete restorable`() = runTest(dispatcher) {
+        val vm = viewModel()
+        vm.deleteAlarm(untouched)
+        advanceUntilIdle()
+        vm.selectMany(setOf(upcoming.id, off.id))
+        vm.deleteSelected()
+        advanceUntilIdle()
+
+        vm.undoDelete()
+        advanceUntilIdle()
+
+        assertEquals(setOf(untouched, upcoming, off), saves.toSet())
+        assertEquals(4, store.size)
     }
 
     @Test
