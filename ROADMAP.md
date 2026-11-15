@@ -378,3 +378,10 @@ Cross-references, not new items:
   Touches: `service/AlarmService.kt`. Check the docs for a route that needs no permission (`AudioManager.addOnModeChangedListener`, API 31, reports `MODE_RINGTONE` and `MODE_IN_CALL`) before adding a permission and a prompt.
   Acceptance: on an API 31+ emulator, a ringing alarm goes quiet when a call comes in (`adb emu gsm call`) and comes back when it ends, and logcat has no registration warning. A unit test covers the mode-to-mute mapping.
   Complexity: S
+
+- [ ] P2: A ring that another alarm takes over while it's still starting keeps starting
+  Why: `startAlarm` runs on the IO dispatcher and never checks that its fire is still the current one. When a second alarm's start command preempts it during the alarm row read (two alarms set for the same minute arrive back to back), the first one carries on after the second has stopped playback and taken over `currentFireId`. It then posts its notification under the second fire's id, launches its ringing screen with that id, and starts its own audio on top. Traced in review, not reproduced yet.
+  Evidence: `service/AlarmService.kt`, `onStartCommand` ACTION_START (`serviceScope.launch { startAlarm(alarmId, testRun, fireId) }`) and `startAlarm` from the `repository.getById` read on. The first-launch check and the Spotify re-post already return once `currentFireId` isn't the ring's own `fireId`, the older steps don't. A real ring of the same alarm taking over from a test hits this too.
+  Touches: `service/AlarmService.kt` (`startAlarm` already has its `fireId`; return before each side effect once `currentFireId` has moved on, and build the ringing screen's intent from `fireId` rather than `currentFireId`).
+  Acceptance: on an API 36 emulator, two alarms set for the same minute leave one notification, one ringing screen and one audio stream, all for the alarm that started last, and the incident log shows the first one as preempted. A unit test covers the stale-fire check.
+  Complexity: S
