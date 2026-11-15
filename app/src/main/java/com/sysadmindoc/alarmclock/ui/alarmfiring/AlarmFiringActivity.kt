@@ -30,6 +30,7 @@ import com.sysadmindoc.alarmclock.domain.AlarmScheduler
 import com.sysadmindoc.alarmclock.service.AlarmFireDismissContract
 import com.sysadmindoc.alarmclock.service.AlarmService
 import com.sysadmindoc.alarmclock.service.AlarmTestRun
+import com.sysadmindoc.alarmclock.service.FiringScreenPresence
 import com.sysadmindoc.alarmclock.ui.alarmfiring.challenges.Challenge
 import com.sysadmindoc.alarmclock.ui.theme.AlarmClockXtremeTheme
 import com.sysadmindoc.alarmclock.util.FlipDetector
@@ -344,6 +345,7 @@ class AlarmFiringActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        FiringScreenPresence.shown(fireId)
         // Enable NFC foreground dispatch for NFC_SCAN challenge
         val challenge = viewModel.uiState.value.challenge
         if (challenge is Challenge.NfcChallenge) {
@@ -354,6 +356,11 @@ class AlarmFiringActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         disableNfcForegroundDispatch()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        FiringScreenPresence.hidden(fireId)
     }
 
     private fun launchPhotoCapture() {

@@ -206,6 +206,13 @@ class AlarmService : Service() {
     // Fires the guaranteed default tone if the Media3 player never actually
     // starts (stuck buffering with no onPlayerError) so the alarm can't ring silently.
     private var playbackWatchdogJob: Job? = null
+    // Looks, shortly after the Spotify fallback relaunched the ringing screen,
+    // whether it really came back. Separate from the watchdog, which the
+    // fallback cancels.
+    private var firingScreenCheckJob: Job? = null
+    // The fire whose ringing screen Android kept behind another app. Its
+    // notification says so and tapping it opens the screen.
+    private var screenBlockedFireId: String? = null
     @Volatile
     private var forceBuiltInSpeakerForFallback: Boolean = false
     private var currentAlarmId: Long = -1
@@ -825,11 +832,15 @@ class AlarmService : Service() {
                 getString(if (testRun) R.string.alarm_test_notification_title else R.string.notif_alarm_title)
             )
             .setContentText(
-                AlarmPublicText.firingNotificationText(
-                    label = alarm.label,
-                    fallbackTime = timeText,
-                    hideLabel = hideLabel
-                )
+                if (currentFireId.isNotEmpty() && screenBlockedFireId == currentFireId) {
+                    getString(R.string.notif_alarm_screen_blocked_text)
+                } else {
+                    AlarmPublicText.firingNotificationText(
+                        label = alarm.label,
+                        fallbackTime = timeText,
+                        hideLabel = hideLabel
+                    )
+                }
             )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
@@ -1340,6 +1351,39 @@ class AlarmService : Service() {
             )
             startMedia3DefaultFallback(alarm)
             bringFiringScreenBack(alarm)
+            confirmFiringScreenReturned(alarm, currentFireId)
+        }
+    }
+
+    /**
+     * A blocked background launch doesn't throw, so look a moment later. If
+     * the ringing screen still isn't up, re-post the notification with a line
+     * that says so: the changed text makes it alert again, and tapping it
+     * opens the screen.
+     */
+    private fun confirmFiringScreenReturned(alarm: Alarm, fireId: String) {
+        firingScreenCheckJob?.cancel()
+        firingScreenCheckJob = serviceScope.launch {
+            delay(FiringScreenPresence.RELAUNCH_CHECK_DELAY_MS)
+            val outcome = FiringScreenPresence.relaunchOutcome(
+                stillRinging = currentAlarmId == alarm.id && currentFireId == fireId,
+                fireId = fireId
+            )
+            val reasonCode = outcome.reasonCode ?: return@launch
+            if (outcome == FiringScreenPresence.RelaunchOutcome.BLOCKED) {
+                screenBlockedFireId = fireId
+                refreshFiringNotification(alarm)
+            }
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_ACTIVITY_LAUNCH,
+                status = if (outcome == FiringScreenPresence.RelaunchOutcome.RETURNED) {
+                    AlarmIncidentEvent.STATUS_SUCCEEDED
+                } else {
+                    AlarmIncidentEvent.STATUS_FAILED
+                },
+                reasonCode = reasonCode,
+                source = "AlarmService"
+            )
         }
     }
 
@@ -2492,6 +2536,8 @@ class AlarmService : Service() {
         volumeJob = null
         playbackWatchdogJob?.cancel()
         playbackWatchdogJob = null
+        firingScreenCheckJob?.cancel()
+        firingScreenCheckJob = null
         hapticOnlyJob?.cancel()
         hapticOnlyJob = null
         releaseAlarmMediaSession()

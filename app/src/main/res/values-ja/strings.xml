@@ -53,6 +53,7 @@
     <string name="notif_database_downgrade_text">復元データが新しいバージョンのため読めません。アラームとスケジュールは復元されません。再追加するか、新しいバージョンで復元してください。</string>
     <string name="notif_alarm_title">アラーム</string>
     <string name="notif_alarm_ringing">アラーム鳴動中</string>
+    <string name="notif_alarm_screen_blocked_text">Spotifyが再生されなかったため、予備の音を鳴らしています。タップしてアラームを開いてください。</string>
     <string name="notif_snooze_action">%1$d分スヌーズ</string>
     <string name="notif_snooze_countdown_title">スヌーズ中のアラーム</string>
     <string name="notif_snooze_countdown_text">%1$s後に再び鳴ります</string>

@@ -81,6 +81,7 @@
     <string name="notif_database_downgrade_text">The restored data came from a newer version of the app, which this version can’t read. Your alarms weren’t kept and nothing is scheduled. Add them again, or install the newer version and restore once more.</string>
     <string name="notif_alarm_title">Alarm</string>
     <string name="notif_alarm_ringing">Alarm ringing</string>
+    <string name="notif_alarm_screen_blocked_text">Spotify didn’t play, so the backup tone is ringing. Tap to open the alarm.</string>
     <string name="notif_snooze_action">Snooze %1$d min</string>
     <string name="notif_snooze_countdown_title">Snoozed alarm</string>
     <string name="notif_snooze_countdown_text">Rings again in %1$s</string>
