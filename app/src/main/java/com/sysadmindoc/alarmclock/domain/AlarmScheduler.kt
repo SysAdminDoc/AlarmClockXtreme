@@ -23,6 +23,7 @@ import com.sysadmindoc.alarmclock.service.SmartAlarmService
 import com.sysadmindoc.alarmclock.service.AlarmRuntimeState
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
 import com.sysadmindoc.alarmclock.worker.FireWatchdogPolicy
+import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
 import com.sysadmindoc.alarmclock.worker.CalendarSkipWatchWorker
 import com.sysadmindoc.alarmclock.worker.FireWatchdogWorker
 import com.sysadmindoc.alarmclock.worker.HueSunriseNotifications
@@ -314,10 +315,14 @@ class AlarmScheduler @Inject constructor(
 
     /**
      * Cancel a scheduled alarm and any associated workers/services.
+     *
+     * [keepFollowUps] leaves the guardian and the wake-up check running. They
+     * follow the last ring, not the next one, so a caller that only moves an
+     * alarm to another time mustn't take them down with the old arm.
      */
-    fun cancel(alarmId: Long) {
+    fun cancel(alarmId: Long, keepFollowUps: Boolean = false) {
         val wasArmed = isArmed(alarmId)
-        cancelScheduledEntries(alarmId, includeFollowUpWorkers = true)
+        cancelScheduledEntries(alarmId, includeFollowUpWorkers = !keepFollowUps)
         // The occurrence is over, so its snooze tally must not carry into the
         // next one. A leftover count at or past the cap would otherwise make a
         // fresh ring open with snooze already withdrawn.
@@ -591,11 +596,37 @@ class AlarmScheduler @Inject constructor(
      * earlier than one minute past it: a smart-wake early fire dismissed
      * before the original minute would otherwise recompute "next" as the
      * same still-future occurrence and ring again minutes later.
+     * @param wakeCheckRefire The ring that ended was the wake-up check ringing
+     * an earlier occurrence again. A ring of the occurrence that ended last
+     * counts the same way without it.
      */
-    suspend fun handleAlarmFired(alarmId: Long, firedScheduledAt: Long = 0L) {
+    suspend fun handleAlarmFired(alarmId: Long, firedScheduledAt: Long = 0L, wakeCheckRefire: Boolean = false) {
         val alarm = repository.getById(alarmId) ?: return
+        // A ring of an occurrence that already ended once, from the wake-up
+        // check or a missed-alarm replay. The service ending it may be a fresh
+        // one that never got the wake-up check's flag, so the occurrence that
+        // ended last is kept on disk. A replay marks its own time before it
+        // starts. The mark is saved once the row is updated, so if the process
+        // dies before that, handling the same ring again still treats it as
+        // the first.
+        val reRing = wakeCheckRefire || (firedScheduledAt > 0L &&
+            AlarmRuntimeState.lastEndedOccurrence(context, alarmId) == firedScheduledAt)
 
         if (!alarm.isRecurringSchedule) {
+            // The calendar auto-alarm keeps a ring's wake-up check when it moves
+            // its row on to the next meeting, and may re-arm a row whose ring
+            // was missed. When the old occurrence rings again, the row already
+            // holds a newer arm past it, which isn't the one that rang. Only
+            // that case qualifies. A reschedule pass (time or zone change, app
+            // update) also moves a one-shot past its ring while it rings,
+            // calendar row included, and that ring still ends the row here.
+            if (reRing && firedScheduledAt > 0L && alarm.isEnabled &&
+                alarm.profileName == CalendarAutoAlarmWorker.AUTO_PROFILE &&
+                alarm.nextTriggerTime > firedScheduledAt
+            ) {
+                AlarmRuntimeState.setLastEndedOccurrence(context, alarmId, firedScheduledAt)
+                return
+            }
             // One-shot alarm: disable after firing. Also tear down any still-armed
             // exact-alarm entry. A normally-fired one-shot's PendingIntent was
             // already consumed by AlarmManager (this is a no-op), but a smart-wake
@@ -603,6 +634,7 @@ class AlarmScheduler @Inject constructor(
             // exact alarm would fire a second time at the unmodified trigger minute.
             cancelMainScheduledAlarm(alarmId)
             repository.setEnabled(alarmId, enabled = false, nextTrigger = 0)
+            AlarmRuntimeState.setLastEndedOccurrence(context, alarmId, firedScheduledAt)
             syncBedtimeDndRule()
         } else {
             // Repeating alarm: schedule next occurrence (FLAG_UPDATE_CURRENT
@@ -611,6 +643,7 @@ class AlarmScheduler @Inject constructor(
                 alarm,
                 notBeforeMillis = if (firedScheduledAt > 0L) firedScheduledAt + 60_000L else 0L
             )
+            AlarmRuntimeState.setLastEndedOccurrence(context, alarmId, firedScheduledAt)
         }
     }
 

@@ -342,13 +342,15 @@ class AlarmService : Service() {
                         val preemptedFiredAt = alarmFiredAt
                         val preemptedSnoozeCount = currentSnoozeCount
                         val preemptedFireId = currentFireId
+                        val preemptedRefire = currentWakeConfirmRefireCount > 0
                         serviceScope.launch {
                             finalizePreemptedAlarm(
                                 alarmId = preemptedAlarmId,
                                 scheduledAt = preemptedScheduledAt,
                                 firedAt = preemptedFiredAt,
                                 snoozeCount = preemptedSnoozeCount,
-                                fireId = preemptedFireId
+                                fireId = preemptedFireId,
+                                wakeCheckRefire = preemptedRefire
                             )
                         }
                     }
@@ -649,7 +651,7 @@ class AlarmService : Service() {
                 currentSnoozeCount = 0
                 currentAlarmId = -1
                 activeAlarm.set(null)
-                outcomes.finishOccurrence(testRun, alarmId, currentScheduledAt)
+                outcomes.finishOccurrence(testRun, alarmId, currentScheduledAt, currentWakeConfirmRefireCount > 0)
                 stopAlarmPlayback()
                 if (isForeground.compareAndSet(true, false)) {
                     stopForeground(STOP_FOREGROUND_REMOVE)
@@ -1960,7 +1962,7 @@ class AlarmService : Service() {
                 currentSnoozeCount = 0
                 currentAlarmId = -1
                 activeAlarm.set(null)
-                outcomes.finishOccurrence(testRun, alarmId, currentScheduledAt)
+                outcomes.finishOccurrence(testRun, alarmId, currentScheduledAt, currentWakeConfirmRefireCount > 0)
                 webhookEvent = WebhookEvent.AlarmDismissed
             } else {
                 currentSnoozeCount = nextSnoozeCount
@@ -2132,7 +2134,7 @@ class AlarmService : Service() {
             currentAlarmId = -1
             activeAlarm.set(null)
         }
-        outcomes.finishOccurrence(testRun, alarmId, currentScheduledAt)
+        outcomes.finishOccurrence(testRun, alarmId, currentScheduledAt, currentWakeConfirmRefireCount > 0)
         outcomes.publishIdle(testRun, alarmId)
         if (isForeground.compareAndSet(true, false)) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -2361,7 +2363,8 @@ class AlarmService : Service() {
         scheduledAt: Long,
         firedAt: Long,
         snoozeCount: Int,
-        fireId: String
+        fireId: String,
+        wakeCheckRefire: Boolean
     ) {
         try {
             val alarm = repository.getById(alarmId)
@@ -2389,7 +2392,7 @@ class AlarmService : Service() {
                 source = "AlarmService"
             )
             clearAlarmRuntimeState(alarmId)
-            alarmScheduler.handleAlarmFired(alarmId, scheduledAt)
+            alarmScheduler.handleAlarmFired(alarmId, scheduledAt, wakeCheckRefire)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to finalize preempted alarm $alarmId", e)
         }

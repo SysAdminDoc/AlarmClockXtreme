@@ -20,7 +20,9 @@ import com.sysadmindoc.alarmclock.data.repository.CalendarRepository
 import com.sysadmindoc.alarmclock.data.repository.HolidayRepository
 import com.sysadmindoc.alarmclock.directboot.DirectBootAlarmCache
 import com.sysadmindoc.alarmclock.receiver.AlarmReceiver
+import com.sysadmindoc.alarmclock.service.AlarmRuntimeState
 import com.sysadmindoc.alarmclock.widget.WidgetUpdater
+import com.sysadmindoc.alarmclock.worker.CalendarAutoAlarmWorker
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -172,6 +174,18 @@ class AlarmSchedulerTest {
     }
 
     @Test
+    fun cancelThatKeepsFollowUpsLeavesTheLastRingsChecksAndClearsItsSnoozeCount() {
+        AlarmRuntimeState.setSnoozeCount(context, 42L, 2)
+
+        scheduler.cancel(42L, keepFollowUps = true)
+
+        verify { workManager.cancelUniqueWork("hue_sunrise_42") }
+        verify(exactly = 0) { workManager.cancelUniqueWork("guardian_42") }
+        verify(exactly = 0) { workManager.cancelUniqueWork("wake_confirm_42") }
+        assertEquals(0, AlarmRuntimeState.snoozeCount(context, 42L))
+    }
+
+    @Test
     fun cancelLeavesADisarmedRowInTheIncidentLog() = runTest {
         every { calculator.calculate(any<Alarm>(), any()) } returns
             System.currentTimeMillis() + 15 * 60_000L
@@ -286,6 +300,156 @@ class AlarmSchedulerTest {
 
         assertEquals(0, alarmManager.scheduledAlarms.size)
         coVerify { repository.setEnabled(55L, false, 0L) }
+    }
+
+    @Test
+    fun handleAlarmFiredLeavesAOneShotAlreadyMovedPastTheRingThatEnded() = runTest {
+        // The calendar auto-alarm keeps the wake-up check when it moves the row
+        // on to the next meeting. Ending that check's re-fire of the old ring
+        // mustn't switch off or disarm the new time.
+        val endedRing = System.currentTimeMillis() - 30 * 60_000L
+        val nextArm = System.currentTimeMillis() + 20 * 3_600_000L
+        val moved = enabledAlarm(id = 57L).copy(
+            repeatDays = emptySet(),
+            nextTriggerTime = nextArm,
+            profileName = CalendarAutoAlarmWorker.AUTO_PROFILE
+        )
+        every { calculator.calculate(any<Alarm>(), any()) } returns nextArm
+        coEvery { repository.getById(57L) } returns moved
+        scheduler.schedule(moved, requestWidgetUpdate = false)
+        val alarmManager = shadowOf(context.getSystemService(AlarmManager::class.java))
+        assertEquals(1, alarmManager.scheduledAlarms.size)
+
+        scheduler.handleAlarmFired(57L, firedScheduledAt = endedRing, wakeCheckRefire = true)
+
+        assertEquals(1, alarmManager.scheduledAlarms.size)
+        coVerify(exactly = 0) { repository.setEnabled(57L, any(), any()) }
+    }
+
+    @Test
+    fun handleAlarmFiredKnowsAnOccurrenceThatEndedBeforeWithoutTheWakeCheckFlag() = runTest {
+        // The wake-up check's re-fire came up through the full-screen fallback,
+        // so a fresh service ended it and never saw the flag.
+        val endedRing = System.currentTimeMillis() - 30 * 60_000L
+        val nextArm = System.currentTimeMillis() + 20 * 3_600_000L
+        val calendarRow = enabledAlarm(id = 61L).copy(
+            repeatDays = emptySet(),
+            nextTriggerTime = endedRing,
+            profileName = CalendarAutoAlarmWorker.AUTO_PROFILE
+        )
+        coEvery { repository.getById(61L) } returns calendarRow
+        scheduler.handleAlarmFired(61L, firedScheduledAt = endedRing)
+        coVerify(exactly = 1) { repository.setEnabled(61L, false, 0L) }
+
+        val moved = calendarRow.copy(nextTriggerTime = nextArm)
+        every { calculator.calculate(any<Alarm>(), any()) } returns nextArm
+        coEvery { repository.getById(61L) } returns moved
+        scheduler.schedule(moved, requestWidgetUpdate = false)
+        val alarmManager = shadowOf(context.getSystemService(AlarmManager::class.java))
+        assertEquals(1, alarmManager.scheduledAlarms.size)
+
+        scheduler.handleAlarmFired(61L, firedScheduledAt = endedRing)
+
+        assertEquals(1, alarmManager.scheduledAlarms.size)
+        coVerify(exactly = 1) { repository.setEnabled(61L, any(), any()) }
+    }
+
+    @Test
+    fun handleAlarmFiredKeepsTheEndedMarkWhenTheBedtimeSyncFails() = runTest {
+        // The row is already off by the time the Bedtime rule is synced, so a
+        // failure there mustn't lose the mark for that ring.
+        val ringAt = System.currentTimeMillis() - 2 * 60_000L
+        val calendarRow = enabledAlarm(id = 62L).copy(
+            repeatDays = emptySet(),
+            nextTriggerTime = ringAt,
+            profileName = CalendarAutoAlarmWorker.AUTO_PROFILE
+        )
+        coEvery { repository.getById(62L) } returns calendarRow
+        coEvery { preferencesManager.getCurrentSettings() } throws IllegalStateException("settings")
+
+        runCatching { scheduler.handleAlarmFired(62L, firedScheduledAt = ringAt) }
+
+        coVerify(exactly = 1) { repository.setEnabled(62L, false, 0L) }
+        assertEquals(ringAt, AlarmRuntimeState.lastEndedOccurrence(context, 62L))
+    }
+
+    @Test
+    fun handleAlarmFiredSavesTheEndedMarkOnlyOnceTheRowIsUpdated() = runTest {
+        // The mark is saved after the row update. A ring handled twice because
+        // the first pass never finished is still that ring's first ending.
+        val ringAt = System.currentTimeMillis() - 2 * 60_000L
+        val calendarRow = enabledAlarm(id = 63L).copy(
+            repeatDays = emptySet(),
+            nextTriggerTime = ringAt,
+            profileName = CalendarAutoAlarmWorker.AUTO_PROFILE
+        )
+        coEvery { repository.getById(63L) } returns calendarRow
+        coEvery { repository.setEnabled(63L, false, 0L) } throws IllegalStateException("killed")
+
+        runCatching { scheduler.handleAlarmFired(63L, firedScheduledAt = ringAt) }
+
+        assertEquals(0L, AlarmRuntimeState.lastEndedOccurrence(context, 63L))
+    }
+
+    @Test
+    fun handleAlarmFiredEndsACalendarAlarmAZoneChangeMovedPastItsOwnRing() = runTest {
+        // A move west while the calendar alarm rings recalculates today's 8:00
+        // three hours later. That ring is the row's own, not the wake-up check
+        // ringing an old one again, so ending it still switches the row off.
+        val ringAt = System.currentTimeMillis() - 2 * 60_000L
+        val shifted = ringAt + 3 * 3_600_000L
+        val rolled = enabledAlarm(id = 60L).copy(
+            repeatDays = emptySet(),
+            nextTriggerTime = shifted,
+            profileName = CalendarAutoAlarmWorker.AUTO_PROFILE
+        )
+        every { calculator.calculate(any<Alarm>(), any()) } returns shifted
+        coEvery { repository.getById(60L) } returns rolled
+        scheduler.schedule(rolled, requestWidgetUpdate = false)
+        val alarmManager = shadowOf(context.getSystemService(AlarmManager::class.java))
+        assertEquals(1, alarmManager.scheduledAlarms.size)
+
+        scheduler.handleAlarmFired(60L, firedScheduledAt = ringAt)
+
+        assertEquals(0, alarmManager.scheduledAlarms.size)
+        coVerify { repository.setEnabled(60L, false, 0L) }
+    }
+
+    @Test
+    fun handleAlarmFiredEndsAOneShotThatRangEarlyForItsOwnTime() = runTest {
+        // A smart-wake ring carries the row's own time, so it still ends the row.
+        val triggerTime = System.currentTimeMillis() + 20 * 60_000L
+        val oneShot = enabledAlarm(id = 58L).copy(repeatDays = emptySet(), nextTriggerTime = triggerTime)
+        every { calculator.calculate(any<Alarm>(), any()) } returns triggerTime
+        coEvery { repository.getById(58L) } returns oneShot
+        scheduler.schedule(oneShot, requestWidgetUpdate = false)
+        val alarmManager = shadowOf(context.getSystemService(AlarmManager::class.java))
+
+        scheduler.handleAlarmFired(58L, firedScheduledAt = triggerTime)
+
+        assertEquals(0, alarmManager.scheduledAlarms.size)
+        coVerify { repository.setEnabled(58L, false, 0L) }
+    }
+
+    @Test
+    fun handleAlarmFiredEndsAOneShotThatAReschedulePassRolledToTomorrowMidRing() = runTest {
+        // A time or zone change while a plain one-shot rings recalculates it
+        // to tomorrow. Dismissing that ring still has to switch it off.
+        val ringAt = System.currentTimeMillis() - 2 * 60_000L
+        val tomorrow = ringAt + 24 * 3_600_000L
+        val ringing = enabledAlarm(id = 59L).copy(repeatDays = emptySet(), nextTriggerTime = ringAt)
+        every { calculator.calculate(any<Alarm>(), any()) } returns tomorrow
+        coEvery { repository.getEnabled() } returns listOf(ringing)
+        scheduler.rescheduleAllInBatches(forceRecalculate = false)
+        coVerify { repository.updateNextTrigger(59L, tomorrow) }
+        coEvery { repository.getById(59L) } returns ringing.copy(nextTriggerTime = tomorrow)
+        val alarmManager = shadowOf(context.getSystemService(AlarmManager::class.java))
+        assertEquals(1, alarmManager.scheduledAlarms.size)
+
+        scheduler.handleAlarmFired(59L, firedScheduledAt = ringAt)
+
+        assertEquals(0, alarmManager.scheduledAlarms.size)
+        coVerify { repository.setEnabled(59L, false, 0L) }
     }
 
     @Test

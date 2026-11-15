@@ -53,6 +53,9 @@ interface AlarmEventDao {
     @Query("SELECT COUNT(*) FROM alarm_events WHERE alarmId = :alarmId AND firedAt > :sinceMs")
     suspend fun countForAlarm(alarmId: Long, sinceMs: Long): Int
 
+    @Query("SELECT COUNT(*) FROM alarm_events WHERE alarmId = :alarmId AND (CASE WHEN scheduledTime > 0 THEN scheduledTime ELSE firedAt END) >= :fromMs AND (CASE WHEN scheduledTime > 0 THEN scheduledTime ELSE firedAt END) < :untilMs")
+    suspend fun countForAlarmBetween(alarmId: Long, fromMs: Long, untilMs: Long): Int
+
     @Query("SELECT AVG(actionAt - firedAt) FROM alarm_events WHERE alarmId = :alarmId AND action = 'DISMISSED' AND actionAt > 0 AND firedAt > :sinceMs")
     suspend fun avgDismissTimeForAlarm(alarmId: Long, sinceMs: Long): Long?
 

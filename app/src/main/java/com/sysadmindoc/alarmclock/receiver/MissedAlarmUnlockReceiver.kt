@@ -18,6 +18,7 @@ import com.sysadmindoc.alarmclock.data.local.entity.AlarmIncidentEvent
 import com.sysadmindoc.alarmclock.data.model.Alarm
 import com.sysadmindoc.alarmclock.service.AlarmFireDismissContract
 import com.sysadmindoc.alarmclock.service.AlarmFullScreenFallback
+import com.sysadmindoc.alarmclock.service.AlarmRuntimeState
 import com.sysadmindoc.alarmclock.service.AlarmService
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
@@ -96,6 +97,11 @@ class MissedAlarmUnlockReceiver : BroadcastReceiver() {
                         ?.takeIf { it.isEnabled }
                         ?: return@withTimeout
 
+                    // The replay rings at the time of the miss. Marked as an
+                    // ended occurrence, it counts as a re-ring when it ends,
+                    // so a calendar auto-alarm that has already moved on to
+                    // its next meeting stays on. Other alarms end as before.
+                    AlarmRuntimeState.setLastEndedOccurrence(context, alarm.id, at)
                     val fireId = AlarmFireDismissContract.fireId(alarm.id, at)
                     val fireIntent = AlarmFireDismissContract.startServiceIntent(context, alarm.id, at, fireId)
                     try {

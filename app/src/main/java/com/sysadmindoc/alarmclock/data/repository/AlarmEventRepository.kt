@@ -173,6 +173,15 @@ class AlarmEventRepository @Inject constructor(
         )
     }
 
+    /**
+     * Whether [alarmId] has a history row in [fromMs, untilMs): a ring that
+     * was dismissed or missed, or a skip. Rows are placed by the time the
+     * ring was set for, which a skip shares, and fall back to when it fired
+     * for a row that has none.
+     */
+    suspend fun hasEventBetween(alarmId: Long, fromMs: Long, untilMs: Long): Boolean =
+        dao.countForAlarmBetween(alarmId, fromMs, untilMs) > 0
+
     suspend fun clearHistory() = dao.deleteAll()
 
     companion object {

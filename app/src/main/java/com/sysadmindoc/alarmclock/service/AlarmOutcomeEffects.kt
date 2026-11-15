@@ -112,11 +112,12 @@ internal class AlarmOutcomeEffects(
     /**
      * Ends the occurrence in the schedule: a one-shot is switched off and a
      * repeating alarm moves to its next time. A test never fired a scheduled
-     * occurrence, so there is nothing to move.
+     * occurrence, so there is nothing to move. [wakeCheckRefire] says the
+     * wake-up check rang that occurrence again.
      */
-    suspend fun finishOccurrence(testRun: Boolean, alarmId: Long, scheduledAt: Long) {
+    suspend fun finishOccurrence(testRun: Boolean, alarmId: Long, scheduledAt: Long, wakeCheckRefire: Boolean = false) {
         if (testRun) return
-        alarmScheduler.handleAlarmFired(alarmId, scheduledAt)
+        alarmScheduler.handleAlarmFired(alarmId, scheduledAt, wakeCheckRefire)
     }
 
     /**

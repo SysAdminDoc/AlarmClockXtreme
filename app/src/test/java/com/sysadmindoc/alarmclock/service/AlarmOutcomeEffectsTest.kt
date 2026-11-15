@@ -146,4 +146,11 @@ class AlarmOutcomeEffectsTest {
 
         confirmVerified(incidentRepository)
     }
+
+    @Test
+    fun `a ring the wake-up check rang again tells the scheduler so`() = runTest {
+        effects.finishOccurrence(testRun = false, alarmId = 7L, scheduledAt = 1_000L, wakeCheckRefire = true)
+
+        coVerify(exactly = 1) { alarmScheduler.handleAlarmFired(7L, 1_000L, true) }
+    }
 }
