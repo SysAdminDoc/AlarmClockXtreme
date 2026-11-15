@@ -443,6 +443,9 @@ dependencies {
     // Media3 / ExoPlayer is the alarm audio backend. When it cannot play,
     // startMedia3DefaultFallback drops into the MediaPlayer path in AlarmService.
     implementation("androidx.media3:media3-exoplayer:1.10.1")
+    // HLS (.m3u8) radio streams (#65). Media3 finds the module by reflection
+    // and picks it from the address's extension, for the alarm and the preview.
+    implementation("androidx.media3:media3-exoplayer-hls:1.10.1")
 
     // YouTube alarm-sound download (play flavor only — bundles a native Python
     // interpreter that isn't F-Droid-compatible, so the f-droid flavor uses a

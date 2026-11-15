@@ -101,7 +101,7 @@ class AlarmEditDraftTest {
             AlarmEditorSection.HUE to AlarmEditorPage.INTEGRATIONS,
             AlarmEditorSection.ANTI_SNOOZE to AlarmEditorPage.DISMISS,
             AlarmEditorSection.SUNRISE to AlarmEditorPage.WAKE,
-            AlarmEditorSection.RADIO to AlarmEditorPage.INTEGRATIONS,
+            AlarmEditorSection.RADIO to AlarmEditorPage.SOUND,
             AlarmEditorSection.GUARDIAN to AlarmEditorPage.INTEGRATIONS,
             AlarmEditorSection.ROUTINE to AlarmEditorPage.WAKE,
             AlarmEditorSection.ADVANCED to AlarmEditorPage.ADVANCED

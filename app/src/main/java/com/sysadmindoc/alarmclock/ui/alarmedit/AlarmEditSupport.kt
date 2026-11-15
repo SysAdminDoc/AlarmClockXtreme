@@ -279,7 +279,6 @@ internal fun AlarmEditorCategoryOverview(
     val integrationCount = listOf(
         state.spotifyUri.isNotBlank(),
         state.hueEnabled,
-        state.internetRadioUrl.isNotBlank(),
         state.guardianEnabled
     ).count { it }
     val advancedFeatures = listOfNotNull(

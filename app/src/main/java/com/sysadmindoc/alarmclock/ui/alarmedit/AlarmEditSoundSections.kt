@@ -66,6 +66,11 @@ import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
+import com.sysadmindoc.alarmclock.ui.radio.RadioPlaylistStatus
+import com.sysadmindoc.alarmclock.ui.radio.RadioPreview
+import com.sysadmindoc.alarmclock.ui.radio.RadioStationViewModel
+import com.sysadmindoc.alarmclock.ui.radio.StopRadioPreviewWhenHidden
+import com.sysadmindoc.alarmclock.ui.radio.streamUrl
 import com.sysadmindoc.alarmclock.ui.theme.*
 import com.sysadmindoc.alarmclock.util.LocationHelper
 import com.sysadmindoc.alarmclock.util.PhotoMatcher
@@ -81,7 +86,9 @@ internal fun LazyListScope.alarmEditSoundSections(
     editorPage: AlarmEditorPage,
     state: AlarmEditUiState,
     viewModel: AlarmEditViewModel,
-    onOpenRingtonePicker: () -> Unit
+    radioViewModel: RadioStationViewModel,
+    onOpenRingtonePicker: () -> Unit,
+    onOpenRadioSearch: () -> Unit
 ) {
     // Sound settings
     SettingsSection(editorPage, AlarmEditorSection.SOUND) {
@@ -196,6 +203,17 @@ internal fun LazyListScope.alarmEditSoundSections(
                 }
             }
         }
+    }
+
+    // Internet radio replaces the ringtone, so it sits next to it (#65). It
+    // used to be the eleventh card on Integrations, where nobody found it.
+    SettingsSection(editorPage, AlarmEditorSection.RADIO) {
+        InternetRadioContent(
+            state = state,
+            viewModel = viewModel,
+            radioViewModel = radioViewModel,
+            onOpenRadioSearch = onOpenRadioSearch
+        )
     }
 
     // Vibration
@@ -333,4 +351,119 @@ internal fun LazyListScope.alarmEditSoundSections(
             }
         }
     }
+}
+
+@Composable
+private fun ColumnScope.InternetRadioContent(
+    state: AlarmEditUiState,
+    viewModel: AlarmEditViewModel,
+    radioViewModel: RadioStationViewModel,
+    onOpenRadioSearch: () -> Unit
+) {
+    val playlistStatus by radioViewModel.playlist.collectAsStateWithLifecycle()
+    val previewState by radioViewModel.previewState.collectAsStateWithLifecycle()
+    val currentUrl by rememberUpdatedState(state.internetRadioUrl)
+    val url = state.internetRadioUrl.trim()
+
+    StopRadioPreviewWhenHidden(radioViewModel)
+    LaunchedEffect(state.internetRadioUrl) {
+        radioViewModel.onStreamUrlChanged(state.internetRadioUrl)
+    }
+    // Media3 plays the stream a .pls or .m3u points at, never the playlist
+    // itself, so a pasted playlist link rang the fallback tone every time.
+    LaunchedEffect(playlistStatus) {
+        val replaced = playlistStatus as? RadioPlaylistStatus.Replaced ?: return@LaunchedEffect
+        if (currentUrl.trim() == replaced.playlistUrl) {
+            viewModel.updateInternetRadioUrl(replaced.streamUrl)
+        }
+    }
+
+    val isHttps = url.startsWith("https://", ignoreCase = true)
+    val previewActive = (previewState is RadioPreview.State.Loading || previewState is RadioPreview.State.Playing) &&
+        previewState.streamUrl == url
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedButton(
+            onClick = onOpenRadioSearch,
+            modifier = Modifier.weight(1f),
+            shape = AppButtonShape,
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(stringResource(R.string.radio_find_station), fontWeight = FontWeight.SemiBold)
+        }
+        if (isHttps && playlistStatus != RadioPlaylistStatus.Reading) {
+            OutlinedButton(
+                onClick = { radioViewModel.togglePreview(url) },
+                shape = AppButtonShape,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+            ) {
+                Icon(
+                    imageVector = if (previewActive) Icons.Default.Stop else Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    if (previewActive) stringResource(R.string.radio_stop) else stringResource(R.string.radio_play),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+
+    // Cleartext is blocked at this targetSdk, so an http stream silently
+    // fell back to the default tone with nothing said about why.
+    val radioNeedsHttps = url.isNotEmpty() && !isHttps
+    OutlinedTextField(
+        value = state.internetRadioUrl,
+        onValueChange = viewModel::updateInternetRadioUrl,
+        label = { Text(stringResource(R.string.alarm_edit_stream_url), color = TextMuted) },
+        placeholder = { Text(stringResource(R.string.alarm_edit_default_ringtone_placeholder), color = TextMuted) },
+        isError = radioNeedsHttps || playlistStatus == RadioPlaylistStatus.OnlyInsecure,
+        colors = appOutlinedTextFieldColors(),
+        shape = AppInputShape,
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        singleLine = true
+    )
+    when (playlistStatus) {
+        RadioPlaylistStatus.Reading -> SettingsHint(
+            stringResource(R.string.alarm_edit_radio_playlist_reading),
+            tone = HintTone.Neutral
+        )
+        is RadioPlaylistStatus.Replaced -> SettingsHint(
+            stringResource(R.string.alarm_edit_radio_playlist_replaced),
+            tone = HintTone.Neutral
+        )
+        RadioPlaylistStatus.OnlyInsecure -> SettingsHint(
+            stringResource(R.string.alarm_edit_radio_playlist_insecure),
+            tone = HintTone.Warning
+        )
+        RadioPlaylistStatus.Unreadable -> SettingsHint(
+            stringResource(R.string.alarm_edit_radio_playlist_unreadable),
+            tone = HintTone.Warning
+        )
+        RadioPlaylistStatus.None -> if (radioNeedsHttps) {
+            SettingsHint(
+                stringResource(R.string.alarm_edit_radio_https_required),
+                tone = HintTone.Warning
+            )
+        }
+    }
+    val failed = previewState as? RadioPreview.State.Failed
+    if (failed != null && failed.url == url) {
+        SettingsHint(
+            stringResource(R.string.radio_preview_failed_body),
+            tone = HintTone.Warning
+        )
+    }
+    SettingsHint(
+        stringResource(R.string.alarm_edit_radio_hint),
+        tone = HintTone.Neutral
+    )
 }

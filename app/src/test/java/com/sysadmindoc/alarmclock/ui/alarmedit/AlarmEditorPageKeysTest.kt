@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
+import com.sysadmindoc.alarmclock.ui.radio.RadioStationViewModel
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -45,12 +46,13 @@ class AlarmEditorPageKeysTest {
         val scope = RecordingScope()
         val state = AlarmEditUiState()
         val viewModel = mockk<AlarmEditViewModel>(relaxed = true)
+        val radioViewModel = mockk<RadioStationViewModel>(relaxed = true)
         val context = mockk<Context>(relaxed = true)
         // Mirrors the page dispatch in AlarmEditScreen.
         with(scope) {
             when (page) {
                 AlarmEditorPage.OVERVIEW -> alarmEditOverviewSections(page, state, viewModel, {}, {})
-                AlarmEditorPage.SOUND -> alarmEditSoundSections(page, state, viewModel, {})
+                AlarmEditorPage.SOUND -> alarmEditSoundSections(page, state, viewModel, radioViewModel, {}, {})
                 AlarmEditorPage.DISMISS ->
                     alarmEditDismissSections(page, state, viewModel, context, {}, "", {}, "", {})
                 AlarmEditorPage.SCHEDULE -> alarmEditScheduleSections(page, state, viewModel)
@@ -76,5 +78,16 @@ class AlarmEditorPageKeysTest {
         val keys = keysFor(AlarmEditorPage.INTEGRATIONS)
         assertTrue(keys.contains("alarm-editor-spotify"))
         assertTrue(keys.contains("alarm-editor-dismiss_action"))
+    }
+
+    @Test
+    fun internetRadioSitsOnTheSoundPageNextToTheRingtone() {
+        // #65: on Integrations it was the eleventh card down and nobody found it.
+        val sound = keysFor(AlarmEditorPage.SOUND)
+        assertEquals(
+            listOf("alarm-editor-sound", "alarm-editor-radio", "alarm-editor-vibration"),
+            sound
+        )
+        assertTrue("radio is still listed on Integrations", "alarm-editor-radio" !in keysFor(AlarmEditorPage.INTEGRATIONS))
     }
 }

@@ -67,6 +67,8 @@ import com.sysadmindoc.alarmclock.ui.components.AppSurfaceCard
 import com.sysadmindoc.alarmclock.ui.components.AppInputShape
 import com.sysadmindoc.alarmclock.ui.components.appOutlinedTextFieldColors
 import com.sysadmindoc.alarmclock.ui.components.appSwitchColors
+import com.sysadmindoc.alarmclock.ui.radio.RadioStationSearchSheet
+import com.sysadmindoc.alarmclock.ui.radio.RadioStationViewModel
 import com.sysadmindoc.alarmclock.ui.ringtone.RingtonePickerSheet
 import com.sysadmindoc.alarmclock.ui.theme.*
 import com.sysadmindoc.alarmclock.util.LocationHelper
@@ -101,6 +103,7 @@ internal enum class AlarmEditorSection(
     LABEL(AlarmEditorPage.OVERVIEW, R.string.label, R.string.alarm_edit_section_label_description),
     GROUP(AlarmEditorPage.OVERVIEW, R.string.alarm_edit_group, R.string.alarm_edit_section_group_description),
     SOUND(AlarmEditorPage.SOUND, R.string.alarm_edit_sound, R.string.alarm_edit_section_sound_description),
+    RADIO(AlarmEditorPage.SOUND, R.string.alarm_edit_internet_radio, R.string.alarm_edit_section_radio_description),
     VIBRATION(AlarmEditorPage.SOUND, R.string.vibration, R.string.alarm_edit_section_vibration_description),
     SNOOZE(AlarmEditorPage.DISMISS, R.string.alarm_edit_snooze, R.string.alarm_edit_section_snooze_description),
     // Backup sound sits with the rest of the anti-snooze behaviour, directly
@@ -122,7 +125,6 @@ internal enum class AlarmEditorSection(
     DISMISS_ACTION(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_section_dismiss_action, R.string.alarm_edit_section_dismiss_action_description),
     HUE(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_hue, R.string.alarm_edit_section_hue_description),
     SUNRISE(AlarmEditorPage.WAKE, R.string.alarm_edit_sunrise, R.string.alarm_edit_section_sunrise_description),
-    RADIO(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_internet_radio, R.string.alarm_edit_section_radio_description),
     GUARDIAN(AlarmEditorPage.INTEGRATIONS, R.string.alarm_edit_guardian, R.string.alarm_edit_section_guardian_description),
     ROUTINE(AlarmEditorPage.WAKE, R.string.alarm_edit_morning_routine, R.string.alarm_edit_section_routine_description),
     ADVANCED(AlarmEditorPage.ADVANCED, R.string.alarm_edit_advanced, R.string.alarm_edit_section_advanced_description)
@@ -185,7 +187,8 @@ internal fun alarmEditorExitDecision(
 @Composable
 fun AlarmEditScreen(
     onNavigateBack: () -> Unit,
-    viewModel: AlarmEditViewModel = hiltViewModel()
+    viewModel: AlarmEditViewModel = hiltViewModel(),
+    radioViewModel: RadioStationViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -194,6 +197,7 @@ fun AlarmEditScreen(
     var timeNumpadDigits by rememberSaveable { mutableStateOf("") }
     var timeNumpadIsPm by rememberSaveable { mutableStateOf(false) }
     var showRingtonePicker by remember { mutableStateOf(false) }
+    var showRadioSearch by remember { mutableStateOf(false) }
     var showChainPicker by remember { mutableStateOf(false) }
     var photoReferenceStatus by remember { mutableStateOf("") }
     var firingBackgroundStatus by remember { mutableStateOf("") }
@@ -383,6 +387,15 @@ fun AlarmEditScreen(
             currentUri = state.ringtoneUri,
             onSelect = viewModel::updateRingtoneUri,
             onDismiss = { showRingtonePicker = false }
+        )
+    }
+
+    if (showRadioSearch) {
+        RadioStationSearchSheet(
+            viewModel = radioViewModel,
+            currentUrl = state.internetRadioUrl,
+            onChoose = viewModel::updateInternetRadioUrl,
+            onDismiss = { showRadioSearch = false }
         )
     }
 
@@ -581,7 +594,9 @@ fun AlarmEditScreen(
                     editorPage = editorPage,
                     state = state,
                     viewModel = viewModel,
-                    onOpenRingtonePicker = { showRingtonePicker = true }
+                    radioViewModel = radioViewModel,
+                    onOpenRingtonePicker = { showRingtonePicker = true },
+                    onOpenRadioSearch = { showRadioSearch = true }
                 )
                 AlarmEditorPage.DISMISS -> alarmEditDismissSections(
                     editorPage = editorPage,
