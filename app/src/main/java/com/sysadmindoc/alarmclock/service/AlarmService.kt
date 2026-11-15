@@ -231,6 +231,7 @@ class AlarmService : Service() {
         )
     }
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val redeliveredStart = RedeliveredStart { stopSelfResult(it) }
     private var wakeLock: PowerManager.WakeLock? = null
     // v1.9.1: AtomicBoolean (was @Volatile Boolean). Multiple coroutines on
     // serviceScope's IO dispatcher can race the foreground stop path — e.g.
@@ -356,7 +357,11 @@ class AlarmService : Service() {
                     recordIncidentAsync(
                         type = AlarmIncidentEvent.TYPE_FOREGROUND_SERVICE,
                         status = AlarmIncidentEvent.STATUS_RECEIVED,
-                        reasonCode = "START_COMMAND_RECEIVED",
+                        reasonCode = if (flags and START_FLAG_REDELIVERY != 0) {
+                            "START_COMMAND_REDELIVERED"
+                        } else {
+                            "START_COMMAND_RECEIVED"
+                        },
                         source = "AlarmService"
                     )
                     activateAlarmMediaSession("START_COMMAND")
@@ -370,6 +375,10 @@ class AlarmService : Service() {
                     // the notification via nm.notify() with the labelled version.
                     startForegroundWithPlaceholder()
                     serviceScope.launch { startAlarm(alarmId, testRun) }
+                    if (!testRun) {
+                        redeliveredStart.hold(startId)
+                        return START_REDELIVER_INTENT
+                    }
                 }
             }
             ACTION_SNOOZE -> {
@@ -397,6 +406,7 @@ class AlarmService : Service() {
                     return START_NOT_STICKY
                 }
                 val runIsTest = if (currentAlarmId != -1L) currentIsTest else testRun
+                redeliveredStart.releaseHeld()
                 serviceScope.launch { snoozeAlarm(alarmId, customMinutes, snoozeAtMillis, runIsTest) }
             }
             ACTION_SET_CHALLENGE_DUCKING -> {
@@ -440,6 +450,7 @@ class AlarmService : Service() {
                     return START_NOT_STICKY
                 }
                 val runIsTest = if (currentAlarmId != -1L) currentIsTest else testRun
+                redeliveredStart.releaseHeld()
                 serviceScope.launch {
                     dismissAlarm(
                         alarmId = alarmId,

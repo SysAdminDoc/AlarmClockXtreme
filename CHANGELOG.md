@@ -54,6 +54,7 @@ All notable changes to AlarmClockXtreme will be documented in this file.
 ### Fixed
 
 - A Spotify alarm no longer goes quiet when Spotify doesn't start playing. Pasted open.spotify.com links (locale prefixes and old /user/ playlist links included) are turned into the spotify: form Spotify actually opens, the watchdog ignores the alarm's own stream when it checks for playback, and if nothing is playing when the backup sound is due, the default tone starts. Backup sound is now on for new alarms. A link that isn't Spotify gets a warning in the editor and is cleared on save (#53).
+- If Android shuts the app down while an alarm is ringing, the alarm starts ringing again by itself. It used to go quiet and stay quiet. With the ringing screen open it's back within a few seconds.
 - Turning off, deleting or moving later the alarm that's next to ring no longer leaves your other alarms unprotected after a restart. The next one in line takes its place, so it still rings before you unlock the phone for the first time.
 - Opening "Integrations & safety" in the alarm editor no longer crashes the app. The "After you dismiss" card had reused the Spotify card's slot, and two cards in one slot crashed the page. It has its own heading now (#59).
 - Setting descriptions wrap in full. They used to stop after three lines, which cut some of them off on narrow phones and at larger font sizes.
