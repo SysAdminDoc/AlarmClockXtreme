@@ -109,8 +109,11 @@ class AlarmService : Service() {
         const val MISSED_NOTIFICATION_ID = 1003
         const val DEFAULT_AUTO_SILENCE_MINUTES = 10L
         // Grace period for a Media3 player to actually start before we assume it
-        // stalled and fall back to the default tone.
-        private const val PLAYBACK_START_TIMEOUT_MS = 8_000L
+        // stalled and fall back to the default tone. The Spotify watchdog shares
+        // it, and its bringFiringScreenBack launch is only allowed because it lands
+        // inside Android's ~10 s background-start grace period after the ringing
+        // screen was last visible (BAL_ALLOW_GRACE_PERIOD). Keep this under 10 s.
+        internal const val PLAYBACK_START_TIMEOUT_MS = 8_000L
         private const val TAG = "AlarmService"
 
         data class ActiveAlarmSnapshot(
@@ -1296,10 +1299,6 @@ class AlarmService : Service() {
     }
 
     /**
-     * Falls back to the in-app tone when nothing is actually playing a few
-     * seconds after Spotify was handed the alarm.
-     */
-    /**
      * How many streams other than our own alarm are playing right now.
      *
      * `isMusicActive` alone is not proof Spotify started: a podcast or
@@ -1313,6 +1312,10 @@ class AlarmService : Service() {
         return AlarmAudioRouting.otherAppPlaybackStreams(audioManager)
     }
 
+    /**
+     * Falls back to the in-app tone when nothing is actually playing a few
+     * seconds after Spotify was handed the alarm.
+     */
     private fun armSpotifyPlaybackWatchdog(alarm: Alarm, streamsAtLaunch: Int) {
         cancelPlaybackWatchdog()
         playbackWatchdogJob = serviceScope.launch {
@@ -1336,6 +1339,34 @@ class AlarmService : Service() {
                 source = "AlarmService"
             )
             startMedia3DefaultFallback(alarm)
+            bringFiringScreenBack(alarm)
+        }
+    }
+
+    /**
+     * Spotify took the screen when it was handed the alarm. When it never
+     * plays (often it is sitting on its login page), the backup tone rings
+     * behind Spotify's screen, so put the ringing screen back on top where
+     * Dismiss and Snooze are. Same alarm and same test flag, so the
+     * singleInstance screen only comes forward and keeps its state.
+     */
+    private fun bringFiringScreenBack(alarm: Alarm) {
+        val firingIntent = AlarmFireDismissContract.firingActivityIntent(
+            context = this,
+            alarmId = alarm.id,
+            scheduledAt = currentScheduledAt,
+            fireId = currentFireId,
+            testRun = currentIsTest
+        )
+        try {
+            startActivity(firingIntent)
+        } catch (e: Exception) {
+            recordIncidentAsync(
+                type = AlarmIncidentEvent.TYPE_ACTIVITY_LAUNCH,
+                status = AlarmIncidentEvent.STATUS_FAILED,
+                reasonCode = "SPOTIFY_FALLBACK_SCREEN_FAILED_${e.javaClass.simpleName}",
+                source = "AlarmService"
+            )
         }
     }
 
