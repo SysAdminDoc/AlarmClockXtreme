@@ -403,9 +403,15 @@ class AlarmFiringActivity : ComponentActivity() {
         // the service has already finalized as missed.
         // A real alarm taking over from a test of the same alarm relaunches
         // too, so the screen stops showing the test marker and test buttons.
-        val incomingAlarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1L)
-        val incomingIsTest = AlarmTestRun.isTestRun(intent)
-        if (incomingAlarmId != -1L && (incomingAlarmId != alarmId || incomingIsTest != isTestRun)) {
+        if (needsFreshFiringScreen(
+                currentAlarmId = alarmId,
+                currentIsTest = isTestRun,
+                currentFireId = fireId,
+                incomingAlarmId = intent.getLongExtra(AlarmScheduler.EXTRA_ALARM_ID, -1L),
+                incomingIsTest = AlarmTestRun.isTestRun(intent),
+                incomingFireId = intent.getStringExtra(AlarmScheduler.EXTRA_ALARM_FIRE_ID).orEmpty()
+            )
+        ) {
             finish()
             startActivity(Intent(intent).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
@@ -905,3 +911,24 @@ internal fun shouldDuckAlarmForChallenge(
     challengePresent: Boolean,
     challengeSolved: Boolean
 ): Boolean = enabled && challengePresent && !challengeSolved
+
+/**
+ * Whether a launch that reached the live singleInstance ringing screen needs a
+ * fresh one. A new fire of the same alarm counts: a snooze from the
+ * notification leaves the old screen alive, and keeping it would leave the old
+ * fire id behind, so dismiss, incidents and the Spotify screen check would all
+ * point at a fire that already ended.
+ */
+internal fun needsFreshFiringScreen(
+    currentAlarmId: Long,
+    currentIsTest: Boolean,
+    currentFireId: String,
+    incomingAlarmId: Long,
+    incomingIsTest: Boolean,
+    incomingFireId: String
+): Boolean {
+    if (incomingAlarmId == -1L) return false
+    return incomingAlarmId != currentAlarmId ||
+        incomingIsTest != currentIsTest ||
+        (incomingFireId.isNotBlank() && incomingFireId != currentFireId)
+}
