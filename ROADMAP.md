@@ -295,3 +295,10 @@ Cross-references, not new items:
   Touches: `notif_smart_alarm_text` in en and ja.
   Acceptance: the notification says something like "Watching for movement before your alarm", with a matching Japanese line. Nothing else shown for the smart window mentions sleep quality.
   Complexity: XS
+
+- [ ] P3: Undo of a delete loses the calendar-skip mark
+  Why: Deleting an alarm runs `AlarmScheduler.cancel`, which clears `CalendarSkipMarks` and `AlarmRuntimeState`. Undo re-arms an alarm whose stored trigger is still ahead through `scheduleAt`, which never puts the mark back. An alarm a calendar tag had moved comes back without its "Skipped" badge, and deleting the tagged event no longer restores the original ring.
+  Evidence: `domain/AlarmScheduler.kt` `cancel()` (clears the mark) and `scheduleAt()`; `ui/alarmlist/AlarmListViewModel.kt` `undoDelete()`; `calendarSkipTagOf()` in the same file needs the mark's origin to show the badge.
+  Touches: `ui/alarmlist/AlarmListViewModel.kt` (capture each deleted alarm's mark origin before `cancel`, restore it in `undoDelete`), or `AlarmScheduler` if the restore belongs there.
+  Acceptance: WHEN an alarm whose next ring a calendar tag moved is deleted and then restored with Undo, the system SHALL show the same calendar-skip badge as before the delete, and removing the tagged event SHALL bring back the original ring. A unit test covers the round trip.
+  Complexity: XS
